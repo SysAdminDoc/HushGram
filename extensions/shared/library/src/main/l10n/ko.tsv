@@ -1,0 +1,353 @@
+# Korean for HushGram: the English key, a tab, the translation. One row per string.
+# After editing, run python scripts/gen-l10n.py from the repository root.
+%1$s of %2$s	%2$s 중 %1$s 
+%1$s so far	현재까지 %1$s
+%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. 패치할 때 적용되었기 때문에 일시 정지로는 끌 수 없습니다. 이 기능이 원인인지 확인하려면 다시 패치하면서 해당 패치를 제외하세요
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s. 패치할 때 적용되었기 때문에 일시 정지로는 끌 수 없습니다. 이 중 하나가 원인인지 확인 하려면 다시 패치하면서 뒤에 괄호로 표시된 해당 패치를 제외하세요
+A diagnostic report is already being saved.	진단 보고서를 이미 저장하고 있습니다
+A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 HushGram이 일시 정지되었습니다
+About	정보
+Ads and privacy	광고 및 개인정보 보호
+Back	뒤로
+Before you sign in	로그인하기 전에
+Cancel	취소
+Changing these	변경하는 중
+Clear diagnostic data	진단 데이터 지우기
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	빠른 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키 및 로그인 토큰은 제외됩니다. 공유하기 전에 다른 개인정보가 포함되어 있는지 확인하세요
+Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다.
+Copy quick report	빠른 보고서 복사
+Copying to the gallery	갤러리에 복사하는 중
+Couldn't put back the diagnostic data. Try again.	진단 데이터를 복원할 수 없습니다. 다시 시도하세요
+Couldn't start the report export. Try again shortly.	보고서 내보내기를 시작할 수 없습니다. 잠시 후 다시 시도하세요
+Couldn't turn HushGram back on. Try again.	HushGram을 다시 켤 수 없습니다. 다시 시도하세요
+Debug logging	디버그 로그
+Diagnostic data cleared. Tap again to put it back.	진단 데이터가 지워졌습니다. 다시 탭하여 복원하세요
+Diagnostic data put back.	진단 데이터가 복원되었습니다
+Diagnostic report copied to the clipboard.	진단 데이터가 클립보드에 복사되었습니다
+Disable analytics	분석 비활성화
+Download failed	다운로드 실패
+Downloading	다운로드하는 중
+Empties the log and the hook counts a report would include.	로그를 비우고, 보고서에 포함될 후크(hook) 카운트를 초기화합니다
+Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	모든 스위치는 Debug logging을 제외하고 꺼진 것처럼 작동하며, 패치할 때 설정되어 있던 상태가 그대로 유지됩니다. 현재 설정은 변경되지 않습니다
+Export diagnostic report	진단 보고서 내보내기
+From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터는 디버그 로깅을 제외한 모든 스위치가 꺼진 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
+Full report saved to %1$s	전체 보고서가 %1$s에 저장되었습니다
+GPL-3.0, with the notices of the projects this is built on	GPL-3.0 라이선스를 적용하며, 이 프로그램이 기반으로 사용하는 프로젝트의 고지 사항을 포함합니다
+Hide ads	광고 숨기기
+How far a photo or video you're saving has got, with a button to cancel it	저장 중인 사진 또는 동영상의 진행 상황을 보여주며, 취소할 수 있는 버튼을 제공합니다
+HushGram %1$s on Instagram %2$s	HushGram %1$s on Instagram %2$s
+HushGram is on	HushGram 실행 중
+HushGram is paused	HushGram 일시 중지됨
+HushGram pauses when Instagram restarts.	인스타그램을 다시 시작하면 HashGram이 일시 정지됩니다
+HushGram saves	HashGram 저장
+HushGram settings	HushGram 설정
+HushGram settings couldn't open	HushGram 설정을 열 수 없습니다
+HushGram turns back on when Instagram restarts.	HushGram을 다시 시작하면 HashGram이 다시 시작됩니다
+Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram이 시작한 지 1분 이내에 연속으로 세 번 충돌하거나 멈춰서 HushGram이 일시적으로 작동을 중지하였습니다
+Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram에서 '이 버전은 너무 오래되었습니다'라는 화면이 더 이상 표시되지 않습니다. 패치된 빌드는 자동으로 업데이트되지 않으므로, 이 설정을 통해 계속 사용할 수 있습니다
+Instagram's own signature checks see its original certificates, so they keep passing on this re-signed build.	Instagram 자체의 서명 검사가 원본 인증서를 확인하므로, 다시 서명된 이 빌드에서도 검사를 계속 통과합니다
+Instagram's usage events and crash reports go to an address on this phone that refuses them, instead of to Instagram and Facebook. Restart Instagram after changing it.	Instagram의 사용 이벤트와 충돌 보고서는 Instagram 및 Facebook으로 전송되는 대신, 이를 차단하는 이 휴대전화의 주소로 전송됩니다. 변경한 후에는 Instagram을 다시 시작하세요
+Joining the picture and sound	사진과 소리가 결합하는 중
+Licenses	라이선스
+Link expired. Reopen the item and try again	링크가 만료되었습니다. 항목을 다시 열고 다시 시도하세요
+Nobody outside Meta knows what gets an account suspended. A re-signed Instagram can't pass Google's check that it's the Play Store app, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same key keeps Instagram's data and your sign-in, and on a rooted phone a Root Mount install keeps the sign-in you already have.	Meta 외부에서는 어떤 경우에 계정이 정지되는지 정확히 알 수 없습니다. 다시 서명된 Instagram은 해당 앱이 Play 스토어에서 설치된 앱인지 확인하는 Google의 검사를 통과할 수 없으며, 어떤 패치를 적용해도 이 부분은 변경되지 않습니다. 계정에 문제가 생길 가능성을 피하고 싶다면 먼저 보조 계정으로 사용해 보세요. 동일한 키로 기존 앱 위에 업데이트를 설치하면 Instagram의 데이터와 로그인 상태가 유지됩니다. 루팅된 휴대전화에서는 루트 마운트 방식으로 설치하면 기존에 로그인되어 있던 상태를 그대로 유지할 수 있습니다
+No app on this phone can open the link. The address is %1$s.	이 휴대전화에서 이 링크를 열 수 있는 앱이 없습니다. 주소는 %1$s입니다
+Not saved: that isn't an Instagram photo or video	저장되지 않음: 인스타그램 사진 또는 동영상이 아님
+Not saved: the file is over 512 MB	저장되지 않음: 파일 크기가 512MB를 초과함
+OK	확인
+Pause HushGram	HushGram 일시 중지
+Pause and diagnostics	일시 중지 및 진단
+Re-signed build fix	다시 서명된 빌드 수정
+Record patch activity and show errors for a bug report. Leave off during normal use.	패치 작업을 기록하고 버그 신고를 위한 오류를 표시합니다. 일반적으로 사용할 때는 꺼두세요
+Remove build expired popup	빌드 만료 팝업 제거
+Retry	다시 시도
+Sanitize sharing links	공유 링크 정리하기
+Save cancelled	저장이 취소됨
+Save full report	전체 보고서 저장
+Save the full report in %1$s.	전체 보고서를 %1$s에 저장합니다
+Saved to %1$s	%1$s에 저장됨
+Saved to %1$s in lower quality than on Instagram	Instagram보다 낮은 화질로 %1$s에 저장됨
+Saved to the gallery	갤러리에 저장됨
+Saved to the gallery in lower quality than on Instagram	Instagram보다 낮은 화질로 갤러리에 저장됨
+Saved. Restart Instagram to apply this change.	저장되었습니다. 변경 사항을 적용하려면 Instagram을 다시 시작하세요
+Saving a photo	사진을 저장하는 중
+Saving a video	동영상을 저장하는 중
+Saving...	저장하는 중…
+Saving... Cancel: Downloads in HushGram.	저장하는 중… 취소: HushGram에서 다운로드
+Set when you patched	패치할 때 설정
+Settings couldn't open	설정을 열 수 없습니다
+Settings couldn't refresh completely. Reopen settings and try again.	설정이 완전히 새로 고쳐지지 않았습니다. 설정을 다시 열고 다시 시도하세요
+Source code and issues	소스 코드 및 소스
+Sponsored posts, reels and stories. Instagram is told no ad went in, so no gap is left.	스폰서 게시물, 릴스 및 스토리입니다. Instagram에 광고가 삽입되지 않았다고 알리므로 빈 공간이 남지 않습니다
+Stays in while paused	일시 중지 중에도 유지
+Takes stkn, igsh, utm_source and other tracking keys off the links you copy or share, and opens a bio link without going through Instagram's click tracker. The post, reel or profile a link opens stays the same.	복사하거나 공유하는 링크에서 stkn, igsh, utm_source 및 기타 추적용 키를 제거하고, Instagram의 클릭 추적기를 거치지 않고 프로필의 링크를 엽니다. 링크가 여는 게시물, 릴스 또는 프로필은 그대로 유지됩니다
+Tap to hide this.	탭하여 이것을 숨기세요
+Couldn't hide this notice. Try again.	이 알림을 숨길 수 없습니다. 다시 시도하세요
+Tap to turn it back on.	탭하여 이것을 다시 켜세요
+The diagnostic report couldn't be saved yet. Try again in a moment.	아직 진단 보고서를 저장할 수 없습니다. 잠시 후 다시 시도해 주세요
+The diagnostic report couldn't be saved. Try again.	진단 보고서를 저장할 수 없습니다. 다시 시도해 주세요
+The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	%1$s 파일을 삭제할 수 없습니다. HushGram을 다시 켜려면 %2$s에서 해당 파일을 삭제하세요
+The setting couldn't finish updating. Its saved value is shown.	설정 업데이트를 완료하지 못하였습니다. 저장된 값이 표시됩니다
+There's no diagnostic data to clear.	삭제할 진단 데이터가 없습니다
+There's no diagnostic data to put back.	복원할 진단 데이터가 없습니다
+They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.	패치할 때 Morphe Manager에서 선택되며, 일시 정지해도 비활성화되지 않습니다. 변경하려면 다시 패치하세요
+Try again, or go back to Instagram.	다시 시도하거나 Instagram으로 돌아가세요
+Updates	업데이트
+Version	버전
+Version %1$s for Instagram %2$s	Version %1$s for Instagram %2$s
+You paused HushGram.	HushGram이 일시중지되었습니다
+the re-signed build fix	다시 서명된 빌드 수정
+Don't send reel watch history	릴스 시청 기록을 전송하지 마세요
+Instagram isn't told which reels you watched or how far into them you got. It ranks your Reels with that, and nobody else sees it. Reels you've watched may come back.	Instagram에는 어떤 릴스를 시청했는지 또는 얼마나 오래 시청했는지에 대한 정보가 전달되지 않습니다. Instagram은 이러한 정보를 바탕으로 릴스 순위를 정하며, 다른 사람에게는 이 정보가 표시되지 않습니다. 이미 시청한 릴스가 다시 나타날 수 있습니다
+Reels	릴스
+Stop Story auto-advance	스토리 자동 넘김 멈추기
+A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.	완료된 스토리가 탭하거나 스와이프할 때까지 화면에 계속 표시됩니다. Instagram의 기본 시간 설정을 사용하려면 이 기능을 끄세요
+Loop a story	스토리 반복 재생
+A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.	스토리가 끝나면 다시 처음부터 재생되며, 사용자가 탭하거나 스와이프해서 다음으로 넘어갈 때까지 반복됩니다. 광고는 반복되지 않고 다음으로 넘어갑니다. 또한 '스토리 자동 넘김 멈추기' 기능도 켜져 있으면 스토리가 계속 반복 재생됩니다
+Show a story's exact time	스토리 정확한 시간 표시
+A story's header shows the date and time it was posted, like Oct 2, 3:45 PM, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.	스토리 상단에는 게시된 지 얼마나 지났는지가 아니라 게시된 정확한 날짜와 시간이 표시됩니다. 예를 들어 10월 2일 오후 3:45와 같이 표시되며, 휴대폰의 언어 설정과 12시간제 또는 24시간제 설정을 따릅니다
+Stories	스토리
+Hide Reels in the feed	피드에서 릴스 숨기기
+The rows of suggested reels between posts in your home feed. A reel someone you follow posts stays.	홈 피드의 게시물 사이에 표시되는 추천 릴스 행입니다. 팔로우하는 사람이 게시한 릴스는 그대로 표시됩니다
+Hide the Follow button	팔로우 버튼 숨기기
+The Follow button beside a reel's author. Their profile still has one.	릴스 작성자 옆에 있는 팔로우 버튼입니다. 해당 프로필에는 여전히 팔로우 버튼이 표시됩니다
+Hide creation and promotion pills	제작 및 홍보 관련 표시 숨기기
+Pills such as Edits, Use template, Meta AI and Ray-Ban Meta glasses. A live badge and a state-controlled media label stay.	Edits, 템플릿 사용, Meta AI, Ray-Ban Meta 안경과 같은 표시를 숨깁니다. 라이브 배지와 정부 규제 미디어 라벨은 계속 표시됩니다
+Hide friends' activity and comment previews	친구의 활동 및 댓글 미리보기 숨기기
+The bubbles of friends who liked or commented, the Followed by and Liked by lines with their faces, the comment shown under a reel and the row of friends who saw it. Comments are still a tap away.	좋아요를 누르거나 댓글을 단 친구들의 말풍선, 얼굴과 함께 표시되는 ‘팔로우함’ 및 ‘좋아요를 누른 사람’ 문구, 릴스 아래에 표시되는 댓글, 그리고 해당 릴스를 본 친구들의 행을 숨깁니다. 댓글은 여전히 탭하여 볼 수 있습니다
+Downloads	다운로드
+Save videos other apps can open	다른 앱에서 열 수 있는 동영상 저장
+For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	WhatsApp, CapCut이나 InShot 같은 동영상 편집기 또는 저장된 동영상을 소리 없이 재생하는 갤러리나 플레이어에서 사용됩니다. 화질이 저하될 수 있습니다
+Download quality	다운로드 화질
+Best	최상
+Smallest	가장 작은
+Each video saves at the best quality the player streams.	각 동영상은 플레이어가 스트리밍하는 최고의 화질로 저장됩니다
+Each video saves at its lowest quality, for the smallest file.	각 동영상은 가장 작은 파일 크기를 위해 최저 품질로 저장됩니다
+Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	각 동영상은 %1$s 또는 그보다 낮은 품질 중 가장 가까운 품질로 저장됩니다. 그 정도로 낮은 품질이 없는 동영상은 그보다 높은 품질 중 가장 가까운 품질로 저장됩니다
+Save folder	폴더 저장
+Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	Movies 및 Pictures 폴더 아래에 사용할 폴더 이름을 입력하세요. 사용할 수 없는 문자는 밑줄로 변경됩니다. 비워 두면 기본 폴더인 %1$s를 사용합니다
+Save	저장
+Folder name	폴더 이름
+Folder set to %1$s.	폴더가 %1$s로 설정되었습니다
+Video file name	동영상 파일 이름
+%1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s는 저장한 날짜와 시간, %2$s는 Instagram에서 해당 동영상의 번호, %3$s는 게시한 사람, %4$s는 게시된 날짜로 표시됩니다. 저장할 때 알 수 없는 정보는 이름에서 제외되며, 이 항목들을 하나도 포함하지 않는 이름에는 날짜가 추가됩니다. 같은 이름이 이미 폴더에 있으면 저장한 시간이 이름 끝에 추가됩니다. 사용할 수 없는 문자는 밑줄로 변경됩니다. 비워 두면 기본값인 %5$s를 사용합니다
+File name	파일 이름
+File name set to %1$s.	파일 이름이 %1$s로 설정되었습니다
+Videos go to %1$s and photos to %2$s.	동영상은 %1$s에, 사진은 %2$s에 저장됩니다
+Example without post details	게시물 세부 정보가 없는 예시
+Cancel saving this video	이 동영상 저장 취소
+Cancel saving this photo	이 사진 저장 취소
+Download on reels	릴스에서 다운로드
+Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	모든 릴스의 더보기 메뉴에 ‘다운로드’를 추가하며, 설정한 다운로드 화질로 저장합니다. 이 기능을 끄거나 일시 중지하면 Instagram의 원래 메뉴가 다시 표시됩니다
+Videos are named %1$s. Photos are always named %2$s followed by the date and time.	동영상 파일 이름은 %1$s로 지정됩니다. 사진은 항상 %2$s 뒤에 날짜와 시간이 붙은 이름으로 저장됩니다
+Download	다운로드
+Download on stories	스토리에서 다운로드
+Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	다른 사람의 스토리, 사진 또는 동영상 메뉴에 ‘다운로드’를 추가하며, 설정한 다운로드 품질로 저장합니다. 이 기능을 끄거나 일시 중지하면 Instagram의 원래 메뉴가 다시 표시됩니다
+Download feed videos	피드 동영상 다운로드
+Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	피드에서 동영상이 포함된 게시물의 메뉴에 ‘다운로드’를 추가합니다. 아래에 설정된 품질을 사용합니다. 이 기능을 끄거나 일시 중지하면 Instagram의 원래 메뉴가 다시 표시됩니다
+Playback	재생
+Tap to play	탭하여 재생
+Videos, reels and stories wait for your tap. Feed videos show a play button, as they do when you use less mobile data.	동영상, 릴스 및 스토리는 탭할 때까지 재생되지 않고 대기합니다. 피드의 동영상에는 모바일 데이터 사용량을 줄였을 때와 마찬가지로 재생 버튼이 표시됩니다
+Resume long videos	긴 동영상 이어보기
+Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	2분이 넘는 동영상과 릴스는 시청을 중단한 시점부터 이어서 재생됩니다. 다른 부분을 보려면 원하는 지점으로 이동하세요. 라이브 동영상과 광고는 기존과 동일하게 처음부터 재생됩니다
+Default playback quality	기본 재생 화질
+Videos, reels and stories play at the quality below, starting with the next one you open.	동영상, 릴스 및 스토리는 다음에 여는 콘텐츠부터 아래 설정된 화질로 재생됩니다
+Playback quality	재생 화질
+Auto	자동
+Data saver	데이터 절약
+Up to %1$s	최대 %1$s
+Highest	최고
+Instagram picks the quality as each video plays, from your connection.	Instagram은 인터넷 연결 상태에 따라 동영상이 재생될 때마다 화질을 선택합니다
+Videos play at the lowest quality Instagram offers for each.	각 동영상은 Instagram이 제공하는 가장 낮은 화질로 재생됩니다
+Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.	각 동영상은 Instagram이 제공하는 화질 중 %1$s 이하에서 가장 높은 화질로 재생되며, 해당 화질이 없으면 그보다 높은 화질 중 가장 가까운 화질로 재생됩니다
+Videos play at the highest quality Instagram offers for each.	각 동영상은 Instagram이 제공하는 가장 높은 화질로 재생됩니다
+View stories anonymously	스토리 몰래보기
+Instagram isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep showing as new.	Instagram에는 어떤 스토리를 시청했는지 전달되지 않으므로, 다른 사람의 스토리 조회자 목록에 표시되지 않습니다. 스토리에 답장하거나 반응하면 여전히 본인임을 알 수 있으며, 이미 시청한 스토리도 새 스토리처럼 계속 표시될 수 있습니다
+Advertising ID removed	광고 ID가 제거됨
+Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw or tapped. The permissions for them are gone from this build.	Instagram은 휴대전화의 광고 ID를 읽거나 Android의 광고 서비스에 어떤 광고를 보거나 탭했는지 전달할 수 없습니다. 해당 기능에 필요한 권한이 이 빌드에서 제거되었습니다
+the removed advertising ID permissions	제거된 광고 권한
+Turn off double tap to like	두 번 탭하여 좋아요 표시 비활성화
+A double tap on a post or reel no longer likes it or shows a heart. A single tap and the Like button work as before.	게시물이나 릴스를 두 번 탭해도 더 이상 좋아요가 표시되지 않으며 하트 표시도 나타나지 않습니다. 한 번 탭하거나 좋아요 버튼을 누르는 기능은 이전과 동일하게 작동합니다
+On posts	게시물
+A double tap on a post doesn't like it. Turn this off to keep double tap to like on posts.	게시물을 두 번 탭해도 좋아요가 표시되지 않습니다. 게시물을 두 번 탭하여 좋아요를 표시하는 기능을 유지하려면 이 옵션을 비활성화하세요
+On reels	릴스
+A double tap on a reel doesn't like it. Turn this off to keep double tap to like on reels.	릴스를 두 번 탭해도 좋아요가 표시되지 않습니다. 릴스를 두 번 탭하여 좋아요를 표시하는 기능을 유지하려면 이 옵션을 비활성화하세요
+Hide the Reels tab	릴스 탭 숨기기
+Takes Reels off the tab bar. Reels in your feed and reels people send you still open. Restart Instagram after changing it.	탭 바에서 릴스 탭을 제거합니다. 피드에 표시되는 릴스와 다른 사람이 보내준 릴스는 계속 열 수 있습니다. 변경 후 Instagram을 다시 시작하세요
+Keep the reel speed	릴스 속도 유지
+Keep a seek bar	재생바 유지
+Instagram's seek bar stays under every reel, short ones too, with the time played and the reel's length above it. Ads keep Instagram's own rules.	모든 릴스 아래에 재생바가 표시됩니다. 짧은 릴스에도 적용되며, 재생바 위에는 재생된 시간과 릴스의 전체 재생 시간이 표시됩니다. 광고에는 Instagram의 기존 표시 방식이 그대로 적용됩니다
+Keep auto scroll on	자동 스크롤 유지
+Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after you leave Reels, until you turn it off.	릴스에서 Instagram의 자동 스크롤을 켜면, Instagram을 다시 시작하거나 릴스를 나갔다가 다시 들어와도 직접 끄기 전까지 계속 켜진 상태로 유지됩니다
+Stop Reels scrolling	릴스 스크롤 중지
+A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram after changing it.	릴스에서 스와이프해도 다음 릴스로 넘어가지 않으며, 아래로 당겨도 새로운 릴스가 불러오지 않습니다. 현재 열어둔 릴스는 계속 재생됩니다. 설정을 변경한 후 Instagram을 다시 시작하세요
+Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	릴스를 2배속으로 고정하면 (릴스 가장자리를 길게 탭한 다음 아래로 밀기), 다음 릴스도 2배속으로 재생됩니다. 일반 속도로 돌아가려면 잠금 표시를 밀어서 해제하거나, 가장자리를 길게 누른 후 손을 떼세요
+Open links in external browser	외부 브라우저에서 링크 열기
+Web links open in your default browser, without Instagram's click tracker. Instagram and other Meta pages, and ads, still open in the app.	웹 링크는 Instagram의 클릭 추적기를 거치지 않고 기본 브라우저에서 열립니다. Instagram 및 기타 Meta 페이지와 광고는 여전히 앱에서 열 수 있습니다
+Feed	피드
+Hide suggested accounts	추천 계정 숨기기
+The rows of accounts, shops and hashtags Instagram suggests you follow.	Instagram이 팔로우하도록 추천하는 계정, 스토어 및 해시태그가 표시되는 행입니다
+Hide suggested posts	추천 게시물 숨기기
+Posts and reels from accounts you don't follow, marked Suggested for you. Posts from accounts you follow stay.	팔로우하지 않는 계정의 게시물과 릴스를 ‘추천 게시물’로 표시합니다. 팔로우하는 계정의 게시물은 그대로 유지됩니다
+Hide Threads posts	쓰레드 게시물 숨기기
+The posts, accounts and communities from Threads that Instagram mixes into your feed.	Instagram이 피드에 섞어 보여주는 Threads의 게시물, 계정 및 커뮤니티입니다
+Stop swipe to create	스와이프하여 만들기 정지
+A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.	홈 화면에서 좌우로 스와이프해도 더 이상 카메라가 열리지 않습니다. + 버튼을 누르거나 다른 방법으로 카메라를 여는 기능은 그대로 작동합니다
+Meta AI	Meta AI
+Hide Meta AI in search and Home's bar	검색 및 홈 표시줄에서 Meta AI 숨기기
+The Search tab and the top of your messages get a plain search bar. Search results lose their Ask a follow-up bar. Meta AI's buttons disappear from Home and the message composer, and its optional inbox row is hidden. Restart Instagram after changing it.	검색 탭과 메시지 상단에 기본 검색창이 표시됩니다. 검색 결과에서는 ‘추가 질문하기’ 입력창이 사라집니다. 홈 화면과 메시지 작성창에서 Meta AI 버튼이 사라지고, 선택적으로 표시되던 받은편지함의 Meta AI 항목도 숨겨집니다. 설정을 변경한 후 Instagram을 다시 시작하세요
+Hide Meta AI posts	Meta AI 게시물 숨기기
+Meta AI's videos, chats and pictures of you that Instagram puts in your home feed.	Instagram이 홈 피드에 표시하는 Meta AI의 동영상, 채팅 및 나에 관한 사진입니다
+Explore	탐색
+Hide the Explore grid	탐색 그리드 숨기기
+The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	검색 탭의 검색창 아래에 게시물과 릴스가 표시됩니다. 검색 내용, 최근 검색 기록 및 검색 결과는 계속 유지됩니다
+Start Home on Following	팔로잉에서 홈 시작
+Home opens on posts from accounts you follow. Tap Following at the top to switch to For you, and Home remembers your pick. Restart Instagram after changing it.	홈에서는 내가 팔로우하는 계정의 게시물부터 표시됩니다. 상단의 ‘팔로잉’을 눌러 ‘추천’으로 전환하면 홈에서 선택한 항목이 기억됩니다. 변경한 후 Instagram을 다시 시작하세요
+Hide suggested stories	추천 스토리 숨기기
+Stories in the row at the top of Home from accounts you don't follow, and the accounts Instagram suggests there. Stories from accounts you follow stay.	홈 상단의 스토리 행에서 팔로우하지 않는 계정의 스토리와 Instagram이 추천하는 계정을 숨깁니다. 팔로우하는 계정의 스토리는 그대로 유지됩니다
+Hide the Stories tray	스토리 트레이 숨기기
+Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.	홈 상단의 스토리 행 전체를 제거합니다. ‘내 스토리’도 포함됩니다. 프로필이나 메시지에서는 여전히 스토리를 열 수 있습니다
+Download feed photos	피드 사진 다운로드
+The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	사진 게시물과 사진이 포함된 캐러셀에도 동일한 ‘다운로드’ 기능을 추가합니다. Instagram에서 제공하는 가장 큰 크기로 저장합니다
+the start-up fix for x86 devices	x86 기기에 대한 시작 문제 수정
+Developer	개발자
+Developer options on a long press of Home	홈 버튼을 길게 탭하면 개발자 옵션이 나타납니다
+Opens Instagram's own developer options, where its server flags can be looked at and changed. A wrong flag can break parts of Instagram until you reset it there.	Instagram 자체 개발자 옵션을 엽니다. 여기에서 Instagram의 서버 플래그를 확인하고 변경할 수 있습니다. 잘못된 플래그를 설정하면 해당 옵션에서 초기화할 때까지 Instagram의 일부 기능이 정상적으로 작동하지 않을 수 있습니다
+Pure black dark mode	순수 검정 어두운 모드
+Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	Instagram의 어두운 모드에서 기존의 짙은 회색 대신 순수 검정색을 사용합니다. 메뉴, 시트 및 버튼은 각각 기존의 회색을 유지합니다
+the pure black dark mode	순수 검은 어두운 모드
+Sharing	공유
+Hide group buttons	그룹 버튼 숨기기
+Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	공유 메뉴에서 새 그룹과 선택한 사람들에게 그룹으로 보내는 버튼을 제거합니다. 개별적으로 보내는 기능은 그대로 유지되며, 메시지에서 계속 그룹을 만들 수 있습니다
+Story ring size	스토리 링 사이즈
+The rings in the stories row at the top of Home are drawn at the size below. Restart Instagram after changing it.	홈 상단에서 스토리 목록에 표시되는 링의 크기를 아래 설정값으로 변경합니다. 변경 후 Instagram을 다시 시작하세요
+Ring size	링 사이즈
+Much smaller	매우 작음
+Smaller	작음
+Instagram's size	Instagram 사이즈
+Larger	큼
+Much larger	매우 큼
+The rings are the size Instagram picks for your screen.	스토리 링의 크기를 Instagram이 화면에 맞게 선택한 크기로 설정합니다
+The rings are %1$s of the size Instagram picks for your screen.	스토리 링의 크기를 Instagram이 화면에 맞게 선택한 크기의 %1$s로 설정합니다.
+Hide the Repost button	리포스트 버튼 숨기기
+Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	게시물과 릴스에서 리포스트 및 리포스 횟수를 제거하여 실수로 팔로워에게 리포스트되는 것을 방지합니다. 공유 기능은 여전히 게시물이나 릴스를 다른 사람에게 보낼 수 있습니다
+Layout	레이아웃
+Remove the empty space at the bottom	하단에서 빈 공간 제거
+Instagram can leave empty room under its tab bar for a navigation bar that isn't there, when your phone hides its navigation bar or Instagram is in a pop-up window. This takes that room away. Restart Instagram after changing it.	휴대전화에서 내비게이션 바를 숨겼거나 Instagram이 팝업 창으로 실행 중일 때, Instagram이 존재하지 않는 내비게이션 바를 위해 탭 바 아래에 빈 공간을 남길 수 있습니다. 이 기능은 해당 공간을 제거합니다. 변경한 후 Instagram을 다시 시작하세요
+Only accounts you follow	나를 팔로우하는 계정만
+Takes For you out of the picker at the top of Home, so Home stays on Following or Favorites. Works with Start Home on Following on. Restart Instagram after changing it.	홈 상단의 선택 메뉴에서 추천을 제거하여 홈이 팔로잉 또는 즐겨찾기로 유지되도록 합니다. ‘팔로잉에서 홈 시작’ 기능을 켠 상태에서 작동합니다. 변경한 후 Instagram을 다시 시작하세요
+Profiles	프로필
+Show if a profile follows you	프로필이 나를 팔로우하는지 표시
+Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	상대방의 프로필에서 이름 옆에 ‘나를 팔로우하고 있음’ 또는 ‘나를 팔로우하지 않음’을 표시합니다. 대명사를 설정한 경우 대명사 뒤에 표시됩니다. Instagram이 확인을 완료하기 전에는 아무것도 표시되지 않습니다.
+Mark who doesn't follow you back	나를 팔로우하지 않는 사람 표시
+On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	내 팔로잉 목록에서 나를 맞팔로우하지 않는 계정의 이름 뒤에 '나를 팔로우하지 않음’이라고 표시합니다. Instagram에서 확인을 완료하기 전까지는 아무것도 표시되지 않습니다
+Follows you	나를 팔로우하고 있음
+Doesn't follow you	나를 팔로우하지 않음
+Hide suggested people	추천 사용자 숨기기
+Takes Suggested for you and the Discover people button off profiles, yours included. Bios, counts, posts and follower lists stay.	모든 프로필에서 '추천 계정'과 ‘사람 찾아보기’ 버튼을 숨깁니다. 내 프로필에도 적용됩니다. 프로필 소개, 팔로워·팔로잉 수, 게시물 및 팔로워 목록은 그대로 유지됩니다
+Hide highlights	하이라이트 숨기기
+Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	모든 프로필에서 스토리 하이라이트 목록을 숨깁니다. 내 프로필에도 적용됩니다. 프로필 소개, 팔로워·팔로잉 수 및 게시물은 그대로 유지되며, 내 스토리의 ‘하이라이트에 추가’ 기능도 그대로 사용할 수 있습니다
+The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	릴스 사이사이에 Instagram이 표시하는 팔로우할 사람 및 크리에이터 추천 카드를 숨깁니다. 릴스 자체는 모두 정상적으로 재생됩니다
+Turn on Start Home on Following to use this choice.	이 옵션을 사용하려면 ‘팔로잉에서 홈 시작’을 켜세요
+Turn on Story ring size to use this choice.	이 옵션을 사용하려면 ‘스토리 링 크기’을 켜세요
+Turn on Default playback quality to use this choice.	이 옵션을 사용하려면 ‘기본 재생 화질’을 켜세요
+Updating remembered positions...	저장된 위치를 업데이트하는 중...
+Undo cleared positions	위치 지우기 실행 취소
+Clear remembered positions	저장된 위치 지우기
+You can restore the cleared positions once within 10 seconds.	삭제한 재생 위치는 10초 이내에 한 번 복원할 수 있습니다
+Up to 200 positions, kept for 30 days. Tap to clear them from this device.	최대 200개의 재생 위치를 30일 동안 보관할 수 있습니다. 탭하면 이 기기에서 해당 기록을 삭제합니다
+Remembered playback positions restored.	저장된 재생 위치가 복원되었습니다
+Undo has expired.	실행 취소가 만료되었습니다
+You cleared the remembered playback positions.	저장된 재생 위치를 삭제하였습니다
+Could not update the remembered playback positions.	저장된 재생 위치를 업데이트할 수 없습니다
+Settings backup	설정 백업
+Export HushGram settings	HushGram 설정 내보내기
+Choose a file for your installed patches' settings. Accounts and history stay on this device.	설치된 패치의 설정이 들어 있는 파일을 선택하세요. 계정과 기록은 이 기기에 그대로 유지됩니다
+Import HushGram settings	HushGram 설정 가져오기
+Choose a settings file. Valid choices apply together; unsupported keys are skipped. Undo lasts 10 seconds.	설정 파일을 선택하세요. 지원되는 설정은 함께 적용되며, 지원되지 않는 항목은 건너뜁니다. 실행 취소는 10초 동안 할 수 있습니다
+Undo settings import	설정 가져오기 실행 취소
+Restore the previous choices once within 10 seconds. Restarting Instagram discards Undo.	이전 설정을 10초 이내에 한 번 복원할 수 있습니다. Instagram을 다시 시작하면 실행 취소할 수 없습니다
+No settings import to undo.	실행 취소할 설정 가져오기가 없습니다
+No document picker is available. Your settings haven't changed.	문서 선택기를 사용할 수 없습니다. 설정은 변경되지 않았습니다
+Couldn't use that settings file. Your settings haven't changed.	해당 설정 파일을 사용할 수 없습니다. 설정은 변경되지 않았습니다
+HushGram settings exported.	HushGram 설정을 내보냈습니다
+Couldn't export HushGram settings. Try another file.	HushGram 설정을 내보낼 수 없습니다. 다른 파일을 사용해 보세요
+Settings restored.	설정이 복원되었습니다
+Imported %1$d settings. Skipped %2$d unsupported keys.	%1$d 개의 설정을 가져왔습니다. %2$d 개의 지원되지 않는 키는 건너뛰었습니다.
+Restart Instagram to apply these choices.	이 설정을 적용하려면 Instagram을 다시 시작하세요
+Couldn't save the settings. The previous values were restored.	설정을 저장하지 못하였습니다. 이전 값으로 복원하였습니다
+Undo couldn't fully restore the settings. Check the shown values; Undo has been consumed.	실행 취소로 설정을 완전히 복원하지 못하였습니다. 표시된 값을 확인하세요. 실행 취소 기회는 이미 사용되었습니다
+Couldn't save or fully restore the settings. Check the shown values and try Undo.	설정을 저장하거나 완전히 복원하지 못하였습니다. 표시된 값을 확인하고 실행 취소를 다시 시도하세요
+Couldn't start the settings operation. Try again.	설정 작업을 시작하지 못했습니다. 다시 시도하세요
+A save stopped. Reopen the media and save again.	저장 작업이 중단되었습니다. 미디어를 다시 열고 저장하세요
+%1$d saves stopped. Reopen the media and save again.	%1$d 개의 저장 작업이 중단되었습니다. 미디어를 다시 열고 저장하세요
+A save was interrupted	저장 작업이 중단되었습니다
+%1$d saves were interrupted	%1$d 개의 저장 작업이 중단되었습니다
+Reopen the media and save again.	미디어를 다시 열고 저장하세요
+Search settings	검색 설정
+Clear search	검색 지우기
+No matching settings	일치하는 설정이 없습니다
+Try another word or clear the search.	다른 단어를 입력하거나 검색어를 지워보세요
+Contacts, location setup, analytics	연락처, 위치 설정, 분석
+Save all	모두 저장
+Saving a carousel	캐러셀을 저장하는 중
+Cancel saving this carousel	이 캐러셀 저장 취소
+Page %1$d of %2$d	%2$d 페이지 중 %1$d 페이지
+Not saved: a carousel can have at most %1$d pages	저장되지 않음: 캐러셀에는 최대 %1$d 개의 페이지까지 포함할 수 있습니다.
+Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.	캐러셀 저장이 취소됨. %1$d 개 저장됨. %2$d 개 실패. %3$d 개 건너뜀
+Saved %1$d. Failed %2$d. Skipped %3$d.	%1$d 개 저장됨. %2$d개 실패. %3$d 개 건너뜀
+%1$d saved in lower quality than on Instagram.	%1$d 개가 Instagram에서 제공되는 것보다 낮은 화질로 저장되었습니다
+Last carousel save	마지막 캐러셀 저장
+Open MetaConfig overrides	MetaConfig 재정의 열기
+Opens Instagram's native flag editor. A wrong override can break parts of Instagram.	Instagram의 기본 플래그 편집기를 엽니다. 잘못된 설정을 적용하면 Instagram의 일부 기능이 정상적으로 작동하지 않을 수 있습니다
+MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.	이 화면에서는 MetaConfig를 사용할 수 없습니다. 로그인한 상태에서 홈 화면을 통해 HushGram 설정을 여세요
+Comments	댓글
+Copy comment	댓글 복사
+Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	선택한 댓글의 메뉴에 ‘복사’를 추가합니다. 줄바꿈을 포함한 원본 텍스트를 그대로 복사합니다
+Comment copied	댓글이 복사됨
+Couldn't copy comment	댓글을 복사할 수 없습니다
+Save comment photo	댓글 사진 저장
+Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.	사진이 첨부된 댓글의 메뉴에 저장 옵션을 추가합니다. 저장할 때는 Instagram에서 전송한 사진 중 가장 큰 해상도의 이미지를 저장합니다
+Export overrides	재정의 내보내기
+Save this signed-in session's overrides for the exact Instagram build and schema.	현재 로그인된 세션의 재정의를 정확히 동일한 Instagram 빌드 및 스키마에 맞춰 저장합니다
+Validate an overrides file	재정의 파일 유효성 검사
+Check a saved file against this session's typed schema. Validation applies nothing.	저장된 파일을 이 세션의 타입이 지정된 스키마와 비교하여 확인합니다. 유효성 검사는 어떤 설정도 적용하지 않습니다
+No document picker is available. Overrides haven't changed.	문서 선택기를 사용할 수 없습니다. 재정의는 변경되지 않았습니다.
+Couldn't use that overrides document. Native overrides haven't changed.	해당 재정의 문서를 사용할 수 없습니다. 기본 재정의는 변경되지 않았습니다
+Validated %1$d overrides only. Nothing was applied.	%1$d 개의 재정의만 검증하였습니다. 아무것도 적용되지 않았습니다
+Overrides exported for this Instagram build and schema.	이 Instagram 빌드 및 스키마에 대한 재정의를 내보냈습니다
+Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	재정의를 검증하지 못하였습니다. 파일을 확인하고 로그인한 상태에서 홈 화면을 통해 설정을 여세요. 변경된 사항은 없습니다
+Couldn't export overrides. The selected file may be incomplete. Native overrides haven't changed.	재정의를 내보내지 못하였습니다. 선택한 파일이 불완전할 수 있습니다. 기본 재정의는 변경되지 않았습니다
+Allow importing overrides	재정의 가져오기 허용
+Shows Import and Restore for overrides. An import changes Instagram's native flags for this signed-in session.	재정의의 가져오기 및 복원 기능을 표시합니다. 가져오기를 실행하면 현재 로그인된 세션에서 Instagram의 기본 플래그들이 변경됩니다
+Import overrides	재정의 가져오기
+Apply a file exported from this session and build through Instagram's own override editor. The current overrides are saved for Restore first.	현재 세션 및 빌드에서 내보낸 파일을 적용하고, Instagram 자체 재정의 편집기를 통해 설정을 반영합니다. 먼저 현재 재정의 설정을 복원을 위해 저장합니다
+Restore previous overrides	이전 재정의 복원
+Put back the overrides saved before the last import for this session and build.	현재 세션 및 빌드에서 마지막으로 가져오기 전에 저장해 둔 재정의 설정을 복원합니다
+An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	이전에 가져온 설정이 아직 적용된 상태입니다. '이전 재정의 복원’을 실행하거나, 복원이 불가능한 경우 '저장된 재정의 삭제'를 실행해야 합니다. 변경된 사항은 없습니다
+Couldn't restore overrides. There's no saved copy for this session and build. Nothing changed.	재정의를 복원할 수 없습니다. 현재 세션 및 빌드에 저장된 복사본이 없습니다. 변경된 사항은 없습니다
+Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	재정의를 가져올 수 없습니다. 파일을 확인한 후 로그인된 상태에서 홈 화면을 통해 설정을 열어주세요. 변경된 사항은 없습니다
+The current overrides already match the saved copy. Nothing changed.	현재 재정의 설정이 이미 저장된 복사본과 동일합니다. 변경된 사항은 없습니다
+This file matches the current overrides. Nothing changed.	이 파일의 내용이 현재 재정의 설정과 동일합니다. 변경된 사항은 없습니다
+Previous overrides restored. Restart Instagram to apply them.	이전 재정의 설정이 복원되었습니다. 적용하려면 Instagram을 다시 시작하세요
+Imported %1$d override changes. Restart Instagram to apply them.	%1$d 개의 재정의 변경 사항을 가져왔습니다. 적용하려면 Instagram을 다시 시작하세요
+Instagram didn't keep the change, so the overrides were put back as they were.	Instagram에서 변경 사항을 유지하지 못하였고 재정의 설정도 확인할 수 없습니다. ‘이전 재정의 복원’을 실행한 다음 Instagram을 다시 시작하세요..
+Instagram didn't keep the change and the overrides couldn't be confirmed. Use Restore previous overrides, then restart Instagram.	Instagram에서 변경 사항을 유지하지 못하였고 재정의 설정도 확인할 수 없습니다. ‘이전 재정의 복원’을 실행한 다음 Instagram을 다시 시작하세요
+Discard saved overrides	저장된 재정의 삭제
+Forget the copy saved for Restore so imports can run again. Instagram's overrides don't change.	복원을 위해 저장된 복사본을 삭제하여 다시 가져오기를 실행할 수 있도록 합니다. Instagram의 재정의 설정은 변경되지 않습니다
+Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	저장된 복사본을 삭제하였습니다. 이제 다시 가져오기를 실행할 수 있으며 Instagram의 재정의 설정은 변경되지 않았습니다
+There's no saved copy to discard. Nothing changed.	삭제할 저장된 복사본이 없습니다. 변경된 사항은 없습니다
+Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	복원 가능한 재정의 설정을 복원하였지만, Instagram의 null 값을 가지고 있는 %1$d 개의 재정의는 이 방법으로 복원할 수 없습니다. ‘저장된 재정의 삭제’를 실행하기 전까지 가져오기가 차단된 상태로 유지됩니다. 나머지 변경 사항을 적용하려면 Instagram을 다시 시작하세요
+Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Restart Instagram to apply the rest.	복원 가능한 재정의 설정을 복원했지만, Instagram의 null 값을 가지고 있는 %1$d 개의 재정의는 이 방법으로 복원할 수 없습니다. 나머지 변경 사항을 적용하려면 Instagram을 다시 시작하세요
+Couldn't restore overrides. The saved copy doesn't fit this session and Instagram build. Use Discard saved overrides if you don't need it. Nothing changed.	재정의를 복원할 수 없습니다. 저장된 복사본이 현재 세션 및 Instagram 빌드와 호환되지 않습니다. 저장된 복사본이 필요하지 않다면 ‘저장된 재정의 삭제’를 사용하세요. 변경된 사항은 없습니다.
+Couldn't start the override operation. Try again. Nothing changed.	재정의 작업을 시작하지 못하였습니다. 다시 시도하세요. 변경된 사항은 없습니다
+# context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
+Mark as seen button	읽음 표시 버튼
+Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	익명으로 스토리를 보는 동안 각 스토리 상단에 눈 모양 버튼을 추가합니다. 이 버튼을 누르면 해당 스토리의 조회자 목록에 내 계정이 표시됩니다. 다른 스토리는 계속 익명으로 유지됩니다
+Mark as seen	읽음으로 표시
+Marked as seen. Tap again to undo.	읽음으로 표시하였습니다. 다시 누르면 실행 취소됩니다
+Marked as seen and sent	읽음으로 표시하고 전송함
+View DM photos and videos anonymously	DM 사진 및 동영상 몰래보기
+Holds back seen receipts for view-once photos and videos. Media still expires. This is a test feature, off to start.	한 번만 볼 수 있는 사진과 동영상의 읽음 표시 전송을 차단합니다. 미디어는 기존과 동일하게 만료됩니다. 이 기능은 테스트 기능이며 기본적으로 꺼져 있습니다
+Couldn't finish discarding the saved copies. Try Discard saved overrides again. Native overrides haven't changed.	저장된 복사본을 삭제하는 작업을 완료하지 못하였습니다. ‘저장된 재정의 삭제’를 다시 시도하세요. Instagram의 기본 재정의 설정은 변경되지 않았습니다
+Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	복구 작업을 완료하지 못하였습니다. ‘이전 재정의 복원’ 또는 ‘저장된 재정의 삭제’를 사용하세요
