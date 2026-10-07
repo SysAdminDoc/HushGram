@@ -43,6 +43,7 @@ import android.widget.LinearLayout;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.WeakHashMap;
 
@@ -225,6 +226,8 @@ public final class GlassTabBar {
         private int outer;
         /** The bottom margin Instagram gave the content, as first seen, to tell its changes from ours. */
         private int contentMargin = -1;
+        /** The tab that was selected as of the last frame, to notice a change the bar's own drawing can't see. */
+        @Nullable private WeakReference<View> lastSelected;
 
         Glass(ViewGroup bar, Window window) {
             this.bar = bar;
@@ -322,6 +325,14 @@ public final class GlassTabBar {
         @Override public boolean onPreDraw() {
             try {
                 keep();
+                // A tab's own selected state redraws that tab, not the bar behind it, so the capsule would
+                // wait for something else to redraw the bar. Look at it every frame instead.
+                View selected = selectedTab();
+                View before = lastSelected == null ? null : lastSelected.get();
+                if (selected != before) {
+                    lastSelected = selected == null ? null : new WeakReference<>(selected);
+                    bar.invalidate();
+                }
                 if (!blurBroken && blurWanted) pill.refresh();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
@@ -329,6 +340,16 @@ public final class GlassTabBar {
                 blurBroken = true;
             }
             return true;
+        }
+
+        /** The tab Instagram marks selected, or null. */
+        @Nullable
+        private View selectedTab() {
+            for (int i = 0; i < bar.getChildCount(); i++) {
+                View child = bar.getChildAt(i);
+                if (child.getVisibility() == View.VISIBLE && child.isSelected()) return child;
+            }
+            return null;
         }
 
         @Override public void onViewAttachedToWindow(@NonNull View view) {
@@ -412,14 +433,7 @@ public final class GlassTabBar {
 
             /** The lighter capsule behind the selected tab, easing to the next one when the tab changes. */
             private void drawCapsule(Canvas canvas) {
-                View selected = null;
-                for (int i = 0; i < bar.getChildCount(); i++) {
-                    View child = bar.getChildAt(i);
-                    if (child.getVisibility() == View.VISIBLE && child.isSelected()) {
-                        selected = child;
-                        break;
-                    }
-                }
+                View selected = selectedTab();
                 if (selected == null) return;
                 float grow = dp(HIGHLIGHT_GROW_DP);
                 float inset = dp(HIGHLIGHT_INSET_DP);
@@ -429,8 +443,8 @@ public final class GlassTabBar {
                     capsuleLeft = targetLeft;
                     capsuleRight = targetRight;
                 }
-                capsuleLeft += (targetLeft - capsuleLeft) * 0.35f;
-                capsuleRight += (targetRight - capsuleRight) * 0.35f;
+                capsuleLeft += (targetLeft - capsuleLeft) * 0.45f;
+                capsuleRight += (targetRight - capsuleRight) * 0.45f;
                 boolean settled = Math.abs(targetLeft - capsuleLeft) < 0.5f && Math.abs(targetRight - capsuleRight) < 0.5f;
                 if (settled) {
                     capsuleLeft = targetLeft;
