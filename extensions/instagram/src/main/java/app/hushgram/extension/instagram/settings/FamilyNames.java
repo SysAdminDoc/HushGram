@@ -48,6 +48,7 @@ public final class FamilyNames {
     public static final String VIEW_LIVE = "View live anonymously";
     public static final String IMAGE_VIEWING = "Improve image viewing";
     public static final String EPHEMERAL_MEDIA = "Make ephemeral media permanent";
+    public static final String DELETED_MESSAGES = "Save deleted messages";
     public static final String FRIENDSHIP_STATUS = "Show if a profile follows you";
     public static final String PROFILE_SUGGESTIONS = "Hide suggested people on profiles";
     public static final String PROFILE_HIGHLIGHTS = "Hide highlights";

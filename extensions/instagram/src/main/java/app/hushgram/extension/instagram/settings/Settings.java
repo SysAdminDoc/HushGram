@@ -162,6 +162,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting KEEP_EPHEMERAL_MEDIA =
             new BooleanSetting("hushgram_keep_ephemeral_media", TRUE);
 
+    /**
+     * The text of messages other people send is kept on this phone, and the ones they later delete
+     * are listed in HushGram's settings ({@link app.hushgram.extension.instagram.direct.SavedMessages}).
+     * Starts on once the patch is picked.
+     */
+    public static final BooleanSetting SAVE_DELETED_MESSAGES =
+            new BooleanSetting("hushgram_save_deleted_messages", TRUE);
+
     /** A separate opt-in for the direct visual-media receipt. Ordinary chat receipts stay native. */
     public static final BooleanSetting VIEW_DM_MEDIA_ANONYMOUSLY =
             new BooleanSetting("hushgram_view_dm_media_anonymously", FALSE);

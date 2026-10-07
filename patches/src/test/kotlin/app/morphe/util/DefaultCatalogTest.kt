@@ -27,6 +27,7 @@ import app.morphe.patches.instagram.misc.comment.copyCommentPatch
 import app.morphe.patches.instagram.misc.comment.saveCommentPhotoPatch
 import app.morphe.patches.instagram.misc.developeroptions.openDeveloperOptionsPatch
 import app.morphe.patches.instagram.direct.ephemeral.makeEphemeralPermanentPatch
+import app.morphe.patches.instagram.direct.saved.saveDeletedMessagesPatch
 import app.morphe.patches.instagram.media.images.improveImageViewingPatch
 import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.instagram.privacy.disableScreenshotDetectionPatch
@@ -103,6 +104,7 @@ class DefaultCatalogTest {
         disableScreenshotDetectionPatch,
         disableTypingStatusPatch,
         glassTabBarPatch,
+        saveDeletedMessagesPatch,
         improveImageViewingPatch,
         makeEphemeralPermanentPatch,
         dontSendReelWatchHistoryPatch,
@@ -142,14 +144,14 @@ class DefaultCatalogTest {
     }
 
     @Test fun immediateBehaviorChangesAndUnacceptedDmReceiptsStayOptIn() {
-        assertEquals(30, optIn.size)
+        assertEquals(31, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.use) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.use }
-        assertEquals("every named patch needs one reviewed decision", 55, all.size)
+        assertEquals("every named patch needs one reviewed decision", 56, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

@@ -791,3 +791,14 @@ once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->gate(Ljava/net/URI;)
 # changes; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/media/ImageSize;->screen(Ljava/lang/Integer;)Ljava/lang/Integer; in static (Landroid/content/Context;)Ljava/lang/String; holding %sdpi;\s%sx%s
 once-call Lapp/hushgram/extension/instagram/direct/EphemeralMedia;->mode(Ljava/lang/Long;Ljava/lang/String;)Ljava/lang/String; in instance (L*;)Ljava/lang/Object; holding url_expire_at_secs view_mode seen_count tap_models
+
+# Save deleted messages hands each parsed direct message, and each real-time one, to SavedMessages
+# right before it's returned, and tells it the id of a message Instagram hides, at the start of the
+# one method holding the hide-by-id message. The JSON parser is the one method holding the four
+# keys below, the real-time method the one holding both postprocess strings, and each is hooked at
+# the return of the message's own register; a real-time message has two such returns, so its rule
+# is shared. Left out, nothing is saved; elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding item_id hide_in_thread thread_key client_context
+shared-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;)L*; holding DirectMessage.postprocess.%s Encountered\sDirectMessage\swith\snull\stype
+start-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.

@@ -62,6 +62,7 @@ public enum PatchFamily {
     IMAGE_VIEWING(FamilyNames.IMAGE_VIEWING, "imageViewing", null, Settings.IMPROVE_IMAGE_VIEWING,
             Settings.IMPROVE_IMAGE_REQUEST),
     EPHEMERAL_MEDIA(FamilyNames.EPHEMERAL_MEDIA, "ephemeralMedia", null, Settings.KEEP_EPHEMERAL_MEDIA),
+    DELETED_MESSAGES(FamilyNames.DELETED_MESSAGES, "deletedMessages", null, Settings.SAVE_DELETED_MESSAGES),
     STORIES_TRAY(FamilyNames.STORIES_TRAY, "storiesTray", null, Settings.HIDE_SUGGESTED_STORIES,
             Settings.HIDE_STORIES_TRAY),
     STORY_RING(FamilyNames.STORY_RING, "storyRingSize", null, Settings.STORY_RING),
