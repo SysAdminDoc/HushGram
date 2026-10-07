@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-10-07T09:50:59",
-  "description": "Unofficial fork build of HushGram 0.0.5 for Instagram 449.0.0.52.84 (com.instagram.android) with 49 patches: the 48 from upstream plus Glass tab bar, a floating, rounded glass tab bar in the style of the iPhone one. Glass tab bar starts off; pick it in Morphe Manager's expert mode, then set its switches under Tab bar in HushGram's settings.\n\nChecked on an Android 15 emulator and an Android 16 phone; it hasn't been through upstream's release checks. Read Before you sign in in the README first. Patch the arm64-v8a build of Instagram 449.0.0.52.84, version code 385511871, and keep the manager's signing key so a new build installs over the old one.",
-  "download_url": "https://github.com/sherifrahim/HushGram/releases/download/v0.0.5-glass.1/patches-0.0.5.mpp",
+  "created_at": "2026-10-07T14:13:03",
+  "description": "Unofficial fork build of HushGram 0.0.5 for Instagram 449.0.0.52.84 (com.instagram.android) with 56 patches: the 48 from upstream plus eight of its own, all off until you pick them: Glass tab bar (a floating glass tab bar), View chats anonymously, Disable typing status, Disable screenshot detection, View live anonymously, Improve image viewing, Make ephemeral media permanent and Save deleted messages.\n\nChecked by patching Instagram 449 in Morphe Manager and running it on an Android 15 emulator and an Android 16 phone; the privacy patches still need a second account to see the other side. It hasn't been through upstream's release checks. Read Before you sign in in the README first. Patch the arm64-v8a build of Instagram 449.0.0.52.84, version code 385511871, and keep the manager's signing key so a new build installs over the old one.",
+  "download_url": "https://github.com/sherifrahim/HushGram/releases/download/v0.0.5-glass.2/patches-0.0.5.mpp",
   "signature_download_url": "",
   "version": "0.0.5"
 }
