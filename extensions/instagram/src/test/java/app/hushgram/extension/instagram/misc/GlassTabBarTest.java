@@ -48,12 +48,12 @@ public class GlassTabBarTest {
         assertEquals(0x00, Color.red(GlassTabBar.edge(Color.WHITE)));
     }
 
-    /** A 411dp phone (1080px at 2.625) keeps 13% clear each side: a pill about 74% as wide as the screen. */
+    /** A 411dp phone (1080px at 2.625) keeps 5% clear each side: a pill about 90% as wide as the screen. */
     @Test
-    public void aPhoneKeepsThirteenPercentClearEachSide() {
+    public void aPhoneKeepsFivePercentClearEachSide() {
         int outer = GlassTabBar.outerPx(1080, 2.625f);
-        assertEquals(140, outer, 1);
-        assertEquals(0.74f, (1080 - 2f * outer) / 1080f, 0.01f);
+        assertEquals(54, outer, 1);
+        assertEquals(0.90f, (1080 - 2f * outer) / 1080f, 0.01f);
     }
 
     @Test

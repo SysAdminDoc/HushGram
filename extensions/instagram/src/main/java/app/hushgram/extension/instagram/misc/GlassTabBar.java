@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
@@ -17,6 +18,7 @@ import android.graphics.LinearGradient;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.RenderEffect;
 import android.graphics.RenderNode;
@@ -25,18 +27,23 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
+import android.view.PixelCopy;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -66,9 +73,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (see the constants), so they carry to any width, and are held to sensible limits on narrow and
  * wide ones.
  *
- * <p>With the float switch off, the content stops above the bar as before, so the pill blurs a mirror
- * of the strip of content just above it, and the bar's own colour fills round the pill. On, the
- * content container runs to the bottom of the screen and the pill blurs what is really behind it.
+ * <p>What the pill blurs is a copy of the strip of screen just above it, read with {@link PixelCopy} a
+ * few times a second while the screen changes, and drawn upside down so the glass carries on from the
+ * edge it sits against. It's the screen as it's composed, so playing video, photos and text all come
+ * through, which a copy of the view tree can't do for video. With the float switch off, the content
+ * stops above the bar as before and the bar's own colour fills round the pill. On, the content
+ * container runs to the bottom of the screen.
  *
  * <p>Instagram sets the bar's colour, padding and visibility from time to time, so a draw listener
  * puts the pieces back whenever one is changed. Anything that throws turns the blur off for the
@@ -80,12 +90,12 @@ public final class GlassTabBar {
     static final int CONTENT = 0x7f0b2289;
 
     /**
-     * Proportions taken from Instagram's iPhone tab bar: the pill is about 74% of the screen's width
-     * (13% left clear each side), 52dp tall, with its tabs 7dp in from its ends, and 8dp above
-     * whatever the phone keeps at the bottom. A wide screen keeps the pill from growing past
-     * {@link #MAX_PILL_DP}.
+     * Proportions of the floating tab bar on the iPhone: the pill is about 90% of the screen's width
+     * (5% left clear each side, so it floats without touching the edges), 52dp tall, with its tabs 7dp
+     * in from its ends, and 8dp above whatever the phone keeps at the bottom. A wide screen keeps the
+     * pill from growing past {@link #MAX_PILL_DP}.
      */
-    static final float SIDE_SHARE = 0.13f;
+    static final float SIDE_SHARE = 0.05f;
     static final int MIN_SIDE_DP = 16;
     static final int MAX_PILL_DP = 420;
     static final int INNER_DP = 7;
@@ -125,7 +135,7 @@ public final class GlassTabBar {
             View found = activity.findViewById(TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) return;
-            applied.put(found, new Glass((ViewGroup) found));
+            applied.put(found, new Glass((ViewGroup) found, activity.getWindow()));
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
             Logger.printDebug(() -> "Glass tab bar: restyled the tab bar");
         } catch (Throwable failure) {
@@ -174,7 +184,7 @@ public final class GlassTabBar {
     }
 
     /**
-     * How far the pill is kept clear of each side: 13% of the width, at least 16dp, and enough on a
+     * How far the pill is kept clear of each side: 5% of the width, at least 16dp, and enough on a
      * wide screen that the pill is no wider than {@link #MAX_PILL_DP}.
      */
     static int outerPx(int widthPx, float density) {
@@ -201,6 +211,7 @@ public final class GlassTabBar {
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener,
             View.OnAttachStateChangeListener {
         private final ViewGroup bar;
+        private final Window window;
         private final float density;
         private final boolean blurWanted;
         private final boolean floating;
@@ -212,9 +223,12 @@ public final class GlassTabBar {
         private int lastLeft = -1, lastRight = -1, lastBottom = -1;
         /** How far each side of the pill is kept clear, as of the last layout. */
         private int outer;
+        /** The bottom margin Instagram gave the content, as first seen, to tell its changes from ours. */
+        private int contentMargin = -1;
 
-        Glass(ViewGroup bar) {
+        Glass(ViewGroup bar, Window window) {
             this.bar = bar;
+            this.window = window;
             this.density = bar.getResources().getDisplayMetrics().density;
             this.blurWanted = Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
@@ -286,14 +300,20 @@ public final class GlassTabBar {
             if (parent != null) {
                 View shadow = parent.findViewById(TAB_BAR_SHADOW);
                 if (shadow != null && shadow.getVisibility() != View.GONE) shadow.setVisibility(View.GONE);
-                if (floating) {
-                    View content = parent.findViewById(CONTENT);
-                    if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
-                        ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
+                View content = parent.findViewById(CONTENT);
+                if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                    ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
+                    if (contentMargin < 0) contentMargin = margins.bottomMargin;
+                    if (floating) {
                         if (margins.bottomMargin != 0) {
                             margins.bottomMargin = 0;
                             content.setLayoutParams(margins);
                         }
+                    } else if (params != null && params.height > contentMargin && contentMargin > 0
+                            && margins.bottomMargin == contentMargin) {
+                        // The bar is taller than the one Instagram laid the content out for; stop the content at its top.
+                        margins.bottomMargin = params.height;
+                        content.setLayoutParams(margins);
                     }
                 }
             }
@@ -302,7 +322,7 @@ public final class GlassTabBar {
         @Override public boolean onPreDraw() {
             try {
                 keep();
-                if (!blurBroken && blurWanted) bar.invalidate();
+                if (!blurBroken && blurWanted) pill.refresh();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
@@ -326,8 +346,19 @@ public final class GlassTabBar {
             private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final RectF rect = new RectF();
             private final RectF capsule = new RectF();
+            private final Handler handler = new Handler(Looper.getMainLooper());
+            private final Rect source = new Rect();
+            private final RectF target = new RectF();
+            private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
             @Nullable private RenderNode node;
-            @Nullable private WeakReference<View> content;
+            /** The strip drawn now, the one being copied into, and a fingerprint of the one drawn. */
+            @Nullable private Bitmap strip;
+            @Nullable private Bitmap scratch;
+            private int[] pixels = new int[0];
+            private int stripHash;
+            private boolean copying;
+            private int failures;
+            private long lastRequest;
             private int nodeWidth = -1;
             private int nodeHeight = -1;
             private float capsuleLeft = Float.NaN;
@@ -355,9 +386,9 @@ public final class GlassTabBar {
                 }
                 // Light glass has nothing under it to stand out against, so it gets a soft shadow.
                 if (!dark) {
-                    for (int i = 4; i >= 1; i--) {
-                        float spread = i * density * 1.5f;
-                        fill.setColor(0x0d000000);
+                    for (int i = 6; i >= 1; i--) {
+                        float spread = i * density * 0.8f;
+                        fill.setColor(0x06000000);
                         capsule.set(rect.left - spread, rect.top - spread / 3f + density,
                                 rect.right + spread, rect.bottom + spread);
                         canvas.drawRoundRect(capsule, radius + spread, radius + spread, fill);
@@ -412,22 +443,71 @@ public final class GlassTabBar {
                 if (!settled) invalidateSelf();
             }
 
-            /** Draws the blurred backdrop into the pill, and says whether it did. */
+            /**
+             * Asks for a fresh copy of the strip of screen just above the pill, at most every 40 ms and
+             * one at a time. Called as each frame is about to draw, so a screen that isn't changing asks
+             * for nothing; the copy draws the bar again only when it differs from the last.
+             */
+            void refresh() {
+                if (copying || blurBroken || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+                long now = SystemClock.uptimeMillis();
+                if (now - lastRequest < 40 || !bar.isAttachedToWindow() || rect.isEmpty()) return;
+                int[] at = new int[2];
+                bar.getLocationInWindow(at);
+                int width = Math.round(rect.width());
+                int height = Math.round(rect.height());
+                source.set(at[0] + Math.round(rect.left), at[1] - height, at[0] + Math.round(rect.left) + width, at[1]);
+                if (source.top < 0) source.top = 0;
+                if (source.width() <= 0 || source.height() <= 0) return;
+                int smallWidth = Math.max(8, width / 6);
+                int smallHeight = Math.max(4, height / 6);
+                if (scratch == null || scratch.getWidth() != smallWidth || scratch.getHeight() != smallHeight) {
+                    scratch = Bitmap.createBitmap(smallWidth, smallHeight, Bitmap.Config.ARGB_8888);
+                }
+                final Bitmap into = scratch;
+                copying = true;
+                lastRequest = now;
+                try {
+                    PixelCopy.request(window, source, into, result -> {
+                        copying = false;
+                        if (result != PixelCopy.SUCCESS) {
+                            if (++failures >= 8) {
+                                blurBroken = true;
+                                diagnose("pixel copy keeps failing, last result " + result, null);
+                            }
+                            return;
+                        }
+                        failures = 0;
+                        stored(into);
+                    }, handler);
+                } catch (Throwable failure) {
+                    copying = false;
+                    blurBroken = true;
+                    HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "pixel copy", failure);
+                    diagnose("pixel copy failed", failure);
+                }
+            }
+
+            /** A copy arrived: if the screen above the pill changed, it becomes the strip and the bar draws again. */
+            private void stored(Bitmap copy) {
+                int count = copy.getWidth() * copy.getHeight();
+                if (pixels.length != count) pixels = new int[count];
+                copy.getPixels(pixels, 0, copy.getWidth(), 0, 0, copy.getWidth(), copy.getHeight());
+                int hash = Arrays.hashCode(pixels);
+                if (strip != null && hash == stripHash) return;
+                stripHash = hash;
+                scratch = strip;
+                strip = copy;
+                bar.invalidate();
+            }
+
+            /** Draws the blurred strip, upside down, into the pill, and says whether it did. */
             private boolean drawBackdrop(Canvas canvas) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !canvas.isHardwareAccelerated()) {
-                    report("backdrop skipped: sdk=" + Build.VERSION.SDK_INT + " hw=" + canvas.isHardwareAccelerated());
+                Bitmap copy = strip;
+                if (copy == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !canvas.isHardwareAccelerated()) {
                     return false;
                 }
                 try {
-                    View container = content == null ? null : content.get();
-                    if (container == null && bar.getParent() instanceof View) {
-                        container = ((View) bar.getParent()).findViewById(CONTENT);
-                        content = container == null ? null : new WeakReference<>(container);
-                    }
-                    if (container == null || container.getWidth() == 0 || container.getHeight() == 0) {
-                        report("backdrop skipped: no content container (" + container + ")");
-                        return false;
-                    }
                     int width = Math.round(rect.width());
                     int height = Math.round(rect.height());
                     RenderNode backdrop = node;
@@ -439,7 +519,7 @@ public final class GlassTabBar {
                         saturate.setSaturation(1.5f);
                         ColorFilter colour = new ColorMatrixColorFilter(saturate);
                         backdrop.setRenderEffect(RenderEffect.createChainEffect(
-                                RenderEffect.createBlurEffect(blur, blur, Shader.TileMode.CLAMP),
+                                RenderEffect.createBlurEffect(blur, blur, Shader.TileMode.MIRROR),
                                 RenderEffect.createColorFilterEffect(colour)));
                         node = backdrop;
                     }
@@ -451,21 +531,12 @@ public final class GlassTabBar {
                         nodeWidth = width;
                         nodeHeight = height;
                     }
-                    // Where the pill sits in the frame the content and the bar share.
-                    float pillLeft = bar.getLeft() + bar.getTranslationX() + rect.left;
-                    float pillTop = bar.getTop() + bar.getTranslationY() + rect.top;
                     Canvas recording = backdrop.beginRecording(width, height);
                     try {
-                        recording.drawColor(base);
-                        if (floating) {
-                            recording.translate(container.getLeft() - pillLeft, container.getTop() - pillTop);
-                        } else {
-                            // Mirrored across the content's bottom edge: the strip just above the bar.
-                            recording.translate(container.getLeft() - pillLeft,
-                                    2f * container.getBottom() - container.getTop() - pillTop);
-                            recording.scale(1f, -1f);
-                        }
-                        container.draw(recording);
+                        recording.translate(0, height);
+                        recording.scale(1f, -1f);
+                        target.set(0, 0, width, height);
+                        recording.drawBitmap(copy, null, target, bitmapPaint);
                     } finally {
                         backdrop.endRecording();
                     }
@@ -473,9 +544,8 @@ public final class GlassTabBar {
                     canvas.translate(rect.left, rect.top);
                     canvas.drawRenderNode(backdrop);
                     canvas.restore();
-                    report("backdrop drawn: pill " + width + "x" + height + " at (" + pillLeft + "," + pillTop
-                            + ") content " + container.getLeft() + "," + container.getTop() + "-"
-                            + container.getRight() + "," + container.getBottom() + " floating=" + floating);
+                    report("backdrop drawn: pill " + width + "x" + height + " from strip "
+                            + copy.getWidth() + "x" + copy.getHeight() + " of " + source.toShortString());
                     return true;
                 } catch (Throwable failure) {
                     blurBroken = true;
