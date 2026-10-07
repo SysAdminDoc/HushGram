@@ -181,6 +181,30 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean viewChats() {
+        return false;
+    }
+
+    public static boolean typingStatus() {
+        return false;
+    }
+
+    public static boolean screenshotDetection() {
+        return false;
+    }
+
+    public static boolean viewLive() {
+        return false;
+    }
+
+    public static boolean imageViewing() {
+        return false;
+    }
+
+    public static boolean ephemeralMedia() {
+        return false;
+    }
+
     public static boolean keepReelSpeed() {
         return false;
     }
