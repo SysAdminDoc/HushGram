@@ -29,6 +29,8 @@ Every feature has its own switch, and one Pause switch turns them all off at onc
 
 ## Install
 
+**This fork** (HushGram plus the Glass tab bar patch): add https://morphe.software/add-source?github=sherifrahim%2FHushGram to Morphe Manager. It's an unofficial build and hasn't been through upstream's release checks. The steps below are for upstream's release.
+
 1. Install [Morphe Manager](https://github.com/MorpheApp/morphe-manager) 1.34.0 or newer.
 2. Add HushGram as a patch source: https://morphe.software/add-source?github=SysAdminDoc%2FHushGram (or build the bundle yourself, below, and add the `.mpp` file from your phone's storage).
 3. Get Instagram 449.0.0.52.84 from [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/). Take the variant labelled (arm64-v8a) (640dpi) (Android 9.0+), build 385511871. That's the one these patches are checked against. APKMirror carries other arm64-v8a builds of the same version, and Morphe Manager warns about those because they haven't been checked yet.
