@@ -331,6 +331,30 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             for (Preference row : privacy) section.addPreference(row);
         }
 
+        List<Preference> ghost = new ArrayList<>();
+        if (build.contains(PatchFamily.VIEW_CHATS)) {
+            ghost.add(toggle(context, Settings.VIEW_CHATS_ANONYMOUSLY, L10n.t("View chats anonymously"),
+                    L10n.t("Opening a chat doesn't tell the other person you've read it, so it never shows Seen. "
+                            + "Replying still does.")));
+        }
+        if (build.contains(PatchFamily.TYPING_STATUS)) {
+            ghost.add(toggle(context, Settings.DISABLE_TYPING_STATUS, L10n.t("Disable typing status"),
+                    L10n.t("Chats don't show that you're typing.")));
+        }
+        if (build.contains(PatchFamily.SCREENSHOT_DETECTION)) {
+            ghost.add(toggle(context, Settings.DISABLE_SCREENSHOT_DETECTION, L10n.t("Disable screenshot detection"),
+                    L10n.t("A screenshot of a chat or a story isn't reported to the other person.")));
+        }
+        if (build.contains(PatchFamily.VIEW_LIVE)) {
+            ghost.add(toggle(context, Settings.VIEW_LIVE_ANONYMOUSLY, L10n.t("View live anonymously"),
+                    L10n.t("You aren't counted or listed as a viewer of a live video. The video can still show "
+                            + "a notice about a connection problem.")));
+        }
+        if (!ghost.isEmpty()) {
+            PreferenceCategory section = category(screen, L10n.t("Ghost mode"));
+            for (Preference row : ghost) section.addPreference(row);
+        }
+
         boolean suggestions = build.contains(PatchFamily.FEED_SUGGESTIONS);
         boolean following = build.contains(PatchFamily.FOLLOWING_FEED);
         boolean swipe = build.contains(PatchFamily.SWIPE_TO_CREATE);
@@ -377,11 +401,29 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "search results stay.")));
         }
 
-        if (build.contains(PatchFamily.NOTES_ROW)) {
+        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.EPHEMERAL_MEDIA)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"));
-            messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
-                    L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
-                            + "Your chats, search and requests stay.")));
+            if (build.contains(PatchFamily.NOTES_ROW)) {
+                messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
+                        L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
+                                + "Your chats, search and requests stay.")));
+            }
+            if (build.contains(PatchFamily.EPHEMERAL_MEDIA)) {
+                messages.addPreference(toggle(context, Settings.KEEP_EPHEMERAL_MEDIA,
+                        L10n.t("Make ephemeral media permanent"),
+                        L10n.t("A view-once or replay-once photo or video that hasn't expired opens like any other, "
+                                + "as often as you like. It only changes how this phone treats it: the sender's "
+                                + "choice stands on their side.")));
+            }
+        }
+
+        if (build.contains(PatchFamily.IMAGE_VIEWING)) {
+            PreferenceCategory photos = category(screen, L10n.t("Photos"));
+            photos.addPreference(toggle(context, Settings.IMPROVE_IMAGE_VIEWING, L10n.t("Improve image viewing"),
+                    L10n.t("Photos open at the largest size Instagram sends. Restart Instagram after changing it.")));
+            photos.addPreference(toggle(context, Settings.IMPROVE_IMAGE_REQUEST, L10n.t("Ask for larger photos"),
+                    L10n.t("Tells Instagram this phone's screen is larger than it is, in the header of each request, "
+                            + "so it sends bigger copies. Restart Instagram after changing it.")));
         }
 
         List<Preference> reels = new ArrayList<>();
