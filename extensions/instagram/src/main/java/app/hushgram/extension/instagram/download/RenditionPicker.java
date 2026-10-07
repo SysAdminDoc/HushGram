@@ -126,16 +126,21 @@ final class RenditionPicker {
         if (!isHttpUrl(url) || isManifest(url)) return TIER_NONE;
 
         String lower = url.toLowerCase(Locale.US);
-
-        // Facebook asks for a thumbnail by putting the size into the address. A saved thumbnail
-        // looks like a success and is worthless, so these lose outright rather than rank low.
-        if (lower.contains("stp=dst-jpg_s") || lower.matches(".*[/_]([sp])\\d{2,3}x\\d{2,3}.*")) {
-            return TIER_NONE;
+        int baseTier = isMetaHost(lower) ? TIER_PLAUSIBLE : TIER_NONE;
+        
+        if (hasImageSuffix(pathOf(lower))) {
+            baseTier = TIER_PROGRESSIVE;
         }
 
-        if (hasImageSuffix(pathOf(lower))) return TIER_PROGRESSIVE;
+        // Facebook asks for a thumbnail by putting the size into the address.
+        // For Instagram, Reel covers often come with crop markers like `/p540x540/`. 
+        // Demote these to TIER_PLAUSIBLE rather than rejecting them outright (TIER_NONE), 
+        // so we don't fail completely when it's the only available address.
+        if (lower.contains("stp=dst-jpg_s") || lower.matches(".*[/_]([sp])\\d{2,3}x\\d{2,3}.*")) {
+            return baseTier == TIER_PROGRESSIVE ? TIER_PLAUSIBLE : baseTier;
+        }
 
-        return isMetaHost(lower) ? TIER_PLAUSIBLE : TIER_NONE;
+        return baseTier;
     }
 
     /**
