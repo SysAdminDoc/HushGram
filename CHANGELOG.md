@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Glass tab bar. It draws the tab bar as a floating, rounded pill of frosted glass with a lighter pill on the tab you're on, in the style of Instagram's newer iPhone look. On Android 12 and newer the pill blurs what's behind it, with a tint taken from the colour Instagram gave the bar, so it follows light, dark and the Reels tab. Before Android 12, or with the blur switch off, it's the same tint without the blur. A third switch, Show content behind the tab bar, lets Home, Reels and the other tabs run down behind the pill, and starts off because Reels' buttons and caption end up under it. It's off in the default selection, and changes none of Instagram's code, so a change to a switch shows after a restart. Not yet checked on a phone.
+
 * **Instagram:** Import overrides takes Instagram's own overrides file (mc_overrides.json) as well as a HushGram export, even when the file leaves the setting names blank, and up to 4,096 overrides at once. Every override still has to match a setting of the same type in the Instagram you're running, or nothing is changed. Picking an overrides file in the settings import now tells you to use Import overrides under Developer instead. Reported in #67.
 
 * **Tooling:** Moved to Morphe patcher 1.15.1, which fixes a reused patch match handing back stale classes and speeds up signing, DEX output and matching. With it, the patch step for all 48 patches takes 54 seconds on a desktop, down from 147 at v0.0.5. The next release needs Morphe Manager 1.34.0 or newer, the first Manager that carries this patcher. v0.0.5 keeps working in Manager 1.33.0.

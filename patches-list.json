@@ -301,6 +301,43 @@
       "options": []
     },
     {
+      "name": "Glass tab bar",
+      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. Pick the options in HushGram's settings, and restart Instagram after changing them.",
+      "category": "Interface",
+      "use": false,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "449.0.0.52.84"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "449.0.0.52.84",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385511871
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Hide Meta AI",
       "description": "Takes Meta AI out of the search bars, in the Search tab and at the top of your messages, so they search the plain way, drops the Ask a follow-up bar under search results and Meta AI's buttons in Home's top bar and the message composer, hides its optional row in your inbox, and removes Meta AI's posts from your home feed. Search and posts have separate switches. The search switch applies after Instagram restarts.",
       "category": "Interface",

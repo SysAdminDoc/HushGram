@@ -41,6 +41,7 @@ public final class FamilyNames {
     public static final String SHARE_SHEET = "Hide group buttons on the share sheet";
     public static final String REPOST_BUTTON = "Hide the Repost button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
+    public static final String GLASS_TAB_BAR = "Glass tab bar";
     public static final String FRIENDSHIP_STATUS = "Show if a profile follows you";
     public static final String PROFILE_SUGGESTIONS = "Hide suggested people on profiles";
     public static final String PROFILE_HIGHLIGHTS = "Hide highlights";
