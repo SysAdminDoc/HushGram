@@ -66,6 +66,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import app.hushgram.extension.instagram.direct.SavedMessages;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.ResumePlayback;
@@ -401,12 +402,19 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "search results stay.")));
         }
 
-        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.EPHEMERAL_MEDIA)) {
+        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.EPHEMERAL_MEDIA)
+                || build.contains(PatchFamily.DELETED_MESSAGES)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"));
             if (build.contains(PatchFamily.NOTES_ROW)) {
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
                         L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
                                 + "Your chats, search and requests stay.")));
+            }
+            if (build.contains(PatchFamily.DELETED_MESSAGES)) {
+                messages.addPreference(toggle(context, Settings.SAVE_DELETED_MESSAGES, L10n.t("Save deleted messages"),
+                        L10n.t("Keeps the text of messages other people send you on this phone, and marks the ones "
+                                + "they delete. Nothing leaves the phone, and only text is kept.")));
+                messages.addPreference(deletedMessagesRow(context));
             }
             if (build.contains(PatchFamily.EPHEMERAL_MEDIA)) {
                 messages.addPreference(toggle(context, Settings.KEEP_EPHEMERAL_MEDIA,
@@ -2173,6 +2181,61 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showAllText(view);
             ScreenColors.heading(view);
         }
+    }
+
+    /** Opens the list of messages other people deleted after this phone saved them. */
+    private Row deletedMessagesRow(Context context) {
+        Row row = new Row(context);
+        row.setKey("hushgram_deleted_messages");
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Deleted messages"));
+        row.setSummary(L10n.t("Messages other people deleted after this phone saved them. Tap to read them."));
+        row.setOnPreferenceClickListener(preference -> {
+            showDeletedMessages();
+            return true;
+        });
+        return row;
+    }
+
+    private void showDeletedMessages() {
+        if (getActivity() == null) return;
+        Utils.runOnBackgroundThread(() -> {
+            java.util.List<SavedMessages.Entry> found = SavedMessages.deleted();
+            Utils.runOnMainThread(() -> showDeleted(found));
+        });
+    }
+
+    private void showDeleted(java.util.List<SavedMessages.Entry> found) {
+        Context context = getActivity();
+        if (context == null || getView() == null) return;
+        StringBuilder lines = new StringBuilder();
+        java.text.DateFormat format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT,
+                L10n.locale(context));
+        for (SavedMessages.Entry entry : found) {
+            lines.append(format.format(new Date(entry.sentAt > 0 ? entry.sentAt : entry.deletedAt)))
+                    .append("  \u00b7  ").append(L10n.t("Sender")).append(' ')
+                    .append(entry.sender == null ? "?" : entry.sender).append('\n')
+                    .append(entry.body).append("\n\n");
+        }
+        TextView text = new TextView(context);
+        text.setText(found.isEmpty()
+                ? L10n.t("Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, "
+                        + "if this phone had already seen it.")
+                : lines.toString().trim());
+        text.setTextIsSelectable(true);
+        int pad = Math.round(16 * context.getResources().getDisplayMetrics().density);
+        text.setPadding(pad, pad, pad, pad);
+        text.setTextColor(ScreenColors.DEFAULT.summary);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(text);
+        show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Deleted messages"))
+                .setView(scroll)
+                .setPositiveButton(L10n.t("Close"), null)
+                .setNegativeButton(L10n.t("Clear all"), (dialog, which) -> Utils.runOnBackgroundThread(() -> {
+                    SavedMessages.clear();
+                    Utils.showToastShort(L10n.t("Saved messages cleared."));
+                })));
     }
 
     /** A row of text, which a screen reader calls a button when a tap does something. */
