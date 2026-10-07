@@ -48,7 +48,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -59,6 +59,7 @@ public final class L10nTranslations {
         fillDe7(table);
         fillDe8(table);
         fillDe9(table);
+        fillDe10(table);
         return table;
     }
 
@@ -1282,10 +1283,33 @@ public final class L10nTranslations {
                 "die entfernten Berechtigungen f\u00fcr die Werbe-ID");
         table.put("the start-up fix for x86 devices",
                 "der Startfix f\u00fcr x86-Ger\u00e4te");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f Entwickleroptionen");
+        table.put("\u2b55 Stories",
+                "\u2b55 Storys");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 Benutzeroberfl\u00e4che");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac Reels");
+    }
+
+    private static void fillDe10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b Privatsph\u00e4re");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac Nachrichten");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 Downloads");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 Feed und Beitr\u00e4ge");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f Werbeanzeigen");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 Beim Patchen eingestellt");
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -1296,6 +1320,7 @@ public final class L10nTranslations {
         fillEs7(table);
         fillEs8(table);
         fillEs9(table);
+        fillEs10(table);
         return table;
     }
 
@@ -2519,10 +2544,33 @@ public final class L10nTranslations {
                 "los permisos del ID de publicidad eliminados");
         table.put("the start-up fix for x86 devices",
                 "el arreglo de inicio para dispositivos x86");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f Opciones de desarrollador");
+        table.put("\u2b55 Stories",
+                "\u2b55 Historias");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 Interfaz de usuario");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac Reels");
+    }
+
+    private static void fillEs10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b Privacidad");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac Mensajes");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 Descargas");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 Feed y publicaciones");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f Anuncios");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 Ajustado al parchear");
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -2533,6 +2581,7 @@ public final class L10nTranslations {
         fillIn7(table);
         fillIn8(table);
         fillIn9(table);
+        fillIn10(table);
         return table;
     }
 
@@ -3756,10 +3805,33 @@ public final class L10nTranslations {
                 "izin ID iklan yang dihapus");
         table.put("the start-up fix for x86 devices",
                 "perbaikan saat mulai untuk perangkat x86");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f Opsi pengembang");
+        table.put("\u2b55 Stories",
+                "\u2b55 Cerita");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 Antarmuka pengguna");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac Reels");
+    }
+
+    private static void fillIn10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b Privasi");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac Pesan");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 Unduhan");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 Beranda dan postingan");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f Iklan");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 Ditetapkan saat ditambal");
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -3770,6 +3842,7 @@ public final class L10nTranslations {
         fillKo7(table);
         fillKo8(table);
         fillKo9(table);
+        fillKo10(table);
         return table;
     }
 
@@ -4993,10 +5066,33 @@ public final class L10nTranslations {
                 "\uad11\uace0 ID \uad8c\ud55c \uc81c\uac70");
         table.put("the start-up fix for x86 devices",
                 "x86 \uae30\uae30\uc5d0 \ub300\ud55c \uc2dc\uc791 \ubb38\uc81c \uc218\uc815");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f \uac1c\ubc1c\uc790 \uc635\uc158");
+        table.put("\u2b55 Stories",
+                "\u2b55 \uc2a4\ud1a0\ub9ac");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 \uc0ac\uc6a9\uc790 \uc778\ud130\ud398\uc774\uc2a4");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac \ub9b4\uc2a4");
+    }
+
+    private static void fillKo10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b \uac1c\uc778\uc815\ubcf4 \ubcf4\ud638");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac \uba54\uc2dc\uc9c0");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 \ub2e4\uc6b4\ub85c\ub4dc");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 \ud53c\ub4dc \ubc0f \uac8c\uc2dc\ubb3c");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f \uad11\uace0");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 \ud328\uce58 \uc2dc \uc124\uc815\ub428");
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -5007,6 +5103,7 @@ public final class L10nTranslations {
         fillPt_rBR7(table);
         fillPt_rBR8(table);
         fillPt_rBR9(table);
+        fillPt_rBR10(table);
         return table;
     }
 
@@ -6230,10 +6327,33 @@ public final class L10nTranslations {
                 "as permiss\u00f5es do ID de publicidade removidas");
         table.put("the start-up fix for x86 devices",
                 "a corre\u00e7\u00e3o de inicializa\u00e7\u00e3o para dispositivos x86");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f Op\u00e7\u00f5es do desenvolvedor");
+        table.put("\u2b55 Stories",
+                "\u2b55 Stories");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 Interface do usu\u00e1rio");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac Reels");
+    }
+
+    private static void fillPt_rBR10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b Privacidade");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac Mensagens");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 Downloads");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 Feed e publica\u00e7\u00f5es");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f An\u00fancios");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 Definido ao aplicar patch");
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(1192);
+        Map<String, String> table = new HashMap<>(1212);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -6244,6 +6364,7 @@ public final class L10nTranslations {
         fillTr7(table);
         fillTr8(table);
         fillTr9(table);
+        fillTr10(table);
         return table;
     }
 
@@ -7467,5 +7588,28 @@ public final class L10nTranslations {
                 "kald\u0131r\u0131lan reklam kimli\u011fi izinleri");
         table.put("the start-up fix for x86 devices",
                 "x86 cihazlar i\u00e7in a\u00e7\u0131l\u0131\u015f d\u00fczeltmesi");
+        table.put("\u2699\ufe0f Developer options",
+                "\u2699\ufe0f Geli\u015ftirici Se\u00e7enekleri");
+        table.put("\u2b55 Stories",
+                "\u2b55 Hikayeler");
+        table.put("\ud83c\udfa8 User interface",
+                "\ud83c\udfa8 Kullan\u0131c\u0131 Aray\u00fcz\u00fc");
+        table.put("\ud83c\udfac Reels",
+                "\ud83c\udfac Reels");
+    }
+
+    private static void fillTr10(Map<String, String> table) {
+        table.put("\ud83d\udc7b Privacy",
+                "\ud83d\udc7b Gizlilik");
+        table.put("\ud83d\udcac Messages",
+                "\ud83d\udcac Mesajlar");
+        table.put("\ud83d\udce5 Downloads",
+                "\ud83d\udce5 \u0130ndirmeler");
+        table.put("\ud83d\udcf1 Feed and posts",
+                "\ud83d\udcf1 Ak\u0131\u015f ve G\u00f6nderiler");
+        table.put("\ud83d\udee1\ufe0f Ads",
+                "\ud83d\udee1\ufe0f Reklamlar");
+        table.put("\ud83e\udde9 Set on patch",
+                "\ud83e\udde9 Yamaland\u0131\u011f\u0131nda Ayarlananlar");
     }
 }
