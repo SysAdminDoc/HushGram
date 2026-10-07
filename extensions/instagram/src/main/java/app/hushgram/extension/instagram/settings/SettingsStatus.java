@@ -177,6 +177,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean glassTabBar() {
+        return false;
+    }
+
     public static boolean keepReelSpeed() {
         return false;
     }

@@ -248,6 +248,30 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_remove_bottom_space", TRUE, true);
 
     /**
+     * Instagram's tab bar is drawn as a floating, rounded glass pill
+     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). The patch is off in the default
+     * selection, so a build that has it asked for it, and the switch starts on. Instagram builds
+     * the bar as it starts, so a change takes a restart.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR =
+            new BooleanSetting("hushgram_glass_tab_bar", TRUE, true);
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: the pill blurs what's behind it, on Android 12 and newer. Off, or
+     * on an older Android, it's a frosted tint without the blur.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_BLUR =
+            new BooleanSetting("hushgram_glass_tab_bar_blur", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: Home, Reels and the other tabs run down behind the bar, so the glass
+     * has the real content to blur. Reels' own buttons and caption end up under the bar as well, which
+     * is why it starts off.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_FLOAT =
+            new BooleanSetting("hushgram_glass_tab_bar_float", FALSE, true, parent(GLASS_TAB_BAR));
+
+    /**
      * Follows you or Doesn't follow you beside the name on someone's profile
      * ({@link app.hushgram.extension.instagram.profile.FriendshipStatus}). Read each time Instagram
      * binds a profile's name.

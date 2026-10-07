@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.buildexpiry.removeBuildExpiredPopupPatc
 import app.morphe.patches.instagram.misc.comment.copyCommentPatch
 import app.morphe.patches.instagram.misc.comment.saveCommentPhotoPatch
 import app.morphe.patches.instagram.misc.developeroptions.openDeveloperOptionsPatch
+import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.instagram.misc.externalbrowser.openLinksExternallyPatch
 import app.morphe.patches.instagram.misc.resignedtrust.restoreTrustPatch
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -93,6 +94,7 @@ class DefaultCatalogTest {
 
     private val optIn = listOf<Patch<*>>(
         cleanUpReelsPatch,
+        glassTabBarPatch,
         dontSendReelWatchHistoryPatch,
         downloadVideoPatch,
         hideExploreGridPatch,
@@ -128,14 +130,14 @@ class DefaultCatalogTest {
     }
 
     @Test fun immediateBehaviorChangesAndUnacceptedDmReceiptsStayOptIn() {
-        assertEquals(23, optIn.size)
+        assertEquals(24, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.use) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.use }
-        assertEquals("every named patch needs one reviewed decision", 48, all.size)
+        assertEquals("every named patch needs one reviewed decision", 49, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")
