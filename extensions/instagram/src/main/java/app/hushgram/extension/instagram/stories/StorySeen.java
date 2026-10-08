@@ -32,7 +32,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With the second switch on, the stories you tapped Mark as seen on ({@link StorySeenButton})
  * still go out: the answer is then a batch of the extension's own, started empty by Instagram's own
  * constructor, holding those stories and nothing else. Marks belong to the account they were made
- * on, read from the store that sends. See {@link StoryMarks}.
+ * on, read from the store that sends. See {@link StoryMarks}. Each such batch is handed on to
+ * {@link StorySeenRings}, which shows its stories as seen on the phone too, as they go out.
  *
  * <p>The switch off, a pause or settings that aren't ready send views as Instagram would. A fresh
  * send also fails open if reading the switch fails. A retry that can't read the switch stays held.
@@ -48,6 +49,7 @@ public final class StorySeen {
 
     static final String SEND_HOOK = "story seen send";
     static final String MARKED_HOOK = "marked story send";
+    static final String SHOWN_HOOK = "marked story shown";
 
     /** The stories marked as seen, shared with the button. */
     static final StoryMarks MARKS = new StoryMarks(SystemClock::elapsedRealtime);
@@ -80,6 +82,18 @@ public final class StorySeen {
 
         void threw(String hook, Throwable failure);
     }
+
+    /** Told of each batch of marked stories that goes out, with the account it's for. */
+    interface Shown {
+        void sent(@Nullable String account, Object batch, Batches batches);
+    }
+
+    /** Shows the stories of a batch that went out as seen on the phone. See {@link StorySeenRings}. */
+    static final Shown RINGS = StorySeenRings::sent;
+
+    /** For a caller that shows nothing. */
+    static final Shown NOT_SHOWN = (account, batch, batches) -> {
+    };
 
     static final Batches PATCHED = new Batches() {
         @Override
@@ -138,18 +152,25 @@ public final class StorySeen {
      */
     @Nullable
     public static Object toSend(Object store, Object batch) {
-        return toSend(store, batch, PATCHED, ANONYMOUS, MARKING, MARKS, COUNTED);
+        return toSend(store, batch, PATCHED, ANONYMOUS, MARKING, MARKS, COUNTED, RINGS);
     }
 
     @Nullable
     static Object toSend(@Nullable Object store, @Nullable Object batch, Batches batches, BooleanSupplier anonymous,
                          BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics) {
-        return choose(store, batch, batches, anonymous, marking, marks, diagnostics, false);
+        return toSend(store, batch, batches, anonymous, marking, marks, diagnostics, NOT_SHOWN);
+    }
+
+    @Nullable
+    static Object toSend(@Nullable Object store, @Nullable Object batch, Batches batches, BooleanSupplier anonymous,
+                         BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics, Shown shown) {
+        return choose(store, batch, batches, anonymous, marking, marks, diagnostics, shown, false);
     }
 
     @Nullable
     private static Object choose(@Nullable Object store, @Nullable Object batch, Batches batches, BooleanSupplier anonymous,
-                                 BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics, boolean retry) {
+                                 BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics, Shown shown,
+                                 boolean retry) {
         saw(diagnostics);
         boolean holdBack;
         try {
@@ -161,14 +182,28 @@ public final class StorySeen {
         }
         if (!holdBack) return batch;
         Object marked = null;
+        String account = null;
         try {
-            if (marking.getAsBoolean()) marked = marks.choose(batches.account(store), batch, batches);
+            if (marking.getAsBoolean()) {
+                account = batches.account(store);
+                marked = marks.choose(account, batch, batches);
+            }
         } catch (Throwable failure) {
             report(diagnostics, MARKED_HOOK, failure);
             marked = null;
         }
         counted(diagnostics, marked != null);
+        if (marked != null) show(shown, account, marked, batches, diagnostics);
         return marked;
+    }
+
+    /** Hands the marked batch going out to [shown]. Nothing it does or throws changes what goes out. */
+    private static void show(Shown shown, @Nullable String account, Object marked, Batches batches, Diagnostics diagnostics) {
+        try {
+            shown.sent(account, marked, batches);
+        } catch (Throwable failure) {
+            report(diagnostics, SHOWN_HOOK, failure);
+        }
     }
 
     /**
@@ -180,13 +215,19 @@ public final class StorySeen {
      */
     @Nullable
     public static Object toRetry(Object store, Object batch) {
-        return toRetry(store, batch, PATCHED, ANONYMOUS, MARKING, MARKS, COUNTED);
+        return toRetry(store, batch, PATCHED, ANONYMOUS, MARKING, MARKS, COUNTED, RINGS);
     }
 
     @Nullable
     static Object toRetry(@Nullable Object store, Object batch, Batches batches, BooleanSupplier anonymous,
                           BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics) {
-        return choose(store, batch, batches, anonymous, marking, marks, diagnostics, true);
+        return toRetry(store, batch, batches, anonymous, marking, marks, diagnostics, NOT_SHOWN);
+    }
+
+    @Nullable
+    static Object toRetry(@Nullable Object store, Object batch, Batches batches, BooleanSupplier anonymous,
+                          BooleanSupplier marking, StoryMarks marks, Diagnostics diagnostics, Shown shown) {
+        return choose(store, batch, batches, anonymous, marking, marks, diagnostics, shown, true);
     }
 
     /** Whether views are held back: the switch on, HushGram not paused and the settings read. */

@@ -76,7 +76,7 @@ class DownloadVideoHookTest {
     @Test
     fun theHooksAreInTheExtension() {
         for (hook in listOf(OFFER_VIDEO, SAVE_VIDEO, ALLOW_VIDEO, OFFER_ALL, SAVE_ALL, ALL_OPTION, OWN_POST, OFFER_PLAYER, PLAYER_OPTION, PLAY_VIDEO,
-            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS)) {
+            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -101,7 +101,7 @@ class DownloadVideoHookTest {
         assertEquals("anyone else's first row follows", "$state->other:Ljava/lang/Object;", code[offer + 1].referenceText())
         val owner = code.indexOfFirst { it.referenceText() == mine }
         assertEquals("the owner check's jump", offer, code.target(owner + 2))
-        assertEquals("six separate actions in the builder", 6, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
+        assertEquals("seven separate actions in the builder", 7, code.count { it.referenceText()?.startsWith("Lapp/hushgram/") == true })
     }
 
     /**
@@ -252,7 +252,7 @@ class DownloadVideoHookTest {
 
         context.offerDownloadOnEveryVideo()
 
-        val code = context.method(helper, "A09").code().drop(33)
+        val code = context.method(helper, "A09").code().drop(44)
         assertEquals(
             listOf(
                 Opcode.MOVE_OBJECT_FROM16, Opcode.SGET_OBJECT, Opcode.IF_NE, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC,
@@ -305,7 +305,7 @@ class DownloadVideoHookTest {
     }
 
     /**
-     * Open in another player has an option of its own, offered right after Save all on both
+     * Open in another player has an option of its own, offered right after Download cover on both
      * ownership paths, and a tap on it goes to play() with the post, its feed state and the activity.
      */
     @Test
@@ -319,12 +319,12 @@ class DownloadVideoHookTest {
             it.opcode == Opcode.MOVE_OBJECT && (it as TwoRegisterInstruction).registerA == 1 && it.registerB == 4
         })
         val builder = context.method(lambda, "invoke").code()
-        val all = builder.indexOfFirst { it.referenceText() == OFFER_ALL }
-        assertEquals("offered right after Save all", all + 1, builder.indexOfFirst { it.referenceText() == OFFER_PLAYER })
+        val cover = builder.indexOfFirst { it.referenceText() == OFFER_COVER }
+        assertEquals("offered right after Download cover", cover + 1, builder.indexOfFirst { it.referenceText() == OFFER_PLAYER })
         assertEquals(1, builder.count { it.referenceText() == OFFER_PLAYER })
-        val offer = builder[all + 1] as Instruction35c
-        val offerAll = builder[all] as Instruction35c
-        assertEquals("the same state and rows", listOf(offerAll.registerC, offerAll.registerD), listOf(offer.registerC, offer.registerD))
+        val offer = builder[cover + 1] as Instruction35c
+        val offerCover = builder[cover] as Instruction35c
+        assertEquals("the same state and rows", listOf(offerCover.registerC, offerCover.registerD), listOf(offer.registerC, offer.registerD))
         val menu = context.method(helper, "A09").code()
         assertEquals(PLAYER_OPTION, menu[11].referenceText())
         assertEquals("the post's feed state", "$helper->item:$itemState", menu[19].referenceText())
@@ -338,7 +338,7 @@ class DownloadVideoHookTest {
     /**
      * Details has an option of its own too, offered right after Open in another player on both
      * ownership paths, and a tap on it goes to show() with the post, its feed state and the
-     * activity. Every other option goes on to the current page's Download.
+     * activity. Every other option goes on to the Download cover check.
      */
     @Test
     fun detailsHasItsOwnOptionAndTap() {
@@ -358,8 +358,36 @@ class DownloadVideoHookTest {
         assertEquals(SHOW_DETAILS, show.referenceText())
         assertEquals("show()'s arguments", listOf(1, 0, 2), listOf(show.registerC, show.registerD, show.registerE))
         assertEquals("the Details tap stops native dispatch", Opcode.RETURN_VOID, menu[32].opcode)
-        for (branch in listOf(24, 25)) assertEquals("native options reach current-page handling", 33, menu.target(branch))
-        assertEquals(DOWNLOAD, menu[34].referenceText())
+        for (branch in listOf(24, 25)) assertEquals("other options reach the Download cover check", 33, menu.target(branch))
+    }
+
+    /**
+     * Download cover has an option of its own (#94), offered right after Save all on both
+     * ownership paths, and a tap on it goes to saveCover() with the post, its feed state and the
+     * activity. Every other option goes on to the current page's Download.
+     */
+    @Test
+    fun downloadCoverHasItsOwnOptionAndTap() {
+        val context = PatchContexts.of(classes())
+        context.offerDownloadOnEveryVideo()
+        val builder = context.method(lambda, "invoke").code()
+        val all = builder.indexOfFirst { it.referenceText() == OFFER_ALL }
+        assertEquals("offered right after Save all", all + 1, builder.indexOfFirst { it.referenceText() == OFFER_COVER })
+        assertEquals(1, builder.count { it.referenceText() == OFFER_COVER })
+        val offer = builder[all + 1] as Instruction35c
+        val offerAll = builder[all] as Instruction35c
+        assertEquals("the same state and rows", listOf(offerAll.registerC, offerAll.registerD), listOf(offer.registerC, offer.registerD))
+        val menu = context.method(helper, "A09").code()
+        assertEquals(COVER_OPTION, menu[33].referenceText())
+        assertEquals("the getter that reads the post", "$helper->A01($helper)$MEDIA", menu[38].referenceText())
+        assertEquals("$helper->activity:$activity", menu[40].referenceText())
+        assertEquals("the post's feed state", "$helper->item:$itemState", menu[41].referenceText())
+        val save = menu[42] as Instruction35c
+        assertEquals(SAVE_COVER, save.referenceText())
+        assertEquals("saveCover()'s arguments", listOf(1, 0, 2), listOf(save.registerC, save.registerD, save.registerE))
+        assertEquals("the cover tap stops native dispatch", Opcode.RETURN_VOID, menu[43].opcode)
+        for (branch in listOf(35, 36)) assertEquals("native options reach current-page handling", 44, menu.target(branch))
+        assertEquals(DOWNLOAD, menu[45].referenceText())
     }
 
     /** Unknown enum initialization and ambiguous or branching entry anchors cannot write half a patch. */
@@ -624,6 +652,7 @@ class DownloadVideoHookTest {
         assertEquals("$label: one batch tap", 1, handled.count { it.referenceText() == SAVE_ALL })
         assertEquals("$label: one player tap", 1, handled.count { it.referenceText() == PLAY_VIDEO })
         assertEquals("$label: one Details tap", 1, handled.count { it.referenceText() == SHOW_DETAILS })
+        assertEquals("$label: one Download cover tap", 1, handled.count { it.referenceText() == SAVE_COVER })
         val constructor = context.method(INSTAGRAM_MEDIA, "saveAllOption").code().single { it.opcode == Opcode.INVOKE_DIRECT }
         assertEquals("$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", constructor.referenceText())
         assertEquals("$label: the native option class was preserved", classes.single { it.type == OPTION }.methods.map { it.code().map { instruction -> instruction.referenceText() } },
@@ -644,8 +673,10 @@ class DownloadVideoHookTest {
         val code = context.method(builders.single().definingClass, builders.single().name, builders.single().parameterTypes.map(Any::toString)).code()
         assertEquals("$label: offer() calls", 1, code.count { it.referenceText() == OFFER_VIDEO })
         assertEquals("$label: Save all offered once", 1, code.count { it.referenceText() == OFFER_ALL })
-        assertEquals("$label: the player offered once, right after it",
-            code.indexOfFirst { it.referenceText() == OFFER_ALL } + 1, code.indexOfLast { it.referenceText() == OFFER_PLAYER })
+        assertEquals("$label: Download cover offered once, right after it",
+            code.indexOfFirst { it.referenceText() == OFFER_ALL } + 1, code.indexOfLast { it.referenceText() == OFFER_COVER })
+        assertEquals("$label: the player offered once, right after Download cover",
+            code.indexOfFirst { it.referenceText() == OFFER_COVER } + 1, code.indexOfLast { it.referenceText() == OFFER_PLAYER })
         assertEquals("$label: Details offered once, right after the player",
             code.indexOfFirst { it.referenceText() == OFFER_PLAYER } + 1, code.indexOfLast { it.referenceText() == OFFER_DETAILS })
         val own = code.indexOfFirst { it.referenceText() == OWN_POST }

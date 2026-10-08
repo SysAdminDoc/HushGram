@@ -44,10 +44,14 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       tap saves its picture at the largest size, the way {@link StoryDownload} saves a photo story.
  *   <li>A carousel also has Save all. It snapshots every ordered page for one cancellable batch,
  *       respecting the photo and video switches while Download still saves the page on screen.
+ *   <li>With Download video covers on, a post, or carousel page on screen, with a video gets
+ *       Download cover, which saves the still picture Instagram shows before the video plays, as
+ *       Download cover on a reel does (#94). It's offered after Save all, and the short menu keeps
+ *       it after Download and Save all.
  *   <li>With Open in another player on, a post, or carousel page on screen, with a video file gets
  *       a row that hands the file to a player picked from Android's chooser ({@link ExternalPlayer}).
  *       It's offered next to Save all, before the builder splits into your own and others' rows,
- *       and the short menu keeps it after Download and Save all.
+ *       and the short menu keeps it after Download, Save all and Download cover.
  *   <li>With Details on, every post gets a Details row there too ({@link PostInfo}), kept last of
  *       these in the short menu.
  * </ul>
@@ -67,6 +71,64 @@ public final class VideoDownload {
 
     /** Open in another player's option, made once, as Save all's is. */
     private static Object playerOption;
+
+    /** Download cover's option, made once, as Save all's is. */
+    private static Object coverOption;
+
+    public static synchronized Object coverOption() {
+        try {
+            if (coverOption == null) coverOption = InstagramMedia.feedOption(ReelDownload.COVER_OPTION);
+            return coverOption;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed cover option", failure);
+            return null;
+        }
+    }
+
+    /**
+     * Adds Download cover to [rows], the list the feed menu's builder [menu] fills, when Download
+     * feed videos and Download video covers are on and the post, or the carousel page on screen,
+     * has a video and a picture to save as its cover. Called beside {@link #offerAll}, so your own
+     * posts get it too. Never throws.
+     */
+    public static void offerCover(Object menu, ArrayList<?> rows) {
+        try {
+            if (menu == null || rows == null || !covers()) return;
+            HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            Object shown = shown(InstagramMedia.feedMenuMedia(menu), InstagramMedia.feedMenuItemState(menu));
+            if (!hasVideo(shown) || StoryDownload.pictures(shown).isEmpty()) return;
+            Object option = coverOption();
+            if (option != null) InstagramMedia.addSaveAllRow(menu, rows, option, L10n.t("Download cover"));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed cover row", failure);
+        }
+    }
+
+    /**
+     * Saves the cover of the post [media], or of the carousel page on screen that [itemState] names,
+     * when its Download cover row is tapped: the still picture shown before the video plays, at the
+     * largest size it lists. The sizes are all of that one picture, so it goes by
+     * {@link MediaSave#savePictureBySize}, as a reel's cover does (#79). [activity] is the one the
+     * menu belongs to. A save that can't start says so. Never throws.
+     */
+    public static void saveCover(Object media, Object itemState, Activity activity) {
+        Context context = activity != null ? activity : Utils.getContext();
+        try {
+            if (!covers()) return;
+            Object shown = shown(media, itemState);
+            List<MediaSave.Rendition> pictures = shown == null ? new ArrayList<>() : StoryDownload.pictures(shown);
+            final int sizes = pictures.size();
+            final String on = shown != media ? " on a carousel page" : "";
+            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed cover download tapped" + on + ": " + sizes + " picture size(s)");
+            if (sizes == 0 || !MediaSave.savePictureBySize(context, pictures, details(shown, media))) {
+                Context application = context.getApplicationContext();
+                Feedback.show(application, L10n.t(application, "Download failed"), true);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed cover save", failure);
+            if (context != null) Feedback.show(context.getApplicationContext(), L10n.t(context, "Download failed"), true);
+        }
+    }
 
     public static synchronized Object playerOption() {
         try {
@@ -260,18 +322,19 @@ public final class VideoDownload {
      * Answers [options], the options the short feed menu keeps, with [download], Instagram's
      * Download option, in front when the switch is on. The menu keeps a row only when its option is
      * on this list and orders the rows by it, so without this the row {@link #offer} added never
-     * shows there. Save all follows Download, keeping native options in their existing order, and
-     * with its own switch on, Open in another player follows them, then Details with its switch on
-     * ({@link PostInfo}). A list with every action or the switches off comes back as it came. Never
-     * throws.
+     * shows there. Save all follows Download, keeping native options in their existing order, then
+     * Download cover with its switch on. With their own switches on, Open in another player follows
+     * them, then Details ({@link PostInfo}). A list with every action or the switches off comes back
+     * as it came. Never throws.
      */
     public static List<?> allow(List<?> options, Object download) {
         try {
             HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
             if (options == null) return options;
             List<?> allowed = download == null || !videos() && !photos() ? options : withSaves(options, download);
+            if (covers()) allowed = withCover(allowed, download);
             if (ExternalPlayer.on()) allowed = withPlayer(allowed, download);
-            return PostInfo.on() ? PostInfo.withDetails(allowed, download, batchOption, playerOption) : allowed;
+            return PostInfo.on() ? PostInfo.withDetails(allowed, download, batchOption, coverOption, playerOption) : allowed;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "short feed menu", t);
             return options;
@@ -290,18 +353,36 @@ public final class VideoDownload {
     }
 
     /**
-     * [options] with Open in another player after Save all, or after Download when Save all isn't
-     * there, or in front when neither is. A list that has it already comes back as it came.
+     * [options] with Download cover after Save all, or after Download when Save all isn't there, or
+     * in front when neither is. A list that has it already comes back as it came.
+     */
+    static synchronized List<?> withCover(List<?> options, Object download) {
+        Object cover = coverOption();
+        if (cover == null || options.contains(cover)) return options;
+        List<Object> allowed = new ArrayList<>(options);
+        allowed.add(after(allowed, batchOption, download) + 1, cover);
+        return allowed;
+    }
+
+    /**
+     * [options] with Open in another player after Download cover, or when that isn't there after
+     * Save all, or after Download, or in front when none is. A list that has it already comes back
+     * as it came.
      */
     static synchronized List<?> withPlayer(List<?> options, Object download) {
         Object player = playerOption();
         if (player == null || options.contains(player)) return options;
         List<Object> allowed = new ArrayList<>(options);
-        Object all = batchOption;
-        int after = all != null && allowed.contains(all) ? allowed.indexOf(all)
-                : download != null ? allowed.indexOf(download) : -1;
-        allowed.add(after + 1, player);
+        allowed.add(after(allowed, coverOption, batchOption, download) + 1, player);
         return allowed;
+    }
+
+    /** Where the first of [rows] that [options] has sits in it, or -1 when it has none. */
+    private static int after(List<?> options, Object... rows) {
+        for (Object row : rows) {
+            if (row != null && options.contains(row)) return options.indexOf(row);
+        }
+        return -1;
     }
 
     /**
@@ -432,6 +513,11 @@ public final class VideoDownload {
 
     private static boolean photos() {
         return on(Settings.DOWNLOAD_PHOTOS);
+    }
+
+    /** Whether a post with a video gets Download cover: Download feed videos and Download video covers both on. */
+    static boolean covers() {
+        return videos() && on(Settings.DOWNLOAD_FEED_COVER);
     }
 
     private static boolean on(BooleanSetting setting) {

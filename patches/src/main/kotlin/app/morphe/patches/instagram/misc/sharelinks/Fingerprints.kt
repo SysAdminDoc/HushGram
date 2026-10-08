@@ -7,15 +7,11 @@ package app.morphe.patches.instagram.misc.sharelinks
 import app.morphe.patcher.Fingerprint
 
 /**
- * The parser of the server's answer to "copy link" on a post or reel. The link is the answer's
- * "permalink" field, and the model it fills is named by its GraphQL type, "XDTPermalinkResponse".
- * Parser classes are Redex names; the method name is an interface method, so it's kept.
+ * The server's answer to "copy link" on a post or reel: the link is its [PERMALINK_FIELD] field,
+ * and the model its parser fills is named by its GraphQL type, [PERMALINK_TYPE]. Parser classes are
+ * Redex names; the parser's method name, unsafeParseFromJson, is an interface method, so it's kept.
  */
-internal object PermalinkParserFingerprint : Fingerprint(
-    name = "unsafeParseFromJson",
-    returnType = "Ljava/lang/Object;",
-    strings = listOf("permalink", PERMALINK_TYPE),
-)
+internal const val PERMALINK_FIELD = "permalink"
 
 internal const val PERMALINK_TYPE = "XDTPermalinkResponse"
 

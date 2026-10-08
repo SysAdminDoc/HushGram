@@ -656,3 +656,6 @@ Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instag
 Battery	Akku
 Stop the background heartbeat	Hintergrund-Herzschlag stoppen
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram weckt dein Handy jede oder jede zweite Minute, auch bei ausgeschaltetem Bildschirm, nur um zu vermerken, dass es noch läuft. Das hört damit auf. Nachrichten, Benachrichtigungen und alles, was du siehst, bleiben unverändert.
+# context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
+Download video covers	Video-Cover herunterladen
+Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Fügt dem Menü eines Feed-Beitrags mit Video und eines Karussells, das gerade ein Video zeigt, den Eintrag Cover herunterladen hinzu. Er speichert das Standbild, das vor dem Abspielen des Videos zu sehen ist, in der größten Auflösung.

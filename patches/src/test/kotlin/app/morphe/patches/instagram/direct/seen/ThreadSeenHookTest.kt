@@ -117,7 +117,25 @@ class ThreadSeenHookTest {
     @Test fun aHelperElsewhereFinishingWithAnErrorIsRefused() = refuses(replace(F.helperElsewhere(), F.CALLBACKS, "finish") {
         it[2] = call(Opcode.INVOKE_INTERFACE, listOf(1, 0, 1), F.COMPLETE)
     }, "the callback interface never completes a task with two nulls")
-    @Test fun theWrongMutationCastIsRefused() = changed(F.HANDLER, "send") {
+    /** 450's x86_64 build (385611440) keeps no helper, but the queue's other handlers finish with two nulls (#95). */
+    @Test fun anotherHandlerFinishingWithTwoNullsIsAccepted() {
+        val input = F.otherHandlerFinishing()
+        val context = PatchContexts.of(input)
+        val found = context.findThreadSeen()
+        val first = input.single { it.type == F.HANDLER }.methods.single { it.name == "send" }.visualCode().first()
+        context.holdBackThreadSeen()
+        val patched = context.mutableClassDefBy(F.HANDLER).methods.single { it.name == "send" }
+        assertThreadGuard(patched, found.complete.toString(), first, F.ACCOUNT.toString())
+        assertEquals(ThreadTrace(completed = 1, sent = 0), traceThreadGuard(patched, true))
+        assertEquals("the other handler is left as it was", snapshot(input.single { it.type == F.OTHER_HANDLER }.methods),
+            snapshot(context.mutableClassDefBy(F.OTHER_HANDLER).methods))
+    }
+    @Test fun anotherHandlerFinishingWithAnErrorIsRefused() = refuses(replace(F.otherHandlerFinishing(), F.OTHER_HANDLER, "send") {
+        it[1] = call(Opcode.INVOKE_INTERFACE, listOf(3, 0, 3), F.COMPLETE)
+    }, "the callback interface never completes a task with two nulls")
+    @Test fun aMethodOfAnotherNameFinishingWithTwoNullsIsRefused() = refuses(F.otherHandlerFinishing("finishSticker"),
+        "the callback interface never completes a task with two nulls")
+    @Test fun theWrongMutationCastIsRefused()= changed(F.HANDLER, "send") {
         it[0] = ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 1, 4)
     }
     @Test fun aHandlerThatReadsAScratchRegisterFirstIsRefused() = changed(F.HANDLER, "send") {
@@ -334,6 +352,21 @@ internal object ChatSeenFixture {
     /** [classes] with the callback's helper moved off it onto [callbacks]. */
     fun helperElsewhere(cast: String = CALLBACK): List<ClassDef> =
         classes().map { if (it.type == CALLBACK) callback(ownHelper = false) else it } + callbacks(cast)
+
+    const val OTHER_HANDLER = "Lfixture/StickerSeenHandler;"
+
+    /**
+     * [classes] with no completion helper anywhere, as 450's x86_64 build (385611440) has it, but
+     * with another of the queue's handlers, named [name], finishing its task with two nulls.
+     * p0 is v1; p1 the task, p2 the callback and p3 the mutation are v2 to v4.
+     */
+    fun otherHandlerFinishing(name: String = "send"): List<ClassDef> =
+        classes().map { if (it.type == CALLBACK) callback(ownHelper = false) else it } + clazz(OTHER_HANDLER, listOf(
+            method(OTHER_HANDLER, name, listOf(TASK, CALLBACK, BASE), "V", 5, listOf(
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                call(Opcode.INVOKE_INTERFACE, listOf(3, 0, 0), COMPLETE), ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )),
+        ))
 
     fun provider(): ClassDef = clazz(PROVIDER, listOf(method(PROVIDER, "get", listOf(USER_SESSION), OBJECT, 3, listOf(
         typed(Opcode.NEW_INSTANCE, 0, HANDLER),

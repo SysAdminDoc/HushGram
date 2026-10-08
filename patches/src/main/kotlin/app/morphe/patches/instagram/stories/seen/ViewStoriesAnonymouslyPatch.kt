@@ -20,6 +20,10 @@ internal const val PATCH = "View stories anonymously"
  * Off in the default selection, since it changes what other people see. Picked, its switch starts
  * on. A second switch, off to start, adds a Mark as seen button to the story viewer's header: a
  * story you tap it on is reported, alone, and the rest stay held back.
+ *
+ * Instagram also writes down on the phone that you watched a story, which greys its ring and sends
+ * it to the end of the tray. While its view is held back that write is skipped too, so the ring
+ * stays new (#92); a story you mark as seen is written down as it goes out ([keepStoriesNew]).
  */
 @Suppress("unused")
 val viewStoriesAnonymouslyPatch = bytecodePatch(
@@ -35,7 +39,10 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
     dependsOn(instagramExtensionPatch)
 
     execute {
+        // Found first, so a build without it changes nothing.
+        val rings = findStoryRings()
         holdBackStoryViews()
+        keepStoriesNew(rings)
         enableStatus("storySeen")
     }
 }

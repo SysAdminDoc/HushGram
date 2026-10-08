@@ -660,6 +660,10 @@ once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->play(Ljava/
 once-call Lapp/hushgram/extension/instagram/download/PostInfo;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
 once-call Lapp/hushgram/extension/instagram/download/PostInfo;->option()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/PostInfo;->show(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
+# Download cover (#94): offered right after Save all by the same builder, and its tap handled by the same handler.
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->coverOption()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 # The short menu most of the feed opens keeps only the rows whose option is on a list made by a
 # method holding no string, so the rule picks it by the two options it reads: the one static method
 # taking a flag and answering a list that reads "Why you're seeing this" and Report. It returns
@@ -779,6 +783,13 @@ retry-call Lapp/hushgram/extension/instagram/stories/StorySeen;->toRetry(Ljava/l
 # story gets a Mark as seen button; twice or elsewhere, it isn't the hook the patch wrote.
 start-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindHeaderViews
 once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindHeaderViews
+# It also hands StorySeenRings the story viewer's write of a reel's seen time into the store that greys
+# its ring (0202.A0A on 450, the viewer logger's per-story method, which takes the story and holds
+# nux_story), in the write's own place, with the story whose time it is. The extension skips it while
+# the view is held back, so the ring stays new, and makes it otherwise (#92). The other holders of
+# nux_story take a view or two ints. Left out, every story you watch greys and moves to the end of
+# the tray; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/lang/Object;Ljava/lang/Object;JLjava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;L*;)V holding nux_story
 #
 # Turn off double tap to like asks the extension first thing in the feed's double-tap like, the one
 # method every kind of post's gesture delegate hands a double tap to, and returns there before the
