@@ -68,4 +68,21 @@ public class GlassTabBarTest {
         int outer = GlassTabBar.outerPx(width, density);
         assertEquals(420 * density, width - 2f * outer, 1f);
     }
+
+    @Test
+    public void theCapsuleSlideIsTimedNotCountedAndEasesOut() {
+        assertEquals(0f, GlassTabBar.slideProgress(0), 0f);
+        assertEquals(0f, GlassTabBar.slideProgress(-5), 0f);
+        assertEquals(1f, GlassTabBar.slideProgress(GlassTabBar.SLIDE_MS), 0f);
+        assertEquals(1f, GlassTabBar.slideProgress(GlassTabBar.SLIDE_MS * 3), 0f);
+        float half = GlassTabBar.slideProgress(GlassTabBar.SLIDE_MS / 2);
+        // Eased out: more than halfway at half time, and always moving forward.
+        assertTrue(half > 0.8f && half < 1f);
+        float last = 0f;
+        for (long t = 0; t <= GlassTabBar.SLIDE_MS; t += 7) {
+            float now = GlassTabBar.slideProgress(t);
+            assertTrue(now >= last);
+            last = now;
+        }
+    }
 }
