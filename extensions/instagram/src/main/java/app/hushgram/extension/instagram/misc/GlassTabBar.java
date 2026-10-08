@@ -86,9 +86,33 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * bar's lifetime and leaves Instagram's own bar as it was.
  */
 public final class GlassTabBar {
-    static final int TAB_BAR = 0x7f0b4024;
-    static final int TAB_BAR_SHADOW = 0x7f0b4025;
-    static final int CONTENT = 0x7f0b2289;
+    /**
+     * The names Instagram gives the bar, the line above it and the screens' container. Resource
+     * numbers change with every build, the names don't, so each is looked up by name once.
+     */
+    static final String TAB_BAR = "tab_bar";
+    static final String TAB_BAR_SHADOW = "tab_bar_shadow";
+    static final String CONTENT = "layout_container_main";
+
+    private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
+
+    /** The number of the id called [name] in [context]'s app, or 0 when there isn't one. */
+    static int id(Context context, String name) {
+        synchronized (IDS) {
+            Integer found = IDS.get(name);
+            if (found == null) {
+                found = context.getResources().getIdentifier(name, "id", context.getPackageName());
+                IDS.put(name, found);
+            }
+            return found;
+        }
+    }
+
+    @Nullable
+    static View find(View root, String name) {
+        int id = id(root.getContext(), name);
+        return id == 0 ? null : root.findViewById(id);
+    }
 
     /**
      * Proportions of the floating tab bar on the iPhone: the pill is about 90% of the screen's width
@@ -133,7 +157,7 @@ public final class GlassTabBar {
     static void apply(Activity activity) {
         try {
             if (!Utils.settingsReady() || !Settings.GLASS_TAB_BAR.get()) return;
-            View found = activity.findViewById(TAB_BAR);
+            View found = find(activity.getWindow().getDecorView(), TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) return;
             applied.put(found, new Glass((ViewGroup) found, activity.getWindow()));
@@ -226,6 +250,8 @@ public final class GlassTabBar {
         private int outer;
         /** The bottom margin Instagram gave the content, as first seen, to tell its changes from ours. */
         private int contentMargin = -1;
+        /** The height Instagram gave the bar, before this changed it: what it sizes the screens above it by. */
+        private int originalBarHeight = -1;
         /** The tab that was selected as of the last frame, to notice a change the bar's own drawing can't see. */
         @Nullable private WeakReference<View> lastSelected;
 
@@ -276,6 +302,7 @@ public final class GlassTabBar {
             // Height: the pill and the gap under it.
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
+                if (originalBarHeight < 0) originalBarHeight = params.height;
                 int wanted = dp(PILL_DP + BOTTOM_DP);
                 if (params.height != wanted) {
                     params.height = wanted;
@@ -301,9 +328,9 @@ public final class GlassTabBar {
             lastBottom = under;
 
             if (parent != null) {
-                View shadow = parent.findViewById(TAB_BAR_SHADOW);
+                View shadow = find(parent, TAB_BAR_SHADOW);
                 if (shadow != null && shadow.getVisibility() != View.GONE) shadow.setVisibility(View.GONE);
-                View content = parent.findViewById(CONTENT);
+                View content = find(parent, CONTENT);
                 if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
                     ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
                     if (contentMargin < 0) contentMargin = margins.bottomMargin;
@@ -318,6 +345,29 @@ public final class GlassTabBar {
                         margins.bottomMargin = params.height;
                         content.setLayoutParams(margins);
                     }
+                }
+                if (content instanceof ViewGroup) keepScreensAboveTheBar((ViewGroup) content, params);
+            }
+        }
+
+        /**
+         * Instagram sizes each main screen (Home's pager, Reels and the rest) to stop where its own tab bar
+         * did, by a bottom margin as tall as that bar. The pill is taller, so a reel's seek bar and the
+         * bottom of every other screen would run in under it. Any child of the content with exactly that
+         * margin gets the pill's height instead, and none at all while the content runs behind the bar. A
+         * margin of anything else, such as 0 while Instagram hides its bar, is left alone.
+         */
+        private void keepScreensAboveTheBar(ViewGroup content, @Nullable ViewGroup.LayoutParams params) {
+            if (originalBarHeight <= 0 || params == null || params.height <= 0) return;
+            int wanted = floating ? 0 : params.height;
+            if (wanted == originalBarHeight) return;
+            for (int i = 0; i < content.getChildCount(); i++) {
+                View screen = content.getChildAt(i);
+                if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
+                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) screen.getLayoutParams();
+                if (margins.bottomMargin == originalBarHeight) {
+                    margins.bottomMargin = wanted;
+                    screen.setLayoutParams(margins);
                 }
             }
         }
