@@ -71,7 +71,7 @@ public final class ProfileSaved {
     static final String ACTION_BUTTONS = "right_action_bar_buttons";
 
     /** How often the layout is looked at for a profile, at most. */
-    private static final long LOOK_EVERY_MS = 250;
+    private static final long LOOK_EVERY_MS = 600;
     /** How long the menu is given to fill in, and how long the screen is held at most. */
     private static final long WAIT_FOR_MENU_MS = 8000;
     private static final long HOLD_MAX_MS = 9000;
