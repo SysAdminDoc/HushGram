@@ -624,3 +624,20 @@ Mentioned in this story	이 스토리에서 언급한 사람
 See who a story mentions	스토리에서 언급한 사람 보기
 Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. Restart Instagram after changing it.	모든 이모티콘이 휴대전화 고유의 스타일 대신 Instagram이 Google Play 서비스에서 받는 이모티콘 글꼴의 Google 스타일로 표시됩니다. 설정을 변경한 후 Instagram을 다시 시작하세요.
 Google's emoji everywhere	모든 곳에 Google 이모티콘
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	하이라이트가 탭을 지날 때마다 가벼운 진동이 울려, 탭하거나 화면 사이를 넘길 때 막대를 따라갑니다.
+Blur behind the tab bar	탭 바 뒤 흐림 효과
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 이상에서 알약 모양 뒤에 있는 화면을 흐리게 합니다. 끄면 알약은 불투명한 색조가 됩니다.
+Clear all	모두 지우기
+Deleted messages	삭제된 메시지
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram의 탭 바를 현재 탭이 강조된 둥근 유리 알약 모양으로 띄워 그립니다. 변경한 뒤에는 Instagram을 다시 시작하세요.
+Glass tab bar	유리 탭 바
+Haptics on the tab bar	탭 바 햅틱
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	홈과 다른 탭이 알약 뒤로 이어져 유리가 흐리게 만들 실제 콘텐츠를 갖게 됩니다. 릴스는 계속 그 위에서 끝납니다.
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	다른 사람이 보낸 메시지의 텍스트를 이 휴대폰에 보관하고, 삭제된 메시지를 표시합니다. 휴대폰 밖으로 나가는 것은 없으며 텍스트만 보관합니다.
+Messages other people deleted after this phone saved them. Tap to read them.	이 휴대폰이 저장한 뒤 다른 사람이 삭제한 메시지입니다. 눌러서 읽어 보세요.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	아직 삭제된 항목이 없습니다. 이 휴대폰이 이미 본 메시지를 보낸 사람이 삭제하면 여기에 표시됩니다.
+Save deleted messages	삭제된 메시지 저장
+Saved messages cleared.	저장된 메시지를 지웠습니다.
+Sender	보낸 사람
+Show content behind the tab bar	탭 바 뒤에 콘텐츠 표시
+Tab bar	탭 바

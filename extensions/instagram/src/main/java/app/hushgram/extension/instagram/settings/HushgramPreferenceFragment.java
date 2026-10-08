@@ -884,8 +884,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                             + "or swipe between screens.")));
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
-                    L10n.t("Home, Reels and the other tabs run down behind the pill. Reels' buttons and caption sit "
-                            + "behind it too, so it starts off.")));
+                    L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
+                            + "Reels still stops above it.")));
         }
 
         // Any download patch brings this section, so each one that saves joins this condition.

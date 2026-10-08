@@ -502,12 +502,12 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_blur", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
-     * Under {@link #GLASS_TAB_BAR}: Home, Reels and the other tabs run down behind the bar, so the glass
-     * has the real content to blur. Reels' own buttons and caption end up under the bar as well, which
-     * is why it starts off.
+     * Under {@link #GLASS_TAB_BAR}: Home and the other tabs run down behind the bar, so the glass has
+     * the real content to blur and no strip of Instagram's own colour sits behind the pill. Reels keeps
+     * its own controls above the pill. Off, the content stops above the bar.
      */
     public static final BooleanSetting GLASS_TAB_BAR_FLOAT =
-            new BooleanSetting("hushgram_glass_tab_bar_float", FALSE, true, parent(GLASS_TAB_BAR));
+            new BooleanSetting("hushgram_glass_tab_bar_float", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
      * Under {@link #GLASS_TAB_BAR}: a light tick each time the highlight slides across a tab, so the
