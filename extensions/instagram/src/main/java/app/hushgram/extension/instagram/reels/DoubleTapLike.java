@@ -26,8 +26,11 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * handler's own path for a viewer with no like action. Double tap to skip and to go forward work as
  * before, and so does a single tap.
  *
- * <p>The switch has one under it for posts and one for reels, so a double tap can keep liking in one
- * place and not the other. The Like button likes through other code, so it goes through, and so does
+ * <p>A comment row's double tap likes or unlikes the comment, and the patch asks
+ * {@link #holdBackComment} first thing there.
+ *
+ * <p>The switch has one under it for posts, one for reels and one for comments, so a double tap can
+ * keep liking in some places and not others. The one for comments starts off. The Like button likes through other code, so it goes through, and so does
  * every double tap while the switch or the one for its place is off, HushGram is paused or the
  * settings aren't ready, or when anything in here fails.
  */
@@ -47,6 +50,14 @@ public final class DoubleTapLike {
      */
     public static boolean holdBackPost() {
         return holdingBack("post", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS);
+    }
+
+    /**
+     * Asked first thing in a comment row's double tap, which likes or unlikes the comment. True makes
+     * it return before the like, as it does itself for a comment it can't like. Never throws.
+     */
+    public static boolean holdBackComment() {
+        return holdingBack("comment", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS);
     }
 
     /**

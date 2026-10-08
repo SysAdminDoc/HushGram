@@ -19,11 +19,34 @@ internal object PermalinkParserFingerprint : Fingerprint(
 
 internal const val PERMALINK_TYPE = "XDTPermalinkResponse"
 
-/** The same for a story's share link, the "story_item_to_share_url" field. */
+/**
+ * The same for a story's share link, the [STORY_SHARE_URL_FIELD] field. 450 asks a pool of shared
+ * strings for the field's name, so the patch checks that name once it has the parser.
+ */
 internal object StoryShareUrlParserFingerprint : Fingerprint(
     name = "unsafeParseFromJson",
     returnType = "Ljava/lang/Object;",
-    strings = listOf("story_item_to_share_url", STORY_SHARE_URL_TYPE),
+    strings = listOf(STORY_SHARE_URL_TYPE),
 )
 
+internal const val STORY_SHARE_URL_FIELD = "story_item_to_share_url"
+
 internal const val STORY_SHARE_URL_TYPE = "XDTStoryItemThirdPartySharingUrlResponse"
+
+/**
+ * The main app's handler for the messages Instagram's in-app browser sends it. The browser's own
+ * code sits in a split the patcher doesn't rewrite, but its menu's Share and Copy link each send the
+ * page's address here, and the handler logs one of these two lines for a message that carries none.
+ */
+internal object BrowserMenuHandlerFingerprint : Fingerprint(
+    name = "handleMessage",
+    returnType = "V",
+    parameters = listOf("Landroid/os/Message;"),
+    strings = listOf(BROWSER_SHARE_FAILURE, BROWSER_COPY_FAILURE),
+)
+
+internal const val BROWSER_SHARE_FAILURE =
+    "failed to retrieve shareUrl, Message object is not a String. Defaulting to empty url"
+
+internal const val BROWSER_COPY_FAILURE =
+    "failed to retrieve copyUrl, Message object is not a String. Defaulting to empty url"

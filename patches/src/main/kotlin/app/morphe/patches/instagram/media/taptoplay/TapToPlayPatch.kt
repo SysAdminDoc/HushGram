@@ -4,8 +4,10 @@
  */
 package app.morphe.patches.instagram.media.taptoplay
 
+import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.fieldAccess
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
@@ -13,9 +15,11 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
@@ -29,6 +33,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -40,7 +45,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val PATCH = "Tap to play"
 
 internal const val TAP_TO_PLAY = "$EXTENSION_PACKAGE/media/TapToPlay;"
-internal const val ALLOW_START = "$TAP_TO_PLAY->allowStart(Ljava/lang/Object;Ljava/lang/String;)Z"
+internal const val ALLOW_START = "$TAP_TO_PLAY->allowStart(Ljava/lang/Object;Ljava/lang/String;I)Z"
 internal const val ALLOW_DIRECT_START = "$TAP_TO_PLAY->allowDirectStart(Ljava/lang/Object;Ljava/lang/String;)Z"
 internal const val PAUSED = "$TAP_TO_PLAY->paused(Ljava/lang/Object;Ljava/lang/String;)V"
 internal const val REBOUND = "$TAP_TO_PLAY->rebound(Ljava/lang/Object;)V"
@@ -57,6 +62,9 @@ internal const val PLAY_BUTTON_BINDER = "VideoPlayButtonBinder.bindView"
 
 /** The activity every Instagram screen extends, which Redex leaves under its own name. */
 internal const val FRAGMENT_ACTIVITY = "Lcom/instagram/base/activity/IgFragmentActivity;"
+
+/** The Reels viewer's config, which Redex leaves under its own name, and its video logger is made with. */
+internal const val CLIPS_VIEWER_CONFIG = "Lcom/instagram/clips/intf/ClipsViewerConfig;"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -83,6 +91,8 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
  * Instagram's own auto scroll in Reels moves on to the next reel, the move tells the extension just
  * before the pager moves, and the extension counts it as a tap on the reel it moves to, so auto scroll
  * carries on reel after reel instead of stopping at the first reel the gate held ([hookAutoScroll]).
+ * playInternal also tells the extension whether its player is the Reels viewer's ([findReelsLogger]),
+ * so the extension's choice of where Tap to play holds starts can leave Reels out, or everything else.
  *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done. The one exception is a build with no auto
@@ -112,6 +122,7 @@ val tapToPlayPatch = bytecodePatch(
 internal class PlayerHooks(
     val playInternal: Method,
     val grootField: FieldReference,
+    val reelsLogger: ReelsLogger,
     val play: Method,
     val pause: Method,
     val prepare: Method,
@@ -120,8 +131,11 @@ internal class PlayerHooks(
     val playButton: PlayButtonClick,
 )
 
-/** The feed's Litho play button's click, and the index of its call that hands the video to Instagram. */
-internal class PlayButtonClick(val method: Method, val call: Int)
+/**
+ * The feed's Litho play button's click, the index of its call that hands the video to Instagram,
+ * and which of its parameters is the click event.
+ */
+internal class PlayButtonClick(val method: Method, val call: Int, val event: Int)
 
 internal fun BytecodePatchContext.holdStartsWithoutATap() {
     val hooks = findPlayerHooks()
@@ -130,12 +144,14 @@ internal fun BytecodePatchContext.holdStartsWithoutATap() {
     val autoScroll = findAutoScroll()
 
     mutable(hooks.playInternal).apply {
-        requireLocals(PATCH, 1)
+        requireLocals(PATCH, 2)
         addInstructionsWithLabels(
             0,
             """
                 iget-object v0, p0, ${hooks.grootField}
-                invoke-static { v0, p1 }, $ALLOW_START
+                iget-object v1, p0, ${hooks.reelsLogger.field}
+                instance-of v1, v1, ${hooks.reelsLogger.type}
+                invoke-static { v0, p1, v1 }, $ALLOW_START
                 move-result v0
                 if-nez v0, :start
                 return-void
@@ -182,7 +198,7 @@ internal fun BytecodePatchContext.holdStartsWithoutATap() {
     // the hook.
     mutable(hooks.playButton.method).addInstructions(
         hooks.playButton.call + 1,
-        "invoke-static/range { p1 .. p1 }, $PLAY_BUTTON_TAPPED",
+        hooks.playButton.method.parameterRegister(hooks.playButton.event).let { "invoke-static/range { $it .. $it }, $PLAY_BUTTON_TAPPED" },
     )
     hookReelTap(reelTap)
     hookStoryRelease(storyRelease)
@@ -258,7 +274,34 @@ internal fun BytecodePatchContext.findPlayerHooks(): PlayerHooks {
             it.implementation != null
     } ?: throw PatchException("$PATCH: $FRAGMENT_ACTIVITY has no dispatchTouchEvent of its own")
 
-    return PlayerHooks(playInternal, grootField, play, pause, prepare, checker, touch, findPlayButtonClick())
+    return PlayerHooks(playInternal, grootField, findReelsLogger(owner), play, pause, prepare, checker, touch, findPlayButtonClick())
+}
+
+/** [player]'s field holding the video logger it was made with, and the class of the Reels viewer's logger. */
+internal class ReelsLogger(val field: FieldReference, val type: String)
+
+/**
+ * The video logger the Reels viewer makes its players with. IgVideoPlayerImpl, [player], keeps the
+ * logger it was made with in a final field, and the Reels viewer's logger is the one subclass of
+ * that field's type whose constructor takes a [CLIPS_VIEWER_CONFIG] first and keeps it. A player
+ * whose logger is one of those, or of a subclass, plays in the Reels viewer, which playInternal's
+ * hook checks with an instance-of. A reel in the feed is the feed's player, with the feed's logger.
+ */
+internal fun BytecodePatchContext.findReelsLogger(player: String): ReelsLogger {
+    val fields = classDefBy(player).fields
+        .filter { !AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.FINAL.isSet(it.accessFlags) && it.type.startsWith("L") }
+        .groupBy { it.type }
+    val loggers = Fingerprint(
+        name = "<init>",
+        filters = listOf(fieldAccess(type = CLIPS_VIEWER_CONFIG, opcode = Opcode.IPUT_OBJECT)),
+        custom = { method, classDef -> method.parameterTypes.firstOrNull()?.toString() == CLIPS_VIEWER_CONFIG && classDef.superclass in fields },
+    ).matchAllOrNull().orEmpty().map { it.originalMethod.definingClass }.distinct()
+    val type = loggers.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one class made with $CLIPS_VIEWER_CONFIG extending the type of a final field of $player, found ${loggers.size}: $loggers")
+    val base = classDefBy(type).superclass!!
+    val field = fields.getValue(base).singleOrNull()
+        ?: throw PatchException("$PATCH: $player has more than one final field of $base, the Reels viewer's video logger's type")
+    return ReelsLogger(field, type)
 }
 
 /**
@@ -291,7 +334,9 @@ internal fun BytecodePatchContext.findPlayButtonClick(): PlayButtonClick {
         ?: throw PatchException("$PATCH: ${button.type}, the Litho play button, holds more than one Function0")
 
     val clicks = mutableListOf<Method>()
+    val reading = classesAccessing(button.type, start.name, Opcode.IGET_OBJECT).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
+        if (classDef.type !in reading) return@classDefForEach
         classDef.methods.filterTo(clicks) { method ->
             method.code().any { instruction ->
                 instruction.opcode == Opcode.IGET_OBJECT && instruction.fieldReference()?.let {
@@ -302,26 +347,39 @@ internal fun BytecodePatchContext.findPlayButtonClick(): PlayButtonClick {
     }
     val click = clicks.singleOrNull()
         ?: throw PatchException("$PATCH: expected one method reading ${button.type}->${start.name}, the play button's start, found ${clicks.size}")
-    if (AccessFlags.STATIC.isSet(click.accessFlags) || click.returnType != OBJECT ||
-        click.parameterTypes.map(Any::toString) != listOf(OBJECT)
-    ) {
-        throw PatchException("$PATCH: ${click.definingClass}->${click.name}, the play button's click, isn't an instance Object invoke(Object)")
+    // 449 keeps the click in its own lambda's invoke(Object). 450's Redex merges lambdas into one
+    // static (int case, Object lambda, Object event) method switching on the case.
+    val static = AccessFlags.STATIC.isSet(click.accessFlags)
+    val parameters = click.parameterTypes.map(Any::toString)
+    if (click.returnType != OBJECT || parameters != if (static) listOf("I", OBJECT, OBJECT) else listOf(OBJECT)) {
+        throw PatchException(
+            "$PATCH: ${click.definingClass}->${click.name}, the play button's click, isn't an instance Object invoke(Object) " +
+                "or a merged static Object (int, Object, Object)",
+        )
     }
+    val event = parameters.lastIndex
     val code = click.code()
     val where = "${click.definingClass}->${click.name}, the play button's click,"
     val reads = code.indices.filter { index ->
         code[index].opcode == Opcode.IGET_OBJECT && code[index].fieldReference()?.let { it.definingClass == button.type && it.name == start.name } == true
     }
     val read = reads.singleOrNull() ?: throw PatchException("$PATCH: $where reads its start ${reads.size} times, expected once")
-    val calls = code.indices.filter { index ->
+    fun handsOver(index: Int): Boolean {
         val reference = code[index].methodReference()
-        code[index].opcode == Opcode.INVOKE_STATIC && reference != null && reference.returnType == "V" &&
+        return code[index].opcode == Opcode.INVOKE_STATIC && reference != null && reference.returnType == "V" &&
             reference.parameterTypes.map(Any::toString).let { it.size == 4 && it[0] == CONTEXT && it[2] == USER_SESSION && it[3] == FUNCTION0 }
     }
-    val call = calls.singleOrNull()
-        ?: throw PatchException("$PATCH: $where makes ${calls.size} static (Context, *, UserSession, Function0) calls, expected one handing over its start")
+    // A merged method's other cases make calls of their own, so the call is the first one after the read.
+    val call = (read + 1 until code.size).firstOrNull { handsOver(it) }
+        ?: throw PatchException("$PATCH: $where makes no static (Context, *, UserSession, Function0) call after reading its start")
+    if (!static && code.indices.count { handsOver(it) } != 1) {
+        throw PatchException("$PATCH: $where makes more than one static (Context, *, UserSession, Function0) call")
+    }
+    (read + 1 until call).firstOrNull { code[it] is OffsetInstruction || !code[it].opcode.canContinue() }?.let {
+        throw PatchException("$PATCH: $where can leave the way from its start to the call at instruction $it")
+    }
     val loaded = (code[read] as TwoRegisterInstruction).registerA
-    if (call < read || code[call].argumentRegisters().lastOrNull() != loaded) {
+    if (code[call].argumentRegisters().lastOrNull() != loaded) {
         throw PatchException("$PATCH: $where doesn't hand the start it read, v$loaded, to ${code[call].methodReference()}")
     }
     (read + 1 until call).firstOrNull { index ->
@@ -329,8 +387,8 @@ internal fun BytecodePatchContext.findPlayButtonClick(): PlayButtonClick {
         set != null && code[index].opcode.setsRegister() &&
             (set.registerA == loaded || code[index].opcode.setsWideRegister() && set.registerA + 1 == loaded)
     }?.let { throw PatchException("$PATCH: $where writes over its start, v$loaded, at instruction $it, before it hands it over") }
-    click.requireParameterIntact(PATCH, 0, listOf(call))
-    return PlayButtonClick(click, call)
+    click.requireParameterIntact(PATCH, event, listOf(call))
+    return PlayButtonClick(click, call, event)
 }
 
 private fun Instruction.argumentRegisters(): List<Int> = when (this) {

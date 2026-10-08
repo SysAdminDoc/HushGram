@@ -11,6 +11,7 @@ import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -54,6 +55,21 @@ internal object FixtureDex {
             }
         }
         return found
+    }
+
+    /**
+     * [classes] plus the string pools they call. From 450 Redex moves many strings into static
+     * (int)String switch methods, and a patch reading a pooled string needs the pool's class to
+     * resolve it, so a test that slices the fixture has to carry those classes too.
+     */
+    fun withStringPools(bundle: File, classes: Collection<ClassDef>): List<ClassDef> {
+        val have = classes.mapTo(HashSet()) { it.type }
+        val pools = classes.asSequence().flatMap { it.methods.asSequence() }
+            .flatMap { it.implementation?.instructions?.asSequence().orEmpty() }
+            .mapNotNull { ((it as? ReferenceInstruction)?.reference as? MethodReference) }
+            .filter { it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("I") }
+            .map { it.definingClass }.filter { it !in have }.toSet()
+        return classes.toList() + if (pools.isEmpty()) emptyList() else classes(bundle, pools).values
     }
 
     /**

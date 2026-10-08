@@ -51,6 +51,7 @@ public class FollowingListSettingsTest {
         PatchFamily.followingListMarkForTests = null;
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
         Settings.SHOW_FRIENDSHIP_STATUS.resetToDefault();
+        Settings.FRIENDSHIP_STATUS_CHIP.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -91,6 +92,28 @@ public class FollowingListSettingsTest {
         assertTrue(Settings.MARK_FOLLOWING_LIST.get());
         assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
+    /** Show it as a chip sits right under the label's switch, starts off and is off while paused. */
+    @Test public void chipSwitchStartsOffUnderTheLabelAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference chip = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FRIENDSHIP_STATUS_CHIP.key);
+        assertNotNull(chip);
+        assertEquals("Show it as a chip", chip.getTitle().toString());
+        assertFalse(chip.isChecked());
+        assertFalse(Settings.FRIENDSHIP_STATUS_CHIP.get());
+        SwitchPreference label = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_FRIENDSHIP_STATUS.key);
+        assertEquals(label.getOrder() + 1, chip.getOrder());
+        assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FRIENDSHIP_STATUS_CHIP));
+        Settings.FRIENDSHIP_STATUS_CHIP.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.FRIENDSHIP_STATUS_CHIP.get());
+        assertTrue(Settings.FRIENDSHIP_STATUS_CHIP.savedValue());
+        PauseForTests.resume();
+        assertTrue(Settings.FRIENDSHIP_STATUS_CHIP.get());
+        controller.close();
+        open(false);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FRIENDSHIP_STATUS_CHIP.key));
+    }
+
     @Test public void aBuildWhoseFollowListMovedKeepsTheLabelWithoutTheSecondSwitch() throws Exception {
         PatchFamily.followingListMarkForTests = false;
         open(true);

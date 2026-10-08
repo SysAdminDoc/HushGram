@@ -45,9 +45,9 @@
     given two methods to choose from; all eleven fail naming the method the rule picks. The Follow hook is also put first in that other method as
     well as in the check. A register out of range fails as its own finding:
     named by a helper added to a host class, as the upper half of a long read from the last
-    register, as a long an extension method writes there, and in the feed guard. Each of the five
-    ShortcutManager calls the settings patch sends to the
-    extension is left in Facebook's code by a build of its own, which has to fail that call's no-call
+    register, as a long an extension method writes there, and in the feed guard. Each framework
+    call a patch sends to an extension stand-in (the ShortcutManager, NotificationManager, Window,
+    Location, SurfaceView and SurfaceControl.Transaction calls) is left in Facebook's code by a build of its own, which has to fail that call's no-call
     rule and no other, and the contract file may hold no no-call rule without such a build. The
     call that gives the Facebook logo its touch listener is left as Facebook makes it, the stand-in
     is sent in place of the container's call instead, made on the container's register, sent
@@ -516,7 +516,7 @@ function Write-StandIn {
 }
 
 function Invoke-VerifierWithStandIns {
-    param([string]$Name, [int]$DexDiffExit, [switch]$JavaGone)
+    param([string]$Name, [int]$DexDiffExit, [switch]$JavaGone, [string]$PatchedCode = '385511871')
     $case = Join-Path $standIns $Name
     New-Item -ItemType Directory -Path $case -Force | Out-Null
     $javaStandIn = Join-Path $case 'java.cmd'
@@ -529,14 +529,17 @@ if "%~1"=="-version" (
 echo [diff] structural findings: 0
 exit /b $DexDiffExit
 "@
-    Write-StandIn (Join-Path $case 'aapt2.cmd') @'
+    # The patched APK can carry another version code, the way Change version code raises it.
+    Write-StandIn (Join-Path $case 'aapt2.cmd') @"
 @echo off
+set "CODE=385511871"
+for %%A in (%*) do if /i "%%~nxA"=="patched.apk" set "CODE=$PatchedCode"
 echo   E: manifest (line=2)
-echo     A: http://schemas.android.com/apk/res/android:versionCode(0x0101021b)=385511871
+echo     A: http://schemas.android.com/apk/res/android:versionCode(0x0101021b)=%CODE%
 echo     A: http://schemas.android.com/apk/res/android:versionName(0x0101021c)="449.0.0.52.84" (Raw: "449.0.0.52.84")
 echo     A: package="com.instagram.android" (Raw: "com.instagram.android")
 exit /b 0
-'@
+"@
     $delete = if ($JavaGone) { "del /f /q `"$javaStandIn`"" } else { 'rem' }
     Write-StandIn (Join-Path $case 'apksigner.bat') @"
 @echo off
@@ -569,6 +572,16 @@ try {
         $refused.Text -match 'FAIL: the dex comparison exited 1' -and
         $refused.Output -notcontains '[registers] success.') `
         "The verifier did not fail a comparison DexDiff failed.`n$($refused.Text)"
+    # The raised code scripts/manifest-delta-allowlist.txt approves is still the same build; another
+    # code is another build, refused before anything is compared.
+    $raised = Invoke-VerifierWithStandIns -Name 'raised' -DexDiffExit 0 -PatchedCode '2147483647'
+    Assert-True ($raised.ExitCode -eq 0 -and $raised.Text -match $reached -and
+        $raised.Output -contains '[registers] success.') `
+        "The verifier refused a patched build with the approved raised version code.`n$($raised.Text)"
+    $otherBuild = Invoke-VerifierWithStandIns -Name 'other-build' -DexDiffExit 0 -PatchedCode '385511872'
+    Assert-True ($otherBuild.ExitCode -ne 0 -and $otherBuild.Text -match 'have to be the same build' -and
+        $otherBuild.Text -notmatch $reached) `
+        "The verifier compared a patched build with a version code nobody approved.`n$($otherBuild.Text)"
     $gone = Invoke-VerifierWithStandIns -Name 'java-gone' -DexDiffExit 0 -JavaGone
     Assert-True ($gone.ExitCode -ne 0 -and $gone.Text -match $reached -and
         $gone.Output -notcontains '[registers] success.' -and $gone.Text -notmatch '\[registers\] static: ') `
@@ -689,20 +702,42 @@ try {
         'Lapp/hushgram/extension/: calls Lfixture/Attributions;->A02(Lfixture/ReelModel;Ljava/lang/String;)Lfixture/Model; ' +
         'before its first return')) `
         "The good build's GenAI reel stub was not reported calling Facebook's attribution finder.`n$($good.Output -join "`n")"
-    # The settings patch sends each of these ShortcutManager calls to SettingsEntry, and the fixture's
-    # publisher makes each one from a method of its own (Caller).
+    # The settings patch sends each of these ShortcutManager calls to SettingsEntry, Group
+    # notifications sends both NotificationManager.notify and both cancel calls to its stand-ins,
+    # Allow screenshots sends Window.setFlags and Window.addFlags to ScreenshotBlock, Spoof location
+    # sends Location's reads to SpoofLocation and Turn off HDR brightness boosts sends the headroom,
+    # color mode and extended range brightness calls to HdrBoost. The fixture's publisher makes each one from a method of its
+    # own (Caller).
+    $shortcutManager = 'Landroid/content/pm/ShortcutManager;'
+    $notificationManager = 'Landroid/app/NotificationManager;'
+    $location = 'Landroid/location/Location;'
+    $window = 'Landroid/view/Window;'
     $shortcutCalls = @(
-        [pscustomobject]@{ Case = 'push'; Call = 'pushDynamicShortcut'; Takes = 'Landroid/content/pm/ShortcutInfo;'; Answers = 'V'; Caller = 'push' }
-        [pscustomobject]@{ Case = 'add'; Call = 'addDynamicShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'add' }
-        [pscustomobject]@{ Case = 'set'; Call = 'setDynamicShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'set' }
-        [pscustomobject]@{ Case = 'update'; Call = 'updateShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'update' }
-        [pscustomobject]@{ Case = 'remove-all'; Call = 'removeAllDynamicShortcuts'; Takes = ''; Answers = 'V'; Caller = 'removeAll' }
+        [pscustomobject]@{ Case = 'push'; Manager = $shortcutManager; Call = 'pushDynamicShortcut'; Takes = 'Landroid/content/pm/ShortcutInfo;'; Answers = 'V'; Caller = 'push' }
+        [pscustomobject]@{ Case = 'add'; Manager = $shortcutManager; Call = 'addDynamicShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'add' }
+        [pscustomobject]@{ Case = 'set'; Manager = $shortcutManager; Call = 'setDynamicShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'set' }
+        [pscustomobject]@{ Case = 'update'; Manager = $shortcutManager; Call = 'updateShortcuts'; Takes = 'Ljava/util/List;'; Answers = 'Z'; Caller = 'update' }
+        [pscustomobject]@{ Case = 'remove-all'; Manager = $shortcutManager; Call = 'removeAllDynamicShortcuts'; Takes = ''; Answers = 'V'; Caller = 'removeAll' }
+        [pscustomobject]@{ Case = 'notify'; Manager = $notificationManager; Call = 'notify'; Takes = 'ILandroid/app/Notification;'; Answers = 'V'; Caller = 'notify' }
+        [pscustomobject]@{ Case = 'notify-tagged'; Manager = $notificationManager; Call = 'notify'; Takes = 'Ljava/lang/String;ILandroid/app/Notification;'; Answers = 'V'; Caller = 'notifyTagged' }
+        [pscustomobject]@{ Case = 'set-flags'; Manager = $window; Call = 'setFlags'; Takes = 'II'; Answers = 'V'; Caller = 'setFlags' }
+        [pscustomobject]@{ Case = 'add-flags'; Manager = $window; Call = 'addFlags'; Takes = 'I'; Answers = 'V'; Caller = 'addFlags' }
+        [pscustomobject]@{ Case = 'latitude'; Manager = $location; Call = 'getLatitude'; Takes = ''; Answers = 'D'; Caller = 'latitude' }
+        [pscustomobject]@{ Case = 'longitude'; Manager = $location; Call = 'getLongitude'; Takes = ''; Answers = 'D'; Caller = 'longitude' }
+        [pscustomobject]@{ Case = 'distance-to'; Manager = $location; Call = 'distanceTo'; Takes = 'Landroid/location/Location;'; Answers = 'F'; Caller = 'distance' }
+        [pscustomobject]@{ Case = 'surface-headroom'; Manager = 'Landroid/view/SurfaceView;'; Call = 'setDesiredHdrHeadroom'; Takes = 'F'; Answers = 'V'; Caller = 'surfaceHeadroom' }
+        [pscustomobject]@{ Case = 'transaction-headroom'; Manager = 'Landroid/view/SurfaceControl$Transaction;'; Call = 'setDesiredHdrHeadroom'; Takes = 'Landroid/view/SurfaceControl;F'; Answers = 'Landroid/view/SurfaceControl$Transaction;'; Caller = 'transactionHeadroom' }
+        [pscustomobject]@{ Case = 'window-headroom'; Manager = 'Landroid/view/Window;'; Call = 'setDesiredHdrHeadroom'; Takes = 'F'; Answers = 'V'; Caller = 'windowHeadroom' }
+        [pscustomobject]@{ Case = 'color-mode'; Manager = 'Landroid/view/Window;'; Call = 'setColorMode'; Takes = 'I'; Answers = 'V'; Caller = 'colorMode' }
+        [pscustomobject]@{ Case = 'extended-range'; Manager = 'Landroid/view/SurfaceControl$Transaction;'; Call = 'setExtendedRangeBrightness'; Takes = 'Landroid/view/SurfaceControl;FF'; Answers = 'Landroid/view/SurfaceControl$Transaction;'; Caller = 'extendedRange' }
+        [pscustomobject]@{ Case = 'cancel'; Manager = $notificationManager; Call = 'cancel'; Takes = 'I'; Answers = 'V'; Caller = 'cancel' }
+        [pscustomobject]@{ Case = 'cancel-tagged'; Manager = $notificationManager; Call = 'cancel'; Takes = 'Ljava/lang/String;I'; Answers = 'V'; Caller = 'cancelTagged' }
     )
     foreach ($shortcut in $shortcutCalls) {
         $shortcut | Add-Member -NotePropertyName Callee -NotePropertyValue (
-            "Landroid/content/pm/ShortcutManager;->$($shortcut.Call)($($shortcut.Takes))$($shortcut.Answers)")
+            "$($shortcut.Manager)->$($shortcut.Call)($($shortcut.Takes))$($shortcut.Answers)")
         $shortcut | Add-Member -NotePropertyName Site -NotePropertyValue (
-            "Lfixture/Shortcuts;->$($shortcut.Caller)(Landroid/content/pm/ShortcutManager;$($shortcut.Takes))$($shortcut.Answers)")
+            "Lfixture/Shortcuts;->$($shortcut.Caller)($($shortcut.Manager)$($shortcut.Takes))$($shortcut.Answers)")
     }
     # The override reader must never call these native writers or reloads. The good build makes
     # real calls inside the exact allowed prefix; each bad build adds one extension call outside it.
@@ -877,16 +912,36 @@ try {
     $setupHeld = '"FragmentActivity is required to open CDS bottom sheet", "foa_bottom_sheet_config" and "cds_bloks" with the shape static ' + $setupShape
     $setupRule = "shared-call $setupHook in static $setupShape holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet foa_bottom_sheet_config cds_bloks"
     $setupOtherCalls = @('fullScreen', 'push', 'sheet') | ForEach-Object { "Lfixture/SetupOpeners;->$_(Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V" }
+    # The list ViewPager2 makes passes its paging field through the tab swipe check in both touch
+    # methods, which share a shape and the field, so two rules tell them apart by the call each
+    # makes. Neither may count the other's method as somewhere else the check went. And the read of
+    # Home's store filters each of its two helper reads, so its rule says sites 2.
+    $tabSwipeHook = 'Lapp/hushgram/extension/fixture/feed/TabSwipe;->input(Landroid/view/View;I)Z'
+    $tabIntercept = 'Lfixture/TabPager;->intercept(Landroid/view/MotionEvent;)Z'
+    $tabTouch = 'Lfixture/TabPager;->touch(Landroid/view/MotionEvent;)Z'
+    $tabFling = 'Lfixture/TabPager;->fling(Landroid/view/MotionEvent;)Z'
+    $tabListCall = { param($Name) "Lfixture/TabList;->$Name(Landroid/view/MotionEvent;)Z" }
+    $tabInterceptRule = "shared-call $tabSwipeHook in instance (Landroid/view/MotionEvent;)Z calling instance " +
+        "$(& $tabListCall 'onInterceptTouchEvent') holding Lfixture/TabPager;->paging:Z"
+    $tabTouchRule = "shared-call $tabSwipeHook in instance (Landroid/view/MotionEvent;)Z calling instance " +
+        "$(& $tabListCall 'onTouchEvent') holding Lfixture/TabPager;->paging:Z"
+    $tabPagingHeld = { param($Name) """Lfixture/TabPager;->paging:Z"" with the shape instance (Landroid/view/MotionEvent;)Z and an instance call to $(& $tabListCall $Name)" }
+    $feedHook = 'Lapp/hushgram/extension/fixture/feed/HomeFeed;->filter(Ljava/lang/Object;)Ljava/lang/Object;'
+    $feedRead = 'Lfixture/FeedStore;->read([B)Ljava/lang/Object;'
+    $feedRule = "shared-call $feedHook in instance ([B)Ljava/lang/Object; sites 2 holding feed_store_items"
     $sharedCallRules = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*shared-call\s' } |
         ForEach-Object { ($_.Trim() -split '\s+') -join ' ' })
-    Assert-True ($sharedCallRules.Count -eq 6 -and $sharedCallRules[0] -ceq $postRule -and $sharedCallRules[1] -ceq $storyRule -and
+    Assert-True ($sharedCallRules.Count -eq 9 -and $sharedCallRules[0] -ceq $postRule -and $sharedCallRules[1] -ceq $storyRule -and
         $sharedCallRules[2] -ceq $providerRule -and $sharedCallRules[3] -ceq $setupRule -and
-        $sharedCallRules[4] -ceq $navPlainRule -and $sharedCallRules[5] -ceq $navLithoRule) `
+        $sharedCallRules[4] -ceq $navPlainRule -and $sharedCallRules[5] -ceq $navLithoRule -and
+        $sharedCallRules[6] -ceq $tabInterceptRule -and $sharedCallRules[7] -ceq $tabTouchRule -and $sharedCallRules[8] -ceq $feedRule) `
         "The contract file has a shared-call rule without exact negative coverage:`n$($sharedCallRules -join "`n")"
-    foreach ($pair in @(@($postRule, $postParser), @($storyRule, $storyParser), @($providerRule, $providerSite), @($setupRule, $setupSite), @($navPlainRule, $navPlain), @($navLithoRule, $navLitho))) {
+    foreach ($pair in @(@($postRule, $postParser), @($storyRule, $storyParser), @($providerRule, $providerSite), @($setupRule, $setupSite), @($navPlainRule, $navPlain), @($navLithoRule, $navLitho), @($tabInterceptRule, $tabIntercept), @($tabTouchRule, $tabTouch))) {
         Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $($pair[0]): once in $($pair[1])")) `
             "The good build's shared hook was not reported once in $($pair[1]).`n$($good.Output -join "`n")"
     }
+    Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $feedRule`: 2 times in $feedRead")) `
+        "The good build's store read filter was not reported twice in the store read.`n$($good.Output -join "`n")"
     # View stories anonymously puts its guard first in the send of Instagram's store of stories
     # you've seen, which holds no string, so its rule picks the send by what the store's methods hold
     # between them, and by its shape. The store's constructor takes two objects, so the send is the
@@ -917,11 +972,12 @@ try {
     $tabHeld = """default"" with the shape static $tabShape and a static call to $tabCall"
     $callingRules = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*[a-z-]+-call\s.*\scalling\s' } |
         ForEach-Object { ($_.Trim() -split '\s+') -join ' ' })
-    Assert-True ($callingRules.Count -eq 9 -and $callingRules[0] -ceq $tabRule -and $callingRules[1] -ceq $providerRule -and
+    Assert-True ($callingRules.Count -eq 11 -and $callingRules[0] -ceq $tabRule -and $callingRules[1] -ceq $providerRule -and
         $callingRules[2] -ceq $swipeRule -and $callingRules[3] -ceq $retryRule -and $callingRules[4] -ceq $retryRouteRule -and
         $callingRules[5] -ceq ($navPlainRule -replace '^shared-call', 'start-call') -and
         $callingRules[6] -ceq ($navLithoRule -replace '^shared-call', 'start-call') -and
-        $callingRules[7] -ceq $navPlainRule -and $callingRules[8] -ceq $navLithoRule) `
+        $callingRules[7] -ceq $navPlainRule -and $callingRules[8] -ceq $navLithoRule -and
+        $callingRules[9] -ceq $tabInterceptRule -and $callingRules[10] -ceq $tabTouchRule) `
         "The contract file has a calling rule without exact negative coverage:`n$($callingRules -join "`n")"
     Assert-True (($good.Output -join "`n") -match [regex]::Escape("contract $tabRule`: once in $tabHome")) `
         "The good build's home tab call was not reported once in the home tab, picked by its static check.`n$($good.Output -join "`n")"
@@ -1117,6 +1173,9 @@ try {
         'bad-navigation-plain-late' = 'contract'
         'bad-navigation-factory-missing' = 'contract'
         'bad-navigation-factory-twice' = 'contract'
+        'bad-tab-swipe-third-holder' = 'contract'
+        'bad-feed-sites-once' = 'contract'
+        'bad-feed-sites-thrice' = 'contract'
         'bad-dm-visual-guard-twice' = 'contract'
         'metai-inbox-row-missing' = 'contract'
         'bad-swipe-gate-missing' = 'contract'
@@ -1199,7 +1258,7 @@ try {
         Assert-True ($fails.Count -eq 1 -and $fails[0] -ceq $expected) `
             "$name did not fail with its own no-call finding alone.`nExpected: $expected`nGot:`n$($fails -join "`n")"
         foreach ($other in $shortcutCalls) {
-            $count = if ($other.Call -eq $shortcut.Call) { '1 call site, in ' } else { '0 call sites' }
+            $count = if ($other.Case -eq $shortcut.Case) { '1 call site, in ' } else { '0 call sites' }
             Assert-True (($badResults[$name].Output -join "`n") -match [regex]::Escape(
                 "no-call $($other.Callee) outside Lapp/hushgram/extension/: $count")) `
                 "$name reported $($other.Call) wrong: expected '$count'.`n$($badResults[$name].Output -join "`n")"
@@ -1387,6 +1446,26 @@ try {
         'bad-story-retry-two-loops' = "[diff] FAIL: contract: 2 methods $retryMany, and exactly one must, so the rule can't say " +
             "which one calls ${retryHook}: $retrySite, Lfixture/StoryRetryQueue;->runAgain()V"
     }
+    # The check in a third method reading the paging field: each sibling rule still finds it there,
+    # since only the other sibling's own method is left out. The store read's filter once and three
+    # times: each is held to the two its rule says.
+    $tabFlingFail = "[diff] FAIL: contract: $tabSwipeHook is called in $tabFling as well as in"
+    $siteFails = [ordered]@{
+        'bad-tab-swipe-third-holder' = @(
+            "$tabFlingFail $tabIntercept, the one method holding $(& $tabPagingHeld 'onInterceptTouchEvent')",
+            "$tabFlingFail $tabTouch, the one method holding $(& $tabPagingHeld 'onTouchEvent')")
+        'bad-feed-sites-once' = @("[diff] FAIL: contract: $feedHook has 1 call site in $feedRead, and must have exactly 2")
+        'bad-feed-sites-thrice' = @("[diff] FAIL: contract: $feedHook has 3 call sites in $feedRead, and must have exactly 2")
+    }
+    foreach ($case in $siteFails.GetEnumerator()) {
+        $fails = @((Get-Findings $badResults[$case.Key]).Fails)
+        Assert-True (($fails -join "`n") -ceq ($case.Value -join "`n")) `
+            "$($case.Key) did not fail only its expected contracts.`nExpected:`n$($case.Value -join "`n")`nGot:`n$($fails -join "`n")"
+    }
+    # HushGram's file may count sites only while the fixture exercises it.
+    $sitesRules = { param($Path) @(Get-Content -LiteralPath $Path | Where-Object { $_ -match '^\s*[a-z-]+-call\s.*\ssites\s' }).Count }
+    Assert-True ((& $sitesRules $realContracts) -eq 0 -or (& $sitesRules $contracts) -ne 0) `
+        "HushGram's contract file counts call sites, which the fixture doesn't exercise."
     foreach ($case in $newContractFails.GetEnumerator()) {
         $fails = @((Get-Findings $badResults[$case.Key]).Fails)
         $expectedCount = if (($case.Key -like 'bad-story-retry-*' -or $case.Key -eq 'bad-navigation-plain-missing')) { 2 } else { 1 }

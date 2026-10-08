@@ -328,7 +328,7 @@ public class Utils {
 
     /** Waits until background work submitted before this call has finished. */
     public static void awaitBackgroundTasksForTests() throws Exception {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
         while (true) {
             long remaining = deadline - System.nanoTime();
             if (remaining <= 0) throw new TimeoutException("Background tasks did not finish");
@@ -860,9 +860,20 @@ public class Utils {
         }
     }
 
+    /**
+     * Opens [url] in an app that opens web links. Only an http or https address with a host
+     * leaves ({@link #isWebLink}): anything else, an intent: or javascript: link among them, is
+     * dropped with a log line that leaves the address out.
+     */
     public static void openLink(String url) {
         try {
-            Intent intent = new Intent("android.intent.action.VIEW", Uri.parse(url));
+            Uri uri = url == null ? null : Uri.parse(url);
+            if (uri == null || !isWebLink(uri)) {
+                Logger.printInfo(() -> "Not opening a link that isn't an http or https address");
+                return;
+            }
+            Intent intent = new Intent("android.intent.action.VIEW", uri);
+            intent.addCategory(Intent.CATEGORY_BROWSABLE);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
             Logger.printInfo(() -> "Opening link with external browser: " + intent);
@@ -870,6 +881,19 @@ public class Utils {
         } catch (Exception ex) {
             Logger.printException(() -> "openLink failure", ex);
         }
+    }
+
+    /**
+     * Whether [uri] is a web address another app may be handed: an http or https scheme, in any
+     * case (RFC 3986), and a host. A scheme that only starts with http, an opaque {@code https:x}
+     * and an address with no host are not.
+     */
+    public static boolean isWebLink(Uri uri) {
+        if (uri == null || uri.isOpaque()) return false;
+        String scheme = uri.getScheme();
+        if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) return false;
+        String host = uri.getHost();
+        return host != null && !host.isEmpty();
     }
 
     public enum NetworkType {

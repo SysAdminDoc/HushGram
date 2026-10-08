@@ -39,6 +39,7 @@ internal const val STOPPED = "$RESUME_PLAYBACK->stopped(Ljava/lang/Object;Ljava/
 internal const val REBOUND = "$RESUME_PLAYBACK->rebound(Ljava/lang/Object;)V"
 internal const val ENDED = "$RESUME_PLAYBACK->ended(Ljava/lang/Object;)V"
 internal const val SEEKING = "$RESUME_PLAYBACK->seeking(Ljava/lang/Object;I)V"
+internal const val SESSION_ENDED = "$RESUME_PLAYBACK->sessionEnded(Ljava/lang/Object;)V"
 
 /** The strings IgVideoPlayerImpl keeps in its own log lines, which pick each method out. */
 internal const val PLAYBACK_STARTED = "Playback started "
@@ -60,6 +61,14 @@ internal val SOURCE_DUMP = listOf(MEDIA_ID, PRODUCT_TYPE_LABEL, IS_SPONSORED)
 /** Instagram's product type, which Redex leaves under its own name. */
 internal const val PRODUCT_TYPE = "Lcom/instagram/model/mediatype/ProductType;"
 
+/** The signed-in account's session, a kept name, and its user ID field, kept too. */
+internal const val RESUME_SESSION = "Lcom/instagram/common/session/UserSession;"
+internal const val RESUME_USER_ID = "userId"
+
+/** Where UserSession lets an account's session go, and its flag for a sign-out, both kept names. */
+internal const val RESUME_END_SESSION = "completeEndSession"
+internal const val RESUME_LOGGED_OUT = "isLoggedOut"
+
 /** The position reader answers 0 past a day, so it holds this literal and the length reader doesn't. */
 private const val DAY_MS = 86_400_000
 private const val STRING = "Ljava/lang/String;"
@@ -74,6 +83,11 @@ private const val OBJECT = "Ljava/lang/Object;"
  * length readers, its seek, the IgVideoSource it plays, and that source's media ID, product type and
  * sponsored flag. The extension decides the rest; see its ResumePlayback.
  *
+ * UserSession's completeEndSession tells the extension when an account's session ends, at an
+ * account switch or a sign-out, with stubs for the player's session, that session's user ID and its
+ * isLoggedOut flag, so the extension drops that account's waiting resumes and, at a sign-out, its
+ * points, and a signed-out session's players save nothing as they let go.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -81,7 +95,7 @@ private const val OBJECT = "Ljava/lang/Object;"
 val resumeLongVideosPatch = bytecodePatch(
     name = "Resume long videos",
     description = "A video or reel longer than two minutes that you left partway picks up where you left it the next " +
-        "time it plays. Live videos and ads start as usual. Its switch starts off.",
+        "time it plays on the same account. Live videos and ads start as usual. Its switch starts off.",
     default = true,
 ) {
     category("Interface")
@@ -114,6 +128,12 @@ internal class ResumePlayer(
     val mediaId: FieldReference,
     val productType: FieldReference,
     val sponsored: FieldReference,
+    /** The account the player was made for: its UserSession field, and that session's user ID. */
+    val session: FieldReference,
+    val userId: FieldReference,
+    /** Where UserSession lets the session go, and its flag saying the account signed out. */
+    val sessionEnd: Method,
+    val loggedOut: FieldReference,
 )
 
 internal fun BytecodePatchContext.resumeLongVideos() {
@@ -134,6 +154,9 @@ internal fun BytecodePatchContext.resumeLongVideos() {
     mutable(found.seek).addInstruction(0, "invoke-static/range { p0 .. p1 }, $SEEKING")
     mutable(found.completed).addInstruction(0, "invoke-static/range { p0 .. p0 }, $ENDED")
     mutable(found.looping).addInstruction(0, "invoke-static/range { p0 .. p0 }, $ENDED")
+    mutableClassDefBy(RESUME_SESSION).methods.single {
+        it.name == found.sessionEnd.name && it.parameterTypes.isEmpty() && it.returnType == "V"
+    }.addInstruction(0, "invoke-static/range { p0 .. p0 }, $SESSION_ENDED")
 
     stubs.fill(found)
 }
@@ -203,10 +226,28 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
 
     val (holder, sourceField) = player.sourcePath(sourceClass.type, mediaId)
 
+    // Whose points the player reads and writes: the UserSession its constructor is given, and the
+    // session's user ID. The extension keeps each account's points apart by it.
+    val sessions = player.fields.filter { it.type == RESUME_SESSION && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val session = sessions.singleOrNull()
+        ?: throw PatchException("$PATCH: expected one $RESUME_SESSION field in ${player.type}, found ${sessions.size}")
+    val sessionClass = classDefByOrNull(RESUME_SESSION)
+        ?: throw PatchException("$PATCH: $RESUME_SESSION isn't in this build")
+    val userId = sessionClass.fields.singleOrNull { it.name == RESUME_USER_ID && it.type == STRING }
+        ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_USER_ID:$STRING")
+    // Where Instagram lets a session go, at an account switch and at a sign-out, and the flag that
+    // tells the two apart. The extension forgets that account's waiting resumes, and its points at a sign-out.
+    val sessionEnd = sessionClass.methods.singleOrNull {
+        it.name == RESUME_END_SESSION && it.parameterTypes.isEmpty() && it.returnType == "V" &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_END_SESSION()V")
+    val loggedOut = sessionClass.fields.singleOrNull { it.name == RESUME_LOGGED_OUT && it.type == "Z" }
+        ?: throw PatchException("$PATCH: $RESUME_SESSION has no $RESUME_LOGGED_OUT:Z")
+
     // The extension's stubs reach these from outside Instagram's packages.
     val holderClass = classDefByOrNull(holder.type)
         ?: throw PatchException("$PATCH: ${holder.type}, what the player plays, isn't in this build")
-    listOf(player, holderClass, sourceClass).forEach { reachable ->
+    listOf(player, holderClass, sourceClass, sessionClass).forEach { reachable ->
         if (!AccessFlags.PUBLIC.isSet(reachable.accessFlags)) {
             throw PatchException("$PATCH: ${reachable.type} isn't public, so the extension can't reach it")
         }
@@ -217,7 +258,8 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
         }
     }
     listOf(player to holder, holderClass to sourceField, sourceClass to mediaId, sourceClass to productType,
-        sourceClass to sponsored).forEach { (owner, field) ->
+        sourceClass to sponsored, player to session, sessionClass to userId, sessionClass to loggedOut,
+    ).forEach { (owner, field) ->
         val declared = owner.fields.singleOrNull { it.name == field.name && it.type == field.type }
             ?: throw PatchException("$PATCH: ${owner.type} doesn't declare ${field.name}:${field.type}")
         if (!AccessFlags.PUBLIC.isSet(declared.accessFlags) || AccessFlags.STATIC.isSet(declared.accessFlags)) {
@@ -226,7 +268,7 @@ internal fun BytecodePatchContext.findResumePlayer(): ResumePlayer {
     }
 
     return ResumePlayer(player, started, pause, stop, bind, seek, completed, looping, position, length,
-        holder, sourceField, mediaId, productType, sponsored)
+        holder, sourceField, mediaId, productType, sponsored, session, userId, sessionEnd, loggedOut)
 }
 
 /**
@@ -296,6 +338,9 @@ private class ResumeStubs(
     val productType: MutableMethod,
     val sponsored: MutableMethod,
     val seekPlayer: MutableMethod,
+    val playerSession: MutableMethod,
+    val sessionUserId: MutableMethod,
+    val sessionLoggedOut: MutableMethod,
 ) {
     fun fill(found: ResumePlayer) {
         val player = found.player.type
@@ -340,6 +385,30 @@ private class ResumeStubs(
                 return p0
             """,
         )
+        playerSession.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $player
+                iget-object p0, p0, ${found.session}
+                return-object p0
+            """,
+        )
+        sessionUserId.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $RESUME_SESSION
+                iget-object p0, p0, ${found.userId}
+                return-object p0
+            """,
+        )
+        sessionLoggedOut.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $RESUME_SESSION
+                iget-boolean p0, p0, ${found.loggedOut}
+                return p0
+            """,
+        )
         // The stub's own registers are its four parameters, p0 to p3, all below v16, so the
         // plain invoke names them.
         seekPlayer.addInstructionsWithLabels(
@@ -369,6 +438,9 @@ private fun BytecodePatchContext.resumeStubs(): ResumeStubs {
         productType = stub("productType", listOf(OBJECT), OBJECT),
         sponsored = stub("sponsored", listOf(OBJECT), "Z"),
         seekPlayer = stub("seekPlayer", listOf(OBJECT, "I", "Z", "Z"), "Z"),
+        playerSession = stub("playerSession", listOf(OBJECT), OBJECT),
+        sessionUserId = stub("sessionUserId", listOf(OBJECT), STRING),
+        sessionLoggedOut = stub("sessionLoggedOut", listOf(OBJECT), "Z"),
     )
 }
 

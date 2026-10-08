@@ -4,12 +4,16 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import androidx.annotation.Nullable;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -26,10 +30,16 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * account you don't follow, labeled "Suggested for you" or "Suggested Reel", is an
  * {@link #SUGGESTED_POST}, which carries its post inside it. A post from an account you follow is a
  * MEDIA item and stays. Threads' units ({@link #THREADS_UNITS}) bring in posts, communities and
- * accounts from Threads. Each comes back as null while its switch is on, and every caller of that
+ * accounts from Threads, a survey ({@link #SURVEY_UNITS}) asks you to rate what you saw, and the
+ * {@link #SHOPPING_UNITS} offer products. Each comes back as null while its switch is on, and every
+ * caller of that
  * helper skips a null item, the home feed's page loads and its cache of recommended posts alike.
  *
  * <p>Explore's grid doesn't go through that helper (S22, Instagram 449), so it keeps its posts.
+ *
+ * <p>Hide videos, Hide photos and Hide carousels filter by the post an item carries, whoever posted
+ * it, so they sit on Home's own reads ({@link #homeItem}) rather than that helper, which Explore's
+ * chain of posts and the shop and ad feeds read through too.
  */
 public final class FeedSuggestions {
     /**
@@ -51,7 +61,15 @@ public final class FeedSuggestions {
      */
     static final Set<String> THREADS_UNITS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "THREADS_IN_FEED_UNIT", "TIFU_IN_EXPLORE", "EOF_TIFU", "KICKSTART_FEED_UNIT",
-            "COMMUNITIES_IN_FEED_UNIT", "SMSL_IN_FEED_UNIT", "LIVE_CHAT_IN_FEED_UNIT", "SPORT_GAME_IN_FEED_UNIT")));
+            "COMMUNITIES_IN_FEED_UNIT", "SMSL_IN_FEED_UNIT", "LIVE_CHAT_IN_FEED_UNIT", "SPORT_GAME_IN_FEED_UNIT",
+            "THREADS_IN_FEED_UNIT_MUSE", "VERTICALS_IN_FEED_UNIT")));
+
+    /** The survey between posts ("in_feed_survey" in the feed's JSON). */
+    static final Set<String> SURVEY_UNITS = Collections.singleton("FEED_SURVEY");
+
+    /** Products to shop, product picks from a post, and live shopping. */
+    static final Set<String> SHOPPING_UNITS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PIVOTS", "LIVE_SHOPPING_NETEGO")));
 
     /** Every kind this patch reads. */
     static final Set<String> KINDS;
@@ -60,39 +78,93 @@ public final class FeedSuggestions {
         Set<String> kinds = new HashSet<>(ACCOUNT_UNITS);
         kinds.add(SUGGESTED_POST);
         kinds.addAll(THREADS_UNITS);
+        kinds.addAll(SURVEY_UNITS);
+        kinds.addAll(SHOPPING_UNITS);
         KINDS = Collections.unmodifiableSet(kinds);
     }
 
     /** The diagnostic counter route: the suggestions seen, and the ones taken out. */
     static final String ROUTE = "Feed suggestions";
 
+    /** Instagram's media_type values for a post of one photo, one video (reels too) and a carousel. */
+    static final int PHOTO = 1, VIDEO = 2, CAROUSEL = 8;
+
+    /** The diagnostic counter route of {@link #homeItem}: the post types read, and the posts taken out. */
+    static final String TYPES_ROUTE = "Home post types";
+
+    /** The counted kind of a post whose type isn't one of the three, or an item with no post. */
+    static final String OTHER_TYPE = "other type";
+
     /** Set once {@link #filter} has taken an item out of the home feed in this run. Tests clear it. */
     static volatile boolean tookOut;
+
+    /** Set once {@link #homeItem} has taken a post out of Home in this run. Tests clear it. */
+    static volatile boolean typesTookOut;
+
+    /**
+     * Set on the thread {@link #filter} has just taken an item out on, and cleared by its next call
+     * there, so the Home read right after it can tell an item it lost to a suggestion switch from one
+     * the helper had none for.
+     */
+    private static final ThreadLocal<Boolean> JUST_TOOK_OUT = new ThreadLocal<>();
+
+    /** Set once one of Home's own reads has lost an item to {@link #filter} in this run. Tests clear it. */
+    static volatile boolean homeLost;
+
+    /** Set once one of Home's own reads has kept an item in this run. Tests clear it. */
+    static volatile boolean homeKept;
+
+    /** Whether Home's reads go through {@link #homeItem}, when a test says so instead of the build. */
+    @Nullable
+    static volatile Boolean homeReadsForTests;
 
     private FeedSuggestions() {
     }
 
     /**
      * Injected at each read of the home feed adapter's "no next page" flag. Answers 1 (no next
-     * page) once {@link #filter} has taken items out and a suggestion switch is still on, and
-     * [noMorePages] otherwise. Turning every switch off restores Instagram's answer in this run.
+     * page) once {@link #filter} has taken items out and a suggestion switch is still on, once
+     * {@link #homeItem} has taken posts out and a post type switch is still on, or once Hide the
+     * home feed has emptied Home ({@link HomeFeed#emptied}), and [noMorePages] otherwise. Turning
+     * every switch off restores Instagram's answer in this run.
      *
      * <p>Instagram reads that flag only beside its own checks that the feed is empty and no page is
      * loading. With both true and a next page left it draws its loading placeholder, and nothing asks
      * for that page while the feed is empty, so a Home emptied of suggestions kept the placeholder for
      * good. Saying there's no next page gets Instagram's own empty feed card instead. A feed with posts
      * left, or one waiting on a page, draws what it did.
+     *
+     * <p>The suggestion switches end Home only once they can have emptied it ({@link #suggestionsEmptiedHome}).
      */
     public static int feedEnded(int noMorePages) {
-        if (noMorePages != 0 || !tookOut) return noMorePages;
+        if (noMorePages != 0) return noMorePages;
+        if (HomeFeed.emptied()) return 1;
+        if (!tookOut && !typesTookOut) return noMorePages;
         try {
             if (!Utils.settingsReady()) return noMorePages;
-            return Settings.HIDE_SUGGESTED_POSTS.get() || Settings.HIDE_SUGGESTED_ACCOUNTS.get()
-                    || Settings.HIDE_THREADS_POSTS.get() ? 1 : noMorePages;
+            if (tookOut && suggestionsEmptiedHome() && (Settings.HIDE_SUGGESTED_POSTS.get()
+                    || Settings.HIDE_SUGGESTED_ACCOUNTS.get() || Settings.HIDE_THREADS_POSTS.get())) return 1;
+            return typesTookOut && (Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
+                    || Settings.HIDE_FEED_CAROUSELS.get()) ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
         }
+    }
+
+    /**
+     * Whether the suggestion switches can have emptied Home. Where Home's reads go through
+     * {@link #homeItem}, that's once those reads have lost an item to {@link #filter} and kept none.
+     * The helper {@link #filter} sits on also reads Explore's chain of posts and the shop and ad
+     * feeds, and Home reads its store of the last run before its first page, so an item taken out
+     * anywhere used to end a Home that was only waiting for that page, and Instagram drew its
+     * Welcome to Instagram card there for a few seconds at startup (#28). Without those reads in the
+     * build, it's once anything's been taken out.
+     */
+    private static boolean suggestionsEmptiedHome() {
+        Boolean forced = homeReadsForTests;
+        boolean homeReads = forced != null ? forced : PatchFamily.feedTypesInBuild();
+        return !homeReads || (homeLost && !homeKept);
     }
 
     /**
@@ -141,6 +213,7 @@ public final class FeedSuggestions {
      * itself otherwise, or when anything goes wrong. Never throws.
      */
     public static Object filter(Object item) {
+        JUST_TOOK_OUT.remove();
         if (item == null) return null;
         try {
             HookStatus.invoked(FamilyNames.FEED_SUGGESTIONS);
@@ -151,6 +224,7 @@ public final class FeedSuggestions {
             if (!Utils.settingsReady() || !setting.get()) return item;
             FeedFilterCounters.removed(ROUTE, 1, kind);
             tookOut = true;
+            JUST_TOOK_OUT.set(Boolean.TRUE);
             Logger.printDebug(() -> "Feed suggestions: took out a " + kind + " item");
             return null;
         } catch (Throwable failure) {
@@ -159,9 +233,67 @@ public final class FeedSuggestions {
         }
     }
 
+    /**
+     * Injected right after Home keeps each item it reads, from its feed response and from its store
+     * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
+     * of one video, one photo or a carousel while that type's switch is on, and [item] itself
+     * otherwise, or when anything goes wrong. An item with no post, a row of suggested accounts for
+     * one, stays. Also notes whether Home lost the item to {@link #filter} or kept it, for
+     * {@link #suggestionsEmptiedHome}. Never throws.
+     */
+    public static Object homeItem(Object item) {
+        return homeItem(item, FeedSuggestions::mediaType);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
+        boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
+        JUST_TOOK_OUT.remove();
+        if (item == null) {
+            if (lost) homeLost = true;
+            return null;
+        }
+        Object kept = byType(item, typeOf);
+        if (kept != null) homeKept = true;
+        return kept;
+    }
+
+    /** [item], or null while the switch for its post's type is on. */
+    private static Object byType(Object item, ToIntFunction<Object> typeOf) {
+        try {
+            if (!Utils.settingsReady()) return item;
+            boolean videos = Settings.HIDE_FEED_VIDEOS.get();
+            boolean photos = Settings.HIDE_FEED_PHOTOS.get();
+            boolean carousels = Settings.HIDE_FEED_CAROUSELS.get();
+            if (!videos && !photos && !carousels) return item;
+            int type = typeOf.applyAsInt(item);
+            String kind = type == VIDEO ? "video" : type == PHOTO ? "photo" : type == CAROUSEL ? "carousel" : OTHER_TYPE;
+            FeedFilterCounters.sawKind(TYPES_ROUTE, kind);
+            boolean hide = type == VIDEO ? videos : type == PHOTO ? photos : type == CAROUSEL && carousels;
+            if (!hide) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, kind);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a " + kind + " out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post type", failure);
+            return item;
+        }
+    }
+
+    /**
+     * The media_type of the post a feed item carries: 1 for one photo, 2 for one video, 8 for a
+     * carousel, and 0 when it carries none or the post doesn't say. The patch writes the body, which
+     * reads the item's post field and the post's media_type.
+     */
+    public static int mediaType(Object item) {
+        return 0;
+    }
+
     private static BooleanSetting switchFor(String kind) {
         if (SUGGESTED_POST.equals(kind)) return Settings.HIDE_SUGGESTED_POSTS;
         if (THREADS_UNITS.contains(kind)) return Settings.HIDE_THREADS_POSTS;
+        if (SURVEY_UNITS.contains(kind)) return Settings.HIDE_FEED_SURVEYS;
+        if (SHOPPING_UNITS.contains(kind)) return Settings.HIDE_FEED_SHOPPING;
         return Settings.HIDE_SUGGESTED_ACCOUNTS;
     }
 }

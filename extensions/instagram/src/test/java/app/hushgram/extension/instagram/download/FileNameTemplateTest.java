@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Looper;
 import android.provider.MediaStore;
 
@@ -35,6 +36,7 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
@@ -116,6 +118,7 @@ public class FileNameTemplateTest {
     @After
     public void tearDown() {
         Settings.FILENAME_TEMPLATE.resetToDefault();
+        Settings.SAVE_NAME_BY_POST.resetToDefault();
         MediaSave.policyForTests = null;
         MediaSave.detailsForTests = null;
         LogBufferManager.clearLogBuffer();
@@ -844,6 +847,197 @@ public class FileNameTemplateTest {
         @Override public String getType(Uri uri) {
             return "video/mp4";
         }
+    }
+
+    // ---- Name saves by account and post time (#20) -------------------------------------------------
+
+    /** When the post went up, as a name by post writes it: noon on 2026-09-01 on the phone's clock. */
+    private static final String POSTED_STAMP = DAY + "_120000";
+
+    /**
+     * A name by post is the account and the post's time, with a carousel page's number and, when
+     * the name's already taken, the time of the save. A save that doesn't know the account or the
+     * time gets none, and the account is what gets cut to fit, never the times.
+     */
+    @Test
+    public void aNameByPostIsTheAccountAndThePostTime() {
+        String base = "Stevi Ous_" + POSTED_STAMP;
+        assertEquals(base, FileNameTemplate.postName(when(), full(), false));
+        assertEquals(base + "_143005", FileNameTemplate.postName(when(), full(), true));
+        assertEquals(base + "_3", FileNameTemplate.postName(when(), full().onPage(3), false));
+        assertEquals(base + "_3_143005", FileNameTemplate.postName(when(), full().onPage(3), true));
+        // No page, or one past any carousel, is no page.
+        assertEquals(base, FileNameTemplate.postName(when(), full().onPage(0), false));
+        assertEquals(base, FileNameTemplate.postName(when(), full().onPage(-1), false));
+        assertEquals(base, FileNameTemplate.postName(when(), full().onPage(PostDetails.MAX_PAGE + 1), false));
+        assertEquals(base + "_" + PostDetails.MAX_PAGE,
+                FileNameTemplate.postName(when(), full().onPage(PostDetails.MAX_PAGE), false));
+
+        assertNull(FileNameTemplate.postName(when(), null, false));
+        assertNull(FileNameTemplate.postName(when(), PostDetails.NONE, false));
+        assertNull(FileNameTemplate.postName(when(), new PostDetails(ID, null, posted()).onPage(2), false));
+        assertNull(FileNameTemplate.postName(when(), new PostDetails(ID, "Stevi Ous", null).onPage(2), true));
+        assertNull(FileNameTemplate.postName(when(), new PostDetails(ID, " .. ", posted()), false));
+        // The account comes cleaned the way a folder name is.
+        assertEquals("Stevi_Ous_" + POSTED_STAMP,
+                FileNameTemplate.postName(when(), new PostDetails(null, " Stevi/Ous. ", posted()), false));
+
+        String emoji = new String(Character.toChars(0x1F3AC));
+        PostDetails longest = new PostDetails(null, repeat(emoji, 80), posted()).onPage(12);
+        String name = FileNameTemplate.postName(when(), longest, true);
+        assertTrue(name, name.endsWith("_" + POSTED_STAMP + "_12_143005"));
+        assertTrue(name, name.startsWith(emoji));
+        assertTrue(name, name.getBytes(StandardCharsets.UTF_8).length <= FileNameTemplate.MAX_NAME_BYTES);
+        assertTrue(name, name.getBytes(StandardCharsets.UTF_8).length > FileNameTemplate.MAX_NAME_BYTES - 4);
+    }
+
+    /** A page number rides along with the rest of what the save knows, and NONE stays NONE without one. */
+    @Test
+    public void aPageKeepsTheRestOfWhatTheSaveKnows() {
+        PostDetails page = full().onPage(4);
+        assertEquals(4, page.page);
+        assertTrue(page.hasPage());
+        assertEquals(ID, page.videoId);
+        assertEquals("Stevi Ous", page.owner);
+        assertEquals(posted(), page.posted);
+        assertSame(page, page.onPage(4));
+        assertFalse(full().hasPage());
+        assertSame(PostDetails.NONE, PostDetails.NONE.onPage(0));
+        assertEquals("PostDetails(id known, poster known, posted known, page 4)", page.toString());
+        // A carousel page's Item keeps its number through the copy every save makes.
+        assertEquals(4, new MediaSave.Item(false, null, null, page).details.page);
+    }
+
+    /**
+     * A profile picture has an account and no post time, so a name by post is the account,
+     * {@code _profile_} and the time of the save. Taken can only mean the same second, so it keeps
+     * the name for MediaStore to number. With no account it gets none, like any other save.
+     */
+    @Test
+    public void aProfilePictureIsNamedForTheAccountAndTheTimeOfTheSave() {
+        PostDetails picture = PostDetails.profilePicture("Stevi Ous");
+        assertTrue(picture.profile);
+        assertEquals("Stevi Ous", picture.owner);
+        assertFalse(picture.hasPosted());
+        assertFalse(full().profile);
+        assertEquals("Stevi Ous_profile_" + STAMP, FileNameTemplate.postName(when(), picture, false));
+        assertEquals("Stevi Ous_profile_" + STAMP, FileNameTemplate.postName(when(), picture, true));
+        assertEquals("Stevi_Ous_profile_" + STAMP,
+                FileNameTemplate.postName(when(), PostDetails.profilePicture(" Stevi/Ous. "), false));
+        assertSame(PostDetails.NONE, PostDetails.profilePicture(null));
+        assertNull(FileNameTemplate.postName(when(), PostDetails.profilePicture(" .. "), false));
+        assertEquals("PostDetails(id unknown, poster known, posted unknown, profile picture)", picture.toString());
+
+        String emoji = new String(Character.toChars(0x1F3AC));
+        String name = FileNameTemplate.postName(when(), PostDetails.profilePicture(repeat(emoji, 80)), false);
+        assertTrue(name, name.endsWith("_profile_" + STAMP));
+        assertTrue(name, name.startsWith(emoji));
+        assertTrue(name, name.getBytes(StandardCharsets.UTF_8).length <= FileNameTemplate.MAX_NAME_BYTES);
+    }
+
+    /** Through to the gallery: on, the account's name; off, the IG_IMG_ name every photo gets. */
+    @Test
+    @Config(sdk = 37)
+    public void aSavedProfilePictureCarriesTheAccountWithNamesByPostOn() throws Exception {
+        FolderGallery gallery = folderGallery();
+        writableBoth(1, 2);
+        Settings.SAVE_NAME_BY_POST.save(true);
+        savePhoto(new MediaStoreWriter(context, false, PostDetails.profilePicture("Stevi Ous")));
+        Settings.SAVE_NAME_BY_POST.save(false);
+        savePhoto(new MediaStoreWriter(context, false, PostDetails.profilePicture("Stevi Ous")));
+
+        assertTrue(nameOf(gallery.rows.get(1L)), nameOf(gallery.rows.get(1L)).matches("Stevi Ous_profile_\\d{8}_\\d{6}\\.jpg"));
+        assertTrue(nameOf(gallery.rows.get(2L)), nameOf(gallery.rows.get(2L)).matches("IG_IMG_\\d{8}_\\d{6}\\.jpg"));
+        String report = LogBufferManager.buildExportText();
+        assertFalse(report, report.contains("Stevi"));
+    }
+
+    private void writableBoth(long... ids) {
+        for (long id : ids) {
+            writable(null, VIDEOS, id);
+            writable(null, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, id);
+        }
+    }
+
+    /** A photo save through to the gallery's publish, as a finished download makes it. */
+    private static void savePhoto(MediaStoreWriter writer) throws IOException {
+        writer.open("image/jpeg").write(new byte[] {(byte) 0xff, (byte) 0xd8, (byte) 0xff});
+        writer.commit();
+    }
+
+    private static final String UNNAMED_BY_POST =
+            "saves are named by account and post time, and this save doesn't know the account, so it keeps its usual name";
+
+    /**
+     * Today's MediaStore. With Name saves by account and post time on, a photo and a video are
+     * both named for the account and the post's time, whatever the video template says, and the
+     * same photo saved again takes the time of the save rather than a number. A save that doesn't
+     * know the account keeps its usual name and the report says why, naming nobody. Off, every
+     * save is named the way it always was.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void namesByPostCoverPhotosAndVideosAndNeverCollide() throws Exception {
+        assertFalse("Name saves by account and post time starts off", Settings.SAVE_NAME_BY_POST.get());
+        Settings.SAVE_NAME_BY_POST.save(true);
+        Settings.FILENAME_TEMPLATE.save("Reel {video_id}");
+        FolderGallery gallery = folderGallery();
+        writableBoth(1, 2, 3, 4, 5, 6);
+        save(new MediaStoreWriter(context, true, full()));
+        savePhoto(new MediaStoreWriter(context, false, full()));
+        savePhoto(new MediaStoreWriter(context, false, full()));
+        savePhoto(new MediaStoreWriter(context, false, new PostDetails(ID, null, posted())));
+        Settings.SAVE_NAME_BY_POST.save(false);
+        savePhoto(new MediaStoreWriter(context, false, full()));
+        save(new MediaStoreWriter(context, true, full()));
+
+        String base = "Stevi Ous_" + POSTED_STAMP;
+        assertEquals(base + ".mp4", nameOf(gallery.rows.get(1L)));
+        assertEquals(base + ".jpg", nameOf(gallery.rows.get(2L)));
+        String again = nameOf(gallery.rows.get(3L));
+        assertTrue(again, again.matches(Pattern.quote(base) + "_\\d{6}\\.jpg"));
+        assertTrue(nameOf(gallery.rows.get(4L)), nameOf(gallery.rows.get(4L)).matches("IG_IMG_\\d{8}_\\d{6}\\.jpg"));
+        // Off, and likely in row 4's second: today's IG_IMG_ name, which MediaStore numbers as it always has.
+        assertTrue(nameOf(gallery.rows.get(5L)), nameOf(gallery.rows.get(5L)).matches("IG_IMG_\\d{8}_\\d{6}( \\(1\\))?\\.jpg"));
+        assertEquals("Reel " + ID + ".mp4", nameOf(gallery.rows.get(6L)));
+
+        String report = LogBufferManager.buildExportText();
+        assertEquals(report, 1, count(report, TIME_WENT_ON));
+        assertEquals(report, 1, count(report, UNNAMED_BY_POST));
+        assertFalse(report, report.contains("Stevi"));
+        assertFalse(report, report.contains(ID));
+    }
+
+    /**
+     * Android 9 writes the file into the folder itself, and a name by post works the same there:
+     * the same carousel page saved twice keeps both files, the second with the time of the save,
+     * and a video of the post goes under Movies with the same kind of name.
+     */
+    @Test
+    @Config(sdk = 28)
+    public void onAndroid9NamesByPostNeverCollide() throws Exception {
+        assertTrue(MediaStoreWriter.legacyStorage());
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        Settings.SAVE_NAME_BY_POST.save(true);
+        File pictures = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Instagram");
+        File movies = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Instagram");
+        for (File folder : new File[] {pictures, movies}) {
+            File[] old = folder.listFiles();
+            if (old != null) for (File file : old) assertTrue(file.delete());
+        }
+
+        savePhoto(new MediaStoreWriter(context, false, full().onPage(2)));
+        savePhoto(new MediaStoreWriter(context, false, full().onPage(2)));
+        save(new MediaStoreWriter(context, true, full()));
+
+        String base = "Stevi Ous_" + POSTED_STAMP;
+        List<String> photos = new ArrayList<>(Arrays.asList(pictures.list()));
+        Collections.sort(photos);
+        assertEquals(photos.toString(), 2, photos.size());
+        assertEquals(base + "_2.jpg", photos.get(0));
+        assertTrue(photos.get(1), photos.get(1).matches(Pattern.quote(base) + "_2_\\d{6}\\.jpg"));
+        assertEquals(Collections.singletonList(base + ".mp4"), Arrays.asList(movies.list()));
     }
 
     // ---- Where the id comes from ----------------------------------------------------------------

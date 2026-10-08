@@ -77,6 +77,33 @@ public class ReelDeclutterTest {
         }
     }
 
+    /** Named like ClipsViewerSource, where Instagram 450's reel viewer was opened from. */
+    private enum Source { REPOSTS_GRID, SELF_REPOSTS_GRID, PROFILE_CLIPS, CLIPS_TAB }
+
+    /**
+     * The comment bar starts on screen. With its switch on it goes from reposted reels only, yours
+     * or someone else's, and anything but the source enum leaves it.
+     */
+    @Test
+    public void theCommentBarGoesOnlyFromRepostedReelsWithItsSwitchOn() {
+        assertFalse("off to start", ReelDeclutter.hideCommentBar(Source.REPOSTS_GRID));
+        Settings.HIDE_REEL_COMMENT_BAR.save(true);
+        try {
+            assertTrue(ReelDeclutter.hideCommentBar(Source.REPOSTS_GRID));
+            assertTrue(ReelDeclutter.hideCommentBar(Source.SELF_REPOSTS_GRID));
+            assertFalse(ReelDeclutter.hideCommentBar(Source.PROFILE_CLIPS));
+            assertFalse(ReelDeclutter.hideCommentBar(Source.CLIPS_TAB));
+            assertFalse(ReelDeclutter.hideCommentBar("REPOSTS_GRID"));
+            assertFalse(ReelDeclutter.hideCommentBar(null));
+            assertTrue("the other parts keep their own switches", ReelDeclutter.hideFollowButton());
+            Settings.HIDE_REEL_FOLLOW_BUTTON.save(false);
+            assertTrue(ReelDeclutter.hideCommentBar(Source.REPOSTS_GRID));
+        } finally {
+            Settings.HIDE_REEL_COMMENT_BAR.save(false);
+            Settings.HIDE_REEL_FOLLOW_BUTTON.save(true);
+        }
+    }
+
     /** Something that isn't a type, or a type's name as a string, is never taken for one. */
     @Test
     public void anythingButTheTypeStays() {

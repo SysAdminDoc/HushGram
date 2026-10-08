@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.misc.flags.answerFlagReads
 import app.morphe.patches.instagram.misc.flags.findFlagReads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
@@ -52,14 +53,17 @@ private const val VIEW_STUB = "Landroid/view/ViewStub;"
 /** How far before the stub's lookup the check that it's there may come: 449 puts one call between them. */
 private const val CHECK_WITHIN = 6
 
+/** How far before 450's null test the view it tests may be set: 450 puts ten instructions between them. */
+private const val VIEW_SET_WITHIN = 16
+
 /**
- * The server flags the search switch answers off on Instagram 449. Three decide whether a search bar
+ * The server flags the search switch answers off on Instagram 450. Three decide whether a search bar
  * offers Meta AI: the Search tab's, which also covers its results and Meta AI's answers there, the
  * messages inbox's "ask Meta AI" bar, and the Meta AI ring at the end of the inbox's bar. The fourth
  * puts a Meta AI chats ("hatch") button in Home's top bar when the server's list has no messages
  * button, and the same item in the bar's settings list.
  */
-internal val SEARCH_FLAGS = listOf(0x81068600111f6bL, 0x8104190006113aL, 0x810417001b1130L, 0x8116ad0001713eL)
+internal val SEARCH_FLAGS = listOf(0x81067f00111f66L, 0x81041600061138L, 0x810414001b112eL, 0x8116a000017225L)
 
 /** Meta AI's feed item kinds: Vibes videos, Meta AI chats and Imagine pictures of you. */
 internal val META_AI_UNITS = listOf("VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FEED_UNIT", "MEMU_IN_FEED_UNIT")
@@ -70,7 +74,9 @@ val hideMetaAiPatch = bytecodePatch(
     description = "Takes Meta AI out of the search bars, in the Search tab and at the top of your messages, so they " +
         "search the plain way, drops the Ask a follow-up bar under search results and Meta AI's buttons in Home's " +
         "top bar and the message composer, hides its optional row in your inbox, and removes Meta AI's posts from your home feed. " +
-        "Search and posts have separate switches. The search switch applies after Instagram restarts.",
+        "It can also take About this reel, or only its Ask Meta AI box, out of a reel's More menu. " +
+        "Search, posts, About this reel and Ask Meta AI have separate switches, and the last two start off. " +
+        "The search switch applies after Instagram restarts.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -85,12 +91,16 @@ val hideMetaAiPatch = bytecodePatch(
         val homeButtons = findHomeButtonNames()
         val composer = findComposerButtonVisibility()
         val inbox = findOptionalInboxRow()
+        val about = findAboutSummaryCalls()
+        val askBox = findAskMetaAiBox()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
         dropFollowUpBar(followUp)
         dropHomeButton(homeButtons)
         holdComposerButtons(composer)
         holdOptionalInboxRow(inbox)
+        dropAboutSummary(about)
+        holdAskMetaAiBox(askBox)
         enableStatus("metaAi")
     }
 }
@@ -116,11 +126,17 @@ internal class HookSite(
 
 /**
  * The check, in the search results page's bottom bar setup (the one method holding
- * [FOLLOW_UP_SETUP]), that the bar's stub is in the page: a findViewById whose answer is tested for
- * null before a static lookup of the same id hands the stub to inflate(). A null there leaves the
- * page without the bar, the way it is when the layout has no stub, and every later use of the bar
- * checks for that. The pills inside the bar come from a second stub, found inside the bar through a
- * findViewById and a cast, which is never inflated once the bar isn't.
+ * [FOLLOW_UP_SETUP]), that leaves the page without its "Ask a follow-up…" bar. The bar is a stub a
+ * static (View, int) lookup hands to inflate(), and a null at the check leaves the page the way it is
+ * when the layout has no stub; every later use of the bar checks for that.
+ *
+ * On 449 the check is a findViewById of the same id, tested for null, before the lookup. The pills
+ * inside the bar come from a second stub, found inside the bar through a findViewById and a cast,
+ * which is never inflated once the bar isn't.
+ *
+ * On 450 the lookup is the findViewById, and a null there takes the path for a bar inflated earlier,
+ * which asserts it's there. So the check is the null test of the view the lookup searches, just
+ * before it, and the site is the instruction that sets that view, with nothing jumping in between.
  */
 internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
     val setups = mutableListOf<Pair<ClassDef, Method>>()
@@ -135,15 +151,28 @@ internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
     val code = method.implementation!!.instructions.toList()
     val lookups = code.indices.filter { index ->
         val call = code[index].methodReference() ?: return@filter false
+        val result = code.getOrNull(index + 1)
         code[index].opcode == Opcode.INVOKE_STATIC && call.returnType == VIEW_STUB &&
             call.parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/View;", "I") &&
-            code.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
-            code.getOrNull(index + 2)?.methodReference()?.toString() == INFLATE
+            result?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            (index + 2..minOf(code.lastIndex, index + 1 + CHECK_WITHIN)).any {
+                code[it].methodReference()?.toString() == INFLATE &&
+                    code[it].arguments() == listOf((result as OneRegisterInstruction).registerA)
+            }
     }
     val lookup = lookups.singleOrNull() ?: refuse("$where looks up a stub to inflate ${lookups.size} times, not once")
-    val find = (lookup - 1 downTo maxOf(0, lookup - CHECK_WITHIN))
+    val site = (lookup - 1 downTo maxOf(0, lookup - CHECK_WITHIN))
         .firstOrNull { code[it].methodReference()?.toString() == FIND_VIEW }
-        ?: refuse("$where inflates its stub without checking it's there")
+        ?.let { find -> stubCheck(where, code, find, lookup) }
+        ?: pageViewCheck(where, method, code, lookup)
+    return HookSite(
+        classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
+        site.first, site.second,
+    )
+}
+
+/** 449's findViewById of the stub: its move-result and register, once it checks the stub the lookup takes and tests it for null. */
+private fun stubCheck(where: String, code: List<Instruction>, find: Int, lookup: Int): Pair<Int, Int> {
     if (code[find].arguments() != code[lookup].arguments()) refuse("$where checks one view and inflates another")
     val result = code[find + 1]
     if (result.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where drops the check's answer")
@@ -152,11 +181,35 @@ internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
     if (test.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != register) {
         refuse("$where doesn't test the stub for null")
     }
-    return HookSite(
-        classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
-        find + 1, register,
-    )
+    return find + 1 to register
 }
+
+/**
+ * 450's null test of the view the lookup searches: the instruction that last sets that view and its
+ * register, once the test comes within [CHECK_WITHIN] before the lookup, the view isn't set again
+ * between them, and nothing jumps in between the view being set and the lookup.
+ */
+private fun pageViewCheck(where: String, method: Method, code: List<Instruction>, lookup: Int): Pair<Int, Int> {
+    val view = code[lookup].arguments().first()
+    val test = (lookup - 1 downTo maxOf(0, lookup - CHECK_WITHIN)).firstOrNull {
+        code[it].opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == view
+    } ?: refuse("$where inflates its stub without checking it's there")
+    if ((test + 1 until lookup).any { code[it].writesObject(view) }) refuse("$where checks one view and searches another")
+    val set = (test - 1 downTo maxOf(0, test - VIEW_SET_WITHIN)).firstOrNull { code[it].writesObject(view) }
+        ?: refuse("$where tests a view it doesn't set nearby")
+    if (code[set].opcode != Opcode.IGET_OBJECT && code[set].opcode != Opcode.MOVE_RESULT_OBJECT) {
+        refuse("$where sets the view it searches with ${code[set].opcode}")
+    }
+    val flow = ControlFlow.of(method)
+    val entered = code.indices.flatMap { from ->
+        flow.normal[from].filter { it != from + 1 } + flow.exceptional[from]
+    }.toSet()
+    if ((set + 1..lookup).any { it in entered }) refuse("$where jumps in between setting the view and searching it")
+    return set to view
+}
+
+private fun Instruction.writesObject(register: Int) =
+    opcode.setsRegister() && (this as? OneRegisterInstruction)?.registerA == register
 
 /** Passes the stub check's answer through MetaAi.followUpBar, right after its move-result. */
 internal fun BytecodePatchContext.dropFollowUpBar(check: HookSite) = passThrough(check, FOLLOW_UP_BAR)

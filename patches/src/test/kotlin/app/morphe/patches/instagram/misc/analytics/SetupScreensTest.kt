@@ -114,7 +114,7 @@ class SetupScreensTest {
                     assertEquals("${bundle.name}: ${method.name} asks first", SETUP_SCREEN, code[2].referenceText())
                     assertEquals("${bundle.name}: ${method.name} returns on a yes", Opcode.RETURN_VOID, code[5].opcode)
                 }
-                val presenter = classes.flatMap { it.methods }.single { it.strings().containsAll(DIRECT_SCREEN_PRESENTER) }
+                val presenter = classes.flatMap { it.methods }.single { it.strings().containsAll(AlternateSetupFixture.PRESENTER_HELD) }
                 val model = classes.single { it.type == presenter.parameterTypes[1].toString() }
                 val constructor = model.methods.single { it.name == "<init>" && it.parameterTypes.size == 19 }
                 val source = constructor.implementation!!.registerCount - 21 + 5

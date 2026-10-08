@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -82,8 +83,9 @@ internal class RingSizing(
  */
 internal fun BytecodePatchContext.findRingSizes(): List<RingSizing> {
     val found = mutableListOf<RingSizing>()
+    val loading = classesLoading(ITEMS_A_SCREEN).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in loading || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method -> method.ringSizing(classDef.type)?.let(found::add) }
     }
     if (found.isEmpty()) refuse("no method holds the stories row's 66dp, 100dp and 3.75 items a screen")

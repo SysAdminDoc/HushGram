@@ -48,6 +48,26 @@ public final class SaveFolder {
         }
     }
 
+    /**
+     * The folder a save of [details]'s post uses: {@link #leaf()}, and inside it a folder named for
+     * the account that posted, when Folder per account is on and the save knows who that is (#20).
+     * The account's name is cleaned the way a folder name is, so it's one folder deep and can't
+     * climb out. Never throws.
+     */
+    public static String leaf(PostDetails details) {
+        String leaf = leaf();
+        try {
+            if (details == null || !details.hasOwner() || !Utils.settingsReady()
+                    || !Settings.SAVE_FOLDER_PER_ACCOUNT.get()) {
+                return leaf;
+            }
+            String account = clean(details.owner, MAX_CODE_POINTS);
+            return account.isEmpty() ? leaf : leaf + "/" + account;
+        } catch (Throwable t) {
+            return leaf;
+        }
+    }
+
     /** Whether [name] is already a folder name this would use exactly as written. */
     public static boolean isClean(String name) {
         return name != null && !name.isEmpty() && name.equals(sanitize(name));

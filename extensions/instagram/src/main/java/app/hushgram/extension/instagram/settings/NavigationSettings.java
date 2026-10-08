@@ -12,8 +12,12 @@ import android.view.View;
 import android.view.ViewParent;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
 /** The owned navigation listener is wired only by the structurally proved native tab factory. */
@@ -34,13 +38,42 @@ public final class NavigationSettings {
     }
 
     public static View.OnLongClickListener remember(View view, Object tab, View.OnLongClickListener original) {
+        return remember(view, tab instanceof Enum<?> ? ((Enum<?>) tab).name() : null, original);
+    }
+
+    /**
+     * Stands in for each setOnLongClickListener call of Instagram's main activity (#82). Besides the
+     * tab's own setter, 450's activity puts the account switcher straight on the Profile button,
+     * sometimes after the setter has, and the listener kept for Profile was gone by the time a
+     * choice reached it, so Profile went on opening the switcher. A tab button takes the listener
+     * the way its setter would: the chosen tab keeps opening HushGram, and the others keep the
+     * newest listener Instagram gave them. Any other view gets it as it came.
+     */
+    public static void setOnLongClickListener(View view, View.OnLongClickListener listener) {
+        View.OnLongClickListener installed = listener;
+        try {
+            String tab = null;
+            if (view != null) {
+                synchronized (nativeBindings) {
+                    Binding binding = nativeBindings.get(view);
+                    if (binding != null) tab = binding.tab;
+                }
+            }
+            if (tab != null) installed = remember(view, tab, listener);
+        } catch (Throwable t) {
+            Logger.printException(() -> "Navigation settings: could not take a tab's long press", t);
+        }
+        view.setOnLongClickListener(installed);
+    }
+
+    private static View.OnLongClickListener remember(View view, String tab, View.OnLongClickListener original) {
         if (original instanceof Press) original = ((Press) original).original;
         if (view == null) return original;
         Binding binding = null;
         synchronized (nativeBindings) {
-            if (original == null || !(tab instanceof Enum<?>)) nativeBindings.remove(view);
+            if (original == null || tab == null) nativeBindings.remove(view);
             else {
-                binding = new Binding(((Enum<?>) tab).name(), original);
+                binding = new Binding(tab, original);
                 nativeBindings.put(view, binding);
             }
         }
@@ -58,7 +91,12 @@ public final class NavigationSettings {
                 nativeBindings.remove(view);
                 return;
             }
-            if (!selected(tab)) return;
+            if (!selected(tab)) {
+                // Kept so a tab chosen later in settings gets the long press without a restart
+                // (#82). The view is left alone, so a tab nobody chose gains no long press.
+                if (binding == null) nativeBindings.put(view, new Binding(((Enum<?>) tab).name(), null));
+                return;
+            }
             if (binding != null) {
                 original = binding.original.get();
                 if (original == null && binding.hadOriginal) {
@@ -70,6 +108,38 @@ public final class NavigationSettings {
             nativeBindings.put(view, next);
         }
         view.setOnLongClickListener(new Press(next, original));
+    }
+
+    /**
+     * Puts the saved choice on the tabs Instagram has already built, so a change in settings
+     * applies at once (#82). It used to wait for the next start, and until then the chosen tab's
+     * long press did what it always had, which read as the choice not saving. The chosen tab's
+     * long press opens HushGram, and every other tab gets its own listener back, or none when it
+     * had none. A tab whose own listener is gone is left as it is. Main thread only. Never throws.
+     */
+    public static void applyChoice() {
+        try {
+            List<Map.Entry<View, Binding>> bound;
+            synchronized (nativeBindings) {
+                bound = new ArrayList<>(nativeBindings.entrySet());
+            }
+            for (Map.Entry<View, Binding> entry : bound) {
+                View view = entry.getKey();
+                Binding binding = entry.getValue();
+                if (view == null || binding == null) continue;
+                View.OnLongClickListener original = binding.original.get();
+                if (original == null && binding.hadOriginal) continue;
+                NavigationTarget chosen = Utils.settingsReady() ? Settings.NAVIGATION_SETTINGS_TARGET.get() : NavigationTarget.OFF;
+                if (chosen != NavigationTarget.OFF && chosen.name().equals(binding.tab)) {
+                    view.setOnLongClickListener(new Press(binding, original));
+                } else {
+                    view.setOnLongClickListener(original);
+                    if (original == null) view.setLongClickable(false);
+                }
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);
+        }
     }
 
     private static boolean selected(Object tab) {

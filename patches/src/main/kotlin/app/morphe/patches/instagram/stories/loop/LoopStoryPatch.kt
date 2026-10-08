@@ -31,11 +31,11 @@ internal const val LOOP = "$STORY_LOOP->loop(I)Z"
 private const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
 
 /**
- * The server flag behind Instagram's own story loop test. On 449 it's read once, in the story
+ * The server flag behind Instagram's own story loop test. On 450 it's read once, in the story
  * viewer's private check of whether a story item plays again, after the check has already said no
  * for an ad and for a few special kinds of story.
  */
-internal const val STORY_LOOP_FLAG = 0x811029000156fbL
+internal const val STORY_LOOP_FLAG = 0x8110170001571aL
 
 /**
  * Plays a story again when it ends instead of moving on. Off in the default selection, since

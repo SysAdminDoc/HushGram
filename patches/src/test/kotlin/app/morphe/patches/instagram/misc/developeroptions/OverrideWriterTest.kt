@@ -54,6 +54,15 @@ class OverrideWriterTest {
         }
     }
 
+    /** 450 decodes the type in the put itself; the type stub repeats the same shift and mask. */
+    @Test fun anInlineDecoderIsRepeatedInTheTypeStub() {
+        val patch = PatchContexts.of(classes("", setOf("inlineDecoder")))
+        val writer = patch.findOverrideWriter(model())
+        patch.fillOverrideWriter(writer)
+        assertEquals(TypeDecoder.Bits(48, 0x3f), writer.decoder)
+        assertWriter(patch, writer, model())
+    }
+
     @Test fun missingRenamedAndAmbiguousBoundariesRefuseBeforeAnyStubChanges() {
         val cases = listOf(
             "missing typed put" to "noPut", "two typed puts" to "twoPuts", "missing double put" to "noDouble",
@@ -72,13 +81,15 @@ class OverrideWriterTest {
             // The arms are a convention until the put shows it: code k must reach the writer the extension uses for k.
             "string and double arms swapped" to "swappedArms", "put doesn't branch on the decoder" to "unusedDecoder",
             "decoder reads another ID than the writers" to "otherId",
+            "inline decoder reads another ID than the writers" to "inlineOtherId",
+            "inline decoder masked with another register" to "inlineOtherMask",
         )
         for ((case, option) in cases) {
             val patch = PatchContexts.of(classes("", setOf(option)))
             val before = bridgeCode(patch)
             val failure = runCatching { patch.fillOverrideWriter(patch.findOverrideWriter(model())) }.exceptionOrNull()
             assertTrue("$case: $failure", failure?.message?.startsWith("Open developer options: ") == true)
-            if (option in setOf("unusedDecoder", "otherId")) {
+            if (option in setOf("unusedDecoder", "otherId", "inlineOtherId")) {
                 assertEquals(case, "Open developer options: typed put doesn't send decoder code 1 only to its Z writer", failure?.message)
             }
             assertEquals(case, before, bridgeCode(patch))
@@ -106,7 +117,7 @@ class OverrideWriterTest {
         assertWriter(good, writer, model())
     }
 
-    @Test fun declared449FixtureResolvesInstagramsOwnTypedWriterAndNeverAStringImport() {
+    @Test fun eachDeclaredFixtureResolvesInstagramsOwnTypedWriterAndNeverAStringImport() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
@@ -195,7 +206,13 @@ class OverrideWriterTest {
         assertEquals(unwrapped, (getterCall as FiveRegisterInstruction).registerC)
         assertTrue(table.none { (it as? ReferenceInstruction)?.reference?.toString() == writer.tableGetter })
         assertEquals(DECODED_VALUES.mapValues { writer.updates.getValue(it.value) }, writer.dispatch)
-        assertEquals(listOf(writer.decoder), references["getOverrideTypeNative"])
+        when (val decoder = writer.decoder) {
+            is TypeDecoder.Call -> assertEquals(listOf(decoder.method), references["getOverrideTypeNative"])
+            is TypeDecoder.Bits -> assertEquals(
+                listOf(Opcode.CONST, Opcode.USHR_LONG, Opcode.LONG_TO_INT, Opcode.CONST, Opcode.AND_INT_2ADDR, Opcode.RETURN),
+                stubs.getValue("getOverrideTypeNative").implementation!!.instructions.map { it.opcode },
+            )
+        }
         val setters = mapOf("setOverrideBooleanNative" to writer.updates.getValue("Z"), "setOverrideLongNative" to writer.updates.getValue("J"),
             "setOverrideDoubleNative" to writer.updates.getValue("D"), "setOverrideStringNative" to writer.updates.getValue("Ljava/lang/String;"),
             "removeOverrideNative" to writer.remove)
@@ -224,13 +241,21 @@ class OverrideWriterTest {
         val arm = mapOf(1 to "bool", 2 to "long", 3 to if (on("swappedArms")) "double" else "string",
             4 to if (on("swappedArms")) "string" else "double")
         val leave = if (on("unusedDecoder")) "nop" else "goto :done"
-        val putCode = listOfNotNull(
-            "const-string v0, \"$PUT_FAILURE\"", "const-string v0, \"$DEBUG_STORE\"", "const-wide/16 v3, 0x0",
+        val inline = on("inlineDecoder") || on("inlineOtherId") || on("inlineOtherMask")
+        // 450's put shifts and masks the ID itself, then zeroes the long the writers pass.
+        val decode = if (inline) listOf(
+            "const/16 v0, 0x30", "ushr-long v1, ${if (on("inlineOtherId")) "v3" else "p1"}, v0", "const-wide/16 v3, 0x3f",
+            "and-long/2addr v1, ${if (on("inlineOtherMask")) "v1" else "v3"}", "long-to-int v5, v1", "const-wide/16 v3, 0x0",
+        ) else listOfNotNull(
             if (on("noDecoder")) null else "invoke-static { ${if (on("otherId")) "v3, v4" else "p1, p2"} }, $ids->type(J)I",
             if (on("noDecoder")) null else "move-result v5",
+        )
+        val putCode = listOfNotNull(
+            "const-string v0, \"$PUT_FAILURE\"", "const-string v0, \"$DEBUG_STORE\"", "const-wide/16 v3, 0x0",
+        ).plus(decode).plus(listOfNotNull(
             if (on("twoDecoders")) "invoke-static { p1, p2 }, $ids->other(J)I" else null,
             "iget-object v1, p0, $store->table:$table",
-        ).plus(if (on("unusedDecoder") || on("noDecoder")) emptyList() else
+        )).plus(if (on("unusedDecoder") || on("noDecoder")) emptyList() else
             (1..4).flatMap { listOf("const/4 v0, 0x$it", "if-eq v5, v0, :${arm.getValue(it)}") } + "goto :done"
         ).plus(listOfNotNull(
             ":bool", "const/4 v2, 0x0", "invoke-interface { v1, p1, p2, v2 }, $table->updateOverrideForParam(JZ)V", leave,

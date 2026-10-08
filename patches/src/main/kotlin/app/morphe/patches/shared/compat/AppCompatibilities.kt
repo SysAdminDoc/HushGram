@@ -36,13 +36,13 @@ internal object AppCompatibilities {
     const val META_ROTATED_SIGNER_SHA256 = "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014"
 
     /** The Instagram build every patch here was applied to and read against. */
-    const val INSTAGRAM_TARGET_VERSION = "449.0.0.52.84"
+    const val INSTAGRAM_TARGET_VERSION = "450.0.0.50.77"
 
     /**
-     * The version code of the arm64-v8a build of [INSTAGRAM_TARGET_VERSION]: the Play install on
-     * an arm64 phone, and APKMirror's arm64-v8a APK of the same release.
+     * The version code of the arm64-v8a build of [INSTAGRAM_TARGET_VERSION]: APKMirror's
+     * (arm64-v8a) (480dpi) (Android 9.0+) bundle of that release, the one the fixtures hold.
      */
-    const val INSTAGRAM_TARGET_VERSION_CODE = 385511871
+    const val INSTAGRAM_TARGET_VERSION_CODE = 385611438
 
     /** Instagram's own floor, Android 9. */
     const val INSTAGRAM_TARGET_MIN_SDK = 28

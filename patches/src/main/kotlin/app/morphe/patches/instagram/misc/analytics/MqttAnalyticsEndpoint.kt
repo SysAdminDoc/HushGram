@@ -124,6 +124,24 @@ internal fun BytecodePatchContext.pooledString(pool: MethodReference, number: In
     return null
 }
 
+/**
+ * Whether [method] loads [value] itself or, as 450's Redex has it, asks a static pool of shared
+ * strings for it by a constant number loaded right before the call.
+ */
+internal fun BytecodePatchContext.loadsString(method: Method, value: String): Boolean {
+    if (value in method.strings()) return true
+    val code = method.implementation?.instructions?.toList() ?: return false
+    return code.indices.any { at ->
+        val call = code[at]
+        val pool = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+        val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
+        call.opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
+            pool.returnType == "Ljava/lang/String;" &&
+            (number as OneRegisterInstruction).registerA == (call as Instruction35c).registerC &&
+            pooledString(pool, number.narrowLiteral) == value
+    }
+}
+
 private fun Method.strings(): Set<String> = implementation?.instructions?.mapNotNull { instruction ->
     if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) null
     else ((instruction as ReferenceInstruction).reference as StringReference).string

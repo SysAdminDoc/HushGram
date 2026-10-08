@@ -51,7 +51,8 @@ public final class HushgramPause {
     public enum Reason { NONE, SWITCH, CRASH_LOOP, MARKER_FILE }
 
     public static final String MARKER_FILE_NAME = "hushgram-safe-mode";
-    static final String START_RECORD_NAME = "hushgram-start";
+    /** The record of a start in the app's files folder, there until the start has run a minute. */
+    public static final String START_RECORD_NAME = "hushgram-start";
     static final String CRASH_STREAK_NAME = "hushgram-start-crashes";
     static final long START_WINDOW_MS = 60_000L;
     static final int CRASHES_TO_SAFE_MODE = 3;

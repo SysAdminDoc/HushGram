@@ -45,11 +45,14 @@ class DoubleTapLikeHookTest {
     private val handleMarker = "android_purge_26_q3_$HANDLE_DOUBLE_TAP"
     private val setterMarker = "android_purge_26_q3_$SET_LIKE_ACTION"
     private val likeShape = "(Landroid/view/View;Lcom/instagram/feed/media/Media;Ljava/lang/Object;I)V"
+    private val fbCommentRow = "Lfixture/FbCommentRowGestures;"
+    private val commentRow = "Lfixture/CommentRowGestures;"
+    private val otherRow = "Lfixture/LikeOnlyGestures;"
 
     /** The hooks the patch writes are in the DoubleTapLike the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HOLD_BACK_POST, LIKE_ACTION)) {
+        for (hook in listOf(HOLD_BACK_POST, LIKE_ACTION, HOLD_BACK_COMMENT)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -76,6 +79,13 @@ class DoubleTapLikeHookTest {
         }
         val reel = context.mutableClassDefBy(handler).methods.single { it.name == "handleDoubleTap" }.code()
         assertAskedAfterRead("the Reels double tap", reel, "$handler->likeAction:$action")
+        for (row in listOf(fbCommentRow, commentRow)) {
+            assertCommentGuardFirst(row, context.mutableClassDefBy(row).methods.single { it.name == "onDoubleTap" }.code())
+        }
+        assertTrue(
+            "a listener that isn't a comment row was touched",
+            context.mutableClassDefBy(otherRow).methods.single().code().none { it.referenceText() == HOLD_BACK_COMMENT },
+        )
         assertTrue(
             "the setter was touched",
             context.mutableClassDefBy(handler).methods.single { it.name == "setLikeAction" }.code().none { it.referenceText() == LIKE_ACTION },
@@ -101,13 +111,16 @@ class DoubleTapLikeHookTest {
             classes(setterWrites = 2) to "writes 2 fields",
             classes(reads = 2) to "2 times",
             classes(checkedLater = true) to "doesn't check its like action for null straight after",
+            classes(commentRows = false) to "no comment row's double tap",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
             val failure = assertThrows(PatchException::class.java) { context.turnOffDoubleTapLikes() }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().flatMap { type -> context.classDefByOrNull(type)?.methods?.toList().orEmpty() }
-                .filter { method -> method.code().any { it.referenceText() == HOLD_BACK_POST || it.referenceText() == LIKE_ACTION } }
+                .filter { method ->
+                    method.code().any { it.referenceText() in listOf(HOLD_BACK_POST, LIKE_ACTION, HOLD_BACK_COMMENT) }
+                }
             assertTrue("$expected: something was written to $written", written.isEmpty())
         }
     }
@@ -141,7 +154,10 @@ class DoubleTapLikeHookTest {
                 // 449 has eight: the single photo, the carousel and five more kinds of post, and a lambda.
                 assertTrue("${bundle.name}: callers of $like: $callers", callers.size >= 7)
 
-                val holders = (posts + likeClasses + FixtureDex.classesHolding(bundle, handleMarker)).distinctBy { it.type }
+                val commentRows = FixtureDex.classesHolding(bundle, FB_COMMENT_DOUBLE_TAP) +
+                    FixtureDex.classesHolding(bundle, UNLIKE_COMMENT)
+                val holders = (posts + likeClasses + FixtureDex.classesHolding(bundle, handleMarker) + commentRows)
+                    .distinctBy { it.type }
                 val context = PatchContexts.of(holders)
                 val reelType = holders.single { holder -> holder.methods.any { method -> method.code().any { it.string() == handleMarker } } }.type
 
@@ -159,6 +175,11 @@ class DoubleTapLikeHookTest {
                 val read = reel.code()[asked - 1]
                 assertEquals("${bundle.name}: what comes before the ask", Opcode.IGET_OBJECT, read.opcode)
                 assertAskedAfterRead("${bundle.name}: the Reels double tap", reel.code(), read.referenceText()!!)
+                // 450 has three: two rows that file fb_comment_double_tap, and one that files like_comment.
+                val comments = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+                    .filter { method -> method.code().any { it.referenceText() == HOLD_BACK_COMMENT } }
+                assertEquals("${bundle.name}: comment double taps", 3, comments.size)
+                comments.forEach { assertCommentGuardFirst("${bundle.name}: ${it.definingClass}", it.code()) }
                 checked += version
             }
         }
@@ -172,6 +193,15 @@ class DoubleTapLikeHookTest {
             code.take(4).map { it.opcode },
         )
         assertEquals("$what: the hook called", HOLD_BACK_POST, code[0].referenceText())
+    }
+
+    private fun assertCommentGuardFirst(what: String, code: List<Instruction>) {
+        assertEquals(
+            "$what: the guard's opcodes",
+            listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN),
+            code.take(5).map { it.opcode },
+        )
+        assertEquals("$what: the hook called", HOLD_BACK_COMMENT, code[0].referenceText())
     }
 
     /** The one read of [field] is followed by the ask, its answer back in the same register, a cast, then the null check. */
@@ -216,6 +246,7 @@ class DoubleTapLikeHookTest {
         setterWrites: Int = 1,
         reads: Int = 1,
         checkedLater: Boolean = false,
+        commentRows: Boolean = true,
     ): List<ClassDef> {
         val invoke = if (likeStatic) "invoke-static { v0, v0, p1, v2 }" else "invoke-virtual { v0, v0, v0, p1, v2 }"
         val likeCall = listOf("like", "likeAgain").take(likeCalls).joinToString("\n") { "$invoke, $liker->$it$likeShape" }
@@ -299,7 +330,17 @@ class DoubleTapLikeHookTest {
         val setterOwner = if (setterElsewhere) "Lfixture/OtherHandler;" else handler
         val setter = method(setterOwner, "setLikeAction", listOf(action), "V", 3, setterBody)
         val handlerClass = classDef(handler, handle + (if (setterElsewhere) emptyList() else listOf(setter)))
-        return listOfNotNull(
+        // A comment row that files fb_comment_double_tap, one that files like_comment or
+        // unlike_comment, and a listener that files only like_comment, which isn't a comment row.
+        val rowOf = { type: String, strings: List<String> ->
+            listenerDef(type, method(type, "onDoubleTap", listOf("Landroid/view/MotionEvent;"), "Z", 4,
+                strings.joinToString("\n") { "const-string v1, \"$it\"" } + "\nconst/4 v0, 0x1\nreturn v0"))
+        }
+        val rows = if (commentRows) listOf(
+            rowOf(fbCommentRow, listOf("comment_row_component", FB_COMMENT_DOUBLE_TAP)),
+            rowOf(commentRow, listOf(LIKE_COMMENT, UNLIKE_COMMENT)),
+        ) else emptyList()
+        return rows + rowOf(otherRow, listOf(LIKE_COMMENT)) + listOfNotNull(
             feedClass,
             carouselClass,
             videoClass,
@@ -329,6 +370,11 @@ class DoubleTapLikeHookTest {
         mutable.addInstructionsWithLabels(0, body.trimIndent())
         return ImmutableMethod.of(mutable)
     }
+
+    private fun listenerDef(type: String, method: Method): ClassDef = ImmutableClassDef(
+        type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Landroid/view/GestureDetector\$SimpleOnGestureListener;",
+        null, null, null, emptyList(), listOf(method),
+    )
 
     private fun classDef(type: String, methods: List<Method>): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, emptyList(), methods)

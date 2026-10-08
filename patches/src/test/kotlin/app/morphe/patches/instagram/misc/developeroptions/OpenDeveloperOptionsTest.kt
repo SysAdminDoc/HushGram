@@ -4,18 +4,23 @@
  */
 package app.morphe.patches.instagram.misc.developeroptions
 
+import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.PatchLogCapture
+import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -27,6 +32,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -88,6 +94,44 @@ class OpenDeveloperOptionsTest {
         }
     }
 
+    /**
+     * With no override reader to be found, the long press and the MetaConfig and Whitehat entries go
+     * in all the same. No reader or writer stub is filled, both of their statuses stay off, and the
+     * patch log says what was left out.
+     */
+    @Test
+    fun aReaderThatMovedLeavesTheLongPressAndTheEntriesIn() {
+        val patch = PatchContexts.of(classes() + extension())
+        val stock = patch.bridge()
+
+        val warnings = PatchLogCapture.warnings { patch.openDeveloperOptions(standInEditor, whitehat) }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().startsWith("Open developer options: expected one signed-in override diagnostics, found 0. "))
+        assertTrue(warnings.single(), warnings.single().endsWith(" without Export, Validate and Import."))
+        assertEquals("asks first", OPEN_DEVELOPER_OPTIONS, patch.longPress().code()[0].referenceText())
+        val filled = patch.bridge().filter { (stub, code) -> stock[stub] != code }.keys
+        assertEquals(setOf("openOverridesNative(Ljava/lang/Object;)I", "openWhitehatNative(Ljava/lang/Object;)I"), filled)
+        assertEquals(1, patch.answer("developerOptions"))
+        assertEquals(0, patch.answer(OVERRIDE_EXCHANGE_STATUS))
+        assertEquals(0, patch.answer(OVERRIDE_IMPORT_STATUS))
+    }
+
+    /** An opener that moved still stops the patch before a stub, the press or a status changes. */
+    @Test
+    fun anOpenerThatMovedStillStopsThePatchBeforeAnythingChanges() {
+        val patch = PatchContexts.of(classes(error = false) + extension())
+        val stock = patch.bridge()
+
+        PatchLogCapture.warnings { assertThrows(PatchException::class.java) { patch.openDeveloperOptions(standInEditor, whitehat) } }
+
+        assertEquals(stock, patch.bridge())
+        assertTrue(patch.longPress().code().none { it.referenceText() == OPEN_DEVELOPER_OPTIONS })
+        assertEquals(0, patch.answer("developerOptions"))
+        assertEquals(0, patch.answer(OVERRIDE_EXCHANGE_STATUS))
+        assertEquals(0, patch.answer(OVERRIDE_IMPORT_STATUS))
+    }
+
     /** In each declared build, the one long press with both strings asks first and opens the one opener. */
     @Test
     fun eachDeclaredBuildOpensTheOptionsOnALongPress() {
@@ -126,6 +170,28 @@ class OpenDeveloperOptionsTest {
     }
 
     private fun BytecodePatchContext.longPress(): Method = classDefBy(press).methods.single { it.name == "onLongClick" }
+
+    /** An editor and a Whitehat screen as the finders hand them over; only their smali has to assemble. */
+    private val standInEditor = OverrideEditor(
+        "Lcom/instagram/base/activity/IgFragmentActivity;->session()Lfixture/BaseSession;",
+        "Lfixture/Editor;->factory(Lcom/instagram/base/activity/IgFragmentActivity;Ljava/lang/Object;)Ljava/lang/Object;",
+        "Lfixture/EditorFragment;",
+        "Lfixture/Editor;->present(Landroidx/fragment/app/Fragment;Ljava/lang/Object;)V",
+    )
+    private val whitehat = "Lfixture/WhitehatScreen;"
+
+    /** The bridge with every stub, and the status class, as the bundle ships them. */
+    private fun extension() = listOf(ExtensionDex.classDef(OVERRIDE_BRIDGE), ExtensionDex.classDef(SETTINGS_STATUS))
+
+    /** Each bridge stub's code, as opcodes and what they reference. */
+    private fun BytecodePatchContext.bridge(): Map<String, List<String>> = classDefBy(OVERRIDE_BRIDGE).methods.associate { method ->
+        "${method.name}(${method.parameterTypes.joinToString("")})${method.returnType}" to
+            method.code().map { "${it.opcode} ${it.referenceText().orEmpty()}" }
+    }
+
+    /** What a SettingsStatus method answers: 1 once the patch switches it on, 0 as shipped. */
+    private fun BytecodePatchContext.answer(status: String): Int =
+        (classDefBy(SETTINGS_STATUS).methods.single { it.name == status }.code().first() as NarrowLiteralInstruction).narrowLiteral
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

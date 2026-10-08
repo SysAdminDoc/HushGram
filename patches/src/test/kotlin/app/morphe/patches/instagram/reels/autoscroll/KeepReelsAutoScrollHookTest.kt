@@ -325,7 +325,7 @@ class KeepReelsAutoScrollHookTest {
                     }
                 }
                 assertEquals("${bundle.name}: what reads the timer or the preference besides their own classes", setOf(checkMethod.text()), stateReaders)
-                val context = PatchContexts.of(found.values + ExtensionDex.classDef(SETTINGS_STATUS))
+                val context = PatchContexts.of(FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(SETTINGS_STATUS))
                 val sites = context.findReelAutoScroll()
                 assertEquals("${bundle.name}: the getter", "${getter.definingClass}->${getter.name}", "${sites.getter.definingClass}->${sites.getter.name}")
 

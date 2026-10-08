@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.analytics.pooledString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -320,11 +321,21 @@ private fun BytecodePatchContext.requireNativeUserId() {
 /** A fresh JDK snapshot iterator is non-null; its native assertion must immediately return. */
 private fun BytecodePatchContext.requireIteratorCheck(reference: MethodReference) {
     val method = requireNonNullCheck(reference)
-    val code = Shape(method, Opcode.IF_NEZ, Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC,
+    // 450's Redex asks a pool of shared strings for the marker by number instead of loading it.
+    val pooled = method.code().getOrNull(1)?.opcode != Opcode.CONST_STRING
+    val code = if (pooled) Shape(method, Opcode.IF_NEZ, Opcode.CONST_16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
+        Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.THROW, Opcode.RETURN_VOID)
+    else Shape(method, Opcode.IF_NEZ, Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC,
         Opcode.MOVE_RESULT_OBJECT, Opcode.THROW, Opcode.RETURN_VOID)
     code.registers(0, method.parameterRegisterNumber(0))
-    code.branch(0, 6)
-    if ((code.reference(1) as? StringReference)?.string != "INVOKE_RETURN") refuseQueue("iterator changed its native assertion marker")
+    code.branch(0, if (pooled) 8 else 6)
+    val marker = if (!pooled) (code.reference(1) as? StringReference)?.string else {
+        code.registers(2, code.reg(1))
+        val pool = code.call(2)
+        if (pool.parameterTypes.map(Any::toString) != listOf("I") || pool.returnType != STRING) refuseQueue("iterator changed its native string pool")
+        pooledString(pool, (method.code()[1] as NarrowLiteralInstruction).narrowLiteral)
+    }
+    if (marker != "INVOKE_RETURN") refuseQueue("iterator changed its native assertion marker")
 }
 
 /** The queue tests the batch before claim, so only this assertion's non-null branch can run. */
@@ -681,7 +692,12 @@ private fun Method.requireOrigin(register: Int, read: Int, definition: Int) {
 
 private class Shape(val method: Method, vararg expected: Opcode) {
     private val code = method.code()
-    init { if (code.map { it.opcode } != expected.toList()) refuseQueue("${method.name} changed its native shape") }
+    // A string's load turns jumbo once the dex holds more strings than a short index reaches, as in 450.
+    init {
+        if (code.map { if (it.opcode == Opcode.CONST_STRING_JUMBO) Opcode.CONST_STRING else it.opcode } != expected.toList()) {
+            refuseQueue("${method.name} changed its native shape")
+        }
+    }
     fun reg(at: Int): Int = code[at].namedRegisters().first()
     fun literal(at: Int, value: Int) {
         if ((code[at] as? NarrowLiteralInstruction)?.narrowLiteral != value) refuseQueue("${method.name} changes its native literal at $at")

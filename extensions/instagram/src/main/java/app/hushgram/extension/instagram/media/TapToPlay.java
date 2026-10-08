@@ -65,7 +65,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * path and do nothing: {@link #resumeOnTap} sends a tap on a reel that's waiting down the resume
  * path instead. The story viewer resumes on the release of a press and hold only a story it paused
  * while it played, and {@link #resumeHeldStory} gives a story this patch held the same resume.
- * Off, paused, before the settings are ready, or when anything here throws, every start goes ahead
+ *
+ * <p>{@link Settings#TAP_TO_PLAY_SCOPE} can leave the Reels viewer out, or everything but it (#39).
+ * playInternal's hook says whether its IgVideoPlayerImpl is the Reels viewer's: the patch checks
+ * that the player's video logger is the one the Reels viewer makes. IgGrootPlayer's own play goes
+ * by what playInternal last said of that IgGrootPlayer, and one it never said anything of, such as
+ * a story's, is outside Reels. A start the choice leaves out goes ahead untouched, and the Reels
+ * tap and auto scroller, or the story release, the feed's play button and the autoplay check, do
+ * what Instagram decided wherever the choice leaves them out.
+ *
+ * <p>Off, paused, before the settings are ready, or when anything here throws, every start goes ahead
  * and the check answers what Instagram decided, as it would unpatched.
  */
 public final class TapToPlay {
@@ -119,6 +128,8 @@ public final class TapToPlay {
     private static final Players ARMED = new Players();
     /** The players whose last start this gate held, until one goes ahead or they get a new video. */
     private static final Players HELD = new Players();
+    /** The IgGrootPlayers whose last playInternal was a Reels viewer player's, for their own plays. */
+    private static final Players REELS = new Players();
     private static final Object TAP_LOCK = new Object();
     /** The end of the last tap a start went ahead on, so only its first start gets the load window. */
     private static long usedTap = TapClock.NO_TAP;
@@ -137,6 +148,8 @@ public final class TapToPlay {
     private static int autoScrolls;
     private static boolean checkLogged;
     private static boolean viewlessClickLogged;
+    private static boolean reelsLeftOutLogged;
+    private static boolean restLeftOutLogged;
 
     /** Makes the next decision throw, once. For tests. */
     @Nullable
@@ -146,15 +159,16 @@ public final class TapToPlay {
 
     /**
      * The hook, first thing in IgVideoPlayerImpl's playInternal, with the IgGrootPlayer it's about
-     * to play. False, and playInternal returns at once, before it marks the video as playing.
+     * to play and [reels], non-zero when that IgVideoPlayerImpl is the Reels viewer's. False, and
+     * playInternal returns at once, before it marks the video as playing.
      */
-    public static boolean allowStart(@Nullable Object player, @Nullable String reason) {
-        return allow(player, reason, "player start", "");
+    public static boolean allowStart(@Nullable Object player, @Nullable String reason, int reels) {
+        return allow(player, reason, reels != 0, "player start", "");
     }
 
     /** The hook, first thing in IgGrootPlayer's play. False, and the play returns at once. */
     public static boolean allowDirectStart(@Nullable Object player, @Nullable String reason) {
-        return allow(player, reason, "direct start", " (direct)");
+        return allow(player, reason, null, "direct start", " (direct)");
     }
 
     /**
@@ -220,7 +234,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (!on()) return;
+            if (!onFor(true)) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "auto scroll");
             scrolledAt(SystemClock.uptimeMillis());
         } catch (Throwable failure) {
@@ -263,7 +277,7 @@ public final class TapToPlay {
     public static boolean autoplayAllowed(boolean answer) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
-            if (!answer || !on()) return answer;
+            if (!answer || !onFor(false)) return answer;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "autoplay check");
             logCheckOnce();
             return false;
@@ -282,7 +296,7 @@ public final class TapToPlay {
     public static void playButtonTapped(@Nullable Object click) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
-            if (!on()) return;
+            if (!onFor(false)) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "play button");
             View button = PlayButtons.viewOf(click);
             if (button != null) {
@@ -330,7 +344,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (resume || navigator == null || !on()) return resume;
+            if (resume || navigator == null || !onFor(true)) return resume;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "Reels tap");
             Object state = reelStates.stateOf(navigator);
             if (state == NOT_PATCHED) {
@@ -375,7 +389,7 @@ public final class TapToPlay {
                 failNext = null;
                 throw failure;
             }
-            if (resume || storyPlayer == null || !on()) return resume;
+            if (resume || storyPlayer == null || !onFor(false)) return resume;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "story release");
             long sinceTap = TapClock.msSinceTap(SystemClock.uptimeMillis());
             if (sinceTap < 0 || sinceTap > TAP_WINDOW_MS || TapClock.heldMs() < ViewConfiguration.getLongPressTimeout()) {
@@ -428,7 +442,11 @@ public final class TapToPlay {
                 () -> "Tap to play: Instagram's autoplay check answers no");
     }
 
-    private static boolean allow(@Nullable Object player, @Nullable String reason, String hook, String path) {
+    /**
+     * [reels] is what playInternal says of the player, which IgGrootPlayer's own play remembers
+     * from it, or null for that play.
+     */
+    private static boolean allow(@Nullable Object player, @Nullable String reason, @Nullable Boolean reels, String hook, String path) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
             RuntimeException failure = failNext;
@@ -438,7 +456,20 @@ public final class TapToPlay {
             }
             if (!on()) return true;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, hook);
-            return decide(player, reason, SystemClock.uptimeMillis(), path);
+            long now = SystemClock.uptimeMillis();
+            boolean inReels;
+            if (reels == null) {
+                inReels = REELS.contains(player);
+            } else {
+                inReels = reels;
+                if (inReels) REELS.add(player, now);
+                else REELS.remove(player);
+            }
+            if (!scope().covers(inReels)) {
+                logLeftOutOnce(inReels);
+                return true;
+            }
+            return decide(player, reason, now, path);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, hook, failure);
             return true;
@@ -447,6 +478,26 @@ public final class TapToPlay {
 
     private static boolean on() {
         return Utils.settingsReady() && Settings.TAP_TO_PLAY.get();
+    }
+
+    /** On, and the choice of where holds starts in the Reels viewer, [reels], or outside it. */
+    private static boolean onFor(boolean reels) {
+        return on() && scope().covers(reels);
+    }
+
+    private static TapToPlayScope scope() {
+        TapToPlayScope scope = Settings.TAP_TO_PLAY_SCOPE.get();
+        return scope == null ? TapToPlayScope.EVERYWHERE : scope;
+    }
+
+    private static void logLeftOutOnce(boolean reels) {
+        synchronized (LOG_LOCK) {
+            if (reels ? reelsLeftOutLogged : restLeftOutLogged) return;
+            if (reels) reelsLeftOutLogged = true;
+            else restLeftOutLogged = true;
+        }
+        Logger.diagnosticDebug(DiagnosticCategory.OTHER, SOURCE, () -> "Tap to play: starts "
+                + (reels ? "in Reels" : "outside Reels") + " go ahead, the choice of where leaves them out");
     }
 
     /** The rule, with the clock passed in. Arms the player when it lets the start through. */
@@ -544,6 +595,7 @@ public final class TapToPlay {
     static void forget() {
         ARMED.clear();
         HELD.clear();
+        REELS.clear();
         storyPlayers = StoryPlayerReader::grootOf;
         PlayButtons.forget();
         synchronized (TAP_LOCK) {
@@ -559,6 +611,8 @@ public final class TapToPlay {
             autoScrolls = 0;
             checkLogged = false;
             viewlessClickLogged = false;
+            reelsLeftOutLogged = false;
+            restLeftOutLogged = false;
         }
         failNext = null;
     }

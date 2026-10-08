@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -45,19 +46,19 @@ internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
 
 /**
  * The shortest ordinary reel, in seconds, that gets Instagram's attached seek bar: a parameter of
- * the server setting ig_android_iv_video_scrubber. 449 reads it three times: in the check of
+ * the server setting ig_android_iv_video_scrubber. 450 reads it three times: in the check of
  * whether a reel gets the bar, in the check of whether its bar is the hidden kind, and where the
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-internal const val ORGANIC_MIN_SECONDS = 0x82092d002914b2L
+internal const val ORGANIC_MIN_SECONDS = 0x82092100291499L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
- * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 449
+ * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-internal const val ORGANIC_LAZY = 0x81092d001033caL
+internal const val ORGANIC_LAZY = 0x81092100103399L
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */
@@ -188,8 +189,9 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
 internal fun BytecodePatchContext.findBindSite(row: Method, lazy: FlagLoad): BindSite {
     val field = adField(row, lazy)
     val binders = mutableListOf<Method>()
+    val tagging = classesHolding(SCRUBBER_TAG).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in tagging || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method ->
             val code = method.implementation?.instructions ?: return@forEach
             if (code.any { it.string() == SCRUBBER_TAG } && code.any { it.methodSignature() == SET_TAG }) binders += method

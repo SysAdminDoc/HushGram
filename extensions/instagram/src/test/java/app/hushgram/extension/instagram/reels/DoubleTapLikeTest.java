@@ -30,6 +30,23 @@ public class DoubleTapLikeTest {
         Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.save(true);
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.resetToDefault();
+    }
+
+    /** Comments keep double tap to like until their switch is on, and then only while the main one is. */
+    @Test
+    public void commentsAreHeldBackOnlyWithTheirOwnSwitch() {
+        assertFalse("off to start", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.get());
+        assertFalse(DoubleTapLike.holdBackComment());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.save(true);
+        FeedFilterCounters.snapshotAndClear();
+        assertTrue(DoubleTapLike.holdBackComment());
+        assertTrue(FeedFilterCounters.report().toString().contains(DoubleTapLike.HELD_BACK));
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(false);
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.save(false);
+        assertTrue("the other two don't matter", DoubleTapLike.holdBackComment());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(false);
+        assertFalse(DoubleTapLike.holdBackComment());
     }
 
     /** On, a post's double tap returns early and a reel's like action comes back empty, and both are counted. */

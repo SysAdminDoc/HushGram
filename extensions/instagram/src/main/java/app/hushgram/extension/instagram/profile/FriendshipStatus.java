@@ -28,9 +28,17 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Whether the account follows you comes from the friendship status Instagram keeps on the
  * profile's user, which it asks for when the profile opens, or failing that from the user's own
  * followed_by. Until it knows, nothing is added.
+ *
+ * <p>With Show it as a chip on, the answer goes in a chip under the profile's counts instead
+ * ({@link FriendshipChip}), which also says Following each other when you follow the account too.
+ * The pronouns slot is then left as Instagram set it. A header whose counts can't be found keeps
+ * the text label.
  */
 public final class FriendshipStatus {
     static final String SEPARATOR = " · ";
+
+    /** What the profile's account and you are to each other, as far as Instagram has said. */
+    enum Relation { FOLLOWS_YOU, FOLLOWING_EACH_OTHER, DOESNT_FOLLOW_YOU }
 
     private FriendshipStatus() {
     }
@@ -42,11 +50,14 @@ public final class FriendshipStatus {
     public static void besidePronouns(Object slot, Object header) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
-            String label = label(header);
-            if (label == null) return;
+            Relation relation = relation(header);
+            if (relation == null && !FriendshipChip.anyShown()) return;
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
             TextView text = (TextView) view;
+            if (chipped(text, relation)) return;
+            String label = textFor(relation);
+            if (label == null) return;
             text.setText(joined(text.getText(), label));
             log(label);
         } catch (Throwable failure) {
@@ -56,15 +67,22 @@ public final class FriendshipStatus {
 
     /**
      * Injected right after the profile header hides the pronouns slot, for an account with none.
-     * Puts the label in the slot and shows it. Never throws.
+     * Puts the label in the slot and shows it. With the chip showing instead, the slot stays hidden.
+     * Never throws.
      */
     public static void inPlaceOfPronouns(Object slot, Object header) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
-            String label = label(header);
-            if (label == null) return;
+            Relation relation = relation(header);
+            if (relation == null && !FriendshipChip.anyShown()) return;
             View view = slotView(slot);
             if (!(view instanceof TextView)) return;
+            String label = chipped(view, relation) ? null : textFor(relation);
+            if (label == null) {
+                // Asking for the slot's view can put it in place, so it's hidden again as Instagram left it.
+                setSlotVisibility(slot, View.GONE);
+                return;
+            }
             ((TextView) view).setText(label);
             setSlotVisibility(slot, View.VISIBLE);
             log(label);
@@ -76,6 +94,16 @@ public final class FriendshipStatus {
     /** The label for the profile [header] belongs to, or null when the switch is off or it isn't known. */
     @Nullable
     static String label(Object header) {
+        return textFor(relation(header));
+    }
+
+    /**
+     * What the profile [header] belongs to and you are to each other, or null when the switch is
+     * off, it's your own profile or Instagram hasn't said. Following each other needs Instagram to
+     * have said you follow the account too.
+     */
+    @Nullable
+    static Relation relation(Object header) {
         if (!Utils.settingsReady() || !Settings.SHOW_FRIENDSHIP_STATUS.get()) return null;
         Object user = profileUser(header);
         if (user == null) {
@@ -85,8 +113,38 @@ public final class FriendshipStatus {
         if (isViewer(header, user)) return null;
         Boolean followedBy = friendshipFollowedBy(user);
         if (followedBy == null) followedBy = followedBy(user);
-        if (followedBy == null) Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you");
-        return text(followedBy);
+        if (followedBy == null) {
+            Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you");
+            return null;
+        }
+        return relation(followedBy, friendshipFollowing(user));
+    }
+
+    /** The relation for whether the account follows you and whether you follow it, which may be unknown. */
+    static Relation relation(boolean followedBy, @Nullable Boolean following) {
+        if (!followedBy) return Relation.DOESNT_FOLLOW_YOU;
+        return Boolean.TRUE.equals(following) ? Relation.FOLLOWING_EACH_OTHER : Relation.FOLLOWS_YOU;
+    }
+
+    /**
+     * With Show it as a chip on and [relation] known, puts the chip under the counts of the header
+     * [inside] is in; otherwise takes a chip it put there before away. True when the chip is
+     * showing, so the text label stays out.
+     */
+    private static boolean chipped(View inside, @Nullable Relation relation) {
+        if (relation == null || !Settings.FRIENDSHIP_STATUS_CHIP.get()) {
+            FriendshipChip.clear(inside);
+            return false;
+        }
+        boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null);
+        if (!shown) Logger.printDebug(() -> "Friendship status: no counts to put the chip under, so the label goes by the name");
+        return shown;
+    }
+
+    /** The text label: the relation's answer, where following each other still reads Follows you. */
+    @Nullable
+    static String textFor(@Nullable Relation relation) {
+        return relation == null ? null : text(relation != Relation.DOESNT_FOLLOW_YOU);
     }
 
     /** Whether [user] is the account signed in, whose own profile gets no label. */
@@ -126,6 +184,15 @@ public final class FriendshipStatus {
      */
     @Nullable
     public static Boolean friendshipFollowedBy(Object user) {
+        return null;
+    }
+
+    /**
+     * Filled in by the patch: whether you follow [user], from the friendship status Instagram keeps on
+     * the user, or null when it has none or the build's getter couldn't be told.
+     */
+    @Nullable
+    public static Boolean friendshipFollowing(Object user) {
         return null;
     }
 

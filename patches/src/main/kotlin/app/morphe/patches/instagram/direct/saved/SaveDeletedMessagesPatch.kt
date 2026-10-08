@@ -133,7 +133,7 @@ internal fun BytecodePatchContext.findParser(): ParserSite {
     val returnAt = returns.exactlyOne(PATCH, "return of the parsed message in ${method.describe()}")
     val layout = listOf(
         "i" to id, "u" to user, "t" to time, "x" to text, "h" to hide, "m" to mine, "k" to thread,
-    ).joinToString(";") { (letter, field) -> "$letter=${field.fieldName()}" } + ";c=$content"
+    ).joinToString(";") { (letter, field) -> "$letter=${field.fieldName()}" } + ";c=$content;d=${threadIdField()}"
     return ParserSite(method, message, returnAt, layout, created, type.typeOf())
 }
 
@@ -167,6 +167,26 @@ internal fun Method.fieldHandling(key: String): Handled {
         if (instruction.opcode.name.startsWith("goto") || instruction.opcode.name.startsWith("return")) break
     }
     refuse(PATCH, "the code for \"$key\" in ${describe()} stores no field")
+}
+
+/**
+ * The thread id field of a thread key. The key's `toString` writes "mThreadId" and then "mThreadV2Id", and
+ * reads the id fields it prints in that order, so the first string field it reads is the thread's id.
+ */
+internal fun BytecodePatchContext.threadIdField(): String {
+    val key = classDefByOrNull(THREAD_KEY_TYPE) ?: refuse(PATCH, "$THREAD_KEY_TYPE isn't in this build")
+    val printer = key.methods.filter { it.name == "toString" && it.parameterTypes.isEmpty() }
+        .exactlyOne(PATCH, "toString of $THREAD_KEY_TYPE")
+    val code = printer.code()
+    if (code.none { it.stringLoaded()?.contains("mThreadId") == true }) {
+        refuse(PATCH, "${printer.describe()} doesn't print a mThreadId")
+    }
+    val read = code.firstNotNullOfOrNull { instruction ->
+        instruction.fieldReference()?.takeIf {
+            instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == THREAD_KEY_TYPE && it.type == STRING
+        }
+    } ?: refuse(PATCH, "${printer.describe()} reads no string field")
+    return read.name
 }
 
 /**

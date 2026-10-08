@@ -17,6 +17,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import app.morphe.patcher.util.smali.ExternalLabel
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -25,7 +26,7 @@ import org.junit.Test
 
 class NavigationEntryTest {
     @Test fun hookMethodsArePublicAndStatic() {
-        for (hook in listOf(NAV_REMEMBER, NAV_BIND)) assertTrue(hook, ExtensionDex.classDef(NAVIGATION).methods.any {
+        for (hook in listOf(NAV_REMEMBER, NAV_BIND, NAV_SET_LISTENER)) assertTrue(hook, ExtensionDex.classDef(NAVIGATION).methods.any {
             AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) &&
                 "$NAVIGATION->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook
         })
@@ -82,6 +83,41 @@ class NavigationEntryTest {
         val branch = factory.implementation!!.instructions[found.returnIndex - 1] as BuilderOffsetInstruction
         assertEquals(found.returnIndex, branch.target.location.index)
         assertEquals(NAV_BIND, (factory.implementation!!.instructions[found.returnIndex] as ReferenceInstruction).reference.toString())
+    }
+
+    /**
+     * 450's activity gives the Profile button its account switcher straight on the view as well
+     * as through the proxy, and that one used to escape the choice (#82). It goes to the extension
+     * in the call's own place and registers, so the branch to it still reaches it.
+     */
+    @Test fun theActivitysOwnLongPressGoesThroughTheExtension() {
+        val context = PatchContexts.of(NavigationEntryHosts.classes(activityLongPress = true))
+        val found = context.navigationEntryTargets()
+        assertEquals(1, found.activityLongPresses.size)
+        context.addNavigationEntry(found)
+        val switcher = context.mutableClassDefBy(MAIN_ACTIVITY).methods.single { it.name == "showSwitcher" }
+        val code = switcher.implementation!!.instructions
+        val hook = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.toString() == NAV_SET_LISTENER }
+        val call = code[hook] as FiveRegisterInstruction
+        assertEquals(Opcode.INVOKE_STATIC, call.opcode)
+        assertEquals(listOf(2, 3), listOf(call.registerC, call.registerD))
+        assertEquals(2, call.registerCount)
+        assertEquals(1, switcher.calls(NAV_SET_LISTENER))
+        assertEquals(0, switcher.calls(SET_LISTENER))
+        assertEquals(hook, (code.first() as BuilderOffsetInstruction).target.location.index)
+        assertEquals(4, switcher.implementation!!.registerCount)
+        val factory = context.mutableClassDefBy(MAIN_ACTIVITY).methods.single { it.name == "makeTab" }
+        assertEquals(1, factory.calls(NAV_BIND))
+        assertEquals(0, factory.calls(NAV_SET_LISTENER))
+    }
+
+    @Test fun anActivityLongPressInAnotherFormRefusesBeforeAnyInstructionChanges() {
+        val context = PatchContexts.of(NavigationEntryHosts.classes(activityLongPress = true))
+        context.mutableClassDefBy(MAIN_ACTIVITY).methods.single { it.name == "showSwitcher" }
+            .replaceInstruction(2, "invoke-virtual/range {p1 .. p2}, $SET_LISTENER")
+        val before = snapshot(context)
+        assertThrows(PatchException::class.java) { context.addNavigationEntry() }
+        assertEquals(before, snapshot(context))
     }
 
     @Test fun original449ProvesBothVariantsAndPreservesAllNativeFactoryCalls() {

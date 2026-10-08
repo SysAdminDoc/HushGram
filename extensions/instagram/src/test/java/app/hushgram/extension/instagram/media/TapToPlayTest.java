@@ -64,6 +64,7 @@ public class TapToPlayTest {
     public void restore() {
         PauseForTests.resume();
         Settings.TAP_TO_PLAY.resetToDefault();
+        Settings.TAP_TO_PLAY_SCOPE.resetToDefault();
         BaseSettings.DEBUG.resetToDefault();
         TapToPlayForTests.forget();
         HookStatus.clear();
@@ -86,10 +87,10 @@ public class TapToPlayTest {
     @Test
     public void noStartGoesAheadWithoutATap() {
         for (String reason : REASONS) {
-            assertFalse(reason, TapToPlay.allowStart(new Object(), reason));
+            assertFalse(reason, TapToPlay.allowStart(new Object(), reason, 0));
             assertFalse(reason, TapToPlay.allowDirectStart(new Object(), reason));
         }
-        assertFalse("no reason at all", TapToPlay.allowStart(new Object(), null));
+        assertFalse("no reason at all", TapToPlay.allowStart(new Object(), null, 0));
         assertEquals("a held start arms nothing", 0, TapToPlay.armedCount());
     }
 
@@ -165,20 +166,20 @@ public class TapToPlayTest {
         Object player = new Object();
         Object other = new Object();
         TapToPlayForTests.tapEnded(100);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         assertTrue(TapToPlay.armed(player));
         TapClock.forget();
 
         assertTrue("IgGrootPlayer's own play of the same player", TapToPlay.allowDirectStart(player, "autoplay"));
-        assertTrue("a resume", TapToPlay.allowStart(player, "resume"));
-        assertFalse("another player", TapToPlay.allowStart(other, "autoplay"));
+        assertTrue("a resume", TapToPlay.allowStart(player, "resume", 0));
+        assertFalse("another player", TapToPlay.allowStart(other, "autoplay", 0));
 
         TapToPlay.paused(player, "scroll");
         assertFalse(TapToPlay.armed(player));
-        assertFalse("the start after a pause", TapToPlay.allowStart(player, "resume"));
+        assertFalse("the start after a pause", TapToPlay.allowStart(player, "resume", 0));
 
         TapToPlayForTests.tapEnded(10);
-        assertTrue("a tap plays it again", TapToPlay.allowStart(player, "resume"));
+        assertTrue("a tap plays it again", TapToPlay.allowStart(player, "resume", 0));
     }
 
     /** A seek pauses and plays again, and a reel loops the same way: neither undoes the tap. */
@@ -212,13 +213,13 @@ public class TapToPlayTest {
     public void aDragOfTheLongVideoScrubberKeepsItPlaying() {
         Object player = new Object();
         TapToPlayForTests.tapEnded(10);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapClock.forget();
 
         TapToPlay.paused(player, "Seek start");
 
         assertTrue("the seek's pause disarmed it", TapToPlay.armed(player));
-        assertTrue("the play at the drag's end", TapToPlay.allowStart(player, "autoplay"));
+        assertTrue("the play at the drag's end", TapToPlay.allowStart(player, "autoplay", 0));
     }
 
     /** Debug logging says what ended a start, and a pause Instagram plays on from ends none. */
@@ -230,7 +231,7 @@ public class TapToPlayTest {
         Object scrolled = new Object();
         Object rebound = new Object();
         TapToPlayForTests.tapEnded(10);
-        for (Object player : Arrays.asList(seeking, scrolled, rebound)) assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        for (Object player : Arrays.asList(seeking, scrolled, rebound)) assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapClock.forget();
         SystemClock.sleep(TapToPlay.BIND_GRACE_MS + 1);
 
@@ -250,21 +251,21 @@ public class TapToPlayTest {
     public void aNewVideoDisarmsButTheStartsOwnPrepareDoesnt() {
         Object player = new Object();
         TapToPlayForTests.tapEnded(20);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapToPlay.rebound(player);
         assertTrue("the prepare right after the start", TapToPlay.armed(player));
 
         SystemClock.sleep(TapToPlay.BIND_GRACE_MS + 1);
         TapToPlay.rebound(player);
         assertFalse("the next video", TapToPlay.armed(player));
-        assertFalse(TapToPlay.allowStart(player, "autoplay"));
+        assertFalse(TapToPlay.allowStart(player, "autoplay", 0));
     }
 
     @Test
     public void aRapidSwipeCannotReuseThePreviousTapOrThePlayersPrepareGrace() {
         Object player = new Object();
         tapAt(SystemClock.uptimeMillis());
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapToPlay.rebound(player);
         assertTrue("the tap's own prepare", TapToPlay.armed(player));
 
@@ -273,17 +274,17 @@ public class TapToPlayTest {
         TapClock.record(MotionEvent.ACTION_DOWN, 50, 500, swipe, 8);
         TapClock.record(MotionEvent.ACTION_MOVE, 50, 300, swipe, 8);
         assertFalse("another player cannot borrow the previous tap during a swipe",
-                TapToPlay.allowStart(new Object(), "autoplay"));
+                TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertTrue("scrolling alone doesn't interrupt the current video", TapToPlay.armed(player));
         TapToPlay.rebound(player);
         assertFalse("a new video after the swipe cannot borrow the previous start", TapToPlay.armed(player));
         TapClock.record(MotionEvent.ACTION_UP, 50, 100, swipe, 8);
-        assertFalse(TapToPlay.allowStart(player, "autoplay"));
+        assertFalse(TapToPlay.allowStart(player, "autoplay", 0));
         assertFalse(TapToPlay.allowDirectStart(player, "start"));
 
         SystemClock.sleep(1);
         tapAt(SystemClock.uptimeMillis());
-        assertTrue("the next video's own tap works", TapToPlay.allowStart(player, "autoplay"));
+        assertTrue("the next video's own tap works", TapToPlay.allowStart(player, "autoplay", 0));
         TapToPlay.rebound(player);
         assertTrue("that tap keeps its own prepare grace", TapToPlay.armed(player));
     }
@@ -294,9 +295,9 @@ public class TapToPlayTest {
         Object player = new AlwaysEqual();
         Object twin = new AlwaysEqual();
         TapToPlayForTests.tapEnded(20);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapClock.forget();
-        assertFalse(TapToPlay.allowStart(twin, "autoplay"));
+        assertFalse(TapToPlay.allowStart(twin, "autoplay", 0));
         TapToPlay.paused(twin, "scroll");
         assertTrue(TapToPlay.armed(player));
     }
@@ -316,7 +317,7 @@ public class TapToPlayTest {
 
     private static WeakReference<Object> armOne() {
         Object player = new Object();
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         assertEquals(1, TapToPlay.armedCount());
         return new WeakReference<>(player);
     }
@@ -324,39 +325,39 @@ public class TapToPlayTest {
     @Test
     public void offPausedOrNotReadyEveryStartGoesAhead() {
         Settings.TAP_TO_PLAY.save(false);
-        assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertTrue(TapToPlay.allowDirectStart(new Object(), "autoplay"));
         assertTrue("Instagram's own answer", TapToPlay.autoplayAllowed(true));
         Settings.TAP_TO_PLAY.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertTrue(TapToPlay.autoplayAllowed(true));
         PauseForTests.resume();
-        assertFalse("the control: running, the same start is held", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("the control: running, the same start is held", TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertEquals("nothing armed while off or paused", 0, TapToPlay.armedCount());
     }
 
     @Test
     public void aStartBeforeTheSettingsAreReadyGoesAhead() {
         SettingsContextRule.withoutContext(() -> {
-            assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+            assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
             assertTrue(TapToPlay.autoplayAllowed(true));
         });
         SettingsContextRule.beforeThePauseIsDecided(() -> {
-            assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+            assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
             assertTrue(TapToPlay.autoplayAllowed(true));
         });
-        assertFalse("the control: ready, the same start is held", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("the control: ready, the same start is held", TapToPlay.allowStart(new Object(), "autoplay", 0));
     }
 
     @Test
     public void aFailureLetsTheStartGoAheadAndTheReportSaysSo() {
         TapToPlay.failNext = new IllegalStateException("the rule failed");
-        assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertEquals(Collections.singletonList("a working 'player start' hook (it threw "
                         + IllegalStateException.class.getName() + ")"),
                 HookStatus.missing(FamilyNames.TAP_TO_PLAY));
-        assertFalse("only the one start went ahead", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("only the one start went ahead", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         TapToPlay.failNext = new IllegalStateException("the rule failed");
         assertTrue(TapToPlay.allowDirectStart(new Object(), "autoplay"));
@@ -367,7 +368,7 @@ public class TapToPlayTest {
 
     @Test
     public void eachHookCountsAndBindsInTheReport() {
-        TapToPlay.allowStart(new Object(), "autoplay");
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
         TapToPlay.allowDirectStart(new Object(), "autoplay");
         TapToPlay.paused(new Object(), "scroll");
         TapToPlay.rebound(new Object());
@@ -693,13 +694,13 @@ public class TapToPlayTest {
         Object next = new Object();
         TapToPlay.autoScrolled();
         SystemClock.sleep(800);
-        assertTrue("playInternal of the reel auto scroll moved to", TapToPlay.allowStart(next, "autoplay"));
+        assertTrue("playInternal of the reel auto scroll moved to", TapToPlay.allowStart(next, "autoplay", 0));
         assertTrue("its IgGrootPlayer's play", TapToPlay.allowDirectStart(next, "autoplay"));
-        assertFalse("another player", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("another player", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         TapToPlay.autoScrolled();
         SystemClock.sleep(TapToPlay.LOAD_WINDOW_MS + 1);
-        assertFalse("a start later than a load after the move", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("a start later than a load after the move", TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
     }
 
@@ -710,21 +711,133 @@ public class TapToPlayTest {
         Settings.TAP_TO_PLAY.save(false);
         TapToPlay.autoScrolled();
         Settings.TAP_TO_PLAY.save(true);
-        assertFalse("after a move while off", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("after a move while off", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         TapToPlay.autoScrolled();
         PauseForTests.resume();
-        assertFalse("after a move while paused", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("after a move while paused", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         SettingsContextRule.withoutContext(TapToPlay::autoScrolled);
-        assertFalse("after a move before the settings were there", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("after a move before the settings were there", TapToPlay.allowStart(new Object(), "autoplay", 0));
         SettingsContextRule.beforeThePauseIsDecided(TapToPlay::autoScrolled);
-        assertFalse("after a move before the pause was decided", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("after a move before the pause was decided", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         TapToPlay.autoScrolled();
-        assertTrue("the control: on, the same move starts the next reel", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue("the control: on, the same move starts the next reel", TapToPlay.allowStart(new Object(), "autoplay", 0));
         assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+    }
+
+    /** The choice starts as everywhere, what the switch did before there was one, so nobody's Tap to play changes. */
+    @Test
+    public void theChoiceStartsEverywhere() {
+        assertSame(TapToPlayScope.EVERYWHERE, Settings.TAP_TO_PLAY_SCOPE.get());
+        assertFalse("a reel waits", TapToPlay.allowStart(new Object(), "autoplay", 1));
+        assertFalse("and so does anything else", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse(TapToPlay.allowDirectStart(new Object(), "autoplay"));
+    }
+
+    /**
+     * Everywhere but Reels: a Reels viewer player's start, and its IgGrootPlayer's own play after
+     * it, go ahead without arming anything, and the Reels tap and auto scroller do what Instagram
+     * decided. A feed video, and a story's play playInternal never saw, still wait.
+     */
+    @Test
+    @Config(sdk = {28, 37})
+    public void everywhereButReelsLetsReelsPlay() {
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_REELS);
+        Object reel = new Object();
+        assertTrue("a reel's playInternal", TapToPlay.allowStart(reel, "autoplay", 1));
+        assertTrue("its IgGrootPlayer's play", TapToPlay.allowDirectStart(reel, "autoplay"));
+        assertTrue("again, long after any tap", TapToPlay.allowDirectStart(reel, "retry"));
+        assertEquals("nothing armed", 0, TapToPlay.armedCount());
+        assertFalse("a feed video", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse("a story", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+
+        TapToPlay.reelStates = asked -> {
+            throw new AssertionError("asked about a reel the choice leaves out");
+        };
+        assertFalse("the Reels tap does what Instagram decided", TapToPlay.resumeOnTap(false, new Object()));
+        TapToPlay.autoScrolled();
+        assertFalse("the move recorded nothing", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertFalse("the feed still draws its play button", TapToPlay.autoplayAllowed(true));
+        assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+    }
+
+    /**
+     * Only Reels: a Reels viewer player waits for a tap, and so does its IgGrootPlayer's own play,
+     * while a feed video, a story and the autoplay check go as Instagram decides, and the story
+     * release does what Instagram decided.
+     */
+    @Test
+    @Config(sdk = {28, 37})
+    public void onlyReelsHoldsReelsAndNothingElse() {
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.ONLY_REELS);
+        Object reel = new Object();
+        assertFalse("a reel waits", TapToPlay.allowStart(reel, "autoplay", 1));
+        assertFalse("its IgGrootPlayer's play too", TapToPlay.allowDirectStart(reel, "autoplay"));
+        assertTrue("a feed video plays", TapToPlay.allowStart(new Object(), "autoplay", 0));
+        assertTrue("a story plays", TapToPlay.allowDirectStart(new Object(), "autoplay"));
+        assertTrue("Instagram's own autoplay answer", TapToPlay.autoplayAllowed(true));
+        assertEquals("nothing armed", 0, TapToPlay.armedCount());
+
+        Object groot = new Object();
+        TapToPlay.storyPlayers = asked -> {
+            throw new AssertionError("asked about a story the choice leaves out");
+        };
+        holdEnded(SystemClock.uptimeMillis(), aHold());
+        assertFalse("the story release does what Instagram decided", TapToPlay.resumeHeldStory(false, groot));
+
+        TapToPlay.reelStates = asked -> State.PREPARED;
+        assertTrue("a tap on a held reel still starts it", TapToPlay.resumeOnTap(false, new Object()));
+        tapAt(SystemClock.uptimeMillis());
+        assertTrue("and that start goes ahead", TapToPlay.allowStart(reel, "resume", 1));
+        assertEquals(Collections.emptyList(), HookStatus.missing(FamilyNames.TAP_TO_PLAY));
+    }
+
+    /** IgGrootPlayer's play goes by what playInternal last said of that player. */
+    @Test
+    public void aPlayerGoesByWhatPlayInternalLastSaidOfIt() {
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_REELS);
+        Object player = new Object();
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 1));
+        assertFalse("a feed player's start", TapToPlay.allowStart(player, "autoplay", 0));
+        assertFalse("so its own play waits again", TapToPlay.allowDirectStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 1));
+        assertTrue("a Reels start again", TapToPlay.allowDirectStart(player, "autoplay"));
+    }
+
+    /** Off, paused or before the settings are ready, the choice changes nothing: every start goes ahead. */
+    @Test
+    public void offOrPausedTheChoiceChangesNothing() {
+        for (TapToPlayScope scope : TapToPlayScope.values()) {
+            Settings.TAP_TO_PLAY_SCOPE.save(scope);
+            Settings.TAP_TO_PLAY.save(false);
+            assertTrue(scope + ": a reel", TapToPlay.allowStart(new Object(), "autoplay", 1));
+            assertTrue(scope + ": a feed video", TapToPlay.allowStart(new Object(), "autoplay", 0));
+            assertTrue(scope + ": Instagram's own answer", TapToPlay.autoplayAllowed(true));
+            Settings.TAP_TO_PLAY.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertTrue(scope + ": paused, a reel", TapToPlay.allowStart(new Object(), "autoplay", 1));
+            assertTrue(scope + ": paused, a feed video", TapToPlay.allowStart(new Object(), "autoplay", 0));
+            PauseForTests.resume();
+        }
+    }
+
+    /** Debug logging says once which starts the choice leaves out. */
+    @Test
+    public void debugLoggingSaysOnceWhatTheChoiceLeavesOut() {
+        BaseSettings.DEBUG.save(true);
+        LogBufferManager.clearLogBuffer();
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.OUTSIDE_REELS);
+        TapToPlay.allowStart(new Object(), "autoplay", 1);
+        TapToPlay.allowStart(new Object(), "autoplay", 1);
+        Settings.TAP_TO_PLAY_SCOPE.save(TapToPlayScope.ONLY_REELS);
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+
+        String report = LogBufferManager.buildExportText();
+        assertEquals(report, 1, occurrences(report, "Tap to play: starts in Reels go ahead, the choice of where leaves them out"));
+        assertEquals(report, 1, occurrences(report, "Tap to play: starts outside Reels go ahead, the choice of where leaves them out"));
     }
 
     /** A move that throws stays in the hook, records nothing, and the report names it. */
@@ -736,10 +849,10 @@ public class TapToPlayTest {
         assertEquals(Collections.singletonList("a working 'auto scroll' hook (it threw "
                         + IllegalStateException.class.getName() + ")"),
                 HookStatus.missing(FamilyNames.TAP_TO_PLAY));
-        assertFalse("nothing was recorded", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertFalse("nothing was recorded", TapToPlay.allowStart(new Object(), "autoplay", 0));
 
         TapToPlay.autoScrolled();
-        assertTrue("the next move works", TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue("the next move works", TapToPlay.allowStart(new Object(), "autoplay", 0));
     }
 
     /** Debug logging says when auto scroll moved on and which start that let through. */
@@ -749,8 +862,8 @@ public class TapToPlayTest {
         BaseSettings.DEBUG.save(true);
         LogBufferManager.clearLogBuffer();
         TapToPlay.autoScrolled();
-        TapToPlay.allowStart(new Object(), "autoplay");
-        TapToPlay.allowStart(new Object(), "autoplay");
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
 
         String report = LogBufferManager.buildExportText();
         assertEquals(report, 1, occurrences(report, "Tap to play: auto scroll moved on, so the next reel's first start goes ahead"));
@@ -765,10 +878,10 @@ public class TapToPlayTest {
         LogBufferManager.clearLogBuffer();
         TapToPlayForTests.tapEnded(250);
         Object player = new Object();
-        TapToPlay.allowStart(player, "autoplay");
+        TapToPlay.allowStart(player, "autoplay", 0);
         TapToPlay.allowDirectStart(player, "autoplay");
         TapClock.forget();
-        TapToPlay.allowStart(new Object(), "resume");
+        TapToPlay.allowStart(new Object(), "resume", 0);
         TapToPlay.allowDirectStart(new Object(), "start");
         TapToPlay.autoplayAllowed(true);
         TapToPlay.autoplayAllowed(true);
@@ -781,7 +894,7 @@ public class TapToPlayTest {
         assertEquals(report, 1, occurrences(report, "Tap to play: Instagram's autoplay check answers no"));
 
         // 4 so far: 36 more one by one, then 120 summed up in two lines, with 20 left over.
-        for (int i = 0; i < 36 + 120; i++) TapToPlay.allowStart(new Object(), "autoplay");
+        for (int i = 0; i < 36 + 120; i++) TapToPlay.allowStart(new Object(), "autoplay", 0);
         report = LogBufferManager.buildExportText();
         assertEquals(TapToPlay.LOGGED_ONE_BY_ONE, occurrences(report, "Tap to play: allowed ")
                 + occurrences(report, "Tap to play: held "));
@@ -791,7 +904,7 @@ public class TapToPlayTest {
     @Test
     public void withoutDebugLoggingNothingIsLogged() {
         LogBufferManager.clearLogBuffer();
-        TapToPlay.allowStart(new Object(), "autoplay");
+        TapToPlay.allowStart(new Object(), "autoplay", 0);
         TapToPlay.autoplayAllowed(true);
         String report = LogBufferManager.buildExportText();
         assertFalse(report, report.contains("Tap to play: held"));

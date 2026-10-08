@@ -20,6 +20,7 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *   <li>{@link #seeking}, first thing in its seek, so a seek someone else makes before the resume
  *       (your drag of the scrubber, or Instagram carrying a position over) wins.</li>
  * </ul>
+ *
+ * <p>The patch also tells it when Instagram lets an account's session go ({@link #sessionEnded}),
+ * at an account switch and when an account signs out or is removed from the phone. That account's
+ * resumes still waiting to seek are dropped, and a signed-out account's points go with it.
  *
  * <p>A point is saved only for a video of at least {@link #MIN_DURATION_MS} that was stopped at
  * least {@link #MIN_SAVED_MS} in and more than {@link #END_MARGIN_MS} before its end. A stop
@@ -99,6 +104,8 @@ public final class ResumePlayback {
     static final String SEEKED_FIRST = "seek before the resume";
     static final String PAST_START = "started past the start";
     static final String MOVED_ON = "moved on before the resume";
+    static final String SESSION_ENDED = "an account's session ended";
+    static final String ACCOUNT_FORGOTTEN = "a signed-out account's points forgotten";
 
     /** Instagram's ProductType constants this leaves alone, by the names Instagram keeps. */
     static final String LIVE_PRODUCT = "LIVE";
@@ -145,7 +152,8 @@ public final class ResumePlayback {
             Object source = videoSource(player);
             if (source == NOT_PATCHED) return Facts.NOT_PATCHED;
             if (source == null) return null;
-            return factsOf(videoId(source), productType(source), sponsored(source));
+            return factsOf(ownedKey(owner(playerSession(player), sessions), videoId(source)), productType(source),
+                sponsored(source));
         }
 
         @Override
@@ -269,6 +277,25 @@ public final class ResumePlayback {
         return NOT_PATCHED;
     }
 
+    /** Filled in by the patch: the UserSession [player] was made for, or null. Only a player may be passed. */
+    @Nullable
+    public static Object playerSession(Object player) {
+        return null;
+    }
+
+    /**
+     * The user ID of the account [session] belongs to, or null when there's no session or its
+     * account has signed out. At a sign-out Instagram ends the session without waiting for its
+     * players, so they stop, pause and let go of their views after {@link #forgetAccount} has
+     * deleted the account's points, and a save then would put one back. The ID goes no further than
+     * {@link #ownedKey}, which hashes it.
+     */
+    @Nullable
+    static String owner(@Nullable Object session, Session sessions) {
+        if (session == null || sessions.loggedOut(session)) return null;
+        return sessions.userId(session);
+    }
+
     /** Filled in by the patch: the media id an IgVideoSource plays. */
     @Nullable
     public static String videoId(Object source) {
@@ -295,7 +322,65 @@ public final class ResumePlayback {
         return false;
     }
 
+    /**
+     * Filled in by the patch: the user ID of [session], a UserSession, or null. Only a session may
+     * be passed. The ID goes no further than {@link ResumePoints#owner}, which hashes it.
+     */
+    @Nullable
+    public static String sessionUserId(Object session) {
+        return null;
+    }
+
+    /**
+     * Filled in by the patch: whether [session], a UserSession, ends because its account signed out
+     * or was removed from the phone, rather than because another account was switched to.
+     */
+    public static boolean sessionLoggedOut(Object session) {
+        return false;
+    }
+
+    /** What this class reads from a UserSession. {@link #SESSION_STUBS} is the patch's; tests stand in. */
+    interface Session {
+        @Nullable
+        String userId(Object session);
+
+        boolean loggedOut(Object session);
+    }
+
+    static final Session SESSION_STUBS = new Session() {
+        @Override
+        public String userId(Object session) {
+            return sessionUserId(session);
+        }
+
+        @Override
+        public boolean loggedOut(Object session) {
+            return sessionLoggedOut(session);
+        }
+    };
+
+    static volatile Session sessions = SESSION_STUBS;
+
     // ------------------------------------------------------------------ hooks
+
+    /**
+     * The hook, first thing in UserSession.completeEndSession(), where Instagram lets an account's
+     * session go: at an account switch, once the old account's screens have let go of it, and at
+     * once when the account signs out or is removed from the phone. Runs with the switch off and
+     * while paused, as Clear remembered positions does, since all it does is forget. It runs inside
+     * Instagram's session manager lock, at a sign-out on the main thread, so it never waits on the
+     * points: see {@link #forgetAccount}. Never throws.
+     */
+    public static void sessionEnded(Object session) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (session == null) return;
+            HookStatus.bound(FAMILY, "session end");
+            forgetAccount(sessions.userId(session), sessions.loggedOut(session), System.currentTimeMillis());
+        } catch (Throwable failure) {
+            HookStatus.threw(FAMILY, "session end", failure);
+        }
+    }
 
     /** The hook, first thing in IgVideoPlayerImpl's playback-started callback. */
     public static void started(Object player) {
@@ -374,6 +459,55 @@ public final class ResumePlayback {
             if (positionMs > START_WINDOW_MS) PLAYERS.positioned(player);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "player seek", failure);
+        }
+    }
+
+    /**
+     * An account's session ended: every resume its players have waiting is dropped, so none seeks
+     * once another account is on screen, and when it [loggedOut] its points go too, from the file
+     * and from the copy Undo would bring back. A session whose user ID isn't known can't be told
+     * from another, so every waiting resume is dropped and no point is touched.
+     *
+     * Only the players are let go here, on their own lock. The points wait for a worker: a resume
+     * holds POINTS_LOCK across Instagram's seek, the first read of the file can block, and this
+     * runs where Instagram holds its session manager. A save that slips in first is gone with the
+     * rest, and the account's players save nothing after (see {@link #owner}).
+     */
+    static void forgetAccount(@Nullable String userId, boolean loggedOut, long now) {
+        count(SESSION_ENDED);
+        if (userId == null || userId.isEmpty()) {
+            PLAYERS.clear();
+            log(() -> "Resume long videos: a session whose account isn't known ended, so no resume waits");
+            return;
+        }
+        String prefix = ResumePoints.owner(userId) + '/';
+        int waiting = PLAYERS.forget(prefix);
+        if (!loggedOut) {
+            log(() -> "Resume long videos: an account's session ended, " + waiting + " player(s) let go");
+            return;
+        }
+        Runnable forget = () -> forgetPoints(prefix, now);
+        if (Utils.runOnBackgroundThread(forget)) return;
+        // The queue is full. The points still go, on a thread of their own.
+        Thread worker = new Thread(forget, "HushGram resume sign-out");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    /** A signed-out account's points, from the file and from the copy Undo would bring back. On a worker. */
+    private static void forgetPoints(String prefix, long now) {
+        try {
+            int removed;
+            synchronized (POINTS_LOCK) {
+                ResumePoints store = points();
+                removed = store == null ? 0 : store.removeOwner(prefix, now);
+                if (clearedPoints != null) clearedPoints.keySet().removeIf(key -> key.startsWith(prefix));
+            }
+            int forgotten = removed;
+            count(ACCOUNT_FORGOTTEN);
+            log(() -> "Resume long videos: an account signed out, " + forgotten + " point(s) forgotten");
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Resume long videos: could not forget a signed-out account's points", failure);
         }
     }
 
@@ -533,6 +667,18 @@ public final class ResumePlayback {
     // ------------------------------------------------------------------ the video
 
     /**
+     * The saved points' key for [videoId] played by the account with [userId], or null when either
+     * is missing. A video whose account isn't known is neither saved nor resumed. Each player carries
+     * its own session, and a delayed resume checks the key again before it seeks, so one account's
+     * point can't reach another account's player.
+     */
+    @Nullable
+    static String ownedKey(@Nullable String userId, @Nullable String videoId) {
+        if (userId == null || userId.isEmpty() || videoId == null || videoId.isEmpty()) return null;
+        return ResumePoints.key(userId, videoId);
+    }
+
+    /**
      * What the rule reads of a video with [videoId], Instagram's ProductType constant [productType]
      * and its sponsored flag, or null when it has no ID. The type is read by the constant's name.
      */
@@ -548,6 +694,7 @@ public final class ResumePlayback {
         /** What {@link Player#facts} answers until the patch fills its bridges in. */
         static final Facts NOT_PATCHED = new Facts("", false, false);
 
+        /** The video's key in the saved points: its account's part and its media ID ({@link #ownedKey}). */
         final String videoId;
         final boolean live;
         final boolean ad;
@@ -598,6 +745,8 @@ public final class ResumePlayback {
             if (points == null) {
                 Context context = Utils.getContext();
                 if (context == null || !Utils.isMainProcess()) return null;
+                // Points from before they had an account could be anyone's, so they go.
+                context.deleteSharedPreferences(ResumePoints.UNOWNED_FILE);
                 points = new ResumePoints(context.getSharedPreferences(ResumePoints.FILE, Context.MODE_PRIVATE));
             }
             return points;
@@ -722,6 +871,21 @@ public final class ResumePlayback {
             return states.size();
         }
 
+        /**
+         * Lets go of every player whose video's key starts with [prefix], one account's, so a resume
+         * one of them has waiting finds it isn't current. Answers how many.
+         */
+        synchronized int forget(String prefix) {
+            purge();
+            int dropped = 0;
+            for (Iterator<State> known = states.values().iterator(); known.hasNext(); ) {
+                if (!known.next().videoId.startsWith(prefix)) continue;
+                known.remove();
+                dropped++;
+            }
+            return dropped;
+        }
+
         synchronized void clear() {
             states.clear();
             soughtBeforeStart.clear();
@@ -773,6 +937,7 @@ public final class ResumePlayback {
         }
         access = PATCHED;
         later = ON_MAIN_LOOPER;
+        sessions = SESSION_STUBS;
         pointsForTests = null;
     }
 

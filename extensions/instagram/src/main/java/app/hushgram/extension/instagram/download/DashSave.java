@@ -423,7 +423,7 @@ final class DashSave {
      * Runs [step], and answers the failure to report: [failure] when there was one, with the step's
      * own added to it, else the step's.
      */
-    private static Throwable attempt(Throwable failure, Runnable step) {
+    static Throwable attempt(Throwable failure, Runnable step) {
         try {
             step.run();
         } catch (Throwable t) {
@@ -580,7 +580,7 @@ final class DashSave {
     }
 
     /** Select the first track of [kind] and return its format, or {@code null}. */
-    private static MediaFormat selectTrack(MediaExtractor extractor, String kind) {
+    static MediaFormat selectTrack(MediaExtractor extractor, String kind) {
         for (int i = 0; i < extractor.getTrackCount(); i++) {
             MediaFormat format = extractor.getTrackFormat(i);
             String mime = format.getString(MediaFormat.KEY_MIME);
@@ -597,7 +597,7 @@ final class DashSave {
      * used to be allocated at whatever it said, so a track over {@link #MAX_SAMPLE_BUFFER} fails the
      * join and the save goes on to the single file.
      */
-    private static int maxInputSize(MediaFormat format, String kind) throws IOException {
+    static int maxInputSize(MediaFormat format, String kind) throws IOException {
         int declared;
         try {
             declared = format.containsKey(MediaFormat.KEY_MAX_INPUT_SIZE)

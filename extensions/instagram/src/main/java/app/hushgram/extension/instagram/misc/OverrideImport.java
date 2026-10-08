@@ -69,8 +69,12 @@ public final class OverrideImport {
         public final int skipped;
         /** Whether imports for this store still wait for Restore or Discard. */
         public final boolean blocked;
-        Result(Outcome outcome, int changes, int skipped, boolean blocked) {
+        /** Overrides of Instagram's own file from another build that this one doesn't have, left out of the import. */
+        public final int leftOut;
+        Result(Outcome outcome, int changes, int skipped, boolean blocked) { this(outcome, changes, skipped, blocked, 0); }
+        Result(Outcome outcome, int changes, int skipped, boolean blocked, int leftOut) {
             this.outcome = outcome; this.changes = changes; this.skipped = skipped; this.blocked = blocked;
+            this.leftOut = leftOut;
         }
     }
 
@@ -125,6 +129,15 @@ public final class OverrideImport {
 
     private OverrideImport() {}
 
+    /**
+     * Takes every override in this session away the way an import does, saving the current ones for
+     * Restore first. Overrides holding Instagram's null value stay, since they couldn't be put back.
+     */
+    public static Result reset(Activity activity) throws IOException {
+        allowed();
+        return run(activity, OverrideExchange.exportReset(OverrideExchange.capture(activity)), false);
+    }
+
     /** Imports a document chosen by the user. Throws before any native call when it doesn't fit. */
     public static Result apply(Activity activity, byte[] document) throws IOException {
         return run(activity, document, false);
@@ -174,7 +187,8 @@ public final class OverrideImport {
             if (restoring) document = store.restorePoint(wasArmed);
             else if (wasArmed) throw new RestoreFirst();
             Map<Long, String> target = new TreeMap<>();
-            try { OverrideExchange.validated(document, first, target); }
+            OverrideExchange.Checked checked;
+            try { checked = OverrideExchange.validated(document, first, target); }
             catch (IOException failure) { throw restoring ? new SavedCopyDoesntFit() : failure; }
             OverrideExchange.Snapshot before = settled(activity, first);
             allowed();
@@ -189,7 +203,7 @@ public final class OverrideImport {
             }
             if (plan.changes.isEmpty()) {
                 if (restoring) return restored(store, wasArmed, plan, Outcome.UNCHANGED);
-                return new Result(Outcome.UNCHANGED, 0, 0, false);
+                return new Result(Outcome.UNCHANGED, 0, 0, false, checked.leftOut);
             }
             try {
                 for (Change change : plan.changes) {
@@ -236,7 +250,7 @@ public final class OverrideImport {
             if (written && holds(now, expected(current, plan.changes))) {
                 if (restoring) return restored(store, wasArmed, plan, Outcome.APPLIED);
                 boolean complete = store.promote() && store.settle();
-                return new Result(Outcome.APPLIED, plan.changes.size(), 0, !complete);
+                return new Result(Outcome.APPLIED, plan.changes.size(), 0, !complete, checked.leftOut);
             }
             // Put back everything that may have reached the table, the failed write included.
             // Journal that this copy is undoing a failed import before touching the table again.

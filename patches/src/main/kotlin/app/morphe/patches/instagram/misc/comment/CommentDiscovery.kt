@@ -8,6 +8,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.util.ControlFlow
 import app.morphe.util.getFreeRegisterProvider
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -141,13 +142,14 @@ internal fun BytecodePatchContext.findCommentMenu(): CommentMenu = discovering(C
 }
 
 /** Everything both families need from the selection, the row builder and the renderer. */
-private fun findCommentSurface(classes: Map<String, ClassDef>): CommentSurface {
+private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDef>): CommentSurface {
     if (COMMENT_ACTIONS !in classes) refuse("missing extension boundary $COMMENT_ACTIONS")
     fun clazz(type: String) = classes[type] ?: refuse("missing native class $type")
     fun methods() = classes.values.asSequence().flatMap { it.methods.asSequence() }
-    val select = methods().filter { COMMENT_SELECT in it.strings() && it.publicInstance() &&
-        it.returnType == "V" && it.parameters() == listOf(STRING, STRING, "F", "Z") }
-        .toList().one("selected-comment anchor")
+    val select = classesHolding(COMMENT_SELECT).asSequence().flatMap { it.methods.asSequence() }.filter {
+        COMMENT_SELECT in it.strings() && it.publicInstance() &&
+            it.returnType == "V" && it.parameters() == listOf(STRING, STRING, "F", "Z")
+    }.toList().one("selected-comment anchor")
     val selectedType = selectionType(select)
     val model = clazz(selectedType)
     requirePublic(model)
@@ -408,8 +410,8 @@ internal data class JsonReads(val name: MethodReference, val advance: MethodRefe
 private val staticInvokes = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 
 /** Jackson's retained root-unwrapping errors distinguish a current name from a string value. */
-internal fun jsonReads(input: String, classes: Map<String, ClassDef>): JsonReads {
-    val root = classes.values.flatMap { it.methods.toList() }.filter {
+internal fun BytecodePatchContext.jsonReads(input: String, classes: Map<String, ClassDef>): JsonReads {
+    val root = classesHolding(JSON_ROOT_FIELD, JSON_ROOT_MISMATCH).flatMap { it.methods.toList() }.filter {
         JSON_ROOT_FIELD in it.strings() && JSON_ROOT_MISMATCH in it.strings()
     }.one("JSON root-name semantics anchor")
     val parameters = root.parameters()
@@ -476,17 +478,18 @@ internal fun jsonReads(input: String, classes: Map<String, ClassDef>): JsonReads
     if (!errorPath(advanceAt + 4, JSON_ROOT_FIELD, nameAt) ||
         !errorPath(nameAt + 5, JSON_ROOT_MISMATCH, next)) refuse("root errors no longer describe the guarded name")
     val parser = classes[input] ?: refuse("missing native JSON input")
-    val values = parser.methods.filter { it.publicInstance() && it.parameters().isEmpty() && it.returnType == STRING &&
-        listOf(fieldName, stringValue).all { field -> it.code().any { instruction ->
-            instruction.field()?.toString() == field.toString() }
-        }
-    }
-    // A coercing accessor delegates to the token's string accessor and is a different boundary.
-    val value = values.filter { method -> method.code().none { instruction ->
-        values.any { other -> other.toString() == instruction.call()?.toString() }
-    } }.one("JSON value-string API")
+    // Jackson's nextTextValue: advance, and on VALUE_STRING answer the value-string accessor. 450 made
+    // that accessor abstract, so it's found by what the base class calls rather than by its body.
+    val value = parser.methods.filter { it.publicInstance() && it.parameters().isEmpty() && it.returnType == STRING }
+        .mapNotNull { method -> method.code().takeIf { body -> body.size == 9 &&
+            body[0].call()?.let { it.definingClass == input && it.parameters().isEmpty() && it.returnType == token.type } == true &&
+            body[2].field()?.toString() == stringValue.toString() && body[3].opcode == Opcode.IF_NE &&
+            body[6].opcode == Opcode.RETURN_OBJECT && body[8].opcode == Opcode.RETURN_OBJECT
+        }?.get(4)?.call()?.takeIf { it.definingClass == input && it.parameters().isEmpty() && it.returnType == STRING } }
+        .distinctBy { it.toString() }.one("JSON value-string API")
     val current = parser.methods.filter { it.publicInstance() && AccessFlags.ABSTRACT.isSet(it.accessFlags) &&
-        it.parameters().isEmpty() && it.returnType == token.type }.one("JSON current-token API")
+        it.parameters().isEmpty() && it.returnType == token.type && !it.matches(code[advanceAt].call()!!)
+    }.one("JSON current-token API")
     for (api in listOf(code[nameAt].call()!!, code[advanceAt].call()!!)) {
         parser.methods.filter { it.matches(api) && it.publicInstance() }.one("anchored JSON API implementation")
     }

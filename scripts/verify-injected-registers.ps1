@@ -199,8 +199,13 @@ $cleanBase = Get-BaseApk -Apk $CleanApk -Destination (Join-Path $work 'clean-bas
 # or another version: two patched files differ from each other, both halves report differences,
 # and the run would pass while comparing nothing against a clean baseline.
 $clean = Get-ApkManifestFacts -Apk $cleanBase -Aapt2 $Aapt2
+# Change version code raises the patched build's code. Only the code the manifest allowlist reviewed
+# still counts as the same build; any other difference means another build.
+$raised = $clean.versionCode -ne $patched.versionCode -and
+    @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt')) -ccontains
+        "version-code $($patched.versionCode)"
 if ($clean.package -ne $patched.package -or $clean.versionName -ne $patched.versionName -or
-        $clean.versionCode -ne $patched.versionCode) {
+        ($clean.versionCode -ne $patched.versionCode -and -not $raised)) {
     throw ("The clean APK is $($clean.package) $($clean.versionName) ($($clean.versionCode)) and the " +
         "patched one $($patched.package) $($patched.versionName) ($($patched.versionCode)); they have to be the same build.")
 }

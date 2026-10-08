@@ -204,4 +204,17 @@ public class ResumePointsTest {
         assertNull(ResumePoints.decode(":5"));
         assertNull(ResumePoints.decode("-5:" + NOW));
     }
+
+    @Test
+    public void aKeyHidesTheAccountAndKeepsAccountsApart() {
+        String first = ResumePoints.key("17841400000000001", "3712345678901234567");
+        assertEquals(first, ResumePoints.key("17841400000000001", "3712345678901234567"));
+        assertTrue(first, first.matches("[0-9a-f]{16}/3712345678901234567"));
+        assertFalse(first, first.contains("17841400000000001"));
+        assertFalse(first.equals(ResumePoints.key("17841400000000002", "3712345678901234567")));
+        assertNull(ResumePlayback.ownedKey(null, "1"));
+        assertNull(ResumePlayback.ownedKey("", "1"));
+        assertNull(ResumePlayback.ownedKey("17841400000000001", null));
+        assertEquals(first, ResumePlayback.ownedKey("17841400000000001", "3712345678901234567"));
+    }
 }

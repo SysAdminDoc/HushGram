@@ -90,7 +90,7 @@ public final class MediaSave {
             this.renditions = Collections.unmodifiableList(usable(renditions));
             this.manifest = video ? manifest : null;
             this.details = details == null ? PostDetails.NONE : PostDetails.of(details.videoId, details.owner,
-                    details.posted == null ? null : new Date(details.posted.getTime()));
+                    details.posted == null ? null : new Date(details.posted.getTime())).onPage(details.page);
         }
     }
 
@@ -278,8 +278,9 @@ public final class MediaSave {
 
     /**
      * Save a photo: the largest of [renditions], the candidates the app lists for one picture. A
-     * thumbnail's address loses outright ({@link RenditionPicker#imageTier}). [details] is kept for
-     * the report; a photo's name is always {@link FileNameTemplate#PHOTO_PREFIX} and the time.
+     * thumbnail's address loses outright ({@link RenditionPicker#imageTier}). [details] names and
+     * files it as a video's do, or null: without Name saves by account and post time, a photo's
+     * name is {@link FileNameTemplate#PHOTO_PREFIX} and the time.
      *
      * @return whether a save started. Never throws.
      */
@@ -309,6 +310,77 @@ public final class MediaSave {
             failure(() -> "the save could not start", t);
             return false;
         }
+    }
+
+    /**
+     * Save a picture by the sizes the app states for it: the largest of [renditions] on Meta's
+     * media servers. For a picture whose address names its size, such as a profile picture, which
+     * {@link #savePhoto}'s ranking takes for a thumbnail's and turns down. A rendition with no
+     * stated size loses to any with one.
+     *
+     * @return whether a save started. Never throws.
+     */
+    public static boolean savePictureBySize(Context context, List<Rendition> renditions, PostDetails details) {
+        try {
+            Context safe = ready(context);
+            if (safe == null) return false;
+            List<Rendition> found = metaOnly(usable(renditions));
+            Rendition chosen = null;
+            for (Rendition rendition : found) {
+                if (chosen == null || pixels(rendition) > pixels(chosen)) chosen = rendition;
+            }
+            if (chosen == null) {
+                failure(() -> "nothing to save: no picture address on Meta's media servers", null);
+                return false;
+            }
+            saving(false, chosen, found, null, Dash.SINGLE_FILE, null);
+            return start(safe, false, details, fileJob(safe, chosen.url, Downloader.Kind.IMAGE)) != null;
+        } catch (Throwable t) {
+            failure(() -> "the picture save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * Save a sound recording, such as a voice message, from [url] on Meta's media servers. It goes
+     * to the phone's audio files ({@link MediaStoreWriter#audioDirectory}) as an M4A file, named as
+     * a photo is, by [details] when Name saves by account and post time is on and it knows enough,
+     * or else {@link MediaStoreWriter#AUDIO_PREFIX} and the time. [details] may be null.
+     *
+     * @return whether a save started. Never throws.
+     */
+    public static boolean saveAudio(Context context, String url, PostDetails details) {
+        try {
+            Context safe = ready(context);
+            if (safe == null) return false;
+            List<Rendition> found = url == null ? Collections.emptyList()
+                : metaOnly(usable(Collections.singletonList(Rendition.of(url))));
+            if (found.isEmpty()) {
+                failure(() -> "nothing to save: no recording address on Meta's media servers", null);
+                return false;
+            }
+            String address = found.get(0).url;
+            info(() -> "saving a recording, " + describe(address));
+            return startAudio(safe, details, fileJob(safe, address, Downloader.Kind.AUDIO)) != null;
+        } catch (Throwable t) {
+            failure(() -> "the recording save could not start", t);
+            return false;
+        }
+    }
+
+    /**
+     * The single file a save of [renditions] would fetch: for a [video] the one that suits the
+     * Download quality setting, and for a picture the largest. Only addresses on Meta's media
+     * servers count. Null when none does. A video save can still take a better track from its
+     * manifest; this is the file that has an address of its own.
+     */
+    static Rendition picked(List<Rendition> renditions, boolean video) {
+        List<Rendition> found = metaOnly(usable(renditions));
+        return video ? RenditionPicker.pickVideo(found, quality()) : RenditionPicker.pickImage(found);
+    }
+
+    private static long pixels(Rendition rendition) {
+        return (long) rendition.width * rendition.height;
     }
 
     // ---------------------------------------------------------------- internals
@@ -699,47 +771,41 @@ public final class MediaSave {
         Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, SOURCE,
             () -> "the manifest of " + label + " offers " + tracks.size() + " track(s): " + tracks);
 
-        Rendition fallback = RenditionPicker.pickVideo(renditions, quality);
-        int fallbackQuality = fallback == null ? 0 : RenditionPicker.qualityOf(fallback);
-        DashManifest.Pick kept = DashManifest.pick(tracks, allowAv1, quality, compatible);
-        DashManifest.Pick pick = kept;
-        // What the switch off would pick: when that beats the single file and the kept pick
-        // doesn't, the switch is why the single file is saved.
-        DashManifest.Pick usual = compatible ? DashManifest.pick(tracks, allowAv1, quality, false) : kept;
-        Dash leftToFile = compatible && usual != null && beatsFile(usual.video, fallback, fallbackQuality, quality)
+        DashChoice choice = DashChoice.of(tracks, renditions, quality, compatible, allowAv1);
+        Rendition fallback = choice.fallback;
+        DashManifest.Pick kept = choice.kept;
+        DashManifest.Pick usual = choice.usual;
+        // When the switch off's pick beats the single file and the kept pick doesn't, the switch is
+        // why the single file is saved.
+        Dash leftToFile = compatible && usual != null && beatsFile(usual.video, fallback, choice.fallbackQuality, quality)
             ? Dash.SINGLE_FILE_FOR_OTHER_APPS : Dash.SINGLE_FILE;
 
-        if (kept == null && compatible) {
-            if (usual != null && fallback != null) {
-                info(() -> "the manifest of " + label + " has no H.264 video with AAC-LC or HE-AAC sound, "
-                    + "saving the single file instead");
-                return saveSingleVideo(application, renditions, offered, leftToFile,
-                    "the manifest has no H.264 video with AAC-LC or HE-AAC sound", null, quality, writer, progress);
-            }
-            if (usual != null) {
-                info(() -> "nothing of " + label + " is in a format other apps can open, saving it as the switch "
-                    + "off would: " + usual.video + (usual.audio == null ? "" : " + " + usual.audio));
-                pick = usual;
-            }
+        if (choice.taken == null && kept == null && usual != null) {
+            info(() -> "the manifest of " + label + " has no H.264 video with AAC-LC or HE-AAC sound, "
+                + "saving the single file instead");
+            return saveSingleVideo(application, renditions, offered, leftToFile,
+                "the manifest has no H.264 video with AAC-LC or HE-AAC sound", null, quality, writer, progress);
         }
-
-        if (pick == null) {
+        if (choice.taken == null && kept == null) {
             info(() -> "the manifest of " + label + " has no track to save: " + tracks);
             return saveSingleVideo(application, renditions, offered, Dash.SINGLE_FILE,
                 "the manifest has no track to save", null, quality, writer, progress);
         }
-
-        DashManifest.Track video = pick.video;
-        DashManifest.Track audio = pick.audio;
-        boolean keptCompatible = kept != null && compatible;
-
-        if (!keptCompatible && !beatsFile(video, fallback, fallbackQuality, quality)) {
-            // video already passed the writability check that picked it: if the fallback's address
-            // overstated its own quality, the shortfall against video is held to a plain test, not
-            // noticeablyLower's tolerance for a picture nothing could have written.
-            return saveSingleVideo(application, renditions, offered, Dash.SINGLE_FILE, null, video, quality, writer,
-                progress);
+        if (choice.taken == null) {
+            // kept.video already passed the writability check that picked it: if the fallback's
+            // address overstated its own quality, the shortfall against it is held to a plain test,
+            // not noticeablyLower's tolerance for a picture nothing could have written.
+            return saveSingleVideo(application, renditions, offered, Dash.SINGLE_FILE, null, kept.video, quality,
+                writer, progress);
         }
+        if (choice.taken != kept) {
+            info(() -> "nothing of " + label + " is in a format other apps can open, saving it as the switch "
+                + "off would: " + usual.video + (usual.audio == null ? "" : " + " + usual.audio));
+        }
+
+        DashManifest.Track video = choice.taken.video;
+        DashManifest.Track audio = choice.taken.audio;
+        boolean keptCompatible = kept != null && compatible;
 
         // A track the muxer can't write can be a larger picture than the one saved.
         DashManifest.Track better = better(offered, picture(video, quality), quality);
@@ -779,6 +845,93 @@ public final class MediaSave {
         saving(true, video, meta, quality, dash, better);
         return saveFile(application, video.url, Downloader.Kind.VIDEO, why, tracks, writable, quality, writer,
             progress);
+    }
+
+    /**
+     * Which way a video save with a manifest goes: the manifest's tracks, [taken], or the single
+     * file [fallback] when that's null. Decided in one place for the save and for Details, so what
+     * Details says a Download saves is what it saves.
+     */
+    static final class DashChoice {
+        /** The single file that suits the quality, or null. */
+        final Rendition fallback;
+        final int fallbackQuality;
+        /** The manifest's pick for the settings as they stand, or null. */
+        final DashManifest.Pick kept;
+        /** The pick with saves other apps can open on switched off; [kept] when it's off. */
+        final DashManifest.Pick usual;
+        /** The tracks the save joins, or null when it saves [fallback]. */
+        final DashManifest.Pick taken;
+
+        private DashChoice(Rendition fallback, DashManifest.Pick kept, DashManifest.Pick usual, DashManifest.Pick taken) {
+            this.fallback = fallback;
+            this.fallbackQuality = fallback == null ? 0 : RenditionPicker.qualityOf(fallback);
+            this.kept = kept;
+            this.usual = usual;
+            this.taken = taken;
+        }
+
+        /**
+         * The choice between [tracks], the manifest's usable tracks, and [renditions], the single
+         * files on Meta's servers. With saves other apps can open on and no pair they can, the
+         * single file is saved, or with none, the tracks the switch off would take. The manifest's
+         * own pick has to beat the single file, unless it's the pair other apps can open.
+         */
+        static DashChoice of(List<DashManifest.Track> tracks, List<Rendition> renditions, DownloadQuality quality,
+                boolean compatible, boolean allowAv1) {
+            Rendition fallback = RenditionPicker.pickVideo(renditions, quality);
+            DashManifest.Pick kept = DashManifest.pick(tracks, allowAv1, quality, compatible);
+            DashManifest.Pick usual = compatible ? DashManifest.pick(tracks, allowAv1, quality, false) : kept;
+            DashManifest.Pick pick = kept != null || fallback != null ? kept : usual;
+            int fallbackQuality = fallback == null ? 0 : RenditionPicker.qualityOf(fallback);
+            boolean keptCompatible = kept != null && compatible;
+            DashManifest.Pick taken = pick != null && (keptCompatible || beatsFile(pick.video, fallback, fallbackQuality, quality))
+                ? pick : null;
+            return new DashChoice(fallback, kept, usual, taken);
+        }
+    }
+
+    /**
+     * What a save of the video [renditions] and [manifest] writes, as {@link #saveVideo} decides it
+     * with the settings as they stand: the manifest's video track when the save joins its tracks,
+     * else the single file. For Details, which shows what a Download saves. A manifest is parsed,
+     * so this is for a worker, not the thread that draws the app. Never null.
+     */
+    static Planned plannedVideo(List<Rendition> renditions, String manifest) {
+        List<Rendition> files = metaOnly(usable(renditions));
+        DownloadQuality quality = quality();
+        if (manifest == null || !DashManifest.withinLimits(manifest)) {
+            return new Planned(RenditionPicker.pickVideo(files, quality), null);
+        }
+        List<DashManifest.Track> tracks = new ArrayList<>();
+        for (DashManifest.Track track : DashManifest.parse(manifest)) {
+            if (MediaUrlPolicy.shapeRefusal(track.url) == null) tracks.add(track);
+        }
+        DashChoice choice = DashChoice.of(tracks, files, quality, compatibleSaves(), DashSave.canWriteAv1());
+        return new Planned(choice.fallback, choice.taken == null ? null : choice.taken.video);
+    }
+
+    /** What {@link #plannedVideo} found: the single file, and the manifest's track when the save joins tracks. */
+    static final class Planned {
+        /** The single file, the one with an address of its own, or null. */
+        final Rendition file;
+        /** The video track a save joins with its sound, or null when it saves [file]. */
+        final DashManifest.Track joined;
+
+        Planned(Rendition file, DashManifest.Track joined) {
+            this.file = file;
+            this.joined = joined;
+        }
+
+        /** The width of what's saved, or 0 when it isn't known. */
+        int width() {
+            return joined != null ? joined.width : file != null ? file.width : 0;
+        }
+
+        /** The height of what's saved, or 0 when it isn't known. */
+        int height() {
+            return joined != null ? joined.height : file != null ? file.height : 0;
+        }
     }
 
     /**
@@ -865,10 +1018,20 @@ public final class MediaSave {
 
     /** As above, naming the video from whatever of the post [details] holds and the file name asks for. */
     static Thread start(Context application, boolean video, PostDetails details, Job job) {
+        return start(application, video, false, details, job);
+    }
+
+    /** As above, for a sound recording, which goes to the phone's audio files. */
+    static Thread startAudio(Context application, PostDetails details, Job job) {
+        return start(application, false, true, details, job);
+    }
+
+    private static Thread start(Context application, boolean video, boolean audio, PostDetails details, Job job) {
         final PostDetails known = details == null ? PostDetails.NONE : details;
-        return launch(application, video, 0, save -> {
+        return launch(application, video, audio, 0, save -> {
             observeDetails(known);
-            MediaStoreWriter writer = new MediaStoreWriter(application, video, known);
+            MediaStoreWriter writer = audio ? MediaStoreWriter.forAudio(application, known)
+                : new MediaStoreWriter(application, video, known);
             Downloader.Result result = job.run(writer, save);
             boolean cancelled = result.status == Downloader.Status.CANCELLED;
             if (result.ok() || cancelled) info(() -> "save finished: " + result);
@@ -883,6 +1046,11 @@ public final class MediaSave {
     /** Atomically admits one logical save and retires it for every normal result. */
     private static Thread launch(Context application, boolean video, int pages, Work work,
             Consumer<SaveControl.Save> finishing, Runnable finished) {
+        return launch(application, video, false, pages, work, finishing, finished);
+    }
+
+    private static Thread launch(Context application, boolean video, boolean audio, int pages, Work work,
+            Consumer<SaveControl.Save> finishing, Runnable finished) {
         int running;
         do {
             running = IN_FLIGHT.get();
@@ -893,7 +1061,7 @@ public final class MediaSave {
         } while (!IN_FLIGHT.compareAndSet(running, running + 1));
         SaveControl.Save save;
         try {
-            save = SaveControl.begin(application, video, pages);
+            save = audio ? SaveControl.beginAudio(application) : SaveControl.begin(application, video, pages);
         } catch (Throwable failure) {
             IN_FLIGHT.decrementAndGet();
             throw failure;

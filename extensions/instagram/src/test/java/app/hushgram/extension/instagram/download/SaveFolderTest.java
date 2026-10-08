@@ -70,6 +70,7 @@ public class SaveFolderTest {
     @After
     public void tearDown() {
         Settings.SAVE_FOLDER.resetToDefault();
+        Settings.SAVE_FOLDER_PER_ACCOUNT.resetToDefault();
         MediaSave.policyForTests = null;
         ShadowMediaExtractor.reset();
         LogBufferManager.clearLogBuffer();
@@ -265,6 +266,37 @@ public class SaveFolderTest {
         assertEquals("Movies/My_Clips", video.savedLocation());
         assertEquals("Pictures/My_Clips", pathOf(gallery.rows.get(2L)));
         assertEquals("Pictures/My_Clips", photo.savedLocation());
+        video.abandon();
+        photo.abandon();
+    }
+
+    /**
+     * Folder per account puts the save of a known poster's post in a folder of their name inside
+     * the save folder, cleaned to one name. A save that doesn't know the poster stays in the folder.
+     */
+    @Test
+    public void folderPerAccountAddsThePostersFolder() throws IOException {
+        SaveProgressTest.Gallery gallery = gallery();
+        writable(gallery.videoUri(1));
+        writable(ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 2));
+        Settings.SAVE_FOLDER.save("Clips");
+        PostDetails poster = PostDetails.of("1_2", "../some.one/", null);
+        assertFalse("Folder per account starts off", Settings.SAVE_FOLDER_PER_ACCOUNT.get());
+        assertEquals("Clips", SaveFolder.leaf(poster));
+
+        Settings.SAVE_FOLDER_PER_ACCOUNT.save(true);
+        assertEquals("Clips/some.one", SaveFolder.leaf(poster));
+        assertEquals("Clips", SaveFolder.leaf(PostDetails.NONE));
+        assertEquals("Clips", SaveFolder.leaf(PostDetails.of("1_2")));
+        assertEquals("Clips", SaveFolder.leaf(null));
+
+        MediaStoreWriter video = new MediaStoreWriter(context, true, poster);
+        video.open("video/mp4").close();
+        MediaStoreWriter photo = new MediaStoreWriter(context, false, PostDetails.NONE);
+        photo.open("image/jpeg").close();
+        assertEquals("Movies/Clips/some.one", pathOf(gallery.rows.get(1L)));
+        assertEquals("Movies/Clips/some.one", video.savedLocation());
+        assertEquals("Pictures/Clips", pathOf(gallery.rows.get(2L)));
         video.abandon();
         photo.abandon();
     }

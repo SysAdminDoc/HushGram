@@ -116,6 +116,8 @@ public final class SaveControl {
     public static final class Running {
         public final int id;
         public final boolean video;
+        /** A sound recording, such as a voice message, rather than a photo or a video. */
+        public final boolean audio;
         public final Phase phase;
         public final long done;
         public final long total;
@@ -126,6 +128,7 @@ public final class SaveControl {
         Running(Save save) {
             id = save.id;
             video = save.video;
+            audio = save.audio;
             phase = save.phase;
             done = save.done;
             total = save.total;
@@ -164,11 +167,13 @@ public final class SaveControl {
     /** The stable kind of the logical save, even when a carousel moves between photos and videos. */
     public static String title(Running save) {
         return save.batchPages > 0 ? L10n.t("Saving a carousel")
+                : save.audio ? L10n.t("Saving a voice message")
                 : save.video ? L10n.t("Saving a video") : L10n.t("Saving a photo");
     }
 
     public static String cancelDescription(Running save) {
         return save.batchPages > 0 ? L10n.t("Cancel saving this carousel")
+                : save.audio ? L10n.t("Cancel saving this voice message")
                 : save.video ? L10n.t("Cancel saving this video") : L10n.t("Cancel saving this photo");
     }
     /** The application the receiver is registered on: one per process, and one per test. */
@@ -180,8 +185,17 @@ public final class SaveControl {
     }
 
     static Save begin(Context application, boolean video, int pages) {
+        return begin(application, video, false, pages);
+    }
+
+    /** A save of a sound recording, which its notification and the settings list call a voice message. */
+    static Save beginAudio(Context application) {
+        return begin(application, false, true, 0);
+    }
+
+    private static Save begin(Context application, boolean video, boolean audio, int pages) {
         NotificationManager manager = notifications(application);
-        Save save = new Save(application, NEXT_ID.getAndIncrement(), video, pages, manager);
+        Save save = new Save(application, NEXT_ID.getAndIncrement(), video, audio, pages, manager);
         if (pages > 0) lastBatch = null;
         RUNNING.put(save.id, save);
         if (save.manager != null) listen(application);
@@ -309,6 +323,7 @@ public final class SaveControl {
         final NotificationManager manager;
         private final Context application;
         private volatile boolean video;
+        private final boolean audio;
         private final int batchPages;
         private volatile int batchPage;
         private final PendingIntent cancel;
@@ -331,9 +346,14 @@ public final class SaveControl {
         }
 
         Save(Context application, int id, boolean video, int pages, NotificationManager manager) {
+            this(application, id, video, false, pages, manager);
+        }
+
+        Save(Context application, int id, boolean video, boolean audio, int pages, NotificationManager manager) {
             this.application = application;
             this.id = id;
             this.video = video;
+            this.audio = audio;
             batchPages = pages;
             batchPage = pages == 0 ? 0 : 1;
             PendingIntent button = null;
@@ -445,7 +465,8 @@ public final class SaveControl {
             try {
                 Notification.Builder builder = new Notification.Builder(application, CHANNEL)
                     .setSmallIcon(android.R.drawable.stat_sys_download)
-                    .setContentTitle(batchPages > 0 ? L10n.t(application, "Saving a carousel") : video
+                    .setContentTitle(batchPages > 0 ? L10n.t(application, "Saving a carousel")
+                        : audio ? L10n.t(application, "Saving a voice message") : video
                         ? L10n.t(application, "Saving a video")
                         : L10n.t(application, "Saving a photo"))
                     .setOngoing(true)

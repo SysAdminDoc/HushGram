@@ -8,12 +8,11 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.smali.ExternalLabel
-import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
-import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -53,13 +52,10 @@ private fun Method.opensScreen() = !AccessFlags.STATIC.isSet(accessFlags) && ret
  * path. Both routes are discovered before either is changed. Answers null on success, or why not.
  */
 internal fun BytecodePatchContext.skipSetupScreens(hook: String): String? {
-    val openers = mutableListOf<String>()
-    val hosts = mutableListOf<ClassDef>()
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
-        hosts += classDef
-        if (classDef.methods.any { it.opensScreen() && SCREEN_FETCH in it.strings() }) openers += classDef.type
-    }
+    // Every search here goes through the patcher's string index (#60); the checks on each method stay as they were.
+    val openers = classesHolding(SCREEN_FETCH).filter { classDef ->
+        classDef.methods.any { it.opensScreen() && SCREEN_FETCH in it.strings() }
+    }.map { it.type }
     val opener = openers.distinct().singleOrNull()
         ?: return "expected one class opening a Bloks screen with $SCREEN_FETCH, found ${openers.distinct().size}"
     val mutable = mutableClassDefBy(opener)
@@ -76,7 +72,7 @@ internal fun BytecodePatchContext.skipSetupScreens(hook: String): String? {
         return "$opener->${it.name} has no body or spare register"
     }
     val direct = try {
-        findDirectSetupPresenter(hosts)
+        findDirectSetupPresenter()
     } catch (failure: SetupDiscoveryFailure) {
         return failure.message
     }
@@ -116,8 +112,8 @@ private class SetupDiscoveryFailure(message: String) : RuntimeException(message)
 private fun refuseSetup(detail: String): Nothing = throw SetupDiscoveryFailure("alternate setup route: $detail")
 
 /** Join the action's actual app-id argument to its public immutable field and a void presenter. */
-private fun findDirectSetupPresenter(hosts: List<ClassDef>): DirectSetupPresenter {
-    val actions = hosts.asSequence().flatMap { it.methods.asSequence() }.filter { method ->
+private fun BytecodePatchContext.findDirectSetupPresenter(): DirectSetupPresenter {
+    val actions = classesHolding(*DIRECT_SCREEN_ACTION.toTypedArray()).asSequence().flatMap { it.methods.asSequence() }.filter { method ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 2 && method.returnType == "Ljava/lang/Object;" &&
             method.strings().containsAll(DIRECT_SCREEN_ACTION)
     }.toList()
@@ -132,18 +128,19 @@ private fun findDirectSetupPresenter(hosts: List<ClassDef>): DirectSetupPresente
     }
     val call = calls.singleOrNull() ?: refuseSetup("${calls.size} void direct screen calls, not one")
     val reference = code[call].screenMethod()!!
-    val presenters = hosts.asSequence().flatMap { it.methods.asSequence() }.filter {
+    val presenters = classesHolding(DIRECT_SCREEN_PRESENTER.first()).asSequence().flatMap { it.methods.asSequence() }.filter {
         AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.size == 6 &&
             it.parameterTypes[0].toString() == "Landroid/content/Context;" && it.parameterTypes[2].toString() == SCREEN_CONFIG &&
             it.parameterTypes[5].toString() == "I" && listOf(1, 3, 4).all { index -> it.parameterTypes[index].toString().startsWith("L") } &&
-            it.strings().containsAll(DIRECT_SCREEN_PRESENTER)
+            // 450 asks a pool of shared strings for some of them.
+            DIRECT_SCREEN_PRESENTER.first() in it.strings() && DIRECT_SCREEN_PRESENTER.all { value -> loadsString(it, value) }
     }.toList()
     val presenter = presenters.singleOrNull() ?: refuseSetup("${presenters.size} marked void presenters, not one")
     if (presenter.toString() != reference.toString()) refuseSetup("action calls another presenter")
     val firstParameter = (presenter.implementation?.registerCount ?: refuseSetup("presenter has no body")) - 6
     if (firstParameter < 1) refuseSetup("presenter has no spare local")
     val modelType = reference.parameterTypes[1].toString()
-    val model = hosts.singleOrNull { it.type == modelType } ?: refuseSetup("screen data class is absent")
+    val model = classDefByOrNull(modelType) ?: refuseSetup("screen data class is absent")
     if (!AccessFlags.PUBLIC.isSet(model.accessFlags)) refuseSetup("screen data class isn't public")
     val constructor = model.methods.singleOrNull { it.name == "<init>" && it.returnType == "V" &&
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.directScreenConstructor() }

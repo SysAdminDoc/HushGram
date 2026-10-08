@@ -10,6 +10,9 @@ import android.content.SharedPreferences;
 
 import androidx.annotation.Nullable;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,19 +22,26 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Where each long video was left, by video id: at most {@link #MAX_POINTS} of them, none older than
- * {@link #KEEP_MS}.
+ * Where each long video was left, by account and video id ({@link #key}): at most
+ * {@link #MAX_POINTS} of them, none older than {@link #KEEP_MS}.
  *
  * <p>The points live in a preferences file of their own, so they never reach the settings export or
- * the diagnostic report. A point is the video's ID with a position and a time, nothing about what
- * the video shows. The file is read once, the first time a point is asked for, and every change
- * after that writes only the keys it changes. The oldest point goes first once there are too many,
- * and a point past its age is dropped when it's read and once each time Instagram starts playing
- * video, switch on or off ({@link ResumePlayback#started}).
+ * the diagnostic report. A point is a hash of the account's user ID and the video's ID, with a
+ * position and a time, nothing about what the video shows. The file is read once, the first time
+ * a point is asked for, and every change after that writes only the keys it changes. The oldest
+ * point goes first once there are too many, and a point past its age is dropped when it's read
+ * and once each time Instagram starts playing video, switch on or off
+ * ({@link ResumePlayback#started}).
  */
 final class ResumePoints {
     /** The preferences file, in Instagram's own preferences folder. Only this class writes it. */
-    static final String FILE = "hushgram_resume_points";
+    static final String FILE = "hushgram_resume_points_by_account";
+
+    /**
+     * The file from before points had an account. Nothing says whose they were, so ResumePlayback
+     * deletes it the first time it opens {@link #FILE}.
+     */
+    static final String UNOWNED_FILE = "hushgram_resume_points";
 
     /** How many videos are remembered. The least recently saved goes first. */
     static final int MAX_POINTS = 200;
@@ -48,6 +58,32 @@ final class ResumePoints {
             this.positionMs = positionMs;
             this.savedAt = savedAt;
         }
+    }
+
+    /**
+     * The key of [videoId]'s point for the account with [userId]: the account's part ({@link #owner}),
+     * so the file never names the account, then the video. Two accounts playing one video keep two
+     * points.
+     */
+    static String key(String userId, String videoId) {
+        return owner(userId) + '/' + videoId;
+    }
+
+    /** The account part of a key: the first 16 hex digits of a SHA-256 of the user ID. */
+    static String owner(String userId) {
+        byte[] digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256")
+                    .digest(("hushgram resume " + userId).getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException missing) {
+            // Every Android has SHA-256.
+            throw new IllegalStateException(missing);
+        }
+        StringBuilder hex = new StringBuilder(16);
+        for (int i = 0; i < 8; i++) {
+            hex.append(Character.forDigit((digest[i] >> 4) & 0xF, 16)).append(Character.forDigit(digest[i] & 0xF, 16));
+        }
+        return hex.toString();
     }
 
     private final SharedPreferences store;
@@ -110,6 +146,24 @@ final class ResumePoints {
         if (points.remove(videoId) == null) return false;
         store.edit().remove(videoId).apply();
         return true;
+    }
+
+    /**
+     * Forgets, durably, every point whose key starts with [prefix]: one account's, its
+     * {@link #owner} and a slash. Answers how many went.
+     */
+    synchronized int removeOwner(String prefix, long now) {
+        load(now);
+        List<String> gone = new ArrayList<>();
+        for (String key : points.keySet()) {
+            if (key.startsWith(prefix)) gone.add(key);
+        }
+        if (gone.isEmpty()) return 0;
+        SharedPreferences.Editor edit = store.edit();
+        for (String key : gone) edit.remove(key);
+        if (!edit.commit()) throw new IllegalStateException("Could not forget an account's resume points");
+        for (String key : gone) points.remove(key);
+        return gone.size();
     }
 
     /** How many points are kept. */

@@ -18,12 +18,15 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -45,7 +48,7 @@ class CleanUpReelsHookTest {
     /** The hooks the patch writes are in the ReelDeclutter the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT)) {
+        for (hook in listOf(HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -68,6 +71,44 @@ class CleanUpReelsHookTest {
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
         assertBubblesGuarded("stand-in", context.mutableClassDefBy(BUBBLES).methods.single(), "$NO_BUBBLES->A00:$NO_BUBBLES")
         assertLineGuarded("stand-in", context.mutableClassDefBy(VIEW_UTIL).methods.single(), 4, "$LINE->type:$LINE_TYPE")
+        val bar = context.mutableClassDefBy(BAR)
+        assertCommentBarGuarded("stand-in", bar.methods.single { it.name == "A0t" }, bar.methods.single { it.name == "onViewCreated" },
+            "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", "$BAR->bar:$VIEW", 0)
+        val back = context.mutableClassDefBy(UNVANISH).methods.single()
+        assertUnVanishGuarded("stand-in", back, 5, 2, "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", 0)
+    }
+
+    /** A controller that doesn't keep where its viewer was opened from, or keeps its bar twice, fails the patch. */
+    @Test
+    fun aCommentBarControllerItCantReadFailsThePatch() {
+        for ((case, classes) in listOf(
+            "no source" to classes(barSource = false),
+            "stored twice" to classes(barStores = 2),
+            "this reused" to classes(barThisReused = true),
+            "unVanish hiding twice" to classes(unVanish = "twice"),
+            "unVanish not reading the controller after its trace" to classes(unVanish = "no read"),
+            "unVanish jumping past the hook" to classes(unVanish = "jumped"),
+            "unVanish without a trace" to classes(unVanish = "no trace"),
+            "unVanish's hide reading what's written after the trace" to classes(unVanish = "rewritten"),
+        )) {
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes).hideReelParts() }
+            assertTrue("$case: ${failure.message}", failure.message!!.contains("comment bar"))
+        }
+    }
+
+    /**
+     * Only a write on the way from the hook to the hide stops the patch. The shown branch writing
+     * what the hidden branch answers never reaches the hide, so the hook's jump skips nothing.
+     */
+    @Test
+    fun onlyAWriteOnTheWayToTheHideFailsThePatch() {
+        val context = PatchContexts.of(classes(unVanish = "shown rewrites"))
+        context.hideReelParts()
+        assertUnVanishGuarded("shown rewrites", context.mutableClassDefBy(UNVANISH).methods.single(), 5, 2,
+            "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", 0)
+
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes(unVanish = "rewritten")).hideReelParts() }
+        assertTrue(failure.message!!, failure.message!!.contains("writes v1 between its trace and the hide"))
     }
 
     @Test
@@ -169,6 +210,30 @@ class CleanUpReelsHookTest {
                 assertBubblesGuarded("${bundle.name}: bubbles", after(bubbles), (none as ReferenceInstruction).reference.toString())
                 assertEquals("${bundle.name}: line check size", check.instructions().size + 7, after(check).instructions().size)
                 assertLineGuarded("${bundle.name}: line check", after(check), (typeRead as TwoRegisterInstruction).registerB, typeField.toString())
+                // The comment bar: guarded where it's shown and right after onViewCreated keeps it.
+                val show = classes.flatMap { it.methods }.single { COMMENT_BAR_SHOW in it.markers() }
+                val hide = classes.flatMap { it.methods }.single { COMMENT_BAR_HIDE in it.markers() }
+                val created = classes.flatMap { it.methods }.single { COMMENT_BAR_CREATED in it.markers() }
+                val source = classes.single { it.type == show.definingClass }.fields.single { it.type == CLIPS_VIEWER_SOURCE }
+                val bar = hide.instructions().mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference) }
+                    .single { it.type == VIEW }
+                assertEquals("${bundle.name}: show size", show.instructions().size + 6, after(show).instructions().size)
+                assertEquals("${bundle.name}: onViewCreated size", created.instructions().size + 5, after(created).instructions().size)
+                assertCommentBarGuarded("${bundle.name}: comment bar", after(show), after(created),
+                    "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V",
+                    "${bar.definingClass}->${bar.name}:${bar.type}", null)
+                // And in unVanish, right after the marker's trace, on the register the hide is called on.
+                val unVanish = classes.flatMap { it.methods }.single { COMMENT_BAR_UNVANISH in it.markers() }
+                val unVanishCode = unVanish.instructions()
+                val traced = unVanishCode.indexOfFirst {
+                    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.endsWith(COMMENT_BAR_UNVANISH) == true
+                } + 2
+                val hideCall = unVanishCode.single {
+                    it.opcode == Opcode.INVOKE_VIRTUAL && (it as ReferenceInstruction).reference.toString() == "${hide.definingClass}->${hide.name}()V"
+                } as FiveRegisterInstruction
+                assertEquals("${bundle.name}: unVanish size", unVanishCode.size + 4, after(unVanish).instructions().size)
+                assertUnVanishGuarded("${bundle.name}: unVanish", after(unVanish), traced, hideCall.registerC,
+                    "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V", null)
                 checked += version
             }
         }
@@ -211,6 +276,71 @@ class CleanUpReelsHookTest {
         assertEquals("$what: the branch lands on the check's own code", addresses[7], addresses[4] + (code[4] as OffsetInstruction).codeOffset)
     }
 
+    /**
+     * The show asks the hook with the controller's source first and hides with Instagram's own hide
+     * when it says so; onViewCreated does the same right after it keeps the bar, and goes on to its
+     * own next instruction either way. [free] is the local the stand-in's guard borrows, when known.
+     */
+    private fun assertCommentBarGuarded(what: String, show: Method, created: Method, source: String, hide: String, bar: String, free: Int?) {
+        val code = show.instructions()
+        assertEquals(
+            "$what: the show's guard",
+            listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+            code.take(6).map { it.opcode },
+        )
+        val self = show.implementation!!.registerCount - 1
+        assertEquals("$what: the source read off the controller", self, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the source", source, (code[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the hook", HIDE_COMMENT_BAR, (code[1] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: Instagram's hide", hide, (code[4] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the show's own code", code.subList(3, 6).sumOf { it.codeUnits }, (code[3] as OffsetInstruction).codeOffset)
+
+        val made = created.instructions()
+        val stored = made.indexOfFirst { it.opcode == Opcode.IPUT_OBJECT && (it as ReferenceInstruction).reference.toString() == bar }
+        val guard = made.subList(stored + 1, stored + 6)
+        assertEquals(
+            "$what: onViewCreated's guard",
+            listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL),
+            guard.map { it.opcode },
+        )
+        val thisRegister = created.implementation!!.registerCount - 1 - created.parameterTypes.size
+        assertEquals("$what: the bar stored on the controller", thisRegister, (made[stored] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the source read off the controller", thisRegister, (guard[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the source", source, (guard[0] as ReferenceInstruction).reference.toString())
+        free?.let { assertEquals("$what: the borrowed local", it, (guard[0] as TwoRegisterInstruction).registerA) }
+        assertEquals("$what: the hook", HIDE_COMMENT_BAR, (guard[1] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: Instagram's hide", hide, (guard[4] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: past the hide", guard.subList(3, 5).sumOf { it.codeUnits }, (guard[3] as OffsetInstruction).codeOffset)
+    }
+
+    /**
+     * unVanish asks the hook with the source read off the controller in [controller] at [at], right
+     * after its trace, and goes to its own call of Instagram's hide when it says so, or on to its
+     * own next instruction.
+     */
+    private fun assertUnVanishGuarded(what: String, method: Method, at: Int, controller: Int, source: String, hide: String, free: Int?) {
+        val code = method.instructions()
+        val guard = code.subList(at, at + 4)
+        assertEquals(
+            "$what: the guard",
+            listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ),
+            guard.map { it.opcode },
+        )
+        assertEquals("$what: the trace just ahead", Opcode.INVOKE_STATIC, code[at - 1].opcode)
+        assertEquals("$what: the source read off the controller", controller, (guard[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the source", source, (guard[0] as ReferenceInstruction).reference.toString())
+        free?.let { assertEquals("$what: the borrowed local", it, (guard[0] as TwoRegisterInstruction).registerA) }
+        assertEquals("$what: the hook", HIDE_COMMENT_BAR, (guard[1] as ReferenceInstruction).reference.toString())
+        val asked = (guard[0] as TwoRegisterInstruction).registerA
+        assertEquals("$what: the answer read", asked, (guard[2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the answer checked", asked, (guard[3] as OneRegisterInstruction).registerA)
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        val landed = addresses.indexOf(addresses[at + 3] + (guard[3] as OffsetInstruction).codeOffset)
+        assertEquals("$what: the branch lands on Instagram's hide", hide, (code[landed] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the hide on the controller", controller, (code[landed] as FiveRegisterInstruction).registerC)
+        assertEquals("$what: one hide", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == hide })
+    }
+
     private fun assertGuardFirst(what: String, part: ReelPart, method: Method) {
         val code = method.instructions()
         val answer = if (part.check) Opcode.RETURN else Opcode.RETURN_OBJECT
@@ -239,6 +369,10 @@ class CleanUpReelsHookTest {
         noneOfItsOwn: Boolean = true,
         typeNames: List<String> = listOf("FOLLOWED_BY", "LIKED_BY", "FOLLOWER_COUNT"),
         overwritesLine: Boolean = false,
+        barSource: Boolean = true,
+        barStores: Int = 1,
+        barThisReused: Boolean = false,
+        unVanish: String = "ok",
     ): List<ClassDef> {
         val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render")
             .filter { it != leaveOut }
@@ -292,7 +426,81 @@ class CleanUpReelsHookTest {
             listOf(ImmutableField(LINE, "type", LINE_TYPE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
             null,
         )
-        return renders + checks + bubbles + lineCheck + lineType + line
+        return renders + checks + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
+            unVanish(unVanish)
+    }
+
+    /**
+     * unVanish shaped like Instagram 450's lambda: it reads the controller into v2 over its own
+     * parameter, traces its marker, reads a flag of the controller and, on its hidden branch,
+     * calls the controller's hide and goes to the shared return. [shape] breaks one part of that.
+     */
+    private fun unVanish(shape: String): ClassDef {
+        val trace = if (shape == "no trace") "" else "invoke-static { v0 }, Lfixture/Trace;->A00(Ljava/lang/String;)V"
+        val read = if (shape == "no read") "const/4 v0, 0x0" else "iget-boolean v0, v2, $BAR->vanished:Z"
+        val again = if (shape == "jumped") "if-nez v1, :again" else ""
+        val twice = if (shape == "twice") "invoke-virtual { v2 }, $BAR->A0r()V" else ""
+        // The hidden branch answers v1. "rewritten" writes it after the trace on the way to the hide,
+        // which the hook's jump would skip; "shown rewrites" leaves only the shown branch writing it.
+        val rewrite = if (shape == "rewritten") "iget-object v1, v2, $BAR->bar:$VIEW" else ""
+        val hiddenEnd = if (shape == "rewritten" || shape == "shown rewrites") "return-object v1" else "goto :done"
+        return classOf(
+            UNVANISH, "Ljava/lang/Object;",
+            method(UNVANISH, "A0B", listOf(UNVANISH), "Ljava/lang/Object;", 3, """
+                iget-object v2, p0, $UNVANISH->controller:$BAR
+                if-eqz v2, :done
+                const/4 v1, 0x0
+                const-string v0, "android_purge_26_q2_$COMMENT_BAR_UNVANISH"
+                $trace
+                :again
+                $read
+                $rewrite
+                if-nez v0, :hide
+                iget-object v1, v2, $BAR->bar:$VIEW
+                $again
+                :done
+                const/4 v0, 0x0
+                return-object v0
+                :hide
+                $twice
+                invoke-virtual { v2 }, $BAR->A0r()V
+                $hiddenEnd
+            """),
+        )
+    }
+
+    /**
+     * A comment bar controller shaped like Instagram 450's: a show and a hide taking nothing, the
+     * hide reading the bar, and onViewCreated keeping the bar it inflates, with the viewer's source
+     * in a field of its own.
+     */
+    private fun commentBar(source: Boolean, stores: Int, thisReused: Boolean): ClassDef {
+        val fields = listOfNotNull(
+            ImmutableField(BAR, "bar", VIEW, AccessFlags.PUBLIC.value, null, null, null),
+            if (source) ImmutableField(BAR, "source", CLIPS_VIEWER_SOURCE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null) else null,
+        )
+        val store = (1..stores).joinToString("\n") { "iput-object v1, p0, $BAR->bar:$VIEW" }
+        val reuse = if (thisReused) "move-object p0, v1" else ""
+        val methods = listOf(
+            method(BAR, "A0t", emptyList(), "V", 2, """
+                const-string v0, "android_purge_26_q2_$COMMENT_BAR_SHOW"
+                return-void
+            """, static = false),
+            method(BAR, "A0r", emptyList(), "V", 2, """
+                const-string v0, "android_purge_26_q2_$COMMENT_BAR_HIDE"
+                iget-object v0, p0, $BAR->bar:$VIEW
+                return-void
+            """, static = false),
+            method(BAR, "onViewCreated", listOf(VIEW, "Landroid/os/Bundle;"), "V", 5, """
+                const-string v0, "android_purge_26_q2_$COMMENT_BAR_CREATED"
+                $reuse
+                move-object v1, p1
+                $store
+                const/4 v0, 0x0
+                return-void
+            """, static = false),
+        )
+        return ImmutableClassDef(BAR, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, fields, methods)
     }
 
     private fun method(
@@ -364,5 +572,8 @@ class CleanUpReelsHookTest {
         const val VIEW_UTIL = "Lfixture/MediaSocialContextViewUtil;"
         const val LINE = "Lfixture/SocialContext;"
         const val LINE_TYPE = "Lfixture/SocialContextType;"
+        const val BAR = "Lfixture/ClipsViewerCommentBarController;"
+        const val UNVANISH = "Lfixture/CommentBarLambda;"
+        const val VIEW = "Landroid/view/View;"
     }
 }

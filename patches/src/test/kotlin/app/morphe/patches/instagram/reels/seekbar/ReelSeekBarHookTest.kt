@@ -505,8 +505,8 @@ class ReelSeekBarHookTest {
         const val AD_FIELD = "$ITEM_TYPE->A17:Z"
 
         /** The ads' minimum and hidden kind, read in the same places as the ordinary reels'. */
-        const val AD_MIN_SECONDS = 0x82092d000014aeL
-        const val AD_LAZY = 0x81092d001533ceL
+        const val AD_MIN_SECONDS = 0x82092100001495L
+        const val AD_LAZY = 0x8109210015339dL
 
         val ORGANIC_MIN_SECONDS_HEX = "0x${ORGANIC_MIN_SECONDS.toString(16)}L"
         val AD_MIN_SECONDS_HEX = "0x${AD_MIN_SECONDS.toString(16)}L"

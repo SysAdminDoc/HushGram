@@ -68,7 +68,16 @@ public final class SettingsDialog extends DialogFragment {
 
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        Dialog dialog = new Dialog(getActivity(), getTheme());
+        Dialog dialog = new Dialog(getActivity(), getTheme()) {
+            // Back on a category's page goes to the list of categories first. Android 13 and up
+            // route the gesture here too, through the dialog's own back callback.
+            @Override
+            @SuppressWarnings("deprecation")
+            public void onBackPressed() {
+                if (closeCategory()) return;
+                super.onBackPressed();
+            }
+        };
         Window window = dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.BLACK));
@@ -114,6 +123,7 @@ public final class SettingsDialog extends DialogFragment {
             }
         });
         back.setOnClickListener(v -> {
+            if (closeCategory()) return;
             SettingsEntry.onClosedByUser();
             dismissAllowingStateLoss();
         });
@@ -151,6 +161,18 @@ public final class SettingsDialog extends DialogFragment {
         root.setFocusableInTouchMode(true);
         root.requestFocus();
         return root;
+    }
+
+    /** Shows [title] in the bar while a category's page is open, and HushGram again for null. */
+    void showTitle(@androidx.annotation.Nullable CharSequence title) {
+        TextView bar = heading;
+        if (bar != null) bar.setText(title == null ? "HushGram" : title);
+    }
+
+    /** Closes the settings page's open category, if one is open. Answers whether one was. */
+    private boolean closeCategory() {
+        Fragment page = getChildFragmentManager().findFragmentById(CONTAINER_ID);
+        return page instanceof HushgramPreferenceFragment && ((HushgramPreferenceFragment) page).closeCategory();
     }
 
     @Override

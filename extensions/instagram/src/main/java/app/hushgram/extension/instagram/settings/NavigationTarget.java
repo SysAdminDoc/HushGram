@@ -9,7 +9,9 @@ public enum NavigationTarget {
     OFF, FEED, SEARCH, CLIPS, DIRECT, PROFILE, SHARE, CREATION, NEWS,
     PRODUCER_PROFILE_PANEL, FEED_SWITCHER, DYNAMIC_TAB;
 
+    /** Whether [tab], Instagram's tab or the name kept of it, is this choice. */
     boolean matches(Object tab) {
-        return this != OFF && tab instanceof Enum<?> && name().equals(((Enum<?>) tab).name());
+        String name = tab instanceof Enum<?> ? ((Enum<?>) tab).name() : tab instanceof String ? (String) tab : null;
+        return this != OFF && name != null && name().equals(name);
     }
 }

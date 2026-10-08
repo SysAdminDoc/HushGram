@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.download;
 
 import static org.junit.Assert.*;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.os.Build;
 import android.os.Environment;
@@ -17,7 +18,9 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +42,11 @@ import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
 import app.hushgram.extension.instagram.comment.CommentPhoto;
 import app.hushgram.extension.instagram.comment.CommentPhotoNative;
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -99,6 +104,12 @@ public class CommentPhotoSaveTest {
         Settings.SAVE_FOLDER.resetToDefault();
         NativePhoto.selected = null;
         NativePhoto.photo = null;
+        NativePhoto.typed = true;
+        NativePhoto.videos = null;
+        NativePhoto.author = null;
+        NativePhoto.written = null;
+        Settings.SAVE_NAME_BY_POST.resetToDefault();
+        HookStatus.clear();
         Utils.awaitBackgroundTasksForTests();
         SaveLeftovers.forgetSweepForTests();
         File[] files = legacy.listFiles();
@@ -112,6 +123,11 @@ public class CommentPhotoSaveTest {
     }
 
     private Row menu() {
+        return menu("photo found 1");
+    }
+
+    /** Opens the menu on the comment's photo, which reads as [counted] on the report. */
+    private Row menu(String counted) {
         byte[] body = body();
         server.serve("/small.jpg", "image/jpeg", body);
         server.serve("/large.jpg", "image/jpeg", body);
@@ -120,10 +136,13 @@ public class CommentPhotoSaveTest {
                 new MediaSave.Rendition(server.origin() + "/small.jpg", 640, 480, 0),
                 new MediaSave.Rendition(server.origin() + "/large.jpg", 1440, 1080, 0)), null, null);
         List<?> stock = Collections.singletonList(new Object());
+        HookStatus.clear();
         List<?> rows = CommentPhoto.rows(stock, NativePhoto.selected, context);
         assertEquals(2, rows.size());
         assertSame(stock.get(0), rows.get(0));
         assertEquals("opening the menu starts nothing", 0, MediaSave.savesInFlight());
+        assertEquals("every read reached the photo", Collections.singletonList(FamilyNames.COMMENT_PHOTO
+                + ": invoked 1, 0 found, 0 missing. Counted: " + counted), HookStatus.report());
         return (Row) rows.get(1);
     }
 
@@ -167,6 +186,72 @@ public class CommentPhotoSaveTest {
         assertEquals(36, context.getApplicationInfo().targetSdkVersion);
     }
 
+    /** The server leaves media_type out of a comment's own media: with no video there, the photo saves all the same. */
+    @Test public void aCommentPhotoWithoutMediaTypeSaves() throws Exception {
+        NativePhoto.typed = false;
+        NativePhoto.videos = Collections.emptyList();
+        Row row = menu("no media_type, still image 1, photo found 1");
+        assertNull(row.callback.invoke());
+        waitForSave();
+        assertEquals(0, server.hits("/small.jpg"));
+        assertEquals(1, server.hits("/large.jpg"));
+        clean();
+    }
+
+    /** Without media_type, a media with video versions gets no Save row. */
+    @Test public void aCommentMediaWithoutMediaTypeButWithVideoGetsNoRow() {
+        NativePhoto.typed = false;
+        NativePhoto.videos = Collections.singletonList(new Object());
+        NativePhoto.selected = new Object();
+        NativePhoto.photo = new MediaSave.Item(false, Collections.singletonList(
+                new MediaSave.Rendition(server.origin() + "/large.jpg", 1440, 1080, 0)), null, null);
+        List<?> stock = Collections.singletonList(new Object());
+        HookStatus.clear();
+        assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
+        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO
+                + ": invoked 1, 0 found, 0 missing. Counted: no media_type, has video 1"), HookStatus.report());
+        assertEquals(0, server.hits("/large.jpg"));
+    }
+
+    /** With Name saves by account and post time on, the photo is named after the comment's author and time. */
+    @Test public void aCommentPhotoIsNamedAfterItsAuthorAndTime() throws Exception {
+        Settings.SAVE_NAME_BY_POST.save(true);
+        Calendar noon = new GregorianCalendar();
+        noon.clear();
+        noon.set(2026, Calendar.SEPTEMBER, 1, 12, 0, 0);
+        NativePhoto.author = "stevi.ous";
+        NativePhoto.written = noon.getTimeInMillis() / 1000L;
+        Row row = menu();
+        assertNull(row.callback.invoke());
+        waitForSave();
+        assertEquals(Collections.singletonList("stevi.ous_20260901_120000.jpg"), savedNames());
+        clean();
+    }
+
+    /** Off, the same comment's photo keeps the name it always had. */
+    @Test public void offTheCommentPhotoKeepsItsUsualName() throws Exception {
+        NativePhoto.author = "stevi.ous";
+        NativePhoto.written = 1_788_000_000L;
+        Row row = menu();
+        assertNull(row.callback.invoke());
+        waitForSave();
+        List<String> names = savedNames();
+        assertEquals(1, names.size());
+        assertTrue(names.get(0), names.get(0).startsWith("IG_IMG_"));
+        clean();
+    }
+
+    private List<String> savedNames() {
+        List<String> names = new ArrayList<>();
+        if (Build.VERSION.SDK_INT == 28) {
+            for (File file : Objects.requireNonNull(legacy.listFiles())) if (!oldFiles.contains(file)) names.add(file.getName());
+        } else {
+            for (ContentValues values : gallery.rows.values()) names.add(values.getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
     @Test public void commentPhotoCancelUsesTheExistingControlAndRemovesAllTemporaryState() throws Exception {
         Row row = menu();
         CountDownLatch entered = new CountDownLatch(1);
@@ -206,12 +291,28 @@ public class CommentPhotoSaveTest {
         Row(Object callback) { this.callback = (Function0<?>) callback; }
     }
 
-    /** The patched native getters, answering for one selected comment only. */
+    /** The patched native reads, answering for one selected comment's own photo only. */
     @Implements(value = CommentPhotoNative.class, isInAndroidSdk = false)
     public static class NativePhoto {
         static Object selected;
         static MediaSave.Item photo;
-        @Implementation protected static Object photoMedia(Object comment) { return comment == selected ? photo : null; }
+        static boolean typed = true;
+        static List<?> videos;
+        static String author;
+        static Long written;
+        private static final Object RAW = new Object(), INFO = new Object();
+        @Implementation protected static int selected(Object comment) { return comment != null && comment == selected ? 1 : 0; }
+        @Implementation protected static Object raw(Object comment) { return RAW; }
+        @Implementation protected static Object gif(Object raw) { return null; }
+        @Implementation protected static Object author(Object raw) { return raw == RAW ? author : null; }
+        @Implementation protected static Object createdAt(Object raw) { return raw == RAW ? written : null; }
+        @Implementation protected static Object info(Object raw) { return raw == RAW ? INFO : null; }
+        @Implementation protected static Object media(Object info) { return info == INFO ? photo : null; }
+        @Implementation protected static Object kind(Object media) { return typed && media instanceof MediaSave.Item ? 1 : null; }
+        @Implementation protected static int photoKind() { return 1; }
+        @Implementation protected static Object mediaGif(Object media) { return null; }
+        @Implementation protected static Object videoVersions(Object media) { return videos; }
+        @Implementation protected static Object videoDuration(Object media) { return null; }
         @Implementation protected static Object newRow(Object callback) { return new Row(callback); }
         @Implementation protected static Object callback(Object row) { return row instanceof Row ? ((Row) row).callback : null; }
     }

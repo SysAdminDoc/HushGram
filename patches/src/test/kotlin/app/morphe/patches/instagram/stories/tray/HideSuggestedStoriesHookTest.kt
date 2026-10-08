@@ -42,7 +42,7 @@ class HideSuggestedStoriesHookTest {
     /** Both hooks the patch writes are in the StoriesTray the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_TRAY, TRAY_FILTER)) {
+        for (hook in listOf(HIDE_TRAY, TRAY_FILTER, TRAY_REMAINING_FILTER)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -83,6 +83,26 @@ class HideSuggestedStoriesHookTest {
         assertFilteredBeforeTheTest("stand-in", context.mutableClassDefBy(TRAY).methods.single { it.name == "unsafeParseFromJson" })
     }
 
+    /** The ids of the reels the tray fetches after its items go past the extension right after they're read. */
+    @Test
+    fun theReelsLeftToFetchGoPastTheExtension() {
+        val context = PatchContexts.of(trayClasses())
+        val parse = context.findTrayItemParse()
+
+        context.hookTrayParser(parse, context.findTrayRemaining(parse.site))
+
+        val method = context.mutableClassDefBy(TRAY).methods.single { it.name == "unsafeParseFromJson" }
+        assertTrimmedAfterTheRead("stand-in", method)
+        assertFilteredBeforeTheTest("stand-in", method)
+    }
+
+    @Test
+    fun aTrayParserNotReadingTheReelsLeftFailsThePatch() {
+        val context = PatchContexts.of(trayClasses(remaining = false))
+        val site = context.findTrayItemParse().site
+        assertThrows(PatchException::class.java) { context.findTrayRemaining(site) }
+    }
+
     @Test
     fun aTrayParserWithoutTheNullTestFailsThePatch() {
         val context = PatchContexts.of(trayClasses(tested = false))
@@ -94,6 +114,15 @@ class HideSuggestedStoriesHookTest {
     fun anItemWithoutTheSuggestedReelTypesFailsThePatch() {
         val context = PatchContexts.of(trayClasses(reelTypes = listOf("USER_REEL", "HIGHLIGHT_REEL")))
         assertThrows(PatchException::class.java) { context.findTrayItemParse() }
+    }
+
+    /** A reel type without a rewind or a recap kind a switch takes out fails too: that switch would do nothing. */
+    @Test
+    fun anItemWithoutARewindOrRecapTypeFailsThePatch() {
+        for (gone in MADE_REELS) {
+            val context = PatchContexts.of(trayClasses(reelTypes = listOf("USER_REEL") + SUGGESTED_REELS + (MADE_REELS - gone)))
+            assertThrows(gone, PatchException::class.java) { context.findTrayItemParse() }
+        }
     }
 
     @Test
@@ -132,17 +161,17 @@ class HideSuggestedStoriesHookTest {
 
                 val rows = context.findTrayRowBuild()
                 val parse = context.findTrayItemParse()
+                val remaining = context.findTrayRemaining(parse.site)
                 context.guardTrayRow(rows)
-                context.filterTrayItems(parse)
+                context.hookTrayParser(parse, remaining)
 
                 assertGuardedFirst(
                     "${bundle.name} ${rows.type}",
                     context.mutableClassDefBy(rows.type).methods.single { it.name == rows.name && it.parameterTypes.map(CharSequence::toString) == rows.parameters },
                 )
-                assertFilteredBeforeTheTest(
-                    "${bundle.name} ${parse.site.type}",
-                    context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 },
-                )
+                val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
+                assertFilteredBeforeTheTest("${bundle.name} ${parse.site.type}", parser)
+                assertTrimmedAfterTheRead("${bundle.name} ${parse.site.type}", parser)
                 checked++
             }
         }
@@ -178,6 +207,20 @@ class HideSuggestedStoriesHookTest {
         assertEquals("$what: the register", register, (code[hook + 1] as OneRegisterInstruction).registerA)
         assertEquals("$what: the test", Opcode.IF_EQZ, code[hook + 2].opcode)
         assertEquals("$what: the tested register", register, (code[hook + 2] as OneRegisterInstruction).registerA)
+    }
+
+    /** The reel id read is followed by the extension call on its register and the answer back in it; one call in all. */
+    private fun assertTrimmedAfterTheRead(what: String, method: Method) {
+        val code = method.implementation!!.instructions.toList()
+        val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == TRAY_REMAINING_FILTER }
+        assertEquals("$what: hooks", 1, hooks.size)
+        val hook = hooks.single()
+        assertEquals("$what: the read", "Ljava/util/ArrayList;", (code[hook - 2] as ReferenceInstruction).reference.toString().substringAfterLast(")"))
+        val register = (code[hook - 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the read's result", Opcode.MOVE_RESULT_OBJECT, code[hook - 1].opcode)
+        assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[hook + 1].opcode)
+        assertEquals("$what: the register", register, (code[hook + 1] as OneRegisterInstruction).registerA)
     }
 
     private companion object {
@@ -223,12 +266,19 @@ class HideSuggestedStoriesHookTest {
          */
         fun trayClasses(
             tested: Boolean = true,
-            reelTypes: List<String> = listOf("USER_REEL") + SUGGESTED_REELS,
+            remaining: Boolean = true,
+            reelTypes: List<String> = listOf("USER_REEL") + SUGGESTED_REELS + MADE_REELS,
             itemInterface: String = TRAY_ITEM_INTF,
         ): List<ClassDef> {
             val tray = listOfNotNull<Instruction>(
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 2, ImmutableTypeReference("Ljava/util/ArrayList;")),
                 string(0, TRAY_REMAINING),
+                if (remaining) {
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 3, 0, 0, 0, 0, ImmutableMethodReference(JSON, "A0B", listOf(JSON), "Ljava/util/ArrayList;"))
+                } else {
+                    null
+                },
+                if (remaining) ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0) else null,
                 string(0, TRAY_TOKEN),
                 string(0, TRAY_ITEMS),
                 ImmutableInstruction21c(Opcode.SGET_OBJECT, 1, ImmutableFieldReference(PARSER, "A00", PARSER)),

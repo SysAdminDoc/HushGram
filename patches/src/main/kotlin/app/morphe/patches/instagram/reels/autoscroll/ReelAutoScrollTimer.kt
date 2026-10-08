@@ -6,9 +6,11 @@ package app.morphe.patches.instagram.reels.autoscroll
 
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -45,8 +47,9 @@ private fun refuseTimer(detail: String): Nothing = throw PatchException("Keep Re
 internal fun BytecodePatchContext.findTimerChoices(check: Method, click: Method, prefs: String): TimerChoices {
     val timers = mutableListOf<ClassDef>()
     val callbacks = mutableListOf<Pair<ClassDef, Method>>()
+    val holders = typesMarked(AUTOSCROLL_DURATION_TAP) + classesHolding(AUTOSCROLL_EXPIRATION).map { it.type }
     classDefForEach { type ->
-        if (type.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (type.type !in holders || type.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (type.methods.any { it.name == "<clinit>" && it.timerCode().any { code -> code.timerString() == AUTOSCROLL_EXPIRATION } }) timers += type
         type.methods.filter { AUTOSCROLL_DURATION_TAP in it.markers() }.forEach { callbacks += type to it }
     }

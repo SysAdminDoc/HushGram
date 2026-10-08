@@ -392,7 +392,7 @@ class StorySeenHookTest {
                 .forEach { extra += it.returnType }
         }
         found += FixtureDex.classes(bundle, extra.filter { it !in found }.toSet())
-        return (found.values + ExtensionDex.classDef(STORY_SEEN) + ExtensionDex.classDef(STORY_SEEN_BUTTON))
+        return (FixtureDex.withStringPools(bundle, found.values) + ExtensionDex.classDef(STORY_SEEN) + ExtensionDex.classDef(STORY_SEEN_BUTTON))
             .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
     }
 

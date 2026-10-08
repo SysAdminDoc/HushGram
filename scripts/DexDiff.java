@@ -236,6 +236,16 @@ public class DexDiff {
      *       stays as written. For a method that shares its strings and its shape with a sibling
      *       that doesn't make the call, as the story player's resume does with a stub beside it,
      *       and the home tab's static method with a few others taking a session.
+     *   <li>A once-call or shared-call rule with "sites &lt;n&gt;" after its calling clause, or where
+     *       that would go, and before "holding" or "class-holding": its method calls the method
+     *       reference exactly n times, 2 or more, rather than once. For a filter the patch puts on
+     *       each of several reads in one method, as Hide the home feed does on both helper reads in
+     *       the read of Home's store.
+     *   <li>Where start-call and shared-call look for the hook in the other methods holding the
+     *       strings, a method that another picking rule for the same method reference picks, as
+     *       its one method of the rule's shape, isn't one of them. Two rules told apart only by
+     *       their calling clause, as the two touch methods of the list ViewPager2 makes are, each
+     *       hold their own method to the hook and leave the other's alone.
      * </ul>
      */
     /** A string as a rule line writes it: a backslash as two, then a space as \s. */
@@ -287,15 +297,17 @@ public class DexDiff {
         final String call;
         /** The same rules: whether that call is an invoke-static, or null when the rule doesn't say. */
         final Boolean callStatic;
+        /** once-call and shared-call: how many times its method calls the callee, 1 unless the rule says "sites". */
+        final int sites;
         /** [call] as a regular expression, or null. */
         private final java.util.regex.Pattern callMatch;
 
         Contract(String kind, String callee, String target) {
-            this(kind, callee, target, null, null, List.of(), null, null, false, null, null);
+            this(kind, callee, target, null, null, List.of(), null, null, false, null, null, 1);
         }
 
         Contract(String kind, String callee, String target, String after, String replaced, List<String> strings,
-                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic) {
+                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic, int sites) {
             this.kind = kind;
             this.callee = callee;
             this.target = target;
@@ -307,6 +319,7 @@ public class DexDiff {
             this.byClass = byClass;
             this.call = call;
             this.callStatic = callStatic;
+            this.sites = sites;
             this.callMatch = call == null ? null : java.util.regex.Pattern.compile(callPattern(call));
         }
 
@@ -331,6 +344,7 @@ public class DexDiff {
                 if (callStatic != null) b.append(callStatic ? "static " : "instance ");
                 b.append(call);
             }
+            if (sites != 1) b.append(" sites ").append(sites);
             List<String> written = new ArrayList<>();
             for (String s : strings) written.add(escape(s));
             return b.append(byClass ? " class-holding " : " holding ").append(String.join(" ", written)).toString();
@@ -426,9 +440,10 @@ public class DexDiff {
     /**
      * A start-call, next-call, sole-call, once-call or shared-call line: its method reference, the next-call's
      * "after &lt;method reference&gt;" or the sole-call's "replacing &lt;method reference&gt;", then "[in
-     * [static|instance] &lt;shape&gt;] [calling [static|instance] &lt;method reference&gt;] holding
-     * &lt;string&gt; [&lt;string&gt; ...]", with "class-holding" in place of "holding" for strings its
-     * method's class holds. Null when it isn't one.
+     * [static|instance] &lt;shape&gt;] [calling [static|instance] &lt;method reference&gt;] [sites
+     * &lt;n&gt;] holding &lt;string&gt; [&lt;string&gt; ...]", with "class-holding" in place of "holding"
+     * for strings its method's class holds. Only once-call and shared-call take sites, and n is 2 or
+     * more. Null when it isn't one.
      */
     private static Contract readPicked(String[] parts) {
         String kind = parts[0];
@@ -465,6 +480,13 @@ public class DexDiff {
             if (at >= parts.length || !isCallReference(parts[at])) return null;
             call = parts[at++];
         }
+        int sites = 1;
+        if (at < parts.length && parts[at].equals("sites")) {
+            at++;
+            if (!kind.equals("once-call") && !kind.equals("shared-call")) return null;
+            if (at >= parts.length || !parts[at].matches("[2-9]|[1-9][0-9]")) return null;
+            sites = Integer.parseInt(parts[at++]);
+        }
         if (at >= parts.length || !(parts[at].equals("holding") || parts[at].equals("class-holding"))) return null;
         boolean byClass = parts[at].equals("class-holding");
         // The line is split on spaces, so a string holding one writes it as \s, and a backslash as \\.
@@ -472,7 +494,7 @@ public class DexDiff {
         for (String s : Arrays.asList(parts).subList(at + 1, parts.length)) strings.add(unescape(s));
         if (strings.isEmpty() || new TreeSet<>(strings).size() != strings.size()) return null;
         return new Contract(kind, parts[1], String.join(" ", strings), after, replaced, strings, isStatic, shape, byClass,
-                call, callStatic);
+                call, callStatic, sites);
     }
 
     private static List<Contract> readContracts(File file) throws Exception {
@@ -491,6 +513,7 @@ public class DexDiff {
                 if (picked == null) {
                     throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected " + form
                             + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
+                            + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>]" : "")
                             + " holding or class-holding <string> [<string> ...]");
                 }
                 contracts.add(picked);
@@ -517,7 +540,7 @@ public class DexDiff {
                         + " sole-call <method reference> replacing <method reference>,"
                         + " once-call <method reference> or shared-call <method reference>, each then"
                         + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
-                        + " holding or class-holding <string> [<string> ...]");
+                        + " [sites <2 or more>, once-call and shared-call only] holding or class-holding <string> [<string> ...]");
             }
             String kind = firstCallTyped ? TYPED_FIRST_CALL : firstCallOutside ? OUTSIDE_FIRST_CALL : parts[0];
             contracts.add(new Contract(kind, parts[1], parts[3]));
@@ -1482,10 +1505,25 @@ public class DexDiff {
                 }
             }
         }
+        // The method each picking rule claims, its one holder of the rule's shape, by the method the
+        // rule names. A start-call or shared-call rule doesn't count another rule's claim for the same
+        // method as somewhere else the hook went: the list ViewPager2 makes calls TabSwipe.input in
+        // both of its touch methods, each claimed by a rule of its own told apart by the call it makes.
+        Map<String, Map<Contract, String>> claims = new HashMap<>();
+        for (Contract contract : pickRules) {
+            List<String> shaped = new ArrayList<>();
+            for (Holder holder : holders.get(contract)) if (holder.shaped) shaped.add(holder.method);
+            if (shaped.size() == 1) claims.computeIfAbsent(contract.callee, k -> new LinkedHashMap<>()).put(contract, shaped.get(0));
+        }
         List<String> contractFindings = new ArrayList<>();
         for (Contract contract : contracts) {
             if (contract.picks()) {
-                checkPicked(contract, holders.get(contract), hookCallers.get(contract.callee), clean, storyStores, contractFindings);
+                Set<String> claimedByOthers = new HashSet<>();
+                for (Map.Entry<Contract, String> claim : claims.getOrDefault(contract.callee, Map.of()).entrySet()) {
+                    if (claim.getKey() != contract) claimedByOthers.add(claim.getValue());
+                }
+                checkPicked(contract, holders.get(contract), hookCallers.get(contract.callee), claimedByOthers, clean,
+                        storyStores, contractFindings);
                 continue;
             }
             if (contract.kind.equals("no-call")) {
@@ -1660,16 +1698,18 @@ public class DexDiff {
     /**
      * Holds a start-call, next-call, sole-call, once-call or shared-call rule to the patched APK.
      * Exactly one of [holders] has the rule's shape, and it calls the rule's method; [callers] are the
-     * host methods that call that method anywhere. Then each kind asks its own questions: start-call
-     * that no other holder calls it and that the call comes first; shared-call that no other holder
-     * calls it and that it's the method's one call there; once-call that no other host method calls
-     * it and that it's the method's one call there; next-call that as well, right after the call it pairs
+     * host methods that call that method anywhere, and [claimed] the methods other rules for that
+     * method pick. Then each kind asks its own questions: start-call that no other holder calls it,
+     * leaving out the claimed ones, and that the call comes first; shared-call the same about other
+     * holders, and that the method calls it once there, or as many times as the rule's sites says;
+     * once-call that no other host method calls it and that the method calls it once there, or as
+     * many times as sites says; next-call that it's the method's one call there, right after the call it pairs
      * with and on the same register; sole-call that it's the method's one call, that the call it
      * stands in for is gone, and that it reads what that call read in [clean]. A class-holding rule
      * is asked the same once its method is picked.
      */
-    private static void checkPicked(Contract contract, List<Holder> holders, List<String> callers, File clean,
-            Map<String, ClassDef> storyStores, List<String> findings) throws Exception {
+    private static void checkPicked(Contract contract, List<Holder> holders, List<String> callers, Set<String> claimed,
+            File clean, Map<String, ClassDef> storyStores, List<String> findings) throws Exception {
         String rule = "contract " + contract.rule();
         String held = describePicked(contract, false);
         List<String> shaped = new ArrayList<>();
@@ -1703,12 +1743,13 @@ public class DexDiff {
         // its strings, since Hushfacebook's two tray rules sent the same call to two adapters and
         // HushGram's two link parsers pass their links through the same filter; a class-holding one
         // among those that hold them all themselves, so the one guard Instagram's batch of watched
-        // reels puts in each of its record methods passes. A next-call, sole-call or once-call hook
-        // belongs to one method, so a second call anywhere is one too many.
+        // reels puts in each of its record methods passes. A holder another rule for the same call
+        // picks is that rule's to check. A next-call, sole-call or once-call hook belongs to one
+        // method, so a second call anywhere is one too many.
         List<String> elsewhere = new ArrayList<>();
         if (contract.kind.equals("start-call") || contract.kind.equals("shared-call")) {
             for (Holder holder : holders) {
-                if (holder != only && !elsewhere.contains(holder.method)
+                if (holder != only && !elsewhere.contains(holder.method) && !claimed.contains(holder.method)
                         && !callSites(instructions(holder.m), contract.callee).isEmpty()) elsewhere.add(holder.method);
             }
         } else {
@@ -1732,10 +1773,10 @@ public class DexDiff {
             } else {
                 System.out.println("[diff] " + rule + ": first in " + only.method);
             }
-        } else if (sites.size() > 1) {
+        } else if (sites.size() != contract.sites) {
             System.out.println("[diff] " + rule + ": " + sites.size() + " call sites in " + only.method);
-            findings.add("contract: " + contract.callee + " has " + sites.size() + " call sites in " + only.method
-                    + ", and must have exactly one");
+            findings.add("contract: " + contract.callee + " has " + sites.size() + (sites.size() == 1 ? " call site" : " call sites")
+                    + " in " + only.method + ", and must have exactly " + (contract.sites == 1 ? "one" : String.valueOf(contract.sites)));
         } else if (contract.kind.equals("retry-call")) {
             if (safeRetrySelection(only.m, sites.get(0), storyStores)) {
                 System.out.println("[diff] " + rule + ": selects before claim with a null snapshot-loop backedge in " + only.method);
@@ -1744,7 +1785,7 @@ public class DexDiff {
                         + " must select its local batch before claim and take the typed null snapshot-loop backedge without mutation");
             }
         } else if (contract.kind.equals("once-call") || contract.kind.equals("shared-call")) {
-            System.out.println("[diff] " + rule + ": once in " + only.method);
+            System.out.println("[diff] " + rule + ": " + (contract.sites == 1 ? "once" : contract.sites + " times") + " in " + only.method);
         } else if (contract.kind.equals("next-call")) {
             int at = sites.get(0);
             Instruction before = at == 0 ? null : body.get(at - 1);

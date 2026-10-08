@@ -115,7 +115,7 @@ public class PlayButtonsTest {
 
         tap(button);
         assertEquals(View.INVISIBLE, button.getVisibility());
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         assertTrue(TapToPlay.allowDirectStart(player, "autoplay"));
         idle(PlayButtons.UNCLAIMED_MS + 100);
         TapToPlay.paused(player, "paused_for_replay");
@@ -138,7 +138,7 @@ public class PlayButtonsTest {
         Object player = new Object();
 
         TapToPlayForTests.tapEnded(0);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapToPlay.playButtonTapped(new ClickEvent(button));
         idle(PlayButtons.UNCLAIMED_MS + 100);
         assertEquals(View.INVISIBLE, button.getVisibility());
@@ -170,11 +170,11 @@ public class PlayButtonsTest {
     public void anArmedPlayersStartOnTheTapIsTheButtons() {
         Object player = new Object();
         TapToPlayForTests.tapEnded(0);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         SystemClock.sleep(50);
 
         tap(button);
-        assertTrue(TapToPlay.allowStart(player, "resume"));
+        assertTrue(TapToPlay.allowStart(player, "resume", 0));
         idle(PlayButtons.UNCLAIMED_MS + 100);
         assertEquals(View.INVISIBLE, button.getVisibility());
 
@@ -186,7 +186,7 @@ public class PlayButtonsTest {
     @Test
     public void aStartBeforeTheTapIsntTheButtons() {
         TapToPlayForTests.tapEnded(0);
-        assertTrue(TapToPlay.allowStart(new Object(), "autoplay"));
+        assertTrue(TapToPlay.allowStart(new Object(), "autoplay", 0));
         SystemClock.sleep(50);
 
         tap(button);
@@ -201,7 +201,7 @@ public class PlayButtonsTest {
     public void aNewVideoOnItsPlayerBringsTheButtonBack() {
         Object player = new Object();
         tap(button);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
         TapToPlay.rebound(player);
         assertEquals("the start's own prepare", View.INVISIBLE, button.getVisibility());
 
@@ -238,7 +238,7 @@ public class PlayButtonsTest {
     public void aButtonTakenOffTheScreenComesBack() {
         Object player = new Object();
         tap(button);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
 
         post.removeView(button);
 
@@ -255,7 +255,7 @@ public class PlayButtonsTest {
         post.addView(second);
         Object player = new Object();
         tap(button);
-        assertTrue(TapToPlay.allowStart(player, "autoplay"));
+        assertTrue(TapToPlay.allowStart(player, "autoplay", 0));
 
         tap(second);
 

@@ -11,7 +11,7 @@ android {
     namespace = "app.hushgram.extension.shared"
 
     defaultConfig {
-        // The library it carries runs only inside Instagram 449, which declares API 28.
+        // The library it carries runs only inside Instagram 450, which declares API 28.
         minSdk = 28
     }
 }

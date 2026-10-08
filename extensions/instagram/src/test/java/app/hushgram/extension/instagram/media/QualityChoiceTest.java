@@ -292,4 +292,25 @@ public class QualityChoiceTest {
         QualityChoice.firstChoice(new Object());
         assertEquals(FamilyNames.PLAYBACK_QUALITY + ": invoked 1, 0 found, 0 missing", statusLine());
     }
+
+    /** Data saver starts a video at the lowest quality while it's saving, even with this patch's switch off. */
+    @Test
+    public void dataSaverStartsAtTheLowestQuality() {
+        Settings.DEFAULT_PLAYBACK_QUALITY.save(false);
+        Settings.DATA_SAVER.save(true);
+        Settings.DATA_SAVER_MOBILE_DATA_ONLY.save(false);
+        DataSaver.inBuildForTests = Boolean.TRUE;
+        try {
+            assertEquals("240p", firstChoice(new Evaluator(REEL)));
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(FamilyNames.DATA_SAVER + ":") && report.contains(DataSaver.LOWEST_VIDEO + " 1"));
+
+            Settings.DATA_SAVER.save(false);
+            assertNull("off, Instagram picks again", firstChoice(new Evaluator(REEL)));
+        } finally {
+            DataSaver.inBuildForTests = null;
+            Settings.DATA_SAVER.resetToDefault();
+            Settings.DATA_SAVER_MOBILE_DATA_ONLY.resetToDefault();
+        }
+    }
 }

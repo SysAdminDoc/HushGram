@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 
 /**
  * Helper for the "Hide suggested stories" patch.
@@ -27,7 +29,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The tray's items come from its own request, each marked with a reel type, and a story from an
  * account you don't follow is a suggested one. The patch passes each item the tray's parser reads
  * through {@link #filter}, which answers null for a suggested one while Hide suggested stories is
- * on, and the parser skips it the way it skips an item that didn't parse.
+ * on, a rewind card while Hide story rewinds is on, and a card Instagram made from what's been
+ * posted before while Hide memories and recaps is on. The parser skips it the way it skips an item
+ * that didn't parse. With Stop loading stories on, every item goes, and {@link #remaining} empties
+ * the list of reels the tray would fetch after them, so nothing in the row loads.
  */
 public final class StoriesTray {
     /**
@@ -37,8 +42,31 @@ public final class StoriesTray {
     static final Set<String> SUGGESTED = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "SUGGESTED_USER", "SUGGESTED_USER_REEL", "SUGGESTED_CREATOR_REEL")));
 
-    /** The diagnostic counter route for the tray's suggested items. */
+    /** Rewind cards, which bring back old highlights. */
+    static final Set<String> REWINDS = Collections.singleton("HIGHLIGHT_REWIND_REEL");
+
+    /**
+     * Cards Instagram makes from what's been posted before, by Instagram 450's names: memories, your
+     * week, the year in review, follow anniversaries and birthdays.
+     */
+    static final Set<String> RECAPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "MEMORY_REEL", "MY_WEEK_REEL", "END_OF_YEAR", "FOLLOW_VERSARIES", "BIRTHDAY_HIGHLIGHTS")));
+
+    /** Every reel type a switch can take out. */
+    static final Set<String> FILTERED;
+
+    static {
+        Set<String> all = new HashSet<>(SUGGESTED);
+        all.addAll(REWINDS);
+        all.addAll(RECAPS);
+        FILTERED = Collections.unmodifiableSet(all);
+    }
+
+    /** The diagnostic counter routes for the tray's suggested items, rewinds and recaps. */
     static final String ROUTE = "Suggested stories";
+    static final String REWIND_ROUTE = "Story rewinds";
+    static final String RECAP_ROUTE = "Memories and recaps";
+    static final String STOP_ROUTE = "Stop loading stories";
 
     private static volatile boolean loggedTray;
 
@@ -66,24 +94,56 @@ public final class StoriesTray {
     }
 
     /**
-     * Injected where the tray's parser reads each item. Answers null for a suggested item while
-     * Hide suggested stories is on, and [item] itself otherwise, or when anything goes wrong. Never
-     * throws.
+     * Injected where the tray's parser reads each item. Answers null for a suggested item, a rewind
+     * or a recap while its switch is on, and [item] itself otherwise, or when anything goes wrong.
+     * Never throws.
      */
     public static Object filter(Object item) {
         if (item == null) return null;
         try {
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
-            String kind = FeedItemKinds.kindIn(item, SUGGESTED, FamilyNames.STORIES_TRAY);
+            if (stopLoading()) {
+                FeedFilterCounters.removed(STOP_ROUTE, 1, "any");
+                return null;
+            }
+            String kind = FeedItemKinds.kindIn(item, FILTERED, FamilyNames.STORIES_TRAY);
             if (kind == null) return item;
-            FeedFilterCounters.sawKind(ROUTE, kind);
-            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_STORIES.get()) return item;
-            FeedFilterCounters.removed(ROUTE, 1, kind);
+            String route = SUGGESTED.contains(kind) ? ROUTE : REWINDS.contains(kind) ? REWIND_ROUTE : RECAP_ROUTE;
+            FeedFilterCounters.sawKind(route, kind);
+            if (!Utils.settingsReady() || !switchFor(kind).get()) return item;
+            FeedFilterCounters.removed(route, 1, kind);
             Logger.printDebug(() -> "Stories tray: took out a " + kind + " item");
             return null;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORIES_TRAY, "tray item", failure);
             return item;
         }
+    }
+
+    /**
+     * Injected where the tray's parser reads the ids of the reels it fetches after the tray's items.
+     * Answers an empty list while Stop loading stories is on, and [ids] itself otherwise, or when
+     * anything goes wrong. Never throws.
+     */
+    public static ArrayList<?> remaining(ArrayList<?> ids) {
+        if (ids == null || ids.isEmpty()) return ids;
+        try {
+            HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            if (!stopLoading()) return ids;
+            FeedFilterCounters.removed(STOP_ROUTE, ids.size(), "reel left to fetch");
+            return new ArrayList<>();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORIES_TRAY, "reels left to fetch", failure);
+            return ids;
+        }
+    }
+
+    private static boolean stopLoading() {
+        return Utils.settingsReady() && Settings.STOP_LOADING_STORIES.get();
+    }
+
+    private static BooleanSetting switchFor(String kind) {
+        if (SUGGESTED.contains(kind)) return Settings.HIDE_SUGGESTED_STORIES;
+        return REWINDS.contains(kind) ? Settings.HIDE_STORY_REWINDS : Settings.HIDE_STORY_RECAPS;
     }
 }

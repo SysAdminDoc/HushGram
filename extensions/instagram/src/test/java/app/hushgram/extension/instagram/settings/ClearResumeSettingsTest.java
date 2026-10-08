@@ -135,13 +135,19 @@ public class ClearResumeSettingsTest {
             playing.position = 60_000;
             ResumePlayback.stopped(playing, "scroll");
             var positions = RuntimeEnvironment.getApplication().getSharedPreferences(
-                    "hushgram_resume_points", Context.MODE_PRIVATE);
-            assertTrue(positions.contains("new-after-clear"));
+                    "hushgram_resume_points_by_account", Context.MODE_PRIVATE);
+            assertTrue(holds(positions, "new-after-clear"));
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             Utils.awaitBackgroundTasksForTests();
             ShadowLooper.idleMainLooper();
-            assertTrue("Expired Undo deleted the new position", positions.contains("new-after-clear"));
+            assertTrue("Expired Undo deleted the new position", holds(positions, "new-after-clear"));
             assertEquals("Clear remembered positions", String.valueOf(row.getTitle()));
         }
+    }
+
+    /** Whether [positions] holds a point for [videoId], under whichever account saved it. */
+    private static boolean holds(android.content.SharedPreferences positions, String videoId) {
+        for (String key : positions.getAll().keySet()) if (key.endsWith("/" + videoId)) return true;
+        return false;
     }
 }

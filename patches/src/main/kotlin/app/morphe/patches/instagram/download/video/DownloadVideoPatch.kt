@@ -15,20 +15,28 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMuta
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.download.captionBridges
+import app.morphe.patches.instagram.download.carouselBridge
 import app.morphe.patches.instagram.download.imageBridges
 import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.pandoGetter
+import app.morphe.patches.instagram.download.playerQueriesPatch
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
 import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
 import app.morphe.patches.instagram.download.reel.OPTION
 import app.morphe.patches.instagram.download.reel.code
+import app.morphe.patches.instagram.download.reel.newOption
+import app.morphe.patches.instagram.download.reel.optionIcon
+import app.morphe.patches.instagram.download.reel.typesLoadingDownload
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCallingInto
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.media.quality.target
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -62,6 +70,14 @@ internal const val SAVE_ALL = "$VIDEO_DOWNLOAD->saveAll(Ljava/lang/Object;Landro
 internal const val ALL_OPTION = "$VIDEO_DOWNLOAD->allOption()Ljava/lang/Object;"
 internal const val OWN_POST = "$VIDEO_DOWNLOAD->ownPost(ILjava/lang/Object;)I"
 internal const val OWN_POST_ROW = "$VIDEO_DOWNLOAD->ownPostRow(ILjava/lang/Object;)I"
+internal const val OFFER_PLAYER = "$VIDEO_DOWNLOAD->offerPlayer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
+internal const val PLAYER_OPTION = "$VIDEO_DOWNLOAD->playerOption()Ljava/lang/Object;"
+internal const val PLAY_VIDEO = "$VIDEO_DOWNLOAD->play(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
+
+private const val POST_INFO = "$EXTENSION_PACKAGE/download/PostInfo;"
+internal const val OFFER_DETAILS = "$POST_INFO->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
+internal const val DETAILS_OPTION = "$POST_INFO->option()Ljava/lang/Object;"
+internal const val SHOW_DETAILS = "$POST_INFO->show(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
 /** The options the short feed menu's list of kept options reads first and last: "Why you're seeing this" and Report. */
 internal const val WHY_OPTION = "$OPTION->WHY_AM_I_SEEING_THIS:$OPTION"
@@ -79,13 +95,13 @@ private const val GET_STRING = "Landroid/content/res/Resources;->getString(I)Lja
 
 /**
  * The bridges this patch writes: the post a menu is for, Instagram's Download row, the post's feed
- * state, the carousel page that state says is on screen, and a carousel's pages.
+ * state and the carousel page that state says is on screen. A carousel's pages are written by
+ * [carouselBridge], which Download on reels shares.
  */
 private const val FEED_MENU_MEDIA = "feedMenuMedia"
 private const val ADD_DOWNLOAD_ROW = "addDownloadRow"
 private const val FEED_MENU_ITEM_STATE = "feedMenuItemState"
 private const val CAROUSEL_INDEX = "carouselIndex"
-private const val CAROUSEL_MEDIA = "carouselMedia"
 
 /** Instagram's helpers on a Media, a class that keeps its name, among them the one answering a carousel's page. */
 internal const val MEDIA_EXT = "Lcom/instagram/feed/media/MediaExtKt;"
@@ -116,6 +132,10 @@ private const val CAROUSEL_FIELD = "carousel_media"
  * option is on a fixed list, in that list's order, so it dropped the Download row. The list goes
  * through the extension before it's returned, which puts Download first while the switch is on.
  *
+ * Open in another player is a row of the same kind as Save all, offered beside it and made with
+ * its own option, which the handler hands to the extension with the post and its feed state.
+ * Details, with its own switch, is one more row of that kind, offered after it.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -124,13 +144,14 @@ val downloadVideoPatch = bytecodePatch(
     name = "Download any video",
     description = "Adds Download to the menu of a post in your feed with a video, and of a carousel showing a video. " +
         "Videos save at the Download quality you set, without Instagram's watermark. " +
-        "A second switch does the same for photo posts.",
+        "A second switch does the same for photo posts. " +
+        "Another adds Details, with the post's time, who posted it, its media ID and buttons that copy its direct link, the username and the caption.",
     default = false,
 ) {
     category("Downloads")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, playerQueriesPatch)
 
     execute {
         requireStatusMethod("videoDownload")
@@ -163,13 +184,17 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
     val loaders = mutableListOf<Method>()
     val shortLists = mutableListOf<Method>()
     val pageReads = mutableListOf<PageRead>()
+    val marked = typesMarked(ELIGIBLE_MARKER)
+    val loading = typesLoadingDownload()
+    val paging = classesCallingInto(MEDIA_EXT).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.originalName() == FEED_HELPER_NAME) helpers += classDef
+        val type = classDef.type
         classDef.methods.forEach { method ->
-            if (ELIGIBLE_MARKER in method.markers()) eligibles += method
-            if (method.code().any { it.opcode == Opcode.SGET_OBJECT && it.referenceText() == DOWNLOAD }) loaders += method
+            if (type in marked && ELIGIBLE_MARKER in method.markers()) eligibles += method
+            if (type in loading && method.code().any { it.opcode == Opcode.SGET_OBJECT && it.referenceText() == DOWNLOAD }) loaders += method
             if (method.isShortMenuList()) shortLists += method
-            pageReads += method.pageReads()
+            if (type in paging) pageReads += method.pageReads()
         }
     }
     val helper = helpers.singleOrNull() ?: throw PatchException(
@@ -190,30 +215,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
     val others = builder.othersRow(eligible)
     val batchAt = builder.batchRow(others)
     val own = builder.ownPost(eligible, others)
-    val option = classDefBy(OPTION)
-    val constructor = option.methods.singleOrNull {
-        it.name == "<init>" && AccessFlags.PUBLIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/String;", "I", "I")
-    } ?: throw PatchException("$PATCH: $OPTION has no public (String, int, int) constructor")
-    val icon = option.methods.singleOrNull {
-        it.name == "getIconDrawable" && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
-            !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "I" && it.parameterTypes.isEmpty()
-    } ?: throw PatchException("$PATCH: $OPTION has no public icon getter")
-    val initialization = constructor.code()
-    val readIcon = icon.code()
-    val self = (constructor.implementation?.registerCount ?: 0) - 4
-    val getterSelf = (icon.implementation?.registerCount ?: 0) - 1
-    if (!AccessFlags.ENUM.isSet(option.accessFlags) || option.superclass != "Ljava/lang/Enum;" ||
-        AccessFlags.STATIC.isSet(constructor.accessFlags) || self < 0 || getterSelf < 0 ||
-        initialization.map { it.opcode } != listOf(Opcode.INVOKE_DIRECT, Opcode.IPUT, Opcode.RETURN_VOID) ||
-        initialization.first().referenceText() != "Ljava/lang/Enum;-><init>(Ljava/lang/String;I)V" ||
-        initialization.first().argumentRegisters() != listOf(self, self + 1, self + 2) ||
-        readIcon.map { it.opcode } != listOf(Opcode.IGET, Opcode.RETURN) ||
-        initialization[1].referenceText() != readIcon[0].referenceText() ||
-        (initialization[1] as TwoRegisterInstruction).let { it.registerA != self + 3 || it.registerB != self } ||
-        (readIcon[0] as TwoRegisterInstruction).let { it.registerB != getterSelf ||
-            it.registerA != (readIcon[1] as OneRegisterInstruction).registerA }
-    ) throw PatchException("$PATCH: $OPTION constructor and icon getter differ from the native menu option")
+    val icon = optionIcon(PATCH)
     val handlers = helper.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(OPTION)
     }
@@ -242,7 +244,6 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
     val postOf = bridge(FEED_MENU_MEDIA, "Ljava/lang/Object;")
     val itemStateOf = bridge(FEED_MENU_ITEM_STATE, "Ljava/lang/Object;")
     val indexOf = bridge(CAROUSEL_INDEX, "I")
-    val pagesOf = bridge(CAROUSEL_MEDIA, LIST)
     val rowStub = bridges.methods.singleOrNull {
         it.name == ADD_DOWNLOAD_ROW && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
             it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;", ARRAY_LIST)
@@ -255,6 +256,10 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
         it.name == "saveAllOption" && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.returnType == "Ljava/lang/Object;" && it.parameterTypes.isEmpty()
     } ?: throw PatchException("$PATCH: $INSTAGRAM_MEDIA has no Save all option stub")
+    val feedOptionStub = bridges.methods.singleOrNull {
+        it.name == "feedOption" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.returnType == "Ljava/lang/Object;" && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/String;")
+    } ?: throw PatchException("$PATCH: $INSTAGRAM_MEDIA has no static feedOption(String)")
     val shortList = shortLists.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one list of the options the short feed menu keeps, a static method taking a flag that reads " +
             "$WHY_OPTION and $REPORT_OPTION, found " +
@@ -270,6 +275,8 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
     }
     val writeBridges = mediaBridges(PATCH)
     val writeImageBridges = imageBridges(PATCH)
+    val writeCarouselBridge = carouselBridge(PATCH)
+    val writeCaptionBridges = captionBridges(PATCH)
 
     // Last return first, so the indices before it stay where they were.
     for (index in returns.reversed()) {
@@ -304,7 +311,14 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
             move-result v${own.answer}
         """,
     )
-    mutable(builder).addInstructions(batchAt, "invoke-static { v${others.state}, v${others.rows} }, $OFFER_ALL")
+    mutable(builder).addInstructions(
+        batchAt,
+        """
+            invoke-static { v${others.state}, v${others.rows} }, $OFFER_ALL
+            invoke-static { v${others.state}, v${others.rows} }, $OFFER_PLAYER
+            invoke-static { v${others.state}, v${others.rows} }, $OFFER_DETAILS
+        """,
+    )
 
     menu.addInstructionsWithLabels(
         0,
@@ -312,13 +326,37 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
             move-object/from16 v0, p1
             invoke-static {}, $ALL_OPTION
             move-result-object v1
+            if-eqz v1, :player
+            if-ne v0, v1, :player
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            invoke-static { v1, v2 }, $SAVE_ALL
+            return-void
+            :player
+            invoke-static {}, $PLAYER_OPTION
+            move-result-object v1
+            if-eqz v1, :details
+            if-ne v0, v1, :details
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            iget-object v0, v0, ${page.menuState}
+            invoke-static { v1, v0, v2 }, $PLAY_VIDEO
+            return-void
+            :details
+            invoke-static {}, $DETAILS_OPTION
+            move-result-object v1
             if-eqz v1, :current
             if-ne v0, v1, :current
             move-object/from16 v0, p0
             invoke-static { v0 }, $type->${media.name}($type)$MEDIA
             move-result-object v1
             iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
-            invoke-static { v1, v2 }, $SAVE_ALL
+            iget-object v0, v0, ${page.menuState}
+            invoke-static { v1, v0, v2 }, $SHOW_DETAILS
             return-void
             :current
             move-object/from16 v0, p1
@@ -361,15 +399,6 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
             return p0
         """,
     )
-    pagesOf.addInstructions(
-        0,
-        """
-            check-cast p0, $MEDIA
-            invoke-virtual { p0 }, ${carousel.definingClass}->${carousel.name}()$LIST
-            move-result-object p0
-            return-object p0
-        """,
-    )
     bridges.methods.remove(rowStub)
     bridges.methods.add(downloadRow(rowStub, others))
     bridges.methods.remove(allRowStub)
@@ -380,20 +409,20 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
         optionStub.accessFlags, optionStub.annotations, optionStub.hiddenApiRestrictions,
         ImmutableMethodImplementation(4, emptyList(), null, null),
     ).toMutable().apply {
-        addInstructions(0, """
-            sget-object v0, $DOWNLOAD
-            invoke-virtual { v0 }, Ljava/lang/Enum;->ordinal()I
-            move-result v2
-            invoke-virtual { v0 }, $OPTION->${icon.name}()I
-            move-result v3
-            const-string v1, "HUSHGRAM_SAVE_ALL"
-            new-instance v0, $OPTION
-            invoke-direct { v0, v1, v2, v3 }, $OPTION-><init>(Ljava/lang/String;II)V
-            return-object v0
-        """.trimIndent())
+        addInstructions(0, newOption(icon, "const-string v1, \"HUSHGRAM_SAVE_ALL\""))
+    })
+    bridges.methods.remove(feedOptionStub)
+    bridges.methods.add(ImmutableMethod(
+        feedOptionStub.definingClass, feedOptionStub.name, feedOptionStub.parameters, feedOptionStub.returnType,
+        feedOptionStub.accessFlags, feedOptionStub.annotations, feedOptionStub.hiddenApiRestrictions,
+        ImmutableMethodImplementation(5, emptyList(), null, null),
+    ).toMutable().apply {
+        addInstructions(0, newOption(icon, "move-object v1, p0"))
     })
     writeBridges()
     writeImageBridges()
+    writeCarouselBridge()
+    writeCaptionBridges?.invoke()
 }
 
 /**

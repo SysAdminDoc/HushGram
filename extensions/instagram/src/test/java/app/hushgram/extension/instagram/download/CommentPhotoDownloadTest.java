@@ -10,7 +10,9 @@ import android.os.Looper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +21,9 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowToast;
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.shared.diagnostics.DiagnosticRedactor;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -87,6 +92,78 @@ public class CommentPhotoDownloadTest {
         assertTrue(CommentPhotoDownload.snapshot(media, noVersions).isEmpty());
     }
 
+    private static List<String> counted(String counts) {
+        return Collections.singletonList(FamilyNames.COMMENT_PHOTO + ": invoked 0, 0 found, 0 missing. Counted: " + counts);
+    }
+
+    @Test public void eachWayTheSizesComeBackEmptyCountsItsOwnReasonOnce() {
+        Object media = new Object();
+        HookStatus.clear();
+        assertTrue(CommentPhotoDownload.snapshot(null, images(null, null)).isEmpty());
+        assertTrue("the read that found no media already counted it", HookStatus.report().isEmpty());
+
+        CommentPhotoDownload.Images noVersions = new CommentPhotoDownload.Images() {
+            public Object versions(Object m) { return null; }
+            public List<?> candidates(Object versions) { throw new AssertionError("no versions to read"); }
+            public String url(Object candidate) { throw new AssertionError(); }
+            public int width(Object candidate) { throw new AssertionError(); }
+            public int height(Object candidate) { throw new AssertionError(); }
+        };
+        assertTrue(CommentPhotoDownload.snapshot(media, noVersions).isEmpty());
+        assertEquals(counted("no image_versions2 1"), HookStatus.report());
+
+        for (List<?> none : Arrays.asList(null, Collections.emptyList(), Arrays.asList(null, null))) {
+            HookStatus.clear();
+            assertTrue(CommentPhotoDownload.snapshot(media, images(media, none)).isEmpty());
+            assertEquals(String.valueOf(none), counted("no candidates 1"), HookStatus.report());
+        }
+
+        // Every size refused: each reason once, in the order first seen, whatever the size count.
+        HookStatus.clear();
+        assertTrue(CommentPhotoDownload.snapshot(media, images(media, Arrays.asList(
+                "https://media.giphy.com/large.jpg", "https://media.giphy.com/small.jpg",
+                "http://scontent.fbcdn.net/p.jpg", null, "https://scontent.fbcdn.net/a.mp4", "https://scontent.fbcdn.net/b.gif"))).isEmpty());
+        assertEquals(counted("size refused (its host is not one of Meta's media servers) 1, size refused (it is not HTTPS) 1, "
+                + "size refused (animated or video) 1"), HookStatus.report());
+        assertTrue(CommentPhotoDownload.snapshot(media, images(media, Collections.singletonList("https://media.giphy.com/p.jpg"))).isEmpty());
+        assertEquals(counted("size refused (its host is not one of Meta's media servers) 2, size refused (it is not HTTPS) 1, "
+                + "size refused (animated or video) 1"), HookStatus.report());
+        HookStatus.clear();
+    }
+
+    @Test public void aKeptSizeCountsAFoundPhotoAndNoRefusal() {
+        HookStatus.clear();
+        Object media = new Object();
+        List<MediaSave.Rendition> kept = CommentPhotoDownload.snapshot(media, images(media, Arrays.asList(
+                "https://media.giphy.com/p.jpg", "https://scontent.cdninstagram.com/p.jpg")));
+        assertEquals(1, kept.size());
+        assertEquals(counted("photo found 1"), HookStatus.report());
+        HookStatus.clear();
+    }
+
+    /** Each reason prints in the saved report as written: no address, host or id goes in, and the redactor keeps it. */
+    @Test public void everyReasonIsFixedTextTheReportKeepsAsWritten() {
+        Object media = new Object();
+        List<String> refusedAlone = Arrays.asList("", "not an address", "http://scontent.fbcdn.net/p.jpg", "https:///p.jpg",
+                "https://user@scontent.fbcdn.net/p.jpg", "https://scontent.fbcdn.net:8443/p.jpg", "https://127.0.0.1/p.jpg",
+                "https://media.giphy.com/p.jpg", "https://scontent.fbcdn.net/a.webm");
+        Set<String> reasons = new LinkedHashSet<>();
+        for (String url : refusedAlone) {
+            HookStatus.clear();
+            assertTrue(CommentPhotoDownload.snapshot(media, images(media, Collections.singletonList(url))).isEmpty());
+            List<String> report = HookStatus.report();
+            assertEquals(url, 1, report.size());
+            String line = report.get(0);
+            assertEquals(url, line, DiagnosticRedactor.redact(line));
+            String reason = line.substring(line.indexOf("Counted: ") + "Counted: ".length(), line.length() - " 1".length());
+            assertTrue(reason, reason.startsWith("size refused ("));
+            assertFalse(reason, reason.contains("fbcdn") || reason.contains("giphy") || reason.contains("127.0.0.1"));
+            reasons.add(reason);
+        }
+        assertEquals("every refusal the policy gives has its own name", refusedAlone.size(), reasons.size());
+        HookStatus.clear();
+    }
+
     @Test public void copyIsDetachedAndUnmodifiable() {
         List<MediaSave.Rendition> source = new ArrayList<>(Collections.singletonList(
                 new MediaSave.Rendition("https://scontent.cdninstagram.com/p.jpg", 640, 480, 0)));
@@ -97,11 +174,11 @@ public class CommentPhotoDownloadTest {
     }
 
     @Test public void aSaveThatCannotStartSaysSoAndNeverThrows() {
-        CommentPhotoDownload.save(context, Collections.emptyList());
+        CommentPhotoDownload.save(context, Collections.emptyList(), PostDetails.NONE);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
         ShadowToast.reset();
-        CommentPhotoDownload.save(null, Collections.emptyList());
+        CommentPhotoDownload.save(null, Collections.emptyList(), null);
         CommentPhotoDownload.failed(null);
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertNull(ShadowToast.getTextOfLatestToast());

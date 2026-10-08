@@ -20,8 +20,13 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import java.util.List;
+import java.util.function.BooleanSupplier;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -30,9 +35,14 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class RepostButtonTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    private static final BooleanSupplier THROWS = () -> {
+        throw new IllegalStateException("settings went away");
+    };
+
     @After
     public void restore() {
         Settings.HIDE_REPOST_BUTTON.resetToDefault();
+        HookStatus.clear();
     }
 
     /** Once the patch is picked, its switch starts on, so every post reads as one that can't be reposted. */
@@ -100,6 +110,56 @@ public class RepostButtonTest {
         SettingsContextRule.withoutContext(() -> assertFalse(RepostButton.feedComponent()));
         SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(RepostButton.feedComponent()));
         assertTrue(RepostButton.feedComponent());
+    }
+
+    /** Feed's action-row state keeps the Repost button and its count off while the switch is on (#69). */
+    @Test
+    @Config(sdk = {28, 37})
+    public void withTheSwitchOnTheFeedStateIsOff() {
+        HookStatus.clear();
+        assertFalse(RepostButton.feedState(1));
+        assertFalse(RepostButton.feedState(0));
+        assertEquals(List.of(FamilyNames.REPOST_BUTTON + ": invoked 2, 0 found, 0 missing. Counted: feed state off 2"),
+                HookStatus.report());
+    }
+
+    /** Off, the flag is Instagram's, handed over as an int that reads any non-zero as yes. */
+    @Test
+    @Config(sdk = {28, 37})
+    public void withTheSwitchOffTheFeedStateIsAsInstagramBuiltIt() {
+        Settings.HIDE_REPOST_BUTTON.save(false);
+        HookStatus.clear();
+        assertTrue(RepostButton.feedState(1));
+        assertFalse(RepostButton.feedState(0));
+        assertTrue("2 is a yes too", RepostButton.feedState(2));
+        assertEquals(List.of(FamilyNames.REPOST_BUTTON + ": invoked 3, 0 found, 0 missing. Counted: feed state on 3"),
+                HookStatus.report());
+    }
+
+    /** A state built before the settings can be read, or while HushGram is paused, keeps Instagram's flag. */
+    @Test
+    @Config(sdk = {28, 37})
+    public void theFeedStateWaitsForNeitherTheSettingsNorThePause() {
+        SettingsContextRule.withoutContext(() -> assertTrue(RepostButton.feedState(1)));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertTrue(RepostButton.feedState(1)));
+        try {
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertTrue(RepostButton.feedState(1));
+        } finally {
+            PauseForTests.resume();
+        }
+        assertFalse(RepostButton.feedState(1));
+    }
+
+    /** A switch that throws leaves the flag as Instagram built it, and the report names the hook. */
+    @Test
+    public void aThrowingSwitchLeavesTheFeedStateAndIsReported() {
+        HookStatus.clear();
+        assertTrue(RepostButton.feedState(true, THROWS));
+        assertFalse(RepostButton.feedState(false, THROWS));
+        String missing = HookStatus.missing(FamilyNames.REPOST_BUTTON).toString();
+        assertTrue(missing, missing.contains("'feed state'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
     @Test

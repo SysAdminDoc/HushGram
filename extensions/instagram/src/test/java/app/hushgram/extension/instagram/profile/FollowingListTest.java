@@ -67,10 +67,12 @@ public class FollowingListTest {
         PauseForTests.resume();
         Settings.MARK_FOLLOWING_LIST.save(true);
         HookStatus.clear();
+        FollowingList.forgetAnswers();
     }
 
     @After
     public void restore() {
+        FollowingList.forgetAnswers();
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -121,6 +123,85 @@ public class FollowingListTest {
         assertEquals(View.VISIBLE, named.name.getVisibility());
         assertEquals(View.GONE, nameless.name.getVisibility());
         assertFalse(nameless.text().contains(MARK));
+    }
+
+    /**
+     * #40: Instagram's cached status says no, from a feed or a reel, but the server hasn't answered a
+     * request that asked. The row stays as Instagram drew it until it has.
+     */
+    @Test
+    public void aCachedNoTheServerHasNotAnsweredStaysUnmarked() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        reader.answers.put(notFollowing, null);
+        Row row = new Row();
+
+        row.bind(notFollowing, "Ana", reader, ON);
+        assertEquals("Ana", row.text());
+
+        reader.answers.put(notFollowing, false);
+        row.bind(notFollowing, "Ana", reader, ON);
+        assertEquals("Ana" + FriendshipStatus.SEPARATOR + MARK, row.text());
+    }
+
+    /** A yes on the account's own status, from opening its profile say, overrules the server's earlier no. */
+    @Test
+    public void aLaterYesOverrulesAnAnsweredNo() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        reader.follows.put(notFollowing, true);
+        Row row = new Row();
+
+        row.bind(notFollowing, "Ana", reader, ON);
+
+        assertEquals("Ana", row.text());
+    }
+
+    /** Answers are kept for the account signed in, only when the server said either way, and no more than the cap. */
+    @Test
+    public void answersAreKeptPerSignedInAccount() {
+        FollowingList.remember(ME, "7", false);
+        FollowingList.remember(ME, "8", true);
+        FollowingList.remember(ME, "9", null);
+        FollowingList.remember(null, "7", true);
+        FollowingList.remember(ME, "", true);
+
+        assertEquals(Boolean.FALSE, FollowingList.answer(ME, "7"));
+        assertEquals(Boolean.TRUE, FollowingList.answer(ME, "8"));
+        assertNull(FollowingList.answer(ME, "9"));
+        assertNull(FollowingList.answer("2002", "7"));
+        assertNull(FollowingList.answer(ME, null));
+
+        FollowingList.remember(ME, "7", true);
+        assertEquals(Boolean.TRUE, FollowingList.answer(ME, "7"));
+
+        for (int i = 0; i < FollowingList.MAX_ANSWERS; i++) FollowingList.remember(ME, "u" + i, false);
+        assertNull("the oldest answer goes first", FollowingList.answer(ME, "8"));
+        assertEquals(Boolean.FALSE, FollowingList.answer(ME, "u" + (FollowingList.MAX_ANSWERS - 1)));
+    }
+
+    /** Only your own Following list, with the switch on, asks about rows Instagram's cache says it knows. */
+    @Test
+    public void ownFollowingListAsksAboutEveryRow() {
+        Object friendship = new Object();
+        Object[][] lists = {
+                {Kind.FOLLOWING, ME, ME, null},
+                {Kind.FOLLOWING_SIMPLIFIED, ME, ME, null},
+                {Kind.FOLLOWERS, ME, ME, friendship},
+                {Kind.FOLLOWING, "2002", ME, friendship},
+                {Kind.FOLLOWING, null, ME, friendship},
+                {Kind.FOLLOWING, ME, null, friendship},
+                {null, ME, ME, friendship},
+        };
+        for (Object[] list : lists) {
+            Object answered = FollowingList.known(friendship, binder, l -> list[0], l -> list[1], l -> list[2], ON);
+            assertEquals(java.util.Arrays.toString(list), list[3], answered);
+        }
+        assertEquals(friendship, FollowingList.known(friendship, binder, l -> Kind.FOLLOWING, l -> ME, l -> ME, OFF));
+        assertNull("a row with nothing cached is asked about anyway", FollowingList.known(null, binder, l -> Kind.FOLLOWING, l -> ME, l -> ME, OFF));
+
+        assertEquals(friendship, FollowingList.known(friendship, binder, l -> { throw new IllegalStateException("gone"); },
+                l -> ME, l -> ME, ON));
+        String missing = HookStatus.missing(FamilyNames.FRIENDSHIP_STATUS).toString();
+        assertTrue(missing, missing.contains("'" + FollowingList.REFETCH + "'"));
     }
 
     /** Followers, someone else's Following list, any other list and a list that can't be told apart stay as they are. */
@@ -260,9 +341,15 @@ public class FollowingListTest {
         FollowingList.row(null, 0, null, null);
         FollowingList.row(new Object(), 0, new View(context), new Object());
         FollowingList.row(new Object(), 3, row.view, notFollowing);
+        Object friendship = new Object();
+        assertEquals(friendship, FollowingList.known(friendship, new Object()));
+        FollowingList.answered(new Object(), new Object(), new Object());
+        FollowingList.answered(null, null, null);
 
         assertEquals("Ana", row.text());
         assertNull(FollowingList.listKind(binder));
+        assertNull(FollowingList.fetchKind(binder));
+        assertNull(FollowingList.statusFollowedBy(new Object()));
         assertFalse(FollowingList.ownFollowingList(Kind.FOLLOWING, null, null));
     }
 
@@ -309,15 +396,20 @@ public class FollowingListTest {
         private final Object kind;
         private final String owner;
         private final String viewer;
-        private final Map<Object, Boolean> follows = new HashMap<>();
+        /** What Instagram's cached status says. */
+        final Map<Object, Boolean> follows = new HashMap<>();
+        /** What the server answered when asked. */
+        final Map<Object, Boolean> answers = new HashMap<>();
 
         Reader(Object kind, String owner, String viewer) {
             this.kind = kind;
             this.owner = owner;
             this.viewer = viewer;
-            follows.put(notFollowing, false);
-            follows.put(following, true);
-            follows.put(unknown, null);
+            for (Map<Object, Boolean> said : java.util.Arrays.asList(follows, answers)) {
+                said.put(notFollowing, false);
+                said.put(following, true);
+                said.put(unknown, null);
+            }
         }
 
         @Override
@@ -338,6 +430,11 @@ public class FollowingListTest {
         @Override
         public Boolean followedBy(Object user) {
             return follows.get(user);
+        }
+
+        @Override
+        public Boolean answer(String viewer, Object user) {
+            return viewer == null ? null : answers.get(user);
         }
 
         @Override

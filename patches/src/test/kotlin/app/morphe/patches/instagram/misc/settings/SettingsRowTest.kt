@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.iface.value.StringEncodedValue
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -65,7 +66,7 @@ class SettingsRowTest {
         val failure = assertThrows(PatchException::class.java) {
             PatchContexts.of(SettingsPatchHosts.all().filter { it.type != SettingsPatchHosts.SETTINGS_SCREEN }).addSettingsRow()
         }
-        assertTrue(failure.message, failure.message!!.contains("expected exactly one settings screen factory"))
+        assertTrue(failure.message, failure.message!!.contains("expected a settings screen factory in this Instagram build, found none"))
     }
 
     /**
@@ -88,15 +89,22 @@ class SettingsRowTest {
                         }
                     }
                 }
+                // 449's factory is a static on the screen itself; 450's makes the screen from
+                // another class, so the classes the factory makes come along.
+                val factories = candidates.flatMap { it.methods }.filter { method ->
+                    method.instructions().any { it.string() == "screen_id" } &&
+                        method.instructions().any { it.string() == "new_settings_session" }
+                }
+                val made = factories.flatMap { method ->
+                    method.instructions().filter { it.opcode == Opcode.NEW_INSTANCE }
+                        .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+                }.toSet()
+                candidates += FixtureDex.classes(bundle, made - candidates.map { it.type }.toSet()).values
                 val context = PatchContexts.of(candidates)
 
                 context.addSettingsRow()
 
-                val factory = candidates.flatMap { it.methods }.single { method ->
-                    AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == method.definingClass &&
-                        method.instructions().any { it.string() == "screen_id" }
-                }
-                val screen = candidates.single { it.type == factory.returnType }
+                val screen = candidates.filter { it.type in made }.single { classDef -> classDef.methods.any { it.name == "onCreateView" } }
                 val originalName = screen.staticFields.single { it.name == "__redex_internal_original_name" }.initialValue
                 assertEquals("${bundle.name}: the screen found", "SettingsScreenFragment", (originalName as StringEncodedValue).value)
 

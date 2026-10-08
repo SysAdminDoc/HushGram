@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.feed
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -39,30 +40,10 @@ internal object FeedItemParserFingerprint : Fingerprint(
  * filter answers null for null, so the order doesn't change what comes back.
  *
  * [kinds] are the item kinds [filter] drops, which one of the item's enum types has to name; see
- * [requireOneKindField].
+ * [requireOneKindField]. A filter that drops every item, whatever its kind, passes none.
  */
 internal fun BytecodePatchContext.filterParsedFeedItems(patch: String, filter: String, kinds: List<String>) {
-    val parser = uniqueMethod(patch, "feed item parser", FeedItemParserFingerprint)
-    val itemTypes = parser.implementation!!.instructions
-        .filter { it.opcode == Opcode.NEW_INSTANCE }
-        .map { ((it as ReferenceInstruction).reference as TypeReference).type }
-        .distinct()
-        .filter { type -> classDefByOrNull(type)?.fields?.any { it.type == CLIPS_NETEGO } == true }
-    val itemType = itemTypes.singleOrNull() ?: throw PatchException(
-        "$patch: expected the feed item parser to make one class with a $CLIPS_NETEGO field, found $itemTypes",
-    )
-    requireOneKindField(patch, itemType, kinds)
-
-    val item = mutableClassDefBy(itemType)
-    val helpers = item.methods.filter { method ->
-        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == itemType && method.parameterTypes.size == 1 &&
-            method.implementation?.instructions?.any {
-                ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name == "parseFromJsonParser"
-            } == true
-    }
-    val helper = helpers.singleOrNull() ?: throw PatchException(
-        "$patch: expected one static method of $itemType that parses one from JSON, found ${helpers.size}",
-    )
+    val (itemType, helper) = findFeedItemHelper(patch, kinds)
     val returns = helper.implementation!!.instructions.withIndex()
         .filter { it.value.opcode == Opcode.RETURN_OBJECT }
         .map { it.index to (it.value as OneRegisterInstruction).registerA }
@@ -78,6 +59,37 @@ internal fun BytecodePatchContext.filterParsedFeedItems(patch: String, filter: S
             """,
         )
     }
+}
+
+/**
+ * The feed item's type and its static helper parsing one from JSON, which every feed reading items
+ * goes through: Home's, Explore's chain of posts, the shop and ad feeds and more. Found from the
+ * feed item parser, the one class it makes with a [CLIPS_NETEGO] field. [kinds], when there are
+ * any, have to be named by one of the item's enum types; see [requireOneKindField].
+ */
+internal fun BytecodePatchContext.findFeedItemHelper(patch: String, kinds: List<String>): Pair<String, MutableMethod> {
+    val parser = uniqueMethod(patch, "feed item parser", FeedItemParserFingerprint)
+    val itemTypes = parser.implementation!!.instructions
+        .filter { it.opcode == Opcode.NEW_INSTANCE }
+        .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+        .distinct()
+        .filter { type -> classDefByOrNull(type)?.fields?.any { it.type == CLIPS_NETEGO } == true }
+    val itemType = itemTypes.singleOrNull() ?: throw PatchException(
+        "$patch: expected the feed item parser to make one class with a $CLIPS_NETEGO field, found $itemTypes",
+    )
+    if (kinds.isNotEmpty()) requireOneKindField(patch, itemType, kinds)
+
+    val item = mutableClassDefBy(itemType)
+    val helpers = item.methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == itemType && method.parameterTypes.size == 1 &&
+            method.implementation?.instructions?.any {
+                ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name == "parseFromJsonParser"
+            } == true
+    }
+    val helper = helpers.singleOrNull() ?: throw PatchException(
+        "$patch: expected one static method of $itemType that parses one from JSON, found ${helpers.size}",
+    )
+    return itemType to helper
 }
 
 /**

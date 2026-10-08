@@ -8,10 +8,13 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 /** Instagram's post, reel or story, which keeps its name. */
 internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
@@ -25,6 +28,9 @@ internal const val PANDO_IMAGE_INFO = "Lcom/instagram/model/mediasize/ImmutableP
 
 /** One size of a picture. Its getters keep their names. */
 internal const val IMAGE_URL = "Lcom/instagram/common/typedurl/ImageUrl;"
+
+/** An account's full size picture. Its getters keep their names too. */
+internal const val PROFILE_PICTURE_INFO = "Lcom/instagram/api/schemas/ProfilePicUrlInfo;"
 
 /** The extension's bridges to Instagram's media model, whose bodies [mediaBridges] and [imageBridges] write. */
 internal const val INSTAGRAM_MEDIA = "$EXTENSION_PACKAGE/download/InstagramMedia;"
@@ -112,6 +118,184 @@ internal fun BytecodePatchContext.imageBridges(patch: String): () -> Unit {
         Bridge("candidateUrl", IMAGE_URL, kept("getUrl", "Ljava/lang/String;")),
         Bridge("candidateWidth", IMAGE_URL, kept("getWidth", "I"), primitive = true),
         Bridge("candidateHeight", IMAGE_URL, kept("getHeight", "I"), primitive = true),
+    ))
+}
+
+/**
+ * The same for an account's picture: the one its profile shows, read as a picture's candidate, and
+ * its full size, read through the interface both of Instagram's classes for it implement, whose
+ * getters keep their names. The account's username names the save, and it and the account's bio
+ * are what Copy username and Copy bio copy. Only Copy bio reads the bio, so a build where its
+ * getter can't be told leaves that bridge answering null, after the patch log says why, and the
+ * patch goes in without Copy bio.
+ */
+internal fun BytecodePatchContext.profilePictureBridges(patch: String): () -> Unit {
+    val shown = pandoGetter(patch, USER, "profile_pic_url", IMAGE_URL)
+    val full = pandoGetter(patch, USER, "hd_profile_pic_url_info", PROFILE_PICTURE_INFO)
+    val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")
+    val biography = try {
+        pandoGetter(patch, USER, "biography", "Ljava/lang/String;")
+    } catch (unknown: PatchException) {
+        patchLog.warning("${unknown.message}. $patch goes in without Copy bio.")
+        null
+    }
+    return bridgeWriter(patch, listOfNotNull(
+        Bridge("profilePicture", USER, virtual(shown)),
+        Bridge("fullSizeProfilePicture", USER, virtual(full)),
+        Bridge("username", USER, virtual(username)),
+        biography?.let { Bridge("biography", USER, virtual(it)) },
+        Bridge("profilePictureUrl", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getUrl", "Ljava/lang/String;")),
+        Bridge("profilePictureWidth", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getWidth", "I"), primitive = true),
+        Bridge("profilePictureHeight", PROFILE_PICTURE_INFO, kept(patch, PROFILE_PICTURE_INFO, "getHeight", "I"), primitive = true),
+        Bridge("candidateUrl", IMAGE_URL, kept(patch, IMAGE_URL, "getUrl", "Ljava/lang/String;")),
+        Bridge("candidateWidth", IMAGE_URL, kept(patch, IMAGE_URL, "getWidth", "I"), primitive = true),
+        Bridge("candidateHeight", IMAGE_URL, kept(patch, IMAGE_URL, "getHeight", "I"), primitive = true),
+    ))
+}
+
+/**
+ * The same for an account in a list: its username and the address of the picture its profile
+ * shows, and nothing a profile's own patches read besides, so a build where the full size picture
+ * or the bio moved doesn't stop a patch that only lists accounts.
+ */
+internal fun BytecodePatchContext.accountBridges(patch: String): () -> Unit {
+    val shown = pandoGetter(patch, USER, "profile_pic_url", IMAGE_URL)
+    val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")
+    return bridgeWriter(patch, listOf(
+        Bridge("profilePicture", USER, virtual(shown)),
+        Bridge("username", USER, virtual(username)),
+        Bridge("candidateUrl", IMAGE_URL, kept(patch, IMAGE_URL, "getUrl", "Ljava/lang/String;")),
+    ))
+}
+
+/** A call through [type]'s getter [name], which keeps its name, after checking the interface has it. */
+private fun BytecodePatchContext.kept(patch: String, type: String, name: String, returns: String): String {
+    if (anInterface(patch, type).methods.none { it.name == name && it.parameterTypes.isEmpty() && it.returnType == returns }) {
+        throw PatchException("$patch: $type has no $name()$returns")
+    }
+    return "invoke-interface {p0}, $type->$name()$returns"
+}
+
+/**
+ * The same for the sizes Instagram's feed photo picker reads for a Media: a call to [helper], the
+ * static method of Media's helpers the picker asks, which may answer a carousel page's sizes
+ * rather than the post's own.
+ */
+internal fun BytecodePatchContext.pickerSizesBridge(patch: String, helper: MethodReference): () -> Unit =
+    bridgeWriter(patch, listOf(Bridge("pickerImageVersions", MEDIA, "invoke-static {p0}, $helper")))
+
+/**
+ * The same for a post's caption, for Details' Copy caption: Media's `caption`, which is a comment,
+ * and that comment's `text`, read through the comment's interface by the name its tree-backed class
+ * gives the getter, as a comment's own text is. Media's getter is the one taking nothing that holds
+ * the key's hash, since the comment's type has no kept name. Only Copy caption needs them, so a
+ * build where either can't be told answers null, after the patch log says why, and Details goes in
+ * without it.
+ */
+internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? = try {
+    val key = "caption".hashCode()
+    val captions = classDefBy(MEDIA).methods.filter { method ->
+        method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
+    }
+    val caption = captions.singleOrNull() ?: throw PatchException(
+        "$patch: expected one getter on $MEDIA for caption, found " +
+            if (captions.isEmpty()) "none" else captions.joinToString { it.name },
+    )
+    val comment = caption.returnType
+    anInterface(patch, comment)
+    val textKey = "text".hashCode()
+    val trees = mutableListOf<ClassDef>()
+    classDefForEach { type ->
+        if (comment in type.interfaces && type.methods.any { method ->
+                method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
+                    method.implementation?.instructions?.any { it.loadsLiteral(textKey) } == true
+            }) trees += type
+    }
+    val tree = trees.singleOrNull() ?: throw PatchException(
+        "$patch: expected one tree-backed $comment reading its text, found " +
+            if (trees.isEmpty()) "none" else trees.joinToString { it.type },
+    )
+    bridgeWriter(patch, listOf(
+        Bridge("caption", MEDIA, virtual(caption)),
+        Bridge("captionText", comment, throughInterface(patch, comment, tree.type, "text", "Ljava/lang/String;")),
+    ))
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. Details goes in without Copy caption.")
+    null
+}
+
+/** The same for an account's username alone, for a save named after an account found elsewhere. */
+internal fun BytecodePatchContext.usernameBridge(patch: String): () -> Unit {
+    val username = pandoGetter(patch, USER, "username", "Ljava/lang/String;")
+    return bridgeWriter(patch, listOf(Bridge("username", USER, virtual(username))))
+}
+
+/**
+ * The same for a carousel's pages, `carousel_media`, which Save all reads in the feed and the Reels
+ * viewer's Download saves, since a carousel's own picture there is its first page's (#78).
+ */
+internal fun BytecodePatchContext.carouselBridge(patch: String): () -> Unit {
+    val pages = pandoGetter(patch, MEDIA, "carousel_media", "Ljava/util/List;")
+    return bridgeWriter(patch, listOf(Bridge("carouselMedia", MEDIA, virtual(pages))))
+}
+
+/** The same for whether a story is a photo with music, which Instagram serves as a video. */
+internal fun BytecodePatchContext.storyMusicBridges(patch: String): () -> Unit {
+    val photoWithMusic = pandoGetter(patch, MEDIA, "is_story_image_with_music", "Ljava/lang/Boolean;")
+    return bridgeWriter(patch, listOf(Bridge("storyImageWithMusic", MEDIA, virtual(photoWithMusic))))
+}
+
+/** A post's music, the track it comes from, and the part of the track the post plays. All keep their names. */
+internal const val MUSIC_INFO = "Lcom/instagram/api/schemas/MusicInfo;"
+internal const val PANDO_MUSIC_INFO = "Lcom/instagram/api/schemas/ImmutablePandoMusicInfo;"
+internal const val TRACK_DATA = "Lcom/instagram/api/schemas/TrackData;"
+internal const val PANDO_TRACK_DATA = "Lcom/instagram/api/schemas/ImmutablePandoTrackData;"
+internal const val MUSIC_CONSUMPTION = "Lcom/instagram/music/common/model/MusicConsumptionModel;"
+internal const val PANDO_MUSIC_CONSUMPTION = "Lcom/instagram/music/common/model/ImmutablePandoMusicConsumptionModel;"
+
+/**
+ * The same for a post's music (#71): where a photo post keeps it (`music_metadata`) or a reel does
+ * (`clips_metadata`), the track's addresses, and the part of the track the post plays. Each of
+ * the two metadata types is an interface of Instagram's whose one getter answering the music
+ * reads it, and the bridge calls that getter.
+ */
+internal fun BytecodePatchContext.musicBridges(patch: String): () -> Unit {
+    fun holder(field: String): Pair<Method, String> {
+        val key = field.hashCode()
+        val getters = classDefBy(MEDIA).methods.filter { method ->
+            method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+                method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
+        }
+        val getter = getters.singleOrNull() ?: throw PatchException(
+            "$patch: expected one getter on $MEDIA answering an object for $field, found " +
+                if (getters.isEmpty()) "none" else getters.joinToString { it.name },
+        )
+        val music = anInterface(patch, getter.returnType).methods.filter {
+            it.parameterTypes.isEmpty() && it.returnType == MUSIC_INFO && !AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+        val read = music.singleOrNull() ?: throw PatchException(
+            "$patch: expected one getter of the music on ${getter.returnType}, the type of $field, found ${music.size}",
+        )
+        return getter to "invoke-interface {p0}, ${getter.returnType}->${read.name}()$MUSIC_INFO"
+    }
+    val (metadata, metadataMusic) = holder("music_metadata")
+    val (clips, clipsMusic) = holder("clips_metadata")
+    fun music(field: String, returns: String) = throughInterface(patch, MUSIC_INFO, PANDO_MUSIC_INFO, field, returns)
+    fun track(field: String) = throughInterface(patch, TRACK_DATA, PANDO_TRACK_DATA, field, "Ljava/lang/String;")
+    fun part(field: String) = throughInterface(patch, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION, field, "Ljava/lang/Integer;")
+
+    return bridgeWriter(patch, listOf(
+        Bridge("musicMetadata", MEDIA, virtual(metadata)),
+        Bridge("metadataMusic", metadata.returnType, metadataMusic),
+        Bridge("clipsMetadata", MEDIA, virtual(clips)),
+        Bridge("clipsMusic", clips.returnType, clipsMusic),
+        Bridge("musicTrack", MUSIC_INFO, music("music_asset_info", TRACK_DATA)),
+        Bridge("musicConsumption", MUSIC_INFO, music("music_consumption_info", MUSIC_CONSUMPTION)),
+        Bridge("trackUrl", TRACK_DATA, track("progressive_download_url")),
+        Bridge("trackFastStartUrl", TRACK_DATA, track("fast_start_progressive_download_url")),
+        Bridge("musicStartMs", MUSIC_CONSUMPTION, part("audio_asset_start_time_in_ms")),
+        Bridge("musicLengthMs", MUSIC_CONSUMPTION, part("overlap_duration_in_ms")),
     ))
 }
 

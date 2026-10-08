@@ -9,6 +9,9 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -85,12 +88,8 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         it.opcode == Opcode.CHECK_CAST && (it as? OneRegisterInstruction)?.registerA == handler.parameterRegisterNumber(2)
     }?.type() ?: refuse("visual handler does not start by casting its mutation parameter")
 
-    val classes = mutableListOf<ClassDef>()
-    classDefForEach { classes += it }
-    val byType = classes.associateBy { it.type }
-    val methods = classes.flatMap { it.methods }
     val callbackType = handler.parameterTypes[1].toString()
-    val callback = byType[callbackType] ?: refuse("visual callback interface is missing")
+    val callback = classDefByOrNull(callbackType) ?: refuse("visual callback interface is missing")
     if (!AccessFlags.PUBLIC.isSet(callback.accessFlags) || !AccessFlags.INTERFACE.isSet(callback.accessFlags)) {
         refuse("visual callback is not a public interface")
     }
@@ -111,7 +110,7 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         refuse("response factory is not handed the visual handler's callback")
     }
     handler.requireParameterIntact(PATCH, 1, listOf(factoryAt))
-    val nativeCallback = byType[factoryRef.returnType] ?: refuse("native response callback class is missing")
+    val nativeCallback = classDefByOrNull(factoryRef.returnType) ?: refuse("native response callback class is missing")
     val success = nativeCallback.methods.filter { method ->
         method.visualCode().any { it.visualString() == SUCCESS_ANCHOR } &&
             method.returnType == "V" && !AccessFlags.STATIC.isSet(method.accessFlags)
@@ -130,8 +129,9 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
     }.one("success callback's stored completion receiver")
     success.requireThisIntact(PATCH, listOf(fieldAt))
     requireOrigin(success, doneAt, receiver, fieldAt, "native success callback receiver")
-    val callbackField = successCode[fieldAt].field()!!.toString()
-    val writer = methods.filter { method ->
+    val stored = successCode[fieldAt].field()!!
+    val callbackField = stored.toString()
+    val writer = classesAccessing(stored.definingClass, stored.name, Opcode.IPUT_OBJECT).flatMap { it.methods }.filter { method ->
         method.returnType == nativeCallback.type && AccessFlags.STATIC.isSet(method.accessFlags) &&
             method.visualCode().any { it.opcode == Opcode.IPUT_OBJECT && it.field()?.toString() == callbackField }
     }.one("native callback writer")
@@ -160,7 +160,7 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         }
         requireOrigin(writer, at, allocated, allocatedAt, "native response callback result")
     }
-    val factory = methods.filter { it.key() == factoryRef.key() }.one("response factory body")
+    val factory = (classDefByOrNull(factoryRef.definingClass)?.methods ?: emptyList()).filter { it.key() == factoryRef.key() }.one("response factory body")
     if (factory.key() != writer.key()) {
         val factoryCode = factory.visualCode()
         val forwardAt = factoryCode.indices.filter { factoryCode[it].call()?.key() == writer.key() }.one("response factory forwarding call")
@@ -171,14 +171,14 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         factory.requireParameterIntact(PATCH, 1, listOf(forwardAt))
     }
 
-    val registry = methods.filter { method ->
+    val registry = classesHolding(VISUAL_MUTATION).flatMap { it.methods }.filter { method ->
         val body = method.visualCode()
         body.any { it.visualString() == VISUAL_MUTATION } && body.any {
             it.opcode == Opcode.SGET_OBJECT && it.field()?.definingClass == handler.definingClass
         }
     }.one("visual handler registration")
-    requireRegistration(registry, handler.definingClass, byType)
-    val selector = methods.filter { method ->
+    requireRegistration(registry, handler.definingClass) { classDefByOrNull(it) }
+    val selector = (classDefByOrNull(handler.parameterTypes[2].toString())?.methods ?: emptyList()).filter { method ->
         method.definingClass == handler.parameterTypes[2].toString() && method.returnType == STRING &&
             method.visualCode().any { it.visualString() == VISUAL_MUTATION }
     }.one("visual mutation name selector")
@@ -192,29 +192,43 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         (selected[marker] as OneRegisterInstruction).registerA != (selected[marker + 1] as OneRegisterInstruction).registerA
     ) refuse("visual mutation name is not selected by its own class")
 
-    val dispatch = methods.filter { it.visualCode().any { ins -> ins.visualString() == DISPATCH_ANCHOR } &&
+    val dispatch = classesHolding(DISPATCH_ANCHOR).flatMap { it.methods }.filter { it.visualCode().any { ins -> ins.visualString() == DISPATCH_ANCHOR } &&
         it.parameterTypes.map(Any::toString) == listOf(handler.parameterTypes[2].toString()) && it.returnType == "Z"
     }.one("native mutation dispatcher")
-    val creator = methods.filter { method -> method.visualCode().any { it.opcode == Opcode.NEW_INSTANCE && it.type() == mutation } &&
-        method.visualCode().any { it.call()?.key() == dispatch.key() }
+    // 450 dispatches through a static (UserSession, mutation) helper that only looks up the
+    // session's manager and hands it the mutation it was given.
+    val helpers = classesCalling(dispatch.definingClass, dispatch.name).flatMap { it.methods }.filter { method ->
+        val body = method.visualCode()
+        val at = body.indices.filter { body[it].call()?.key() == dispatch.key() }
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && body.size <= 6 &&
+            method.parameterTypes.map(Any::toString) == listOf(USER_SESSION, dispatch.parameterTypes.single().toString()) &&
+            at.size == 1 && body[at.single()].namedRegisters().lastOrNull() == method.parameterRegisterNumber(1)
+    }
+    helpers.forEach { helper ->
+        helper.requireParameterIntact(PATCH, 1, listOf(helper.visualCode().indexOfFirst { it.call()?.key() == dispatch.key() }))
+    }
+    val sends = (helpers.map { it.key() } + dispatch.key()).toSet()
+    val senders = (helpers + dispatch).flatMap { classesCalling(it.definingClass, it.name) }.distinctBy { it.type }
+    val creator = senders.flatMap { it.methods }.filter { method -> method.visualCode().any { it.opcode == Opcode.NEW_INSTANCE && it.type() == mutation } &&
+        method.visualCode().any { it.call()?.key() in sends }
     }.one("live visual mutation creator")
     val created = creator.visualCode()
     val createAt = created.indices.filter { created[it].opcode == Opcode.NEW_INSTANCE && created[it].type() == mutation }.one("live visual mutation allocation")
-    val sendAt = created.indices.filter { created[it].call()?.key() == dispatch.key() &&
+    val sendAt = created.indices.filter { created[it].call()?.key() in sends &&
         created[it].namedRegisters().lastOrNull() == (created[createAt] as OneRegisterInstruction).registerA
     }.one("live visual mutation dispatch call")
     // The viewer's replay branch joins this dispatcher with a different mutation. Only paths
     // from this visual allocation must preserve its object; those unrelated creators stay native.
     requireOrigin(creator, sendAt, (created[createAt] as OneRegisterInstruction).registerA, createAt, "live visual mutation", fromDefinition = true)
 
-    byType[VISUAL_SEEN]?.methods?.filter {
+    classDefByOrNull(VISUAL_SEEN)?.methods?.filter {
         it.name == "hold" && it.returnType == "Z" && it.parameterTypes.isEmpty() && it.public() && AccessFlags.STATIC.isSet(it.accessFlags)
     }?.singleOrNull() ?: refuse("extension has no public static hold()Z")
     return VisualSeenTargets(handler, mutation, complete, success, writer, registry, creator, dispatch, selector)
 }
 
 /** The registry's visual descriptor must use the provider that actually returns this handler. */
-private fun requireRegistration(registry: Method, handler: String, classes: Map<String, ClassDef>) {
+private fun requireRegistration(registry: Method, handler: String, classes: (String) -> ClassDef?) {
     val code = registry.visualCode()
     val marker = code.indices.filter { code[it].visualString() == VISUAL_MUTATION }.one("registry's visual name")
     val providerAt = marker - 5
@@ -230,7 +244,7 @@ private fun requireRegistration(registry: Method, handler: String, classes: Map<
         code[marker + 2].namedRegisters().lastOrNull() != (code[marker] as OneRegisterInstruction).registerA
     ) refuse("visual registration substitutes its handler provider")
     val field = code[providerAt].field()!!.toString()
-    val init = classes[handler]?.methods?.filter { it.name == "<clinit>" }?.one("handler provider initializer")
+    val init = classes(handler)?.methods?.filter { it.name == "<clinit>" }?.one("handler provider initializer")
         ?: refuse("handler provider initializer is missing")
     val initCode = init.visualCode()
     if (initCode.size != 3 || initCode[0].opcode != Opcode.SGET_OBJECT || initCode[1].opcode != Opcode.SPUT_OBJECT ||
@@ -238,7 +252,7 @@ private fun requireRegistration(registry: Method, handler: String, classes: Map<
         initCode[1].field()?.toString() != field ||
         (initCode[0] as OneRegisterInstruction).registerA != (initCode[1] as OneRegisterInstruction).registerA
     ) refuse("handler provider initializer changes its provider")
-    val provider = classes[initCode[0].field()!!.definingClass] ?: refuse("handler provider class is missing")
+    val provider = classes(initCode[0].field()!!.definingClass) ?: refuse("handler provider class is missing")
     val factory = provider.methods.filter { it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && it.returnType == OBJECT }.one("handler provider method")
     val body = factory.visualCode()
     val allocation = body.indices.filter { body[it].opcode == Opcode.NEW_INSTANCE && body[it].type() == handler }.one("provider's handler allocation")
@@ -251,8 +265,23 @@ private fun requireRegistration(registry: Method, handler: String, classes: Map<
     }
 }
 
-/** A value must reach its use on every normal and exceptional path, including wide-half writes. */
-private fun requireOrigin(method: Method, at: Int, register: Int, definition: Int, what: String, fromDefinition: Boolean = false) {
+private fun requireOrigin(method: Method, at: Int, register: Int, definition: Int, what: String, fromDefinition: Boolean = false) =
+    requireOrigin(PATCH, method, at, register, definition, what, fromDefinition)
+
+/**
+ * A value must reach its use on every normal and exceptional path, including wide-half writes.
+ * A refusal names [patch], the patch whose check it was.
+ */
+internal fun requireOrigin(
+    patch: String,
+    method: Method,
+    at: Int,
+    register: Int,
+    definition: Int,
+    what: String,
+    fromDefinition: Boolean = false,
+) {
+    fun refuse(why: String): Nothing = throw PatchException("$patch: $why")
     val flow = ControlFlow.of(method)
     val pending = ArrayDeque<Pair<Int, Boolean>>()
     val visited = mutableSetOf<Pair<Int, Boolean>>()

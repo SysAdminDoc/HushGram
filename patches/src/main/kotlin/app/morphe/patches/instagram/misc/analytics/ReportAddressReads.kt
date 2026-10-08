@@ -6,6 +6,8 @@ package app.morphe.patches.instagram.misc.analytics
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesTouching
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -30,8 +32,9 @@ private const val STORE_WINDOW = 8
  */
 internal fun BytecodePatchContext.filterReportAddressReads(builder: Method, filter: String): Int {
     val fields = mutableSetOf<String>()
+    val building = classesCalling(builder.definingClass, builder.name).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in building || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method ->
             val code = method.implementation?.instructions?.toList() ?: return@forEach
             code.indices.filter { code[it].calls(builder) }.forEach { call -> code.storedField(call)?.let(fields::add) }
@@ -40,8 +43,11 @@ internal fun BytecodePatchContext.filterReportAddressReads(builder: Method, filt
     if (fields.isEmpty()) return 0
 
     val readers = mutableListOf<String>()
+    val reading = fields.flatMapTo(HashSet()) { field ->
+        classesTouching(field.substringBefore("->"), field.substringAfter("->").substringBefore(":")).map { it.type }
+    }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in reading || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (classDef.methods.any { method -> method.reads(fields).isNotEmpty() }) readers += classDef.type
     }
     var count = 0

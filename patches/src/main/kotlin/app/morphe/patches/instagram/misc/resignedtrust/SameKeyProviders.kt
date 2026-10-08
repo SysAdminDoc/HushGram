@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val PROVIDER_BASE = "Lcom/facebook/secure/content/base/AbstractContentProviderDelegate;"
 internal const val SAME_KEY_PROVIDER = "Lcom/facebook/secure/content/delegate/SameKeyContentProviderDelegate;"
@@ -67,18 +68,34 @@ internal fun sameKeyProviderDecisions(classes: Iterable<ClassDef>): List<Provide
     needProviderShape(users.superclass == sameKey.type && pool.count { it.superclass == sameKey.type } == 1,
         "expected only the logged-in users provider to inherit SameKey")
 
-    val getters = sameKey.methods.filter { method ->
+    // 449: SameKey's own final getters return a SameKey field. 450's Redex folds them into the
+    // TrustedCaller getters, whose last arm casts the delegate to SameKey and returns that field.
+    fun Instruction.readsSameKey(returns: String) = opcode == Opcode.IGET_OBJECT &&
+        fieldRef()?.let { it.definingClass == sameKey.type && it.type == returns } == true
+    val own = sameKey.methods.filter { method ->
         val code = method.implementation?.instructions?.toList().orEmpty()
         method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) &&
             AccessFlags.FINAL.isSet(method.accessFlags) && code.size == 2 &&
-            code[0].opcode == Opcode.IGET_OBJECT && code[1].opcode == Opcode.RETURN_OBJECT &&
-            code[0].fieldRef()?.let { it.definingClass == sameKey.type && it.type == method.returnType } == true &&
+            code[0].readsSameKey(method.returnType) && code[1].opcode == Opcode.RETURN_OBJECT &&
             (code[0] as TwoRegisterInstruction).registerA == (code[1] as OneRegisterInstruction).registerA
     }.toList()
-    needProviderShape(getters.size == 2 && getters.map { it.returnType }.distinct().size == 1,
+    val folded = trusted.methods.filter { method ->
+        val code = method.implementation?.instructions?.toList().orEmpty()
+        val at = code.size - 4
+        method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) && at >= 0 &&
+            code[at].opcode == Opcode.MOVE_OBJECT && code[at + 1].opcode == Opcode.CHECK_CAST &&
+            ((code[at + 1] as ReferenceInstruction).reference as? TypeReference)?.type == sameKey.type &&
+            code[at + 2].readsSameKey(method.returnType) && code[at + 3].opcode == Opcode.RETURN_OBJECT &&
+            (code[at + 2] as TwoRegisterInstruction).registerA == (code[at + 3] as OneRegisterInstruction).registerA &&
+            code.take(at).none { (it as? ReferenceInstruction)?.reference.let { ref -> (ref as? TypeReference)?.type == sameKey.type } }
+    }.toList()
+    val getters = own.ifEmpty { folded }
+    needProviderShape(getters.size == 2 && getters.map { it.returnType }.distinct().size == 1 && (own.isEmpty() || folded.isEmpty()),
         "expected two SameKey policy getters")
     val policy = getters.first().returnType
-    val fields = getters.map { it.implementation!!.instructions.first().fieldRef()!!.toString() }.toSet()
+    val fields = getters.map { getter ->
+        getter.implementation!!.instructions.single { it.readsSameKey(policy) }.fieldRef()!!.toString()
+    }.toSet()
     needProviderShape(fields.size == 2, "the SameKey policy getters share a field")
     val constructors = sameKey.methods.filter { it.name == "<init>" }.toList()
     needProviderShape(constructors.size == 1, "expected one SameKey provider constructor")

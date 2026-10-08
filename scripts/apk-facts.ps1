@@ -191,7 +191,10 @@ function ConvertFrom-ManifestXmlTree {
 function Get-ManifestDelta {
     <#
     .SYNOPSIS
-        What patching did to the manifest, as four sorted lists.
+        What patching did to the manifest, as five sorted lists.
+    .DESCRIPTION
+        versionCodeChanged holds the patched build's version code when patching changed it (Change
+        version code raises it), and nothing otherwise.
     #>
     param([Parameter(Mandatory = $true)]$Stock, [Parameter(Mandatory = $true)]$Patched)
 
@@ -200,6 +203,7 @@ function Get-ManifestDelta {
         permissionsRemoved        = @(Compare-Sets -Left $Stock.permissions -Right $Patched.permissions)
         exportedComponentsAdded   = @(Compare-Sets -Left $Patched.exported -Right $Stock.exported)
         exportedComponentsRemoved = @(Compare-Sets -Left $Stock.exported -Right $Patched.exported)
+        versionCodeChanged        = @(if ([string]$Patched.versionCode -cne [string]$Stock.versionCode) { [string]$Patched.versionCode })
     }
 }
 
@@ -227,6 +231,8 @@ function ConvertTo-ManifestDeltaEntries {
     foreach ($value in @($Delta.permissionsRemoved)) { $entries.Add("permission-removed $value") }
     foreach ($value in @($Delta.exportedComponentsAdded)) { $entries.Add("exported-added $value") }
     foreach ($value in @($Delta.exportedComponentsRemoved)) { $entries.Add("exported-removed $value") }
+    # A receipt written before the version code was part of the delta has no such field.
+    foreach ($value in @($Delta.versionCodeChanged | Where-Object { $_ })) { $entries.Add("version-code $value") }
     return @($entries | Sort-Object -Unique -CaseSensitive)
 }
 
@@ -257,7 +263,7 @@ function ConvertFrom-ManifestDeltaAllowlist {
         # A byte order mark is read as text when the lines come out of git rather than Get-Content.
         $text = ([string]$line).TrimStart([char]0xFEFF).Trim()
         if (-not $text -or $text.StartsWith('#')) { continue }
-        if ($text -notmatch '^(permission-added|permission-removed|exported-added|exported-removed) \S+$') {
+        if ($text -notmatch '^(permission-added|permission-removed|exported-added|exported-removed|version-code) \S+$') {
             throw "The manifest delta allowlist$Source has a line that is not `"<kind> <value>`": $text"
         }
         $entries.Add($text)

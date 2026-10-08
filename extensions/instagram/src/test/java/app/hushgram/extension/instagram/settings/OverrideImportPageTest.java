@@ -57,6 +57,8 @@ public class OverrideImportPageTest {
         Utils.awaitBackgroundTasksForTests();
         if (host != null) host.close();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.overrideExchangeForTests = null;
+        PatchFamily.overrideImportForTests = null;
         Settings.ALLOW_OVERRIDE_IMPORT.resetToDefault();
         OverrideImportTest.restoreTiming();
         clearFeedback();
@@ -66,6 +68,7 @@ public class OverrideImportPageTest {
         HushgramPreferenceFragment.overrideImportFeedback = null;
         HushgramPreferenceFragment.overrideRestoreFeedback = null;
         HushgramPreferenceFragment.overrideDiscardFeedback = null;
+        HushgramPreferenceFragment.overrideResetFeedback = null;
         HushgramPreferenceFragment.overrideExportFeedback = null;
         HushgramPreferenceFragment.overrideValidationFeedback = null;
     }
@@ -124,6 +127,35 @@ public class OverrideImportPageTest {
         assertEquals(0, NativeTable.captures);
     }
 
+    @Test public void aBuildWithoutTheWriterLeavesOnlyImportOut() throws Exception {
+        Settings.ALLOW_OVERRIDE_IMPORT.save(true);
+        PatchFamily.overrideImportForTests = false;
+        openHost();
+        assertNotNull(page.findPreference("hushgram_open_overrides"));
+        assertNotNull(page.findPreference("hushgram_export_overrides"));
+        assertNotNull(page.findPreference("hushgram_validate_overrides"));
+        for (String key : new String[]{Settings.ALLOW_OVERRIDE_IMPORT.key, "hushgram_import_overrides",
+                "hushgram_restore_overrides", "hushgram_discard_overrides", "hushgram_reset_overrides"}) {
+            assertNull(key, page.findPreference(key));
+        }
+    }
+
+    @Test public void aBuildWithoutTheReaderKeepsTheLongPressAndTheEntriesOnly() throws Exception {
+        Settings.ALLOW_OVERRIDE_IMPORT.save(true);
+        PatchFamily.overrideExchangeForTests = false;
+        openHost();
+        assertNotNull(page.findPreference(Settings.OPEN_DEVELOPER_OPTIONS.key));
+        assertNotNull(page.findPreference("hushgram_open_overrides"));
+        assertNotNull(page.findPreference("hushgram_open_whitehat"));
+        for (String key : new String[]{"hushgram_export_overrides", "hushgram_validate_overrides",
+                Settings.ALLOW_OVERRIDE_IMPORT.key, "hushgram_import_overrides", "hushgram_restore_overrides",
+                "hushgram_discard_overrides", "hushgram_reset_overrides"}) {
+            assertNull(key, page.findPreference(key));
+        }
+        assertFalse(PatchFamily.overrideImportInBuild());
+        assertEquals(0, NativeTable.captures);
+    }
+
     @Test public void anImportFromThePickerAppliesAndRestorePutsTheSavedCopyBack() throws Exception {
         Settings.ALLOW_OVERRIDE_IMPORT.save(true);
         openHost();
@@ -145,6 +177,32 @@ public class OverrideImportPageTest {
         assertTrue(new String(Files.readAllBytes(NativeTable.file.toPath()), StandardCharsets.UTF_8).contains("0: enabled: true"));
         assertTrue(page.findPreference("hushgram_import_overrides").isEnabled());
         assertTrue(page.findPreference("hushgram_restore_overrides").isEnabled());
+    }
+
+    @Test public void resetTakesTheOverridesAwayAndRestorePutsThemBack() throws Exception {
+        Settings.ALLOW_OVERRIDE_IMPORT.save(true);
+        openHost();
+        NativeTable.captures = 0;
+        click("hushgram_reset_overrides");
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        assertEquals("Removed 2 overrides. Restart Instagram to go back to its own flags.",
+                HushgramPreferenceFragment.overrideResetFeedback);
+        // The null override can't be put back, so it stays.
+        java.util.Map<String, String> left = new java.util.TreeMap<>();
+        left.put("456:other/1/nullable", "__NULL_VALUE__");
+        assertEquals(left, OverrideImportTest.semantic(NativeTable.file));
+
+        click("hushgram_reset_overrides");
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        // Nothing left to take away, and the copy saved for Restore is still the one from before.
+        assertEquals("There are no overrides to reset. Nothing changed.", HushgramPreferenceFragment.overrideResetFeedback);
+
+        click("hushgram_restore_overrides");
+        Utils.awaitBackgroundTasksForTests();
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverrideImportTest.original(), OverrideImportTest.semantic(NativeTable.file));
     }
 
     @Test public void anAppliedImportWithFailedCleanupReportsBothTheChangeAndItsRecovery() throws Exception {

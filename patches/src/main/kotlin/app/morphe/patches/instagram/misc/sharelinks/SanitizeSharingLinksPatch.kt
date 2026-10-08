@@ -9,7 +9,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.handleTargets
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -20,9 +22,13 @@ import app.morphe.patches.instagram.misc.settings.sendToStandIn
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderInstruction
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -33,6 +39,8 @@ private const val PATCH = "Sanitize sharing links"
 private const val CLEANER = "$EXTENSION_PACKAGE/misc/LinkCleaner;"
 
 private const val SANITIZE = "$CLEANER->sanitizeShared(Ljava/lang/String;)Ljava/lang/String;"
+
+internal const val BROWSER_LINK = "$CLEANER->browserLink(Ljava/lang/String;)Ljava/lang/String;"
 
 /**
  * A framework call a link leaves Instagram through, and whether it's an instance call, whose
@@ -108,18 +116,22 @@ val sanitizeSharingLinksPatch = bytecodePatch(
     execute {
         requireStatusMethod("sanitizeSharingLinks")
 
-        val targets = listOf("permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares")
+        val targets = listOf(
+            "permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares",
+            "in-app browser menu",
+        )
         handleTargets(PATCH, "ways a link leaves Instagram", targets,
             coverage = { writeTargetCoverage("sanitizeSharingLinks", it) }) { target ->
             when (target) {
                 "permalink parser" -> sanitizeParsedLink(PermalinkParserFingerprint, PERMALINK_TYPE)
-                "story link parser" -> sanitizeParsedLink(StoryShareUrlParserFingerprint, STORY_SHARE_URL_TYPE)
+                "story link parser" -> sanitizeParsedLink(StoryShareUrlParserFingerprint, STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
                 "clipboard copies" -> if (rerouteLinkExits(CLIPBOARD_EXITS) > 0) null
                     else "no code calls ClipboardManager.setPrimaryClip"
                 "share sheets" -> if (rerouteLinkExits(SHARE_SHEET_EXITS) > 0) null
                     else "no code calls Intent.createChooser"
-                else -> if (rerouteLinkExits(DIRECT_SHARE_EXITS) > 0) null
+                "direct shares" -> if (rerouteLinkExits(DIRECT_SHARE_EXITS) > 0) null
                     else "no code calls Context.startActivity"
+                else -> cleanBrowserMenu()
             }
         }
 
@@ -132,10 +144,11 @@ val sanitizeSharingLinksPatch = bytecodePatch(
  * builds. The model is named by [typeName], loaded right before it's made, and the link is the first
  * String field stored after that. Answers null when done, or why not.
  */
-private fun BytecodePatchContext.sanitizeParsedLink(fingerprint: Fingerprint, typeName: String): String? {
+private fun BytecodePatchContext.sanitizeParsedLink(fingerprint: Fingerprint, typeName: String, field: String? = null): String? {
     val matches = fingerprint.matchAllOrNull().orEmpty()
     if (matches.size != 1) return "expected one parser naming $typeName, found ${matches.size}"
     val parser = matches.single().method
+    if (field != null && !loadsString(parser, field)) return "the parser naming $typeName doesn't read \"$field\""
     val store = parser.linkStore(typeName)
         ?: return "the parser naming $typeName stores no String field after loading its type name"
     val (index, register) = store
@@ -147,6 +160,92 @@ private fun BytecodePatchContext.sanitizeParsedLink(fingerprint: Fingerprint, ty
         """,
     )
     return null
+}
+
+/**
+ * Hands the page address the in-app browser's menu sends for Share and for Copy link to
+ * LinkCleaner.browserLink, in the main app's handler for those messages, right before the share puts
+ * it in its text and the copy hands it to Instagram's clipboard helper. Each branch reads the address
+ * from the message, or logs its failure line and falls back to an empty one, and the two paths meet
+ * before that call, so the hook sits on both. Everything is checked before anything changes.
+ * Answers null when done, or why not.
+ */
+internal fun BytecodePatchContext.cleanBrowserMenu(): String? {
+    val matches = BrowserMenuHandlerFingerprint.matchAllOrNull().orEmpty()
+    if (matches.size != 1) return "expected one handler for the in-app browser's menu, found ${matches.size}"
+    val handler = matches.single().method
+    val share = handler.browserLinkUse(BROWSER_SHARE_FAILURE, ::putsSharedText)
+        ?: return "the browser menu's Share puts no address in a share's text"
+    val copy = handler.browserLinkUse(BROWSER_COPY_FAILURE, ::copiesText)
+        ?: return "the browser menu's Copy link hands no address to a clipboard helper"
+    if (share.first == copy.first) return "the browser menu's Share and Copy link meet in one call"
+    for ((index, register) in listOf(share, copy).sortedByDescending { it.first }) {
+        handler.addInstructions(
+            index,
+            """
+                invoke-static/range { v$register .. v$register }, $BROWSER_LINK
+                move-result-object v$register
+            """,
+        )
+    }
+    return null
+}
+
+/**
+ * Where the branch logging [failure] hands its address on: the first call after the empty address
+ * the branch falls back to that takes that register, with the register, when [takes] says it's the
+ * call the address is for. Null when there's no such call, it's another call, something branches
+ * straight to it past the hook, or the register is too high to write back.
+ */
+private fun MutableMethod.browserLinkUse(failure: String, takes: (List<Instruction>, Int, Int) -> Boolean): Pair<Int, Int>? {
+    val instructions = implementation!!.instructions
+    val logged = instructions.indexOfFirst { it.loadsText(failure) }
+    if (logged < 0) return null
+    val fallback = (logged + 1 until instructions.size).firstOrNull { instructions[it].loadsText("") } ?: return null
+    val register = (instructions[fallback] as OneRegisterInstruction).registerA
+    if (register > 255) return null
+    val use = (fallback + 1 until instructions.size).firstOrNull { register in instructions[it].argumentRegisters() }
+        ?: return null
+    if (!takes(instructions, use, register)) return null
+    if ((instructions[use] as BuilderInstruction).location.labels.isNotEmpty()) return null
+    return use to register
+}
+
+/** Whether the call at [index] puts [register] in an intent's EXTRA_TEXT, its key loaded right before. */
+private fun putsSharedText(instructions: List<Instruction>, index: Int, register: Int): Boolean {
+    val call = instructions[index]
+    val method = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    if (call.opcode != Opcode.INVOKE_VIRTUAL && call.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
+    if (method.definingClass != "Landroid/content/Intent;" || method.name != "putExtra") return false
+    if (method.parameterTypes.map(Any::toString) !in listOf(
+            listOf("Ljava/lang/String;", "Ljava/lang/String;"),
+            listOf("Ljava/lang/String;", "Ljava/lang/CharSequence;"),
+        )
+    ) return false
+    val (_, key, value) = call.argumentRegisters()
+    if (value != register || index == 0) return false
+    val before = instructions[index - 1]
+    return before.loadsText("android.intent.extra.TEXT") && (before as OneRegisterInstruction).registerA == key
+}
+
+/** Whether the call at [index] is a static (Context, String) helper taking [register] as its String. */
+private fun copiesText(instructions: List<Instruction>, index: Int, register: Int): Boolean {
+    val call = instructions[index]
+    val method = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    if (call.opcode != Opcode.INVOKE_STATIC && call.opcode != Opcode.INVOKE_STATIC_RANGE) return false
+    if (method.parameterTypes.map(Any::toString) != listOf("Landroid/content/Context;", "Ljava/lang/String;")) return false
+    return call.argumentRegisters()[1] == register
+}
+
+private fun Instruction.loadsText(text: String): Boolean =
+    (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
+        ((this as ReferenceInstruction).reference as StringReference).string == text
+
+/** The registers an invoke hands over, in order. */
+private fun Instruction.argumentRegisters(): List<Int> = when (this) {
+    is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
+    is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
+    else -> emptyList()
 }
 
 /** The index and source register of the first `iput-object` of a String after [typeName] is loaded. */
@@ -172,8 +271,9 @@ internal fun Method.linkStore(typeName: String): Pair<Int, Int>? {
  */
 internal fun BytecodePatchContext.rerouteLinkExits(exits: List<LinkExit>): Int {
     val owners = mutableListOf<String>()
+    val calling = exits.flatMapTo(HashSet()) { exit -> classesCalling(exit.definingClass, exit.name).map { it.type } }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in calling || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (classDef.methods.any { method -> method.exitSites(exits).isNotEmpty() }) owners += classDef.type
     }
     return owners.sumOf { type ->

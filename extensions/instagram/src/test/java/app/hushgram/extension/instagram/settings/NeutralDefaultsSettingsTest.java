@@ -21,9 +21,14 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import app.hushgram.extension.instagram.direct.Instants;
+import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.NotesRow;
 import app.hushgram.extension.instagram.profile.ProfileHighlights;
+import app.hushgram.extension.instagram.feed.FullResolution;
+import app.hushgram.extension.instagram.feed.HomeFeed;
 import app.hushgram.extension.instagram.feed.SwipeToCreate;
+import app.hushgram.extension.instagram.reels.ReelDeclutter;
 import app.hushgram.extension.instagram.reels.ReelScrolling;
 import app.hushgram.extension.instagram.stories.StoryRing;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
@@ -46,17 +51,30 @@ public class NeutralDefaultsSettingsTest {
     /** Stands in for the inbox's section enum. */
     enum StockSection { SEARCH_BAR, TRAY }
 
+    /** Stands in for where the reel viewer was opened from. */
+    enum StockSource { REPOSTS_GRID }
+
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
-        initiallyOff = new BooleanSetting[]{Settings.COPY_COMMENTS, Settings.SAVE_COMMENT_PHOTOS,
-                Settings.HIDE_HIGHLIGHTS, Settings.HIDE_NOTES_ROW, Settings.STOP_SWIPE_TO_CREATE,
-                Settings.STOP_REELS_SCROLLING};
+        initiallyOff = new BooleanSetting[]{Settings.ASK_BEFORE_CALL, Settings.HIDE_REEL_COMMENT_BAR, Settings.COPY_COMMENTS, Settings.SAVE_COMMENT_PHOTOS, Settings.SAVE_PROFILE_PICTURES, Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.DOWNLOAD_VOICE_MESSAGES, Settings.HIDE_COMMENTS, Settings.HIDE_SHARE_BUTTON, Settings.CHANGE_LIKE_ANIMATION,
+                Settings.ASK_BEFORE_LIKE, Settings.ASK_BEFORE_REFRESH,
+                Settings.HIDE_HIGHLIGHTS, Settings.HIDE_THREADS_BUTTON, Settings.HIDE_NOTES_ROW, Settings.HIDE_INSTANTS,
+                Settings.STOP_SWIPE_TO_CREATE, Settings.STOP_REELS_SCROLLING, Settings.REEL_CAP, Settings.FULL_RESOLUTION_PHOTOS, Settings.ASK_FOR_LARGER_PHOTOS,
+                Settings.HIDE_HOME_FEED, Settings.STOP_TAB_SWIPING, Settings.TURN_OFF_HDR_BOOSTS, Settings.DONT_SAVE_RECENT_SEARCHES, Settings.DATA_SAVER, Settings.CLEAR_MEDIA_CACHE, Settings.GROUP_NOTIFICATIONS,
+                Settings.LOCK_MESSAGES, Settings.LOCK_APP,
+                Settings.HIDE_SCREENSHOTS,
+                Settings.ALLOW_SCREENSHOTS,
+                Settings.KEEP_IN_CHAT,
+                Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI};
         restoreDefaults();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.COMMENT_COPY, PatchFamily.COMMENT_PHOTO,
-                PatchFamily.PROFILE_HIGHLIGHTS, PatchFamily.NOTES_ROW, PatchFamily.SWIPE_TO_CREATE,
-                PatchFamily.REEL_SCROLLING, PatchFamily.STORY_RING);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.ASK_BEFORE_CALL, PatchFamily.REEL_DECLUTTER, PatchFamily.COMMENT_COPY, PatchFamily.COMMENT_PHOTO, PatchFamily.PROFILE_PICTURE, PatchFamily.VOICE_MESSAGE, PatchFamily.HIDE_COMMENTS, PatchFamily.HIDE_SHARE_BUTTON, PatchFamily.LIKE_ANIMATION,
+                PatchFamily.ASK_BEFORE_LIKE, PatchFamily.ASK_BEFORE_REFRESH,
+                PatchFamily.PROFILE_HIGHLIGHTS, PatchFamily.THREADS_BUTTON, PatchFamily.NOTES_ROW, PatchFamily.INSTANTS, PatchFamily.SWIPE_TO_CREATE,
+                PatchFamily.REEL_SCROLLING, PatchFamily.STORY_RING, PatchFamily.FULL_RESOLUTION, PatchFamily.HOME_FEED, PatchFamily.FEED_SUGGESTIONS,
+                PatchFamily.TAB_SWIPE, PatchFamily.HDR_BOOST, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.LIVE_SEEN,
+                PatchFamily.EMOJI_STYLE);
     }
 
     @After public void restore() throws Exception {
@@ -92,7 +110,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_EXPLORE_GRID, Settings.HIDE_REELS_TAB, Settings.HIDE_REPOST_BUTTON,
                 Settings.KEEP_REEL_AUTO_SCROLL, Settings.REEL_SEEK_BAR, Settings.LOOP_STORIES,
                 Settings.OPEN_DEVELOPER_OPTIONS, Settings.REMOVE_BOTTOM_SPACE, Settings.SHOW_STORY_TIME,
-                Settings.START_ON_FOLLOWING, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.TAP_TO_PLAY,
+                Settings.SHOW_STORY_MENTIONS, Settings.START_ON_FOLLOWING, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.TAP_TO_PLAY,
                 Settings.TURN_OFF_DOUBLE_TAP_LIKE, Settings.VIEW_STORIES_ANONYMOUSLY};
         for (BooleanSetting setting : startsOn) assertEquals(setting.key, Boolean.TRUE, setting.defaultValue);
         // A false remembered value does not make the enabled persistence feature neutral.
@@ -142,7 +160,7 @@ public class NeutralDefaultsSettingsTest {
                 assertEquals("binding and closing must not reset saved preferences", before, savedChoices());
             }
             PauseForTests.pause(HushgramPause.Reason.SWITCH);
-            assertStockHooks();
+            assertStockHooks(chosen);
             assertEquals("Pause must not rewrite saved choices", before, savedChoices());
             PauseForTests.resume();
         }
@@ -159,6 +177,14 @@ public class NeutralDefaultsSettingsTest {
     }
 
     private void assertStockHooks() {
+        assertStockHooks(false);
+    }
+
+    /**
+     * Every hook answers as stock Instagram would. A lock that's on is the one exception: it keeps
+     * locking while paused, so Pause can't be used to get around it.
+     */
+    private void assertStockHooks(boolean lockOn) {
         Object pager = new Object();
         assertEquals(1, ReelScrolling.pager(pager));
         for (int nativeValue : new int[]{0, 1, -7}) assertEquals(nativeValue, ReelScrolling.userInput(pager, nativeValue));
@@ -166,8 +192,33 @@ public class NeutralDefaultsSettingsTest {
         assertEquals(1, ProfileHighlights.keepTray());
         Object[] sections = {StockSection.SEARCH_BAR, StockSection.TRAY};
         assertSame(sections, NotesRow.sections(sections));
+        assertFalse(Instants.hide());
+        assertTrue(app.hushgram.extension.instagram.feed.CommentsButton.feedState(1));
+        assertTrue(app.hushgram.extension.instagram.share.ShareButton.feedState(1));
+        assertFalse(app.hushgram.extension.instagram.direct.CallConfirm.hold(new Object(), null, null, null, 0));
+        assertFalse(app.hushgram.extension.instagram.share.ShareButton.hideInReels());
+        Object heart = new Object();
+        assertSame(heart, app.hushgram.extension.instagram.feed.LikeAnimation.pick(heart));
+        assertFalse(app.hushgram.extension.instagram.feed.LikeAnimation.allow(0));
+        assertFalse(app.hushgram.extension.instagram.feed.LikeConfirm.hold(new Object(), null, null, null, null, 0));
+        Object refreshListener = new Object();
+        assertSame(refreshListener, app.hushgram.extension.instagram.feed.RefreshConfirm.listener(
+                new android.view.View(RuntimeEnvironment.getApplication()), refreshListener, null));
+        assertEquals(lockOn, MessagesLock.holdBanner());
+        assertFalse(app.hushgram.extension.instagram.stories.LiveSeen.hold());
+        assertEquals("once", app.hushgram.extension.instagram.direct.KeepInChat.viewMode("once"));
+        assertFalse(app.hushgram.extension.instagram.direct.ScreenshotBlock.lift());
+        assertFalse(app.hushgram.extension.instagram.direct.ScreenshotReports.hold());
         assertEquals(0, SwipeToCreate.enabled());
         assertEquals(0, SwipeToCreate.hold(-1f, 0f, "swipe"));
+        Object photo = new Object();
+        assertSame(photo, FullResolution.photo(new Object(), photo));
+        Object feedItem = new Object();
+        assertSame(feedItem, HomeFeed.filter(feedItem));
+        assertFalse(ReelDeclutter.hideCommentBar(StockSource.REPOSTS_GRID));
         assertEquals(270f, StoryRing.size(270f), 0f);
+        assertEquals(0, app.hushgram.extension.instagram.misc.EmojiStyle.replaceStrategy(0));
+        java.util.List<Object> profileButtons = java.util.Arrays.asList(new Object(), new Object());
+        assertSame(profileButtons, app.hushgram.extension.instagram.profile.ThreadsButton.buttons(profileButtons));
     }
 }
