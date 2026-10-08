@@ -71,7 +71,8 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
     description = "Keeps a swipe in Reels from moving on to the next reel, and a pull down from loading new ones. " +
-        "The reel you opened still plays, and its buttons still work.",
+        "The reel you opened still plays, and its buttons still work. A second switch lets you watch 20 reels, then " +
+        "stops swiping until you've had a 15 minute break.",
     default = true,
 ) {
     category("Interface")
@@ -80,7 +81,10 @@ val stopReelsScrollingPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("reelScrolling")
-        stopReelsScrolling(findReelsScrolling())
+        val site = findReelsScrolling()
+        val pages = findPageStores()
+        stopReelsScrolling(site)
+        reportPages(pages)
         enableStatus("reelScrolling")
     }
 }

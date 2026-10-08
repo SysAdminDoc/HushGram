@@ -12,24 +12,45 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val WHAT = "HushGram settings row"
 
 internal const val CREATE_VIEW_PARAMETERS = "Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;"
 
 /**
- * The static factory of Instagram's settings screen fragment: it puts the screen to show under
- * "screen_id" and a fresh "new_settings_session" into a new instance's arguments, and answers that
- * instance. Two other methods put "new_settings_session" too, but answer something else.
+ * Where Instagram makes its settings screen fragment: the screen to show goes under "screen_id" and a
+ * fresh "new_settings_session" into a new instance's arguments. In 449 that's a static factory on the
+ * screen's own class. 450 inlines it into the caller that opens the screen, so the screen is the one
+ * class here that's made with `new-instance` and draws its view in onCreateView. Instagram's string
+ * tables hold both strings too, but make nothing.
  */
 internal object SettingsScreenFactoryFingerprint : Fingerprint(
     strings = listOf("screen_id", "new_settings_session"),
-    custom = { method, classDef -> AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == classDef.type },
+    custom = { method, _ -> method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE } == true },
 )
+
+private fun Method.isCreateView() = name == "onCreateView" && returnType == "Landroid/view/View;" &&
+    implementation != null && parameterTypes.joinToString("") == CREATE_VIEW_PARAMETERS
+
+/** The settings screen fragment: the one class a [SettingsScreenFactoryFingerprint] method makes that has an onCreateView. */
+internal fun BytecodePatchContext.settingsScreenType(): String {
+    val makers = SettingsScreenFactoryFingerprint.matchAllOrNull().orEmpty()
+    if (makers.isEmpty()) throw PatchException("$WHAT: expected a settings screen factory in this Instagram build, found none")
+    val screens = makers.flatMap { match ->
+        match.originalMethod.implementation!!.instructions
+            .filter { it.opcode == Opcode.NEW_INSTANCE }
+            .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
+    }.distinct().filter { type -> classDefByOrNull(type)?.methods?.any { it.isCreateView() } == true }
+    return screens.singleOrNull() ?: throw PatchException(
+        "$WHAT: expected the settings screen factory to make exactly one screen with an onCreateView, found " +
+            if (screens.isEmpty()) "none" else screens.joinToString(),
+    )
+}
 
 /**
  * Puts the HushGram settings row at the top of Instagram's Settings and activity screen. That
@@ -41,12 +62,9 @@ internal object SettingsScreenFactoryFingerprint : Fingerprint(
  * runs it too. Every name used is androidx's or the framework's.
  */
 internal fun BytecodePatchContext.addSettingsRow() {
-    val factory = uniqueMethod(WHAT, "settings screen factory", SettingsScreenFactoryFingerprint)
-    val screen = mutableClassDefBy(factory.returnType)
-    val createView = screen.methods.singleOrNull { method ->
-        method.name == "onCreateView" && method.returnType == "Landroid/view/View;" && method.implementation != null &&
-            method.parameterTypes.joinToString("") == CREATE_VIEW_PARAMETERS
-    } ?: throw PatchException("$WHAT: ${screen.type} declares no onCreateView($CREATE_VIEW_PARAMETERS)")
+    val screen = mutableClassDefBy(settingsScreenType())
+    val createView = screen.methods.singleOrNull { it.isCreateView() }
+        ?: throw PatchException("$WHAT: ${screen.type} declares no onCreateView($CREATE_VIEW_PARAMETERS)")
 
     val returns = createView.implementation!!.instructions.withIndex()
         .filter { it.value.opcode == Opcode.RETURN_OBJECT }

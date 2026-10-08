@@ -211,16 +211,26 @@ tasks.register("verifyAndroidBoundaries") {
                 "noPhotoNowRemovesOnlyStaleOwnedRows[28]", "noPhotoNowRemovesOnlyStaleOwnedRows[37]",
                 "eachFamilyAloneAndTogetherKeepDistinctOwnedRows[28]", "eachFamilyAloneAndTogetherKeepDistinctOwnedRows[37]",
                 "offPausedUnreadyAndMissingInputsLeaveStockUntouched[28]", "offPausedUnreadyAndMissingInputsLeaveStockUntouched[37]",
-                "getterRowAndQueueFailuresStayContainedAndRespectALateSwitch[28]", "getterRowAndQueueFailuresStayContainedAndRespectALateSwitch[37]"),
+                "getterRowAndQueueFailuresStayContainedAndRespectALateSwitch[28]", "getterRowAndQueueFailuresStayContainedAndRespectALateSwitch[37]",
+                "eachStepThatFindsNoPhotoCountsItsOwnReasonOnceAndReadsNoFurther[28]", "eachStepThatFindsNoPhotoCountsItsOwnReasonOnceAndReadsNoFurther[37]",
+                "aPhotoIsReadInTheBridgesOldOrderAndLeavesItsCountToTheSizes[28]", "aPhotoIsReadInTheBridgesOldOrderAndLeavesItsCountToTheSizes[37]",
+                "theUnpatchedBridgesCountAnUnselectedComment[28]", "theUnpatchedBridgesCountAnUnselectedComment[37]",
+                "withoutMediaTypeOnlyAMediaWithNoVideoPassesAsAStillPhoto[28]", "withoutMediaTypeOnlyAMediaWithNoVideoPassesAsAStillPhoto[37]",
+                "aMediaTypeThatIsntAPhotosNeverReadsTheVideo[28]", "aMediaTypeThatIsntAPhotosNeverReadsTheVideo[37]"),
             "app.hushgram.extension.instagram.download.CommentPhotoSaveTest" to listOf(
                 "explicitCommentPhotoTapSavesTheLargestSuppliedRenditionAndCleansUp[28]", "explicitCommentPhotoTapSavesTheLargestSuppliedRenditionAndCleansUp[37]",
                 "commentPhotoCancelUsesTheExistingControlAndRemovesAllTemporaryState[28]", "commentPhotoCancelUsesTheExistingControlAndRemovesAllTemporaryState[37]",
+                "aCommentPhotoWithoutMediaTypeSaves[28]", "aCommentPhotoWithoutMediaTypeSaves[37]",
+                "aCommentMediaWithoutMediaTypeButWithVideoGetsNoRow[28]", "aCommentMediaWithoutMediaTypeButWithVideoGetsNoRow[37]",
                 "deniedLegacyStoragePermissionLeavesNoPendingPhoto[28]"),
             "app.hushgram.extension.instagram.download.CommentPhotoDownloadTest" to listOf(
                 "onlySuppliedMetaPhotoAddressesAreCopiedVerbatim[28]", "onlySuppliedMetaPhotoAddressesAreCopiedVerbatim[37]",
                 "missingModelsGetNoImageFallback[28]", "missingModelsGetNoImageFallback[37]",
                 "copyIsDetachedAndUnmodifiable[28]", "copyIsDetachedAndUnmodifiable[37]",
-                "aSaveThatCannotStartSaysSoAndNeverThrows[28]", "aSaveThatCannotStartSaysSoAndNeverThrows[37]"),
+                "aSaveThatCannotStartSaysSoAndNeverThrows[28]", "aSaveThatCannotStartSaysSoAndNeverThrows[37]",
+                "eachWayTheSizesComeBackEmptyCountsItsOwnReasonOnce[28]", "eachWayTheSizesComeBackEmptyCountsItsOwnReasonOnce[37]",
+                "aKeptSizeCountsAFoundPhotoAndNoRefusal[28]", "aKeptSizeCountsAFoundPhotoAndNoRefusal[37]",
+                "everyReasonIsFixedTextTheReportKeepsAsWritten[28]", "everyReasonIsFixedTextTheReportKeepsAsWritten[37]"),
             "app.hushgram.extension.instagram.profile.ProfileSuggestionsTest" to listOf(
                 "offPausedAndUnreadyLeaveInstagramsAnswers[28]", "offPausedAndUnreadyLeaveInstagramsAnswers[37]",
                 "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[28]", "aButtonHiddenEarlierComesBackWhenTheSwitchGoesOff[37]",
@@ -243,6 +253,103 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoNotesRowSwitch[28]", "missingPatchHasNoNotesRowSwitch[37]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.InstantsTest" to listOf(
+                "withTheSwitchOnTheCheckAnswersNo[28]", "withTheSwitchOnTheCheckAnswersNo[37]",
+                "offToStartAndOffLeaveItToInstagram[28]", "offToStartAndOffLeaveItToInstagram[37]",
+                "pausedAndUnreadyLeaveItToInstagram[28]", "pausedAndUnreadyLeaveItToInstagram[37]",
+                "aThrowingSwitchLeavesItToInstagramAndIsReported[28]", "aThrowingSwitchLeavesItToInstagramAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.InstantsSettingsTest" to listOf(
+                "missingPatchHasNoInstantsSwitch[28]", "missingPatchHasNoInstantsSwitch[37]",
+                "instantsAloneStillGetsMessages[28]", "instantsAloneStillGetsMessages[37]",
+                "instantsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
+                "instantsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.ThreadSeenTest" to listOf(
+                "withTheSwitchOnTheReceiptIsHeld[28]", "withTheSwitchOnTheReceiptIsHeld[37]",
+                "offToStartAndOffSendTheReceipt[28]", "offToStartAndOffSendTheReceipt[37]",
+                "viewOnceMediaIsAnIndependentChoice[28]", "viewOnceMediaIsAnIndependentChoice[37]",
+                "pausedAndUnreadySendTheReceipt[28]", "pausedAndUnreadySendTheReceipt[37]",
+                "aThrowingSwitchSendsTheReceiptAndIsReported[28]", "aThrowingSwitchSendsTheReceiptAndIsReported[37]",
+                "aLongPressOffersMarkAsReadOnceWhileTheSwitchIsOn[28]", "aLongPressOffersMarkAsReadOnceWhileTheSwitchIsOn[37]",
+                "offPausedAndUnreadyOfferNoRow[28]", "offPausedAndUnreadyOfferNoRow[37]",
+                "aThrowingSwitchOffersNoRowAndIsReported[28]", "aThrowingSwitchOffersNoRowAndIsReported[37]",
+                "markAsReadSendsThatChatsReceiptThroughInstagram[28]", "markAsReadSendsThatChatsReceiptThroughInstagram[37]",
+                "onlyTheMarkedChatsReceiptGoesThrough[28]", "onlyTheMarkedChatsReceiptGoesThrough[37]",
+                "aReceiptLetThroughGoesThroughAgainWhenInstagramRetriesIt[28]", "aReceiptLetThroughGoesThroughAgainWhenInstagramRetriesIt[37]",
+                "aNewerMessageInAMarkedChatStaysHeld[28]", "aNewerMessageInAMarkedChatStaysHeld[37]",
+                "aMarkCountsOnlyForTheAccountItWasMadeOn[28]", "aMarkCountsOnlyForTheAccountItWasMadeOn[37]",
+                "aMarkOutlivesARestart[28]", "aMarkOutlivesARestart[37]",
+                "aMarkLastsADay[28]", "aMarkLastsADay[37]",
+                "onlyTheNewestMarksAreKept[28]", "onlyTheNewestMarksAreKept[37]",
+                "aFileWithTooManyOrBrokenMarksIsCleanedWhenRead[28]", "aFileWithTooManyOrBrokenMarksIsCleanedWhenRead[37]",
+                "markingAChatAgainKeepsItsMarkForAnotherDay[28]", "markingAChatAgainKeepsItsMarkForAnotherDay[37]",
+                "otherRowsAndTheSwitchOffLeaveTheTapToInstagram[28]", "otherRowsAndTheSwitchOffLeaveTheTapToInstagram[37]",
+                "offPausedAndUnreadyLeaveTheTapToInstagram[28]", "offPausedAndUnreadyLeaveTheTapToInstagram[37]",
+                "aChatWithNothingToMarkIsToldSo[28]", "aChatWithNothingToMarkIsToldSo[37]",
+                "unpatchedBridgesMarkNothing[28]", "unpatchedBridgesMarkNothing[37]",
+                "aFailedSendTakesItsMarkBackAndIsReported[28]", "aFailedSendTakesItsMarkBackAndIsReported[37]",
+                "aFailedSendKeepsAnEarlierMarkForTheSameMessage[28]", "aFailedSendKeepsAnEarlierMarkForTheSameMessage[37]",
+                "aFailedUnreadClearStillSendsAndIsReported[28]", "aFailedUnreadClearStillSendsAndIsReported[37]",
+                "anUnreadableReceiptStaysHeldWhileAMarkIsKept[28]", "anUnreadableReceiptStaysHeldWhileAMarkIsKept[37]",
+                "withNoMarkKeptReceiptsAreNotRead[28]", "withNoMarkKeptReceiptsAreNotRead[37]",
+                "theSwitchOffSendsEveryReceiptAndKeepsTheMark[28]", "theSwitchOffSendsEveryReceiptAndKeepsTheMark[37]",
+                "chatsMarkedReadTogetherLetTheirReceiptsThrough[28]", "chatsMarkedReadTogetherLetTheirReceiptsThrough[37]",
+                "offPausedAndUnreadyMarkNothingTogether[28]", "offPausedAndUnreadyMarkNothingTogether[37]",
+                "aThrowingSwitchOrAccountMarksNothingTogetherAndIsReported[28]", "aThrowingSwitchOrAccountMarksNothingTogetherAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.ThreadSeenSettingsTest" to listOf(
+                "missingPatchHasNoSeenReceiptSwitch[28]", "missingPatchHasNoSeenReceiptSwitch[37]",
+                "seenReceiptAloneStillGetsMessages[28]", "seenReceiptAloneStillGetsMessages[37]",
+                "seenReceiptSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
+                "seenReceiptSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.TypingStatusTest" to listOf(
+                "withTheSwitchOnTypingIsKeptBack[28]", "withTheSwitchOnTypingIsKeptBack[37]",
+                "aStopAlwaysRunsInstagramsCode[28]", "aStopAlwaysRunsInstagramsCode[37]",
+                "offToStartAndOffSendTheIndicator[28]", "offToStartAndOffSendTheIndicator[37]",
+                "pausedAndUnreadySendTheIndicator[28]", "pausedAndUnreadySendTheIndicator[37]",
+                "aThrowingSwitchSendsTheIndicatorAndIsReported[28]", "aThrowingSwitchSendsTheIndicatorAndIsReported[37]",
+                "theSeenReceiptSwitchIsAnIndependentChoice[28]", "theSeenReceiptSwitchIsAnIndependentChoice[37]"),
+            "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
+                "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
+                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
+            "app.hushgram.extension.instagram.direct.KeepInChatTest" to listOf(
+                "withTheSwitchOnViewOnceAndReplayableStayInChat[28]", "withTheSwitchOnViewOnceAndReplayableStayInChat[37]",
+                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
+            "app.hushgram.extension.instagram.direct.ScreenshotBlockTest" to listOf(
+                "withTheSwitchOnWindowsStayCapturable[28]", "withTheSwitchOnWindowsStayCapturable[37]",
+                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]",
+                "withTheSwitchOnInstagramCantMarkAWindowSecure[28]", "withTheSwitchOnInstagramCantMarkAWindowSecure[37]",
+                "offOrClearingLeavesTheFlagsAsInstagramAsked[28]", "offOrClearingLeavesTheFlagsAsInstagramAsked[37]"),
+            "app.hushgram.extension.instagram.direct.ScreenshotReportsTest" to listOf(
+                "withTheSwitchOnScreenshotsAreKept[28]", "withTheSwitchOnScreenshotsAreKept[37]",
+                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
+            "app.hushgram.extension.instagram.direct.MessagesLockTest" to listOf(
+                "lockedMessageNotificationsSayOnlyThatAMessageCame[28]", "lockedMessageNotificationsSayOnlyThatAMessageCame[37]",
+                "offUnreadyAndUnlockedLeaveEverythingToInstagram[28]", "offUnreadyAndUnlockedLeaveEverythingToInstagram[37]",
+                "theInboxIsCoveredAndThePhoneAskedOnce[28]", "theInboxIsCoveredAndThePhoneAskedOnce[37]",
+                "confirmedOpensUntilInstagramLeavesTheScreen[28]", "confirmedOpensUntilInstagramLeavesTheScreen[37]",
+                "aChatIsCoveredTooAndNothingElseIs[28]", "aChatIsCoveredTooAndNothingElseIs[37]",
+                "lockAllOfInstagramCoversTheWholeScreen[28]", "lockAllOfInstagramCoversTheWholeScreen[37]",
+                "lockAgainWaitsAsLongAsYouPicked[28]", "lockAgainWaitsAsLongAsYouPicked[37]",
+                "turningALockOnWaitsUntilYouLeave[28]", "turningALockOnWaitsUntilYouLeave[37]",
+                "aPhoneWithoutAScreenLockLeavesTheMessagesOpenAndSaysWhy[28]", "aPhoneWithoutAScreenLockLeavesTheMessagesOpenAndSaysWhy[37]",
+                "pausedOrInSafeModeALockStillLocksAndCoversEverything[28]", "pausedOrInSafeModeALockStillLocksAndCoversEverything[37]",
+                "eachWindowKeepsItsOwnCovers[28]", "eachWindowKeepsItsOwnCovers[37]",
+                "screenReadersSkipWhatsCovered[28]", "screenReadersSkipWhatsCovered[37]",
+                "theListShowingIsTheOneCovered[28]", "theListShowingIsTheOneCovered[37]",
+                "openMessagesStayOutOfTheRecentAppsPicture[28]", "openMessagesStayOutOfTheRecentAppsPicture[37]",
+                "lockingAgainHidesWhatTheShadeShows[28]", "lockingAgainHidesWhatTheShadeShows[37]",
+                "onlyYourCancelEndsAnAsk[28]", "onlyYourCancelEndsAnAsk[37]"),
+            "app.hushgram.extension.instagram.settings.TypingSettingsTest" to listOf(
+                "missingPatchHasNoTypingSwitch[28]", "missingPatchHasNoTypingSwitch[37]",
+                "typingAloneStillGetsMessages[28]", "typingAloneStillGetsMessages[37]",
+                "typingSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
+                "typingSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.settings.GhostModeSettingsTest" to listOf(
+                "theSwitchListFollowsTheBuild[28]", "theSwitchListFollowsTheBuild[37]",
+                "oneGhostPatchGetsNoMasterSwitch[28]", "oneGhostPatchGetsNoMasterSwitch[37]",
+                "itSitsFirstUnderAdsAndPrivacyAndStartsAsTheSwitchesAre[28]", "itSitsFirstUnderAdsAndPrivacyAndStartsAsTheSwitchesAre[37]",
+                "aTapTurnsEverySwitchAndEachRowShowsIt[28]", "aTapTurnsEverySwitchAndEachRowShowsIt[37]",
+                "itFollowsTheOwnSwitchesAndPauseStillWins[28]", "itFollowsTheOwnSwitchesAndPauseStillWins[37]",
+                "searchFindsItByName[28]", "searchFindsItByName[37]"),
             "app.hushgram.extension.instagram.feed.SwipeToCreateTest" to listOf(
                 "withTheSwitchOnASwipeTowardTheCameraIsHeld[28]", "withTheSwitchOnASwipeTowardTheCameraIsHeld[37]",
                 "everyOtherMoveGoesOn[28]", "everyOtherMoveGoesOn[37]",
@@ -251,6 +358,25 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.SwipeToCreateSettingsTest" to listOf(
                 "missingPatchHasNoSwipeSwitch[28]", "missingPatchHasNoSwipeSwitch[37]",
                 "swipeSwitchStartsOffPersistsAndHonorsPause[28]", "swipeSwitchStartsOffPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.feed.FullResolutionTest" to listOf(
+                "withTheSwitchOnTheLargestSizeOfTheSameShapeLoads[28]", "withTheSwitchOnTheLargestSizeOfTheSameShapeLoads[37]",
+                "eachOutcomeIsCountedUnderItsName[28]", "eachOutcomeIsCountedUnderItsName[37]",
+                "thePickersSizesAreTriedWhenThePostsOwnDontListThePick[28]", "thePickersSizesAreTriedWhenThePostsOwnDontListThePick[37]",
+                "theHookReadsThroughTheBridgesThePatchFills[28]", "theHookReadsThroughTheBridgesThePatchFills[37]",
+                "aPickThatIsAlreadyTheLargestStays[28]", "aPickThatIsAlreadyTheLargestStays[37]",
+                "aCropOrAnotherShapeIsNeverPicked[28]", "aCropOrAnotherShapeIsNeverPicked[37]",
+                "aSizeRoundedByAPixelIsStillTheSameShape[28]", "aSizeRoundedByAPixelIsStillTheSameShape[37]",
+                "nothingOverTheLargestSideLoads[28]", "nothingOverTheLargestSideLoads[37]",
+                "aPickThatIsntOneOfThePostsSizesStays[28]", "aPickThatIsntOneOfThePostsSizesStays[37]",
+                "aSizeOfAnotherClassIsPassedOver[28]", "aSizeOfAnotherClassIsPassedOver[37]",
+                "unreadableSizesLeaveThePick[28]", "unreadableSizesLeaveThePick[37]",
+                "offPausedAndUnreadyKeepInstagramsPick[28]", "offPausedAndUnreadyKeepInstagramsPick[37]",
+                "aThrowingReadKeepsThePickAndIsReported[28]", "aThrowingReadKeepsThePickAndIsReported[37]",
+                "theStockHookKeepsThePick[28]", "theStockHookKeepsThePick[37]"),
+            "app.hushgram.extension.instagram.settings.FullResolutionSettingsTest" to listOf(
+                "missingPatchHasNoPhotoSwitch[28]", "missingPatchHasNoPhotoSwitch[37]",
+                "photoSwitchSitsUnderFeedStartsOffAndSaysItUsesMoreData[28]", "photoSwitchSitsUnderFeedStartsOffAndSaysItUsesMoreData[37]",
+                "photoSwitchPersistsAndHonorsPause[28]", "photoSwitchPersistsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.reels.ReelScrollingTest" to listOf(
                 "withTheSwitchOnAReelsPagerStaysPut[28]", "withTheSwitchOnAReelsPagerStaysPut[37]",
                 "otherPagersAreLeftAlone[28]", "otherPagersAreLeftAlone[37]",
@@ -365,10 +491,21 @@ tasks.register("verifyAndroidBoundaries") {
                 "aTwelveHourPhoneGetsTheDateAndTimeWithPm[28]", "aTwelveHourPhoneGetsTheDateAndTimeWithPm[37]",
                 "aTwentyFourHourPhoneGetsTheTwentyFourHourTime[28]", "aTwentyFourHourPhoneGetsTheTwentyFourHourTime[37]",
                 "theLabelFollowsThePhonesLanguage[28]", "theLabelFollowsThePhonesLanguage[37]",
-                "offPausedAndUnreadyKeepInstagramsLabel[28]", "offPausedAndUnreadyKeepInstagramsLabel[37]"),
+                "offPausedAndUnreadyKeepInstagramsLabel[28]", "offPausedAndUnreadyKeepInstagramsLabel[37]",
+                "theChoiceStartsAtTheDateAndTime[28]", "theChoiceStartsAtTheDateAndTime[37]",
+                "timeLeftCountsDownToADayAfterPosting[28]", "timeLeftCountsDownToADayAfterPosting[37]",
+                "theHookCountsTimeLeftFromNow[28]", "theHookCountsTimeLeftFromNow[37]",
+                "aStoryADayOldShowsTheDateAndTimeInsteadOfTimeLeft[28]", "aStoryADayOldShowsTheDateAndTimeInsteadOfTimeLeft[37]",
+                "timePostedShowsOnlyTheTimeOfDay[28]", "timePostedShowsOnlyTheTimeOfDay[37]",
+                "timePostedOnAnEarlierDayShowsTheDateToo[28]", "timePostedOnAnEarlierDayShowsTheDateToo[37]",
+                "oneMinuteLeftTakesTheSingularInSpanish[28]", "oneMinuteLeftTakesTheSingularInSpanish[37]",
+                "oneMinuteLeftTakesTheSingularInPortuguese[28]", "oneMinuteLeftTakesTheSingularInPortuguese[37]",
+                "everyModeKeepsInstagramsLabelOffPausedAndUnready[28]", "everyModeKeepsInstagramsLabelOffPausedAndUnready[37]"),
             "app.hushgram.extension.instagram.settings.StoryTimeSettingsTest" to listOf(
                 "missingPatchHasNoStoryTimeSwitch[28]", "missingPatchHasNoStoryTimeSwitch[37]",
-                "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[28]", "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[37]"),
+                "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[28]", "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[37]",
+                "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[28]",
+                "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[37]"),
             "app.hushgram.extension.instagram.stories.StoryLoopTest" to listOf(
                 "onEveryStoryLoops[28]", "onEveryStoryLoops[37]",
                 "offPausedAndUnreadyKeepInstagramsAnswer[28]", "offPausedAndUnreadyKeepInstagramsAnswer[37]",
@@ -385,7 +522,11 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoNativeAction[28]", "missingPatchHasNoNativeAction[37]",
                 "unavailableSessionOrNavigationKeepsTheDialogAndShowsRecovery[28]", "unavailableSessionOrNavigationKeepsTheDialogAndShowsRecovery[37]",
                 "successfulNavigationClosesTheDialogWithoutEnablingLongPress[28]", "successfulNavigationClosesTheDialogWithoutEnablingLongPress[37]",
-                "finishingDestroyedOrSavedHostsNeverCallNativeNavigation[28]", "finishingDestroyedOrSavedHostsNeverCallNativeNavigation[37]"),
+                "finishingDestroyedOrSavedHostsNeverCallNativeNavigation[28]", "finishingDestroyedOrSavedHostsNeverCallNativeNavigation[37]",
+                "missingPatchHasNoWhitehatAction[28]", "missingPatchHasNoWhitehatAction[37]",
+                "unavailableWhitehatKeepsTheDialogAndShowsRecovery[28]", "unavailableWhitehatKeepsTheDialogAndShowsRecovery[37]",
+                "openedWhitehatClosesTheDialogWithoutEnablingLongPress[28]", "openedWhitehatClosesTheDialogWithoutEnablingLongPress[37]",
+                "finishingDestroyedOrSavedHostsNeverOpenWhitehat[28]", "finishingDestroyedOrSavedHostsNeverOpenWhitehat[37]"),
             "app.hushgram.extension.instagram.settings.SettingsDialogBoundaryTest" to listOf(
                 "sdk28DialogKeepsLegacyBarsOutsideLargeTextContent[28]", "sdk37DialogKeepsSystemBarsOutsideLargeTextContent[37]",
                 "sdk28DialogMirrorsItsLargeTextHeader[28]", "sdk37DialogMirrorsItsLargeTextHeader[37]",
@@ -542,7 +683,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "aFailedDiscardReportsIncompleteCleanupAndItsRowCanRetry[28]", "aFailedDiscardReportsIncompleteCleanupAndItsRowCanRetry[37]",
                 "cancelledMalformedAndUnsavedRequestsLeaveTheNativeStoreByteIdentical[28]", "cancelledMalformedAndUnsavedRequestsLeaveTheNativeStoreByteIdentical[37]",
                 "anArmedStoreNamesBothWaysOutAndDiscardLetsImportsRunAgain[28]", "anArmedStoreNamesBothWaysOutAndDiscardLetsImportsRunAgain[37]",
-                "aSwitchTurnedOffWhileThePickerIsOpenReadsNeitherTheFileNorTheStore[28]", "aSwitchTurnedOffWhileThePickerIsOpenReadsNeitherTheFileNorTheStore[37]"),
+                "aSwitchTurnedOffWhileThePickerIsOpenReadsNeitherTheFileNorTheStore[28]", "aSwitchTurnedOffWhileThePickerIsOpenReadsNeitherTheFileNorTheStore[37]",
+                "resetTakesTheOverridesAwayAndRestorePutsThemBack[28]", "resetTakesTheOverridesAwayAndRestorePutsThemBack[37]"),
             "app.hushgram.extension.instagram.misc.InstagramSignatureTest" to listOf(
                 "thisAppStillGetsInstagramsTwoCertificates[28]", "thisAppStillGetsInstagramsTwoCertificates[37]",
                 "aRecordThatOnlyNamesThisAppSeedsNoSigners[28]", "aRecordThatOnlyNamesThisAppSeedsNoSigners[37]",
@@ -594,7 +736,7 @@ tasks.register("verifyAndroidBoundaries") {
                     }) throw GradleException("Android boundary case did not pass exactly once: $suiteName.$name")
             }
         }
-        logger.lifecycle("Verified Android API 28/29/37 boundary cases with the Instagram 449 target SDK (36).")
+        logger.lifecycle("Verified Android API 28/29/37 boundary cases with the Instagram 450 target SDK (36).")
     }
 }
 
@@ -616,7 +758,7 @@ android {
     namespace = "app.hushgram.extension.instagram"
 
     defaultConfig {
-        // Instagram 449 declares minSdk 28, so nothing below it can run this code.
+        // Instagram 450 declares minSdk 28, so nothing below it can run this code.
         minSdk = 28
     }
 

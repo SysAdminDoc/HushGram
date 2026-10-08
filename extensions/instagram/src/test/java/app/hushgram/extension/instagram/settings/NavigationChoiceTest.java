@@ -69,7 +69,9 @@ public class NavigationChoiceTest {
             ShadowLooper.idleMainLooper();
             assertEquals(NavigationTarget.PROFILE, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
             assertTrue(row.getSummary().toString().contains("Long-press Profile"));
-            assertTrue(row.getSummary().toString().contains("Restart Instagram"));
+            // The tabs take a change at once (#82), so the row no longer asks for a restart.
+            assertFalse(row.getSummary().toString().contains("Restart Instagram"));
+            assertFalse(Settings.NAVIGATION_SETTINGS_TARGET.rebootApp);
         }
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);

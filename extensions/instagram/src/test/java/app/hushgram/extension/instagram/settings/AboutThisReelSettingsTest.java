@@ -1,0 +1,146 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.settings;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import android.app.Activity;
+import android.preference.Preference;
+import android.preference.PreferenceGroup;
+import android.preference.SwitchPreference;
+
+import java.util.Arrays;
+import java.util.EnumSet;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+
+/**
+ * Hide About this reel and Hide Ask Meta AI in About this reel (#42): two switches of their own
+ * under Meta AI, after the search and posts switches, off to start, off while paused, and carried
+ * by an exported configuration.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = 30)
+@SuppressWarnings("deprecation")
+public class AboutThisReelSettingsTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+    private ActivityController<Activity> controller;
+    private HushgramPreferenceFragment page;
+
+    @Before public void prepare() {
+        Settings.HIDE_ABOUT_THIS_REEL.resetToDefault();
+        Settings.HIDE_ASK_META_AI.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
+    }
+
+    @After public void close() throws Exception {
+        if (controller != null) controller.close();
+        Utils.awaitBackgroundTasksForTests();
+        PatchFamily.inBuildForTests = null;
+        Settings.HIDE_ABOUT_THIS_REEL.resetToDefault();
+        Settings.HIDE_ASK_META_AI.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+    }
+
+    private void open(EnumSet<PatchFamily> build) throws Exception {
+        PatchFamily.inBuildForTests = build;
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        page = DownloadSettingsTest.pageIn(controller);
+        Utils.awaitBackgroundTasksForTests();
+    }
+
+    @Test public void withoutHideMetaAiThereAreNoSwitches() throws Exception {
+        open(EnumSet.of(PatchFamily.HIDE_ADS));
+        assertNull(page.findPreference(Settings.HIDE_ABOUT_THIS_REEL.key));
+        assertNull(page.findPreference(Settings.HIDE_ASK_META_AI.key));
+    }
+
+    @Test public void bothSwitchesSitUnderMetaAiAndStartOff() throws Exception {
+        open(EnumSet.of(PatchFamily.META_AI));
+        SwitchPreference about = (SwitchPreference) page.findPreference(Settings.HIDE_ABOUT_THIS_REEL.key);
+        SwitchPreference ask = (SwitchPreference) page.findPreference(Settings.HIDE_ASK_META_AI.key);
+        assertNotNull(about);
+        assertNotNull(ask);
+        assertEquals("Hide About this reel", String.valueOf(about.getTitle()));
+        assertEquals("A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, "
+                + "in Reels and in your feed. In your feed, the audio row under the summary goes too. "
+                + "The menu's other options stay.", String.valueOf(about.getSummary()));
+        assertEquals("Hide Ask Meta AI in About this reel", String.valueOf(ask.getTitle()));
+        assertEquals("About this reel keeps its summary and Sources without the Ask Meta AI box under them.",
+                String.valueOf(ask.getSummary()));
+        assertFalse(about.isChecked());
+        assertFalse(ask.isChecked());
+
+        PreferenceGroup section = about.getParent();
+        assertEquals("Meta AI", String.valueOf(section.getTitle()));
+        assertEquals(section, ask.getParent());
+        String[] keys = new String[section.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) {
+            Preference row = section.getPreference(i);
+            keys[i] = row.getKey();
+        }
+        assertEquals(Arrays.asList(Settings.HIDE_META_AI_SEARCH.key, Settings.HIDE_META_AI_POSTS.key,
+                Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key), Arrays.asList(keys));
+    }
+
+    /** Each switch reaches only its own setting. */
+    @Test public void theSwitchesAreIndependent() throws Exception {
+        open(EnumSet.of(PatchFamily.META_AI));
+        SwitchPreference about = (SwitchPreference) page.findPreference(Settings.HIDE_ABOUT_THIS_REEL.key);
+        SwitchPreference ask = (SwitchPreference) page.findPreference(Settings.HIDE_ASK_META_AI.key);
+        about.setChecked(true);
+        assertTrue(Settings.HIDE_ABOUT_THIS_REEL.get());
+        assertFalse(Settings.HIDE_ASK_META_AI.get());
+        about.setChecked(false);
+        ask.setChecked(true);
+        assertFalse(Settings.HIDE_ABOUT_THIS_REEL.get());
+        assertTrue(Settings.HIDE_ASK_META_AI.get());
+    }
+
+    @Test public void pauseTurnsThemOffAndExportCarriesThem() {
+        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_ABOUT_THIS_REEL, Settings.HIDE_ASK_META_AI}) {
+            assertTrue(setting.key, PatchFamily.META_AI.switches.contains(setting));
+            assertFalse(setting.key, setting.rebootApp);
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_ABOUT_THIS_REEL.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_ASK_META_AI.key));
+
+        Settings.HIDE_ABOUT_THIS_REEL.save(true);
+        Settings.HIDE_ASK_META_AI.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.HIDE_ABOUT_THIS_REEL.get());
+        assertFalse(Settings.HIDE_ASK_META_AI.get());
+        assertTrue(Settings.HIDE_ABOUT_THIS_REEL.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(Settings.HIDE_ABOUT_THIS_REEL.get());
+        assertTrue(Settings.HIDE_ASK_META_AI.get());
+    }
+}

@@ -36,7 +36,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The patch hands over each message object with a layout naming Instagram's obfuscated fields,
  * found at patch time: {@code i} the message id, {@code u} the sender, {@code t} the time, {@code x}
  * the text, {@code c} the content object real-time messages carry their text in, {@code h} whether
- * it's hidden, {@code m} whether you sent it and {@code k} the thread key. Everything here fails
+ * it's hidden, {@code m} whether you sent it, {@code k} the thread key and {@code d} the field of a
+ * thread key that holds the thread's id. Everything here fails
  * quietly: no message is lost or changed, and nothing is saved while the switch is off.
  */
 public final class SavedMessages {
@@ -45,8 +46,6 @@ public final class SavedMessages {
 
     private static final String DATABASE = "hushgram_saved_messages.db";
     private static final String TABLE = "message";
-    /** What a thread key keeps its id in, a name Instagram's own model class has. */
-    private static final String THREAD_ID = "A00";
 
     private static final Map<String, Field> FIELDS = new HashMap<>();
     private static final Map<String, Map<String, String>> LAYOUTS = new HashMap<>();
@@ -92,7 +91,7 @@ public final class SavedMessages {
             if (body == null || body.isEmpty()) return;
             String sender = text(read(message, names.get("u")));
             long sentAt = micros(text(read(message, names.get("t"))));
-            String thread = text(read(read(message, names.get("k")), THREAD_ID));
+            String thread = text(read(read(message, names.get("k")), names.get("d")));
             final String savedBody = body;
             Utils.runOnBackgroundThread(() -> save(id, thread, sender, savedBody, sentAt));
         } catch (Throwable failure) {

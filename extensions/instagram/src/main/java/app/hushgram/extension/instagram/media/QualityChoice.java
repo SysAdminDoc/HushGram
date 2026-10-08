@@ -142,7 +142,9 @@ public final class QualityChoice {
         try {
             if (evaluator == null || !inBuild()) return;
             HookStatus.invoked(FAMILY);
-            PlaybackQuality quality = chosen();
+            // Data saver wins while it's saving, whatever this patch's own switch and list say.
+            boolean saving = DataSaver.saving();
+            PlaybackQuality quality = saving ? PlaybackQuality.DATA_SAVER : chosen();
             if (quality == null || access.customTrack(evaluator) != null) return;
             List<String> labels = labels(access.formats(evaluator));
             String picked = quality.pick(labels);
@@ -156,6 +158,7 @@ public final class QualityChoice {
             }
             HookStatus.bound(FAMILY, "labelled tracks");
             HookStatus.counted(FAMILY, APPLIED);
+            if (saving) DataSaver.countVideo();
             log(quality.fileValue + " started a video at " + picked + " of " + String.join(", ", labels) + ".");
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "first choice", failure);

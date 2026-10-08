@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -23,7 +24,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
+import com.android.tools.smali.dexlib2.iface.instruction.ThreeRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -77,9 +80,21 @@ internal val WRITER_STUBS = linkedMapOf(
     "getOverrideTypeNative" to ("J" to "I"),
 )
 
+/** How the typed put reads a parameter ID's type code. The type stub reads it the same way. */
+internal sealed interface TypeDecoder {
+    /** 449: a public static (J)I call. */
+    data class Call(val method: String) : TypeDecoder
+
+    /** 450: the ID shifted right [shift] bits and masked with [mask], in the put itself. */
+    data class Bits(val shift: Int, val mask: Int) : TypeDecoder
+}
+
+/** Where the typed put has the type code: the parameter ID's register pair, the code's register, and the instruction after. */
+private class DecodeSite(val id: List<Int>, val result: Int, val next: Int)
+
 internal data class OverrideWriter(
     val delegate: String, val gate: String, val tableGetter: String, val managerGetter: String, val table: String,
-    val updates: Map<String, String>, val remove: String, val decoder: String,
+    val updates: Map<String, String>, val remove: String, val decoder: TypeDecoder,
     /** Decoder code to the typed writer Instagram's put sends it to. */
     val dispatch: Map<Int, String>,
     /** The filled stubs, assembled while finding. */
@@ -137,11 +152,15 @@ internal fun BytecodePatchContext.findOverrideWriter(model: String): OverrideWri
     }
     if (updateCalls.size != OVERRIDE_VALUES.size) writerRefuse("typed put has unexpected override calls")
     if (putCode.any { it.reference()?.name in FORBIDDEN_WRITES }) writerRefuse("typed put reaches a bulk or string import")
-    val decoder = putCode.filter { it.opcode == Opcode.INVOKE_STATIC }.mapNotNull { it.reference() }
+    val calls = putCode.filter { it.opcode == Opcode.INVOKE_STATIC }.mapNotNull { it.reference() }
         .filter { it.parameterTypes.map(Any::toString) == listOf("J") && it.returnType == "I" }
-        .distinctBy(Any::toString).only("override type decoder")
-    publicStatic(decoder)
-    val dispatch = put.requireDispatch(putCode, decoder, updates)
+        .distinctBy(Any::toString)
+    val (decoder, site) = if (calls.isNotEmpty()) {
+        val call = calls.only("override type decoder")
+        publicStatic(call)
+        TypeDecoder.Call(call.toString()) to callSite(putCode, call)
+    } else inlineDecoder(putCode)
+    val dispatch = put.requireDispatch(putCode, site, updates)
 
     // The interface declares what the store calls, plus the remove its reset calls.
     val tableClass = writerClass(table)
@@ -207,26 +226,57 @@ internal fun BytecodePatchContext.findOverrideWriter(model: String): OverrideWri
     }
     if (gateUsers == 0) writerRefuse("no native-ready check uses the manager gate")
     val found = OverrideWriter(delegate.toString(), gate.toString(), tableGetter, ownGetter.toString(), table, updates, remove,
-        decoder.toString(), dispatch, PreparedStubs(emptyList(), emptyList()))
+        decoder, dispatch, PreparedStubs(emptyList(), emptyList()))
     return found.copy(stubs = prepareStubs(writerStubs(), writerBodies(found, model), ::writerRefuse))
 }
 
-/**
- * Proves the typed put branches on the decoder's code. Walking the put from the decoder's result,
- * with only that code known, code k reaches exactly one typed writer, the one [DECODED_VALUES]
- * names for k, and that writer gets the same parameter ID the decoder read. Returns code to writer.
- */
-private fun Method.requireDispatch(code: List<Instruction>, decoder: MethodReference, updates: Map<String, String>): Map<Int, String> {
+/** 449's decoder call: the one ID it reads and the move-result that keeps its code. */
+private fun callSite(code: List<Instruction>, decoder: MethodReference): DecodeSite {
     val call = code.indices.filter { code[it].opcode == Opcode.INVOKE_STATIC && code[it].reference()?.toString() == decoder.toString() }
         .only("override type decoder call")
     val id = code[call].arguments()
     if (id.size != 2 || id[1] != id[0] + 1) writerRefuse("override type decoder doesn't read one parameter ID")
     val result = (code.getOrNull(call + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT } as? OneRegisterInstruction)?.registerA
         ?: writerRefuse("typed put doesn't keep the decoder's code")
+    return DecodeSite(id, result, call + 2)
+}
+
+/**
+ * 450's decoder, written into the put: a shift count, the ID shifted right by it, a mask, the
+ * shifted ID masked in place, and that cut to an int. The type stub repeats it, so the mask must
+ * fit an int.
+ */
+private fun inlineDecoder(code: List<Instruction>): Pair<TypeDecoder, DecodeSite> {
+    val sites = (4 until code.size).filter { at ->
+        val shift = code[at - 4]; val shifted = code[at - 3]; val mask = code[at - 2]; val masked = code[at - 1]; val cut = code[at]
+        cut.opcode == Opcode.LONG_TO_INT && masked.opcode == Opcode.AND_LONG_2ADDR && shifted.opcode == Opcode.USHR_LONG &&
+            mask.opcode in WIDE_CONSTANTS && shift.opcode in NARROW_CONSTANTS &&
+            (cut as TwoRegisterInstruction).registerB == (masked as TwoRegisterInstruction).registerA &&
+            masked.registerB == (mask as OneRegisterInstruction).registerA &&
+            (shifted as ThreeRegisterInstruction).registerA == masked.registerA &&
+            shifted.registerC == (shift as OneRegisterInstruction).registerA
+    }
+    val at = sites.only("override type decoder")
+    val mask = (code[at - 2] as WideLiteralInstruction).wideLiteral
+    if (mask !in 0..Int.MAX_VALUE.toLong()) writerRefuse("override type decoder's mask doesn't fit an int")
+    val id = (code[at - 3] as ThreeRegisterInstruction).registerB
+    return TypeDecoder.Bits((code[at - 4] as NarrowLiteralInstruction).narrowLiteral, mask.toInt()) to
+        DecodeSite(listOf(id, id + 1), (code[at] as OneRegisterInstruction).registerA, at + 1)
+}
+
+private val NARROW_CONSTANTS = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
+private val WIDE_CONSTANTS = setOf(Opcode.CONST_WIDE_16, Opcode.CONST_WIDE_32, Opcode.CONST_WIDE)
+
+/**
+ * Proves the typed put branches on the decoder's code. Walking the put from the decoder's result,
+ * with only that code known, code k reaches exactly one typed writer, the one [DECODED_VALUES]
+ * names for k, and that writer gets the same parameter ID the decoder read. Returns code to writer.
+ */
+private fun Method.requireDispatch(code: List<Instruction>, site: DecodeSite, updates: Map<String, String>): Map<Int, String> {
     val flow = PutFlow(this, code)
     return DECODED_VALUES.entries.associate { (decoded, value) ->
         val writer = updates.getValue(value)
-        if (flow.writersReached(call + 2, result, decoded, id) != setOf(writer)) {
+        if (flow.writersReached(site.next, site.result, decoded, site.id) != setOf(writer)) {
             writerRefuse("typed put doesn't send decoder code $decoded only to its $value writer")
         }
         decoded to writer
@@ -345,8 +395,9 @@ private class PutFlow(method: Method, private val code: List<Instruction>) {
 private fun BytecodePatchContext.storeFactory(store: String, model: String, base: String, tableGetter: String,
                                               putCode: List<Instruction>): MethodReference {
     val factories = mutableListOf<Method>()
+    val creating = classesCreating(store).mapTo(HashSet()) { it.type }
     classDefForEach { clazz ->
-        if (clazz.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
+        if (clazz.type !in creating || clazz.type.startsWith(EXTENSION_PACKAGE)) return@classDefForEach
         clazz.methods.filterTo(factories) { method ->
             method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE &&
                 ((it as ReferenceInstruction).reference as? TypeReference)?.type == store } == true
@@ -440,7 +491,13 @@ private fun writerBodies(writer: OverrideWriter, model: String): List<Pair<Int, 
         "setOverrideDoubleNative" to (1 to setter("p0, p1, p2, p3, p4", writer.updates.getValue("D"))),
         "setOverrideStringNative" to (1 to setter("p0, p1, p2, p3", writer.updates.getValue("Ljava/lang/String;"))),
         "removeOverrideNative" to (1 to setter("p0, p1, p2", writer.remove)),
-        "getOverrideTypeNative" to (1 to listOf("invoke-static { p0, p1 }, ${writer.decoder}", "move-result v0", "return v0")),
+        "getOverrideTypeNative" to (1 to when (val decoder = writer.decoder) {
+            is TypeDecoder.Call -> listOf("invoke-static { p0, p1 }, ${decoder.method}", "move-result v0", "return v0")
+            is TypeDecoder.Bits -> listOf(
+                "const v0, ${decoder.shift}", "ushr-long p0, p0, v0", "long-to-int p0, p0",
+                "const v0, ${decoder.mask}", "and-int/2addr v0, p0", "return v0",
+            )
+        }),
     )
     return WRITER_STUBS.map { (name, shape) ->
         val (locals, body) = bodies.getValue(name)

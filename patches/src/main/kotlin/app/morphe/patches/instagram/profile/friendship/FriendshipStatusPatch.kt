@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
@@ -63,6 +64,12 @@ internal const val FRIENDSHIP_STATUS_KEY = "friendship_status"
  */
 internal const val FOLLOWED_BY = "followed_by"
 
+/**
+ * The key of whether you follow the account, which the friendship status's dump loads the same way.
+ * Show it as a chip reads it to say Following each other.
+ */
+internal const val FOLLOWING = "following"
+
 internal const val OBJECT = "Ljava/lang/Object;"
 internal const val STRING = "Ljava/lang/String;"
 internal const val VIEW = "Landroid/view/View;"
@@ -71,15 +78,16 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
 
 /**
  * Adds Follows you or Doesn't follow you beside the name on someone's profile, in the slot Instagram
- * keeps there for pronouns, and with a second switch marks the accounts on your own Following list
- * that don't follow you back ([findFollowRow]). Asked for in #1.
+ * keeps there for pronouns, or with Show it as a chip as a chip under the profile's counts, and with
+ * a second switch marks the accounts on your own Following list that don't follow you back
+ * ([findFollowRow]). Asked for in #1 and, for the chip, #24.
  */
 @Suppress("unused")
 val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns " +
-        "if they've set any. A second switch, off to start, marks the accounts on your own Following list that " +
-        "don't follow you back.",
+        "if they've set any, or as a chip under their counts that also says Following each other. A second switch, " +
+        "off to start, marks the accounts on your own Following list that don't follow you back.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -90,14 +98,15 @@ val friendshipStatusPatch = bytecodePatch(
         requireStatusMethod(FOLLOWING_LIST_STATUS)
         // Everything is found before anything changes, so a build missing any part is left untouched.
         val found = findProfileName()
-        val row = followRowOrWarn()
+        val mark = followRowOrWarn()
         val stubs = friendshipStubs()
         val rowStubs = followingStubs()
         labelProfileName(found)
         stubs.fill(found)
-        if (row != null) {
-            markFollowRow(row)
-            rowStubs.fill(row)
+        if (mark != null) {
+            markFollowRow(mark.row)
+            askFollowAnswers(mark.answers)
+            rowStubs.fill(mark.row, mark.answers)
             enableStatus(FOLLOWING_LIST_STATUS)
         }
         enableStatus("friendshipStatus")
@@ -107,13 +116,18 @@ val friendshipStatusPatch = bytecodePatch(
 /** The status of the second switch, which a build can lack while the profile label goes in. */
 internal const val FOLLOWING_LIST_STATUS = "followingListMark"
 
+/** The Following list mark's parts: the row binder, and where Instagram asks the server and hears back. */
+internal class FollowMark(val row: FollowRow, val answers: FollowAnswers)
+
 /**
- * The follow list's row binder, or null with a warning in the patch log when this build's list
- * doesn't match. Marking the list is a second switch, off to start, so a list that moved leaves it
- * out rather than taking the profile label down too; settings then don't offer the switch.
+ * The follow list's row binder and the places its answers come from, or null with a warning in the
+ * patch log when this build's list doesn't match. A row is only marked on the server's answer, so
+ * the binder without them would mark nothing. Marking the list is a second switch, off to start, so
+ * a list that moved leaves it out rather than taking the profile label down too; settings then
+ * don't offer the switch.
  */
-internal fun BytecodePatchContext.followRowOrWarn(): FollowRow? = try {
-    findFollowRow()
+internal fun BytecodePatchContext.followRowOrWarn(): FollowMark? = try {
+    FollowMark(findFollowRow(), findFollowAnswers())
 } catch (moved: PatchException) {
     patchLog.warning("${moved.message}. The profile label goes in without Mark who doesn't follow you back.")
     null
@@ -147,6 +161,8 @@ internal class ProfileName(
     /** The user model's getter of its friendship status, and the status's getter of whether the account follows you. */
     val friendship: String,
     val relationshipFollowedBy: String,
+    /** The status's getter of whether you follow the account, or null when this build's can't be told. */
+    val relationshipFollowing: String?,
     /** The user model's own getter of whether the account follows you. */
     val userFollowedBy: String,
     /** The user model's getter of its ID, and the header's field of the signed-in account. */
@@ -163,18 +179,24 @@ internal class ProfileName(
  * comes from the user model's one getter answering a [RELATIONSHIP] and loading
  * [FRIENDSHIP_STATUS_KEY], and that status's getter the status's dump asks right after loading
  * [FOLLOWED_BY], with the user model's one getter answering a Boolean and loading [FOLLOWED_BY] to
- * fall back on. Your own profile is told apart by the user's ID, from the one getter its
+ * fall back on. The getter the dump asks right after loading [FOLLOWING] is whether you follow the
+ * account; a build where that isn't one getter goes in with a warning, and its chip never says
+ * Following each other. Your own profile is told apart by the user's ID, from the one getter its
  * hashCode() asks, against the header's [USER_SESSION]. Fails when any of them isn't there, or
  * there's more than one, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val binders = mutableListOf<Pair<String, Method>>()
     val relationshipGetters = sortedSetOf<String>()
+    val followingGetters = sortedSetOf<String>()
+    val naming = classesHolding(BIND_FULL_NAME).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
-        classDef.methods.filter { it.holdsString(BIND_FULL_NAME) }.forEach { binders += classDef.type to it }
-        classDef.methods.filter { method -> method.parameterTypes.any { it.toString() == RELATIONSHIP } }
-            .forEach { relationshipGetters += it.relationshipFollowedBy() }
+        if (classDef.type in naming) classDef.methods.filter { it.holdsString(BIND_FULL_NAME) }.forEach { binders += classDef.type to it }
+        classDef.methods.filter { method -> method.parameterTypes.any { it.toString() == RELATIONSHIP } }.forEach {
+            relationshipGetters += it.relationshipGetters(FOLLOWED_BY)
+            followingGetters += it.relationshipGetters(FOLLOWING)
+        }
     }
     val (type, binder) = binders.singleOrNull()
         ?: refuse("expected one method loading $BIND_FULL_NAME, found ${binders.size}")
@@ -198,10 +220,15 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val (shown, field) = shownSites.singleOrNull()
         ?: refuse("expected one slot in $where's $BIND_FULL_NAME section given its text and shown, found ${shownSites.size}")
     val slot = field.type
-    val hiddenSites = section.filter { at ->
-        code[at].opcode == Opcode.IGET_OBJECT && code[at].fieldReference()?.toString() == field.toString() &&
-            code.getOrNull(at + 1)?.isSetVisibility(slot, (code[at] as OneRegisterInstruction).registerA) == true
-    }.map { it + 1 }
+    // 450 moves the visibility into place between the read and the call.
+    val moves = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
+    val hiddenSites = section.mapNotNull { at ->
+        if (code[at].opcode != Opcode.IGET_OBJECT || code[at].fieldReference()?.toString() != field.toString()) return@mapNotNull null
+        val register = (code[at] as OneRegisterInstruction).registerA
+        (at + 1..minOf(at + 3, code.size - 1)).firstOrNull { code[it].isSetVisibility(slot, register) }?.takeIf { call ->
+            (at + 1 until call).all { code[it].opcode in moves && (code[it] as OneRegisterInstruction).registerA != register }
+        }
+    }
     val hidden = hiddenSites.singleOrNull()
         ?: refuse("expected one place in $where's $BIND_FULL_NAME section hiding the slot, found ${hiddenSites.size}")
 
@@ -229,6 +256,13 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
         ?: refuse("expected one getter in $USER answering a $RELATIONSHIP and loading $FRIENDSHIP_STATUS_KEY, found ${friendships.size}")
     val relationshipFollowedBy = relationshipGetters.singleOrNull()
         ?: refuse("expected one $RELATIONSHIP getter asked right after $FOLLOWED_BY is loaded, found $relationshipGetters")
+    val relationshipFollowing = followingGetters.singleOrNull()
+    if (relationshipFollowing == null) {
+        patchLog.warning(
+            "$PATCH: expected one $RELATIONSHIP getter asked right after $FOLLOWING is loaded, found $followingGetters. " +
+                "The chip says Follows you, never Following each other.",
+        )
+    }
 
     // The user model hashes its ID, so hashCode() asks its one getter of it.
     val hashCode = userClass.methods.singleOrNull {
@@ -262,18 +296,19 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     return ProfileName(
         type, binder.name, binder.parameterTypes.map(CharSequence::toString), slot,
         shown, code[shown].namedRegisters().first(), hidden, code[hidden].namedRegisters().first(),
-        header, headerType, viewModel, user, friendship.name, relationshipFollowedBy, followedBy.name, userId, session,
+        header, headerType, viewModel, user, friendship.name, relationshipFollowedBy, relationshipFollowing, followedBy.name, userId,
+        session,
     )
 }
 
 /**
- * The names of the [RELATIONSHIP] getters [this] asks, with nothing, right after loading
- * [FOLLOWED_BY]: the friendship status's dump writes each key and then asks the status for it.
+ * The names of the [RELATIONSHIP] getters [this] asks, with nothing, right after loading [key]: the
+ * friendship status's dump writes each key and then asks the status for it.
  */
-private fun Method.relationshipFollowedBy(): List<String> {
+private fun Method.relationshipGetters(key: String): List<String> {
     val code = implementation?.instructions?.toList() ?: return emptyList()
     return code.withIndex().mapNotNull { (at, instruction) ->
-        if (!instruction.loadsString(FOLLOWED_BY)) return@mapNotNull null
+        if (!instruction.loadsString(key)) return@mapNotNull null
         val next = code.getOrNull(at + 1) ?: return@mapNotNull null
         val asked = next.methodReference() ?: return@mapNotNull null
         val isGetter = (next.opcode == Opcode.INVOKE_INTERFACE || next.opcode == Opcode.INVOKE_INTERFACE_RANGE) &&
@@ -378,6 +413,7 @@ private fun Method.freePairAt(index: Int): Int {
 internal class FriendshipStubs(
     private val profileUser: MutableMethod,
     private val friendshipFollowedBy: MutableMethod,
+    private val friendshipFollowing: MutableMethod,
     private val followedBy: MutableMethod,
     private val userId: MutableMethod,
     private val viewerId: MutableMethod,
@@ -413,6 +449,25 @@ internal class FriendshipStubs(
                 return-object p0
             """,
         )
+        // Left answering null when the build's getter can't be told, so the chip never says you
+        // follow each other on a guess.
+        found.relationshipFollowing?.let { following ->
+            friendshipFollowing.addInstructionsWithLabels(
+                0,
+                """
+                    check-cast p0, $USER
+                    invoke-virtual { p0 }, $USER->${found.friendship}()$RELATIONSHIP
+                    move-result-object p0
+                    if-nez p0, :known
+                    const/4 p0, 0x0
+                    return-object p0
+                    :known
+                    invoke-interface { p0 }, $RELATIONSHIP->$following()$BOOLEAN
+                    move-result-object p0
+                    return-object p0
+                """,
+            )
+        }
         followedBy.addInstructionsWithLabels(
             0,
             """
@@ -477,6 +532,7 @@ internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
     return FriendshipStubs(
         profileUser = stub("profileUser", listOf(OBJECT), OBJECT),
         friendshipFollowedBy = stub("friendshipFollowedBy", listOf(OBJECT), BOOLEAN),
+        friendshipFollowing = stub("friendshipFollowing", listOf(OBJECT), BOOLEAN),
         followedBy = stub("followedBy", listOf(OBJECT), BOOLEAN),
         userId = stub("userId", listOf(OBJECT), STRING),
         viewerId = stub("viewerId", listOf(OBJECT), STRING),

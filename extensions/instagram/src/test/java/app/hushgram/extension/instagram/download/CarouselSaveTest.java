@@ -19,6 +19,8 @@ import android.content.ContentUris;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.SharedPreferences;
+import android.content.ContentValues;
+import android.os.Environment;
 import android.os.Looper;
 import android.provider.MediaStore;
 
@@ -46,7 +48,9 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -109,6 +113,9 @@ public class CarouselSaveTest {
         Utils.awaitBackgroundTasksForTests();
         SaveLeftovers.forgetSweepForTests();
         MediaBridge.post = null;
+        MediaBridge.poster = null;
+        MediaBridge.postedAt = null;
+        Settings.SAVE_NAME_BY_POST.resetToDefault();
         LogBufferManager.clearLogBuffer();
     }
 
@@ -311,6 +318,90 @@ public class CarouselSaveTest {
         assertClean();
     }
 
+    /**
+     * A carousel's Download in the Reels viewer saved its first page whatever page was on screen
+     * (#78), since its own picture is the first page's. Every page saves now, in order, and the
+     * feed's photo and video switches, which belong to Download any video, don't leave any out.
+     */
+    @Test public void theReelsViewerSavesEveryPageOfACarousel() throws Exception {
+        Settings.DOWNLOAD_PHOTOS.save(false);
+        Settings.DOWNLOAD_VIDEOS.save(false);
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"), page(false, "/last.jpg", "3"));
+        assertTrue(ReelDownload.saveReel(context, MediaBridge.post));
+        waitForSaves();
+        assertEquals(1, server.hits("/first.jpg")); assertEquals(1, server.hits("/middle.mp4")); assertEquals(1, server.hits("/last.jpg"));
+        assertEquals("Saved 3. Failed 0. Skipped 0.", ShadowToast.getTextOfLatestToast());
+        assertClean();
+    }
+
+    /**
+     * Download cover failed on a reel whose only cover address names its size (#79), which the
+     * photo save takes for a thumbnail's and turns down. The cover's sizes are all of the one
+     * picture, so the largest the reel states saves.
+     */
+    @Test public void aReelsCoverSavesWhenItsAddressNamesItsSize() throws Exception {
+        server.serve("/small.jpg", "image/jpeg", body(false));
+        server.serve("/cover.jpg", "image/jpeg", body(false));
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/small.jpg?stp=dst-jpg_e15_s150x150_tt6", 150, 266, 0),
+                new MediaSave.Rendition(server.origin() + "/cover.jpg?stp=dst-jpg_e15_p540x540_tt6", 540, 960, 0)),
+                null, PostDetails.of("7"));
+        assertNull("the photo save's ranking let a sized address in", RenditionPicker.pickImage(reel.renditions));
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/cover.jpg")); assertEquals(0, server.hits("/small.jpg"));
+        assertEquals(1, gallery.rows.size());
+        assertClean();
+    }
+
+    /** The names the saves took, photos and videos together, sorted. Android 9 has them as files, later ones as rows. */
+    private List<String> savedNames() {
+        List<String> names = new ArrayList<>();
+        if (MediaStoreWriter.legacyStorage()) {
+            for (String directory : new String[]{Environment.DIRECTORY_PICTURES, Environment.DIRECTORY_MOVIES}) {
+                String[] saved = new File(Environment.getExternalStoragePublicDirectory(directory), "Instagram").list();
+                if (saved != null) names.addAll(Arrays.asList(saved));
+            }
+        } else {
+            for (ContentValues row : gallery.rows.values()) names.add(row.getAsString(MediaStore.MediaColumns.DISPLAY_NAME));
+        }
+        Collections.sort(names);
+        return names;
+    }
+
+    /**
+     * Name saves by account and post time (#20), on Android 9's own folders and on today's
+     * MediaStore: Save all names every page for the account and the post's time with its page
+     * number, so no two pages of one post share a name, and the page on screen saved on its own
+     * carries its number too.
+     */
+    @Test @Config(sdk = {28, 37})
+    public void namesByPostNumberEveryCarouselPage() throws Exception {
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        for (String directory : new String[]{Environment.DIRECTORY_PICTURES, Environment.DIRECTORY_MOVIES}) {
+            File[] old = new File(Environment.getExternalStoragePublicDirectory(directory), "Instagram").listFiles();
+            if (old != null) for (File file : old) assertTrue(file.delete());
+        }
+        Settings.SAVE_NAME_BY_POST.save(true);
+        Calendar noon = new GregorianCalendar();
+        noon.clear();
+        noon.set(2026, Calendar.SEPTEMBER, 1, 12, 0, 0);
+        MediaBridge.poster = "stevi.ous";
+        MediaBridge.postedAt = noon.getTimeInMillis() / 1000L;
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"), page(false, "/last.jpg", "3"));
+
+        VideoDownload.saveAll(MediaBridge.post, null);
+        waitForSaves();
+        assertEquals("Saved 3. Failed 0. Skipped 0.", ShadowToast.getTextOfLatestToast());
+        String base = "stevi.ous_20260901_120000";
+        assertEquals(Arrays.asList(base + "_1.jpg", base + "_2.mp4", base + "_3.jpg"), savedNames());
+
+        assertEquals(3, VideoDownload.details(MediaBridge.post.get(2), MediaBridge.post).page);
+        assertEquals(0, VideoDownload.details(MediaBridge.post, MediaBridge.post).page);
+        assertEquals(0, VideoDownload.pageOf(page(false, "/elsewhere.jpg", "9"), MediaBridge.post));
+        assertClean();
+    }
+
     @Test public void theSeparateMenuActionUsesItsLabelAndKeepsNativeOptionsIntact() {
         MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"));
         ArrayList<Object> rows = new ArrayList<>();
@@ -508,6 +599,8 @@ public class CarouselSaveTest {
     @Implements(value = InstagramMedia.class, isInAndroidSdk = false)
     public static class MediaBridge {
         static List<MediaSave.Item> post;
+        static String poster;
+        static Long postedAt;
         static final Object ALL = new Object(), DOWNLOAD = new Object();
         static CharSequence label;
         @Implementation protected static Object saveAllOption() { return ALL; }
@@ -519,16 +612,25 @@ public class CarouselSaveTest {
         @Implementation protected static void addDownloadRow(Object menu, ArrayList<Object> rows) { rows.add(DOWNLOAD); }
         @Implementation protected static List<?> carouselMedia(Object media) { return media == post ? post : null; }
         @Implementation protected static int carouselIndex(Object itemState) { return (int) itemState; }
-        @Implementation protected static List<?> videoVersions(Object media) { return ((MediaSave.Item) media).video ? ((MediaSave.Item) media).renditions : null; }
-        @Implementation protected static String dashManifest(Object media) { return ((MediaSave.Item) media).manifest; }
+        @Implementation protected static List<?> videoVersions(Object media) {
+            return media instanceof MediaSave.Item && ((MediaSave.Item) media).video ? ((MediaSave.Item) media).renditions : null;
+        }
+        @Implementation protected static String dashManifest(Object media) { return media instanceof MediaSave.Item ? ((MediaSave.Item) media).manifest : null; }
         @Implementation protected static Object imageVersions(Object media) { return media; }
-        @Implementation protected static List<?> imageCandidates(Object media) { return ((MediaSave.Item) media).video ? null : ((MediaSave.Item) media).renditions; }
+        /** A carousel's own picture is its first page's, as Instagram's is. */
+        @Implementation protected static List<?> imageCandidates(Object media) {
+            MediaSave.Item item = (MediaSave.Item) (media instanceof List ? ((List<?>) media).get(0) : media);
+            return item.video ? null : item.renditions;
+        }
         @Implementation protected static String versionUrl(Object version) { return ((MediaSave.Rendition) version).url; }
         @Implementation protected static Integer versionWidth(Object version) { return ((MediaSave.Rendition) version).width; }
         @Implementation protected static Integer versionHeight(Object version) { return ((MediaSave.Rendition) version).height; }
         @Implementation protected static String candidateUrl(Object version) { return ((MediaSave.Rendition) version).url; }
         @Implementation protected static int candidateWidth(Object version) { return ((MediaSave.Rendition) version).width; }
         @Implementation protected static int candidateHeight(Object version) { return ((MediaSave.Rendition) version).height; }
+        @Implementation protected static Object owner(Object media) { return poster; }
+        @Implementation protected static String username(Object user) { return (String) user; }
+        @Implementation protected static Long takenAt(Object media) { return postedAt; }
         @Implementation protected static String mediaId(Object media) { return media instanceof MediaSave.Item ? ((MediaSave.Item) media).details.videoId : null; }
     }
 }

@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.imageBridges
 import app.morphe.patches.instagram.download.mediaBridges
+import app.morphe.patches.instagram.download.storyMusicBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -45,6 +46,7 @@ private const val PATCH = "Download any story"
 private const val STORY_DOWNLOAD = "$EXTENSION_PACKAGE/download/StoryDownload;"
 internal const val LABELS = "$STORY_DOWNLOAD->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence;"
 internal const val SAVE_STORY = "$STORY_DOWNLOAD->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z"
+internal const val BUILDING = "$STORY_DOWNLOAD->building(Ljava/lang/Object;)V"
 
 /** The name Instagram's build keeps, in a static field, for the class that runs a story's menu. */
 internal const val HELPER_NAME = "ReelOptionsOverflowHelper"
@@ -61,9 +63,11 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
  *
  * A story's menu is built as a list of labels by one of a few static builders of the class that
  * runs it, and a tap hands the tapped label, with that class, to one of a few static handlers that
- * compare it with Instagram's own. Instagram offers a save only on your own stories. Each builder's
- * labels get Download added where it returns them, and each handler asks the extension first, which
- * saves the story when the label is Download. A few older dialogs, shown for special story items,
+ * compare it with Instagram's own. Instagram offers a save only on your own stories. Each builder
+ * first tells the extension which menu it's building, from the parameter that holds it, since a
+ * builder can reuse that register before it returns. Its labels get Download added where it returns
+ * them (Download as video and Download as photo for a photo story with music), and each handler asks
+ * the extension first, which saves the story when the label is one of those. A few older dialogs, shown for special story items,
  * skip the handlers: their click listener looks the tapped label up in a builder's labels itself,
  * so right after that lookup the listener asks the extension too.
  *
@@ -74,7 +78,7 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
 val downloadStoryPatch = bytecodePatch(
     name = "Download any story",
     description = "Adds Download to the menu of anyone's story. A video saves at the Download quality you set, " +
-        "a photo at its largest size.",
+        "a photo at its largest size. A photo story with music offers Download as video and Download as photo.",
     default = true,
 ) {
     category("Downloads")
@@ -136,10 +140,19 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
     handled.forEach { it.requireLocals(PATCH, 2) }
     val writeVideoBridges = mediaBridges(PATCH)
     val writeImageBridges = imageBridges(PATCH)
+    val writeMusicBridges = storyMusicBridges(PATCH)
+    // Each builder's menu, its parameter of the menu's class, read before the body can reuse it.
+    val menus = builders.associateWith { builder ->
+        val parameters = builder.parameterTypes.map(Any::toString)
+        val words = parameters.sumOf { if (it == "J" || it == "D") 2 else 1 }
+        builder.implementation!!.registerCount - words +
+            parameters.take(parameters.indexOf(type)).sumOf { if (it == "J" || it == "D") 2 else 1 }
+    }
 
     // Each return of a builder hands its labels through the extension first. The return is
     // replaced rather than preceded, because a jump to the return lands on what replaces it and
-    // would skip anything put in front of it.
+    // would skip anything put in front of it. Then the builder's first instruction tells the
+    // extension which menu the labels are for.
     returns.forEach { (builder, found) ->
         val method = mutable(builder)
         found.sortedDescending().forEach { index ->
@@ -156,6 +169,11 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
                 """,
             )
         }
+        val menu = menus.getValue(builder)
+        method.addInstructions(
+            0,
+            if (menu > 15) "invoke-static/range { v$menu .. v$menu }, $BUILDING" else "invoke-static { v$menu }, $BUILDING",
+        )
     }
 
     handled.forEach { method ->
@@ -208,6 +226,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
     )
     writeVideoBridges()
     writeImageBridges()
+    writeMusicBridges()
 }
 
 /**

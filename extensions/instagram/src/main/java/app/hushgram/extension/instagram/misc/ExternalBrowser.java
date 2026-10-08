@@ -90,13 +90,16 @@ public final class ExternalBrowser {
         if (!switchedOn()) return false;
 
         Uri uri = intent.getData();
-        if (uri == null || !isWebUrl(uri) || isAd(activity, intent)) return false;
+        if (uri == null || !Utils.isWebLink(uri) || isAd(activity, intent)) return false;
 
         Uri target = LinkCleaner.unwrapShims(uri);
         if (isOn(target.getHost(), INTERNAL_HOSTS)) return false;
         // fbclid is Meta's click id, so the site it opens can tell Meta the link was followed. It
         // goes, and nothing else in the link changes.
         target = Uri.parse(LinkCleaner.withoutClickId(target.toString()));
+        // What leaves is checked as it's sent, not only as it came: a web address with a host, or
+        // the link stays where Instagram put it.
+        if (!Utils.isWebLink(target)) return false;
 
         try {
             Intent view = new Intent(Intent.ACTION_VIEW, target);
@@ -157,12 +160,6 @@ public final class ExternalBrowser {
                     () -> "Could not read the external browser switch", t);
             return false;
         }
-    }
-
-    /** Whether the scheme is http or https, in any case: a scheme is case-insensitive (RFC 3986). */
-    private static boolean isWebUrl(Uri uri) {
-        String scheme = uri.getScheme();
-        return "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
     }
 
     /** Whether {@code host} is one of {@code domains}, or a subdomain of one. */

@@ -57,7 +57,7 @@ class DownloadStoryHookTest {
     /** The hooks the patch writes are in the extension the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(LABELS, SAVE_STORY)) {
+        for (hook in listOf(LABELS, SAVE_STORY, BUILDING)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -96,6 +96,31 @@ class DownloadStoryHookTest {
         assertEquals(20, (high.last() as OneRegisterInstruction).registerA)
 
         assertTrue("another class's builder changed", context.method(other, "A0o").code().none { it.referenceText() == LABELS })
+    }
+
+    /**
+     * Each builder's first instruction hands building() the menu it was given, before the body can
+     * reuse that register: from a parameter above v15 through the range form. Another class's
+     * builder of the same shape stays Instagram's.
+     */
+    @Test
+    fun eachBuilderNamesItsMenuFirst() {
+        val context = PatchContexts.of(classes())
+
+        context.offerDownloadOnEveryStory()
+
+        val low = context.method(helper, "A0o").code()
+        assertEquals(BUILDING, low[0].referenceText())
+        assertEquals("the menu, p0 of four registers", 3, (low[0] as Instruction35c).registerC)
+        assertEquals("the original code moved", "$helper->story:$REEL_ITEM", low[1].referenceText())
+
+        val high = context.method(helper, "A0m").code()
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, high[0].opcode)
+        assertEquals(BUILDING, high[0].referenceText())
+        assertEquals("the menu, the second of three parameters in 24 registers", 22, (high[0] as RegisterRangeInstruction).startRegister)
+
+        assertTrue("another class's builder changed", context.method(other, "A0o").code().none { it.referenceText() == BUILDING })
+        assertEquals("a handler names its menu", 0, context.method(helper, "A0I").code().count { it.referenceText() == BUILDING })
     }
 
     /** A tap asks save() first, with the tapped label and the menu's class; any other label goes on. */
@@ -195,6 +220,7 @@ class DownloadStoryHookTest {
             "candidateUrl" to ("$IMAGE_URL->getUrl()Ljava/lang/String;" to Opcode.MOVE_RESULT_OBJECT),
             "candidateWidth" to ("$IMAGE_URL->getWidth()I" to Opcode.MOVE_RESULT),
             "candidateHeight" to ("$IMAGE_URL->getHeight()I" to Opcode.MOVE_RESULT),
+            "storyImageWithMusic" to ("$MEDIA->A5d()Ljava/lang/Boolean;" to Opcode.MOVE_RESULT_OBJECT),
         )
         expected.forEach { (bridge, call) ->
             val code = context.method(INSTAGRAM_MEDIA, bridge).code()
@@ -240,6 +266,14 @@ class DownloadStoryHookTest {
     }
 
     @Test
+    fun aMissingMusicGetterFailsBeforeAnythingChanges() {
+        val context = PatchContexts.of(classes(leaveOutMusic = true))
+        val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryStory() }
+        assertTrue(failure.message!!, failure.message!!.contains("is_story_image_with_music"))
+        assertUntouched(context)
+    }
+
+    @Test
     fun aHandlerWithoutLocalsFailsBeforeAnythingChanges() {
         val context = PatchContexts.of(classes(handlerLocals = 1))
         assertThrows(PatchException::class.java) { context.offerDownloadOnEveryStory() }
@@ -274,6 +308,12 @@ class DownloadStoryHookTest {
                 assertTrue("${bundle.name}: no builder", builders.isNotEmpty())
                 builders.forEach { builder ->
                     val code = context.method(menu.type, builder.name, builder.parameterTypes.map(Any::toString)).code()
+                    val parameters = builder.parameterTypes.map(Any::toString)
+                    val words = { types: List<String> -> types.sumOf { if (it == "J" || it == "D") 2 else 1 } }
+                    val given = builder.implementation!!.registerCount - words(parameters) + words(parameters.take(parameters.indexOf(menu.type)))
+                    assertEquals("${bundle.name}: ${builder.name} names its menu first", BUILDING, code[0].referenceText())
+                    val named = (code[0] as? RegisterRangeInstruction)?.startRegister ?: (code[0] as Instruction35c).registerC
+                    assertEquals("${bundle.name}: ${builder.name}'s menu parameter", given, named)
                     val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
                     assertTrue("${bundle.name}: ${builder.name} doesn't return", returns.isNotEmpty())
                     returns.forEach { at ->
@@ -313,7 +353,7 @@ class DownloadStoryHookTest {
     /** The bridges this patch writes; the feed menu's two belong to Download any video. */
     private val storyBridges = setOf(
         "videoVersions", "dashManifest", "mediaId", "owner", "takenAt", "username", "versionUrl", "versionWidth", "versionHeight",
-        "imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight", "storyMedia",
+        "imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight", "storyMedia", "storyImageWithMusic",
     )
 
     /** A dialog click listener that calls a static method answering labels. */
@@ -326,10 +366,11 @@ class DownloadStoryHookTest {
     }
 
     private fun assertUntouched(context: BytecodePatchContext) {
-        assertTrue("a builder changed", context.method(helper, "A0o").code().none { it.referenceText() == LABELS })
+        assertTrue("a builder changed", context.method(helper, "A0o").code().none { it.referenceText() == LABELS || it.referenceText() == BUILDING })
         assertEquals("a handler changed", Opcode.CONST_STRING, context.method(helper, "A0I").code().first().opcode)
         assertEquals("the story bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyMedia").code().first().opcode)
         assertEquals("a bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "videoVersions").code().first().opcode)
+        assertEquals("the music bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyImageWithMusic").code().first().opcode)
     }
 
     private fun BytecodePatchContext.method(type: String, name: String, parameters: List<String>? = null): Method =
@@ -353,6 +394,7 @@ class DownloadStoryHookTest {
         secondMedia: Boolean = false,
         leaveOutCandidates: Boolean = false,
         handlerLocals: Int = 11,
+        leaveOutMusic: Boolean = false,
         arrayReadAgain: Boolean = false,
         jumpToLookup: Boolean = false,
     ): List<ClassDef> {
@@ -425,7 +467,8 @@ class DownloadStoryHookTest {
             "A3Q" to ("user" to USER),
             "A6v" to ("taken_at" to "Ljava/lang/Long;"),
             "A3F" to ("image_versions2" to IMAGE_INFO),
-        ).map { (name, field) -> getter(MEDIA, name, field.first, field.second) } +
+        ).plus(if (leaveOutMusic) emptyList() else listOf("A5d" to ("is_story_image_with_music" to "Ljava/lang/Boolean;")))
+            .map { (name, field) -> getter(MEDIA, name, field.first, field.second) } +
             method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1, static = false, body = """
                 const/4 v0, 0x0
                 return-object v0

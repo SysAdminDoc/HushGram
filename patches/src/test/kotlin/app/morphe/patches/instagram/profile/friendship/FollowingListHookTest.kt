@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -47,6 +48,13 @@ class FollowingListHookTest {
             "listOwnerId(Ljava/lang/Object;)Ljava/lang/String;",
             "viewerId(Ljava/lang/Object;)Ljava/lang/String;",
             "subtitle(Ljava/lang/Object;)Landroid/widget/TextView;",
+            KNOWN.substringAfter("->"),
+            ANSWERED.substringAfter("->"),
+            "fetchKind(Ljava/lang/Object;)Ljava/lang/Object;",
+            "fetchOwnerId(Ljava/lang/Object;)Ljava/lang/Object;",
+            "fetchViewerId(Ljava/lang/Object;)Ljava/lang/Object;",
+            "statusFollowedBy(Ljava/lang/Object;)Ljava/lang/Boolean;",
+            "sessionUserId(Ljava/lang/Object;)Ljava/lang/String;",
         )
         for (method in wanted) assertTrue("$method is not in the extension: $declared", method in declared)
     }
@@ -68,11 +76,29 @@ class FollowingListHookTest {
         assertHooked("stand-in", context.mutableClassDefBy(BINDER).methods.single { it.name == "bindView" })
     }
 
+    /** #40: your own list asks about every row, and each answer is handed on. */
+    @Test
+    fun theAnswerHooksGoWhereInstagramAsksAndHears() {
+        val context = PatchContexts.of(standIns())
+
+        val found = context.findFollowAnswers()
+        assertEquals("$FETCH->invoke", found.fetch.toString())
+        assertEquals("$PARSER->parse", found.parser.toString())
+        assertEquals(LIST_STATE, found.listType)
+        assertEquals("$LIST_STATE->data:$FOLLOW_LIST_DATA", found.listData.toString())
+        assertEquals("$LIST_STATE->session:$USER_SESSION", found.listSession.toString())
+        assertEquals("$STATUS->followedBy:Ljava/lang/Boolean;", found.followedBy.toString())
+        context.askFollowAnswers(found)
+
+        assertAsked("stand-in", context, found)
+    }
+
     @Test
     fun theStubsReachTheListTheAccountAndTheNameLine() {
         val context = PatchContexts.of(standIns())
         val found = context.findFollowRow()
-        context.followingStubs().fill(found)
+        val answers = context.findFollowAnswers()
+        context.followingStubs().fill(found, answers)
 
         val extension = context.mutableClassDefBy(FOLLOWING_LIST).methods
         fun reads(stub: String) = extension.single { it.name == stub }.implementation!!.instructions
@@ -81,6 +107,11 @@ class FollowingListHookTest {
         assertTrue(reads("listOwnerId").containsAll(listOf("$BINDER->config:$CONFIG", "$CONFIG->data:$FOLLOW_LIST_DATA", "$FOLLOW_LIST_DATA->owner:$STRING")))
         assertTrue(reads("viewerId").containsAll(listOf("$BINDER->session:$USER_SESSION", "$USER_SESSION->getUserId()$STRING")))
         assertTrue("$HOLDER->name:$TEXT_VIEW" in reads("subtitle"))
+        assertTrue(reads("fetchKind").containsAll(listOf("$LIST_STATE->data:$FOLLOW_LIST_DATA", "$FOLLOW_LIST_DATA->kind:$KIND")))
+        assertTrue(reads("fetchOwnerId").containsAll(listOf("$LIST_STATE->data:$FOLLOW_LIST_DATA", "$FOLLOW_LIST_DATA->owner:$STRING")))
+        assertTrue(reads("fetchViewerId").containsAll(listOf("$LIST_STATE->session:$USER_SESSION", "$USER_SESSION->getUserId()$STRING")))
+        assertTrue("$STATUS->followedBy:Ljava/lang/Boolean;" in reads("statusFollowedBy"))
+        assertTrue("$USER_SESSION->getUserId()$STRING" in reads("sessionUserId"))
     }
 
     @Test
@@ -107,10 +138,11 @@ class FollowingListHookTest {
     @Test
     fun noNarrowStubJoinsTwoWaysAtOneReturn() {
         val context = PatchContexts.of(standIns())
-        context.followingStubs().fill(context.findFollowRow())
+        context.followingStubs().fill(context.findFollowRow(), context.findFollowAnswers())
 
-        val narrow = context.mutableClassDefBy(FOLLOWING_LIST).methods.filter { it.name in setOf("listOwnerId", "viewerId", "subtitle") }
-        assertEquals(3, narrow.size)
+        val narrowStubs = setOf("listOwnerId", "viewerId", "subtitle", "statusFollowedBy", "sessionUserId")
+        val narrow = context.mutableClassDefBy(FOLLOWING_LIST).methods.filter { it.name in narrowStubs }
+        assertEquals(5, narrow.size)
         for (stub in narrow) {
             val code = stub.implementation!!.instructions.toList()
             val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
@@ -160,6 +192,29 @@ class FollowingListHookTest {
     @Test
     fun aHolderTheExtensionCantReachFailsThePatch() = assertRefused(standIns(holderPublic = false), "$HOLDER isn't public")
 
+    /** A list that skips rows with no friendship, rather than asking about them, isn't the place to ask. */
+    @Test
+    fun aFetchNotAskingAboutUnknownRowsFailsTheAnswers() = assertAnswersRefused(standIns(addsUnknown = false), "to ask about rows with no")
+
+    /** The fetch's list is read once before the rows; written again in the loop, the hook could hand on something else. */
+    @Test
+    fun aListWrittenOverInTheLoopFailsTheAnswers() = assertAnswersRefused(standIns(listAgain = "const/4 v5, 0x0"), "to hold one follow list")
+
+    @Test
+    fun aParserWithoutFollowedByFailsTheAnswers() = assertAnswersRefused(standIns(parsedKey = "blocking"), "to parse each status's $FOLLOWED_BY, found 0")
+
+    @Test
+    fun aParserNotCheckingTheAccountFailsTheAnswers() = assertAnswersRefused(standIns(checksAccount = false), "doesn't check the account is cached")
+
+    /** A jump to right after the check would skip the hook for some answers. */
+    @Test
+    fun aBranchLandingAfterTheCheckFailsTheAnswers() = assertAnswersRefused(standIns(jumpsPastCheck = true), "only the check leads to")
+
+    /** The status is written again between parsing and the check, so the hook could read another one. */
+    @Test
+    fun aStatusWrittenOverBeforeTheCheckFailsTheAnswers() =
+        assertAnswersRefused(standIns(statusAgain = "const/4 v1, 0x0"), "may not hold the status")
+
     /**
      * On each declared build the hook lands right after the row binder's call, the stubs fill, and
      * the same classes with the binder copied, or without the list's data class, are refused untouched.
@@ -174,17 +229,23 @@ class FollowingListHookTest {
                 val context = PatchContexts.of(classes)
 
                 val found = context.findFollowRow()
+                val answers = context.findFollowAnswers()
                 assertEquals("${bundle.name}: the name line", TEXT_VIEW, found.subtitle.type)
                 assertEquals("${bundle.name}: the owner", FOLLOW_LIST_DATA, found.owner.definingClass)
                 assertEquals("${bundle.name}: the account signed in", USER_SESSION, found.session.type)
                 val kind = classes.single { it.type == found.kind.type }
                 assertTrue("${bundle.name}: the list kind is an enum", AccessFlags.ENUM.isSet(kind.accessFlags))
+                assertEquals("${bundle.name}: the list's data", FOLLOW_LIST_DATA, answers.listData.type)
+                assertEquals("${bundle.name}: the list's account", USER_SESSION, answers.listSession.type)
+                assertEquals("${bundle.name}: followed_by", "Ljava/lang/Boolean;", answers.followedBy.type)
                 context.markFollowRow(found)
-                context.followingStubs().fill(found)
+                context.askFollowAnswers(answers)
+                context.followingStubs().fill(found, answers)
                 val method = context.mutableClassDefBy(found.type).methods.single {
                     it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
                 }
                 assertHooked("${bundle.name} ${found.type}->${found.name}", method)
+                assertAsked(bundle.name, context, answers)
 
                 val binder = classes.single { it.type == found.type }
                 assertRefused(classes + copyOf(binder, "Lfixture/SecondBinder;"), "found 2")
@@ -195,13 +256,17 @@ class FollowingListHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The binder, and everything it reads to get to the list, the row and the account, in three passes over the bundle. */
+    /**
+     * The binder, the page fetch and the answer parser, and everything they read to
+     * get to the list, the row, the status and the account, in three passes over the bundle.
+     */
     private fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
-        val binders = FixtureDex.classesHolding(bundle, FOLLOW_ROW_STATE)
-        val wanted = mutableSetOf(USER, USER_SESSION, FOLLOW_LIST_DATA)
+        val anchors = listOf(FOLLOW_ROW_STATE, NON_RECIP_FOLLOWERS, FRIENDSHIP_STATUSES)
+        val binders = anchors.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val wanted = mutableSetOf(USER, USER_SESSION, FOLLOW_LIST_DATA, RELATIONSHIP)
         for (classDef in binders) {
             classDef.fields.forEach { wanted += it.type }
-            classDef.methods.filter { it.loads(FOLLOW_ROW_STATE) }.forEach { wanted += it.referencedTypes() }
+            classDef.methods.filter { method -> anchors.any { method.loads(it) } }.forEach { wanted += it.referencedTypes() }
         }
         val first = FixtureDex.classes(bundle, wanted)
         // The list's data holds the list kind, and the config's methods call Instagram's check of whose list it is.
@@ -234,12 +299,22 @@ class FollowingListHookTest {
         assertUntouched(context)
     }
 
+    /** [assertRefused] for the places the list's answers come from. */
+    private fun assertAnswersRefused(classes: List<ClassDef>, why: String) {
+        val context = PatchContexts.of(classes)
+        context.findFollowRow()
+        val refusal = assertThrows(PatchException::class.java) { context.findFollowAnswers() }
+        assertTrue(refusal.message, refusal.message!!.startsWith("$PATCH: ") && why in refusal.message!!)
+        assertUntouched(context)
+    }
+
     private fun assertUntouched(context: BytecodePatchContext) {
+        val hooks = setOf(FOLLOWING_ROW, KNOWN, ANSWERED)
         context.classDefForEach { classDef ->
             classDef.methods.forEach { method ->
                 val calls = method.implementation?.instructions?.toList().orEmpty()
-                    .count { (it as? ReferenceInstruction)?.reference?.toString() == FOLLOWING_ROW }
-                assertEquals("${classDef.type}->${method.name} calls the hook", 0, calls)
+                    .count { (it as? ReferenceInstruction)?.reference?.toString() in hooks }
+                assertEquals("${classDef.type}->${method.name} calls a hook", 0, calls)
             }
         }
         fun Method.key() = "$name(${parameterTypes.joinToString("")})$returnType"
@@ -276,6 +351,50 @@ class FollowingListHookTest {
         }
     }
 
+    /**
+     * The two answer hooks, each once and nowhere else: the row's friendship handed with the list to
+     * [KNOWN] right after the getter answers it and cast back before the branch on it, and the
+     * account, status and session handed to [ANSWERED] right after the parser's check of the
+     * account, where no branch lands.
+     */
+    private fun assertAsked(what: String, context: BytecodePatchContext, found: FollowAnswers) {
+        fun code(site: Site) = context.mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        }.implementation!!.instructions.toList()
+        var total = 0
+        context.classDefForEach { classDef ->
+            classDef.methods.forEach { method ->
+                total += method.implementation?.instructions?.count {
+                    (it as? ReferenceInstruction)?.reference?.toString() in setOf(KNOWN, ANSWERED)
+                } ?: 0
+            }
+        }
+        assertEquals("$what: calls of the answer hooks", 2, total)
+
+        val fetch = code(found.fetch)
+        val known = fetch.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == KNOWN }
+        assertEquals("$what: right after the getter's answer", Opcode.MOVE_RESULT_OBJECT, fetch[known - 1].opcode)
+        assertEquals("$what: asked of the getter", RELATIONSHIP, (fetch[known - 2] as ReferenceInstruction).reference.let { (it as MethodReference).returnType })
+        assertEquals("$what: kept", Opcode.MOVE_RESULT_OBJECT, fetch[known + 1].opcode)
+        assertEquals("$what: cast back", Opcode.CHECK_CAST, fetch[known + 2].opcode)
+        assertEquals("$what: and branched on", Opcode.IF_EQZ, fetch[known + 3].opcode)
+        assertNoBranchLands(what, fetch, known)
+
+        val parser = code(found.parser)
+        val answered = parser.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == ANSWERED }
+        assertEquals("$what: right after the check of the account", Opcode.IF_EQZ, parser[answered - 1].opcode)
+        assertEquals("$what: of the account", found.user, (parser[answered - 1] as OneRegisterInstruction).registerA)
+        assertNoBranchLands(what, parser, answered)
+    }
+
+    private fun assertNoBranchLands(what: String, code: List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>, at: Int) {
+        val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        for ((index, instruction) in code.withIndex()) {
+            if (instruction !is OffsetInstruction) continue
+            assertTrue("$what: the branch at $index lands on the hook", addresses[index] + instruction.codeOffset != addresses[at])
+        }
+    }
+
     internal companion object {
         const val BINDER = "Lfixture/RowBinder;"
         const val FILLER = "Lfixture/RowFiller;"
@@ -285,6 +404,14 @@ class FollowingListHookTest {
         const val KIND = "Lfixture/ListKind;"
         const val IDS = "Lfixture/Ids;"
         const val CHECKS = "Lfixture/Checks;"
+        const val FETCH = "Lfixture/FetchPage;"
+        const val LIST_STATE = "Lfixture/ListState;"
+        const val ROWS = "Lfixture/Rows;"
+        const val PARSER = "Lfixture/StatusParser;"
+        const val STATUS_FIELDS = "Lfixture/StatusFields;"
+        const val STATUS = "Lfixture/Status;"
+        const val JSON = "Lfixture/Json;"
+        const val USERS = "Lfixture/Users;"
 
         /**
          * The classes the patch reads, shaped as on 449: an instance `bindView(int, View, Object,
@@ -302,6 +429,12 @@ class FollowingListHookTest {
             overwrite: String = "",
             holderPublic: Boolean = true,
             fillAnswers: String = "V",
+            addsUnknown: Boolean = true,
+            listAgain: String = "",
+            parsedKey: String = FOLLOWED_BY,
+            checksAccount: Boolean = true,
+            jumpsPastCheck: Boolean = false,
+            statusAgain: String = "",
         ): List<ClassDef> {
             val bind = method(
                 BINDER, "bindView", parameters, "V", 10,
@@ -374,7 +507,80 @@ class FollowingListHookTest {
                 """,
                 static = false,
             )
+            // Shaped as on 450: a page fetch asking about the rows with no cached friendship, and the
+            // parser of the answer handing each status to a field parser.
+            val fetch = method(
+                FETCH, "invoke", emptyList(), OBJECT, 7,
+                """
+                    iget-object v5, p0, $FETCH->list:$LIST_STATE
+                    const-string v4, "$NON_RECIP_FOLLOWERS"
+                    new-instance v3, Ljava/util/ArrayList;
+                    invoke-direct { v3 }, Ljava/util/ArrayList;-><init>()V
+                    :next
+                    invoke-static { v5 }, $ROWS->next($OBJECT)$USER
+                    move-result-object v1
+                    if-eqz v1, :done
+                    invoke-virtual { v1 }, $USER->friendship()$RELATIONSHIP
+                    move-result-object v0
+                    if-eqz v0, :ask
+                    $listAgain
+                    goto :next
+                    :ask
+                    ${if (addsUnknown) "invoke-virtual { v3, v1 }, Ljava/util/ArrayList;->add($OBJECT)Z" else "nop"}
+                    goto :next
+                    :done
+                    return-object v3
+                """,
+                static = false,
+            )
+            val parse = method(
+                PARSER, "parse", listOf(JSON, USER_SESSION, "Z"), OBJECT, 9,
+                """
+                    const-string v0, "$FRIENDSHIP_STATUSES"
+                    move-object v5, p1
+                    :next
+                    invoke-static { p0 }, $JSON->key($JSON)$STRING
+                    move-result-object v0
+                    if-eqz v0, :done
+                    invoke-static { v5, v0 }, $USERS->lookup($USER_SESSION$STRING)$USER
+                    move-result-object v2
+                    ${if (jumpsPastCheck) "if-nez v0, :answered" else ""}
+                    iget-object v1, p0, $JSON->status:$OBJECT
+                    check-cast v1, $STATUS
+                    invoke-static { p0, v1, v0 }, $STATUS_FIELDS->parse($JSON$STATUS$STRING)V
+                    $statusAgain
+                    ${if (checksAccount) "if-eqz v2, :next" else ""}
+                    :answered
+                    invoke-static { v2, v5 }, $USERS->keep($USER$USER_SESSION)V
+                    goto :next
+                    :done
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+            )
+            val parseField = method(
+                STATUS_FIELDS, "parse", listOf(JSON, STATUS, STRING), "V", 4,
+                """
+                    const-string v0, "$parsedKey"
+                    invoke-virtual { p2, v0 }, $STRING->equals($OBJECT)Z
+                    move-result v0
+                    if-eqz v0, :other
+                    invoke-static { p0 }, $JSON->bool($JSON)Ljava/lang/Boolean;
+                    move-result-object v0
+                    iput-object v0, p1, $STATUS->followedBy:Ljava/lang/Boolean;
+                    return-void
+                    :other
+                    const-string v0, "following"
+                    invoke-virtual { p2, v0 }, $STRING->equals($OBJECT)Z
+                    return-void
+                """,
+            )
             return listOf(
+                classOf(FETCH, listOf(field(FETCH, "list", LIST_STATE)), listOf(fetch)),
+                classOf(LIST_STATE, listOf(field(LIST_STATE, "data", FOLLOW_LIST_DATA), field(LIST_STATE, "session", USER_SESSION)), emptyList()),
+                classOf(PARSER, emptyList(), listOf(parse)),
+                classOf(STATUS_FIELDS, emptyList(), listOf(parseField)),
+                classOf(STATUS, listOf(field(STATUS, "followedBy", "Ljava/lang/Boolean;"), field(STATUS, "following", "Z")), emptyList()),
                 classOf(BINDER, listOf(field(BINDER, "config", CONFIG), field(BINDER, "session", USER_SESSION), field(BINDER, "position", "I")), listOf(bind)),
                 classOf(FILLER, emptyList(), listOf(fill)),
                 classOf(HOLDER, listOf(field(HOLDER, "username", TEXT_VIEW), field(HOLDER, "name", TEXT_VIEW)), emptyList(), public = holderPublic),

@@ -9,24 +9,216 @@ Every HushGram release, newest first.
 * **Instagram:** New patch, Glass tab bar. It draws the tab bar as a floating, rounded pill of frosted glass with a lighter pill on the tab you're on, in the style of Instagram's newer iPhone look. The pill spans about 90% of the screen's width and scales with it. On Android 12 and newer it blurs the strip of screen just above it, video included, with a tint taken from the colour Instagram gave the bar, so it follows light, dark and the Reels tab, and the selected tab's capsule slides to the next one. Before Android 12, or with the blur switch off, it's the same tint without the blur. A third switch, Show content behind the tab bar, lets Home, Reels and the other tabs run down behind the pill, and starts off because Reels' buttons and caption end up under it. It's off in the default selection, and changes none of Instagram's code, so a change to a switch shows after a restart. Checked on an Android 15 emulator in light and dark; not yet on a phone.
 
 * **Instagram:** Import overrides takes Instagram's own overrides file (mc_overrides.json) as well as a HushGram export, even when the file leaves the setting names blank, and up to 4,096 overrides at once. Every override still has to match a setting of the same type in the Instagram you're running, or nothing is changed. Picking an overrides file in the settings import now tells you to use Import overrides under Developer instead. Reported in #67.
+* **Instagram:** With Hide suggested posts on, Home could open on Instagram's Welcome to Instagram card for a few seconds, the one it shows when you follow nobody, before your posts loaded. A suggestion taken out anywhere in the app, or from what Home saved last time, was enough to make Home look finished while it was still waiting for its first page. Now only suggestions taken out of Home's own posts can end it, so it shows its usual loading placeholder until your posts arrive. Reported in #28.
+
+* **Instagram:** Open settings with a tab long press works as soon as you pick a tab. Before, the choice saved but only reached the tabs after Instagram restarted, so until then the tab's long press still did what it always had, which looked like the choice hadn't stuck. Profile could also go on opening Instagram's account switcher, even after a restart, because Instagram puts that long press on the Profile button a second way. That one follows your choice now too. Reported in #82.
+
+* **Instagram:** Download cover no longer fails with Download failed on a reel whose cover address has its size written into it, which the photo save mistook for a thumbnail. It saves the largest size the reel lists for its cover. Reported in #79, and thanks to @talhaeenss for finding the cause in #81.
+
+* **Instagram:** Download any reel saves every page of a carousel that turns up in Reels, in order. Before, it saved the first page whichever one you were looking at. Download as photo on a carousel with music saves them all too. Reported in #78.
+
+* **Instagram:** On Android 14 and newer, Turn off HDR brightness boosts also holds back the extra brightness Instagram asks for when it draws a video on a layer of its own. That layer shows the video brighter than the rest of the screen, and the switch didn't reach it before (#85).
+
+* **Instagram:** New patch, Hide the Threads button. Turn on its switch under Profiles and the Threads button at the top of a profile, yours or anyone else's, isn't built at all, so there's no gap where it was. The menu and the other buttons stay put. It's in the default selection with its switch off. Asked for in #50.
+
+* **Instagram:** New patch, Emoji style. Instagram already loads Google's emoji font through Google Play services, but it only uses it for emoji your phone's own font is missing. Turn on Google's emoji everywhere under Layout and every emoji Instagram runs through Android's emoji support draws in Google's style instead. It's in the default selection with its switch off, and a change shows fully after Instagram restarts.
+
+* **Instagram:** New opt-in patch, See who a story mentions. A story that mentions someone gets a pill under the name in its header, like 2 mentions, even when the mention sticker is hidden or off screen. Tap it to see who's mentioned, with their picture, name and username, and tap someone to open their profile. Its switch is under Stories. Asked for in #13 and #44.
+
+* **Instagram:** Hide suggested posts gets Hide videos, Hide photos and Hide carousels under Feed, and they start off. Each takes every post of its type out of Home, from accounts you follow too, and leaves profiles, Explore and Reels as they were. Reels count as videos.
+
+* **Instagram:** Save profile picture has a third switch under Downloads, Copy username and bio, that starts off. With it on, the menu on someone's profile also gets Copy username and Copy bio, which copy the account's username or bio exactly as it's written, emoji and line breaks included. An account with no bio gets no Copy bio. Asked for in #29.
+
+* **Instagram:** With Name saves by account and post time on, a saved profile picture is named for the account and the time you saved it, like `username_profile_20261007_105151.jpg`, instead of IG_IMG_. Off, it keeps the IG_IMG_ name.
+
+* **Instagram:** Hide the comment bar on reposted reels now keeps the bar hidden after Instagram tucks it away for a moment and brings it back, which some reposted reels do and which used to put the bar back under them. Asked for in #64.
+
+* **Instagram:** Save profile picture has a second switch under Downloads, View profile picture, that starts off. With it on, the menu on someone's profile also gets View profile picture, which opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button. Back closes it.
+
+## 0.0.6 (2026-10-07)
+
+* **Instagram:** HushGram 0.0.6 adds 27 patches, for 75 in all, and moves to Instagram 450.0.0.50.77 (build 385611438, arm64-v8a) on Android 9 and newer. It needs Morphe Manager 1.34.0 or newer.
+* **Instagram:** New patch, Download voice messages, in simple mode with its switch off. Turn it on under Downloads and holding a voice message in a chat brings up Save, which keeps the recording as an M4A audio file in Recordings/Instagram, or Music/Instagram before Android 12. It only shows on a voice message Instagram marks as one to keep, so one sent to be played once never gets it. Asked for in #20.
+
+* **Instagram:** Show if a profile follows you has a new switch under Profiles, Show it as a chip, that starts off. With it on, the answer sits in an outlined chip under the profile's posts, followers and following counts instead of the gray line by the name, and when you follow each other it says Following each other. The label by the name stays the default. Asked for in #24.
+
+* **Instagram:** Clean up Reels has a fourth switch, Hide the comment bar on reposted reels, that starts off. With it on, a reel you open from a profile's reposts has no Add comment bar under it, and the comment button still opens the comments. Asked for in #64.
+
+* **Instagram:** Details in a post's menu now has Copy username and Copy caption under the post's details. They copy who posted it and the caption exactly as it was written, emoji and right-to-left text included, and each shows only when the post has one. On a carousel the caption comes from the post itself. Asked for in #29.
+
+* **Instagram:** Save comment photo now follows Name saves by account and post time. A comment's photo is named for the person who wrote the comment and when they wrote it, like `username_20261005_143012`, and Folder per account files it under that person's name. A comment whose author or time can't be read keeps the usual `IG_IMG_` name. Asked for in #20.
+
+* **Instagram:** Ask before a refresh now also asks on Home, in your messages inbox and the other lists that pull down with Instagram's newer refresh layout. The question comes up once a pull goes far enough to refresh, and Cancel puts the spinner away there too.
+
+* **Instagram:** Resume long videos forgets a signed-out account's places in the background, so signing out never waits on its file.
+
+* **Instagram:** Resume long videos doesn't save a place again for an account that just signed out. Its videos close a moment after the sign-out clears its places, and that close used to put one back.
+
+* **Instagram:** Download any video has a new switch under Downloads, Details in a post's menu, that starts off. With it on, a feed post's menu gets Details, which shows when the post went up, who posted it, its media ID and the size Download would save, with Copy media link to put the post's file's direct address on the clipboard. When Download would build a sharper video from the picture and sound Instagram streams separately, Details shows that size and says the linked file's own. On a carousel it shows the page you're on.
+
+* **Instagram:** Clear the media cache leaves a clear over the limit for a later start when the last one crashed early, since that start might be the one that turns safe mode on.
+
+* **Instagram:** New patch, Save profile picture, in simple mode with its switch off. Turn it on under Downloads and the menu on someone's profile gets Save profile picture, which saves their picture at the largest size Instagram has.
+
+* **Instagram:** Show a post's exact time, a new patch you pick in Manager. A post in your feed says when it went up, like Oct 2, 3:45 PM, instead of 3 hours ago, and each comment says when it was written instead of 3h, in your phone's language and 12 or 24-hour setting. Its switch sits under Feed and starts on.
+
+* **Instagram:** Resume long videos forgets an account's places as soon as that account signs out or is removed from Instagram, and a resume that was about to happen when you switch accounts is dropped, so a video on the new account never jumps to the old account's place. Places of an account you only switched away from stay for when you're back.
+
+* **Instagram:** Name saves by account and post time, a new switch under Downloads that starts off. With it on, every photo and video you save is named for the account that posted it and the time the post went up, like `username_20261005_143012`, so an account's saves sort by date. Each carousel page gets its number on the end, and saving the same thing twice adds the time of the second save instead of overwriting or piling up numbered copies. A save that doesn't know who posted or when keeps its usual name. Asked for in #20.
+
+* **Instagram:** Clear the media cache now reads its switch even when Instagram opens its video cache before HushGram's settings are loaded, so a clear left for the next start isn't put off start after start.
+
+* **Instagram:** After you tap Call, Ask before a call lets nothing else through. Instagram asks for the microphone and camera on its call screen once the call has started, so there's no repeat to wave through, and a tap on a call button right after you hang up is asked about like any other.
+
+* **Instagram:** A call question left up on one screen no longer holds call taps on a screen opened over it, like a chat you open from a notification. That tap gets its own question and the old one closes.
+
+* **Instagram:** Ask before a call no longer stops every later call when its question was left behind by a screen that closed without dismissing it, as switching dark mode while it was up can do. The next call is asked about again.
+
+* **Instagram:** Open in another player, a new switch under Downloads that starts off. With it on, a reel's menu and a feed video's menu get Open in another player next to Download, which opens Android's chooser so a player such as VLC plays the video. A reel gets the row with Download on reels off too, even one Instagram won't let you download. The player gets the same file a save would pick at your Download quality.
+
+* **Instagram:** New patch, Ask before a like, in simple mode with its switch off. Turn it on under Feed and the Like button under a post waits for a question before it likes or unlikes the post, so a stray tap doesn't. Continue goes ahead and Cancel doesn't.
+
+* **Instagram:** New patch, Ask before a refresh, in simple mode with its switch off. Turn it on under Feed and pulling down to refresh Home, Reels or another list asks first. Refresh reloads it, and Cancel stops the spinner and keeps what's on screen.
+
+* **Instagram:** Patching is a lot quicker again. The patches that still read all of Instagram's code to find their spots (the seen receipts, typing, comments, downloads, Repost, sharing links, auto scroll, the seek bar, the Reels tab, the story ring and tray, developer options, analytics and the shortcut calls) now ask the patcher's index which classes to read first. On a desktop with Instagram 450, running every patch went from about 48 to 56 seconds down to 13 to 15. In Morphe Manager on a Galaxy S22, patching every default patch now takes under a minute, where the last build took about three minutes for fewer patches. Reported in #60.
+
+* **Instagram:** New patch, Ask before a call, in simple mode with its switch off. Turn it on under Messages and a call started from a chat waits for a question first, so a stray tap on a call button doesn't ring anyone. Call starts it and Cancel doesn't.
+
+* **Instagram:** Clear the media cache no longer deletes the videos at the next start when you've turned its switch off since the clear that asked for it. Videos you asked to go with Clear now still go at the next start either way. A video cache that's a link no longer leaves its request behind for every later start.
+
+* **Instagram:** After you tap Call, Ask before a call lets only that call through without a second question, and only once: Instagram coming back to start it again goes ahead, while a call to someone else or the other kind of call is asked about even right after. A second tap while the question is up waits for it instead of opening another, so two quick taps can't start two calls.
+
+* **Instagram:** Ask before a call now hands the call's video flag to its check as a number, the way every other hook takes a yes or no, so Android's verifier has nothing to refuse when the chat's call code loads.
+
+* **Instagram:** Sanitize sharing links now reaches Share and Copy link in the menu of Instagram's in-app browser. The address of the page they hand out loses fbclid and every utm_ key, on any site, which is what an ad's page opens with. The page itself still loads with them, and any other key stays.
+
+* **Instagram:** New patch, Change the like animation, in simple mode with its switch off. Turn it on under Reels, pick one of the animations Instagram made for Instagram Rings creators, and the heart that pops up when you double tap a post plays it.
+
+* **Instagram:** Open links in external browser checks a link again after it's unwrapped from Instagram's and Facebook's click trackers, right before it goes to your browser. Only an http or https address that names a host leaves. One with no host, or with a scheme that only starts with http, stays in Instagram's own browser.
+
+* **Instagram:** Sanitize sharing links has a Sharing domain row, blank to start. Type a domain there and links to instagram.com that you copy or share go out on it, for sites that show Instagram posts and reels in chat apps.
+
+* **Instagram:** Open developer options checks, when you patch, that what Export and Validate call into Instagram reads overrides and never writes them. It follows each call four steps deep, overrides included, and leaves Export, Validate and Import out of the build if any step writes a file, makes a folder or changes or reloads overrides.
+
+* **Instagram:** Open developer options keeps its long press and its MetaConfig and Whitehat rows when an Instagram update moves what Export, Validate or Import use. Only the rows that need the moved part are left out, and the diagnostic report says which.
+
+* **Instagram:** New patch, Hide the Share button, in simple mode with its switch off. Turn it on under Sharing and the Share button and its count come off the posts in your feed and off reels. Asked for in #1.
+
+* **Instagram:** Turn off double tap to like has an On comments switch under it, off to start. With it on, a double tap on a comment doesn't like it.
+
+* **Instagram:** Resume long videos keeps each signed-in account's places apart, so a video another account on the phone left partway starts at the beginning for you. Places saved before this update are cleared once, since they don't say which account they belong to.
+
+* **Instagram:** New patch, Hide comments, in simple mode with its switch off. Turn it on under Comments and the Comment button and comment count come off the posts in your feed.
+
+* **Instagram:** Stop loading stories, a new switch under Stories that starts off. With it on, nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.
+
+* **Instagram:** Hide suggested stories has two more switches under Stories, both off to start. Hide story rewinds takes the rewind cards that bring back old highlights out of the row of stories at the top of Home, and Hide memories and recaps does the same for Instagram's memories, your week, the year in review, follow anniversaries and birthday cards. Stories people post stay either way.
+
+* **Instagram:** Lock your messages is harder to get around. When it locks again, message notifications already in the shade lose their text, and the update Instagram posts after an inline reply is hidden too. On Android 9 to 12 an open inbox or chat now stays out of the recent apps picture, which also keeps screenshots of it out while it's open. Pausing HushGram or safe mode no longer turns a lock off. While paused, a lock that's on covers all of Instagram. A second Instagram screen opening over a locked one doesn't uncover it anymore, screen readers skip what's under a cover, and Android 10 asks through the phone's own lock screen check, which also takes over whenever the prompt over Instagram can't ask.
+
+* **Instagram:** Open categories as pages, a new switch under Settings entry that starts off, lists HushGram's settings by category and opens each one on its own page. Back returns to the list where you left it, and search still looks through every category (#19).
+
+* **Instagram:** New patch, Turn off HDR brightness boosts, in simple mode with its switch off. Turn it on under Playback and HDR photos and reels stop brightening the screen above everything else (#26).
+
+* **Instagram:** Folder per account, a new switch under Downloads that starts off, puts each save in a folder named for the account that posted it, inside your save folder (#20).
+
+* **Instagram:** Send downloads to another app, a new switch under Downloads that starts off. With it on, Download on a reel, a feed post or a story opens the share sheet with the item's link, for a downloader app such as Seal or YTDLnis, instead of saving it here.
+
+* **Instagram:** Download any reel has a Download cover switch under Download on reels, off to start. With it on, a reel's menu gets Download cover under Download, which saves the still picture Instagram shows before the reel plays at its largest size (#48).
+
+* **Instagram:** New opt-in patch, Spoof location. Set a place under Ads and privacy and turn it on, and Instagram is told the phone is there, for the location sticker, nearby places and maps. Photos keep their own places.
+
+* **Instagram:** New patch, Don't save recent searches, in simple mode with its switch off. With it on, what you open from search stays out of Recent, both in the app and on Instagram's side.
+
+* **Instagram:** New patch, Data saver, in simple mode with its switch off. With it on, photos load at a smaller size and videos, reels and stories start at the lowest quality, on mobile data only unless you turn that second switch off.
+
+* **Instagram:** Stop Reels scrolling has a second switch, Stop after 20 reels, off to start. After you swipe to 20 new reels in a session, swiping in Reels stops until Instagram has been in the background for 15 minutes. Going back to a reel you've seen doesn't count again, and turning the switch off gives the swipes back at the next touch. A reel you open from a message still plays.
+
+* **Instagram:** New patch, Clear the media cache, in simple mode with its switch off. With it on, once Instagram goes to the background with more than 500 MB in its image and video caches, the images are deleted then and the videos the next time Instagram starts, before its video player opens them. Nothing else in its cache folder is touched. A Clear the cache now row does it at once and shows what it freed. Your sign-in, drafts and settings stay.
+
+* **Instagram:** New patch, Group Instagram's notifications, in simple mode with its switch off. With Group notifications on, every notification Instagram posts joins one group that shows how many it holds, so they stop filling the shade. Group by type gives each kind its own group. Tapping a notification still opens what it did.
+
+* **Instagram:** New View live anonymously patch. With its switch on under Stories, a live you watch doesn't put you on the host's viewer list, because the heartbeat that says you're watching never goes out. Commenting or reacting still shows you, and your own lives count their viewers as before. It's in simple mode with the switch off, and Ghost mode turns it with the other switches.
+
+* **Instagram:** HushGram settings have a Ghost mode switch at the top of Ads and privacy. One tap turns View stories anonymously, View live anonymously, Read messages without the seen receipt, View DM photos and videos anonymously, Hide that you're typing and Don't report screenshots on or off together, each of their rows shows the change, and a toast says so. Pause still turns them all off. It shows when at least two of those patches are in your build.
+
+* **Instagram:** New Keep in chat patch. With its switch on under Messages, view once and replayable photos and videos stay in the chat as if they'd been sent with Keep in chat, so you can open them again. It's in simple mode with the switch off.
+
+* **Instagram:** New Allow screenshots patch. With its switch on under Messages, screenshots and screen recordings work wherever Instagram turned them black, like disappearing photos and videos. It's in simple mode with the switch off.
+
+* **Instagram:** New Don't report screenshots patch. With its switch on under Messages, Instagram doesn't notice your screenshots, so whoever sent you a disappearing photo or video isn't told you took one. It's in simple mode with the switch off.
+
+* **Instagram:** Developer has a Reset all overrides row beside Import overrides. It takes every override in the signed-in session away so Instagram goes back to its own flags, and the overrides it removes are saved for Restore previous overrides first.
+
+* **Instagram:** Lock your messages can lock all of Instagram now. Its new Lock all of Instagram switch covers every screen until your phone's lock says it's you, and Lock again lets it wait 1, 5 or 15 minutes or an hour after you leave. Turning a lock on waits until you next leave Instagram, and HushGram settings ask your phone's lock first while one is locked.
+
+* **Instagram:** New Lock your messages patch. Turn its switch on under Messages and your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. They lock again when you leave Instagram. While they're locked, message notifications say only New message, and the banner for a new message inside Instagram waits. It's in simple mode with the switch off.
+
+* **Instagram:** Hide suggested posts has another new switch, Hide shopping, on to start, for the rows of products to shop and live shopping that Instagram puts between posts in Home.
+
+* **Instagram:** Hide suggested posts has a new switch, Hide surveys, on to start, for the cards between posts that ask you to rate what you saw. Hide Threads posts also takes out the two Threads units that are new in Instagram 450, its picked posts and its topic rows.
+
+* **Instagram:** Patching takes a little less time. HushGram settings' entry on the tab bar and Disable analytics' skip of the setup screens now find their places through the patcher's index rather than reading all of Instagram's code. Reported in #60.
+
+* **Instagram:** Save comment photo now offers Save on photo comments in Instagram 450. Instagram 450 leaves the media type out of a comment's photo, and Save used to wait for it, so the row never showed. It now goes by the photo itself, and GIFs, videos and text replies still don't get the row. Asked for in #1.
+
+* **Instagram:** Full resolution photos has a second switch, Ask for larger photos. On a phone under 1440 pixels wide, Instagram tells its server your screen is 1440 pixels wide and asks for photos at that width, so a 1080-wide phone has a larger size to load. It's off to start, it uses more data, and it takes effect after you restart Instagram. Asked for in #20.
+
+* **Instagram:** New Stop swiping between tabs patch. With its switch on, a sideways swipe no longer moves you between Home, Reels and the other main tabs, so you can't land on Reels by accident. Tapping the tab bar still works, and carousels keep their swipe. It's in simple mode with its switch off, under Feed in HushGram settings.
+
+* **Instagram:** New Hide the home feed patch. With its switch on, Home shows your stories row and nothing under it, so you can check stories and messages without the endless feed. Profiles, Explore and Reels still show posts. It's in simple mode with its switch off, under Feed in HushGram settings. Pull to refresh Home after turning it on.
+
+* **Instagram:** New Change version code patch, off by default. It gives the patched build the highest version code Android allows, so Google Play stops offering Meta's updates over it, and Instagram's own checks of its version still see the real code. Once it's installed, going back to an unpatched Instagram means uninstalling first, which deletes Instagram's data on your phone, and later HushGram builds need the patch too or they won't install over it. Settings lists it under Set when you patched, and the diagnostic report names the code Meta built. Asked in #68.
+
+* **Instagram:** Open developer options adds Open Whitehat settings under Developer in HushGram settings. It opens Instagram's own Whitehat screen, whose switch lets Instagram trust the certificates installed on your phone for 24 hours so you can check the app's traffic. Turn it on there and restart Instagram. Instagram turns it back off by itself once the day is up, and HushGram doesn't force or stretch that trust. Asked in #1.
+
+* **Instagram:** New Full resolution photos patch. With its switch on, photos in your feed, in carousels and in posts you open load at the largest size Instagram's server sends, up to 2048 pixels on the longer side, rather than the size Instagram picks for your screen. Stories and Reels load as before. It's in simple mode with its switch off, under Feed in HushGram settings. It can use more data. Asked for in #20.
+
+* **Instagram:** Show a story's exact time has a new How the time shows choice under its switch. Date and time is what it already did, and it's where the choice starts, so nothing changes until you pick. Time left shows how long the story has before it expires, like 18h 14m left. Time posted shows only the time it went up, like 3:45 PM, for a story posted today by your phone's clock, and the date and time for one posted before today. A story that's already a day old shows the date and time in Time left too.
+
+* **Instagram:** New Hide that you're typing patch. With its switch on, the people you're chatting with don't see the dots while you type, and you still see theirs. Instagram's own typing indicator setting turns off both. It's off until you pick it in Manager, and the switch, under Messages in HushGram settings, starts off. Asked for in #13.
+
+* **Instagram:** New Read messages without the seen receipt patch. With its switch on, opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. Instagram's own read receipts setting turns off both. It's off until you pick it in Manager, and the switch, under Messages in HushGram settings, starts off. View-once photos and videos keep their own patch. Asked for in #13.
+
+* **Instagram:** While the Read messages without the seen receipt switch is on, a long press on a chat in your messages offers Mark as read wherever Instagram would offer Mark as unread. Tapping it sends Instagram's seen receipt for that chat's newest message, so the people in it see Seen under their messages, and every other chat stays held back. Picking several chats and marking them read together lets them know too, and the receipt still goes out when Instagram only sends it after a restart or once you're back online. Asked for in #45.
+
+* **Instagram:** The README's troubleshooting now says how to stop the Play Store from offering, and trying to install, Meta's build over a patched Instagram: untick Enable auto update in the three-dot menu of Instagram's Play page. Asked in #68.
+
+* **Instagram:** The Korean settings read more naturally. @BlackGold8282 reworked 121 of them in #66, including the download, notes and Meta AI rows.
+
+* **Instagram:** A photo story with music now has two rows in its menu, Download as video and Download as photo. Instagram serves those stories as a short video with the song, so Download used to save only that. Download as photo saves the picture on its own at its largest size. Every other story keeps its one Download row. Asked for in #53.
+
+* **Instagram:** New Hide Instants patch. Instagram's Instants, the no-edit camera for friends, put a stack of photos in your messages. With the switch on, Instagram treats your account as one without Instants, so that stack goes after a restart. It's in simple mode with the switch off, under Messages in HushGram settings. Asked for in #59.
+
+* **Instagram:** HushGram now patches Instagram 450.0.0.50.77. Before patching, get the APKMirror variant labelled (arm64-v8a) (480dpi) (Android 9.0+) with build number 385611438. Another build sits under the same label, so check the number. All 48 patches carry over. Instagram 450 renamed and merged a lot of the code they hook, and each one now finds its spot in the new layout.
+
+* **Instagram:** Tap to play can leave Reels out, or stick to Reels. A new Where videos wait choice under its switch picks Everywhere, Everywhere but Reels or Only in Reels. It starts at Everywhere, so nothing changes until you pick. A reel you see in the feed goes with the feed. Asked for in #39.
+
+* **Instagram:** Hide Meta AI can take About this reel out of a reel's More menu, in Reels and in your feed. That's the summary at the top of the menu with its Sources and the Ask Meta AI box, and in your feed the audio row under it goes too. A second switch takes out only the Ask Meta AI box and keeps the summary. Both are under Meta AI in HushGram's settings and start off. The menu's other options stay where they are. Asked for in #42.
+
+* **Instagram:** Mark who doesn't follow you back now waits for Instagram's server. While your Following list loads, HushGram has Instagram ask the server about every account on it, and a row is marked only when the server says that account doesn't follow you. Before, Instagram skipped asking about accounts it already had a status for from your feed or reels, and a stale one could mark someone who does follow you. Reported in #40.
+
+* **Instagram:** Import overrides takes Instagram's own overrides file (mc_overrides.json) as well as a HushGram export, even when the file leaves the setting names blank, and up to 4,096 overrides at once. Each override has to match a setting of the same type in the Instagram you're running. Instagram keeps that file through app updates, so one saved on an older version can hold settings yours no longer has. Those are left out, and Validate and Import say how many. Leftovers like that in Instagram's own saved overrides no longer stop Export, Validate, Import or Restore either. A HushGram export still has to come from the same Instagram version. Picking an overrides file in the settings import now tells you to use Import overrides under Developer instead. Reported in #67.
+
+* **Tooling:** AGP's host test tools use Netty 4.1.139, which fixes 13 advisories. They stay on the 4.1 line for now, since every AGP up to 9.4.1 and the 9.5 previews builds its emulator control on gRPC 1.69.1, and that needs Netty 4.1. None of this is in the shipped extension payload.
 
 * **Tooling:** Moved to Morphe patcher 1.15.1, which fixes a reused patch match handing back stale classes and speeds up signing, DEX output and matching. With it, the patch step for all 48 patches takes 54 seconds on a desktop, down from 147 at v0.0.5. The next release needs Morphe Manager 1.34.0 or newer, the first Manager that carries this patcher. v0.0.5 keeps working in Manager 1.33.0.
 
 * **Instagram:** Patching is quicker. Many patches used to read every one of Instagram's 200,000 classes to find their spot, and now they look it up in the patcher's index first. On a desktop, Hide Meta AI went from 32 seconds to under one, and the patch step for all 48 patches from 147 to 78 seconds. Reported in #60.
 
-* **Instagram:** Keep the reel speed no longer speeds up video ads. After you locked a reel at 2x, Instagram's own reset on the scroll to the next reel handed an ad the kept speed too, and the ad played at 2x. An ad now goes back to normal speed when it starts, and the reels after it still play at your speed. On a test phone the same ad ran twice as fast before the change.
+* **Instagram:** Keep the reel speed no longer speeds up video ads. After you locked a reel at 2x, Instagram's own reset on the scroll to the next reel handed an ad the kept speed too, and the ad played at 2x. An ad now goes back to normal speed when it starts, and the reels after it still play at your speed. Measured on a phone, the same ad ran twice as fast before the change.
 
 * **Instagram:** Download any video adds Download to the menu on your own posts too, whenever a tap would save the video or photo. Instagram only lists its own Download on posts it allows outside downloads for, some accounts get it in the share sheet instead of the menu, and HushGram's row was only on other people's posts. Reported in #57.
 
-* **Instagram:** Pure black dark mode now reaches the Direct inbox and the Notifications screen, which kept Instagram's near-black gray because they draw from a second color palette the patch didn't change. On a test phone both screens went from the gray to pure black, and the tab bar icons stayed visible. Reported in #51 and #58.
+* **Instagram:** Pure black dark mode now reaches the Direct inbox and the Notifications screen, which kept Instagram's near-black gray because they draw from a second color palette the patch didn't change. On a phone both screens went from the gray to pure black, and the tab bar icons stayed visible. Reported in #51 and #58.
 
 * **Instagram:** Replaced navigation-tab listeners can no longer open settings or call an old native action. Each callback belongs to its current button binding, including tabs with no native long-press handler.
 
 * **Instagram:** Settings backups now include the chosen navigation tab for opening HushGram. Import reports when the change needs a restart, and Undo preserves any choice made after the import. Older backups leave this choice unchanged.
 
-* **Instagram:** Verified About and saved diagnostic reports on two Galaxy S22 builds sharing version 0.0.5. Each showed its own production identity matching the bundle and external receipt, with installed patch facts and no account identifiers, media URLs or tokens in either report.
+* **Instagram:** About and the saved diagnostic report tell two builds with the same version number apart, since each names the exact build it came from. Neither one includes your account, media links or tokens.
 
-* **Instagram:** Settings can be opened by a long press on one chosen navigation tab. The choice starts off and replaces that tab's usual long-press action. Normal taps and other tabs keep their native behavior. Turning it off or pausing restores the native handler. Restart Instagram after changing the chosen tab. Galaxy S22 checks cover Home and Reels, native Home developer options, Off/Pause/Resume, both recovery entries, signed-out routing and the chooser at 200% text in right-to-left layout.
+* **Instagram:** Settings can be opened by a long press on one chosen navigation tab. The choice starts off and replaces that tab's usual long-press action. Normal taps and other tabs keep their native behavior. Turning it off or pausing restores the native handler. Restart Instagram after changing the chosen tab.
 
 * **Instagram:** TalkBack reads each settings switch's name and explanation instead of announcing only its state. Action rows expose their current value or disabled reason too. TalkBack and Switch Access checks cover right-to-left layout, 200% text, paused choices and refusal of stale actions.
 
@@ -46,15 +238,18 @@ Every HushGram release, newest first.
 
 * **Instagram:** Settings import and playback-history Undo follow Android's accessibility timeout and show their deadline. Reopening settings doesn't extend it. Old taps can't undo newer operations, and settings Undo keeps choices changed after the import.
 
-* **Settings:** If the settings page can't open, the dialog keeps an explanation, Retry and Back. Retry removes any partial page, and buttons from an old or closed dialog can't reopen it.
+* **Instagram:** If the settings page can't open, the dialog keeps an explanation, Retry and Back. Retry removes any partial page, and buttons from an old or closed dialog can't reopen it.
 
 * **Tooling:** Verification fixtures find the compiler beside the selected Java executable when Java comes from PATH.
 
-* **Instagram:** Hide the Repost button covers another Feed layout and rows that skipped the hide check. Reused rows restore their previous state when you turn the switch off or pause HushGram. Share stays in place.
+* **Instagram:** Hide the Repost button stays hidden in the feed. The button used to go away and then come back about half a second later, because Instagram redraws each post's buttons from a saved state that still said the post could be reposted. That state now says no from the moment it's made, so a redraw, a refresh or scrolling back can't bring the button back. It also covers another Feed layout and rows that skipped the hide check, and reused rows restore their previous state when you turn the switch off or pause HushGram. Share stays in place. Reported in #69.
+* **Instagram:** Downloads work on a photo that plays music in the Reels viewer (Explore, search and Suggested). Download there used to say "Download failed" because the item has no video file. Its menu now has two rows instead: Download as photo saves the picture at its largest size, and Download as video makes an MP4 of the picture with its music, about 5 MB for 90 seconds, saved to Movies/Instagram. A photo without music in the same viewer saves with plain Download. Reported in #71.
 
 * **Tooling:** Advisory checks now hold unread or conflicting severity for review, including CVSS 4 beside a low label. Package ratings stay tied to the queried dependency and version, and aliases retain the strongest evidence. Malformed, repeated or whitespace-terminated CVSS 3 metrics are refused. Known HIGH and CRITICAL ratings remain visible beside unread evidence.
 
 * **Tooling:** The release check counts every top-level test class a Kotlin test file declares, so a second class in one file no longer reads as left over from a deleted one and the index push goes through.
+* **Tooling:** The injected-code contracts no longer count a method another rule picks for the same hook as a stray call, so the two touch methods Stop swiping between tabs hooks each pass on their own. A rule can also say how many times its method calls the hook, which Hide the home feed needs since it filters both reads of Home's saved feed.
+* **Tooling:** The patched APK check now holds Hide the comment bar on reposted reels' guards where they belong: first thing in the comment bar's show, and once in the step that sets the bar up.
 
 ## 0.0.5 (2026-10-03)
 

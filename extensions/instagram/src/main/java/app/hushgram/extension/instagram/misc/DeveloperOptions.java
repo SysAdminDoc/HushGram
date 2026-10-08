@@ -26,8 +26,7 @@ public final class DeveloperOptions {
 
     /** A deliberate settings action; it doesn't enable the Home long-press switch or any flag. */
     public static boolean openOverrides(Activity activity) {
-        if (activity == null || activity.isFinishing() || activity.isDestroyed()
-                || activity.getFragmentManager().isStateSaved()) return false;
+        if (!canHost(activity)) return false;
         try {
             HookStatus.invoked(FamilyNames.DEVELOPER_OPTIONS);
             return openOverridesNative(activity) == 1;
@@ -37,8 +36,35 @@ public final class DeveloperOptions {
         }
     }
 
+    /**
+     * A deliberate settings action that opens Instagram's own Whitehat settings screen. Nothing
+     * changes until the switch on that screen is turned on there, and the trust it gives the
+     * phone's installed certificates lasts the 24 hours Instagram gives it.
+     */
+    public static boolean openWhitehat(Activity activity) {
+        if (!canHost(activity)) return false;
+        try {
+            HookStatus.invoked(FamilyNames.DEVELOPER_OPTIONS);
+            return openWhitehatNative(activity) == 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.DEVELOPER_OPTIONS, "whitehat settings", failure);
+            return false;
+        }
+    }
+
+    /** A host that can still take a new screen. */
+    private static boolean canHost(Activity activity) {
+        return activity != null && !activity.isFinishing() && !activity.isDestroyed()
+                && !activity.getFragmentManager().isStateSaved();
+    }
+
     /** Filled by the patch with verified host/session checks and Instagram's native navigation. */
     static int openOverridesNative(Object activity) {
+        return 0;
+    }
+
+    /** Filled by the patch with the same checks and navigation, to Instagram's Whitehat screen. */
+    static int openWhitehatNative(Object activity) {
         return 0;
     }
 

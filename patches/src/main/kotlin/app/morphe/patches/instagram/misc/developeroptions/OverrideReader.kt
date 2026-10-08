@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.misc.developeroptions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.originalName
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,13 +23,48 @@ internal const val OVERRIDE_PARAMETER = "$EXTENSION_PACKAGE/misc/OverrideExchang
 private const val USER = "Lcom/instagram/common/session/UserSession;"
 private const val CALLBACK = "Lcom/facebook/mobileconfig/MobileConfigUpdateOverridesTableCallback;"
 private const val PARAM_CTOR = "(IILjava/lang/String;Ljava/lang/String;IJ)V"
+private const val STRING_IS_EMPTY = "Ljava/lang/String;->isEmpty()Z"
+private const val STRING_OF_INT = "Ljava/lang/String;->valueOf(I)Ljava/lang/String;"
 private val RECORD_ARGS = listOf("Ljava/lang/String;", "Ljava/lang/String;") + List(7) { "I" } + List(3) { "Z" }
+
+/** How many calls deep the read-only check follows the reader's native calls, and how many methods it checks at most. */
+internal const val READ_DEPTH = 4
+internal const val READ_LIMIT = 2000
+/** A virtual call with more overrides than this is open-ended: its name is checked, its overrides aren't followed. */
+private const val READ_OVERRIDES = 8
+
+/** File calls that write, make or remove something. */
+private val FILE_WRITES = setOf(
+    "Ljava/io/File;->mkdir()Z", "Ljava/io/File;->mkdirs()Z", "Ljava/io/File;->createNewFile()Z", "Ljava/io/File;->delete()Z",
+    "Ljava/io/File;->deleteOnExit()V", "Ljava/io/File;->renameTo(Ljava/io/File;)Z", "Ljava/io/File;->setLastModified(J)Z",
+)
+/** Classes whose construction opens a file for writing. */
+private val WRITING_STREAMS = setOf("Ljava/io/FileOutputStream;", "Ljava/io/FileWriter;", "Ljava/io/RandomAccessFile;")
+/** java.nio.file.Files calls that write, make or remove something, by name. */
+private val NIO_WRITES = listOf("write", "create", "newOutputStream", "newBufferedWriter", "delete", "move", "copy", "set")
+/** Context calls that make or remove a file, a folder or a store, by name. */
+private val CONTEXT_WRITES = setOf("openFileOutput", "deleteFile", "getDir", "deleteSharedPreferences", "deleteDatabase", "openOrCreateDatabase")
+/** Override store calls that change or reload it, by the names MobileConfig's native classes keep. */
+private val OVERRIDE_WRITES = listOf("updateOverride", "removeOverride", "importOverride", "clearOverride", "deleteOverride",
+    "setOverride", "writeOverride", "saveOverride", "reload")
+/** Owners outside the app, which the patch can't read and which only end a path. */
+private val PLATFORM = listOf("Ljava/", "Ljavax/", "Landroid/", "Ldalvik/", "Lorg/json/", "Lorg/xml/", "Lorg/w3c/", "Lsun/", "Llibcore/")
+private val VIRTUAL_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE)
+
+/**
+ * What the reader's three native calls reach: every method checked, the app classes the check
+ * looked for and didn't find, and the classes whose overrides it followed. The last two only matter
+ * to a test that loads a slice of the app.
+ */
+internal class ReaderReach(val methods: Set<String>, val missing: Set<String>, val open: Set<String>)
 
 internal data class OverrideReader(
     val singleton: String, val sessionFactory: String, val managerField: String, val modelField: String,
     val model: String, val fileResolver: String, val schemaGetter: String, val schemaList: String,
     val entry: String, val config: String, val index: String, val configName: String, val name: String,
     val type: String, val nativeId: String,
+    /** What the session factory, file resolver and schema getter were checked to reach. */
+    val reach: ReaderReach,
 )
 
 /** Follow the diagnostics' session manager and its native callback's file resolver, never a path. */
@@ -77,6 +113,7 @@ internal fun BytecodePatchContext.findOverrideReader(editor: OverrideEditor): Ov
         it.returnType.startsWith("L") && it.text().containsAll(listOf("MobileConfigIdNameMappingLoader",
             "failed to parse and get namedParamsMapList, name is null")) }.one("typed override schema getter")
     publicMethod(schema)
+    val reach = readerReach(listOf(factory, file, schema))
     val listOwner = readerClass(schema.returnType)
     val list = listOwner.fields.filter { it.type == "Ljava/util/List;" && AccessFlags.FINAL.isSet(it.accessFlags) &&
         !AccessFlags.STATIC.isSet(it.accessFlags) }.one("schema parameter list")
@@ -92,11 +129,10 @@ internal fun BytecodePatchContext.findOverrideReader(editor: OverrideEditor): Ov
     publicMethod(nativeId)
     val firstInteger = nativeId.implementation?.instructions?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.takeIf { it.type == "I" } }?.firstOrNull()
     if (firstInteger?.toString() != fields[6].toString()) readerRefuse("encoded parameter type doesn't match its constructor role")
+    val fallbacks = fallbackNames(entry)
     for ((name, index) in listOf(0 to 8, 1 to 2)) {
-        entry.methods.filter { it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" && "_" in it.text() &&
-            it.implementation?.instructions?.mapNotNull { instruction -> (instruction as? ReferenceInstruction)?.reference?.toString() }
-                ?.containsAll(listOf(fields[name].toString(), fields[index].toString())) == true }
-            .one("schema name/index role")
+        val found = fallbacks[fields[name].toString()].orEmpty()
+        if (found != setOf(fields[index].toString())) readerRefuse("schema name ${fields[name]} falls back to $found, not ${fields[index]}")
     }
     readerStubs()
     val projection = readerClass(OVERRIDE_PARAMETER).methods.filter { it.name == "<init>" &&
@@ -106,7 +142,105 @@ internal fun BytecodePatchContext.findOverrideReader(editor: OverrideEditor): Ov
     if (editor.getter.substringBefore("->") != "Lcom/instagram/base/activity/IgFragmentActivity;") readerRefuse("unsupported native activity session accessor")
     return OverrideReader(singleton.toString(), factory.toString(), path[0].toString(), path[1].toString(), model,
         file.toString(), schema.toString(), list.toString(), entry.type, fields[8].toString(), fields[2].toString(),
-        fields[0].toString(), fields[1].toString(), fields[6].toString(), nativeId.toString())
+        fields[0].toString(), fields[1].toString(), fields[6].toString(), nativeId.toString(), reach)
+}
+
+/**
+ * Follows the reader's native calls [starts] up to [READ_DEPTH] calls deep, through direct calls
+ * and the overrides a virtual call can land on, and refuses if any of them calls something that
+ * writes a file, makes or removes one, or changes or reloads overrides. An interface call, a native
+ * or platform method, or a call with more than [READ_OVERRIDES] overrides ends its path and is
+ * checked by name. What happens inside native code is past this check.
+ */
+internal fun BytecodePatchContext.readerReach(starts: List<MethodReference>): ReaderReach {
+    val subclasses = mutableMapOf<String, MutableList<ClassDef>>()
+    classDefForEach { clazz -> clazz.superclass?.let { subclasses.getOrPut(it) { mutableListOf() } += clazz } }
+    val methods = mutableSetOf<String>()
+    val missing = sortedSetOf<String>()
+    val open = sortedSetOf<String>()
+    fun lookup(type: String): ClassDef? = classDefByOrNull(type) ?: null.also { if (PLATFORM.none(type::startsWith)) missing += type }
+    var frontier = starts.map { Triple(it, true, it.toString()) }
+    for (depth in 0..READ_DEPTH) {
+        val next = mutableListOf<Triple<MethodReference, Boolean, String>>()
+        for ((reference, virtual, start) in frontier) {
+            if (!methods.add(reference.toString())) continue
+            if (methods.size > READ_LIMIT) readerRefuse("the native reader's calls reach more than $READ_LIMIT methods")
+            for (body in bodiesOf(reference, virtual, subclasses, ::lookup, open)) {
+                // An override the call can land on counts as reached under its own name.
+                methods += body.toString()
+                for (instruction in body.implementation!!.instructions) {
+                    val called = instruction.method() ?: continue
+                    if (called.writes()) readerRefuse("native reader call $start reaches $called")
+                    if (depth < READ_DEPTH) next += Triple(called, instruction.opcode in VIRTUAL_CALLS, start)
+                }
+            }
+        }
+        frontier = next
+    }
+    return ReaderReach(methods, missing, open)
+}
+
+/** The bodies a call to [reference] can run: its own, found up the class chain, and for a virtual call its overrides below. */
+private fun bodiesOf(reference: MethodReference, virtual: Boolean, subclasses: Map<String, List<ClassDef>>,
+                     lookup: (String) -> ClassDef?, open: MutableSet<String>): List<Method> {
+    var owner = lookup(reference.definingClass) ?: return emptyList()
+    var declared = owner.methods.firstOrNull { it.sameAs(reference) }
+    while (declared == null) {
+        owner = owner.superclass?.let(lookup) ?: return emptyList()
+        declared = owner.methods.firstOrNull { it.sameAs(reference) }
+    }
+    val bodies = listOfNotNull(declared.takeIf { it.implementation != null }).toMutableList()
+    val overridable = virtual && reference.name != "<init>" && !AccessFlags.STATIC.isSet(declared.accessFlags) &&
+        !AccessFlags.PRIVATE.isSet(declared.accessFlags) && !AccessFlags.FINAL.isSet(declared.accessFlags)
+    if (!overridable) return bodies
+    open += reference.definingClass
+    val below = mutableListOf<Method>()
+    val pending = ArrayDeque(listOf(reference.definingClass))
+    var visited = 0
+    while (pending.isNotEmpty()) {
+        for (sub in subclasses[pending.removeFirst()].orEmpty()) {
+            if (++visited > READ_OVERRIDES * 25) return bodies
+            sub.methods.firstOrNull { it.sameAs(reference) && it.implementation != null }?.let { below += it }
+            if (below.size > READ_OVERRIDES) return bodies
+            pending += sub.type
+        }
+    }
+    return bodies + below
+}
+
+private fun Method.sameAs(reference: MethodReference) = name == reference.name && returnType == reference.returnType &&
+    parameterTypes.map(Any::toString) == reference.parameterTypes.map(Any::toString)
+
+/** Whether calling this writes a file, makes or removes one, or changes or reloads overrides. */
+private fun MethodReference.writes(): Boolean = toString() in FILE_WRITES ||
+    (definingClass in WRITING_STREAMS && name == "<init>") ||
+    definingClass == "Landroid/content/SharedPreferences\$Editor;" ||
+    (definingClass == "Ljava/nio/file/Files;" && NIO_WRITES.any(name::startsWith)) ||
+    name in CONTEXT_WRITES || OVERRIDE_WRITES.any(name::startsWith)
+
+/**
+ * The index field each schema record's name field falls back to wherever the name is read: 449's
+ * own getters, or 450's copies of them inlined where they're used. Either way an empty name is
+ * replaced by "_" and the index, so the pairs show which index belongs to which name.
+ */
+private fun BytecodePatchContext.fallbackNames(entry: ClassDef): Map<String, Set<String>> {
+    val found = mutableMapOf<String, MutableSet<String>>()
+    classesHolding("_").forEach { clazz ->
+        clazz.methods.forEach { method ->
+            val code = method.implementation?.instructions?.toList().orEmpty()
+            for (at in 0..code.size - 7) {
+                val name = code[at].takeIf { it.opcode == Opcode.IGET_OBJECT }?.field()?.takeIf { it.definingClass == entry.type } ?: continue
+                val index = code[at + 4].takeIf { it.opcode == Opcode.IGET }?.field()?.takeIf { it.definingClass == entry.type } ?: continue
+                if (code[at + 1].method()?.toString() != STRING_IS_EMPTY || code[at + 3].opcode != Opcode.IF_EQZ ||
+                    code[at + 5].method()?.toString() != STRING_OF_INT ||
+                    (code[at] as TwoRegisterInstruction).registerB != (code[at + 4] as TwoRegisterInstruction).registerB ||
+                    (at + 6..minOf(code.lastIndex, at + 8)).none { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == "_" }
+                ) continue
+                found.getOrPut(name.toString()) { mutableSetOf() } += index.toString()
+            }
+        }
+    }
+    return found
 }
 
 /** A throwing sibling branch doesn't overwrite registers on the successful branch. Join conservatively. */
@@ -292,6 +426,7 @@ private fun BytecodePatchContext.publicField(reference: FieldReference, static: 
 }
 private fun Method.text() = implementation?.instructions?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }.orEmpty()
 private fun Instruction.method() = (this as? ReferenceInstruction)?.reference as? MethodReference
+private fun Instruction.field() = (this as? ReferenceInstruction)?.reference as? FieldReference
 private fun Instruction.arguments(): List<Int> = when (this) {
     is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
     is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)

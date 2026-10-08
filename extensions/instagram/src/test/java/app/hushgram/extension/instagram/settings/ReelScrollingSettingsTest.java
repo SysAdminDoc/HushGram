@@ -68,7 +68,13 @@ public class ReelScrollingSettingsTest {
         assertEquals("Stop Reels scrolling", row.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.STOP_REELS_SCROLLING.get());
-        assertEquals(java.util.Collections.singletonList(Settings.STOP_REELS_SCROLLING), PatchFamily.REEL_SCROLLING.switches);
+        assertEquals(java.util.Arrays.asList(Settings.STOP_REELS_SCROLLING, Settings.REEL_CAP), PatchFamily.REEL_SCROLLING.switches);
+        SwitchPreference cap = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_CAP.key);
+        assertNotNull(cap);
+        assertEquals("Stop after 20 reels", cap.getTitle().toString());
+        assertFalse(cap.isChecked());
+        assertFalse(Settings.REEL_CAP.get());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_CAP.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STOP_REELS_SCROLLING.key));
         assertTrue("a viewer turns its pager off as it opens", Settings.STOP_REELS_SCROLLING.rebootApp);
 

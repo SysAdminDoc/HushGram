@@ -55,6 +55,11 @@ import app.hushgram.extension.shared.Utils;
  *
  * <p>Photos keep their {@code IG_IMG_} names. A photo has no video id, and one template for both
  * would name every photo a video.
+ *
+ * <p>Name saves by account and post time ({@link #byPost}, #20) sets all of that aside for a save
+ * that knows who posted and when: {@link #postName} names a photo and a video alike for the account
+ * and the post's time, with a carousel page's number on the end. A profile picture has no post
+ * time, so it's named for the account, {@link #PROFILE} and the time of the save.
  */
 public final class FileNameTemplate {
 
@@ -74,6 +79,9 @@ public final class FileNameTemplate {
 
     /** Every token, in the order the dialog names them. */
     static final String[] TOKENS = {DATE, VIDEO_ID, OWNER, POSTED};
+
+    /** What stands between the account and the time of the save in a profile picture's name by post. */
+    static final String PROFILE = "_profile_";
 
     /** What the name of a saved photo starts with. Photos keep it, whatever the template. */
     public static final String PHOTO_PREFIX = "IG_IMG_";
@@ -145,6 +153,47 @@ public final class FileNameTemplate {
     public static boolean isImportable(String template) {
         if (template == null || template.isEmpty()) return false;
         return isClean(SaveFolder.withUnknownAsKnown(template));
+    }
+
+    /**
+     * Whether Name saves by account and post time is on. Off while the settings aren't ready, and
+     * never throws.
+     */
+    public static boolean byPost() {
+        try {
+            return Utils.settingsReady() && Settings.SAVE_NAME_BY_POST.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * The name, without its extension, that Name saves by account and post time gives a save of
+     * [details]'s media: the account that posted it, when it was posted as {@code yyyyMMdd_HHmmss}
+     * in the phone's time zone, and a carousel page's number. A photo and a video get the same
+     * kind of name, so a folder of one account's saves sorts by when they were posted. Null when
+     * the save doesn't know the account or the time: it keeps the name it would have had.
+     *
+     * <p>When [taken], that name is already in the save folder, from an earlier save of the same
+     * post, and the time of the save, {@code HHmmss}, goes on the end, as {@link #takenVideoName}
+     * does. Only a save of the same post in the same second can take that one, and MediaStore's
+     * numbering covers it. The account's name is what gets cut to fit, never the time.
+     *
+     * <p>A profile picture ({@link PostDetails#profile}) is {@code <account>_profile_} and the time
+     * of the save, {@code yyyyMMdd_HHmmss}, null only when the account isn't known. That time is
+     * already on it, so [taken] can only mean the same second, and it keeps the same name for
+     * MediaStore to number.
+     */
+    public static String postName(Date when, PostDetails details, boolean taken) {
+        if (details != null && details.profile) {
+            if (!details.hasOwner() || when == null) return null;
+            String rest = PROFILE + stamp(when);
+            return cut(details.owner, MAX_NAME_BYTES - rest.length()) + rest;
+        }
+        if (details == null || !details.hasOwner() || !details.hasPosted()) return null;
+        String rest = "_" + stamp(details.posted) + (details.hasPage() ? "_" + details.page : "")
+            + (taken ? "_" + clock(when) : "");
+        return cut(details.owner, MAX_NAME_BYTES - rest.length()) + rest;
     }
 
     /** Whether [template] asks for the video id. */

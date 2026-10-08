@@ -73,9 +73,10 @@ public class PlaybackQualitySettingsTest {
             }
             assertNotNull(section);
             assertEquals("Playback", String.valueOf(section.getTitle()));
-            // Tap to play first, then the switch and its list.
-            assertEquals(3, section.getPreferenceCount());
+            // Tap to play first with its choice of where, then the switch and its list.
+            assertEquals(4, section.getPreferenceCount());
             assertEquals(Settings.TAP_TO_PLAY.key, section.getPreference(0).getKey());
+            assertEquals(Settings.TAP_TO_PLAY_SCOPE.key, section.getPreference(1).getKey());
 
             Preference sw = rows.get(toggle);
             assertTrue(sw instanceof SwitchPreference);

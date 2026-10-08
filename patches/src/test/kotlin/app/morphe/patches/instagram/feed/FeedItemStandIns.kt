@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
@@ -38,17 +39,20 @@ internal object FeedItemStandIns {
     const val ITEM = "Lfixture/FeedItem;"
     const val KIND = "Lfixture/FeedItemKind;"
     const val FETCH = "Lfixture/FetchReason;"
+    const val MEDIA = "Lcom/instagram/feed/media/Media;"
     private const val JSON_PARSER = "Lfixture/JsonParser;"
 
     /**
-     * Shaped like Instagram 449's: the parser, the feed item with its ClipsNetego field and two enum
-     * fields, the item's static helpers (one parsing from JSON, one wrapping a post) and the two
-     * enums with the names their static initializers load.
+     * Shaped like Instagram 449's: the parser, the feed item with its ClipsNetego field, two enum
+     * fields and three post fields, the item's static helpers (one parsing from JSON, one wrapping a
+     * post in the fields [postWrites] names) and the two enums with the names their static
+     * initializers load.
      */
     fun classes(
         kindNames: List<String>,
         fetchNames: List<String> = listOf("COLD_START", "PULL_TO_REFRESH"),
         helpers: Int = 1,
+        postWrites: List<String> = emptyList(),
     ): List<ClassDef> {
         val public = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val static = public or AccessFlags.STATIC.value
@@ -79,8 +83,10 @@ internal object FeedItemStandIns {
         )
         val itemMethods = (1..helpers).map { method(ITEM, "A0${it + 1}", listOf(JSON_PARSER), ITEM, static, 2, parse) } +
             method(
-                ITEM, "A01", listOf("Lcom/instagram/feed/media/Media;"), ITEM, static, 2,
-                listOf(ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(ITEM)), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)),
+                ITEM, "A01", listOf(MEDIA), ITEM, static, 2,
+                listOf(ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(ITEM))) +
+                    postWrites.map { ImmutableInstruction22c(Opcode.IPUT_OBJECT, 1, 0, ImmutableFieldReference(ITEM, it, MEDIA)) } +
+                    ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
             )
         val itemClass = ImmutableClassDef(
             ITEM, public, "Ljava/lang/Object;", null, null, null,
@@ -88,7 +94,7 @@ internal object FeedItemStandIns {
                 ImmutableField(ITEM, "A03", CLIPS_NETEGO, AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(ITEM, "A0r", KIND, AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(ITEM, "A0s", FETCH, AccessFlags.PUBLIC.value, null, null, null),
-            ),
+            ) + listOf("A0u", "A0v", "A0w").map { ImmutableField(ITEM, it, MEDIA, AccessFlags.PUBLIC.value, null, null, null) },
             itemMethods,
         )
         val parserClass = ImmutableClassDef(

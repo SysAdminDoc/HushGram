@@ -33,6 +33,9 @@ public final class ResumePlaybackForTests {
     }
 
     /** Stands in for IgVideoPlayerImpl. */
+    /** The user ID of the account every test player was made for, unless a test says otherwise. */
+    public static final String ACCOUNT = "17841400000000001";
+
     public static final class Player {
         public Video video;
         public int position;
@@ -42,11 +45,39 @@ public final class ResumePlaybackForTests {
         public final List<Integer> seeks = new ArrayList<>();
         /** Runs inside a seek, after the seek has told its hook. */
         public Runnable duringSeek;
+        /** The user ID of the account it was made for, as its UserSession holds it. */
+        public String account = ACCOUNT;
+        /** Whether that UserSession's account has signed out since. */
+        public boolean signedOut;
 
         public Player(Video video) {
             this.video = video;
         }
     }
+
+    /** Stands in for a UserSession as it ends: its account's user ID and whether it signed out. */
+    public static final class Session {
+        public final String userId;
+        public final boolean loggedOut;
+
+        public Session(String userId, boolean loggedOut) {
+            this.userId = userId;
+            this.loggedOut = loggedOut;
+        }
+    }
+
+    /** What the patched session stubs do, on {@link Session}s. */
+    static final ResumePlayback.Session SESSIONS = new ResumePlayback.Session() {
+        @Override
+        public String userId(Object session) {
+            return ((Session) session).userId;
+        }
+
+        @Override
+        public boolean loggedOut(Object session) {
+            return ((Session) session).loggedOut;
+        }
+    };
 
     /** Resumes the rule posted, not yet run. */
     static final Deque<Runnable> LATER = new ArrayDeque<>();
@@ -67,8 +98,12 @@ public final class ResumePlaybackForTests {
 
         @Override
         public ResumePlayback.Facts facts(Object player) {
-            Video video = ((Player) player).video;
-            return video == null ? null : ResumePlayback.factsOf(video.id, video.product, video.sponsored);
+            Player playing = (Player) player;
+            Video video = playing.video;
+            if (video == null) return null;
+            Session session = playing.account == null ? null : new Session(playing.account, playing.signedOut);
+            String owner = ResumePlayback.owner(session, SESSIONS);
+            return ResumePlayback.factsOf(ResumePlayback.ownedKey(owner, video.id), video.product, video.sponsored);
         }
 
         @Override
@@ -92,6 +127,7 @@ public final class ResumePlaybackForTests {
         LATER.clear();
         ResumePlayback.access = ACCESS;
         ResumePlayback.later = LATER::add;
+        ResumePlayback.sessions = SESSIONS;
     }
 
     /** Runs every resume posted so far. */

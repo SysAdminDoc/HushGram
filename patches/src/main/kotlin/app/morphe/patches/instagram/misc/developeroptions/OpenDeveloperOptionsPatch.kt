@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -28,6 +29,13 @@ internal const val OPEN_DEVELOPER_OPTIONS = "$EXTENSION_PACKAGE/misc/DeveloperOp
 
 /** The toast key the developer options opener shows when it can't open them, held by its one static. */
 internal const val OPTIONS_ERROR = "debug_options_error"
+
+/**
+ * The SettingsStatus methods that say the override reader went in, for Export and Validate, and the
+ * writer, for Import, Restore and Reset. A build that lacks either still has the long press.
+ */
+internal const val OVERRIDE_EXCHANGE_STATUS = "overrideExchange"
+internal const val OVERRIDE_IMPORT_STATUS = "overrideImport"
 
 /** What the server can set a long press of Home to do; only the press's handler holds both. */
 internal val LONG_PRESS_STRINGS = listOf("click", "activity")
@@ -55,16 +63,52 @@ val openDeveloperOptionsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("developerOptions")
-        // Resolve the editor and assemble every stub body before changing either entry point, so
-        // nothing after the long press hook can refuse.
-        val editor = findOverrideEditor()
-        val reader = findOverrideReader(editor)
-        val writer = findOverrideWriter(reader.model)
-        val stubs = listOf(prepareOverrideEditor(editor), prepareOverrideReader(reader, editor), writer.stubs)
-        openOnLongPress(findOptionsOpener())
-        stubs.forEach { putStubs(it) }
-        enableStatus("developerOptions")
+        requireStatusMethod(OVERRIDE_EXCHANGE_STATUS)
+        requireStatusMethod(OVERRIDE_IMPORT_STATUS)
+        openDeveloperOptions(findOverrideEditor(), findWhitehatScreen())
     }
+}
+
+/**
+ * Puts in developer options for the [editor] and the Whitehat [screen] already found: the long
+ * press, the MetaConfig and Whitehat entries, and Export, Validate and Import as far as their reader
+ * and writer are found. Every stub body is assembled and the opener found before anything changes,
+ * so nothing after the long press hook can refuse.
+ */
+internal fun BytecodePatchContext.openDeveloperOptions(editor: OverrideEditor, screen: String) {
+    val exchange = overrideExchangeOrWarn(editor)
+    val stubs = listOfNotNull(prepareOverrideEditor(editor), prepareWhitehatScreen(editor, screen), exchange?.reader, exchange?.writer)
+    openOnLongPress(findOptionsOpener())
+    stubs.forEach { putStubs(it) }
+    enableStatus("developerOptions")
+    if (exchange != null) enableStatus(OVERRIDE_EXCHANGE_STATUS)
+    if (exchange?.writer != null) enableStatus(OVERRIDE_IMPORT_STATUS)
+}
+
+/** The override reader's stubs, and the writer's when it was found too, assembled and not yet put in. */
+internal class OverrideExchangeStubs(val reader: PreparedStubs, val writer: PreparedStubs?)
+
+/**
+ * The override reader and writer, or as much of them as this build has, with a warning in the patch
+ * log for what's left out. Only Export, Validate and Import use them, so a reader that moved leaves
+ * all three out, and a writer that moved leaves Import out. The writer starts from the reader's
+ * model, so it's only looked for once the reader is found. Nothing here changes the app.
+ */
+internal fun BytecodePatchContext.overrideExchangeOrWarn(editor: OverrideEditor): OverrideExchangeStubs? {
+    val (reader, readerStubs) = try {
+        findOverrideReader(editor).let { it to prepareOverrideReader(it, editor) }
+    } catch (moved: PatchException) {
+        patchLog.warning("${moved.message}. The long press and the MetaConfig and Whitehat entries go in without " +
+            "Export, Validate and Import.")
+        return null
+    }
+    val writer = try {
+        findOverrideWriter(reader.model).stubs
+    } catch (moved: PatchException) {
+        patchLog.warning("${moved.message}. Export and Validate go in without Import.")
+        null
+    }
+    return OverrideExchangeStubs(readerStubs, writer)
 }
 
 /** The developer options opener: its instance, a static field of its own class, and its open method. */

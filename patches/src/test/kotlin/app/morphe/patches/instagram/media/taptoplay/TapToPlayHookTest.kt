@@ -68,6 +68,15 @@ class TapToPlayHookTest {
     private val upNext = "Lfixture/UpNextNavigator;"
     private val dataSaver = "Lfixture/DataSaverDialog;->A00(Landroid/content/Context;Lfixture/Module;$session$function0)V"
 
+    /** The players' video logger, the Reels viewer's, one the feed makes, and a Reels helper that's no logger. */
+    private val logger = "Lfixture/VideoLogger;"
+    private val reelsLogger = "Lfixture/ClipsVideoLogger;"
+    private val feedLogger = "Lfixture/FeedVideoLogger;"
+    private val clipsHelper = "Lfixture/ClipsViewerHelper;"
+
+    /** What playInternal's hook reads before it asks: the IgGrootPlayer, then the logger it checks. */
+    private val playInternalPrefix = listOf(Opcode.IGET_OBJECT, Opcode.IGET_OBJECT, Opcode.INSTANCE_OF)
+
     /** What the Reels pager keeps, and the marker of its smooth scroll to the next item, which the fixture check holds the move to. */
     private val viewPager2 = "Landroidx/viewpager2/widget/ViewPager2;"
     private val smoothScrollToNextItem = "ClipsViewPagerImpl_smoothScrollToNextItem"
@@ -108,10 +117,20 @@ class TapToPlayHookTest {
         val warnings = PatchLogCapture.warnings { context.holdStartsWithoutATap() }
 
         assertEquals("nothing went without", emptyList<String>(), warnings)
-        assertGateFirst("playInternal", context.method(player, "A0J").code(), ALLOW_START, prefix = listOf(Opcode.IGET_OBJECT))
+        assertGateFirst("playInternal", context.method(player, "A0J").code(), ALLOW_START, prefix = playInternalPrefix)
         val internal = context.method(player, "A0J").code()
         assertEquals("the IgGrootPlayer comes from the player's field", "$player->groot:$groot", (internal[0] as ReferenceInstruction).reference.toString())
         assertEquals("read from playInternal's player", 2, (internal[0] as TwoRegisterInstruction).registerB)
+        assertEquals("the logger comes from the player's field", "$player->logger:$logger", internal[1].referenceText())
+        assertEquals("read from playInternal's player too", 2, (internal[1] as TwoRegisterInstruction).registerB)
+        assertEquals("checked against the Reels viewer's logger", reelsLogger, internal[2].referenceText())
+        assertEquals("the check reads the logger it read", (internal[1] as TwoRegisterInstruction).registerA, (internal[2] as TwoRegisterInstruction).registerB)
+        val ask = internal[3] as FiveRegisterInstruction
+        assertEquals(
+            "the IgGrootPlayer, the reason and the check",
+            listOf((internal[0] as TwoRegisterInstruction).registerA, 3, (internal[2] as TwoRegisterInstruction).registerA),
+            listOf(ask.registerC, ask.registerD, ask.registerE),
+        )
 
         val play = context.method(groot, "A0X").code()
         assertGateFirst("play", play, ALLOW_DIRECT_START)
@@ -208,6 +227,27 @@ class TapToPlayHookTest {
     }
 
     /**
+     * playInternal's hook tells Reels apart by the player's logger, so a build where the Reels
+     * viewer's logger isn't the one class made with its config, or where the player keeps more
+     * than one logger of that type, stops the patch before anything changes.
+     */
+    @Test
+    fun aReelsLoggerThePatchCantTellFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            classes(reelsLoggers = 0) to "found 0",
+            classes(reelsLoggers = 2) to "found 2",
+            classes(twoLoggerFields = true) to "more than one final field of $logger",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(PatchException::class.java) { context.holdStartsWithoutATap() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.startsWith("$PATCH: ") && failure.message!!.contains(expected))
+            assertUntouched(context)
+        }
+        assertEquals("the Reels viewer's logger", reelsLogger, PatchContexts.of(classes()).findReelsLogger(player).type)
+    }
+
+    /**
      * A build with no auto scroller marker, or with it renamed, still gets every other hook, and the
      * patch log says auto scroll won't start the reel it moves to. Nothing goes into the method that
      * lost its marker.
@@ -220,7 +260,7 @@ class TapToPlayHookTest {
             assertEquals("$marker: one warning: $warnings", 1, warnings.size)
             assertTrue("$marker: ${warnings.single()}", warnings.single().startsWith("$PATCH: no method carries") && SCROLL_TO_NEXT_REEL in warnings.single())
             assertTrue("$marker: the move", context.method(scrollerType, "A03").code().none { it.referenceText() == AUTO_SCROLLED })
-            assertGateFirst("$marker: playInternal", context.method(player, "A0J").code(), ALLOW_START, prefix = listOf(Opcode.IGET_OBJECT))
+            assertGateFirst("$marker: playInternal", context.method(player, "A0J").code(), ALLOW_START, prefix = playInternalPrefix)
             assertReelTapHooked(context.method(navigator, "A01").code(), decision = 1, navigatorRegister = 5)
             assertStoryReleaseHooked(context.method(storyPlayer, "Gk2").code(), "$storyPlayer->A0W:Z", flag = 0, playerRegister = 7)
         }
@@ -390,11 +430,18 @@ class TapToPlayHookTest {
                 val storyInterface = viewer.single().fields.single { it.name == VIDEO_PLAYER_FIELD }.type
                 val storyPlayers = mutableListOf<ClassDef>()
                 FixtureDex.forEach(bundle) { dex -> dex.classes.filterTo(storyPlayers) { storyInterface in it.interfaces } }
+                // Every class made with a ClipsViewerConfig first, the Reels viewer's video logger among them.
+                val madeWithConfig = mutableListOf<ClassDef>()
+                FixtureDex.forEach(bundle) { dex ->
+                    dex.classes.filterTo(madeWithConfig) { classDef ->
+                        classDef.methods.any { it.name == "<init>" && it.parameterTypes.firstOrNull()?.toString() == CLIPS_VIEWER_CONFIG }
+                    }
+                }
                 val classes = (
                     FixtureDex.classesHolding(bundle, PLAY_INTERNAL) + FixtureDex.classesHolding(bundle, GROOT_PREPARE) +
                         FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
                         listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
-                        reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) +
+                        reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
                         ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
                     ).distinctBy { it.type }
                 val context = PatchContexts.of(classes)
@@ -413,13 +460,20 @@ class TapToPlayHookTest {
                 assertEquals("${bundle.name}: the player's IgGrootPlayer field", hooks.prepare.definingClass, hooks.grootField.type)
                 assertEquals("${bundle.name}: play and prepare are one class's", hooks.prepare.definingClass, hooks.play.definingClass)
                 assertEquals("${bundle.name}: pause is theirs too", hooks.prepare.definingClass, hooks.pause.definingClass)
+                // The logger is the player's own, kept from its making, and the Reels viewer's keeps its config.
+                assertEquals("${bundle.name}: the logger field", hooks.playInternal.definingClass, hooks.reelsLogger.field.definingClass)
+                val loggerClass = madeWithConfig.single { it.type == hooks.reelsLogger.type }
+                assertEquals("${bundle.name}: the Reels viewer's logger extends the field's type", hooks.reelsLogger.field.type, loggerClass.superclass)
+                assertTrue("${bundle.name}: and keeps its config", loggerClass.fields.any { it.type == CLIPS_VIEWER_CONFIG })
 
                 context.holdStartsWithoutATap()
 
                 fun after(method: Method) = context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code()
                 val internal = after(hooks.playInternal)
                 assertEquals("${bundle.name}: playInternal", hooks.grootField.toString(), internal[0].referenceText())
-                assertGateFirst("${bundle.name}: playInternal", internal, ALLOW_START, prefix = listOf(Opcode.IGET_OBJECT))
+                assertGateFirst("${bundle.name}: playInternal", internal, ALLOW_START, prefix = playInternalPrefix)
+                assertEquals("${bundle.name}: the logger read", hooks.reelsLogger.field.toString(), internal[1].referenceText())
+                assertEquals("${bundle.name}: the logger check", hooks.reelsLogger.type, internal[2].referenceText())
                 assertGateFirst("${bundle.name}: play", after(hooks.play), ALLOW_DIRECT_START)
                 assertEquals("${bundle.name}: pause", PAUSED, after(hooks.pause)[0].referenceText())
                 assertEquals("${bundle.name}: prepare", REBOUND, after(hooks.prepare)[0].referenceText())
@@ -566,6 +620,8 @@ class TapToPlayHookTest {
         start: Start = Start.HANDED_OVER,
         story: Story = Story(),
         scroller: Scroller = Scroller(),
+        reelsLoggers: Int = 1,
+        twoLoggerFields: Boolean = false,
     ): List<ClassDef> {
         val videoPlayer = classDef(
             player,
@@ -581,11 +637,45 @@ class TapToPlayHookTest {
                     return-void
                 """),
             ),
-            listOf(
+            listOfNotNull(
                 ImmutableField(player, "groot", groot, AccessFlags.PUBLIC.value, null, null, null),
                 ImmutableField(player, "shared", groot, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null),
+                ImmutableField(player, "logger", logger, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null),
+                // A logger the player isn't made with: not final, so not the one it keeps.
+                ImmutableField(player, "lastLogger", logger, AccessFlags.PUBLIC.value, null, null, null),
+                if (twoLoggerFields) ImmutableField(player, "otherLogger", logger, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null) else null,
             ),
         )
+        // The Reels viewer's logger keeps the ClipsViewerConfig it's made with; the feed's is made
+        // without one, and the helper keeps one but is no logger.
+        val madeWithConfig = { type: String, superclass: String ->
+            classDef(
+                type,
+                listOf(
+                    method(type, "<init>", listOf(CLIPS_VIEWER_CONFIG, session), "V", 3, static = false, body = """
+                        invoke-direct { p0 }, $superclass-><init>()V
+                        iput-object p1, p0, $type->config:$CLIPS_VIEWER_CONFIG
+                        return-void
+                    """),
+                ),
+                listOf(ImmutableField(type, "config", CLIPS_VIEWER_CONFIG, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
+                superclass,
+            )
+        }
+        val loggers = listOf(
+            classDef(logger, emptyList()),
+            classDef(
+                feedLogger,
+                listOf(
+                    method(feedLogger, "<init>", listOf(session), "V", 2, static = false, body = """
+                        invoke-direct { p0 }, $logger-><init>()V
+                        return-void
+                    """),
+                ),
+                superclass = logger,
+            ),
+            madeWithConfig(clipsHelper, objectType),
+        ) + (0 until reelsLoggers).map { madeWithConfig(if (it == 0) reelsLogger else "Lfixture/ClipsVideoLogger$it;", logger) }
         val pause = { name: String ->
             method(groot, name, listOf(string), "V", 3, static = false, body = """
                 iget-object v0, p0, $groot->core:$core
@@ -638,7 +728,7 @@ class TapToPlayHookTest {
                 """),
             ),
         )
-        return listOfNotNull(videoPlayer, grootPlayer, autoplayChecker, if (activity) fragmentActivity else null) +
+        return listOfNotNull(videoPlayer, grootPlayer, autoplayChecker, if (activity) fragmentActivity else null) + loggers +
             reelClasses(reel) + playButtonClasses(buttons, twoStarts, clobberedEvent, binder, enumState, start) + storyClasses(story) +
             scrollerClasses(scroller) +
             ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
@@ -1028,6 +1118,6 @@ class TapToPlayHookTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField> = emptyList()): ClassDef =
-        ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, fields, methods)
+    private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField> = emptyList(), superclass: String = objectType): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value, superclass, null, null, null, fields, methods)
 }

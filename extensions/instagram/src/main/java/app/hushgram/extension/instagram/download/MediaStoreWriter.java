@@ -46,8 +46,8 @@ import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
  * start of Instagram removes it ({@link SaveLeftovers}), and the platform would after about a week.
  *
  * <p>Instagram 449 runs from Android 9, whose MediaStore has neither {@code RELATIVE_PATH} nor
- * {@code IS_PENDING}. There the file is written straight into the same folder under Movies or
- * Pictures, under a hidden {@code .pending-} name the media scanner skips, renamed when the last
+ * {@code IS_PENDING}. There the file is written straight into the same folder under Movies,
+ * Pictures or Music, under a hidden {@code .pending-} name the media scanner skips, renamed when the last
  * byte is in and then handed to the scanner so the gallery shows it. That needs
  * WRITE_EXTERNAL_STORAGE, which Instagram declares and asks for itself; without it the save fails
  * and the report says why. The hidden file is on the same list as a pending row, so a save the
@@ -66,6 +66,9 @@ final class MediaStoreWriter implements Downloader.Sink {
 
     private final Context context;
     private final boolean video;
+
+    /** A sound recording, such as a voice message, which goes to the phone's audio files. */
+    private final boolean audio;
 
     /** What the save knows of the post, for the file name's tokens. Never null. */
     private final PostDetails details;
@@ -90,14 +93,32 @@ final class MediaStoreWriter implements Downloader.Sink {
     }
 
     MediaStoreWriter(Context applicationContext, boolean video, PostDetails details) {
+        this(applicationContext, video, false, details);
+    }
+
+    private MediaStoreWriter(Context applicationContext, boolean video, boolean audio, PostDetails details) {
         this.context = applicationContext;
         this.video = video;
+        this.audio = audio;
         this.details = details == null ? PostDetails.NONE : details;
     }
 
+    /** A writer for a sound recording, saved with the phone's audio files rather than its pictures. */
+    static MediaStoreWriter forAudio(Context applicationContext, PostDetails details) {
+        return new MediaStoreWriter(applicationContext, false, true, details);
+    }
+
     /**
-     * {@code Movies/Instagram} or {@code Pictures/Instagram}, or the folder the person named in
-     * place of Instagram, for the message to the user.
+     * Where a sound recording goes: Recordings from Android 12, which made that folder for them, and
+     * Music before it, the audio folder every older MediaStore takes.
+     */
+    static String audioDirectory() {
+        return Build.VERSION.SDK_INT >= 31 ? Environment.DIRECTORY_RECORDINGS : Environment.DIRECTORY_MUSIC;
+    }
+
+    /**
+     * {@code Movies/Instagram}, {@code Pictures/Instagram} or, for a recording, the audio folder's,
+     * or the folder the person named in place of Instagram, for the message to the user.
      */
     String savedLocation() {
         return location;
@@ -111,16 +132,17 @@ final class MediaStoreWriter implements Downloader.Sink {
     @Override
     public OutputStream open(String mimeFromServer) throws IOException {
         String mime = mime(mimeFromServer);
-        String directory = video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES;
+        String directory = audio ? audioDirectory()
+            : video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES;
         // One folder name for both kinds, so a story's photos and its videos land side by side.
         // It's read here, per file, and cleaned where it's read: a slash or a dot segment in the
         // setting can't turn this into a path of the setting's choosing.
-        String leaf = SaveFolder.leaf();
+        String leaf = SaveFolder.leaf(details);
         location = directory + "/" + leaf;
         if (legacyStorage()) return openLegacy(mime, directory, leaf);
 
-        Uri collection = video
-            ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        Uri collection = audio ? MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            : video ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI
             : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
         ContentValues values = new ContentValues();
@@ -303,6 +325,9 @@ final class MediaStoreWriter implements Downloader.Sink {
      * gallery unable to draw a thumbnail for it. A copy of that behaviour copies the fault.
      */
     private String mime(String fromServer) {
+        // A recording is fetched only once its first bytes show an MP4 container, and Meta calls
+        // its sound files video/mp4 as often as audio/mp4, so the container names it.
+        if (audio) return AUDIO_MP4;
         if (fromServer != null && EXTENSIONS.containsKey(fromServer)) {
             boolean isVideo = fromServer.startsWith("video/");
             // A video request that answers with a picture, or the reverse, is an error page or a
@@ -314,10 +339,29 @@ final class MediaStoreWriter implements Downloader.Sink {
     }
 
     private String name(String mime, Uri collection) {
-        String suffix = EXTENSIONS.get(mime);
+        String suffix = audio ? AUDIO_SUFFIX : EXTENSIONS.get(mime);
         if (suffix == null) suffix = video ? ".mp4" : ".jpg";
 
         Date now = new Date();
+        if (FileNameTemplate.byPost()) {
+            // Name saves by account and post time: a photo and a video alike, when the save knows both.
+            String byPost = FileNameTemplate.postName(now, details, false);
+            if (byPost != null) {
+                String name = byPost + suffix;
+                if (!inSaveFolder(collection, name)) return name;
+                // Saved before. MediaStore would number it, up to (31), and then refuse the save.
+                // A profile picture's name has the time of the save already, so it keeps it.
+                String again = FileNameTemplate.postName(now, details, true);
+                if (!byPost.equals(again)) Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
+                        () -> "the file name was already in the save folder, so the time of the save went on the end");
+                return again + suffix;
+            }
+            reportUnnamedByPost();
+        }
+        if (audio) {
+            // As a photo is named, so the saved recordings sort by the time they were saved.
+            return AUDIO_PREFIX + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(now) + suffix;
+        }
         if (video) {
             // The person's template, read here, per file, and cleaned where it's read. As it
             // ships it's IG_VID_ and the date and time.
@@ -370,6 +414,18 @@ final class MediaStoreWriter implements Downloader.Sink {
     }
 
     /**
+     * One line in the report when Name saves by account and post time is on and this save doesn't
+     * know who posted or when, so it keeps the name it would have had. Never the name itself.
+     */
+    private void reportUnnamedByPost() {
+        String missing = !details.hasOwner() && !details.hasPosted() ? "the account or the post time"
+            : !details.hasOwner() ? "the account" : "the post time";
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
+                () -> "saves are named by account and post time, and this save doesn't know " + missing
+                    + ", so it keeps its usual name");
+    }
+
+    /**
      * One line in the report when [template] asks for something this save doesn't know, saying
      * what the name does about it: left out when the name still tells saves apart, and the date
      * and time on the end when it wouldn't, since MediaStore refuses a name once it has numbered
@@ -414,4 +470,11 @@ final class MediaStoreWriter implements Downloader.Sink {
         EXTENSIONS.put("image/avif", ".avif");
         EXTENSIONS.put("image/gif", ".gif");
     }
+
+    /** A recording's type and name. Kept out of the table, which only ever names a picture or a video. */
+    static final String AUDIO_MP4 = "audio/mp4";
+    static final String AUDIO_SUFFIX = ".m4a";
+
+    /** How a saved recording is named when nothing names it by its post, as photos take IG_IMG_. */
+    static final String AUDIO_PREFIX = "IG_AUD_";
 }

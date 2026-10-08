@@ -54,10 +54,10 @@ class WatchHistoryHookTest {
 
         val patched = context.mutableClassDefBy(batchType)
         for ((parameters, what) in RECORDS) {
-            val record = patched.methods.single { it.parameterTypes.joinToString("") == parameters && !it.isStatic() }
+            val record = patched.methods.single { it.recordParameters(batchType) == parameters }
             assertGuardFirst(what, record)
         }
-        val decoy = patched.methods.single { it.isStatic() }
+        val decoy = patched.methods.single { it.isStatic() && it.recordParameters(batchType) == null }
         assertEquals("the static method of the same shape was touched", 1, decoy.instructions().size)
         val request = patched.methods.single { it.name == "request" }
         assertEquals("the request builder was touched", 3, request.instructions().size)
@@ -112,8 +112,8 @@ class WatchHistoryHookTest {
                 }
                 val patched = context.mutableClassDefBy(batch.type)
                 for ((parameters, what) in RECORDS) {
-                    val before = batch.methods.single { it.parameterTypes.joinToString("") == parameters && !it.isStatic() }
-                    val after = patched.methods.single { it.name == before.name && it.parameterTypes.joinToString("") == parameters }
+                    val before = batch.methods.single { it.recordParameters(batch.type) == parameters }
+                    val after = patched.methods.single { it.name == before.name && it.recordParameters(batch.type) == parameters }
                     assertEquals("${bundle.name}: $what size", before.instructions().size + 4, after.instructions().size)
                     assertGuardFirst("${bundle.name}: $what", after)
                 }
@@ -138,8 +138,9 @@ class WatchHistoryHookTest {
     }
 
     /**
-     * A batch class shaped like Instagram 449's: the request builder holding both strings, the two
-     * record methods, and a static method of the first record's shape that has to stay as it is.
+     * A batch class shaped like Instagram 450's: the request builder holding both strings, the
+     * watched reel record, the static progress record taking the batch first, and a static method
+     * of the first record's shape without the batch that has to stay as it is.
      */
     private fun batch(request: Boolean = true, leaveOut: String? = null, twice: String? = null): ClassDef {
         val methods = mutableListOf<ImmutableMethod>()
@@ -153,11 +154,12 @@ class WatchHistoryHookTest {
         }
         RECORDS.forEachIndexed { index, (parameters, _) ->
             if (parameters == leaveOut) return@forEachIndexed
-            val types = if (parameters.endsWith("J")) listOf("Ljava/lang/String;", "J") else listOf("Ljava/lang/String;", "Ljava/lang/String;")
+            val progress = parameters.endsWith("J")
+            val types = if (progress) listOf(batchType, "Ljava/lang/String;", "J", "J") else listOf("Ljava/lang/String;", "Ljava/lang/String;")
             val copies = if (parameters == twice) 2 else 1
             repeat(copies) { copy ->
                 methods += method(
-                    "A0${index}$copy", types, "V", static = false,
+                    "A0${index}$copy", types, "V", static = progress,
                     ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference("Ljava/lang/Object;")),
                     ImmutableInstruction10x(Opcode.RETURN_VOID),
                 )

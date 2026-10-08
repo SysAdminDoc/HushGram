@@ -209,6 +209,29 @@ public class ExternalBrowserTest {
         }
     }
 
+    /**
+     * Instagram's click tracker takes any address in its u, and a bio, a caption or a message can
+     * put one there. Only a web address with a host comes out of it: the tracker wrapping anything
+     * else stays in the in-app browser, as do a scheme that only starts with http and an address
+     * with no host.
+     */
+    @Test
+    public void aTrackerWrappingAnythingButAWebPageStaysInTheApp() {
+        for (String url : new String[]{
+                "https://l.instagram.com/?u=intent%3A%2F%2Fexample.org%23Intent%3Bscheme%3Dhttps%3Bend&e=AT0x",
+                "https://l.instagram.com/?u=javascript%3Aalert(1)&e=AT0x",
+                "https://l.instagram.com/?u=httpxyz%3A%2F%2Fexample.org%2F&e=AT0x",
+                "https://l.instagram.com/?u=https%3A%2F%2F%2Fpath&e=AT0x",
+                "https://l.instagram.com/?u=https%3Aexample.org&e=AT0x",
+                "https://l.facebook.com/?u=https%3A%2F%2Fl.instagram.com%2F%3Fu%3Dintent%253A%252F%252Fx%2523Intent%253Bend&e=1",
+                "httpxyz://example.org/",
+                "https:///path",
+                "https:example.org",
+        }) {
+            assertStays(url, browserWith(url, new IABOrganicContext()));
+        }
+    }
+
     /** Lower-cased in the phone's language, Turkish turned the I of INSTAGRAM into a dotless one. */
     @Test
     public void hostsCompareTheSameInTurkish() {

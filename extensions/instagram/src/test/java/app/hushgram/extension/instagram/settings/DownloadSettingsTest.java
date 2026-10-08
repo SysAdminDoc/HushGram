@@ -64,6 +64,13 @@ public class DownloadSettingsTest {
         Settings.SAVE_FOLDER.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
         Settings.FILENAME_TEMPLATE.resetToDefault();
+        Settings.SAVE_FOLDER_PER_ACCOUNT.resetToDefault();
+        Settings.SAVE_NAME_BY_POST.resetToDefault();
+        Settings.SEND_DOWNLOADS_TO_APP.resetToDefault();
+        Settings.OPEN_IN_PLAYER.resetToDefault();
+        Settings.POST_DETAILS.resetToDefault();
+        Settings.DOWNLOAD_REELS.resetToDefault();
+        Settings.DOWNLOAD_REEL_COVER.resetToDefault();
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */
@@ -82,6 +89,20 @@ public class DownloadSettingsTest {
             assertEquals("Adds Download to every reel's more menu, saved at your download quality. Off or paused, "
                     + "Instagram's own menu returns.", String.valueOf(row.getSummary()));
             assertNotNull("no Downloads section with the reel download in", section(screen, "Downloads"));
+
+            Preference cover = reels.findPreference(Settings.DOWNLOAD_REEL_COVER.key);
+            assertTrue("Download cover isn't in Reels", cover instanceof SwitchPreference);
+            assertEquals("Download cover", String.valueOf(cover.getTitle()));
+            assertFalse("Download cover starts off", ((SwitchPreference) cover).isChecked());
+            assertTrue(cover.isEnabled());
+            ((SwitchPreference) row).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("Download cover waits for Download on reels", cover.isEnabled());
+            ((SwitchPreference) row).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(cover.isEnabled());
+            assertEquals(java.util.Collections.singletonList(Settings.DOWNLOAD_REELS), PatchFamily.REEL_DOWNLOAD.switches);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_COVER.key));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
@@ -177,6 +198,119 @@ public class DownloadSettingsTest {
      * The save folder's row keeps the one clean folder name a save would use, whatever is typed
      * into it, and says where videos and photos go.
      */
+    /** Send downloads to another app is under Downloads, above the switch every save reads, and starts off. */
+    @Test
+    public void sendToAnotherAppSitsAboveTheCompatibleSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int send = indexOfKey(rows, Settings.SEND_DOWNLOADS_TO_APP.key);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_COMPATIBLE.key) - 1, send);
+            Preference row = rows.get(send);
+            assertEquals("Send downloads to another app", String.valueOf(row.getTitle()));
+            assertFalse(((SwitchPreference) row).isChecked());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEND_DOWNLOADS_TO_APP.key));
+        }
+    }
+
+    /**
+     * Open in another player is under Downloads, above Send downloads to another app, with a reel or
+     * a feed video download in the build, starts off and goes in a settings file. A build with only
+     * story downloads has no menu it joins, so no row.
+     */
+    @Test
+    public void openInAnotherPlayerSitsAboveSendToAnotherApp() {
+        for (PatchFamily family : EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD)) {
+            PatchFamily.inBuildForTests = EnumSet.of(family);
+            try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+                List<Preference> rows = rowsOf(pageIn(controller));
+                int player = indexOfKey(rows, Settings.OPEN_IN_PLAYER.key);
+                assertEquals(family.name(), indexOfKey(rows, Settings.SEND_DOWNLOADS_TO_APP.key) - 1, player);
+                Preference row = rows.get(player);
+                assertEquals("Open in another player", String.valueOf(row.getTitle()));
+                assertFalse(((SwitchPreference) row).isChecked());
+                assertTrue(ConfigurationBackup.eligible().containsKey(Settings.OPEN_IN_PLAYER.key));
+            }
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.OPEN_IN_PLAYER.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.OPEN_IN_PLAYER.key));
+        }
+    }
+
+    /**
+     * Details in a post's menu is under Downloads right below Download feed photos, with the feed
+     * video download in the build, starts off, belongs to that patch and goes in a settings file.
+     * A build with only reel downloads has no feed menu for it, so no row.
+     */
+    @Test
+    public void postDetailsSitsUnderDownloadFeedPhotos() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int details = indexOfKey(rows, Settings.POST_DETAILS.key);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key) + 1, details);
+            Preference row = rows.get(details);
+            assertEquals("Details in a post's menu", String.valueOf(row.getTitle()));
+            assertFalse(((SwitchPreference) row).isChecked());
+            assertTrue(PatchFamily.VIDEO_DOWNLOAD.switches.contains(Settings.POST_DETAILS));
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.POST_DETAILS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.POST_DETAILS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.POST_DETAILS.key));
+        }
+    }
+
+    /** Folder per account sits under the folder and the file name, starts off and goes in a settings file. */
+    @Test
+    public void folderPerAccountSitsUnderTheFolder() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.STORY_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup downloads = section(page.getPreferenceScreen(), "Downloads");
+            Preference row = downloads.findPreference(Settings.SAVE_FOLDER_PER_ACCOUNT.key);
+            assertTrue(row instanceof SwitchPreference);
+            assertEquals("Folder per account", String.valueOf(row.getTitle()));
+            assertFalse(((SwitchPreference) row).isChecked());
+            int name = -1;
+            int account = -1;
+            for (int i = 0; i < downloads.getPreferenceCount(); i++) {
+                String key = downloads.getPreference(i).getKey();
+                if (Settings.FILENAME_TEMPLATE.key.equals(key)) name = i;
+                if (Settings.SAVE_FOLDER_PER_ACCOUNT.key.equals(key)) account = i;
+            }
+            assertEquals(name + 1, account);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_FOLDER_PER_ACCOUNT.key));
+        }
+    }
+
+    /** Name saves by account and post time sits right under Folder per account, starts off and goes in a settings file. */
+    @Test
+    public void nameSavesByPostSitsUnderFolderPerAccount() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup downloads = section(page.getPreferenceScreen(), "Downloads");
+            Preference row = downloads.findPreference(Settings.SAVE_NAME_BY_POST.key);
+            assertTrue(row instanceof SwitchPreference);
+            assertEquals("Name saves by account and post time", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()), String.valueOf(row.getSummary()).contains("username_20261005_143012"));
+            assertFalse(((SwitchPreference) row).isChecked());
+            int account = -1;
+            int byPost = -1;
+            for (int i = 0; i < downloads.getPreferenceCount(); i++) {
+                String key = downloads.getPreference(i).getKey();
+                if (Settings.SAVE_FOLDER_PER_ACCOUNT.key.equals(key)) account = i;
+                if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
+            }
+            assertEquals(account + 1, byPost);
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SAVE_NAME_BY_POST.key));
+        }
+    }
+
     @Test
     public void theFolderRowKeepsOneCleanNameAndSaysWhereSavesGo() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);

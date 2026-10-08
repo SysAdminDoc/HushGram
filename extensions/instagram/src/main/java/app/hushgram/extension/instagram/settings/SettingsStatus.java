@@ -72,6 +72,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyMentions() {
+        return false;
+    }
+
     public static boolean storyLoop() {
         return false;
     }
@@ -84,11 +88,32 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean spoofLocation() {
+        return false;
+    }
+
+    public static boolean threadSeen() {
+        return false;
+    }
+
+    public static boolean typing() {
+        return false;
+    }
+
+    public static boolean messagesLock() {
+        return false;
+    }
+
     public static boolean feedReels() {
         return false;
     }
 
     public static boolean feedSuggestions() {
+        return false;
+    }
+
+    /** Rewritten by Hide suggested posts when Home's reads and a post's type were found. */
+    public static boolean feedTypes() {
         return false;
     }
 
@@ -100,7 +125,15 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean recentSearches() {
+        return false;
+    }
+
     public static boolean notesRow() {
+        return false;
+    }
+
+    public static boolean instants() {
         return false;
     }
 
@@ -116,7 +149,27 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean hideShareButton() {
+        return false;
+    }
+
     public static boolean bottomSpace() {
+        return false;
+    }
+
+    public static boolean emojiStyle() {
+        return false;
+    }
+
+    public static boolean notificationGroups() {
+        return false;
+    }
+
+    public static boolean hdrBoost() {
+        return false;
+    }
+
+    public static boolean mediaCache() {
         return false;
     }
 
@@ -137,7 +190,23 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean threadsButton() {
+        return false;
+    }
+
+    public static boolean homeFeed() {
+        return false;
+    }
+
+    public static boolean tabSwipe() {
+        return false;
+    }
+
     public static boolean swipeToCreate() {
+        return false;
+    }
+
+    public static boolean fullResolution() {
         return false;
     }
 
@@ -150,6 +219,20 @@ public final class SettingsStatus {
     }
 
     public static boolean commentPhoto() {
+        return false;
+    }
+
+    /** Rewritten by the Save profile picture patch. */
+    public static boolean profilePicture() {
+        return false;
+    }
+
+    /** Rewritten by the Download voice messages patch. */
+    public static boolean voiceMessage() {
+        return false;
+    }
+
+    public static boolean hideComments() {
         return false;
     }
 
@@ -170,6 +253,10 @@ public final class SettingsStatus {
     }
 
     public static boolean doubleTapLike() {
+        return false;
+    }
+
+    public static boolean likeAnimation() {
         return false;
     }
 
@@ -221,6 +308,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean dataSaver() {
+        return false;
+    }
+
     public static boolean translatedStart() {
         return false;
     }
@@ -229,7 +320,59 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Export and Validate overrides: Open developer options' reader, which a build can lack. */
+    public static boolean overrideExchange() {
+        return false;
+    }
+
+    /** Import, Restore and Reset overrides: Open developer options' writer, which a build can lack. */
+    public static boolean overrideImport() {
+        return false;
+    }
+
     public static boolean pureBlack() {
+        return false;
+    }
+
+    public static boolean versionCode() {
+        return false;
+    }
+
+    /** Rewritten by the Don't report screenshots patch. */
+    public static boolean screenshotReports() {
+        return false;
+    }
+
+    /** Rewritten by the Allow screenshots patch. */
+    public static boolean screenshotBlock() {
+        return false;
+    }
+
+    /** Rewritten by the Ask before a call patch. */
+    public static boolean askBeforeCall() {
+        return false;
+    }
+
+    public static boolean askBeforeLike() {
+        return false;
+    }
+
+    public static boolean askBeforeRefresh() {
+        return false;
+    }
+
+    /** Rewritten by the Show a post's exact time patch. */
+    public static boolean postTime() {
+        return false;
+    }
+
+    /** Rewritten by the Keep in chat patch. */
+    public static boolean keepInChat() {
+        return false;
+    }
+
+    /** Rewritten by the View live anonymously patch. */
+    public static boolean liveSeen() {
         return false;
     }
 }

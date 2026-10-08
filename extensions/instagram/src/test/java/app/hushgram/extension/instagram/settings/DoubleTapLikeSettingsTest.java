@@ -45,6 +45,7 @@ public class DoubleTapLikeSettingsTest {
         Settings.TURN_OFF_DOUBLE_TAP_LIKE.resetToDefault();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.resetToDefault();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.resetToDefault();
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.resetToDefault();
     }
 
     /** Posts, then reels, right under the switch, each on from the start. */
@@ -63,6 +64,10 @@ public class DoubleTapLikeSettingsTest {
                 assertTrue(rows.get(i).getKey(), ((SwitchPreference) rows.get(i)).isChecked());
                 assertTrue(rows.get(i).getKey() + " can't be changed", rows.get(i).isEnabled());
             }
+            assertEquals(main + 3, indexOfKey(rows, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.key));
+            assertEquals("On comments", String.valueOf(rows.get(main + 3).getTitle()));
+            assertFalse("comments start off", ((SwitchPreference) rows.get(main + 3)).isChecked());
+            assertTrue(rows.get(main + 3).isEnabled());
         }
     }
 

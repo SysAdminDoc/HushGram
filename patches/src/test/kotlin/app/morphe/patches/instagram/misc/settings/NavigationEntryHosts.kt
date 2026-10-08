@@ -25,7 +25,11 @@ internal object NavigationEntryHosts {
         ImmutableMethodImplementation(registers, emptyList(), null, null),
     )).apply { addInstructions(0, body) }
 
-    fun classes(): List<ClassDef> {
+    /**
+     * With [activityLongPress], the activity also sets a long press of its own straight on a view,
+     * the way 450 gives the Profile button its account switcher, behind a branch that jumps to it.
+     */
+    fun classes(activityLongPress: Boolean = false): List<ClassDef> {
         val tab = type(TAB, "Ljava/lang/Enum;", emptyList(), listOf(method(TAB, "<clinit>", emptyList(), "V", 1, """
             const-string v0, "FEED"
             const-string v0, "CLIPS"
@@ -58,7 +62,16 @@ internal object NavigationEntryHosts {
             move-result-object v1
             return-object v1
         """, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
-        return listOf(tab, proxy) + variants + type(MAIN_ACTIVITY, "Landroid/app/Activity;", emptyList(), listOf(factory))
+        val switcher = method(MAIN_ACTIVITY, "showSwitcher", listOf(VIEW, LISTENER), "V", 4, """
+            if-nez p1, :set
+            return-void
+            :set
+            invoke-virtual {p1, p2}, $VIEW->setOnLongClickListener($LISTENER)V
+            const/4 p2, 0
+            return-void
+        """)
+        val activity = if (activityLongPress) listOf(factory, switcher) else listOf(factory)
+        return listOf(tab, proxy) + variants + type(MAIN_ACTIVITY, "Landroid/app/Activity;", emptyList(), activity)
     }
 
     fun type(owner: String, parent: String, fields: List<ImmutableField>, methods: List<com.android.tools.smali.dexlib2.iface.Method>): ClassDef =

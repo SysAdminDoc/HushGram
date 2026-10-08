@@ -38,6 +38,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *   <li>{@link #hideSocialContext} in Instagram's check for leaving out a reel's social context
  *       line, the faces with Liked by or Followed by beside them, with the line's type. The check
  *       answers yes for {@link #FRIENDS_ACTIVITY}, so a follower count or a seller's rating stays.
+ *   <li>{@link #hideCommentBar} first thing whenever the controller of the Add comment bar under a
+ *       reel opened outside the Reels tab would show it, once it inflates the bar, and when it
+ *       would put the bar back after hiding it for a while, with where the viewer was opened from. It answers yes for a profile's reposts, {@link #REPOSTS}, and
+ *       Instagram's own hide then takes the bar off. The reel's comment button stays.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
@@ -67,6 +71,9 @@ public final class ReelDeclutter {
             "BLEND_MEDIA_SUGGESTED_BY",
             "CARRERA_INTEREST_SHARING_BY"));
 
+    /** Where a viewer of reposted reels is opened from, as Instagram 450's ClipsViewerSource names it. */
+    static final Set<String> REPOSTS = new HashSet<>(Arrays.asList("REPOSTS_GRID", "SELF_REPOSTS_GRID"));
+
     /** The line types the debug log has named, each once a run. */
     private static final Set<String> LOGGED = Collections.synchronizedSet(new HashSet<>());
 
@@ -86,6 +93,21 @@ public final class ReelDeclutter {
     /** True leaves friends' activity and the comment preview out. Never throws. */
     public static boolean hideSocialFooter() {
         return hide(Settings.HIDE_REEL_SOCIAL_FOOTER, "friends' activity");
+    }
+
+    /**
+     * True takes the comment bar off a reel opened from a profile's reposts, yours or someone
+     * else's: [source] is the viewer's ClipsViewerSource, and only {@link #REPOSTS} answer yes.
+     * Never throws.
+     */
+    public static boolean hideCommentBar(Object source) {
+        if (!hide(Settings.HIDE_REEL_COMMENT_BAR, "comment bar")) return false;
+        try {
+            return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "comment bar source", failure);
+            return false;
+        }
     }
 
     /**

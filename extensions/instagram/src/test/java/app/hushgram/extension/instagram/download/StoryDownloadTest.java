@@ -82,4 +82,54 @@ public class StoryDownloadTest {
     public void anUnpatchedStoryHasNoPicture() {
         assertTrue(StoryDownload.pictures(new Object()).isEmpty());
     }
+
+    /**
+     * A photo story with music, which Instagram serves as a video, gets Download as video and
+     * Download as photo instead of Download, once, and any other story keeps its one Download.
+     */
+    @Test
+    public void aPhotoWithMusicOffersBothSaves() {
+        CharSequence[] menu = {"Report", "Mute"};
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download as video", "Download as photo"},
+                StoryDownload.labels(menu, true));
+        assertArrayEquals(new CharSequence[] {"Report", "Mute", "Download"}, StoryDownload.labels(menu, false));
+
+        CharSequence[] already = {"Report", new SpannableString("Download as video"), "Download as photo"};
+        assertSame(already, StoryDownload.labels(already, true));
+    }
+
+    /**
+     * The menu a builder names comes back to labels(), and a story the bridges can't read, as in an
+     * unpatched build, counts as no photo with music, so its menu keeps the one Download.
+     */
+    @Test
+    public void aStoryThatCantBeReadKeepsOneDownload() {
+        StoryDownload.building(new Object());
+        assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+        StoryDownload.building(null);
+        assertArrayEquals(new CharSequence[] {"Report", "Download"}, StoryDownload.labels(new CharSequence[] {"Report"}));
+        assertFalse(StoryDownload.photoWithMusic(null));
+    }
+
+    /** Each of HushGram's rows is HushGram's to handle, however the menu styled it, and Instagram's aren't. */
+    @Test
+    public void eachRowIsKnownByItsLabel() {
+        assertEquals(StoryDownload.Choice.STORY, StoryDownload.choice("Download"));
+        assertEquals(StoryDownload.Choice.VIDEO, StoryDownload.choice(new SpannableString("Download as video")));
+        assertEquals(StoryDownload.Choice.PHOTO, StoryDownload.choice("Download as photo"));
+        assertNull(StoryDownload.choice("Report"));
+    }
+
+    /** A tap on either of the music story's rows is HushGram's, and with nothing to save it says so. */
+    @Test
+    public void aTapOnEitherRowWithNothingToSaveSaysSo() {
+        for (String row : new String[] {"Download as video", "Download as photo"}) {
+            ShadowToast.reset();
+            assertTrue(row, StoryDownload.save(row, new Object()));
+            Shadows.shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(row, "Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        }
+        Settings.DOWNLOAD_STORIES.save(false);
+        assertFalse("a tap was taken from Instagram", StoryDownload.save("Download as photo", new Object()));
+    }
 }

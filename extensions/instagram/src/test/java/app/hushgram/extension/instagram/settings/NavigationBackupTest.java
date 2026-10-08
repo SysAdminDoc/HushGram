@@ -53,7 +53,9 @@ public class NavigationBackupTest {
             ConfigurationBackup.Result result = ConfigurationBackup.restore(exported);
             assertEquals(0, result.skipped);
             assertEquals(target, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
-            assertEquals(target != NavigationTarget.OFF, result.restart);
+            // The open settings page hands a restored choice to its row, which rebinds the tabs at
+            // once (#82), so a restore never asks for a restart.
+            assertFalse(result.restart);
             assertFalse(ConfigurationBackup.restore(exported).restart);
         }
     }
@@ -63,10 +65,10 @@ public class NavigationBackupTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         byte[] exported = ConfigurationBackup.export();
         Settings.NAVIGATION_SETTINGS_TARGET.save(NavigationTarget.CLIPS);
-        assertTrue(ConfigurationBackup.restore(exported).restart);
+        assertFalse(ConfigurationBackup.restore(exported).restart);
         assertEquals(NavigationTarget.FEED, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
         assertEquals(NavigationTarget.OFF, Settings.NAVIGATION_SETTINGS_TARGET.get());
-        assertTrue(ConfigurationBackup.undo().restart);
+        assertFalse(ConfigurationBackup.undo().restart);
         assertEquals(NavigationTarget.CLIPS, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
     }
 

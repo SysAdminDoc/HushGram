@@ -270,7 +270,7 @@ public class L10nCatalogTest {
     @Test
     public void pluralRowsHaveToBelongToAnActualOtherForm() throws IOException {
         Set<String> others = quantityOthersInCode();
-        assertEquals("the source quantity scan must find each call", 3, others.size());
+        assertEquals("the source quantity scan must find each call", 5, others.size());
         String other = others.iterator().next();
         assertTrue(reachableVariant(other + "|few", others));
         assertTrue(reachableVariant(other + "|zero", others));

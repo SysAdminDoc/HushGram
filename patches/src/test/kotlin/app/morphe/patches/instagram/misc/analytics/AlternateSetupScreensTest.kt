@@ -243,18 +243,21 @@ internal object AlternateSetupFixture {
             return-void
         """)), fields = listOf(ImmutableField(OPENER, "appId", "Ljava/lang/String;", AccessFlags.PUBLIC.value, null, null, null)))
 
+    /** The presenter's strings 450 still loads itself; it pools foa_bottom_sheet_config. */
+    val PRESENTER_HELD = listOf(DIRECT_SCREEN_PRESENTER.first(), DIRECT_SCREEN_PRESENTER.last())
+
     fun nativeClasses(bundle: File): List<ClassDef> {
         val classes = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             if (listOf(SCREEN_FETCH, DIRECT_SCREEN_ACTION.first(), DIRECT_SCREEN_PRESENTER.first()).none { it in dex.stringSection }) return@forEach
             for (classDef in dex.classes) if (classDef.methods.any {
                 val strings = it.strings()
-                SCREEN_FETCH in strings || strings.containsAll(DIRECT_SCREEN_ACTION) || strings.containsAll(DIRECT_SCREEN_PRESENTER)
+                SCREEN_FETCH in strings || strings.containsAll(DIRECT_SCREEN_ACTION) || strings.containsAll(PRESENTER_HELD)
             }) classes += ImmutableClassDef.of(classDef)
         }
-        val model = classes.flatMap { it.methods }.single { it.strings().containsAll(DIRECT_SCREEN_PRESENTER) }.parameterTypes[1].toString()
+        val model = classes.flatMap { it.methods }.single { it.strings().containsAll(PRESENTER_HELD) }.parameterTypes[1].toString()
         FixtureDex.forEach(bundle) { dex -> dex.classes.singleOrNull { it.type == model }?.let { classes += ImmutableClassDef.of(it) } }
-        return classes.distinctBy { it.type }
+        return FixtureDex.withStringPools(bundle, classes.distinctBy { it.type })
     }
 
     fun assertGuard(code: List<Instruction>, modelRegister: Int, appId: String) {

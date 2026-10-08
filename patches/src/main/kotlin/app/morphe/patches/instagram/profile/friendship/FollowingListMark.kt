@@ -9,6 +9,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
@@ -97,8 +98,9 @@ internal class FollowRow(
  */
 internal fun BytecodePatchContext.findFollowRow(): FollowRow {
     val binders = mutableListOf<Pair<ClassDef, Method>>()
+    val holders = classesHolding(FOLLOW_ROW_STATE).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.filter { it.holdsString(FOLLOW_ROW_STATE) }.forEach { binders += classDef to it }
     }
     val (binderClass, binder) = binders.singleOrNull()
@@ -264,7 +266,7 @@ private fun holdsParameter(code: List<Instruction>, at: Int, register: Int, para
 
 private val MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
-private fun Instruction.writes(register: Int): Boolean {
+internal fun Instruction.writes(register: Int): Boolean {
     if (!opcode.setsRegister()) return false
     val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
     return destination == register || (opcode.setsWideRegister() && destination + 1 == register)
@@ -294,8 +296,13 @@ internal class FollowingStubs(
     private val listOwnerId: MutableMethod,
     private val viewerId: MutableMethod,
     private val subtitle: MutableMethod,
+    private val fetchKind: MutableMethod,
+    private val fetchOwnerId: MutableMethod,
+    private val fetchViewerId: MutableMethod,
+    private val statusFollowedBy: MutableMethod,
+    private val sessionUserId: MutableMethod,
 ) {
-    fun fill(found: FollowRow) {
+    fun fill(found: FollowRow, answers: FollowAnswers) {
         // Answers an Object, so its ways out may meet at one return.
         listKind.addInstructionsWithLabels(
             0,
@@ -351,6 +358,50 @@ internal class FollowingStubs(
                 return-object p0
             """,
         )
+        // The page fetch's list keeps the same data as the binder's config, so the kind and owner are
+        // the same fields. These three answer an Object, so their ways out may meet at one return.
+        for ((stub, field) in listOf(fetchKind to found.kind, fetchOwnerId to found.owner)) {
+            stub.addInstructionsWithLabels(
+                0,
+                """
+                    check-cast p0, ${answers.listType}
+                    iget-object p0, p0, ${answers.listData}
+                    if-eqz p0, :none
+                    iget-object p0, p0, $field
+                    :none
+                    return-object p0
+                """,
+            )
+        }
+        fetchViewerId.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, ${answers.listType}
+                iget-object p0, p0, ${answers.listSession}
+                if-eqz p0, :none
+                invoke-virtual { p0 }, $USER_SESSION->$GET_USER_ID()$STRING
+                move-result-object p0
+                :none
+                return-object p0
+            """,
+        )
+        statusFollowedBy.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, ${answers.followedBy.definingClass}
+                iget-object p0, p0, ${answers.followedBy}
+                return-object p0
+            """,
+        )
+        sessionUserId.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $USER_SESSION
+                invoke-virtual { p0 }, $USER_SESSION->$GET_USER_ID()$STRING
+                move-result-object p0
+                return-object p0
+            """,
+        )
     }
 }
 
@@ -360,15 +411,22 @@ internal fun BytecodePatchContext.followingStubs(): FollowingStubs {
         it.name == name && it.returnType == returns && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf(OBJECT)
     } ?: refuse("$FOLLOWING_LIST has no static $returns $name($OBJECT)")
-    extension.methods.singleOrNull {
-        "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == FOLLOWING_ROW.substringAfter("->") &&
-            AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
-    } ?: refuse("$FOLLOWING_LIST has no public static hook ${FOLLOWING_ROW.substringAfter("->")}")
+    for (hook in listOf(FOLLOWING_ROW, KNOWN, ANSWERED)) {
+        extension.methods.singleOrNull {
+            "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->") &&
+                AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+        } ?: refuse("$FOLLOWING_LIST has no public static hook ${hook.substringAfter("->")}")
+    }
 
     return FollowingStubs(
         listKind = stub("listKind", OBJECT),
         listOwnerId = stub("listOwnerId", STRING),
         viewerId = stub("viewerId", STRING),
         subtitle = stub("subtitle", TEXT_VIEW),
+        fetchKind = stub("fetchKind", OBJECT),
+        fetchOwnerId = stub("fetchOwnerId", OBJECT),
+        fetchViewerId = stub("fetchViewerId", OBJECT),
+        statusFollowedBy = stub("statusFollowedBy", "Ljava/lang/Boolean;"),
+        sessionUserId = stub("sessionUserId", STRING),
     )
 }

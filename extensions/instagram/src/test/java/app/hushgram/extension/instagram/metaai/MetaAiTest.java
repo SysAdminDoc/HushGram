@@ -11,6 +11,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.view.View;
+import android.widget.FrameLayout;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +26,8 @@ import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** What Hide Meta AI answers for Meta AI's search flags and which feed items it takes out. */
 @RunWith(RobolectricTestRunner.class)
@@ -155,6 +158,77 @@ public class MetaAiTest {
             assertNull(MetaAi.inboxRow(null));
         } finally {
             Settings.HIDE_META_AI_SEARCH.save(true);
+        }
+    }
+
+    /** About this reel stays until its own switch is on, which starts off; the other switches don't touch it. */
+    @Test
+    public void aboutThisReelGoesOnlyWithItsOwnSwitch() {
+        Object summary = new Object();
+        assertFalse(Settings.HIDE_ABOUT_THIS_REEL.get());
+        assertSame(summary, MetaAi.aboutThisReel(summary));
+        assertNull(MetaAi.aboutThisReel(null));
+        Settings.HIDE_ASK_META_AI.save(true);
+        try {
+            assertSame("the Ask switch leaves the summary", summary, MetaAi.aboutThisReel(summary));
+        } finally {
+            Settings.HIDE_ASK_META_AI.save(false);
+        }
+        Settings.HIDE_ABOUT_THIS_REEL.save(true);
+        try {
+            assertNull(MetaAi.aboutThisReel(summary));
+            assertNull(MetaAi.aboutThisReel(null));
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            Settings.HIDE_META_AI_POSTS.save(false);
+            assertNull("the search and posts switches don't bring it back", MetaAi.aboutThisReel(summary));
+        } finally {
+            Settings.HIDE_ABOUT_THIS_REEL.save(false);
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_POSTS.save(true);
+        }
+    }
+
+    /** Whether the summary row ends up holding the Ask Meta AI box after the hook's call. */
+    private static boolean addsTheBox() {
+        FrameLayout row = new FrameLayout(RuntimeEnvironment.getApplication());
+        View box = new View(RuntimeEnvironment.getApplication());
+        MetaAi.askMetaAiBox(row, box);
+        return row.getChildCount() == 1 && row.getChildAt(0) == box;
+    }
+
+    /** The Ask Meta AI box is added as Instagram adds it until its own switch is on. */
+    @Test
+    public void theAskBoxGoesOnlyWithItsOwnSwitch() {
+        assertFalse(Settings.HIDE_ASK_META_AI.get());
+        assertTrue(addsTheBox());
+        Settings.HIDE_ABOUT_THIS_REEL.save(true);
+        try {
+            assertTrue("hiding About this reel answers its factory, not the box", addsTheBox());
+        } finally {
+            Settings.HIDE_ABOUT_THIS_REEL.save(false);
+        }
+        Settings.HIDE_ASK_META_AI.save(true);
+        try {
+            assertFalse(addsTheBox());
+        } finally {
+            Settings.HIDE_ASK_META_AI.save(false);
+        }
+    }
+
+    /** Paused, both answer as Instagram does. */
+    @Test
+    public void pausedAboutThisReelAndItsAskBoxStay() {
+        Object summary = new Object();
+        Settings.HIDE_ABOUT_THIS_REEL.save(true);
+        Settings.HIDE_ASK_META_AI.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            assertSame(summary, MetaAi.aboutThisReel(summary));
+            assertTrue(addsTheBox());
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_ABOUT_THIS_REEL.save(false);
+            Settings.HIDE_ASK_META_AI.save(false);
         }
     }
 

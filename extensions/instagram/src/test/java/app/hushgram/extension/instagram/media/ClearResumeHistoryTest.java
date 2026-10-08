@@ -64,7 +64,8 @@ public class ClearResumeHistoryTest {
     }
 
     @Test public void clearRemovesDiskMemoryAndQueuedRestoresEvenAfterUndo() {
-        points.put("private-media", 60_000, System.currentTimeMillis());
+        String key = ResumePlayback.ownedKey(ResumePlaybackForTests.ACCOUNT, "private-media");
+        points.put(key, 60_000, System.currentTimeMillis());
         Player queued = new Player(new Video("private-media", 180_000));
         ResumePlayback.started(queued);
         assertEquals(1, ResumePlaybackForTests.LATER.size());
@@ -82,7 +83,7 @@ public class ClearResumeHistoryTest {
         ResumePlaybackForTests.runLater();
         assertTrue(queued.seeks.isEmpty());
         assertFalse("Undo is one-use", ResumePlayback.undoHistory());
-        assertEquals(60_000, new ResumePoints(file).get("private-media", System.currentTimeMillis()).positionMs);
+        assertEquals(60_000, new ResumePoints(file).get(key, System.currentTimeMillis()).positionMs);
         Player beforeUndo = new Player(queued.video);
         ResumePlayback.started(beforeUndo);
         assertEquals(1, ResumePlaybackForTests.LATER.size());
@@ -106,7 +107,7 @@ public class ClearResumeHistoryTest {
     }
 
     @Test public void aProcessRestartHasNoUndoOrRememberedPosition() {
-        points.put("id", 60_000, System.currentTimeMillis());
+        points.put(ResumePlayback.ownedKey(ResumePlaybackForTests.ACCOUNT, "id"), 60_000, System.currentTimeMillis());
         ResumePlayback.clearHistory();
         ResumePlaybackForTests.forget();
         ResumePlaybackForTests.install();

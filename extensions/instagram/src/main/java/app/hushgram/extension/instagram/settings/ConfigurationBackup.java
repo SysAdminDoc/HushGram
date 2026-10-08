@@ -61,16 +61,35 @@ public final class ConfigurationBackup {
             for (Setting<?> setting : family.switches) settings.put(setting.key, setting);
         }
         if (PatchFamily.STORY_RING.inBuild()) settings.put(Settings.STORY_RING_SCALE.key, Settings.STORY_RING_SCALE);
+        if (PatchFamily.SPOOF_LOCATION.inBuild()) settings.put(Settings.SPOOF_LOCATION_PLACE.key, Settings.SPOOF_LOCATION_PLACE);
+        if (PatchFamily.SANITIZE_SHARING_LINKS.inBuild()) settings.put(Settings.SHARING_DOMAIN.key, Settings.SHARING_DOMAIN);
+        if (PatchFamily.LIKE_ANIMATION.inBuild()) settings.put(Settings.LIKE_ANIMATION.key, Settings.LIKE_ANIMATION);
+        if (PatchFamily.NOTIFICATION_GROUPS.inBuild()) {
+            settings.put(Settings.GROUP_NOTIFICATIONS_BY_TYPE.key, Settings.GROUP_NOTIFICATIONS_BY_TYPE);
+        }
         if (PatchFamily.PLAYBACK_QUALITY.inBuild()) settings.put(Settings.PLAYBACK_QUALITY.key, Settings.PLAYBACK_QUALITY);
+        if (PatchFamily.DATA_SAVER.inBuild()) {
+            settings.put(Settings.DATA_SAVER_MOBILE_DATA_ONLY.key, Settings.DATA_SAVER_MOBILE_DATA_ONLY);
+        }
+        if (PatchFamily.TAP_TO_PLAY.inBuild()) settings.put(Settings.TAP_TO_PLAY_SCOPE.key, Settings.TAP_TO_PLAY_SCOPE);
+        if (PatchFamily.STORY_TIME.inBuild()) settings.put(Settings.STORY_TIME_MODE.key, Settings.STORY_TIME_MODE);
+        if (PatchFamily.REEL_DOWNLOAD.inBuild()) settings.put(Settings.DOWNLOAD_REEL_COVER.key, Settings.DOWNLOAD_REEL_COVER);
+        if (PatchFamily.REEL_DOWNLOAD.inBuild() || PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
+            settings.put(Settings.OPEN_IN_PLAYER.key, Settings.OPEN_IN_PLAYER);
+        }
         if (PatchFamily.REEL_DOWNLOAD.inBuild() || PatchFamily.STORY_DOWNLOAD.inBuild()
                 || PatchFamily.VIDEO_DOWNLOAD.inBuild()) {
             settings.put(Settings.DOWNLOAD_COMPATIBLE.key, Settings.DOWNLOAD_COMPATIBLE);
+            settings.put(Settings.SEND_DOWNLOADS_TO_APP.key, Settings.SEND_DOWNLOADS_TO_APP);
             settings.put(Settings.DOWNLOAD_QUALITY.key, Settings.DOWNLOAD_QUALITY);
             settings.put(Settings.SAVE_FOLDER.key, Settings.SAVE_FOLDER);
+            settings.put(Settings.SAVE_FOLDER_PER_ACCOUNT.key, Settings.SAVE_FOLDER_PER_ACCOUNT);
+            settings.put(Settings.SAVE_NAME_BY_POST.key, Settings.SAVE_NAME_BY_POST);
             settings.put(Settings.FILENAME_TEMPLATE.key, Settings.FILENAME_TEMPLATE);
         }
         settings.put(BaseSettings.DEBUG.key, BaseSettings.DEBUG);
         settings.put(Settings.NAVIGATION_SETTINGS_TARGET.key, Settings.NAVIGATION_SETTINGS_TARGET);
+        settings.put(Settings.CATEGORY_PAGES.key, Settings.CATEGORY_PAGES);
         return settings;
     }
 

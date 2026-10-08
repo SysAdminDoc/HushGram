@@ -38,6 +38,12 @@ allprojects {
                 useVersion(reviewedGuava)
                 because("The resolved dependency audit must use the reviewed Guava release.")
             }
+            // Netty 4.1 reaches end of life on 2027-07-01, and these graphs can't leave it yet. AGP's
+            // emulator control asks for grpc-netty 1.69.1, built against Netty 4.1, in every release
+            // checked on 2026-10-07: emulator proto 32.4.1 (AGP 9.4.1, the newest stable) and
+            // 32.5.0-alpha08. grpc-netty itself is on 4.2 now (1.84.0 takes 4.2.16), so the move waits
+            // for an AGP whose emulator proto takes such a gRPC. Until then this keeps the newest
+            // patched 4.1 release. Don't force 4.2 here: grpc-netty 1.69.1 is built for the 4.1 API.
             if (isUtp && requested.group == "io.netty" && requested.version?.startsWith("4.1.") == true) {
                 useVersion(reviewedNetty)
                 because("AGP host test tools must use the reviewed Netty 4.1 fixes.")

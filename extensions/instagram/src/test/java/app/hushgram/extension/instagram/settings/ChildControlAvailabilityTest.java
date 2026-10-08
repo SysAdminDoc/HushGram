@@ -20,6 +20,7 @@ import java.util.EnumSet;
 
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -55,6 +56,8 @@ public class ChildControlAvailabilityTest {
         Settings.DEFAULT_PLAYBACK_QUALITY.resetToDefault();
         Settings.PLAYBACK_QUALITY.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
+        Settings.SHOW_STORY_TIME.resetToDefault();
+        Settings.STORY_TIME_MODE.resetToDefault();
     }
 
     @Test public void followingKeepsItsSavedChoiceAcrossParentChanges() {
@@ -67,6 +70,12 @@ public class ChildControlAvailabilityTest {
         Settings.STORY_RING_SCALE.save(StoryRingSize.LARGEST);
         checkParent(Settings.STORY_RING, Settings.STORY_RING_SCALE, PatchFamily.STORY_RING,
                 "Turn on Story ring size to use this choice.", "LARGEST");
+    }
+
+    @Test public void storyTimeKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_TIME_MODE.save(StoryTimeMode.TIME_LEFT);
+        checkParent(Settings.SHOW_STORY_TIME, Settings.STORY_TIME_MODE, PatchFamily.STORY_TIME,
+                "Turn on Show a story's exact time to use this choice.", "TIME_LEFT");
     }
 
     @Test public void playbackKeepsItsSavedChoiceAcrossParentChanges() {

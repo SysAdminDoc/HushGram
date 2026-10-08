@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,11 +28,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * patch adds a label of its own:
  *
  * <ul>
- *   <li>Each builder of the menu hands its labels through {@link #labels} before the menu shows
- *       them. With the switch on, the menu gets Download at the end.
+ *   <li>Each builder of the menu tells {@link #building} which story's menu it's building, then
+ *       hands its labels through {@link #labels} before the menu shows them. With the switch on,
+ *       the menu gets Download at the end. A photo story with music, which Instagram serves as a
+ *       video, gets Download as video and Download as photo instead.
  *   <li>Each handler asks {@link #save} first. A tap on Download saves the story from the
  *       addresses its Media already holds, through {@link MediaSave}: a video at the Download
- *       quality, a photo at its largest size. Any other label goes on to Instagram.
+ *       quality, a photo at its largest size. Download as photo saves the picture even when the
+ *       story has a video. Any other label goes on to Instagram.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
@@ -44,38 +48,86 @@ public final class StoryDownload {
     /** The source a story save's lines carry in the diagnostic report. */
     private static final String SOURCE = "StoryDownload";
 
+    /** The step a failed read of a story's music flag is reported under. */
+    static final String MUSIC_CHECK = "story music check";
+
+    /** What a tap on one of HushGram's rows saves. */
+    enum Choice { STORY, VIDEO, PHOTO }
+
+    /** The story menu whose labels are being built, held weakly so a closed menu can go. */
+    private static volatile WeakReference<Object> building = new WeakReference<>(null);
+
     /**
-     * The labels [labels] of a story's menu, with Download at the end when the switch is on. A menu
-     * that has the label already is left alone. Never throws.
+     * Remembers [menu], the class running the story menu whose labels a builder is about to
+     * return, for {@link #labels}. Never throws.
+     */
+    public static void building(Object menu) {
+        try {
+            building = new WeakReference<>(menu);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
+        }
+    }
+
+    /**
+     * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
+     * Download, or Download as video and Download as photo for a photo story with music. A menu
+     * that has the rows already is left alone. Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null || !on()) return labels;
-            String download = label();
-            for (CharSequence label : labels) {
-                if (label != null && download.contentEquals(label)) return labels;
-            }
-            CharSequence[] more = Arrays.copyOf(labels, labels.length + 1);
-            more[labels.length] = download;
-            return more;
+            return labels(labels, photoWithMusic(building.get()));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
         }
     }
 
+    static CharSequence[] labels(CharSequence[] labels, boolean photoWithMusic) {
+        String[] rows = photoWithMusic ? new String[] {label(Choice.VIDEO), label(Choice.PHOTO)} : new String[] {label(Choice.STORY)};
+        for (CharSequence label : labels) {
+            if (label != null && rows[0].contentEquals(label)) return labels;
+        }
+        CharSequence[] more = Arrays.copyOf(labels, labels.length + rows.length);
+        System.arraycopy(rows, 0, more, labels.length, rows.length);
+        return more;
+    }
+
     /**
-     * Saves the story [menu] is open on when [label], the tapped one, is Download and the switch is
-     * on, and answers whether it did, in which case Instagram's handler is skipped. A save that
-     * can't start says so. Never throws.
+     * Whether the story [menu] is open on is a photo with music, which Instagram serves as a video.
+     * No when it can't tell, so the menu keeps its one Download. Never throws.
+     */
+    static boolean photoWithMusic(Object menu) {
+        if (menu == null) return false;
+        try {
+            Object media = InstagramMedia.storyMedia(menu);
+            return media != null && Boolean.TRUE.equals(InstagramMedia.storyImageWithMusic(media));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, MUSIC_CHECK, t);
+            return false;
+        }
+    }
+
+    /**
+     * Saves the story [menu] is open on when [label], the tapped one, is one of HushGram's rows and
+     * the switch is on, and answers whether it did, in which case Instagram's handler is skipped. A
+     * save that can't start says so. Never throws.
      */
     public static boolean save(CharSequence label, Object menu) {
         try {
-            if (label == null || !on() || !label().contentEquals(label)) return false;
+            if (label == null || !on()) return false;
+            Choice choice = choice(label);
+            if (choice == null) return false;
             Context context = Utils.getContext().getApplicationContext();
             Object media = InstagramMedia.storyMedia(menu);
-            if (!(media != null && saveMedia(context, media))) {
+            if (choice == Choice.STORY && media != null
+                    && ExternalDownload.handOff(context, ExternalDownload.storyLink(media), FamilyNames.STORY_DOWNLOAD)) {
+                return true;
+            }
+            boolean started = media != null && (choice == Choice.PHOTO ? savePhoto(context, media) : saveMedia(context, media));
+            if (!started) {
                 Feedback.show(context, L10n.t(context, "Download failed"), true);
             }
             return true;
@@ -99,10 +151,15 @@ public final class StoryDownload {
                     () -> "story video download tapped: " + files + " file(s)" + (dash ? " and a manifest" : ", no manifest"));
             return MediaSave.saveVideo(context, videos, manifest, details);
         }
+        return savePhoto(context, media);
+    }
+
+    /** Starts the save of [media]'s picture, at its largest size, even when it has a video too. */
+    private static boolean savePhoto(Context context, Object media) {
         List<MediaSave.Rendition> pictures = pictures(media);
         final int sizes = pictures.size();
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "story photo download tapped: " + sizes + " size(s)");
-        return MediaSave.savePhoto(context, pictures, details);
+        return MediaSave.savePhoto(context, pictures, ReelDownload.details(media));
     }
 
     /** The sizes [media] lists for its picture, with the size each states. Never null. */
@@ -121,9 +178,21 @@ public final class StoryDownload {
         return pictures;
     }
 
-    /** Download, in the app's language. */
-    private static String label() {
-        return L10n.t(Utils.getContext(), "Download");
+    /** The row for [choice], in the app's language. */
+    static String label(Choice choice) {
+        switch (choice) {
+            case VIDEO: return L10n.t(Utils.getContext(), "Download as video");
+            case PHOTO: return L10n.t(Utils.getContext(), "Download as photo");
+            default: return L10n.t(Utils.getContext(), "Download");
+        }
+    }
+
+    /** Which of HushGram's rows [label] is, however the menu styled it, or null for Instagram's own. */
+    static Choice choice(CharSequence label) {
+        for (Choice choice : Choice.values()) {
+            if (label(choice).contentEquals(label)) return choice;
+        }
+        return null;
     }
 
     private static boolean on() {

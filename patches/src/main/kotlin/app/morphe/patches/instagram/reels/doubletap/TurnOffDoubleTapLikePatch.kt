@@ -35,6 +35,7 @@ private const val PATCH = "Turn off double tap to like"
 private const val DOUBLE_TAP_LIKE = "$EXTENSION_PACKAGE/reels/DoubleTapLike;"
 internal const val HOLD_BACK_POST = "$DOUBLE_TAP_LIKE->holdBackPost()Z"
 internal const val LIKE_ACTION = "$DOUBLE_TAP_LIKE->likeAction(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val HOLD_BACK_COMMENT = "$DOUBLE_TAP_LIKE->holdBackComment()Z"
 
 /** The report the feed's onDoubleTapMedia files when it has no activity: the one string it holds. */
 internal const val FEED_DOUBLE_TAP = "DefaultMediaHolderGestureDetectorDelegateImpl#onDoubleTapMedia called with null activity"
@@ -47,6 +48,16 @@ private const val MIN_LIKE_DELEGATES = 3
 
 /** The first two parameters of the feed's double-tap like: the post's view, then the post. */
 private val DOUBLE_TAP_LIKE_STARTS = listOf("Landroid/view/View;", "Lcom/instagram/feed/media/Media;")
+
+/**
+ * What a comment row's double tap loads. One kind files [FB_COMMENT_DOUBLE_TAP] for a comment that
+ * came from Facebook, which it doesn't like; the other names the like it files, [LIKE_COMMENT] or
+ * [UNLIKE_COMMENT].
+ */
+internal const val FB_COMMENT_DOUBLE_TAP = "fb_comment_double_tap"
+internal const val LIKE_COMMENT = "like_comment"
+internal const val UNLIKE_COMMENT = "unlike_comment"
+private const val GESTURE_LISTENER = "Landroid/view/GestureDetector\$SimpleOnGestureListener;"
 
 /** The Reels gesture handler's double tap, and its setter for the action a double tap likes through. */
 internal const val HANDLE_DOUBLE_TAP = "GestureActionHandler_handleDoubleTapMedia"
@@ -62,8 +73,8 @@ internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
 @Suppress("unused")
 val turnOffDoubleTapLikePatch = bytecodePatch(
     name = "Turn off double tap to like",
-    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A single tap " +
-        "still does what it did, and the Like button still likes.",
+    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A switch for " +
+        "comments starts off. A single tap still does what it did, and the Like button still likes.",
     default = false,
 ) {
     category("Interface")
@@ -84,18 +95,28 @@ internal fun BytecodePatchContext.turnOffDoubleTapLikes() {
     val found = findDoubleTaps()
     holdBackPostDoubleTap(found)
     emptyReelLikeAction(found)
+    holdBackCommentDoubleTaps(found)
 }
 
 /**
- * The two double taps: the feed's double-tap like, which [post] (the single photo's delegate)
- * calls like every other kind of post's, and the Reels handler's read of its like action at [read].
+ * The double taps: the feed's double-tap like, which [post] (the single photo's delegate) calls like
+ * every other kind of post's, the Reels handler's read of its like action at [read], and each comment
+ * row's double tap in [comments].
  */
-internal class DoubleTaps(val post: Method, val like: Method, val reel: Method, val read: Int, val action: FieldReference)
+internal class DoubleTaps(
+    val post: Method,
+    val like: Method,
+    val reel: Method,
+    val read: Int,
+    val action: FieldReference,
+    val comments: List<Method>,
+)
 
 internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     val posts = mutableListOf<Method>()
     val reels = mutableListOf<Method>()
     val setters = mutableListOf<Method>()
+    val comments = mutableListOf<Method>()
     // Every method called with a post's view and the post, and the methods that call it.
     val likeShapes = mutableMapOf<String, MethodReference>()
     val likeCallers = mutableMapOf<String, MutableMap<String, Method>>()
@@ -106,6 +127,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
             val markers = method.markers()
             if (HANDLE_DOUBLE_TAP in markers) reels += method
             if (SET_LIKE_ACTION in markers) setters += method
+            if (classDef.superclass == GESTURE_LISTENER && method.isCommentDoubleTap(code)) comments += method
             code.mapNotNull { it.likeShapedCall() }.forEach { call ->
                 likeShapes.putIfAbsent(call.text(), call)
                 likeCallers.getOrPut(call.text()) { mutableMapOf() }[method.text()] = method
@@ -159,7 +181,12 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     if (check?.opcode != Opcode.IF_EQZ || (check as OneRegisterInstruction).registerA != register) {
         refuse("${reel.definingClass}->${reel.name} doesn't check its like action for null straight after reading it")
     }
-    return DoubleTaps(post, like, reel, read, action)
+    // Each comment row's double tap likes the comment, and the guard borrows v0 at index 0.
+    if (comments.isEmpty()) {
+        refuse("no comment row's double tap loads \"$FB_COMMENT_DOUBLE_TAP\", or both \"$LIKE_COMMENT\" and \"$UNLIKE_COMMENT\"")
+    }
+    comments.firstOrNull { it.localRegisterCount() < 1 }?.let { refuse("the comment double tap ${it.definingClass}->onDoubleTap has no local register") }
+    return DoubleTaps(post, like, reel, read, action, comments)
 }
 
 /**
@@ -176,6 +203,26 @@ private fun BytecodePatchContext.holdBackPostDoubleTap(found: DoubleTaps) {
                 move-result v0
                 if-eqz v0, :tap
                 return-void
+            """,
+            ExternalLabel("tap", getInstruction(0)),
+        )
+    }
+}
+
+/**
+ * First thing in each comment row's double tap: return false while the switch holds it back, as the
+ * row does itself for a comment it can't like, before the like and its haptic tap.
+ */
+private fun BytecodePatchContext.holdBackCommentDoubleTaps(found: DoubleTaps) {
+    for (comment in found.comments) mutable(comment).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static { }, $HOLD_BACK_COMMENT
+                move-result v0
+                if-eqz v0, :tap
+                const/4 v0, 0x0
+                return v0
             """,
             ExternalLabel("tap", getInstruction(0)),
         )
@@ -213,6 +260,18 @@ private fun Method.code(): List<Instruction> = implementation?.instructions?.toL
 private fun Instruction.stringLoaded(): String? =
     if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) null
     else ((this as ReferenceInstruction).reference as StringReference).string
+
+/**
+ * A comment row's double tap: a gesture listener's onDoubleTap(MotionEvent) that loads
+ * [FB_COMMENT_DOUBLE_TAP], or both [LIKE_COMMENT] and [UNLIKE_COMMENT].
+ */
+private fun Method.isCommentDoubleTap(code: List<Instruction>): Boolean {
+    if (name != "onDoubleTap" || returnType != "Z" || AccessFlags.STATIC.isSet(accessFlags) ||
+        parameterTypes.map(CharSequence::toString) != listOf("Landroid/view/MotionEvent;")
+    ) return false
+    val strings = code.mapNotNull { it.stringLoaded() }.toSet()
+    return FB_COMMENT_DOUBLE_TAP in strings || (LIKE_COMMENT in strings && UNLIKE_COMMENT in strings)
+}
 
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
 

@@ -46,6 +46,7 @@ public class OverrideNavigationTest {
         NativeOptions.failure = false;
         NativeOptions.calls = 0;
         NativeOptions.host = null;
+        NativeOptions.whitehat = 0;
         Settings.OPEN_DEVELOPER_OPTIONS.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
     }
@@ -70,7 +71,9 @@ public class OverrideNavigationTest {
     }
 
     private Preference row() { return page.findPreference("hushgram_open_overrides"); }
-    private void tap() { assertTrue(row().getOnPreferenceClickListener().onPreferenceClick(row())); ShadowLooper.idleMainLooper(); }
+    private Preference whitehat() { return page.findPreference("hushgram_open_whitehat"); }
+    private void tap() { tap(row()); }
+    private void tap(Preference row) { assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row)); ShadowLooper.idleMainLooper(); }
 
     @Test public void missingPatchHasNoNativeAction() throws Exception {
         open(false);
@@ -116,13 +119,64 @@ public class OverrideNavigationTest {
         assertEquals(0, NativeOptions.calls);
     }
 
+    @Test public void missingPatchHasNoWhitehatAction() throws Exception {
+        open(false);
+        assertNull(whitehat());
+        assertEquals(0, NativeOptions.whitehat);
+    }
+
+    @Test public void unavailableWhitehatKeepsTheDialogAndShowsRecovery() throws Exception {
+        open(true);
+        assertFalse(whitehat().isPersistent());
+        assertTrue(String.valueOf(whitehat().getSummary()).contains("24 hours"));
+        tap(whitehat());
+        assertTrue(dialog.isAdded());
+        assertTrue(ShadowToast.getTextOfLatestToast().contains("signed in"));
+        assertTrue(String.valueOf(whitehat().getSummary()), String.valueOf(whitehat().getSummary()).startsWith("Whitehat settings are unavailable"));
+        assertSame(controller.get(), NativeOptions.host);
+        NativeOptions.failure = true;
+        tap(whitehat());
+        assertTrue(dialog.isAdded());
+        assertEquals(2, NativeOptions.whitehat);
+        assertEquals("the MetaConfig editor isn't asked", 0, NativeOptions.calls);
+    }
+
+    @Test public void openedWhitehatClosesTheDialogWithoutEnablingLongPress() throws Exception {
+        open(true);
+        NativeOptions.result = 1;
+        tap(whitehat());
+        controller.get().getFragmentManager().executePendingTransactions();
+        assertFalse(dialog.isAdded());
+        assertEquals(1, NativeOptions.whitehat);
+        assertEquals(0, NativeOptions.calls);
+        assertFalse(Settings.OPEN_DEVELOPER_OPTIONS.get());
+    }
+
+    @Test public void finishingDestroyedOrSavedHostsNeverOpenWhitehat() throws Exception {
+        assertFalse(DeveloperOptions.openWhitehat(null));
+        open(true);
+        controller.saveInstanceState(new android.os.Bundle());
+        assertFalse(DeveloperOptions.openWhitehat(controller.get()));
+        controller.get().finish();
+        assertFalse(DeveloperOptions.openWhitehat(controller.get()));
+        controller.pause().stop().destroy();
+        assertFalse(DeveloperOptions.openWhitehat(controller.get()));
+        assertEquals(0, NativeOptions.whitehat);
+    }
+
     @Implements(value = DeveloperOptions.class, isInAndroidSdk = false)
     public static class NativeOptions {
-        static int result, calls;
+        static int result, calls, whitehat;
         static boolean failure;
         static Object host;
         @Implementation protected static int openOverridesNative(Object activity) {
             calls++;
+            host = activity;
+            if (failure) throw new IllegalStateException("native navigation failed");
+            return result;
+        }
+        @Implementation protected static int openWhitehatNative(Object activity) {
+            whitehat++;
             host = activity;
             if (failure) throw new IllegalStateException("native navigation failed");
             return result;

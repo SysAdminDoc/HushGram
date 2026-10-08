@@ -5,12 +5,13 @@
 #   permission-removed   <permission name>      the patched app no longer asks for it
 #   exported-added       <kind>:<class>         something other apps can now reach
 #   exported-removed     <kind>:<class>         something other apps can no longer reach
+#   version-code         <code>                 the patched build's version code, when a patch changed it
 #
 # scripts/verify-all-patches.ps1 reads it and stops a run whose patched manifest changed in a way
 # it doesn't list. That run applies every patch, so it also stops when a change listed here is
 # missing: each line is a change some patch makes.
 #
-# The settings shortcut is published at run time and every hook but one is bytecode, so the patched
+# The settings shortcut is published at run time and all but two hooks are bytecode, so the patched
 # manifest should read like stock. A patch that asks for a permission, drops one, or changes what
 # other apps can reach stops the run until somebody says why.
 #
@@ -24,3 +25,9 @@
 permission-removed com.google.android.gms.permission.AD_ID
 permission-removed android.permission.ACCESS_ADSERVICES_AD_ID
 permission-removed android.permission.ACCESS_ADSERVICES_ATTRIBUTION
+#
+# Change version code raises the version code to the highest Android takes, so Google Play stops
+# offering Meta's updates over the patched build. Instagram's own reads of its code are hooked to
+# answer the real one. scripts/verify-injected-registers.ps1 also reads this line: a patched build
+# with this code still counts as the same build as Meta's.
+version-code 2147483647

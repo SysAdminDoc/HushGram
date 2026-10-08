@@ -9,6 +9,7 @@ package app.morphe.patches.instagram.misc.settings
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -100,8 +101,9 @@ private fun Method.makesShortcutCall(): Boolean =
  */
 internal fun BytecodePatchContext.rerouteShortcutCalls(): Int {
     val callers = mutableListOf<String>()
+    val calling = SHORTCUT_CALLS.keys.flatMapTo(HashSet()) { name -> classesCalling(SHORTCUT_MANAGER, name).map { it.type } }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in calling || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         if (classDef.methods.any { it.makesShortcutCall() }) callers += classDef.type
     }
     return callers.sumOf { type -> mutableClassDefBy(type).methods.sumOf { it.rerouteShortcutCalls() } }

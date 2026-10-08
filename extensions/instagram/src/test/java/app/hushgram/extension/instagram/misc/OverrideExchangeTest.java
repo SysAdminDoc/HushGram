@@ -44,7 +44,7 @@ public class OverrideExchangeTest {
         assertEquals(385511871, root.getJSONObject("host").getLong("code"));
         assertEquals(5, root.getJSONObject("schema").getInt("parameters"));
         assertEquals(new JSONObject(new String(NATIVE, StandardCharsets.UTF_8)).toString(), root.getJSONObject("overrides").toString());
-        assertEquals(5, OverrideExchange.validate(file, current));
+        assertEquals(5, OverrideExchange.validate(file, current).fits);
         assertEquals(5, root.length());
         assertEquals(3, root.getJSONObject("host").length());
     }
@@ -54,28 +54,55 @@ public class OverrideExchangeTest {
         Collections.reverse(reversed);
         OverrideExchange.Snapshot current = snapshot(NATIVE);
         byte[] file = OverrideExchange.export(current);
-        assertEquals(5, OverrideExchange.validate(file, new OverrideExchange.Snapshot("449.0.0.52.84", 385511871, reversed, NATIVE)));
+        assertEquals(5, OverrideExchange.validate(file, new OverrideExchange.Snapshot("449.0.0.52.84", 385511871, reversed, NATIVE)).fits);
         reversed.set(0, new OverrideExchange.Parameter(123, 4, "config", "nullable", 3, 99999));
         refused(() -> OverrideExchange.validate(file, new OverrideExchange.Snapshot("449.0.0.52.84", 385511871, reversed, NATIVE)));
     }
 
-    @Test public void malformedDuplicateOversizedAndUnknownNativeRecordsRefuseBeforeExport() throws Exception {
+    @Test public void malformedDuplicateAndOversizedNativeRecordsRefuseBeforeExport() throws Exception {
         String[] inputs = {
                 "{\"123:config\":[],\"123:config\":[]}",
                 "{\"123:config\":[\"0: enabled: true\",\"0: enabled: false\"]}",
-                "{\"123:other\":[\"0: enabled: true\"]}",
-                "{\"123:config\":[\"0: unknown: true\"]}",
-                "{\"123:config\":[\"0: enabled: 1\"]}",
-                "{\"123:config\":[\"1: count: 9223372036854775808\"]}",
-                "{\"123:config\":[\"3: ratio: NaN\"]}",
-                "{\"123:config\":[\"3: ratio: 1e9999\"]}",
-                "{\"123:config\":[true]}", "{\"123:config\":true}",
-                "{\"0:config\":[]}", "{\"1048576:config\":[]}", "{\"123:config\":[\"16384: enabled: true\"]}",
-                "{\"123:config\":[\"-1: enabled: true\"]}", "{\"123:config\":[\"0: enabled\"]}", "{} {}"
+                "{\"999:\":[\"0: : true\",\"0: : false\"]}",
+                "{\"123:config\":[true]}", "{\"123:config\":true}", "{\"999:\":[true]}", "{\"999:\":true}",
+                "{\"0:config\":[]}", "{\"123:config\":[\"16384: enabled: true\"]}",
+                "{\"123:config\":[\"-1: enabled: true\"]}", "{\"123:config\":[\"0: enabled\"]}", "{\"999:\":[\"0: true\"]}", "{} {}"
         };
         for (String input : inputs) refused(() -> snapshot(bytes(input)));
         refused(() -> snapshot(new byte[OverrideExchange.MAX_BYTES + 1]));
         refused(() -> snapshot(new byte[]{(byte) 0xc3, 0x28}));
+    }
+
+    /**
+     * App data outlives an update, so the store can hold overrides this build has no parameter for,
+     * or types otherwise. They're counted and stay out of the export and the values, and the rest
+     * reads as it did.
+     */
+    @Test public void aStoreHoldingOverridesThisBuildLacksStillCapturesWithoutThem() throws Exception {
+        String[] leftovers = {
+                "{\"123:other\":[\"0: enabled: true\"]}", "{\"123:config\":[\"0: unknown: true\"]}",
+                "{\"123:config\":[\"0: enabled: 1\"]}", "{\"123:config\":[\"1: count: 9223372036854775808\"]}",
+                "{\"123:config\":[\"3: ratio: NaN\"]}", "{\"123:config\":[\"3: ratio: 1e9999\"]}",
+                "{\"123:config\":[\"9: : true\"]}", "{\"999:\":[\"0: : true\"]}", "{\"1048576:config\":[\"0: : true\"]}",
+        };
+        for (String store : leftovers) {
+            OverrideExchange.Snapshot held = snapshot(bytes(store));
+            assertEquals(store, 1, held.leftOut());
+            JSONObject exported = new JSONObject(new String(OverrideExchange.export(held), StandardCharsets.UTF_8));
+            assertEquals(store, 0, exported.getJSONObject("overrides").length());
+            assertTrue(store, OverrideExchange.values(bytes(store), held).isEmpty());
+            assertEquals(store, 0, OverrideExchange.validate(OverrideExchange.export(held), held).fits);
+        }
+        byte[] mixed = bytes("{\"123:\":[\"0: : true\",\"9: : true\",\"1: : x\"],\"999:\":[\"0: : true\"],"
+                + "\"456:\":[],\"_qe_overrides_\":[\"kept as it is\"]}");
+        OverrideExchange.Snapshot current = snapshot(mixed);
+        assertEquals(3, current.leftOut());
+        byte[] export = OverrideExchange.export(current);
+        assertEquals(new JSONObject("{\"123:\":[\"0: : true\"],\"_qe_overrides_\":[\"kept as it is\"]}").toString(),
+                new JSONObject(new String(export, StandardCharsets.UTF_8)).getJSONObject("overrides").toString());
+        assertEquals(1, OverrideExchange.validate(export, current).fits);
+        assertEquals(Collections.singletonMap(OverrideExchange.key(123, 0), "true"), OverrideExchange.values(mixed, current));
+        assertEquals(0, snapshot(NATIVE).leftOut());
     }
 
     @Test public void exactHostSchemaAndEnvelopeAreRequiredDuringValidation() throws Exception {
@@ -101,7 +128,7 @@ public class OverrideExchangeTest {
         byte[] before = OverrideExchange.export(current);
         JSONObject root = new JSONObject(new String(OverrideExchange.export(current), StandardCharsets.UTF_8));
         root.put("overrides", new JSONObject().put("123:config", new JSONArray().put("0: enabled: false")));
-        assertEquals(1, OverrideExchange.validate(bytes(root.toString()), current));
+        assertEquals(1, OverrideExchange.validate(bytes(root.toString()), current).fits);
         assertArrayEquals(before, OverrideExchange.export(current));
     }
 
@@ -117,16 +144,38 @@ public class OverrideExchangeTest {
     /** Instagram's own file: no envelope, empty names, an experiment section. */
     @Test public void instagramsOwnFileIsHeldToTheSchemaByIndexGivenNamesAndType() throws Exception {
         OverrideExchange.Snapshot current = snapshot(NATIVE);
-        assertEquals(3, OverrideExchange.validate(bytes(
-                "{\"123:\":[\"0: : false\",\"1: : 7\",\"2: text: a: b\"],\"_qe_overrides_\":[]}"), current));
-        assertEquals(1, OverrideExchange.validate(bytes("{\"123:config\":[\"3: : 0.5\"]}"), current));
-        assertEquals(0, OverrideExchange.validate(bytes("{}"), current));
+        checked(3, 0, "{\"123:\":[\"0: : false\",\"1: : 7\",\"2: text: a: b\"],\"_qe_overrides_\":[]}", current);
+        checked(1, 0, "{\"123:config\":[\"3: : 0.5\"]}", current);
+        checked(0, 0, "{}", current);
         String[] refusedFiles = {
-                "{\"123:other\":[\"0: : true\"]}", "{\"123:\":[\"0: unknown: true\"]}", "{\"123:\":[\"0: : 1\"]}",
-                "{\"123:\":[\"9: : true\"]}", "{\"999:\":[\"0: : true\"]}", "{\"_qe_overrides_\":[\"7: : true\"]}",
-                "{\"_qe_overrides_\":{}}", "{\"other\":[]}", "{\"123:\":true}",
+                "{\"_qe_overrides_\":[\"7: : true\"]}", "{\"_qe_overrides_\":{}}", "{\"other\":[]}", "{\"123:\":true}",
+                "{\"123:\":[\"0: : true\",\"0: : false\"]}", "{\"999:\":[\"0: : true\",\"0: : true\"]}", "{\"999:\":[true]}",
+                "{\"999:\":[\"0: true\"]}", "{\"123:\":[\"16384: : true\"]}",
         };
         for (String file : refusedFiles) refused(() -> OverrideExchange.validate(bytes(file), current));
+    }
+
+    /**
+     * Instagram keeps its file across app updates, so one from an older build can hold configs,
+     * parameters or types this build doesn't have. Those are left out and counted, and only the
+     * rest is collected. A HushGram export names its build, so nothing in one is left out.
+     */
+    @Test public void anInstagramFileFromAnotherBuildLeavesOutWhatThisBuildDoesntHave() throws Exception {
+        OverrideExchange.Snapshot current = snapshot(NATIVE);
+        String file = "{\"123:\":[\"0: : false\",\"9: : true\",\"1: : 1.5\",\"2: renamed: x\"],\"999:\":[\"0: : true\"],"
+                + "\"123:other\":[\"3: : 0.5\"],\"_qe_overrides_\":[]}";
+        checked(1, 5, file, current);
+        java.util.Map<Long, String> values = new java.util.TreeMap<>();
+        OverrideExchange.validated(bytes(file), current, values);
+        assertEquals(Collections.singletonMap(OverrideExchange.key(123, 0), "false"), values);
+        for (String nothing : new String[] {"{\"123:other\":[\"0: : true\"]}", "{\"123:\":[\"0: unknown: true\"]}",
+                "{\"123:\":[\"0: : 1\"]}", "{\"123:\":[\"9: : true\"]}", "{\"999:\":[\"0: : true\"]}"}) {
+            assertThrows(nothing, OverrideExchange.NothingFits.class, () -> OverrideExchange.validate(bytes(nothing), current));
+        }
+        JSONObject root = new JSONObject(new String(OverrideExchange.export(current), StandardCharsets.UTF_8));
+        root.put("overrides", new JSONObject(file));
+        final byte[] export = bytes(root.toString());
+        refused(() -> OverrideExchange.validate(export, current));
     }
 
     /**
@@ -137,9 +186,9 @@ public class OverrideExchangeTest {
     @Test public void aStoreWithEmptyNamesAndExperimentsStillCaptures() throws Exception {
         byte[] store = bytes("{\"123:\":[\"0: : true\"],\"_qe_overrides_\":[\"kept as it is\"]}");
         OverrideExchange.Snapshot current = snapshot(store);
-        assertEquals(1, OverrideExchange.validate(bytes("{\"123:\":[\"0: : true\"]}"), current));
-        assertEquals(1, OverrideExchange.validate(OverrideExchange.export(current), current));
-        assertEquals(1, OverrideExchange.validate(store, current));
+        assertEquals(1, OverrideExchange.validate(bytes("{\"123:\":[\"0: : true\"]}"), current).fits);
+        assertEquals(1, OverrideExchange.validate(OverrideExchange.export(current), current).fits);
+        assertEquals(1, OverrideExchange.validate(store, current).fits);
         refused(() -> OverrideExchange.validate(bytes("{\"123:\":[\"0: : true\"],\"_qe_overrides_\":[\"another\"]}"), current));
     }
 
@@ -163,6 +212,11 @@ public class OverrideExchangeTest {
     }
 
     private static byte[] bytes(String value) { return value.getBytes(StandardCharsets.UTF_8); }
+    private static void checked(int fits, int leftOut, String file, OverrideExchange.Snapshot snapshot) throws IOException {
+        OverrideExchange.Checked checked = OverrideExchange.validate(bytes(file), snapshot);
+        assertEquals(file, fits, checked.fits);
+        assertEquals(file, leftOut, checked.leftOut);
+    }
     private interface Work { void run() throws Exception; }
     private static void refused(Work work) throws Exception {
         try { work.run(); fail("input accepted"); }

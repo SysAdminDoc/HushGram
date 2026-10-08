@@ -130,14 +130,16 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReferenc
         call(Opcode.INVOKE_VIRTUAL, listOf(3, 0), MANAGER, "dispatch", listOf(BASE), "Z"), ImmutableInstruction10x(Opcode.RETURN_VOID),
     ))))
 
+    /** [classes] with [name] in [type] edited by [change], the class otherwise kept as it was, fields included. */
     fun replace(classes: List<ClassDef>, type: String, name: String, change: (MutableList<Instruction>) -> Unit): List<ClassDef> = classes.map { candidate ->
-        if (candidate.type != type) candidate else clazz(type, candidate.methods.map { old ->
-            if (old.name != name) old else old.visualCode().toMutableList().let { code ->
-                change(code)
-                ImmutableMethod(old.definingClass, old.name, old.parameters, old.returnType, old.accessFlags, old.annotations, old.hiddenApiRestrictions,
-                    ImmutableMethodImplementation(old.implementation!!.registerCount, code, null, null))
-            }
-        }, candidate.accessFlags)
+        if (candidate.type != type) candidate else ImmutableClassDef(type, candidate.accessFlags, candidate.superclass, candidate.interfaces,
+            candidate.sourceFile, candidate.annotations, candidate.fields, candidate.methods.map { old ->
+                if (old.name != name) old else old.visualCode().toMutableList().let { code ->
+                    change(code)
+                    ImmutableMethod(old.definingClass, old.name, old.parameters, old.returnType, old.accessFlags, old.annotations, old.hiddenApiRestrictions,
+                        ImmutableMethodImplementation(old.implementation!!.registerCount, code, null, null))
+                }
+            })
     }
 
     fun typed(opcode: Opcode, register: Int, type: String): Instruction = ImmutableInstruction21c(opcode, register, ImmutableTypeReference(type))

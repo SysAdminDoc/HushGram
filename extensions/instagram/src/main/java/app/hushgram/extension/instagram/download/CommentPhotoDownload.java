@@ -37,6 +37,14 @@ public final class CommentPhotoDownload {
         public int height(Object candidate) { return InstagramMedia.candidateHeight(candidate); }
     };
 
+    // What the diagnostic report counts for a comment's photo once its Media is read: why no size
+    // was kept, or that one was. A refused size is counted by the URL policy's reason, which never
+    // names the host, and never by its address.
+    static final String NO_VERSIONS = "no image_versions2";
+    static final String NO_CANDIDATES = "no candidates";
+    static final String ANIMATED_OR_VIDEO = "size refused (animated or video)";
+    static final String FOUND = "photo found";
+
     /**
      * The sizes [media]'s picture lists with an address on Meta's media servers, in Instagram's
      * order and unchanged. Empty, never null, when there is no media or no such size.
@@ -46,18 +54,40 @@ public final class CommentPhotoDownload {
     }
 
     static List<MediaSave.Rendition> snapshot(Object media, Images images) {
+        // No media was already counted by the read that came back without it.
         if (media == null) return Collections.emptyList();
         Object versions = images.versions(media);
-        List<?> candidates = versions == null ? null : images.candidates(versions);
-        if (candidates == null) return Collections.emptyList();
+        if (versions == null) return nothing(NO_VERSIONS);
+        List<?> candidates = images.candidates(versions);
+        if (candidates == null) return nothing(NO_CANDIDATES);
         List<MediaSave.Rendition> sizes = new ArrayList<>(candidates.size());
+        List<String> refused = new ArrayList<>(2);
         for (Object candidate : candidates) {
             if (candidate == null) continue;
             String url = images.url(candidate);
-            if (MediaUrlPolicy.shapeRefusal(url) != null || animatedOrVideo(url)) continue;
+            String shape = MediaUrlPolicy.shapeRefusal(url);
+            String why = shape != null ? "size refused (" + shape + ")" : animatedOrVideo(url) ? ANIMATED_OR_VIDEO : null;
+            if (why != null) {
+                if (!refused.contains(why)) refused.add(why);
+                continue;
+            }
             sizes.add(new MediaSave.Rendition(url, images.width(candidate), images.height(candidate), 0));
         }
+        if (!sizes.isEmpty()) {
+            HookStatus.counted(FamilyNames.COMMENT_PHOTO, FOUND);
+        } else if (refused.isEmpty()) {
+            // Only empty slots, which is no candidates at all.
+            HookStatus.counted(FamilyNames.COMMENT_PHOTO, NO_CANDIDATES);
+        } else {
+            // Every size refused: each reason once per read, so the counts match the menus opened.
+            for (String why : refused) HookStatus.counted(FamilyNames.COMMENT_PHOTO, why);
+        }
         return copy(sizes);
+    }
+
+    private static List<MediaSave.Rendition> nothing(String step) {
+        HookStatus.counted(FamilyNames.COMMENT_PHOTO, step);
+        return Collections.emptyList();
     }
 
     /** An unmodifiable copy, so a later change to the source can't change what a row saves. */
@@ -65,10 +95,14 @@ public final class CommentPhotoDownload {
         return Collections.unmodifiableList(new ArrayList<>(sizes));
     }
 
-    /** Starts the save of the largest of [snapshot]. A save that can't start says so. Never throws. */
-    public static void save(Context context, List<MediaSave.Rendition> snapshot) {
+    /**
+     * Starts the save of the largest of [snapshot], named and filed after [details], the comment's
+     * author and time, as a post's photo is after its poster. A save that can't start says so.
+     * Never throws.
+     */
+    public static void save(Context context, List<MediaSave.Rendition> snapshot, PostDetails details) {
         try {
-            if (!MediaSave.savePhoto(context, snapshot, null)) failed(context);
+            if (!MediaSave.savePhoto(context, snapshot, details)) failed(context);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.COMMENT_PHOTO, "save comment photo", t);
             failed(context);
@@ -85,8 +119,8 @@ public final class CommentPhotoDownload {
         }
     }
 
-    // The media kind is already a photo. An address that names a GIF or a video file still never
-    // stands in for the picture.
+    // The media is a photo by its kind, or has no kind and no video. An address that names a GIF or
+    // a video file still never stands in for the picture.
     private static boolean animatedOrVideo(String address) {
         try {
             String path = new URL(address).getPath().toLowerCase(Locale.US);

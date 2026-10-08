@@ -70,6 +70,9 @@ class FriendshipStatusHookTest {
         assertTrue(calls("friendshipFollowedBy").containsAll(
             listOf("$USER->friendship()$RELATIONSHIP", "$RELATIONSHIP->followedBy()Ljava/lang/Boolean;"),
         ))
+        assertTrue(calls("friendshipFollowing").containsAll(
+            listOf("$USER->friendship()$RELATIONSHIP", "$RELATIONSHIP->following()Ljava/lang/Boolean;"),
+        ))
         assertTrue("$USER->follows()Ljava/lang/Boolean;" in calls("followedBy"))
         assertTrue("$USER->id()Ljava/lang/String;" in calls("userId"))
         assertTrue(calls("viewerId").containsAll(
@@ -90,9 +93,9 @@ class FriendshipStatusHookTest {
         context.friendshipStubs().fill(context.findProfileName())
 
         val narrow = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.filter {
-            it.name in setOf("friendshipFollowedBy", "followedBy", "userId", "viewerId", "slotView")
+            it.name in setOf("friendshipFollowedBy", "friendshipFollowing", "followedBy", "userId", "viewerId", "slotView")
         }
-        assertEquals(5, narrow.size)
+        assertEquals(6, narrow.size)
         for (stub in narrow) {
             val code = stub.implementation!!.instructions.toList()
             val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
@@ -130,6 +133,23 @@ class FriendshipStatusHookTest {
         assertThrows(PatchException::class.java) { context.findProfileName() }
     }
 
+    /**
+     * A friendship status whose dump doesn't ask whether you follow the account still gets the label,
+     * with a stub that never says so, so the chip can't claim you follow each other.
+     */
+    @Test
+    fun aFriendshipStatusWithoutItsFollowingGetterLeavesThatStubUnknown() {
+        val context = PatchContexts.of(standIns(dumpsFollowing = false))
+        val found = context.findProfileName()
+        assertEquals(null, found.relationshipFollowing)
+        assertEquals("followedBy", found.relationshipFollowedBy)
+
+        context.friendshipStubs().fill(found)
+
+        val stub = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.single { it.name == "friendshipFollowing" }
+        assertEquals(listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), stub.implementation!!.instructions.map { it.opcode })
+    }
+
     @Test
     fun aViewModelWithoutTheUserFailsThePatch() {
         val context = PatchContexts.of(standIns(keepsUser = false))
@@ -159,6 +179,12 @@ class FriendshipStatusHookTest {
                 val found = context.findProfileName()
                 context.labelProfileName(found)
                 context.friendshipStubs().fill(found)
+                // Show it as a chip's Following each other reads the status's own getter of "following".
+                val following = found.relationshipFollowing
+                assertTrue("${bundle.name}: no following getter", following != null && following != found.relationshipFollowedBy)
+                val asked = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.single { it.name == "friendshipFollowing" }
+                    .implementation!!.instructions.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+                assertTrue("${bundle.name}: $asked", "$RELATIONSHIP->$following()Ljava/lang/Boolean;" in asked)
                 val method = context.mutableClassDefBy(found.type).methods.single {
                     it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
                 }
@@ -205,7 +231,9 @@ class FriendshipStatusHookTest {
                 assertEquals("$what: the pronouns set before it's shown", "setText",
                     ((before as ReferenceInstruction).reference as MethodReference).name)
             } else {
-                assertEquals("$what: the slot read right before it's hidden", Opcode.IGET_OBJECT, before.opcode)
+                // 450 copies the slot through up to two plain moves between its read and the hide.
+                val read = (at - 4 downTo maxOf(0, at - 6)).first { code[it].opcode !in PLAIN_MOVES }
+                assertEquals("$what: the slot read right before it's hidden", Opcode.IGET_OBJECT, code[read].opcode)
             }
             for ((index, instruction) in code.withIndex()) {
                 if (instruction !is OffsetInstruction) continue
@@ -220,6 +248,8 @@ class FriendshipStatusHookTest {
     } == true
 
     internal companion object {
+        val PLAIN_MOVES = setOf(Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16)
+
         const val BINDER = "Lfixture/ProfileBinder;"
         const val HOLDER = "Lfixture/ProfileHolder;"
         const val HEADER = "Lfixture/ProfileHeader;"
@@ -238,6 +268,7 @@ class FriendshipStatusHookTest {
             key: String = FOLLOWED_BY,
             keepsUser: Boolean = true,
             dumped: Boolean = true,
+            dumpsFollowing: Boolean = true,
         ): List<ClassDef> {
             val hide = if (hides) {
                 """
@@ -318,7 +349,7 @@ class FriendshipStatusHookTest {
             val dump = method(
                 DUMP, "dump", listOf(RELATIONSHIP), "V", 2,
                 """
-                    const-string v0, "following"
+                    const-string v0, "${if (dumpsFollowing) FOLLOWING else "is_bestie"}"
                     invoke-interface { p0 }, $RELATIONSHIP->following()Ljava/lang/Boolean;
                     move-result-object v0
                     const-string v0, "$FOLLOWED_BY"

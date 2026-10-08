@@ -208,4 +208,55 @@ public class LinkCleanerTest {
         assertEquals("Look at this https://www.instagram.com/p/C1/ and that.",
                 LinkCleaner.cleanText("Look at this https://www.instagram.com/p/C1/?stkn=abc and that."));
     }
+
+    /** With a Sharing domain set, a shared or copied link to instagram.com goes out on it, without its tracking keys. */
+    @Test
+    public void sharedAndCopiedLinksMoveToTheSharingDomain() {
+        Settings.SHARING_DOMAIN.save("example.com");
+        try {
+            Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,
+                    "Look https://www.instagram.com/reel/C1/?igsh=abc&utm_source=ig_web_copy_link. And https://example.org/?igsh=1");
+            assertEquals("Look https://example.com/reel/C1/. And https://example.org/?igsh=1",
+                    LinkCleaner.sanitizedShare(share).getStringExtra(Intent.EXTRA_TEXT));
+            ClipData clip = ClipData.newPlainText("link", "https://instagram.com/p/C1/?stkn=abc");
+            assertEquals("https://example.com/p/C1/", LinkCleaner.sanitizedClip(clip).getItemAt(0).getText().toString());
+            assertEquals("Instagram's other hosts stay", "https://ig.me/m/someone", LinkCleaner.cleanText("https://ig.me/m/someone?igsh=a"));
+            assertEquals("a link the server hands out keeps its host", "https://www.instagram.com/p/C1/",
+                    LinkCleaner.sanitizeShared("https://www.instagram.com/p/C1/?stkn=abc"));
+        } finally {
+            Settings.SHARING_DOMAIN.resetToDefault();
+        }
+    }
+
+    /** With Sanitize sharing links off, a Sharing domain changes nothing. */
+    @Test
+    public void theSharingDomainWaitsForSanitizeSharingLinks() {
+        Settings.SHARING_DOMAIN.save("example.com");
+        Settings.SANITIZE_SHARING_LINKS.save(false);
+        try {
+            String link = "https://www.instagram.com/p/C1/?stkn=abc";
+            Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link);
+            assertEquals(link, LinkCleaner.sanitizedShare(share).getStringExtra(Intent.EXTRA_TEXT));
+            ClipData clip = ClipData.newPlainText("link", link);
+            assertSame(clip, LinkCleaner.sanitizedClip(clip));
+        } finally {
+            Settings.SANITIZE_SHARING_LINKS.resetToDefault();
+            Settings.SHARING_DOMAIN.resetToDefault();
+        }
+    }
+
+    /** A tracker that forwards to anything but a web page opens as it came, never as the address inside it. */
+    @Test
+    public void aTrackerWrappingAnotherSchemeOpensAsItCame() {
+        Application app = RuntimeEnvironment.getApplication();
+        for (String shim : new String[]{
+                "https://l.instagram.com/?u=intent%3A%2F%2Fexample.org%23Intent%3Bscheme%3Dhttps%3Bend&e=AT0x",
+                "https://l.instagram.com/?u=javascript%3Aalert(1)&e=AT0x",
+                "https://l.instagram.com/?u=httpxyz%3A%2F%2Fexample.org%2F&e=AT0x",
+        }) {
+            Intent open = new Intent(Intent.ACTION_VIEW, Uri.parse(shim)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            LinkCleaner.startActivity(app, open);
+            assertEquals(shim, shadowOf(app).getNextStartedActivity().getDataString());
+        }
+    }
 }

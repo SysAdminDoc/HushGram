@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -36,9 +37,17 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Only your own Following list is marked: the binder's list has to be one of Instagram's two
  * kinds of Following list, and its owner the account signed in. Followers, someone else's Following
- * list and every other list Instagram draws with this binder stay as they are. Whether an account
- * follows you comes from the friendship status Instagram fetches for the list's rows, as on a
- * profile. Until it knows, nothing is added.
+ * list and every other list Instagram draws with this binder stay as they are.
+ *
+ * <p>Whether an account follows you is taken only from an answer Instagram's server gave to its batch
+ * friendship request (friendships/show_many) in this run, which the Following list asks with
+ * followed_by, and only while the account's own status doesn't say it does. Instagram caches a
+ * status for every account it has drawn anywhere, and one from a feed or a reel can carry a
+ * followed_by no one asked the server for; the Following list then skipped asking again for those
+ * rows, and they read as not following you (#40). With the switch on, the patch has your own
+ * Following list ask about every row rather than only the ones it knows nothing about
+ * ({@link #known}), and hands each answer here ({@link #answered}). A row with no answer yet says
+ * nothing.
  *
  * <p>Rows are recycled, so a row this marked may come back for another account. Instagram fills the
  * name line in again on each bind, and a mark it didn't overwrite is taken back here before the row
@@ -46,6 +55,30 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * thrown, the row stays as Instagram drew it.
  */
 public final class FollowingList {
+    static final String REFETCH = "following list refetch";
+    static final String ANSWER = "following list answer";
+
+    /** How many answers are kept: about a dozen pages of a long list, oldest dropped first. */
+    static final int MAX_ANSWERS = 4096;
+
+    /**
+     * Whether each account follows you, as the server last answered a batch request asked with
+     * followed_by, by the signed-in account and the other account's ID.
+     */
+    private static final Map<String, Boolean> answers = new Answers();
+
+    /** The answers, least recently read first, past [MAX_ANSWERS] the oldest dropped. */
+    private static final class Answers extends LinkedHashMap<String, Boolean> {
+        Answers() {
+            super(64, 0.75f, true);
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+            return size() > MAX_ANSWERS;
+        }
+    }
+
     /** Instagram's names for its Following lists, which it keeps: the full list and the simplified one. */
     static final Set<String> FOLLOWING_KINDS =
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList("FOLLOWING", "FOLLOWING_SIMPLIFIED")));
@@ -88,9 +121,13 @@ public final class FollowingList {
         @Nullable
         String viewerId(Object binder);
 
-        /** Whether [user] follows you, or null when Instagram doesn't know. */
+        /** Whether [user] follows you, as Instagram's cached status says, or null when it doesn't say. */
         @Nullable
         Boolean followedBy(Object user);
+
+        /** Whether [user] follows [viewer], as the server last answered when asked, or null. */
+        @Nullable
+        Boolean answer(String viewer, Object user);
 
         /** The name line of the row whose view holder is [holder]. */
         @Nullable
@@ -119,6 +156,11 @@ public final class FollowingList {
         }
 
         @Override
+        public Boolean answer(String viewer, Object user) {
+            return FollowingList.answer(viewer, FriendshipStatus.userId(user));
+        }
+
+        @Override
         public TextView subtitle(Object holder) {
             return FollowingList.subtitle(holder);
         }
@@ -143,12 +185,83 @@ public final class FollowingList {
             if (subtitle == null) return;
             unmark(subtitle);
             if (!marking) return;
-            if (!ownFollowingList(reader.listKind(binder), reader.listOwnerId(binder), reader.viewerId(binder))) return;
-            // Only Instagram's own no counts. Before it has checked, the row says nothing.
-            if (!Boolean.FALSE.equals(reader.followedBy(user))) return;
+            String viewer = reader.viewerId(binder);
+            if (!ownFollowingList(reader.listKind(binder), reader.listOwnerId(binder), viewer)) return;
+            // Only the server's no to a request that asked counts, and a later yes on the account's
+            // own status (its profile, say) overrules it. Before the server has answered, nothing.
+            if (!Boolean.FALSE.equals(reader.answer(viewer, user)) || Boolean.TRUE.equals(reader.followedBy(user))) return;
             mark(subtitle, L10n.t("Doesn't follow you"));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ROW, failure);
+        }
+    }
+
+    /**
+     * Injected where a follow list decides which of a page's rows to ask the server about, with a
+     * row's cached friendship and the list's state holder: Instagram skips a row whose cached status
+     * already says whether it follows you. Answers null, so the row is asked about, on your own
+     * Following list with the switch on, and the friendship otherwise. Never throws.
+     */
+    @Nullable
+    public static Object known(@Nullable Object friendship, Object list) {
+        return known(friendship, list, FollowingList::fetchKind, FollowingList::fetchOwnerId,
+                FollowingList::fetchViewerId, FollowingList::switchedOn);
+    }
+
+    interface ListPart {
+        @Nullable
+        Object of(Object list);
+    }
+
+    static Object known(@Nullable Object friendship, Object list, ListPart kind, ListPart owner, ListPart viewer,
+                        BooleanSupplier on) {
+        try {
+            HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (friendship == null || !on.getAsBoolean()) return friendship;
+            Object ownerId = owner.of(list), viewerId = viewer.of(list);
+            if (!(ownerId instanceof String) || !(viewerId instanceof String)) return friendship;
+            return ownFollowingList(kind.of(list), (String) ownerId, (String) viewerId) ? null : friendship;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, REFETCH, failure);
+            return friendship;
+        }
+    }
+
+    /**
+     * Injected in Instagram's parser of a batch friendship answer, once per account it answered
+     * about, with the account, the status the server sent and the signed-in session. Keeps
+     * whether it follows you when the server said so either way. Never throws.
+     */
+    public static void answered(@Nullable Object user, @Nullable Object status, @Nullable Object session) {
+        try {
+            HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (!switchedOn() || user == null || status == null || session == null) return;
+            remember(sessionUserId(session), FriendshipStatus.userId(user), statusFollowedBy(status));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ANSWER, failure);
+        }
+    }
+
+    /** Keeps an answer the server gave, when it gave one, for the account it was about. */
+    static void remember(@Nullable String viewer, @Nullable String user, @Nullable Boolean followedBy) {
+        if (viewer == null || viewer.isEmpty() || user == null || user.isEmpty() || followedBy == null) return;
+        synchronized (answers) {
+            answers.put(viewer + "/" + user, followedBy);
+        }
+    }
+
+    /** What the server last answered about whether [user] follows [viewer], or null. */
+    @Nullable
+    static Boolean answer(@Nullable String viewer, @Nullable String user) {
+        if (viewer == null || user == null) return null;
+        synchronized (answers) {
+            return answers.get(viewer + "/" + user);
+        }
+    }
+
+    static void forgetAnswers() {
+        synchronized (answers) {
+            answers.clear();
         }
     }
 
@@ -231,6 +344,36 @@ public final class FollowingList {
     /** Filled in by the patch: the name line of the row whose view holder is [holder]. */
     @Nullable
     public static TextView subtitle(Object holder) {
+        return null;
+    }
+
+    /** Filled in by the patch: the kind of list a follow list's state holder [list] fetches, or null. */
+    @Nullable
+    public static Object fetchKind(Object list) {
+        return null;
+    }
+
+    /** Filled in by the patch: the ID of the account whose list [list] fetches, or null. */
+    @Nullable
+    public static Object fetchOwnerId(Object list) {
+        return null;
+    }
+
+    /** Filled in by the patch: the ID of the account signed in on [list], or null. */
+    @Nullable
+    public static Object fetchViewerId(Object list) {
+        return null;
+    }
+
+    /** Filled in by the patch: whether the batch answer's [status] says the account follows you, or null. */
+    @Nullable
+    public static Boolean statusFollowedBy(Object status) {
+        return null;
+    }
+
+    /** Filled in by the patch: the ID of the account signed in on [session], or null. */
+    @Nullable
+    public static String sessionUserId(Object session) {
         return null;
     }
 }

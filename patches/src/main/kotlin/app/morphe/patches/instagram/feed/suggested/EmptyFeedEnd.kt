@@ -7,8 +7,10 @@ package app.morphe.patches.instagram.feed.suggested
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -35,6 +37,18 @@ internal const val END_CARD_RULE = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->en
  * latest page's source against. The pages past Following's end card come from another source.
  */
 internal const val FOLLOWING_FEED = "homecoming_following"
+
+/**
+ * Writes [endEmptiedFeed] once for every patch that can take all of Home's posts out (Hide suggested
+ * posts and Hide the home feed), so the flag's reads get one hook between them.
+ */
+internal val emptiedFeedEndPatch = bytecodePatch {
+    dependsOn(instagramExtensionPatch)
+
+    execute {
+        endEmptiedFeed(findFeedEnd())
+    }
+}
 
 /**
  * The home feed adapter and the flag it reads to tell an empty feed that's finished (no next page)
@@ -78,7 +92,7 @@ internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
 
 /**
  * Passes each read of the flag in the home feed adapter through [FEED_ENDED], which says the feed
- * has no next page once Hide suggested posts has taken items out. Instagram still checks that the
+ * has no next page once Hide suggested posts or Hide the home feed has taken items out. Instagram still checks that the
  * feed is empty and that nothing is loading, so a feed with posts left, or one waiting on a page,
  * keeps what it draws. An emptied feed then gets Instagram's own empty feed card instead of its
  * loading placeholder, which it would keep for good: nothing asks for the next page of an empty feed.
@@ -173,4 +187,4 @@ private fun Instruction.calls(method: MethodReference) =
 private fun Instruction.reads(field: FieldReference) =
     ((this as? ReferenceInstruction)?.reference as? FieldReference)?.toString() == field.toString()
 
-private fun refuse(detail: String): Nothing = throw PatchException("Hide suggested posts: $detail")
+private fun refuse(detail: String): Nothing = throw PatchException("Home feed end: $detail")

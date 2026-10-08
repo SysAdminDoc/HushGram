@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -29,6 +30,8 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Hide suggested stories"
 internal const val HIDE_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->hideTray()Z"
 internal const val TRAY_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val TRAY_REMAINING_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
+private const val ARRAY_LIST = "Ljava/util/ArrayList;"
 
 /** The trace name only the method adding Home's story tray row holds. */
 internal const val TRAY_ROWS = "MainFeedStoryTrayBinderGroup.buildRowViewTypes"
@@ -44,11 +47,20 @@ internal const val TRAY_ITEM_INTF = "Lcom/instagram/model/reels/ReelResponseItem
 /** The reel types of suggested tray items, which StoriesTray drops: an account to follow, its story, and a creator's story. */
 internal val SUGGESTED_REELS = listOf("SUGGESTED_USER", "SUGGESTED_USER_REEL", "SUGGESTED_CREATOR_REEL")
 
+/**
+ * The reel types of the cards Instagram makes for the tray, which StoriesTray drops on their own
+ * switches: a rewind, then memories, your week, the year in review, follow anniversaries and birthdays.
+ */
+internal val MADE_REELS = listOf(
+    "HIGHLIGHT_REWIND_REEL", "MEMORY_REEL", "MY_WEEK_REEL", "END_OF_YEAR", "FOLLOW_VERSARIES", "BIRTHDAY_HIGHLIGHTS",
+)
+
 @Suppress("unused")
 val hideSuggestedStoriesPatch = bytecodePatch(
     name = "Hide suggested stories",
     description = "Removes the stories from accounts you don't follow, and the accounts Instagram suggests, from the " +
-        "row of stories at the top of Home. A second switch, off to start, takes the whole row away.",
+        "row of stories at the top of Home. More switches, off to start, take out rewinds, memories and recaps, stop " +
+        "the row's stories loading, or take the whole row away.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -57,7 +69,8 @@ val hideSuggestedStoriesPatch = bytecodePatch(
     execute {
         requireStatusMethod("storiesTray")
         guardTrayRow(findTrayRowBuild())
-        filterTrayItems(findTrayItemParse())
+        val parse = findTrayItemParse()
+        hookTrayParser(parse, findTrayRemaining(parse.site))
         enableStatus("storiesTray")
     }
 }
@@ -72,8 +85,9 @@ internal class MethodSite(val type: String, val name: String, val parameters: Li
  */
 internal fun BytecodePatchContext.findTrayRowBuild(): MethodSite {
     val found = mutableListOf<Pair<String, Method>>()
+    val holders = classesHolding(TRAY_ROWS).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method -> if (TRAY_ROWS in method.strings()) found += classDef.type to method }
     }
     val (type, method) = found.singleOrNull() ?: refuse("expected one method holding $TRAY_ROWS, found ${found.size}")
@@ -113,12 +127,14 @@ internal class TrayItemParse(val site: MethodSite, val moveResult: Int, val regi
  * Finds the one `unsafeParseFromJson` holding [TRAY_ITEMS], [TRAY_TOKEN] and [TRAY_REMAINING], and in
  * it the one read of an item between the [TRAY_ITEMS] key and the next key: a `parseFromJsonParser`
  * call on a parser whose items implement [TRAY_ITEM_INTF], its move-result-object, and a null test of
- * it, so a null item is skipped. Checks the item's reel type is an enum field the extension can read.
+ * it, so a null item is skipped. Checks the item's reel type is an enum field the extension can read,
+ * naming every kind a switch takes out.
  */
 internal fun BytecodePatchContext.findTrayItemParse(): TrayItemParse {
     val found = mutableListOf<Pair<String, Method>>()
+    val holders = classesHolding(TRAY_ITEMS, TRAY_TOKEN, TRAY_REMAINING).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method ->
             if (method.name != "unsafeParseFromJson") return@forEach
             val strings = method.strings()
@@ -150,8 +166,55 @@ internal fun BytecodePatchContext.findTrayItemParse(): TrayItemParse {
     }.distinct()
     val item = casts.singleOrNull { classDefByOrNull(it)?.interfaces?.contains(TRAY_ITEM_INTF) == true }
         ?: refuse("expected $parser to read one class implementing $TRAY_ITEM_INTF, found $casts")
-    requireOneKindField(PATCH, item, SUGGESTED_REELS)
+    requireOneKindField(PATCH, item, SUGGESTED_REELS + MADE_REELS)
     return TrayItemParse(MethodSite(type, method.name, method.parameterTypes.map(CharSequence::toString)), read + 1, register)
+}
+
+/** Where the tray parser reads the ids of the reels it fetches after the tray: the index and register of that read's move-result. */
+internal class TrayRemainingRead(val site: MethodSite, val moveResult: Int, val register: Int)
+
+/**
+ * In the tray parser at [site], the one read of [TRAY_REMAINING]'s value between that key and the
+ * next: a call answering an ArrayList, and its move-result-object. Fails when there isn't exactly
+ * one, since then Stop loading stories would leave those reels to load.
+ */
+internal fun BytecodePatchContext.findTrayRemaining(site: MethodSite): TrayRemainingRead {
+    val method = classDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    val code = method.implementation!!.instructions.toList()
+    val where = "${site.type}->${site.name}"
+    val key = code.indexOfFirst { it.string() == TRAY_REMAINING }
+    if (key < 0) refuse("$where doesn't hold $TRAY_REMAINING")
+    val nextKey = (key + 1 until code.size).firstOrNull { code[it].string() != null } ?: code.size
+    val reads = (key + 1 until nextKey).filter { code[it].methodReference()?.returnType == ARRAY_LIST }
+    val read = reads.singleOrNull() ?: refuse("$where reads $TRAY_REMAINING ${reads.size} times, expected once")
+    val result = code.getOrNull(read + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where drops the reel ids it reads")
+    return TrayRemainingRead(site, read + 1, (result as OneRegisterInstruction).registerA)
+}
+
+/** Passes the ids of the reels left to fetch through [TRAY_REMAINING_FILTER] right after the parser reads them. */
+internal fun BytecodePatchContext.trimTrayRemaining(read: TrayRemainingRead) {
+    val ids = read.register
+    mutableMethod(read.site).addInstructions(
+        read.moveResult + 1,
+        """
+            invoke-static/range { v$ids .. v$ids }, $TRAY_REMAINING_FILTER
+            move-result-object v$ids
+        """,
+    )
+}
+
+/** Both tray parser hooks, the later one first, so writing one doesn't move where the other goes. */
+internal fun BytecodePatchContext.hookTrayParser(parse: TrayItemParse, remaining: TrayRemainingRead) {
+    if (remaining.moveResult > parse.moveResult) {
+        trimTrayRemaining(remaining)
+        filterTrayItems(parse)
+    } else {
+        filterTrayItems(parse)
+        trimTrayRemaining(remaining)
+    }
 }
 
 /** Passes each tray item through [TRAY_FILTER] right after the parser reads it, ahead of its null test. */

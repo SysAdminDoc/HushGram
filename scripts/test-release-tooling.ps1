@@ -146,10 +146,24 @@ Assert-True (($entries -join '; ') -eq (@(
 $unchanged = Get-ManifestDelta -Stock $facts -Patched $facts
 Assert-True (@(ConvertTo-ManifestDeltaEntries -Delta $unchanged).Count -eq 0) `
     'An unchanged manifest produced a delta.'
+Assert-True (@($unchanged.versionCodeChanged).Count -eq 0) 'An unchanged version code was reported as changed.'
 
-# The checked-in allowlist approves one change and nothing else: Remove the advertising ID takes
+# Change version code: the patched build's code is the change, so the allowlist names the one code
+# that was reviewed.
+$raisedFacts = $facts.PSObject.Copy()
+$raisedFacts.versionCode = '2147483647'
+$raisedDelta = Get-ManifestDelta -Stock $facts -Patched $raisedFacts
+Assert-True ((@(ConvertTo-ManifestDeltaEntries -Delta $raisedDelta) -join '; ') -ceq 'version-code 2147483647') `
+    "A raised version code did not flatten to its allowlist line: $(@(ConvertTo-ManifestDeltaEntries -Delta $raisedDelta) -join '; ')"
+# A receipt written before the delta had a version code field still flattens.
+$olderDelta = [pscustomobject]@{ permissionsAdded = @(); permissionsRemoved = @('android.permission.CAMERA')
+    exportedComponentsAdded = @(); exportedComponentsRemoved = @() }
+Assert-True ((@(ConvertTo-ManifestDeltaEntries -Delta $olderDelta) -join '; ') -ceq 'permission-removed android.permission.CAMERA') `
+    'A delta without a version code field did not flatten.'
+
+# The checked-in allowlist approves two changes and nothing else: Remove the advertising ID takes
 # the three advertising ID permissions out of the build, which the receipt reads as three
-# permissions no longer asked for.
+# permissions no longer asked for, and Change version code raises the version code to the highest.
 $checkedInAllowlist = @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt') |
     Where-Object { $_ })
 $removalEntries = @(
@@ -157,10 +171,12 @@ $removalEntries = @(
     'permission-removed android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
     'permission-removed com.google.android.gms.permission.AD_ID')
 $removedPermissions = @($removalEntries | ForEach-Object { $_ -replace '^permission-removed ', '' })
+$raisedVersionCode = '2147483647'
+$approvedEntries = @($removalEntries) + "version-code $raisedVersionCode"
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq
-        (@($removalEntries | Sort-Object -CaseSensitive) -join "`n")) `
-    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals, or ' +
-     "less than all of them: $($checkedInAllowlist -join ', ')")
+        (@($approvedEntries | Sort-Object -CaseSensitive) -join "`n")) `
+    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals and the ' +
+     "raised version code, or less than all of them: $($checkedInAllowlist -join ', ')")
 
 $allowlistRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("receipt-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $allowlistRoot | Out-Null
@@ -168,8 +184,8 @@ try {
     $good = Join-Path $allowlistRoot 'good.txt'
     Set-Content -LiteralPath $good -Encoding UTF8 -Value @(
         '# a comment', '', 'permission-added android.permission.VIBRATE',
-        'exported-added receiver:com.example.host.Probe')
-    Assert-True (@(Read-ManifestDeltaAllowlist -Path $good).Count -eq 2) `
+        'exported-added receiver:com.example.host.Probe', 'version-code 2147483647')
+    Assert-True (@(Read-ManifestDeltaAllowlist -Path $good).Count -eq 3) `
         'The allowlist reader did not skip comments and blank lines.'
 
     $bad = Join-Path $allowlistRoot 'bad.txt'
@@ -334,7 +350,7 @@ try {
                         [ordered]@{ name = 'Beta'; applied = $true; reason = $null })
             coverage = @(); coverageReviewed = $true
             manifestDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
-                exportedComponentsAdded = @(); exportedComponentsRemoved = @() }
+                exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
         }, [ordered]@{
             source = [ordered]@{ file = 'previous.apkm'; package = 'com.example.host'
                 versionName = '46.6.1'; versionCode = '2024606010'; sha256 = ('D' * 64)
@@ -343,7 +359,7 @@ try {
                         [ordered]@{ name = 'Beta'; applied = $true; reason = $null })
             coverage = @(); coverageReviewed = $true
             manifestDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
-                exportedComponentsAdded = @(); exportedComponentsRemoved = @() }
+                exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
         })
     }
     $templateJson = $template | ConvertTo-Json -Depth 12
@@ -601,17 +617,24 @@ try {
     Assert-True ($stale.Reason -like '*any more*') `
         "The stale allowlist entry was refused for the wrong reason: $($stale.Reason)"
 
-    # The checked-in allowlist, against receipts that carry the three removals on both builds. The
-    # removals pass. The removals plus any other change are refused, naming only the other, and a
-    # removal that stopped part way is refused for the part no patch makes any more.
+    # The checked-in allowlist, against receipts that carry the three removals and the raised version
+    # code on both builds. Those pass. They plus any other change are refused, naming only the other,
+    # and a removal that stopped part way is refused for the part no patch makes any more.
     $withRemovals = {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions)
+            $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
         }
     }
     $removed = Test-TestReceipt -Receipt (New-TestReceipt -Mutate $withRemovals) -Approved $checkedInAllowlist
     Assert-True $removed.Valid "A receipt carrying the approved advertising ID removals was refused: $($removed.Reason)"
+    $unraised = Test-TestReceipt -Receipt (New-TestReceipt -Mutate {
+            param($r)
+            foreach ($target in $r.targets) { $target.manifestDelta.permissionsRemoved = @($removedPermissions) }
+        }) -Approved $checkedInAllowlist
+    Assert-True (-not $unraised.Valid -and $unraised.Reason -like "*any more: version-code $raisedVersionCode") `
+        "A receipt whose version code was never raised passed the allowlist that approves raising it: $($unraised.Reason)"
     $unremoved = Test-TestReceipt -Receipt (New-TestReceipt) -Approved $checkedInAllowlist
     Assert-True (-not $unremoved.Valid -and $unremoved.Reason -like '*any more*') `
         "A receipt without the removals passed the allowlist that approves them: $($unremoved.Reason)"
@@ -623,7 +646,9 @@ try {
             @{ Name = 'a component exported'; Entry = 'exported-added receiver:com.example.host.Probe'
                 Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @('receiver:com.example.host.Probe') } },
             @{ Name = 'a component no longer exported'; Entry = 'exported-removed activity:com.example.host.Main'
-                Change = { param($t) $t.manifestDelta.exportedComponentsRemoved = @('activity:com.example.host.Main') } })) {
+                Change = { param($t) $t.manifestDelta.exportedComponentsRemoved = @('activity:com.example.host.Main') } },
+            @{ Name = 'another version code'; Entry = 'version-code 2147483646'
+                Change = { param($t) $t.manifestDelta.versionCodeChanged = @('2147483646') } })) {
         $receipt = New-TestReceipt -Mutate { param($r) & $withRemovals $r; & $other.Change $r.targets[1] }
         $result = Test-TestReceipt -Receipt $receipt -Approved $checkedInAllowlist
         Assert-True (-not $result.Valid) "With the advertising ID removals approved, $($other.Name) was accepted."
@@ -634,6 +659,7 @@ try {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions | Select-Object -First 2)
+            $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
         }
     }
     $part = Test-TestReceipt -Receipt $partWay -Approved $checkedInAllowlist
@@ -791,20 +817,23 @@ try {
     $unknown = Test-TargetCoverage -Coverage @($partial) @arguments
     Assert-True ($unknown.Valid -and -not $unknown.Reviewed) 'Another version code claimed reviewed fixture coverage.'
 
-    # Exercise the receipt validator itself with the real reviewed fixture and target labels.
+    # Exercise the receipt validator itself with the real reviewed fixture and target labels. The
+    # build comes from the expectations file, so moving the target moves this case with it.
+    $reviewedFixture = @((Get-Content (Join-Path $PSScriptRoot 'patch-coverage-expectations.json') -Raw | ConvertFrom-Json).fixtures)[0]
+    $reviewedName = [string]$reviewedFixture.versionName; $reviewedCode = [string]$reviewedFixture.versionCode
     $coverageReceipt = New-TestReceipt
     $coverageReceipt.release.patchCount = 1
     $coverageReceipt.targets = @($coverageReceipt.targets[0])
     $coverageTarget = $coverageReceipt.targets[0]
     $coverageTarget.source.package = 'com.instagram.android'
-    $coverageTarget.source.versionName = '449.0.0.52.84'
-    $coverageTarget.source.versionCode = '385511871'
+    $coverageTarget.source.versionName = $reviewedName
+    $coverageTarget.source.versionCode = $reviewedCode
     $coverageTarget.patches = @([pscustomobject]@{ name = 'Disable analytics'; applied = $true; reason = $null })
     $coverageTarget.coverage = @([pscustomobject]@{ family = 'disableAnalytics'; matched = 7; expected = 7
         targets = @('builder', 'graph', 'mqtt', 'reports', 'pings', 'stream', 'setup'); missing = @() })
     $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Disable analytics')
         ExpectedPatcherVersion = '1.12.0'; ExpectedManagerFloor = '1.29.0'; ExpectedPackageName = 'com.instagram.android'
-        ExpectedPackageVersions = @('449.0.0.52.84'); ExpectedPackageVersionCodes = @{ '449.0.0.52.84' = @('385511871') }
+        ExpectedPackageVersions = @($reviewedName); ExpectedPackageVersionCodes = @{ $reviewedName = @($reviewedCode) }
         BundlePath = $bundle }
     $certified = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
     Assert-True $certified.Valid "The reviewed coverage receipt failed: $($certified.Reason)"
@@ -2638,7 +2667,7 @@ try {
     # A receipt for this commit with a run of each build given, every patch applied and the
     # manifest changes the checked-in allowlist approves, written where the release check looks.
     $approvedDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
-        exportedComponentsAdded = @(); exportedComponentsRemoved = @() }
+        exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
     foreach ($entry in $checkedInAllowlist) {
         $kind, $value = $entry -split ' ', 2
         switch ($kind) {
@@ -2646,6 +2675,8 @@ try {
             'permission-removed' { $approvedDelta.permissionsRemoved += $value }
             'exported-added' { $approvedDelta.exportedComponentsAdded += $value }
             'exported-removed' { $approvedDelta.exportedComponentsRemoved += $value }
+            'version-code' { $approvedDelta.versionCodeChanged += $value }
+            default { throw "The release fixture doesn't know the allowlist kind $kind." }
         }
     }
     function Save-ReleaseReceipt([string[]]$Builds, [string]$Commit = $releaseCommit, [long]$Seconds = $releaseSeconds) {
@@ -2802,12 +2833,14 @@ try {
 
     $androidName = 'http://schemas.android.com/apk/res/android:name(0x01010003)='
     $androidExported = '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
-    # Instagram asks for the three advertising ID permissions, and the patched build doesn't: the
-    # change the checked-in allowlist approves, and the only one the patches make here.
+    # Instagram asks for the three advertising ID permissions, and the patched build doesn't, and
+    # carries the raised version code: the changes the checked-in allowlist approves, and the only
+    # ones the patches make here.
     function Get-FixtureManifest([string]$Build, [string]$Code, [switch]$WithSplit, [switch]$Patched,
             [string]$Package = $releaseTarget.PackageName) {
         $permissions = @('android.permission.INTERNET')
         if (-not $Patched) { $permissions += $removedPermissions }
+        if ($Patched) { $Code = $raisedVersionCode }
         $lines = @(
             'N: android=http://schemas.android.com/apk/res/android (line=1)',
             '  E: manifest (line=1)',
@@ -2967,7 +3000,8 @@ try {
             "The receipt does not record every patch applied to $label."
         $changes = @(ConvertTo-ManifestDeltaEntries -Delta $builtTarget.manifestDelta)
         Assert-True (($changes -join "`n") -ceq (@($checkedInAllowlist | Sort-Object -Unique -CaseSensitive) -join "`n")) `
-            "The receipt records other manifest changes for $label than the advertising ID removals: $($changes -join ', ')"
+            ("The receipt records other manifest changes for $label than the advertising ID removals and the raised " +
+                "version code: $($changes -join ', ')")
     }
     # Each fixture merged once, and the CLI handed that merge rather than the bundle.
     $mergeRuns = @(Get-Content -LiteralPath $mergeLog)

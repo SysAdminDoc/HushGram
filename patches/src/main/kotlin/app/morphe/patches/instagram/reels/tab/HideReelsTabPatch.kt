@@ -11,6 +11,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -113,7 +114,9 @@ internal class ReelsTabHooks(
 internal fun BytecodePatchContext.findReelsTab(): ReelsTabHooks {
     val enums = mutableListOf<ClassDef>()
     val hosts = mutableListOf<Method>()
+    val holders = (classesHolding(REELS, REELS_MODULE) + classesHolding(TAB_HOST_STATE)).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
+        if (classDef.type !in holders) return@classDefForEach
         classDef.methods.forEach { method ->
             if (method.name != "<clinit>" && method.name != "<init>") return@forEach
             val strings = method.code().mapNotNull { it.stringLoaded() }

@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -26,14 +27,18 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction51l
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
@@ -120,7 +125,7 @@ class HideMetaAiHookTest {
 
         context.dropFollowUpBar(context.findFollowUpBarCheck())
 
-        assertDroppedAfterTheCheck(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
+        assertDropped(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
     }
 
     @Test
@@ -139,6 +144,32 @@ class HideMetaAiHookTest {
     @Test
     fun aCheckOfAnotherViewFailsThePatch() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS, checkedId = 6)))
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+    }
+
+    /** On 450 the lookup is the findViewById, so the page's view answers through the extension before its null test. */
+    @Test
+    fun aPageViewCheckAnswersThroughTheExtension() {
+        val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS)))
+
+        val check = context.findFollowUpBarCheck()
+        context.dropFollowUpBar(check)
+
+        assertEquals(2, check.moveResult)
+        assertEquals(8, check.register)
+        assertDropped(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
+    }
+
+    @Test
+    fun aLookupWithoutAnyCheckFailsThePatch() {
+        val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, tested = 2)))
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+    }
+
+    /** A jump in between the view being set and the lookup would skip the hook on that path. */
+    @Test
+    fun aJumpPastTheViewFailsThePatch() {
+        val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, jumpIn = true)))
         assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
     }
 
@@ -169,7 +200,7 @@ class HideMetaAiHookTest {
                 val method = context.mutableClassDefBy(check.type).methods.single {
                     it.name == check.name && it.parameterTypes.map(CharSequence::toString) == check.parameters
                 }
-                assertDroppedAfterTheCheck("${bundle.name} ${check.type}->${check.name}", method)
+                assertDropped("${bundle.name} ${check.type}->${check.name}", method)
                 checked++
             }
         }
@@ -312,16 +343,17 @@ class HideMetaAiHookTest {
     }
 
     /**
-     * The stub check's move-result is followed by the extension call on the same register, its
-     * move-result into it, and the null test; the method has exactly one call to the extension.
+     * The method has exactly one call to the extension, on the register the instruction before it
+     * sets, with the answer back in it. On 449 that's the stub check's move-result, followed by the
+     * null test; on 450 it's the page's view, tested for null and then searched for the stub.
      */
-    private fun assertDroppedAfterTheCheck(what: String, method: Method) {
+    private fun assertDropped(what: String, method: Method) {
         val code = method.instructions()
         val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == FOLLOW_UP_BAR }
         assertEquals("$what: hooks", 1, hooks.size)
         val hook = hooks.single()
-        val find = code[hook - 2]
-        assertEquals("$what: the check", "Landroid/view/View;->findViewById(I)Landroid/view/View;", (find as ReferenceInstruction).reference.toString())
+        val find = (code[hook - 2] as? ReferenceInstruction)?.reference?.toString()
+        if (find != "Landroid/view/View;->findViewById(I)Landroid/view/View;") return assertDroppedBeforeTheViewTest(what, code, hook)
         val register = (code[hook - 1] as OneRegisterInstruction).registerA
         assertEquals("$what: the check's result", Opcode.MOVE_RESULT_OBJECT, code[hook - 1].opcode)
         assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
@@ -329,6 +361,21 @@ class HideMetaAiHookTest {
         assertEquals("$what: the register", register, (code[hook + 1] as OneRegisterInstruction).registerA)
         assertEquals("$what: the test", Opcode.IF_EQZ, code[hook + 2].opcode)
         assertEquals("$what: the tested register", register, (code[hook + 2] as OneRegisterInstruction).registerA)
+    }
+
+    /** The view's iget is followed by the extension call on its register and the answer back in it, then its null test and the lookup searching it. */
+    private fun assertDroppedBeforeTheViewTest(what: String, code: List<Instruction>, hook: Int) {
+        assertEquals("$what: the view", Opcode.IGET_OBJECT, code[hook - 1].opcode)
+        val register = (code[hook - 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[hook].opcode)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[hook + 1].opcode)
+        assertEquals("$what: the register", register, (code[hook + 1] as OneRegisterInstruction).registerA)
+        val test = (hook + 2 until code.size).first {
+            code[it].opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == register
+        }
+        val lookup = (test + 1 until code.size).first { code[it].opcode == Opcode.INVOKE_STATIC }
+        assertEquals("$what: the lookup's return", "Landroid/view/ViewStub;", ((code[lookup] as ReferenceInstruction).reference as MethodReference).returnType)
+        assertEquals("$what: the searched view", register, (code[lookup] as FiveRegisterInstruction).registerC)
     }
 
     /** The name's cast is followed by the extension call on its register, the answer back in it, and the null test; one call in all. */
@@ -426,6 +473,51 @@ class HideMetaAiHookTest {
                         type, "A06", listOf(ImmutableMethodParameter("Lkotlin/jvm/functions/Function1;", null, null)), "V",
                         AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
                         ImmutableMethodImplementation(10, code, null, null),
+                    ),
+                ),
+            )
+        }
+
+        /**
+         * Shaped like 450's search results bottom bar setup: its two strings, the page's view read
+         * into v8 and tested for null, then a static lookup (450's findViewById and cast) of the
+         * bar's stub in it, tested for null and for a parent before inflate(). [tested] is the
+         * register the first null test reads; [jumpIn] adds a jump to the lookup's id after the end.
+         */
+        fun viewCheckedBarSetup(type: String, tested: Int = 8, jumpIn: Boolean = false): ClassDef {
+            val view = "Landroid/view/View;"
+            val stub = "Landroid/view/ViewStub;"
+            val code = listOfNotNull(
+                ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("keyboardHeightChangeDetector")),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("bottomSearchSuggestionPillsHelper")),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 8, 10, ImmutableFieldReference(type, "A04", view)),
+                ImmutableInstruction10x(Opcode.NOP),
+                ImmutableInstruction21t(Opcode.IF_EQZ, tested, 21),
+                ImmutableInstruction31i(Opcode.CONST, 0, 0x7f0b3fc8),
+                ImmutableInstruction35c(
+                    Opcode.INVOKE_STATIC, 2, 8, 0, 0, 0, 0,
+                    ImmutableMethodReference("Lfixture/Views;", "A06", listOf(view, "I"), stub),
+                ),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 1, 12),
+                ImmutableInstruction35c(
+                    Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0,
+                    ImmutableMethodReference(view, "getParent", emptyList(), "Landroid/view/ViewParent;"),
+                ),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 0, 6),
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(stub, "inflate", emptyList(), view)),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+                if (jumpIn) ImmutableInstruction10t(Opcode.GOTO, -20) else null,
+            )
+            return ImmutableClassDef(
+                type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(
+                    ImmutableMethod(
+                        type, "A06", listOf(ImmutableMethodParameter("Lkotlin/jvm/functions/Function1;", null, null)), "V",
+                        AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+                        ImmutableMethodImplementation(12, code, null, null),
                     ),
                 ),
             )

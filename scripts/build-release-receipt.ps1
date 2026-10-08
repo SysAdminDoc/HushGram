@@ -390,6 +390,7 @@ foreach ($apk in $Fixture) {
                 permissionsRemoved        = @($delta.permissionsRemoved)
                 exportedComponentsAdded   = @($delta.exportedComponentsAdded)
                 exportedComponentsRemoved = @($delta.exportedComponentsRemoved)
+                versionCodeChanged        = @($delta.versionCodeChanged)
             }
         })
     } finally {
