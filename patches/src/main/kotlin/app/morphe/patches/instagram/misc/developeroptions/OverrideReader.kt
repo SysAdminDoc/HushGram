@@ -25,7 +25,7 @@ private const val CALLBACK = "Lcom/facebook/mobileconfig/MobileConfigUpdateOverr
 private const val PARAM_CTOR = "(IILjava/lang/String;Ljava/lang/String;IJ)V"
 private const val STRING_IS_EMPTY = "Ljava/lang/String;->isEmpty()Z"
 private const val STRING_OF_INT = "Ljava/lang/String;->valueOf(I)Ljava/lang/String;"
-private val RECORD_ARGS = listOf("Ljava/lang/String;", "Ljava/lang/String;") + List(7) { "I" } + List(3) { "Z" }
+internal val RECORD_ARGS = listOf("Ljava/lang/String;", "Ljava/lang/String;") + List(7) { "I" } + List(3) { "Z" }
 
 /** How many calls deep the read-only check follows the reader's native calls, and how many methods it checks at most. */
 internal const val READ_DEPTH = 4
@@ -317,7 +317,7 @@ private fun BytecodePatchContext.sessionFieldPath(method: Method, code: List<Ins
 }
 
 /** A record's documented argument roles must still be direct, distinct public instance fields. */
-private fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: MethodReference): List<FieldReference> {
+internal fun BytecodePatchContext.constructorFields(owner: ClassDef, reference: MethodReference): List<FieldReference> {
     val constructor = owner.methods.filter { it.toString() == reference.toString() }.one("record constructor body")
     val implementation = constructor.implementation ?: readerRefuse("record constructor has no body")
     val code = implementation.instructions.toList()

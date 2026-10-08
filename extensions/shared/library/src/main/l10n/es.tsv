@@ -661,3 +661,15 @@ Download video covers	Descargar portadas de videos
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Añade Descargar portada al menú de una publicación del feed con video y de un carrusel que muestre uno. Guarda la imagen fija que se ve antes de que se reproduzca el video, en su tamaño más grande.
 Stop the analytics upload alarm	Detener la alarma de subida de analíticas
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram programa una alarma que despierta tu teléfono para enviar sus datos de uso cinco minutos después. Esto detiene esa alarma; los datos se envían la próxima vez que uses la app, o a ninguna parte con Desactivar analíticas.
+Import flag names	Importar nombres de opciones
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Elige una lista de nombres de MetaConfig, como un archivo id_name_mapping.json, y MetaConfig mostrará esos nombres en lugar de números. La búsqueda por número sigue funcionando.
+Remove flag names	Quitar nombres de opciones
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	Olvida los nombres importados para que MetaConfig vuelva a mostrar las etiquetas propias de Instagram.
+Couldn't read flag names from that file. Nothing changed.	No se pudieron leer nombres de opciones de ese archivo. No ha cambiado nada.
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	Nombres de opciones quitados. Abre MetaConfig otra vez para ver las etiquetas propias de Instagram.
+There are no imported flag names to remove.	No hay nombres de opciones importados que quitar.
+Flag names imported: %1$d. Open MetaConfig again to see them.	Nombres de opciones importados: %1$d. Abre MetaConfig otra vez para verlos.
+Entries left out because they repeat or don't fit: %1$d.	Entradas omitidas porque se repiten o no encajan: %1$d.
+That file has no flag names in it. Nothing changed.	Ese archivo no tiene nombres de opciones. No ha cambiado nada.
+Couldn't remove the flag names. Try again.	No se pudieron quitar los nombres de opciones. Inténtalo de nuevo.
+Couldn't save the flag names. Nothing changed.	No se pudieron guardar los nombres de opciones. No ha cambiado nada.

@@ -25,9 +25,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * shown and {@link #inPlaceOfPronouns} right after it's hidden, with the slot and the profile
  * screen's header, and the label goes after the pronouns or takes the slot on its own.
  *
- * <p>Whether the account follows you comes from the friendship status Instagram keeps on the
- * profile's user, which it asks for when the profile opens, or failing that from the user's own
- * followed_by. Until it knows, nothing is added.
+ * <p>Whether the account follows you comes first from the profile screen's own answer, read the way
+ * Instagram's options sheet on that profile reads it to offer Remove follower. The friendship status
+ * Instagram keeps on the profile's user can be older than that (#40), so it's only asked when the
+ * screen has no answer, and failing that the user's own followed_by. Until it knows, nothing is
+ * added.
  *
  * <p>With Show it as a chip on, the answer goes in a chip under the profile's counts instead
  * ({@link FriendshipChip}), which also says Following each other when you follow the account too.
@@ -36,6 +38,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  */
 public final class FriendshipStatus {
     static final String SEPARATOR = " · ";
+
+    /** The keys of whether the account follows you and whether you follow it, as Instagram's trees hash them. */
+    static final int FOLLOWED_BY_KEY = "followed_by".hashCode();
+    static final int FOLLOWING_KEY = "following".hashCode();
 
     /** What the profile's account and you are to each other, as far as Instagram has said. */
     enum Relation { FOLLOWS_YOU, FOLLOWING_EACH_OTHER, DOESNT_FOLLOW_YOU }
@@ -101,6 +107,10 @@ public final class FriendshipStatus {
      * What the profile [header] belongs to and you are to each other, or null when the switch is
      * off, it's your own profile or Instagram hasn't said. Following each other needs Instagram to
      * have said you follow the account too.
+     *
+     * <p>The profile screen's own answer goes first, as it does for Instagram's options sheet: the
+     * status kept on the user can still say an account doesn't follow you after the screen has
+     * heard it does (#40). Only a screen with no answer falls back on the kept status.
      */
     @Nullable
     static Relation relation(Object header) {
@@ -111,13 +121,44 @@ public final class FriendshipStatus {
             return null;
         }
         if (isViewer(header, user)) return null;
-        Boolean followedBy = friendshipFollowedBy(user);
+        Object screen = screenStatus(header);
+        Boolean followedBy = screenFlag(screen, FOLLOWED_BY_KEY);
+        Boolean following = followedBy == null ? null : screenFlag(screen, FOLLOWING_KEY);
+        if (followedBy == null) followedBy = friendshipFollowedBy(user);
         if (followedBy == null) followedBy = followedBy(user);
         if (followedBy == null) {
             Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you");
             return null;
         }
-        return relation(followedBy, friendshipFollowing(user));
+        if (following == null) following = friendshipFollowing(user);
+        return relation(followedBy, following);
+    }
+
+    /**
+     * The friendship status in the answer of the profile screen [header] belongs to, or null when
+     * the screen has none yet or this build's couldn't be found. A failure reading it is noted once
+     * in the diagnostics and counts as no answer, so the label falls back on the kept status.
+     */
+    @Nullable
+    static Object screenStatus(Object header) {
+        try {
+            return screenFriendship(header);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "profile screen's answer", failure);
+            return null;
+        }
+    }
+
+    /** What the screen's friendship status [status] says under [key], or null when it says nothing there. */
+    @Nullable
+    static Boolean screenFlag(@Nullable Object status, int key) {
+        if (status == null) return null;
+        try {
+            return statusFlag(status, key);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "profile screen's friendship status", failure);
+            return null;
+        }
     }
 
     /** The relation for whether the account follows you and whether you follow it, which may be unknown. */
@@ -193,6 +234,22 @@ public final class FriendshipStatus {
      */
     @Nullable
     public static Boolean friendshipFollowing(Object user) {
+        return null;
+    }
+
+    /**
+     * Filled in by the patch: the friendship status in the answer of the profile screen [header]
+     * belongs to, read as fresh as Instagram's options sheet reads it to offer Remove follower, or
+     * null when the screen has none or this build's couldn't be found.
+     */
+    @Nullable
+    public static Object screenFriendship(Object header) {
+        return null;
+    }
+
+    /** Filled in by the patch: the Boolean the screen's friendship status [status] keeps under [key], or null. */
+    @Nullable
+    public static Boolean statusFlag(Object status, int key) {
         return null;
     }
 

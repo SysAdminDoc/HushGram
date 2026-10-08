@@ -53,6 +53,28 @@ class FriendshipStatusPartsTest {
         assertEquals(0, answer(context, FOLLOWING_LIST_STATUS))
     }
 
+    /**
+     * A build whose options sheet reads the screen's answer some other way keeps the label on the
+     * status kept on the account (as before #40) and says so, with the screen's stubs as shipped.
+     */
+    @Test
+    fun aScreenAnswerThatMovedLeavesTheLabelOnTheKeptStatus() {
+        val context = PatchContexts.of(classes(FollowingListHookTest.standIns(), FriendshipStatusHookTest.standIns(sheets = 0)))
+        val warnings = PatchLogCapture.warnings { friendshipStatusPatch.execute(context) }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().startsWith("Show if a profile follows you: expected one place reading"))
+        assertTrue(warnings.single(), warnings.single().endsWith("The label goes by the follow status Instagram keeps on the account."))
+        assertEquals("the profile label's hooks", 2, calls(context, BESIDE_PRONOUNS) + calls(context, IN_PLACE_OF_PRONOUNS))
+        val stock = ExtensionDex.classDef(FRIENDSHIP_STATUS).methods.associate { it.key() to it.implementation?.instructions?.count() }
+        for (stub in listOf("screenFriendship", "statusFlag")) {
+            val method = context.classDefByOrNull(FRIENDSHIP_STATUS)!!.methods.single { it.name == stub }
+            assertEquals("$stub was filled", stock[method.key()], method.implementation?.instructions?.count())
+        }
+        assertEquals(1, answer(context, "friendshipStatus"))
+        assertEquals(1, answer(context, FOLLOWING_LIST_STATUS))
+    }
+
     @Test
     fun aProfileThatMovedStopsThePatchBeforeAnythingChanges() {
         val context = PatchContexts.of(classes(FollowingListHookTest.standIns(), FriendshipStatusHookTest.standIns(traceName = "bindBio")))

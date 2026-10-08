@@ -661,3 +661,15 @@ Download video covers	Unduh sampul video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Menambahkan Unduh sampul ke menu postingan feed berisi video, dan ke carousel yang sedang menampilkan video. Ini menyimpan gambar diam yang tampil sebelum video diputar, dalam ukuran terbesarnya.
 Stop the analytics upload alarm	Hentikan alarm unggah analitik
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu; data dikirim saat kamu memakai aplikasi berikutnya, atau tidak ke mana pun dengan Nonaktifkan analitik.
+Import flag names	Impor nama flag
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Pilih daftar nama MetaConfig, misalnya berkas id_name_mapping.json, dan MetaConfig akan menampilkan nama itu sebagai pengganti angka. Pencarian dengan angka tetap berfungsi.
+Remove flag names	Hapus nama flag
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	Melupakan nama yang diimpor, sehingga MetaConfig kembali menampilkan label bawaan Instagram.
+Couldn't read flag names from that file. Nothing changed.	Nama flag tidak dapat dibaca dari berkas itu. Tidak ada yang berubah.
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	Nama flag dihapus. Buka MetaConfig lagi untuk melihat label bawaan Instagram.
+There are no imported flag names to remove.	Tidak ada nama flag yang diimpor untuk dihapus.
+Flag names imported: %1$d. Open MetaConfig again to see them.	Nama flag yang diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.
+Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati karena berulang atau tidak cocok: %1$d.
+That file has no flag names in it. Nothing changed.	Berkas itu tidak berisi nama flag. Tidak ada yang berubah.
+Couldn't remove the flag names. Try again.	Nama flag tidak dapat dihapus. Coba lagi.
+Couldn't save the flag names. Nothing changed.	Nama flag tidak dapat disimpan. Tidak ada yang berubah.

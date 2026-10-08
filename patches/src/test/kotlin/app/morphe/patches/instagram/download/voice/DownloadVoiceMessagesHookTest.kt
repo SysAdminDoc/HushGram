@@ -104,6 +104,24 @@ class DownloadVoiceMessagesHookTest {
         assertEquals(listOf("$MESSAGE->voice:$VOICE", "$VOICE->viewMode:Ljava/lang/String;"), mode.filter { it.opcode in READS }.map { it.referenceText() })
     }
 
+    /**
+     * The x86_64 build 385611440 looks the message up through a static copy of the lookup taking
+     * one more argument, copied into place between loading the name and the call.
+     */
+    @Test
+    fun aLookupWithACopyBeforeItIsFound() {
+        val context = context(menu = menu(lookup = OUTLINED_LOOKUP))
+        val (message, flag) = context.findSaveFlag()
+        assertEquals(MESSAGE, message)
+        assertEquals("$MODEL->canSave:Z", flag.toString())
+    }
+
+    /** A copy over the name's register means the call isn't handed the name. */
+    @Test
+    fun aNameCopiedOverBeforeTheLookupFailsThePatch() = refuses("isn't handed to the call that looks the message up") {
+        context(menu = menu(lookup = "move-object v1, v2\n$OUTLINED_CALL")).findVoiceMessages()
+    }
+
     @Test
     fun twoFlagsGuardingSaveFailThePatch() = refuses("expected one boolean of the menu's model guarding Save, found 2") {
         context(menu = menu(secondFlag = "other")).findVoiceMessages()
@@ -150,8 +168,9 @@ class DownloadVoiceMessagesHookTest {
     }
 
     /**
-     * In each declared build: the builder's one check of a message's kind gets the hook, the saver's
-     * entry asks first, and both bridges are written from Instagram's own reads.
+     * In each declared build, and in each other build of a declared version: the builder's one check
+     * of a message's kind gets the hook, the saver's entry asks first, and both bridges are written
+     * from Instagram's own reads. 385611440 calls a static copy of the lookup (#95).
      */
     @Test
     fun eachDeclaredBuildOffersSaveOnVoiceMessages() {
@@ -159,33 +178,12 @@ class DownloadVoiceMessagesHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val held = listOf(MESSAGE_MENU, SAVE_ACTION, AUDIO_SOURCE, VIEW_MODE_KEY, MEDIA_SAVER)
-                    .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-                val extension = ExtensionDex.classDef(VOICE_MESSAGE)
-                val (_, flag) = PatchContexts.of(held + extension).findSaveFlag()
-                val model = flag.definingClass
-                val builders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == model } }) { method ->
-                    method.instructions().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as TypeReference).type == model }
-                }.map { it.definingClass }
-                val entryTypes = held.filter { it.methods.any { method -> method.loads(MEDIA_SAVER) } }
-                    .flatMap { it.methods }.flatMap { it.parameterTypes.map(Any::toString) }.filter { it.startsWith("L") }
-                val extra = FixtureDex.classes(bundle, (builders + entryTypes + model).toSet()).values
-                val context = PatchContexts.of((held + extra).distinctBy { it.type } + extension)
-
-                val found = context.findVoiceMessages()
-                context.applyVoiceMessages(found)
-
+                val (context, found) = offersSaveIn(bundle, bundle.name)
                 val builder = context.mutableClassDefBy(found.offer.method.definingClass).methods.single {
                     it.name == found.offer.method.name && it.parameterTypes == found.offer.method.parameterTypes
                 }
-                assertEquals("${bundle.name}: one offer", 1, builder.instructions().count { it.referenceText() == OFFER_VOICE })
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
-                }
-                assertEquals("${bundle.name}: the saver asks first", SAVE_VOICE, saver.instructions()[2].referenceText())
-                for (bridge in listOf(AUDIO_BRIDGE, VIEW_MODE_BRIDGE)) {
-                    assertTrue("${bundle.name}: $bridge reads the message",
-                        context.method(VOICE_MESSAGE, bridge).instructions().any { it.opcode == Opcode.CHECK_CAST })
                 }
                 if (version == "450.0.0.50.77") {
                     // Where it lands on 450, read off the dex by hand.
@@ -208,6 +206,40 @@ class DownloadVoiceMessagesHookTest {
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+        for (base in Fixtures.otherBuilds()) offersSaveIn(base, base.parentFile.name)
+    }
+
+    /** Finds and applies everything in [bundle], checks the hooks went in, and hands back the context and what it found. */
+    private fun offersSaveIn(bundle: java.io.File, label: String): Pair<BytecodePatchContext, VoiceMessages> {
+        val held = listOf(MESSAGE_MENU, SAVE_ACTION, AUDIO_SOURCE, VIEW_MODE_KEY, MEDIA_SAVER)
+            .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val extension = ExtensionDex.classDef(VOICE_MESSAGE)
+        val (_, flag) = PatchContexts.of(held + extension).findSaveFlag()
+        val model = flag.definingClass
+        val builders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == model } }) { method ->
+            method.instructions().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as TypeReference).type == model }
+        }.map { it.definingClass }
+        val entryTypes = held.filter { it.methods.any { method -> method.loads(MEDIA_SAVER) } }
+            .flatMap { it.methods }.flatMap { it.parameterTypes.map(Any::toString) }.filter { it.startsWith("L") }
+        val extra = FixtureDex.classes(bundle, (builders + entryTypes + model).toSet()).values
+        val context = PatchContexts.of((held + extra).distinctBy { it.type } + extension)
+
+        val found = context.findVoiceMessages()
+        context.applyVoiceMessages(found)
+
+        val builder = context.mutableClassDefBy(found.offer.method.definingClass).methods.single {
+            it.name == found.offer.method.name && it.parameterTypes == found.offer.method.parameterTypes
+        }
+        assertEquals("$label: one offer", 1, builder.instructions().count { it.referenceText() == OFFER_VOICE })
+        val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
+            it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
+        }
+        assertEquals("$label: the saver asks first", SAVE_VOICE, saver.instructions()[2].referenceText())
+        for (bridge in listOf(AUDIO_BRIDGE, VIEW_MODE_BRIDGE)) {
+            assertTrue("$label: $bridge reads the message",
+                context.method(VOICE_MESSAGE, bridge).instructions().any { it.opcode == Opcode.CHECK_CAST })
+        }
+        return context to found
     }
 
     private fun refuses(reason: String, patch: () -> Unit) {
@@ -256,13 +288,22 @@ class DownloadVoiceMessagesHookTest {
             saver: ClassDef = saver(),
         ) = PatchContexts.of(listOf(menu, action(ACTION), action(OTHER_ACTION), model, builder, player, parser, saver, request(), ExtensionDex.classDef(VOICE_MESSAGE)))
 
+        /** 438's lookup, called right after the name is loaded into v1. */
+        const val DIRECT_LOOKUP = "invoke-virtual { v2, v1 }, Lfixture/Cache;->find(Ljava/lang/String;)$MESSAGE"
+
+        /** 385611440's static copy of the lookup, with one more argument. */
+        const val OUTLINED_CALL = "invoke-static { v2, v1, v4 }, Lfixture/Cache;->find(Lfixture/Cache;Ljava/lang/String;Z)$MESSAGE"
+
+        /** 385611440's lookup: its extra argument copied into place, then the static copy. */
+        const val OUTLINED_LOOKUP = "move v4, v2\n$OUTLINED_CALL"
+
         /** Shaped like 450's X.0GiO.HWZ: looks the message up, then adds Save twice behind the model's boolean. */
-        fun menu(secondFlag: String = "canSave", secondGuard: Boolean = true): ClassDef {
+        fun menu(secondFlag: String = "canSave", secondGuard: Boolean = true, lookup: String = DIRECT_LOOKUP): ClassDef {
             val second = if (secondFlag == "canSave") "" else "iget-boolean v0, p2, $MODEL->$secondFlag:Z"
             val body = """
                 const/4 v2, 0x0
                 const-string v1, "$MESSAGE_MENU"
-                invoke-virtual { v2, v1 }, Lfixture/Cache;->find(Ljava/lang/String;)$MESSAGE
+                $lookup
                 move-result-object v3
                 iget-boolean v0, p2, $MODEL->canSave:Z
                 if-eqz v0, :second

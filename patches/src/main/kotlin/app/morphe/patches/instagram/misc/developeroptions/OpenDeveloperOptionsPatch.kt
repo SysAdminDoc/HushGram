@@ -10,8 +10,10 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -65,24 +67,29 @@ val openDeveloperOptionsPatch = bytecodePatch(
         requireStatusMethod("developerOptions")
         requireStatusMethod(OVERRIDE_EXCHANGE_STATUS)
         requireStatusMethod(OVERRIDE_IMPORT_STATUS)
+        requireStatusMethod(FLAG_NAMES_STATUS)
         openDeveloperOptions(findOverrideEditor(), findWhitehatScreen())
     }
 }
 
 /**
  * Puts in developer options for the [editor] and the Whitehat [screen] already found: the long
- * press, the MetaConfig and Whitehat entries, and Export, Validate and Import as far as their reader
- * and writer are found. Every stub body is assembled and the opener found before anything changes,
- * so nothing after the long press hook can refuse.
+ * press, the MetaConfig and Whitehat entries, Export, Validate and Import as far as their reader
+ * and writer are found, and Import flag names when MetaConfig's list is found. Every stub body is
+ * assembled, every MetaConfig row traced and the opener found before anything changes, so nothing
+ * after the long press hook can refuse.
  */
 internal fun BytecodePatchContext.openDeveloperOptions(editor: OverrideEditor, screen: String) {
     val exchange = overrideExchangeOrWarn(editor)
+    val names = flagNamesOrWarn()
     val stubs = listOfNotNull(prepareOverrideEditor(editor), prepareWhitehatScreen(editor, screen), exchange?.reader, exchange?.writer)
     openOnLongPress(findOptionsOpener())
     stubs.forEach { putStubs(it) }
+    if (names != null) applyFlagNameList(names)
     enableStatus("developerOptions")
     if (exchange != null) enableStatus(OVERRIDE_EXCHANGE_STATUS)
     if (exchange?.writer != null) enableStatus(OVERRIDE_IMPORT_STATUS)
+    if (names != null) enableStatus(FLAG_NAMES_STATUS)
 }
 
 /** The override reader's stubs, and the writer's when it was found too, assembled and not yet put in. */
@@ -115,17 +122,19 @@ internal fun BytecodePatchContext.overrideExchangeOrWarn(editor: OverrideEditor)
 internal class OptionsOpener(val instance: String, val open: String)
 
 /**
- * Finds the class whose one static taking a context, an activity, a session and a Callable holds
+ * Finds the class whose one static taking a context, an activity, a session and a Callable loads
  * [OPTIONS_ERROR], and in it the instance it keeps of itself and the instance method taking the
- * first three, which Instagram's settings link and its debug button call to open the options.
+ * first three, which Instagram's settings link and its debug button call to open the options. The
+ * static holds the key on 385611438 and asks a string pool for it on 385611395 and 385611400 (#77),
+ * so it's read either way.
  */
 internal fun BytecodePatchContext.findOptionsOpener(): OptionsOpener {
     val found = mutableListOf<String>()
-    classesHolding(OPTIONS_ERROR).forEach { classDef ->
+    classesLoadingString(OPTIONS_ERROR).forEach { classDef ->
         val holds = classDef.methods.any { method ->
             AccessFlags.STATIC.isSet(method.accessFlags) &&
                 method.parameterTypes.map(Any::toString) == listOf(CONTEXT, FRAGMENT_ACTIVITY, USER_SESSION, "Ljava/util/concurrent/Callable;") &&
-                OPTIONS_ERROR in method.strings()
+                loadsString(method, OPTIONS_ERROR)
         }
         if (holds) found += classDef.type
     }

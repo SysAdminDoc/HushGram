@@ -32,6 +32,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
@@ -160,6 +161,53 @@ class HideMetaAiHookTest {
         assertDropped(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
     }
 
+    /**
+     * The x86_64 build 385611440 inlines the lookup, a findViewById cast to ViewStub, and the page's
+     * view still answers through the extension before its null test.
+     */
+    @Test
+    fun anInlinedLookupsPageViewCheckAnswersThroughTheExtension() {
+        val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, inlined = true)))
+
+        val check = context.findFollowUpBarCheck()
+        context.dropFollowUpBar(check)
+
+        assertEquals(2, check.moveResult)
+        assertEquals(8, check.register)
+        assertDropped(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
+    }
+
+    /**
+     * With the bar's lookup inlined too, 449's setup casts two stubs, the bar's and the pills'
+     * inside it. Neither is searched in a view read off a field, the bar's in one the method was
+     * handed and the pills' in the inflated bar, so neither is taken.
+     */
+    @Test
+    fun twoInlinedLookupsFailThePatch() {
+        val context = PatchContexts.of(listOf(barSetup(RESULTS, inlined = true)))
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+    }
+
+    /**
+     * A method making a static stub lookup isn't one that inlines it, even when that lookup's stub
+     * isn't inflated where the finder looks: the pills' findViewById and cast, searched in the bar
+     * read back off a field, would otherwise be taken for the bar's lookup.
+     */
+    @Test
+    fun aStaticLookupWhoseInflateIsntMatchedFailsThePatch() {
+        val context = PatchContexts.of(listOf(inflatedThroughACopy(RESULTS)))
+        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertTrue("$failure", failure.message!!.contains("looks up a stub to inflate 0 times"))
+    }
+
+    /** 385611440's inlined lookup searches the page's view read off a field; one searching a call's answer isn't taken. */
+    @Test
+    fun anInlinedLookupInAViewNotReadOffAFieldFailsThePatch() {
+        val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, inlined = true, viewFromCall = true)))
+        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertTrue("$failure", failure.message!!.contains("looks up a stub to inflate 0 times"))
+    }
+
     @Test
     fun aLookupWithoutAnyCheckFailsThePatch() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, tested = 2)))
@@ -179,32 +227,40 @@ class HideMetaAiHookTest {
         assertEquals(RESULTS, context.findFollowUpBarCheck().type)
     }
 
-    /** In each declared build the bar setup is found and its stub check answers through the extension. */
+    /**
+     * In each declared build, and in each other build of a declared version, the bar setup is found
+     * and its stub check answers through the extension. 385611440 inlines the lookup (#95).
+     */
     @Test
     fun eachDeclaredBuildDropsTheFollowUpBar() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val holders = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val context = PatchContexts.of(holders)
-
-                val check = context.findFollowUpBarCheck()
-                context.dropFollowUpBar(check)
-
-                val method = context.mutableClassDefBy(check.type).methods.single {
-                    it.name == check.name && it.parameterTypes.map(CharSequence::toString) == check.parameters
-                }
-                assertDropped("${bundle.name} ${check.type}->${check.name}", method)
+                dropsTheFollowUpBarIn(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+        for (base in Fixtures.otherBuilds()) dropsTheFollowUpBarIn(base, base.parentFile.name)
+    }
+
+    private fun dropsTheFollowUpBarIn(bundle: java.io.File, label: String) {
+        val holders = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(holders)
+
+        val check = context.findFollowUpBarCheck()
+        context.dropFollowUpBar(check)
+
+        val method = context.mutableClassDefBy(check.type).methods.single {
+            it.name == check.name && it.parameterTypes.map(CharSequence::toString) == check.parameters
+        }
+        assertDropped("$label ${check.type}->${check.name}", method)
     }
 
     /** Each button name the bar takes from the server's list answers through the extension; the later loop is left alone. */
@@ -363,7 +419,11 @@ class HideMetaAiHookTest {
         assertEquals("$what: the tested register", register, (code[hook + 2] as OneRegisterInstruction).registerA)
     }
 
-    /** The view's iget is followed by the extension call on its register and the answer back in it, then its null test and the lookup searching it. */
+    /**
+     * The view's iget is followed by the extension call on its register and the answer back in it,
+     * then its null test and the lookup searching it: a static call answering a ViewStub, or the
+     * findViewById 385611440 inlines it into, cast to ViewStub.
+     */
     private fun assertDroppedBeforeTheViewTest(what: String, code: List<Instruction>, hook: Int) {
         assertEquals("$what: the view", Opcode.IGET_OBJECT, code[hook - 1].opcode)
         val register = (code[hook - 1] as OneRegisterInstruction).registerA
@@ -373,8 +433,14 @@ class HideMetaAiHookTest {
         val test = (hook + 2 until code.size).first {
             code[it].opcode == Opcode.IF_EQZ && (code[it] as OneRegisterInstruction).registerA == register
         }
-        val lookup = (test + 1 until code.size).first { code[it].opcode == Opcode.INVOKE_STATIC }
-        assertEquals("$what: the lookup's return", "Landroid/view/ViewStub;", ((code[lookup] as ReferenceInstruction).reference as MethodReference).returnType)
+        val lookup = (test + 1 until code.size).first { code[it].opcode == Opcode.INVOKE_STATIC || code[it].opcode == Opcode.INVOKE_VIRTUAL }
+        val call = (code[lookup] as ReferenceInstruction).reference as MethodReference
+        if (code[lookup].opcode == Opcode.INVOKE_VIRTUAL) {
+            assertEquals("$what: the inlined lookup", "Landroid/view/View;->findViewById(I)Landroid/view/View;", call.toString())
+            assertEquals("$what: the stub's cast", "Landroid/view/ViewStub;", (code[lookup + 2] as ReferenceInstruction).reference.toString())
+        } else {
+            assertEquals("$what: the lookup's return", "Landroid/view/ViewStub;", call.returnType)
+        }
         assertEquals("$what: the searched view", register, (code[lookup] as FiveRegisterInstruction).registerC)
     }
 
@@ -436,13 +502,29 @@ class HideMetaAiHookTest {
          * bar's stub whose answer is tested for null, a static lookup of the same id handing the stub
          * to inflate(), and then the pills' stub, found inside the bar and cast, inflated too.
          * [checked] is the register the null test reads and [checkedId] the id register the check
-         * passes; the lookup always passes v7.
+         * passes; the lookup always passes v7. [inlined] makes the bar's lookup a findViewById and
+         * cast, the way the pills' is.
          */
-        fun barSetup(type: String, checked: Int = 0, checkedId: Int = 7): ClassDef {
+        fun barSetup(type: String, checked: Int = 0, checkedId: Int = 7, inlined: Boolean = false): ClassDef {
             val view = "Landroid/view/View;"
             val stub = "Landroid/view/ViewStub;"
             val findView = ImmutableMethodReference(view, "findViewById", listOf("I"), view)
             val inflate = ImmutableMethodReference(stub, "inflate", emptyList(), view)
+            val lookup = if (inlined) {
+                listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 3, 7, 0, 0, 0, findView),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                    ImmutableInstruction21c(Opcode.CHECK_CAST, 0, ImmutableTypeReference(stub)),
+                )
+            } else {
+                listOf(
+                    ImmutableInstruction35c(
+                        Opcode.INVOKE_STATIC, 2, 3, 7, 0, 0, 0,
+                        ImmutableMethodReference("Lfixture/Views;", "A0C", listOf(view, "I"), stub),
+                    ),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                )
+            }
             val code = listOf(
                 ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("keyboardHeightChangeDetector")),
                 ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("bottomSearchSuggestionPillsHelper")),
@@ -450,12 +532,8 @@ class HideMetaAiHookTest {
                 ImmutableInstruction31i(Opcode.CONST, 6, 0x7f0b22be),
                 ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 3, checkedId, 0, 0, 0, findView),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
-                ImmutableInstruction21t(Opcode.IF_EQZ, checked, 23),
-                ImmutableInstruction35c(
-                    Opcode.INVOKE_STATIC, 2, 3, 7, 0, 0, 0,
-                    ImmutableMethodReference("Lfixture/Views;", "A0C", listOf(view, "I"), stub),
-                ),
-                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                ImmutableInstruction21t(Opcode.IF_EQZ, checked, if (inlined) 25 else 23),
+            ) + lookup + listOf(
                 ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0, inflate),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
                 ImmutableInstruction31i(Opcode.CONST, 5, 0x7f0b06a7),
@@ -483,22 +561,46 @@ class HideMetaAiHookTest {
          * into v8 and tested for null, then a static lookup (450's findViewById and cast) of the
          * bar's stub in it, tested for null and for a parent before inflate(). [tested] is the
          * register the first null test reads; [jumpIn] adds a jump to the lookup's id after the end.
+         * [inlined] makes the lookup 385611440's, the findViewById and the cast themselves.
+         * [viewFromCall] has the page's view answered by a call instead of read off a field.
          */
-        fun viewCheckedBarSetup(type: String, tested: Int = 8, jumpIn: Boolean = false): ClassDef {
+        fun viewCheckedBarSetup(
+            type: String,
+            tested: Int = 8,
+            jumpIn: Boolean = false,
+            inlined: Boolean = false,
+            viewFromCall: Boolean = false,
+        ): ClassDef {
             val view = "Landroid/view/View;"
             val stub = "Landroid/view/ViewStub;"
+            // The cast takes two code units more, between the first test and where it goes.
+            val longer = if (inlined) 2 else 0
+            // Both ways of setting the view come before every branch and its target, so no offset changes.
+            val setView = if (viewFromCall) {
+                listOf(
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 10, 0, 0, 0, 0, ImmutableMethodReference(type, "A04", emptyList(), view)),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 8),
+                )
+            } else {
+                listOf(ImmutableInstruction22c(Opcode.IGET_OBJECT, 8, 10, ImmutableFieldReference(type, "A04", view)), ImmutableInstruction10x(Opcode.NOP))
+            }
             val code = listOfNotNull(
                 ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("keyboardHeightChangeDetector")),
                 ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("bottomSearchSuggestionPillsHelper")),
-                ImmutableInstruction22c(Opcode.IGET_OBJECT, 8, 10, ImmutableFieldReference(type, "A04", view)),
-                ImmutableInstruction10x(Opcode.NOP),
-                ImmutableInstruction21t(Opcode.IF_EQZ, tested, 21),
+                setView[0],
+                setView[1],
+                ImmutableInstruction21t(Opcode.IF_EQZ, tested, 21 + longer),
                 ImmutableInstruction31i(Opcode.CONST, 0, 0x7f0b3fc8),
-                ImmutableInstruction35c(
-                    Opcode.INVOKE_STATIC, 2, 8, 0, 0, 0, 0,
-                    ImmutableMethodReference("Lfixture/Views;", "A06", listOf(view, "I"), stub),
-                ),
+                if (inlined) {
+                    ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 8, 0, 0, 0, 0, ImmutableMethodReference(view, "findViewById", listOf("I"), view))
+                } else {
+                    ImmutableInstruction35c(
+                        Opcode.INVOKE_STATIC, 2, 8, 0, 0, 0, 0,
+                        ImmutableMethodReference("Lfixture/Views;", "A06", listOf(view, "I"), stub),
+                    )
+                },
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                if (inlined) ImmutableInstruction21c(Opcode.CHECK_CAST, 1, ImmutableTypeReference(stub)) else null,
                 ImmutableInstruction21t(Opcode.IF_EQZ, 1, 12),
                 ImmutableInstruction35c(
                     Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0,
@@ -509,7 +611,60 @@ class HideMetaAiHookTest {
                 ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(stub, "inflate", emptyList(), view)),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
-                if (jumpIn) ImmutableInstruction10t(Opcode.GOTO, -20) else null,
+                if (jumpIn) ImmutableInstruction10t(Opcode.GOTO, -20 - longer) else null,
+            )
+            return ImmutableClassDef(
+                type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(
+                    ImmutableMethod(
+                        type, "A06", listOf(ImmutableMethodParameter("Lkotlin/jvm/functions/Function1;", null, null)), "V",
+                        AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null,
+                        ImmutableMethodImplementation(12, code, null, null),
+                    ),
+                ),
+            )
+        }
+
+        /**
+         * A bar setup making a static stub lookup and inflating its stub through a copy, then
+         * finding the pills' stub in the inflated bar, kept in a field and read back, and inflating
+         * that:
+         *
+         *     2 iget-object v8, A04 | 3 if-eqz v8 -> 19 | 4 const v0, id | 5 invoke-static {v8, v0}, A06
+         *     6 move-result-object v1 | 7 move-object v3, v1 | 8 inflate {v3} | 9 move-result-object v4
+         *     10 iput-object v4, A05 | 11 iget-object v5, A05 | 12 if-eqz v5 -> 19 | 13 const v6, id
+         *     14 findViewById {v5, v6} | 15 move-result-object v7 | 16 check-cast v7, ViewStub
+         *     17 inflate {v7} | 18 move-result-object v7 | 19 return-void
+         */
+        fun inflatedThroughACopy(type: String): ClassDef {
+            val view = "Landroid/view/View;"
+            val stub = "Landroid/view/ViewStub;"
+            val inflate = ImmutableMethodReference(stub, "inflate", emptyList(), view)
+            val bar = ImmutableFieldReference(type, "A05", view)
+            val code = listOf(
+                ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("keyboardHeightChangeDetector")),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 2, ImmutableStringReference("bottomSearchSuggestionPillsHelper")),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 8, 10, ImmutableFieldReference(type, "A04", view)),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 8, 33),
+                ImmutableInstruction31i(Opcode.CONST, 0, 0x7f0b3fc8),
+                ImmutableInstruction35c(
+                    Opcode.INVOKE_STATIC, 2, 8, 0, 0, 0, 0,
+                    ImmutableMethodReference("Lfixture/Views;", "A06", listOf(view, "I"), stub),
+                ),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                ImmutableInstruction12x(Opcode.MOVE_OBJECT, 3, 1),
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 3, 0, 0, 0, 0, inflate),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 4),
+                ImmutableInstruction22c(Opcode.IPUT_OBJECT, 4, 10, bar),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 5, 10, bar),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 5, 15),
+                ImmutableInstruction31i(Opcode.CONST, 6, 0x7f0b06a7),
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, 5, 6, 0, 0, 0, ImmutableMethodReference(view, "findViewById", listOf("I"), view)),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 7),
+                ImmutableInstruction21c(Opcode.CHECK_CAST, 7, ImmutableTypeReference(stub)),
+                ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 7, 0, 0, 0, 0, inflate),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 7),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
             return ImmutableClassDef(
                 type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,

@@ -90,6 +90,13 @@ public final class DeveloperOptions {
     static int getOverrideTypeNative(long id) { return 0; }
 
     /**
+     * The config number and parameter index of one of MetaConfig's schema entries, filled by the
+     * patch with plain field reads, for {@link FlagNames}. -1 while unfilled.
+     */
+    static int getFlagConfigNative(Object entry) { return -1; }
+    static int getFlagIndexNative(Object entry) { return -1; }
+
+    /**
      * Injected first thing in the Home tab's long press. Answers 1 while the switch is on, and the
      * patch opens the developer options and ends the press. Otherwise 0, and the long press does
      * what it did. Never throws, and never waits for the settings: before they're ready it's 0.

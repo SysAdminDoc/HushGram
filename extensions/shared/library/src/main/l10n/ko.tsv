@@ -660,3 +660,15 @@ Download video covers	동영상 커버 다운로드
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	동영상이 있는 피드 게시물과 동영상을 보여 주는 캐러셀의 메뉴에 커버 다운로드를 추가합니다. 동영상이 재생되기 전에 보이는 정지 이미지를 가장 큰 크기로 저장합니다.
 Stop the analytics upload alarm	분석 업로드 알람 중지
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram은 5분 뒤 사용 데이터를 보내기 위해 휴대폰을 깨우는 알람을 설정합니다. 이 알람을 멈춥니다. 데이터는 다음에 앱을 사용할 때 전송되며, 분석 끄기를 켜면 어디로도 가지 않습니다.
+Import flag names	플래그 이름 가져오기
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json 파일 같은 MetaConfig 이름 목록을 고르면 MetaConfig에서 숫자 대신 그 이름이 표시됩니다. 숫자로 검색하는 기능은 그대로 작동합니다
+Remove flag names	플래그 이름 제거
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	가져온 이름을 지워 MetaConfig에 Instagram 기본 라벨이 다시 표시되게 합니다
+Couldn't read flag names from that file. Nothing changed.	해당 파일에서 플래그 이름을 읽을 수 없습니다. 변경된 내용이 없습니다
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	플래그 이름을 제거했습니다. Instagram 기본 라벨을 보려면 MetaConfig를 다시 여세요
+There are no imported flag names to remove.	제거할 가져온 플래그 이름이 없습니다
+Flag names imported: %1$d. Open MetaConfig again to see them.	가져온 플래그 이름: %1$d. 확인하려면 MetaConfig를 다시 여세요
+Entries left out because they repeat or don't fit: %1$d.	중복되거나 맞지 않아 제외된 항목: %1$d
+That file has no flag names in it. Nothing changed.	해당 파일에 플래그 이름이 없습니다. 변경된 내용이 없습니다
+Couldn't remove the flag names. Try again.	플래그 이름을 제거할 수 없습니다. 다시 시도하세요
+Couldn't save the flag names. Nothing changed.	플래그 이름을 저장할 수 없습니다. 변경된 내용이 없습니다
