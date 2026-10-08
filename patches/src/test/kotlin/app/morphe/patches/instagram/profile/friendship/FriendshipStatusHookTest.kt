@@ -11,16 +11,19 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.PatchLogCapture
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -28,6 +31,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -83,6 +87,78 @@ class FriendshipStatusHookTest {
     }
 
     /**
+     * The label reads the profile screen's own answer the way Instagram's options sheet does to offer
+     * Remove follower (#40): from the header's view model to the answer's tree, made the sheet's
+     * fragment and typed for its client, then the friendship status in it, and followed_by in that.
+     */
+    @Test
+    fun theScreenStubReadsTheAnswerAsTheOptionsSheetDoes() {
+        val context = PatchContexts.of(standIns())
+        val found = context.findProfileName()
+        val screen = context.findScreenAnswer()
+        assertEquals("$VIEW_MODEL->screen:$FLOW", screen.answer.toString())
+        assertEquals("$FLOW->getValue()Ljava/lang/Object;", screen.value)
+        assertEquals(TREE_HOLDER, screen.holder)
+        assertEquals("$TREE_HOLDER->tree:$TREE", screen.tree.toString())
+        assertEquals("$TREE->fragment(I)$TREE", screen.reinterpret)
+        assertEquals("$TREE->typed(Ljava/lang/String;I)$TREE", screen.retype)
+        assertEquals("$TREE->tree(I)$TREE", screen.subtree)
+        assertEquals("$TREE->flag(I)Ljava/lang/Boolean;", screen.flag)
+        assertEquals(SHEET_TYPE, screen.type)
+        assertEquals(CLIENT, screen.client)
+
+        context.friendshipStubs().apply {
+            fill(found)
+            fillScreen(found, screen)
+        }
+
+        val extension = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods
+        val stub = extension.single { it.name == "screenFriendship" }
+        assertEquals("two registers of its own and the header", 3, stub.implementation!!.registerCount)
+        val code = stub.implementation!!.instructions.toList()
+        val references = code.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+        assertEquals(
+            listOf(
+                HEADER, "$HEADER->model:$VIEW_MODEL", "$VIEW_MODEL->screen:$FLOW", "$FLOW->getValue()Ljava/lang/Object;",
+                TREE_HOLDER, TREE_HOLDER, "$TREE_HOLDER->tree:$TREE", "$TREE->fragment(I)$TREE", CLIENT,
+                "$TREE->typed(Ljava/lang/String;I)$TREE", "$TREE->tree(I)$TREE",
+            ),
+            references,
+        )
+        val literals = code.filter { it.opcode == Opcode.CONST }.map { (it as NarrowLiteralInstruction).narrowLiteral }
+        assertEquals(listOf(SHEET_TYPE, FRIENDSHIP_STATUS_KEY.hashCode()), literals)
+        val flag = extension.single { it.name == "statusFlag" }.implementation!!.instructions
+            .mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+        assertEquals(listOf(TREE, "$TREE->flag(I)Ljava/lang/Boolean;"), flag)
+    }
+
+    /** Without the options sheet's read the label keeps the status kept on the account, with a warning. */
+    @Test
+    fun withoutTheOptionsSheetTheScreenIsLeftOut() {
+        val context = PatchContexts.of(standIns(sheets = 0))
+        assertThrows(PatchException::class.java) { context.findScreenAnswer() }
+        var answer: ScreenAnswer? = null
+        val warnings = PatchLogCapture.warnings { answer = context.screenAnswerOrWarn() }
+        assertEquals(null, answer)
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().endsWith("The label goes by the follow status Instagram keeps on the account."))
+    }
+
+    /** Two places reading it alike can't be told apart, so neither is taken. */
+    @Test
+    fun twoSheetsReadingTheAnswerAreRefused() {
+        val context = PatchContexts.of(standIns(sheets = 2))
+        assertThrows(PatchException::class.java) { context.findScreenAnswer() }
+    }
+
+    /** A sheet whose client isn't a string the patch can tell is left out. */
+    @Test
+    fun aClientThatCantBeToldIsRefused() {
+        val context = PatchContexts.of(standIns(clientKnown = false))
+        assertThrows(PatchException::class.java) { context.findScreenAnswer() }
+    }
+
+    /**
      * A filled stub answering something narrower than Object returns on each way out by itself. Two
      * ways joined at one return-object hand it whatever they held merged, an Object, and ART turns
      * the whole extension class down for that (a status and a Boolean met that way on the S22).
@@ -90,12 +166,19 @@ class FriendshipStatusHookTest {
     @Test
     fun noNarrowStubJoinsTwoWaysAtOneReturn() {
         val context = PatchContexts.of(standIns())
-        context.friendshipStubs().fill(context.findProfileName())
+        val found = context.findProfileName()
+        context.friendshipStubs().apply {
+            fill(found)
+            fillScreen(found, context.findScreenAnswer())
+        }
 
         val narrow = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.filter {
-            it.name in setOf("friendshipFollowedBy", "friendshipFollowing", "followedBy", "userId", "viewerId", "slotView")
+            it.name in setOf(
+                "friendshipFollowedBy", "friendshipFollowing", "followedBy", "userId", "viewerId", "slotView", "statusFlag",
+                "screenFriendship",
+            )
         }
-        assertEquals(6, narrow.size)
+        assertEquals(8, narrow.size)
         for (stub in narrow) {
             val code = stub.implementation!!.instructions.toList()
             val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
@@ -163,18 +246,7 @@ class FriendshipStatusHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val binders = FixtureDex.classesHolding(bundle, BIND_FULL_NAME) + FixtureDex.classesHolding(bundle, FOLLOWED_BY)
-                val wanted = mutableSetOf(VIEW_MODEL, USER, RELATIONSHIP, USER_SESSION)
-                for (method in binders.flatMap { it.methods }.filter { it.loads(BIND_FULL_NAME) }) {
-                    wanted += method.parameterTypes.map(CharSequence::toString)
-                    method.implementation?.instructions?.forEach { instruction ->
-                        val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                        if (called?.name == "getView") wanted += called.definingClass
-                    }
-                }
-                val classes = (binders + FixtureDex.classes(bundle, wanted).values + ExtensionDex.classDef(FRIENDSHIP_STATUS))
-                    .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
-                val context = PatchContexts.of(classes)
+                val context = PatchContexts.of(profileClasses(bundle))
 
                 val found = context.findProfileName()
                 context.labelProfileName(found)
@@ -193,6 +265,116 @@ class FriendshipStatusHookTest {
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /**
+     * In each declared build the label reads the profile screen's answer as the options sheet does
+     * (#40): one place reads it, its client and fragment type are Instagram's, and the filled stub
+     * walks from the header's view model through the answer to the friendship status.
+     */
+    @Test
+    fun eachDeclaredBuildReadsTheScreensAnswer() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        var checked = 0
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                val classes = (profileClasses(bundle) + screenClasses(bundle)).distinctBy { it.type }
+                val context = PatchContexts.of(classes)
+
+                val found = context.findProfileName()
+                val screen = context.findScreenAnswer()
+                assertScreenAnswer(bundle.name, screen)
+                context.friendshipStubs().apply {
+                    fill(found)
+                    fillScreen(found, screen)
+                }
+                val references = context.mutableClassDefBy(FRIENDSHIP_STATUS).methods.single { it.name == "screenFriendship" }
+                    .implementation!!.instructions.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+                val walk = listOf(
+                    found.viewModel.toString(), screen.answer.toString(), screen.value, screen.tree.toString(), screen.reinterpret,
+                    CLIENT, screen.retype, screen.subtree,
+                )
+                assertEquals("${bundle.name}: $references", walk, references.filter { it in walk })
+                checked++
+            }
+        }
+        assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** Instagram ships 450 as several builds compiled on their own; each one's sheet reads the answer alike (#77). */
+    @Test
+    fun everyOtherBuildReadsTheScreensAnswer() {
+        for (apk in Fixtures.otherBuilds()) {
+            val context = PatchContexts.of(screenClasses(apk))
+            assertScreenAnswer(apk.parentFile.name, context.findScreenAnswer())
+        }
+    }
+
+    private fun assertScreenAnswer(what: String, screen: ScreenAnswer) {
+        assertEquals("$what: the screen's answer is the view model's", VIEW_MODEL, screen.answer.definingClass)
+        assertTrue("$what: ${screen.value}", screen.value.startsWith("${screen.answer.type}->getValue()"))
+        assertEquals("$what: the sheet's client", CLIENT, screen.client)
+        assertEquals("$what: the sheet's fragment type", SHEET_TYPE, screen.type)
+        assertEquals("$what: the answer keeps its tree", screen.holder, screen.tree.definingClass)
+        for (call in listOf(screen.reinterpret, screen.retype, screen.subtree, screen.flag)) {
+            assertTrue("$what: $call is the tree's", call.startsWith("${screen.tree.type}->"))
+        }
+        assertTrue("$what: ${screen.flag}", screen.flag.endsWith("(I)Ljava/lang/Boolean;"))
+    }
+
+    /** The binder of a bundle's profile name and the classes the label's finder reads from it. */
+    private fun profileClasses(bundle: File): List<ClassDef> {
+        val binders = FixtureDex.classesHolding(bundle, BIND_FULL_NAME) + FixtureDex.classesHolding(bundle, FOLLOWED_BY)
+        val wanted = mutableSetOf(VIEW_MODEL, USER, RELATIONSHIP, USER_SESSION)
+        for (method in binders.flatMap { it.methods }.filter { it.loads(BIND_FULL_NAME) }) {
+            wanted += method.parameterTypes.map(CharSequence::toString)
+            method.implementation?.instructions?.forEach { instruction ->
+                val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+                if (called?.name == "getView") wanted += called.definingClass
+            }
+        }
+        return (binders + FixtureDex.classes(bundle, wanted).values + ExtensionDex.classDef(FRIENDSHIP_STATUS))
+            .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
+    }
+
+    /**
+     * The classes the screen answer's finder reads in [bundle]: the profile fragment and its view
+     * model, every class with a method asking the fragment for something and loading the friendship
+     * status's key (the options sheet among them), then in rounds what those name: the answers the
+     * fragment's getters cast to and the classes they extend, the view model's fields and the trees
+     * the answers keep, with the string pools they ask.
+     */
+    private fun screenClasses(bundle: File): List<ClassDef> {
+        val found = mutableMapOf<String, ClassDef>()
+        val callers = mutableSetOf<String>()
+        val key = FRIENDSHIP_STATUS_KEY.hashCode()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val asks = classDef.methods.any { method ->
+                    val code = method.implementation?.instructions ?: return@any false
+                    code.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == key && it.opcode == Opcode.CONST } &&
+                        code.any { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == PROFILE_FRAGMENT }
+                }
+                if (asks) callers += classDef.type
+                if (asks || classDef.type == PROFILE_FRAGMENT || classDef.type == VIEW_MODEL) {
+                    found.putIfAbsent(classDef.type, ImmutableClassDef.of(classDef))
+                }
+            }
+        }
+        repeat(3) {
+            val wanted = found.values.flatMap { classDef ->
+                when {
+                    classDef.type == PROFILE_FRAGMENT -> classDef.methods.filter { method ->
+                        method.parameterTypes.isEmpty() && method.implementation?.instructions?.firstOrNull()
+                            ?.let { ((it as? ReferenceInstruction)?.reference as? FieldReference)?.type == VIEW_MODEL } == true
+                    }.map { it.returnType }
+                    classDef.type in callers -> emptyList()
+                    else -> listOfNotNull(classDef.superclass) + classDef.fields.map { it.type }
+                }
+            }.filter { it.startsWith("L") && it !in found }.toSet()
+            if (wanted.isNotEmpty()) found += FixtureDex.classes(bundle, wanted)
+        }
+        return FixtureDex.withStringPools(bundle, found.values)
     }
 
     /**
@@ -256,11 +438,22 @@ class FriendshipStatusHookTest {
         const val SLOT = "Lfixture/Slot;"
         const val TRACE = "Lfixture/Trace;"
         const val DUMP = "Lfixture/RelationshipDump;"
+        const val FLOW = "Lfixture/AnswerFlow;"
+        const val ANSWER = "Lfixture/ScreenAnswer;"
+        const val TREE_HOLDER = "Lfixture/TreeHolder;"
+        const val TREE = "Lfixture/Tree;"
+        const val CLIENT = "itas-android"
+
+        /** The options sheet's fragment type on 450, 0xcd0b11e1. */
+        const val SHEET_TYPE = -854912543
 
         /**
          * The classes the patch reads, shaped as on 449: a static binder that begins a trace section
          * named [traceName], shows the pronouns slot when there are pronouns and hides it otherwise, and
-         * takes the header, whose view model keeps the user, whose getter loads [key].
+         * takes the header, whose view model keeps the user, whose getter loads [key]. As on 450, the
+         * view model also keeps the screen's answer, which the profile fragment's getter answers and
+         * [sheets] options sheets read as Instagram's does, with a client it loads as a string or,
+         * without [clientKnown], gets from a call the patch can't read.
          */
         fun standIns(
             traceName: String = BIND_FULL_NAME,
@@ -269,6 +462,8 @@ class FriendshipStatusHookTest {
             keepsUser: Boolean = true,
             dumped: Boolean = true,
             dumpsFollowing: Boolean = true,
+            sheets: Int = 1,
+            clientKnown: Boolean = true,
         ): List<ClassDef> {
             val hide = if (hides) {
                 """
@@ -358,11 +553,66 @@ class FriendshipStatusHookTest {
                     return-void
                 """,
             )
+            // The profile fragment's getter of the screen's answer, as 450's UserDetailFragment.A0q().
+            val answer = method(
+                PROFILE_FRAGMENT, "answer", emptyList(), ANSWER, 2,
+                """
+                    iget-object v0, p0, $PROFILE_FRAGMENT->model:$VIEW_MODEL
+                    if-eqz v0, :none
+                    iget-object v0, v0, $VIEW_MODEL->screen:$FLOW
+                    invoke-interface { v0 }, $FLOW->getValue()Ljava/lang/Object;
+                    move-result-object v0
+                    check-cast v0, $ANSWER
+                    return-object v0
+                    :none
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+                static = false,
+            )
+            // The options sheet's builder, as 450's 09D9.A02: Remove follower goes by what this reads.
+            val client = if (clientKnown) {
+                "const-string v3, \"$CLIENT\""
+            } else {
+                "invoke-static { }, Lfixture/Clients;->pick()Ljava/lang/String;\nmove-result-object v3"
+            }
+            val sheet = { type: String ->
+                method(
+                    type, "build", listOf(PROFILE_FRAGMENT), "V", 5,
+                    """
+                        $client
+                        invoke-virtual { p0 }, $PROFILE_FRAGMENT->answer()$ANSWER
+                        move-result-object v0
+                        if-eqz v0, :done
+                        iget-object v1, v0, $TREE_HOLDER->tree:$TREE
+                        const v2, $SHEET_TYPE
+                        invoke-interface { v1, v2 }, $TREE->fragment(I)$TREE
+                        move-result-object v1
+                        invoke-interface { v1, v3, v2 }, $TREE->typed(Ljava/lang/String;I)$TREE
+                        move-result-object v1
+                        const v2, ${FRIENDSHIP_STATUS_KEY.hashCode()}
+                        invoke-interface { v1, v2 }, $TREE->tree(I)$TREE
+                        move-result-object v1
+                        if-eqz v1, :done
+                        const v2, ${FOLLOWED_BY.hashCode()}
+                        invoke-interface { v1, v2 }, $TREE->flag(I)Ljava/lang/Boolean;
+                        move-result-object v1
+                        :done
+                        return-void
+                    """,
+                )
+            }
+            val sheetClasses = (1..sheets).map { index ->
+                val type = "Lfixture/OptionsSheet$index;"
+                classOf(type, emptyList(), listOf(sheet(type)))
+            }
+            val viewModelFields = (if (keepsUser) listOf(field(VIEW_MODEL, "user", USER)) else emptyList()) +
+                field(VIEW_MODEL, "screen", FLOW)
             return listOf(
                 classOf(BINDER, emptyList(), listOf(bind)),
                 classOf(HOLDER, listOf(field(HOLDER, "pronouns", SLOT)), emptyList()),
                 classOf(HEADER, listOf(field(HEADER, "model", VIEW_MODEL), field(HEADER, "session", USER_SESSION)), emptyList()),
-                classOf(VIEW_MODEL, if (keepsUser) listOf(field(VIEW_MODEL, "user", USER)) else emptyList(), emptyList()),
+                classOf(VIEW_MODEL, viewModelFields, emptyList()),
                 classOf(USER, emptyList(), listOf(getter, friendship, id, hash)),
                 classOf(USER_SESSION, emptyList(), listOf(viewer)),
                 classOf(DUMP, emptyList(), if (dumped) listOf(dump) else emptyList()),
@@ -372,8 +622,20 @@ class FriendshipStatusHookTest {
                     abstract(RELATIONSHIP, "following", emptyList(), "Ljava/lang/Boolean;"),
                     abstract(RELATIONSHIP, "followedBy", emptyList(), "Ljava/lang/Boolean;"),
                 ),
+                classOf(PROFILE_FRAGMENT, listOf(field(PROFILE_FRAGMENT, "model", VIEW_MODEL)), listOf(answer)),
+                interfaceOf(FLOW, abstract(FLOW, "getValue", emptyList(), "Ljava/lang/Object;")),
+                classOf(TREE_HOLDER, listOf(field(TREE_HOLDER, "tree", TREE)), emptyList()),
+                classOf(ANSWER, emptyList(), emptyList(), superclass = TREE_HOLDER),
+                interfaceOf(
+                    TREE,
+                    abstract(TREE, "fragment", listOf("I"), TREE),
+                    abstract(TREE, "typed", listOf("Ljava/lang/String;", "I"), TREE),
+                    abstract(TREE, "tree", listOf("I"), TREE),
+                    abstract(TREE, "other", listOf("I"), TREE),
+                    abstract(TREE, "flag", listOf("I"), "Ljava/lang/Boolean;"),
+                ),
                 ExtensionDex.classDef(FRIENDSHIP_STATUS),
-            )
+            ) + sheetClasses
         }
 
         private fun interfaceOf(type: String, vararg methods: Method): ClassDef = ImmutableClassDef(
@@ -404,8 +666,10 @@ class FriendshipStatusHookTest {
         private fun field(type: String, name: String, of: String) =
             ImmutableField(type, name, of, AccessFlags.PUBLIC.value, null, null, null)
 
-        private fun classOf(type: String, fields: List<ImmutableField>, methods: List<Method>): ClassDef = ImmutableClassDef(
-            type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+        private fun classOf(
+            type: String, fields: List<ImmutableField>, methods: List<Method>, superclass: String = "Ljava/lang/Object;",
+        ): ClassDef = ImmutableClassDef(
+            type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, superclass,
             null, null, null, fields, methods,
         )
     }

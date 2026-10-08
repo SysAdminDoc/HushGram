@@ -661,3 +661,15 @@ Download video covers	Video-Cover herunterladen
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Fügt dem Menü eines Feed-Beitrags mit Video und eines Karussells, das gerade ein Video zeigt, den Eintrag Cover herunterladen hinzu. Er speichert das Standbild, das vor dem Abspielen des Videos zu sehen ist, in der größten Auflösung.
 Stop the analytics upload alarm	Analyse-Upload-Wecker stoppen
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram stellt einen Wecker, der dein Handy fünf Minuten später weckt, um Nutzungsdaten zu senden. Das stoppt diesen Wecker; die Daten gehen beim nächsten Öffnen der App raus, mit „Analysen deaktivieren“ nirgendwohin.
+Import flag names	Flag-Namen importieren
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Wähle eine Liste mit MetaConfig-Namen, etwa eine id_name_mapping.json-Datei, und MetaConfig zeigt diese Namen statt Nummern. Die Suche nach Nummern funktioniert weiterhin.
+Remove flag names	Flag-Namen entfernen
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	Vergisst die importierten Namen, damit MetaConfig wieder Instagrams eigene Bezeichnungen zeigt.
+Couldn't read flag names from that file. Nothing changed.	Aus dieser Datei konnten keine Flag-Namen gelesen werden. Nichts wurde geändert.
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	Flag-Namen entfernt. Öffne MetaConfig erneut, um Instagrams eigene Bezeichnungen zu sehen.
+There are no imported flag names to remove.	Es gibt keine importierten Flag-Namen zum Entfernen.
+Flag names imported: %1$d. Open MetaConfig again to see them.	Importierte Flag-Namen: %1$d. Öffne MetaConfig erneut, um sie zu sehen.
+Entries left out because they repeat or don't fit: %1$d.	Ausgelassene Einträge, weil sie doppelt sind oder nicht passen: %1$d.
+That file has no flag names in it. Nothing changed.	Diese Datei enthält keine Flag-Namen. Nichts wurde geändert.
+Couldn't remove the flag names. Try again.	Die Flag-Namen konnten nicht entfernt werden. Versuche es erneut.
+Couldn't save the flag names. Nothing changed.	Die Flag-Namen konnten nicht gespeichert werden. Nichts wurde geändert.

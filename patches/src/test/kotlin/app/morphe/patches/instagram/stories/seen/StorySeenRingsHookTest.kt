@@ -450,9 +450,12 @@ class StorySeenRingsHookTest {
         classDef.methods.map { ImmutableMethod(type, it.name, it.parameters, it.returnType, it.accessFlags, null, null, it.implementation) },
     )
 
+    /** Calls in Instagram's own classes. The filled markSeen stub makes the write too, and assertStubFilled checks that one. */
     private fun BytecodePatchContext.calls(reference: String): Int {
         var count = 0
-        classDefForEach { classDef -> classDef.methods.forEach { method -> count += method.code().count { it.referenceText() == reference } } }
+        classDefForEach { classDef ->
+            if (classDef.type != STORY_SEEN_RINGS) classDef.methods.forEach { method -> count += method.code().count { it.referenceText() == reference } }
+        }
         return count
     }
 

@@ -206,6 +206,11 @@ shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava
 # two values the server can set the press to. Nothing else calls open().
 start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
 once-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
+# Import flag names hands both labels of every row MetaConfig's list builder makes to FlagNames, in
+# both of its kinds of row. The builder is the one static ()List reading a schema entry's names,
+# and nothing else calls either hook. The schema entry type below is pinned 450 verification data.
+once-call Lapp/hushgram/extension/instagram/misc/FlagNames;->parameter(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String; in static ()Ljava/util/List; sites 2 holding _ LX/026c;->A06:Ljava/lang/String;
+once-call Lapp/hushgram/extension/instagram/misc/FlagNames;->config(Ljava/lang/Object;Ljava/lang/String;)Ljava/lang/String; in static ()Ljava/util/List; sites 2 holding _ LX/026c;->A04:Ljava/lang/String;
 # Read-only override exchange mustn't introduce native writes or cache reloads. The holder's
 # own typed forwarding wrappers are allowed; extension callers aren't.
 no-call Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;->importOverridesFromUser(Ljava/lang/String;)Ljava/lang/String; outside Lcom/facebook/mobileconfig/
@@ -939,7 +944,10 @@ once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)
 # after it hides the slot for an account with none (0BNk.A04 on 449, the one method loading the
 # trace name below). Each hook is called once there and nowhere else, so both rules are once-call.
 # Left out, nothing is added beside the name; twice or elsewhere, it isn't the hook the patch wrote.
-# FriendshipStatusHookTest checks on the 449 fixture that each lands right after its call.
+# FriendshipStatusHookTest checks on the 449 fixture that each lands right after its call. The
+# stubs the patch fills, the two reading the profile screen's own answer as the options sheet does
+# (#40) among them, are the extension's own methods, called only by FriendshipStatus, so they're no
+# hook into Instagram and get no rule; FriendshipStatusHookTest checks them on every 450 build.
 once-call Lapp/hushgram/extension/instagram/profile/FriendshipStatus;->besidePronouns(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/content/Context;Landroid/view/View;*)V holding bindFullName
 once-call Lapp/hushgram/extension/instagram/profile/FriendshipStatus;->inPlaceOfPronouns(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/content/Context;Landroid/view/View;*)V holding bindFullName
 # Its second switch hands each row of a follow list to FollowingList right after the row binder's

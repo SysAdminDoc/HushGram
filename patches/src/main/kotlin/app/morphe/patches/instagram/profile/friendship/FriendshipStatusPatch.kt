@@ -9,7 +9,9 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.proxy.mutableTypes.MutableClass
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -34,6 +36,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 
 internal const val PATCH = "Show if a profile follows you"
 internal const val FRIENDSHIP_STATUS = "$EXTENSION_PACKAGE/profile/FriendshipStatus;"
@@ -98,11 +102,13 @@ val friendshipStatusPatch = bytecodePatch(
         requireStatusMethod(FOLLOWING_LIST_STATUS)
         // Everything is found before anything changes, so a build missing any part is left untouched.
         val found = findProfileName()
+        val screen = screenAnswerOrWarn()
         val mark = followRowOrWarn()
         val stubs = friendshipStubs()
         val rowStubs = followingStubs()
         labelProfileName(found)
         stubs.fill(found)
+        if (screen != null) stubs.fillScreen(found, screen)
         if (mark != null) {
             markFollowRow(mark.row)
             askFollowAnswers(mark.answers)
@@ -409,8 +415,11 @@ private fun Method.freePairAt(index: Int): Int {
         ?: refuse("$definingClass->$name has no two locals side by side free after instruction $index")
 }
 
-/** The extension's stubs, found before anything changes, and the step that fills them. */
+/** The extension's stubs, found before anything changes, and the steps that fill them. */
 internal class FriendshipStubs(
+    private val extension: MutableClass,
+    private val screenFriendship: MutableMethod,
+    private val statusFlag: MutableMethod,
     private val profileUser: MutableMethod,
     private val friendshipFollowedBy: MutableMethod,
     private val friendshipFollowing: MutableMethod,
@@ -520,7 +529,66 @@ internal class FriendshipStubs(
             """,
         )
     }
+
+    /**
+     * Fills the two stubs reading the profile screen's own answer as Instagram's options sheet does
+     * (#40): from the header's view model to the answer's tree, made the sheet's fragment and typed
+     * for its client, then the friendship status in it, and a Boolean in that by its key. The first
+     * needs two registers of its own for the type and the client, which the stub as compiled may not
+     * have, so it's written anew with them ahead of its parameter.
+     */
+    fun fillScreen(found: ProfileName, screen: ScreenAnswer) {
+        val body = """
+            check-cast p0, ${found.headerType}
+            iget-object p0, p0, ${found.viewModel}
+            if-eqz p0, :unknown
+            iget-object p0, p0, ${screen.answer}
+            if-eqz p0, :unknown
+            invoke-interface { p0 }, ${screen.value}
+            move-result-object p0
+            instance-of v0, p0, ${screen.holder}
+            if-eqz v0, :unknown
+            check-cast p0, ${screen.holder}
+            iget-object p0, p0, ${screen.tree}
+            if-eqz p0, :unknown
+            const v0, ${screen.type}
+            invoke-interface { p0, v0 }, ${screen.reinterpret}
+            move-result-object p0
+            if-eqz p0, :unknown
+            const-string v1, "${screen.client}"
+            invoke-interface { p0, v1, v0 }, ${screen.retype}
+            move-result-object p0
+            if-eqz p0, :unknown
+            const v0, ${FRIENDSHIP_STATUS_KEY.hashCode()}
+            invoke-interface { p0, v0 }, ${screen.subtree}
+            move-result-object p0
+            return-object p0
+            :unknown
+            const/4 p0, 0x0
+            return-object p0
+        """
+        val written = ImmutableMethod(
+            screenFriendship.definingClass, screenFriendship.name, screenFriendship.parameters, screenFriendship.returnType,
+            screenFriendship.accessFlags, screenFriendship.annotations, screenFriendship.hiddenApiRestrictions,
+            ImmutableMethodImplementation(SCREEN_LOCALS + 1, emptyList(), null, null),
+        ).toMutable().apply { addInstructionsWithLabels(0, body.trimIndent()) }
+        extension.methods.remove(screenFriendship)
+        extension.methods.add(written)
+        // The stub's own registers are its two parameters, so the plain invoke names them.
+        statusFlag.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, ${screen.tree.type}
+                invoke-interface { p0, p1 }, ${screen.flag}
+                move-result-object p0
+                return-object p0
+            """,
+        )
+    }
 }
+
+/** The registers the screen's answer stub has of its own: the type and the client. */
+private const val SCREEN_LOCALS = 2
 
 internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
     val extension = mutableClassDefBy(FRIENDSHIP_STATUS)
@@ -530,6 +598,9 @@ internal fun BytecodePatchContext.friendshipStubs(): FriendshipStubs {
     } ?: refuse("$FRIENDSHIP_STATUS has no static $returns $name(${parameters.joinToString("")})")
 
     return FriendshipStubs(
+        extension = extension,
+        screenFriendship = stub("screenFriendship", listOf(OBJECT), OBJECT),
+        statusFlag = stub("statusFlag", listOf(OBJECT, "I"), BOOLEAN),
         profileUser = stub("profileUser", listOf(OBJECT), OBJECT),
         friendshipFollowedBy = stub("friendshipFollowedBy", listOf(OBJECT), BOOLEAN),
         friendshipFollowing = stub("friendshipFollowing", listOf(OBJECT), BOOLEAN),

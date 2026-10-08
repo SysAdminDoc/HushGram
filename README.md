@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.6-E1306C" alt="Version 0.0.6">
+  <img src="https://img.shields.io/badge/version-0.0.7-E1306C" alt="Version 0.0.7">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-450.0.0.50.77-E1306C" alt="Instagram 450.0.0.50.77">
@@ -14,7 +14,7 @@ HushGram is a Morphe patch bundle for Instagram on Android. It hides the ads, ke
 
 It's the Instagram member of a small family. [Hushfacebook](https://github.com/SysAdminDoc/Hushfacebook) does the same job for Facebook, and HushGram is built on its foundation: the same settings screen, pause switch, diagnostics and checks.
 
-The latest release is [v0.0.6](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.6), with 75 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
+The latest release is [v0.0.7](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.7), with 78 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
 
 This project has no connection to Meta or to the Morphe project. Neither endorses it, and neither wrote it.
 
@@ -211,7 +211,7 @@ At the top, a card says whether HushGram is on or paused. Below it:
 - **Downloads** holds the switches for Download feed videos, Download video covers, Download feed photos, Details in a post's menu, Save profile picture, View profile picture, Copy username and bio and Download voice messages, lists each save that's running, with a Cancel button, and holds Open in another player and what every save uses: Send downloads to another app, Save videos other apps can open, Download quality, the save folder and the video file name. Videos go to Movies and photos to Pictures, each in an Instagram folder unless you name another. A voice message goes to that folder under Recordings, or under Music before Android 12, named `IG_AUD_` with the date and time. Turn on Folder per account and each save goes one folder deeper, into a folder named for the account that posted it. A video is named `IG_VID_` with the date and time unless you set a name, and a photo `IG_IMG_` with the date and time. Turn on Name saves by account and post time and both are named for the account that posted and the time the post went up, like `username_20261005_143012`, so an account's saves sort by date. A profile picture has no post time, so it's named for the account and the time you saved it, like `username_profile_20261007_105151`. A carousel page gets its number on the end, and saving the same thing again adds the time you saved it rather than replacing the first file.
 - **Updates** holds the switch for the build expired screen.
 - **Battery** holds the switches for Stop the background heartbeat and Stop the analytics upload alarm.
-- **Developer** holds the Home long-press switch for Open developer options, and rows that open Instagram's MetaConfig overrides and its Whitehat settings.
+- **Developer** holds the Home long-press switch for Open developer options, rows that open Instagram's MetaConfig overrides and its Whitehat settings, and rows that import and remove names for MetaConfig's flags.
 - **Set when you patched** lists what was fixed at patch time and can't be switched off here, such as the re-signed build fix, the removed advertising ID, the pure black dark mode and the raised version code.
 - **Pause and diagnostics** has the Pause switch, Debug logging, and the diagnostic report. Copy a quick report, or save the full one to Download/Morphe (on Android 9, a Download/Morphe folder inside Instagram's own folder, and the message says where). Links, IDs, cookies and sign-in tokens are left out, but read it over for other private text before you share it.
 - **About** shows the version and the licenses, with a link to this page.
@@ -219,6 +219,8 @@ At the top, a card says whether HushGram is on or paused. Below it:
 Developer has **Open MetaConfig overrides**. It opens Instagram's native flag editor without enabling Home long press or changing a flag. It requires a signed-in Home or settings activity. An unavailable screen leaves HushGram settings open and puts the reason under the row (checked signed out on an emulator and a Samsung phone).
 
 Developer also has **Open Whitehat settings**. It opens Instagram's own Whitehat screen, the one Meta gives security researchers. Its switch lets Instagram trust the certificates installed on your phone, such as a debugging proxy's, for 24 hours, so you can check the app's traffic. Restart Instagram after turning it on, as the screen asks. Instagram turns the switch back off by itself once the day is up, and HushGram doesn't force that trust or stretch the day. Like the MetaConfig row, it needs a signed-in Home or settings activity.
+
+Developer also has **Import flag names** and **Remove flag names**. Instagram's release builds leave the names of MetaConfig's flags out, so its editor lists each one by number, like `_23355`, and there's little for its search to find. Pick a name list with Import flag names and the editor shows those names instead, in its list and in its search. Searching for a config's number still finds it. HushGram reads Instagram's own `id_name_mapping.json` format, which the name files other Instagram mods share use too. It also reads a JSON list of entries that each have a `code` and a `name`, and its own plain text with one `config=name` or `config::index=name` per line. HushGram doesn't come with a list of its own. The names go in HushGram's private folder and only change the labels in that editor. Instagram's schema and overrides file keep the numbers, and so does everything Instagram sends, so an override export is the same with or without names. A file that isn't a name list, or names nothing, changes nothing and says so. Open MetaConfig again after an import to see the names, and use Remove flag names to go back to the numbers. MetaConfig remembers pinned experiments by their labels, so pins you made with numbers come back once you remove the names, and pins made while names are in use only show while they are. Instagram's own warning that only some names are loaded still shows, since its count doesn't include HushGram's list.
 
 The diagnostic report also shows patch-time target coverage for Disable analytics, Sanitize sharing links and Start on x86 devices. Each shows matched/expected counts and fixed labels for missing targets. These describe the code the patch found, not which live requests Instagram sends.
 
@@ -429,7 +431,7 @@ For a local selection of more than one source, `scripts/patch-with-sources.ps1` 
 Create a selection file such as `selected-sources.json`. Bundle paths are relative to that file, and patch names belong to their own bundle. `"*"` selects every patch for the input APK's package:
 
 ```json
-{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.6.mpp","patches":["*"]}]}
+{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.7.mpp","patches":["*"]}]}
 ```
 
 ```powershell

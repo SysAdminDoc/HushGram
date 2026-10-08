@@ -19,6 +19,8 @@ import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.feed.sameAs
+import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -78,10 +80,16 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val BOUNCY_UFI_BUTTON = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val UFI_COUNT = "Lcom/instagram/common/ui/base/IgTextView;"
 
-/** Feed's inflated repost icon and count in Instagram 450, and the Repost button's label. */
+/** Feed's inflated repost icon and count in Instagram 450, the same ids in every build. */
 internal const val REPOSTS_UFI_ICON_ID = 0x7f0b3614
 internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b3613
-internal const val REPOSTS_LABEL_ID = 0x7f136e0d
+
+/**
+ * The role the component renderer gives the Repost button. Its label is a string resource, and
+ * Instagram numbers those per build (450's x86 build 385611439 has 438's 0x7f136e0d at 0x7f136e0f),
+ * so the role is what's matched.
+ */
+internal const val BUTTON_ROLE = "android.widget.Button"
 
 /** How far before a tree read its hash may be loaded, for a branch or two in between. */
 private const val HASH_REACH = 4
@@ -239,7 +247,9 @@ internal fun BytecodePatchContext.findFeedUfiSite(): FeedUfiSite {
  * The component-backed Feed row's Repost renderer, separate from the view binder, and where in it
  * the hook goes. On 449 the renderer is a method of its own and the hook goes first. 450's Redex
  * merges it with other Feed components into one method that picks its part by the component's
- * class, so the hook goes at the start of the one part that reaches the repost icon and label.
+ * class, so the hook goes at the start of the one part that reaches the repost icon and the
+ * [BUTTON_ROLE] it gives the button. The role is read either way, loaded itself or asked of a
+ * string pool, since which strings Redex pools differs from build to build.
  */
 internal class FeedRepostComponent(val method: Method, val at: Int)
 
@@ -252,8 +262,7 @@ internal fun BytecodePatchContext.findFeedRepostComponent(): FeedRepostComponent
             val code = method.implementation?.instructions?.toList() ?: return@forEach
             if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 1 &&
                 method.parameterTypes.single().startsWith("L") && method.returnType.startsWith("L") &&
-                method.holdsString("android.widget.Button") && code.indexOfLiteral(REPOSTS_UFI_ICON_ID) >= 0 &&
-                code.indexOfLiteral(REPOSTS_LABEL_ID) >= 0) renders += method
+                code.indexOfLiteral(REPOSTS_UFI_ICON_ID) >= 0 && loadsString(method, BUTTON_ROLE)) renders += method
         }
     }
     val render = renders.singleOrNull() ?: refuse("expected one Feed Repost component renderer, found ${renders.size}")
@@ -261,9 +270,8 @@ internal fun BytecodePatchContext.findFeedRepostComponent(): FeedRepostComponent
     if (parts.isEmpty()) return FeedRepostComponent(render, 0)
     val code = render.implementation!!.instructions.toList()
     val flow = ControlFlow.of(render)
-    fun loads(id: Int) = code.indices.filter { (code[it] as? NarrowLiteralInstruction)?.narrowLiteral == id && code[it].opcode == Opcode.CONST }
-    val icons = loads(REPOSTS_UFI_ICON_ID)
-    val labels = loads(REPOSTS_LABEL_ID)
+    val icons = code.indices.filter { (code[it] as? NarrowLiteralInstruction)?.narrowLiteral == REPOSTS_UFI_ICON_ID && code[it].opcode == Opcode.CONST }
+    val roles = code.indices.filter { stringLoadedAt(code, it) == BUTTON_ROLE }
     val checks = parts.map { it - 2 }.toSet()
     val reposts = parts.filter { start ->
         val seen = mutableSetOf<Int>()
@@ -273,7 +281,7 @@ internal fun BytecodePatchContext.findFeedRepostComponent(): FeedRepostComponent
             if (at in checks || !seen.add(at)) continue
             pending.addAll(flow.normal[at]); pending.addAll(flow.exceptional[at])
         }
-        icons.any { it in seen } && labels.any { it in seen }
+        icons.any { it in seen } && roles.any { it in seen }
     }
     val at = reposts.singleOrNull()
         ?: refuse("expected one part of ${render.definingClass}->${render.name} drawing Repost, found ${reposts.size}")

@@ -73,6 +73,12 @@ private const val STRING = "Ljava/lang/String;"
 private const val ACTIVITY = "Landroid/app/Activity;"
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
+/** The one-register copies a lookup's arguments may be put in place with. */
+private val COPIES = setOf(
+    Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16,
+    Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16,
+)
+
 /**
  * Save in a voice message's long-press menu, saving the recording through HushGram's own save.
  * Included in the default selection with its switch off.
@@ -146,6 +152,10 @@ internal fun BytecodePatchContext.findVoiceMessages(): VoiceMessages {
  * The menu method holds [MESSAGE_MENU] and hands it to the call that looks the message up, whose
  * return type is the message's. Each time the menu adds the Save action (the one singleton whose
  * toString is [SAVE_ACTION]) it first tests that boolean, read off one of the menu's parameters.
+ *
+ * 438 calls the lookup right after loading the name. The x86_64 build 385611440 calls a static
+ * copy of it taking one more argument, and copies that argument into place in between, so copies
+ * of other registers before the call are passed over.
  */
 internal fun BytecodePatchContext.findSaveFlag(): Pair<String, FieldReference> {
     val menus = classesHolding(MESSAGE_MENU).flatMap { host -> host.methods.filter { MESSAGE_MENU in it.strings() } }
@@ -153,10 +163,13 @@ internal fun BytecodePatchContext.findSaveFlag(): Pair<String, FieldReference> {
     val code = menu.code()
     val loads = code.indices.filter { (code[it].reference() as? StringReference)?.string == MESSAGE_MENU }
     val load = loads.singleOrNull() ?: refuse("expected one load of \"$MESSAGE_MENU\", found ${loads.size}")
-    val lookup = code.getOrNull(load + 1)
+    val name = (code[load] as OneRegisterInstruction).registerA
+    var at = load + 1
+    while (code.getOrNull(at)?.let { it.opcode in COPIES && (it as OneRegisterInstruction).registerA != name } == true) at++
+    val lookup = code.getOrNull(at)
     val message = lookup?.call()?.returnType
-    if (lookup?.call() == null || (code[load] as OneRegisterInstruction).registerA !in lookup.arguments() ||
-        message == null || !message.startsWith("L") || code.getOrNull(load + 2)?.opcode != Opcode.MOVE_RESULT_OBJECT
+    if (lookup?.call() == null || name !in lookup.arguments() ||
+        message == null || !message.startsWith("L") || code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT
     ) refuse("\"$MESSAGE_MENU\" isn't handed to the call that looks the message up")
 
     // Other menus have a Save action of their own; this menu reads one of them.

@@ -239,6 +239,22 @@ public enum PatchFamily {
         return inBuildForTests != null || SettingsStatus.overrideImport();
     }
 
+    /** Whether a test says this build shows imported flag names in MetaConfig, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean flagNamesForTests;
+
+    /**
+     * Whether this build shows imported flag names in Instagram's MetaConfig list, for Import flag
+     * names. Open developer options goes in without it when that list has moved.
+     */
+    public static boolean flagNamesInBuild() {
+        Boolean forced = flagNamesForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(DEVELOPER_OPTIONS);
+        return DEVELOPER_OPTIONS.inBuild() && SettingsStatus.flagNames();
+    }
+
     /** The families this build carries, in declaration order. */
     public static Set<PatchFamily> inThisBuild() {
         Set<PatchFamily> found = EnumSet.noneOf(PatchFamily.class);
@@ -290,6 +306,9 @@ public enum PatchFamily {
                     lines.add("  Export, Validate and Import overrides: not in this build (Instagram's override reader didn't match)");
                 } else if (family == DEVELOPER_OPTIONS && !overrideImportInBuild()) {
                     lines.add("  Import overrides: not in this build (Instagram's override writer didn't match)");
+                }
+                if (family == DEVELOPER_OPTIONS && !flagNamesInBuild()) {
+                    lines.add("  Import flag names: not in this build (Instagram's MetaConfig list didn't match)");
                 }
                 if (family == VERSION_CODE) lines.add("  " + VersionCode.reportLine());
                 if (family == DISABLE_ANALYTICS || family == SANITIZE_SHARING_LINKS || family == TRANSLATED_START) {

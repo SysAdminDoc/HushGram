@@ -338,6 +338,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Import flag names: Open developer options' hook on Instagram's MetaConfig list, which a build can lack. */
+    public static boolean flagNames() {
+        return false;
+    }
+
     public static boolean pureBlack() {
         return false;
     }

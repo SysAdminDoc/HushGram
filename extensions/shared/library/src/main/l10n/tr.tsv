@@ -661,3 +661,15 @@ Download video covers	Video kapaklarını indir
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Videolu bir akış gönderisinin ve video gösteren bir karuselin menüsüne Kapağı indir ekler. Video oynatılmadan önce görünen hareketsiz görüntüyü en büyük boyutunda kaydeder.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur; veriler uygulamayı bir sonraki kullanışında gider, Analizleri kapat açıkken hiçbir yere gitmez.
+Import flag names	Bayrak adlarını içe aktar
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json dosyası gibi bir MetaConfig ad listesi seç, MetaConfig sayılar yerine bu adları göstersin. Sayıyla arama çalışmaya devam eder.
+Remove flag names	Bayrak adlarını kaldır
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	İçe aktarılan adları unutur, böylece MetaConfig yeniden Instagram'ın kendi etiketlerini gösterir.
+Couldn't read flag names from that file. Nothing changed.	Bu dosyadan bayrak adları okunamadı. Hiçbir şey değişmedi.
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	Bayrak adları kaldırıldı. Instagram'ın kendi etiketlerini görmek için MetaConfig'i yeniden aç.
+There are no imported flag names to remove.	Kaldırılacak içe aktarılmış bayrak adı yok.
+Flag names imported: %1$d. Open MetaConfig again to see them.	İçe aktarılan bayrak adları: %1$d. Görmek için MetaConfig'i yeniden aç.
+Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya uymadığı için dışarıda bırakılan girişler: %1$d.
+That file has no flag names in it. Nothing changed.	Bu dosyada bayrak adı yok. Hiçbir şey değişmedi.
+Couldn't remove the flag names. Try again.	Bayrak adları kaldırılamadı. Yeniden dene.
+Couldn't save the flag names. Nothing changed.	Bayrak adları kaydedilemedi. Hiçbir şey değişmedi.

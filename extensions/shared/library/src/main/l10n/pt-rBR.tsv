@@ -661,3 +661,15 @@ Download video covers	Baixar capas de vídeos
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Adiciona Baixar capa ao menu de um post do feed com vídeo e de um carrossel mostrando um. Salva a imagem estática exibida antes de o vídeo começar, no maior tamanho.
 Stop the analytics upload alarm	Parar o alarme de envio de análises
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	O Instagram define um alarme para acordar seu telefone e enviar os dados de uso cinco minutos depois. Isso para esse alarme; os dados vão na próxima vez que você usar o app, ou para lugar nenhum com Desativar análises.
+Import flag names	Importar nomes de opções
+Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Escolha uma lista de nomes do MetaConfig, como um arquivo id_name_mapping.json, e o MetaConfig mostra esses nomes no lugar dos números. A busca por número continua funcionando.
+Remove flag names	Remover nomes de opções
+Forget the imported names, so MetaConfig shows Instagram's own labels again.	Esquece os nomes importados, para o MetaConfig voltar a mostrar os rótulos do próprio Instagram.
+Couldn't read flag names from that file. Nothing changed.	Não foi possível ler nomes de opções desse arquivo. Nada mudou.
+Flag names removed. Open MetaConfig again to see Instagram's own labels.	Nomes de opções removidos. Abra o MetaConfig de novo para ver os rótulos do próprio Instagram.
+There are no imported flag names to remove.	Não há nomes de opções importados para remover.
+Flag names imported: %1$d. Open MetaConfig again to see them.	Nomes de opções importados: %1$d. Abra o MetaConfig de novo para vê-los.
+Entries left out because they repeat or don't fit: %1$d.	Entradas deixadas de fora porque se repetem ou não se encaixam: %1$d.
+That file has no flag names in it. Nothing changed.	Esse arquivo não tem nomes de opções. Nada mudou.
+Couldn't remove the flag names. Try again.	Não foi possível remover os nomes de opções. Tente de novo.
+Couldn't save the flag names. Nothing changed.	Não foi possível salvar os nomes de opções. Nada mudou.

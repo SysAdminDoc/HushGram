@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -69,27 +70,36 @@ internal class GuessedNavigationBar(val type: String, val name: String, val para
 /**
  * Finds the one method outside the extension that loads both [SHOW_NAVIGATION_BAR] and
  * [NAVIGATION_BAR_NOT_FOUND], then its one static call taking a Context and answering an int into a
- * method that loads [NAVIGATION_BAR_DIMENSION]: the guess. Fails when the listener isn't there,
- * there's more than one, or it reads the guess some other way, since that's an update this patch
- * hasn't seen.
+ * method that loads [NAVIGATION_BAR_DIMENSION]: the guess. Where the method loading the strings is
+ * a static reading no guess, the compiler has moved the listener's navigation bar check into a
+ * method of its own (385611400 has it as a static taking the Resources and answering a boolean,
+ * #77), and the listener is the one method calling it. A static answering an int, or loading the
+ * dimension itself, is shaped like the listener rather than its check (449's listener is a static
+ * Context-to-int), so it's never followed to its callers, and a call to the check is never taken for
+ * the guess. Fails when the listener isn't there, there's more than one, or it reads the guess some
+ * other way, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findGuessedNavigationBar(): GuessedNavigationBar {
-    val listeners = mutableListOf<Pair<String, Method>>()
+    val holders = mutableListOf<Method>()
     classesHolding(SHOW_NAVIGATION_BAR, NAVIGATION_BAR_NOT_FOUND).forEach { classDef ->
-        classDef.methods.filter { it.holdsString(SHOW_NAVIGATION_BAR) && it.holdsString(NAVIGATION_BAR_NOT_FOUND) }
-            .forEach { listeners += classDef.type to it }
+        classDef.methods.filterTo(holders) { it.holdsString(SHOW_NAVIGATION_BAR) && it.holdsString(NAVIGATION_BAR_NOT_FOUND) }
     }
-    val (type, listener) = listeners.singleOrNull()
-        ?: refuse("expected one method loading $SHOW_NAVIGATION_BAR and $NAVIGATION_BAR_NOT_FOUND, found ${listeners.size}")
+    val holder = holders.singleOrNull()
+        ?: refuse("expected one method loading $SHOW_NAVIGATION_BAR and $NAVIGATION_BAR_NOT_FOUND, found ${holders.size}")
+    val movedCheck = AccessFlags.STATIC.isSet(holder.accessFlags) && guessesIn(holder).isEmpty() &&
+        holder.returnType != "I" && !holder.holdsString(NAVIGATION_BAR_DIMENSION)
+    val listener = if (movedCheck) {
+        val callers = callersOf(holder)
+        callers.singleOrNull() ?: refuse("${holder.definingClass}->${holder.name} reads no $NAVIGATION_BAR_DIMENSION and " +
+            "${callers.size} methods call it, expected one listener calling it")
+    } else {
+        holder
+    }
+    val type = listener.definingClass
 
     val code = listener.implementation!!.instructions.toList()
-    val guesses = code.withIndex().filter { (_, instruction) ->
-        if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return@filter false
-        val called = (instruction as ReferenceInstruction).reference as MethodReference
-        called.returnType == "I" && called.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT) &&
-            readsTheDimension(called)
-    }
-    val (at, _) = guesses.singleOrNull()
+    val guesses = guessesIn(listener, skipping = holder.takeIf { movedCheck })
+    val at = guesses.singleOrNull()
         ?: refuse("expected one read of $NAVIGATION_BAR_DIMENSION in $type->${listener.name}, found ${guesses.size}")
     val result = code.getOrNull(at + 1)
     if (result?.opcode != Opcode.MOVE_RESULT) refuse("$type->${listener.name} drops the guessed height")
@@ -98,6 +108,34 @@ internal fun BytecodePatchContext.findGuessedNavigationBar(): GuessedNavigationB
         (result as OneRegisterInstruction).registerA,
     )
 }
+
+/**
+ * Where [method] makes a static Context-to-int call into a helper loading [NAVIGATION_BAR_DIMENSION],
+ * leaving out calls to [skipping].
+ */
+private fun BytecodePatchContext.guessesIn(method: Method, skipping: Method? = null): List<Int> {
+    val code = method.implementation?.instructions?.toList().orEmpty()
+    return code.indices.filter { index ->
+        val instruction = code[index]
+        if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return@filter false
+        val called = (instruction as ReferenceInstruction).reference as MethodReference
+        called.returnType == "I" && called.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT) &&
+            (skipping == null || !called.names(skipping)) && readsTheDimension(called)
+    }
+}
+
+/** The methods outside the extension with a static call to [method]. */
+private fun BytecodePatchContext.callersOf(method: Method): List<Method> =
+    classesCalling(method.definingClass, method.name).flatMap { it.methods }.filter { caller ->
+        caller.implementation?.instructions?.any { instruction ->
+            val called = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+            (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) &&
+                called != null && called.names(method)
+        } == true
+    }
+
+private fun MethodReference.names(method: Method) = definingClass == method.definingClass && name == method.name &&
+    returnType == method.returnType && parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
 
 private fun BytecodePatchContext.readsTheDimension(called: MethodReference): Boolean {
     val helper = classDefByOrNull(called.definingClass)?.methods?.firstOrNull {
