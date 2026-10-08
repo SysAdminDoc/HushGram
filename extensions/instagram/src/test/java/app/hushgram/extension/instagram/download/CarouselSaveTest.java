@@ -115,6 +115,8 @@ public class CarouselSaveTest {
         MediaBridge.post = null;
         MediaBridge.poster = null;
         MediaBridge.postedAt = null;
+        MediaBridge.cover = null;
+        Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         LogBufferManager.clearLogBuffer();
     }
@@ -350,6 +352,28 @@ public class CarouselSaveTest {
         assertTrue(ReelDownload.saveCover(context, reel));
         waitForSaves();
         assertEquals(1, server.hits("/cover.jpg")); assertEquals(0, server.hits("/small.jpg"));
+        assertEquals(1, gallery.rows.size());
+        assertClean();
+    }
+
+    /**
+     * Download cover on a feed post (#94) saves the picture shown before the video on screen plays,
+     * a carousel page's here, at the largest size it states, even with addresses that name their
+     * sizes, as a reel's cover does. Neither the video nor another page is fetched.
+     */
+    @Test public void aFeedVideosCoverSavesAtItsLargestSize() throws Exception {
+        Settings.DOWNLOAD_FEED_COVER.save(true);
+        server.serve("/small.jpg", "image/jpeg", body(false));
+        server.serve("/cover.jpg", "image/jpeg", body(false));
+        MediaBridge.cover = Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/small.jpg?stp=dst-jpg_e15_s150x150_tt6", 150, 266, 0),
+                new MediaSave.Rendition(server.origin() + "/cover.jpg?stp=dst-jpg_e15_p540x540_tt6", 540, 960, 0));
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(true, "/middle.mp4", "2"));
+        VideoDownload.saveCover(MediaBridge.post, 1, null);
+        waitForSaves();
+        assertEquals(1, server.hits("/cover.jpg")); assertEquals(0, server.hits("/small.jpg"));
+        assertEquals("the video isn't its cover", 0, server.hits("/middle.mp4"));
+        assertEquals(0, server.hits("/first.jpg"));
         assertEquals(1, gallery.rows.size());
         assertClean();
     }
@@ -601,6 +625,7 @@ public class CarouselSaveTest {
         static List<MediaSave.Item> post;
         static String poster;
         static Long postedAt;
+        static List<MediaSave.Rendition> cover;
         static final Object ALL = new Object(), DOWNLOAD = new Object();
         static CharSequence label;
         @Implementation protected static Object saveAllOption() { return ALL; }
@@ -617,10 +642,10 @@ public class CarouselSaveTest {
         }
         @Implementation protected static String dashManifest(Object media) { return media instanceof MediaSave.Item ? ((MediaSave.Item) media).manifest : null; }
         @Implementation protected static Object imageVersions(Object media) { return media; }
-        /** A carousel's own picture is its first page's, as Instagram's is. */
+        /** A carousel's own picture is its first page's, as Instagram's is, and a video's is its cover. */
         @Implementation protected static List<?> imageCandidates(Object media) {
             MediaSave.Item item = (MediaSave.Item) (media instanceof List ? ((List<?>) media).get(0) : media);
-            return item.video ? null : item.renditions;
+            return item.video ? cover : item.renditions;
         }
         @Implementation protected static String versionUrl(Object version) { return ((MediaSave.Rendition) version).url; }
         @Implementation protected static Integer versionWidth(Object version) { return ((MediaSave.Rendition) version).width; }

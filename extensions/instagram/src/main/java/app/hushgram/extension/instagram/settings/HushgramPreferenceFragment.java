@@ -913,6 +913,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_VIDEOS, L10n.t("Download feed videos"),
                         L10n.t("Adds Download to the menu of a post in your feed with a video. Uses the quality below. "
                                 + "Off or paused, Instagram's own menu returns.")));
+                downloads.addPreference(toggle(context, Settings.DOWNLOAD_FEED_COVER, L10n.t("Download video covers"),
+                        L10n.t("Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. "
+                                + "It saves the still picture shown before the video plays, at its largest size.")));
                 downloads.addPreference(toggle(context, Settings.DOWNLOAD_PHOTOS, L10n.t("Download feed photos"),
                         L10n.t("The same Download on a photo post, and on a carousel showing a photo. Saves the largest "
                                 + "size Instagram has.")));

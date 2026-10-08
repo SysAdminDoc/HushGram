@@ -124,7 +124,7 @@ val sanitizeSharingLinksPatch = bytecodePatch(
         handleTargets(PATCH, "ways a link leaves Instagram", targets,
             coverage = { writeTargetCoverage("sanitizeSharingLinks", it) }) { target ->
             when (target) {
-                "permalink parser" -> sanitizeParsedLink(PermalinkParserFingerprint.matchAllOrNull().orEmpty().map { it.method }, PERMALINK_TYPE)
+                "permalink parser" -> cleanPermalink()
                 "story link parser" -> cleanStoryLink()
                 "clipboard copies" -> if (rerouteLinkExits(CLIPBOARD_EXITS) > 0) null
                     else "no code calls ClipboardManager.setPrimaryClip"
@@ -146,17 +146,32 @@ val sanitizeSharingLinksPatch = bytecodePatch(
  * a pool of shared strings for that name in 450's 385611395 and 385611400, where 385611438 loads it
  * itself (#77), and for the field's name in all of them, so both are read through the pools.
  */
-internal fun BytecodePatchContext.cleanStoryLink(): String? {
-    val parsers = classesLoadingString(STORY_SHARE_URL_TYPE).flatMap { it.methods }.filter { method ->
-        method.name == "unsafeParseFromJson" && method.returnType == "Ljava/lang/Object;" && loadsString(method, STORY_SHARE_URL_TYPE)
+internal fun BytecodePatchContext.cleanStoryLink(): String? =
+    sanitizeParsedLink(parsersLoading(STORY_SHARE_URL_TYPE), STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
+
+/**
+ * Cleans the link a post or reel's copy-link answer carries, in the one unsafeParseFromJson
+ * answering an object that loads both [PERMALINK_FIELD] and [PERMALINK_TYPE]. Redex asks a pool of
+ * shared strings for the type name in 450's x86 build (385611439), where the others load it
+ * themselves (#95), so both are read through the pools.
+ */
+internal fun BytecodePatchContext.cleanPermalink(): String? =
+    sanitizeParsedLink(parsersLoading(PERMALINK_TYPE, PERMALINK_FIELD), PERMALINK_TYPE)
+
+/**
+ * The unsafeParseFromJson methods answering an object that load [typeName] and each of [fields],
+ * themselves or from a pool of shared strings, as mutable methods.
+ */
+private fun BytecodePatchContext.parsersLoading(typeName: String, vararg fields: String): List<MutableMethod> =
+    classesLoadingString(typeName).flatMap { it.methods }.filter { method ->
+        method.name == "unsafeParseFromJson" && method.returnType == "Ljava/lang/Object;" &&
+            loadsString(method, typeName) && fields.all { loadsString(method, it) }
     }.map { parser ->
         mutableClassDefBy(parser.definingClass).methods.single {
             it.name == parser.name && it.returnType == parser.returnType &&
                 it.parameterTypes.map(Any::toString) == parser.parameterTypes.map(Any::toString)
         }
     }
-    return sanitizeParsedLink(parsers, STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
-}
 
 /**
  * Cleans the link a share-link parser reads, just before it's stored in the model the parser

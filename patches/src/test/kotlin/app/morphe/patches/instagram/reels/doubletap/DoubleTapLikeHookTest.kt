@@ -29,6 +29,13 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -98,6 +105,70 @@ class DoubleTapLikeHookTest {
             "the tip's own read of its count was touched",
             context.mutableClassDefBy(messageTip).methods.single().code().none { it.referenceText() == HOLD_BACK_MESSAGE },
         )
+    }
+
+    /** 450's x86 build (385611439) asks a pool of shared strings for like_comment in its comment row (#95). */
+    @Test
+    fun aCommentRowAskingAPoolForItsLikeIsGuarded() {
+        val context = PatchContexts.of(classes(pooledLike = true) + pool())
+
+        context.turnOffDoubleTapLikes()
+
+        for (row in listOf(fbCommentRow, commentRow)) {
+            assertCommentGuardFirst(row, context.mutableClassDefBy(row).methods.single { it.name == "onDoubleTap" }.code())
+        }
+        assertTrue(
+            "a listener that isn't a comment row was touched",
+            context.mutableClassDefBy(otherRow).methods.single().code().none { it.referenceText() == HOLD_BACK_COMMENT },
+        )
+    }
+
+    /** Without the pool there's nothing to read the like's name from, so that row is no comment row. */
+    @Test
+    fun aRowAskingAMissingPoolIsNoCommentRow() {
+        val context = PatchContexts.of(classes(pooledLike = true))
+
+        context.turnOffDoubleTapLikes()
+
+        assertCommentGuardFirst(fbCommentRow, context.mutableClassDefBy(fbCommentRow).methods.single { it.name == "onDoubleTap" }.code())
+        assertTrue(
+            "the row whose like can't be read was touched",
+            context.mutableClassDefBy(commentRow).methods.single().code().none { it.referenceText() == HOLD_BACK_COMMENT },
+        )
+    }
+
+    /** A pool answering another name for the row's number doesn't make it a comment row. */
+    @Test
+    fun aRowAskingAPoolForAnotherNameIsNoCommentRow() {
+        val context = PatchContexts.of(classes(pooledLike = true) + pool(answer = "like_media"))
+
+        context.turnOffDoubleTapLikes()
+
+        assertTrue(
+            "the row asking for another name was touched",
+            context.mutableClassDefBy(commentRow).methods.single().code().none { it.referenceText() == HOLD_BACK_COMMENT },
+        )
+    }
+
+    /**
+     * Every build's three comment rows, two filing fb_comment_double_tap and one filing like_comment
+     * or unlike_comment, are found, wherever Redex left their names: 385611439 asks a pool for
+     * like_comment (#95).
+     */
+    @Test
+    fun eachBuildFindsItsThreeCommentRows() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        for (bundle in bundles) {
+            val label = "${bundle.parentFile.name}/${bundle.name}"
+            val rows = (FixtureDex.classesHolding(bundle, FB_COMMENT_DOUBLE_TAP) + FixtureDex.classesHolding(bundle, UNLIKE_COMMENT))
+                .distinctBy { it.type }
+            val context = PatchContexts.of(FixtureDex.withStringPools(bundle, rows))
+            val taps = rows.filter { it.superclass == "Landroid/view/GestureDetector\$SimpleOnGestureListener;" }.flatMap { it.methods }
+                .filter { it.name == "onDoubleTap" && it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/MotionEvent;") }
+            assertEquals("$label: comment rows", 3, taps.count { context.isCommentDoubleTap(it) })
+        }
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -285,6 +356,7 @@ class DoubleTapLikeHookTest {
         reads: Int = 1,
         checkedLater: Boolean = false,
         commentRows: Boolean = true,
+        pooledLike: Boolean = false,
         messages: Int = 1,
         messageAnswers: Boolean = false,
         messageReactions: Int = 1,
@@ -378,9 +450,19 @@ class DoubleTapLikeHookTest {
             listenerDef(type, method(type, "onDoubleTap", listOf("Landroid/view/MotionEvent;"), "Z", 4,
                 strings.joinToString("\n") { "const-string v1, \"$it\"" } + "\nconst/4 v0, 0x1\nreturn v0"))
         }
+        // With [pooledLike] the second row asks [pool] for like_comment, as 450's 385611439 does.
+        val askedLike = listOf(
+            "const/16 v1, 0x$POOLED",
+            "invoke-static { v1 }, $POOL->A00(I)Ljava/lang/String;",
+            "move-result-object v1",
+            "const-string v1, \"$UNLIKE_COMMENT\"",
+            "const/4 v0, 0x1",
+            "return v0",
+        ).joinToString("\n")
         val rows = if (commentRows) listOf(
             rowOf(fbCommentRow, listOf("comment_row_component", FB_COMMENT_DOUBLE_TAP)),
-            rowOf(commentRow, listOf(LIKE_COMMENT, UNLIKE_COMMENT)),
+            if (pooledLike) listenerDef(commentRow, method(commentRow, "onDoubleTap", listOf("Landroid/view/MotionEvent;"), "Z", 4, askedLike))
+            else rowOf(commentRow, listOf(LIKE_COMMENT, UNLIKE_COMMENT)),
         ) else emptyList()
         // The chat's double tap on a message loads the tip count and its source, then hands the
         // message's id to a reaction. The tip's own read of the count loads no source.
@@ -442,6 +524,26 @@ class DoubleTapLikeHookTest {
         return ImmutableMethod.of(mutable)
     }
 
+    /**
+     * A pool of shared strings as 450's Redex writes it: a static (int)String switch answering
+     * [answer] for [POOLED]. p0 is v1.
+     */
+    private fun pool(answer: String = LIKE_COMMENT): ClassDef = ImmutableClassDef(
+        POOL, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null,
+        listOf(ImmutableMethod(
+            POOL, "A00", listOf(ImmutableMethodParameter("I", null, null)), "Ljava/lang/String;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(2, listOf(
+                ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 8),
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(answer)),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(POOLED, 5))),
+            ), null, null),
+        )),
+    )
+
     private fun listenerDef(type: String, method: Method): ClassDef = ImmutableClassDef(
         type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Landroid/view/GestureDetector\$SimpleOnGestureListener;",
         null, null, null, emptyList(), listOf(method),
@@ -467,4 +569,9 @@ class DoubleTapLikeHookTest {
         }
 
     private fun MethodReference.text(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+    private companion object {
+        const val POOL = "Lfixture/Strings;"
+        const val POOLED = 7
+    }
 }

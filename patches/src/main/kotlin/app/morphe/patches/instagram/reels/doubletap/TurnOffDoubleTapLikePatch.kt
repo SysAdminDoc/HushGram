@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -127,7 +128,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     val posts = mutableListOf<Method>()
     val reels = mutableListOf<Method>()
     val setters = mutableListOf<Method>()
-    val comments = mutableListOf<Method>()
+    val listeners = mutableListOf<Method>()
     val messages = mutableListOf<Method>()
     // Every method called with a post's view and the post, and the methods that call it.
     val likeShapes = mutableMapOf<String, MethodReference>()
@@ -139,7 +140,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
             val markers = method.markers()
             if (HANDLE_DOUBLE_TAP in markers) reels += method
             if (SET_LIKE_ACTION in markers) setters += method
-            if (classDef.superclass == GESTURE_LISTENER && method.isCommentDoubleTap(code)) comments += method
+            if (classDef.superclass == GESTURE_LISTENER && method.isDoubleTapListener()) listeners += method
             if (code.any { it.stringLoaded() == MESSAGE_TIP_COUNT } && code.any { it.stringLoaded() == MESSAGE_DOUBLE_TAP }) messages += method
             code.mapNotNull { it.likeShapedCall() }.forEach { call ->
                 likeShapes.putIfAbsent(call.text(), call)
@@ -195,6 +196,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
         refuse("${reel.definingClass}->${reel.name} doesn't check its like action for null straight after reading it")
     }
     // Each comment row's double tap likes the comment, and the guard borrows v0 at index 0.
+    val comments = listeners.filter { isCommentDoubleTap(it) }
     if (comments.isEmpty()) {
         refuse("no comment row's double tap loads \"$FB_COMMENT_DOUBLE_TAP\", or both \"$LIKE_COMMENT\" and \"$UNLIKE_COMMENT\"")
     }
@@ -317,15 +319,20 @@ private fun Instruction.stringLoaded(): String? =
     if (opcode != Opcode.CONST_STRING && opcode != Opcode.CONST_STRING_JUMBO) null
     else ((this as ReferenceInstruction).reference as StringReference).string
 
+/** A gesture listener's onDoubleTap(MotionEvent), as each comment row's double tap is. */
+private fun Method.isDoubleTapListener(): Boolean =
+    name == "onDoubleTap" && returnType == "Z" && !AccessFlags.STATIC.isSet(accessFlags) &&
+        parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/MotionEvent;")
+
 /**
- * A comment row's double tap: a gesture listener's onDoubleTap(MotionEvent) that loads
- * [FB_COMMENT_DOUBLE_TAP], or both [LIKE_COMMENT] and [UNLIKE_COMMENT].
+ * A comment row's double tap: a gesture listener's onDoubleTap that loads [FB_COMMENT_DOUBLE_TAP],
+ * or both [LIKE_COMMENT] and [UNLIKE_COMMENT], itself or from a pool of shared strings. Redex asks
+ * a pool for [LIKE_COMMENT] in 450's x86 build (385611439), where the others load it themselves
+ * (#95), and that row went unguarded.
  */
-private fun Method.isCommentDoubleTap(code: List<Instruction>): Boolean {
-    if (name != "onDoubleTap" || returnType != "Z" || AccessFlags.STATIC.isSet(accessFlags) ||
-        parameterTypes.map(CharSequence::toString) != listOf("Landroid/view/MotionEvent;")
-    ) return false
-    val strings = code.mapNotNull { it.stringLoaded() }.toSet()
+internal fun BytecodePatchContext.isCommentDoubleTap(method: Method): Boolean {
+    val code = method.code()
+    val strings = code.indices.mapNotNullTo(HashSet()) { stringLoadedAt(code, it) }
     return FB_COMMENT_DOUBLE_TAP in strings || (LIKE_COMMENT in strings && UNLIKE_COMMENT in strings)
 }
 

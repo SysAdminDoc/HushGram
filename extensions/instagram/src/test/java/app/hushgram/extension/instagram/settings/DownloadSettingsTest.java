@@ -71,6 +71,8 @@ public class DownloadSettingsTest {
         Settings.POST_DETAILS.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
+        Settings.DOWNLOAD_VIDEOS.resetToDefault();
+        Settings.DOWNLOAD_FEED_COVER.resetToDefault();
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */
@@ -261,6 +263,38 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.POST_DETAILS.key));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.POST_DETAILS.key));
+        }
+    }
+
+    /**
+     * Download video covers sits right below Download feed videos, which it waits for, with the
+     * feed video download in the build (#94). It starts off and goes in a settings file. A build
+     * with only reel downloads has no feed menu for it, so no row.
+     */
+    @Test
+    public void videoCoversSitUnderDownloadFeedVideos() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int cover = indexOfKey(rows, Settings.DOWNLOAD_FEED_COVER.key);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_VIDEOS.key) + 1, cover);
+            SwitchPreference row = (SwitchPreference) rows.get(cover);
+            assertEquals("Download video covers", String.valueOf(row.getTitle()));
+            assertFalse("Download video covers starts off", row.isChecked());
+            assertTrue(row.isEnabled());
+            SwitchPreference videos = (SwitchPreference) rows.get(cover - 1);
+            videos.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("Download video covers waits for Download feed videos", row.isEnabled());
+            videos.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_FEED_COVER.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_FEED_COVER.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_FEED_COVER.key));
         }
     }
 

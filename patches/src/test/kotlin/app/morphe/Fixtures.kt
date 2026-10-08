@@ -35,8 +35,8 @@ internal object Fixtures {
      * The base APKs of the other builds of each declared Instagram version, sorted by build. Each
      * is in a folder named `instagram-<version>-<version code>` in the fixture folder, and the
      * declared build's own folder is left out. Instagram ships one version as several builds
-     * (450.0.0.50.77 has five for arm64), each compiled on its own, and the patches find what
-     * they change by its shape, so these are read too (#77).
+     * (450.0.0.50.77 has five for arm64, one for x86 and one for x86_64), each compiled on its
+     * own, and the patches find what they change by its shape, so these are read too (#77, #95).
      */
     fun otherBuilds(): List<File> {
         val directory = folder()

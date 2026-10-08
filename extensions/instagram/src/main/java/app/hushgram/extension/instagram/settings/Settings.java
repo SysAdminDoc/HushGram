@@ -871,6 +871,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_photos", FALSE);
 
     /**
+     * A feed post with a video, and a carousel showing one, gets Download cover in its menu, saving
+     * the still picture Instagram shows before the video plays, as a reel's Download cover does
+     * (#94). Under Download feed videos, which it needs. Starts off, so the menu stays as it was.
+     */
+    public static final BooleanSetting DOWNLOAD_FEED_COVER =
+            new BooleanSetting("hushgram_download_feed_cover", FALSE, parent(DOWNLOAD_VIDEOS));
+
+    /**
      * Videos, reels and stories start only after a tap: a player's start goes ahead when a tap has
      * just ended, and Instagram's own autoplay check answers no
      * ({@link app.hushgram.extension.instagram.media.TapToPlay}). Nothing Instagram stores is

@@ -107,8 +107,12 @@ internal fun BytecodePatchContext.findThreadSeen(): ThreadSeenTargets {
     // The interface's own helper finishes a task with no error and no message, as the hook does.
     // R8 moves that static helper off the interface in some builds (450's 385611395 and 385611400
     // keep it on another class), where it takes an Object and casts it to the interface first (#77).
+    // 450's x86_64 build (385611440) keeps no such helper at all, so the queue's other handlers,
+    // which finish their own tasks the same way, count too (#95).
     if (callback.methods.none { it.static() && completesWithTwoNulls(it, complete) } &&
-        classesCallingInto(callback.type).none { owner -> owner.methods.any { it.completesCallbackWithTwoNulls(callback.type, complete) } }
+        classesCallingInto(callback.type).none { owner ->
+            owner.methods.any { it.completesCallbackWithTwoNulls(callback.type, complete) || it.isOtherHandlerFinishing(handler, complete) }
+        }
     ) {
         refuse("the callback interface never completes a task with two nulls")
     }
@@ -193,6 +197,14 @@ private fun Method.completesCallbackWithTwoNulls(callback: String, complete: Met
     return first.opcode == Opcode.CHECK_CAST && first.type() == callback &&
         (first as OneRegisterInstruction).registerA == localRegisterCount() && completesWithTwoNulls(this, complete)
 }
+
+/**
+ * [this] is another of the queue's handlers, an instance method of another class with the receipt
+ * handler's name and signature, and it finishes its own task with two nulls ([completesWithTwoNulls]).
+ */
+private fun Method.isOtherHandlerFinishing(handler: Method, complete: Method): Boolean =
+    !static() && definingClass != handler.definingClass && name == handler.name && returnType == handler.returnType &&
+        parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString) && completesWithTwoNulls(this, complete)
 
 private fun Instruction.writes(register: Int): Boolean {
     val destination = (this as? OneRegisterInstruction)?.registerA ?: return false

@@ -55,7 +55,10 @@ class NativeThreadSeenTest {
         }
     }
 
-    /** 450's other arm64 builds, two of which keep the callback's completion helper on another class (#77). */
+    /**
+     * 450's other builds: two arm64 ones keep the callback's completion helper on another class
+     * (#77), and the x86_64 one (385611440) keeps none (#95).
+     */
     @Test fun eachOtherBuildHoldsTheChatReceiptInItsOwnHandler() {
         for (bundle in Fixtures.otherBuilds()) {
             val context = PatchContexts.of(threadClasses(bundle).values)
@@ -123,11 +126,12 @@ class NativeThreadSeenTest {
             val providers = classes.getValue(handler.definingClass).methods.single { it.name == "<clinit>" }.visualCode()
                 .mapNotNull { (it.visualReference() as? FieldReference)?.definingClass }.toSet() - handler.definingClass
             classes += FixtureDex.classes(bundle, providers)
-            // 450's 385611395 and 385611400 keep the callback's completion helper on another class.
+            // 450's 385611395 and 385611400 keep the callback's completion helper on another class,
+            // and 385611440 keeps none, so the queue's other handlers come along too (#95).
             val callback = handler.parameterTypes[1].toString()
             FixtureDex.forEach(bundle) { dex ->
                 if (dex.typeSection.any { it == callback }) for (candidate in dex.classes) {
-                    if (candidate.type !in classes && candidate.methods.any { it.castsToFirst(callback) }) {
+                    if (candidate.type !in classes && candidate.methods.any { it.castsToFirst(callback) || it.handlesLike(handler) }) {
                         classes[candidate.type] = ImmutableClassDef.of(candidate)
                     }
                 }
@@ -142,6 +146,11 @@ class NativeThreadSeenTest {
             val first = visualCode().firstOrNull() ?: return false
             return first.opcode == Opcode.CHECK_CAST && (first.visualReference() as? TypeReference)?.type == type
         }
+
+        /** An instance method with [handler]'s name and signature: another of the queue's handlers. */
+        private fun Method.handlesLike(handler: Method): Boolean =
+            !AccessFlags.STATIC.isSet(accessFlags) && name == handler.name && returnType == handler.returnType &&
+                parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
 
         private fun threadHandler(classes: Map<String, ClassDef>): Method = classes.values.flatMap { it.methods }.single { method ->
             method.visualCode().mapNotNull { it.visualString() }.containsAll(listOf(THREAD_SEEN_QUERY, THREAD_SEEN_ROOT))

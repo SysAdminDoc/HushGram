@@ -77,6 +77,7 @@ public class PostInfoTest {
         Settings.DOWNLOAD_VIDEOS.save(true);
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
         Settings.OPEN_IN_PLAYER.resetToDefault();
+        Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Bridges.label = null;
@@ -399,6 +400,10 @@ public class PostInfoTest {
                 VideoDownload.allow(options, "DOWNLOAD"));
         List<?> already = VideoDownload.allow(options, "DOWNLOAD");
         assertTrue("a list that has it comes back as it came", already == VideoDownload.allow(already, "DOWNLOAD"));
+        Settings.DOWNLOAD_FEED_COVER.save(true);
+        assertEquals("Download cover sits after Save all (#94)", Arrays.asList("DOWNLOAD", all, VideoDownload.coverOption(),
+                VideoDownload.playerOption(), details, "WHY_AM_I_SEEING_THIS", "REPORT"), VideoDownload.allow(options, "DOWNLOAD"));
+        Settings.DOWNLOAD_FEED_COVER.save(false);
 
         Settings.OPEN_IN_PLAYER.save(false);
         Settings.DOWNLOAD_VIDEOS.save(false);
