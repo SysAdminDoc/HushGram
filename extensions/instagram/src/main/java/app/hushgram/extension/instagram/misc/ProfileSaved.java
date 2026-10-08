@@ -19,6 +19,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.os.Trace;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
@@ -134,6 +135,15 @@ public final class ProfileSaved {
 
     /** Makes room for the bookmark on your profile's tab row, if it's showing, and keeps it that way. */
     static void ensure(Activity activity) {
+        Trace.beginSection("hushgram:savedEnsure");
+        try {
+            look(activity);
+        } finally {
+            Trace.endSection();
+        }
+    }
+
+    private static void look(Activity activity) {
         try {
             if (!Utils.settingsReady() || !Settings.SAVED_ON_PROFILE.get()) return;
             View decor = activity.getWindow().getDecorView();

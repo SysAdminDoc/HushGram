@@ -2750,7 +2750,7 @@
     {
       "name": "Stop the background heartbeat",
       "description": "Instagram wakes your phone with an alarm every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
-      "category": "Battery",
+      "category": "Fixes",
       "use": false,
       "dependencies": [
         "BytecodePatch",

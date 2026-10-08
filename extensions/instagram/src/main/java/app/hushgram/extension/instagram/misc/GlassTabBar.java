@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
+import android.os.Trace;
 import android.util.Log;
 import android.view.PixelCopy;
 import android.view.Gravity;
@@ -419,6 +420,7 @@ public final class GlassTabBar {
         }
 
         @Override public boolean onPreDraw() {
+            Trace.beginSection("hushgram:preDraw");
             try {
                 keep();
                 // A tab's own selected state redraws that tab, not the bar behind it, so the capsule would
@@ -435,6 +437,8 @@ public final class GlassTabBar {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
                 blurBroken = true;
+            } finally {
+                Trace.endSection();
             }
             return true;
         }
@@ -494,6 +498,15 @@ public final class GlassTabBar {
             }
 
             @Override public void draw(@NonNull Canvas canvas) {
+                Trace.beginSection("hushgram:pillDraw");
+                try {
+                    drawPill(canvas);
+                } finally {
+                    Trace.endSection();
+                }
+            }
+
+            private void drawPill(@NonNull Canvas canvas) {
                 float left = outer;
                 float top = gap();
                 float right = bar.getWidth() - outer;
@@ -589,6 +602,15 @@ public final class GlassTabBar {
              * for nothing; the copy draws the bar again only when it differs from the last.
              */
             void refresh() {
+                Trace.beginSection("hushgram:refresh");
+                try {
+                    refreshStrip();
+                } finally {
+                    Trace.endSection();
+                }
+            }
+
+            private void refreshStrip() {
                 if (copying || blurBroken || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
                 long now = SystemClock.uptimeMillis();
                 if (now - lastRequest < COPY_EVERY_MS || now < quietUntil || !bar.isAttachedToWindow() || rect.isEmpty()) return;
@@ -633,6 +655,15 @@ public final class GlassTabBar {
             /** A copy arrived: if the screen above the pill changed, it becomes the strip and the bar draws again. */
             private void stored(Bitmap copy) {
                 // This runs on the copy's own thread. Only the swap, which the drawing reads, is done on the main one.
+                Trace.beginSection("hushgram:stored");
+                try {
+                    storedOnCopyThread(copy);
+                } finally {
+                    Trace.endSection();
+                }
+            }
+
+            private void storedOnCopyThread(Bitmap copy) {
                 int count = copy.getWidth() * copy.getHeight();
                 if (pixels.length != count) pixels = new int[count];
                 copy.getPixels(pixels, 0, copy.getWidth(), 0, 0, copy.getWidth(), copy.getHeight());
