@@ -147,9 +147,9 @@ public final class ProfileSaved {
         try {
             if (!Utils.settingsReady() || !Settings.SAVED_ON_PROFILE.get()) return;
             View decor = activity.getWindow().getDecorView();
-            View found = GlassTabBar.find(decor, TAB_LAYOUT);
+            View found = remembered(decor, TAB_LAYOUT, 0);
             if (!(found instanceof ViewGroup) || !found.isShown() || found.getWidth() <= 0) return;
-            View create = GlassTabBar.find(decor, CREATE_BUTTON);
+            View create = remembered(decor, CREATE_BUTTON, 1);
             if (create == null || !create.isShown()) return;
             ViewGroup tabs = (ViewGroup) found;
             Row row;
@@ -167,6 +167,24 @@ public final class ProfileSaved {
             why("threw " + failure);
         }
     }
+
+    /**
+     * The view called [name] in [decor]'s window, remembered between looks: finding a view by its id walks the
+     * whole screen, which is a few milliseconds on a busy one. A remembered view that has left the window is
+     * looked up again.
+     */
+    @Nullable
+    private static View remembered(View decor, String name, int slot) {
+        java.lang.ref.WeakReference<View> held = seen[slot];
+        View view = held == null ? null : held.get();
+        if (view != null && view.isAttachedToWindow() && view.getRootView() == decor) return view;
+        view = GlassTabBar.find(decor, name);
+        seen[slot] = view == null ? null : new java.lang.ref.WeakReference<>(view);
+        return view;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static final java.lang.ref.WeakReference<View>[] seen = new java.lang.ref.WeakReference[2];
 
     static void why(String what) {
         if (DIAGNOSE) Log.w("HushSaved", what);

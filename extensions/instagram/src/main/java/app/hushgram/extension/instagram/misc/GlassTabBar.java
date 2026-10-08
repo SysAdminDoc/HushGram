@@ -8,7 +8,6 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
@@ -29,16 +28,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.os.Trace;
 import android.util.Log;
-import android.view.PixelCopy;
 import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.Window;
+import android.view.animation.AnimationUtils;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
@@ -46,7 +44,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -76,12 +73,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * (see the constants), so they carry to any width, and are held to sensible limits on narrow and
  * wide ones.
  *
- * <p>What the pill blurs is a copy of the strip of screen just above it, read with {@link PixelCopy} a
- * few times a second while the screen changes, and drawn upside down so the glass carries on from the
- * edge it sits against. It's the screen as it's composed, so playing video, photos and text all come
- * through, which a copy of the view tree can't do for video. With the float switch off, the content
- * stops above the bar as before and the bar's own colour fills round the pill. On, the content
- * container runs to the bottom of the screen.
+ * <p>What the pill blurs is Instagram's own screens, the views drawn under the bar, recorded into a render node of its own and blurred
+ * on the GPU, never read back from the screen. It's the views as they draw, so photos, text and video
+ * in a TextureView come through. The glass shows the strip just above the bar, upside down. With the
+ * float switch on, the content container also runs to the bottom of the screen, so nothing of
+ * Instagram's own colour is left round the pill.
  *
  * <p>Instagram sets the bar's colour, padding and visibility from time to time, so a draw listener
  * puts the pieces back whenever one is changed. Anything that throws turns the blur off for the
@@ -137,9 +133,10 @@ public final class GlassTabBar {
     static final int HIGHLIGHT_INSET_DP = 4;
     static final int HIGHLIGHT_GROW_DP = 4;
 
-    /** The strip behind the pill is copied at most this often, and not at all for a moment after a tab change. */
-    static final long COPY_EVERY_MS = 200;
-    static final long QUIET_AFTER_TAB_MS = 450;
+    /** The blur is worked out at a quarter of the size, which also blurs it more for the same work. */
+    static final int DOWNSAMPLE = 4;
+    /** How long the capsule takes to slide to a new tab. */
+    static final long SLIDE_MS = 280;
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -148,18 +145,6 @@ public final class GlassTabBar {
     private static final WeakHashMap<View, Glass> applied = new WeakHashMap<>();
 
     private GlassTabBar() {
-    }
-
-    private static Handler copyHandler;
-
-    /** A thread for the screen copies' callbacks, so reading the pixels never holds up a frame. */
-    static synchronized Handler copyHandler() {
-        if (copyHandler == null) {
-            android.os.HandlerThread thread = new android.os.HandlerThread("hushgram-glass", android.os.Process.THREAD_PRIORITY_BACKGROUND);
-            thread.start();
-            copyHandler = new Handler(thread.getLooper());
-        }
-        return copyHandler;
     }
 
     /**
@@ -182,7 +167,7 @@ public final class GlassTabBar {
             View found = find(activity.getWindow().getDecorView(), TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) return;
-            applied.put(found, new Glass((ViewGroup) found, activity.getWindow()));
+            applied.put(found, new Glass((ViewGroup) found));
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
             Logger.printDebug(() -> "Glass tab bar: restyled the tab bar");
         } catch (Throwable failure) {
@@ -258,7 +243,6 @@ public final class GlassTabBar {
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener,
             View.OnAttachStateChangeListener {
         private final ViewGroup bar;
-        private final Window window;
         private final float density;
         private final boolean blurWanted;
         private final boolean haptics;
@@ -280,12 +264,9 @@ public final class GlassTabBar {
         /** The line above the bar and the screens' container, found once: looking them up costs a walk of the whole screen. */
         @Nullable private WeakReference<View> shadowRef;
         @Nullable private WeakReference<View> contentRef;
-        /** No screen copy is asked for until this time: a tab change is the busiest moment of a frame. */
-        private long quietUntil;
 
-        Glass(ViewGroup bar, Window window) {
+        Glass(ViewGroup bar) {
             this.bar = bar;
-            this.window = window;
             this.density = bar.getResources().getDisplayMetrics().density;
             this.blurWanted = Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
@@ -429,10 +410,12 @@ public final class GlassTabBar {
                 View before = lastSelected == null ? null : lastSelected.get();
                 if (selected != before) {
                     lastSelected = selected == null ? null : new WeakReference<>(selected);
-                    quietUntil = SystemClock.uptimeMillis() + QUIET_AFTER_TAB_MS;
                     bar.invalidate();
                 }
-                if (!blurBroken && blurWanted) pill.refresh();
+                // Something on screen is drawing a frame, so the glass records what's under it again. Only its
+                // own render node is recorded, not a view, so this asks for no frame of its own: the screen
+                // stops drawing as soon as nothing else changes.
+                if (!blurBroken && blurWanted) pill.recordBackdrop();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
@@ -468,27 +451,20 @@ public final class GlassTabBar {
             private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final RectF rect = new RectF();
             private final RectF capsule = new RectF();
-            private final Handler handler = copyHandler();
-            private final Handler main = new Handler(Looper.getMainLooper());
-            private final Rect source = new Rect();
-            private final RectF target = new RectF();
-            private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
+            /** The pill's bounds as of the last recording, kept apart from what the drawing is using. */
+            private final RectF area = new RectF();
             @Nullable private RenderNode node;
-            /** The strip drawn now, the one being copied into, and a fingerprint of the one drawn. */
-            @Nullable private Bitmap strip;
-            @Nullable private Bitmap scratch;
-            private int[] pixels = new int[0];
-            private int stripHash;
-            private boolean copying;
-            private int failures;
-            private long lastRequest;
+            private boolean recorded;
+            private float nodeLeft, nodeTop;
             private int nodeWidth = -1;
             private int nodeHeight = -1;
+            private boolean drawingBackdrop;
             private float sheenTop = Float.NaN;
             private float sheenBottom = Float.NaN;
             private boolean sheenDark;
-            private float capsuleLeft = Float.NaN;
-            private float capsuleRight = Float.NaN;
+            /** Where the capsule is sliding from and to, and when the slide started, on the frame clock. */
+            private float fromLeft = Float.NaN, fromRight, toLeft, toRight, nowLeft, nowRight;
+            private long slideStart;
             /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
             private int tickedTab = -1;
             private boolean reported;
@@ -506,13 +482,19 @@ public final class GlassTabBar {
                 }
             }
 
-            private void drawPill(@NonNull Canvas canvas) {
+            /** Puts the pill's bounds in [into], in the bar's coordinates, and says whether it has any. */
+            private boolean pillBounds(RectF into) {
                 float left = outer;
                 float top = gap();
                 float right = bar.getWidth() - outer;
                 float bottomEdge = bar.getHeight() - gap();
-                if (right - left <= 0 || bottomEdge - top <= 0) return;
-                rect.set(left, top, right, bottomEdge);
+                if (right - left <= 0 || bottomEdge - top <= 0) return false;
+                into.set(left, top, right, bottomEdge);
+                return true;
+            }
+
+            private void drawPill(@NonNull Canvas canvas) {
+                if (!pillBounds(rect)) return;
                 float radius = rect.height() / 2f;
                 boolean dark = isDark(base);
 
@@ -552,7 +534,11 @@ public final class GlassTabBar {
                 canvas.drawRoundRect(rect, radius, radius, stroke);
             }
 
-            /** The lighter capsule behind the selected tab, easing to the next one when the tab changes. */
+            /**
+             * The lighter capsule behind the selected tab. When the tab changes it slides to the new one over
+             * {@link #SLIDE_MS}, eased out, timed by the frame clock rather than by counting frames, so a
+             * dropped frame doesn't make it jump and it takes as long at 120 Hz as at 60.
+             */
             private void drawCapsule(Canvas canvas) {
                 View selected = selectedTab();
                 if (selected == null) return;
@@ -560,23 +546,27 @@ public final class GlassTabBar {
                 float inset = dp(HIGHLIGHT_INSET_DP);
                 float targetLeft = Math.max(rect.left + inset, selected.getLeft() + selected.getTranslationX() - grow);
                 float targetRight = Math.min(rect.right - inset, selected.getRight() + selected.getTranslationX() + grow);
-                if (Float.isNaN(capsuleLeft)) {
-                    capsuleLeft = targetLeft;
-                    capsuleRight = targetRight;
+                long now = AnimationUtils.currentAnimationTimeMillis();
+                if (Float.isNaN(fromLeft)) {
+                    fromLeft = nowLeft = toLeft = targetLeft;
+                    fromRight = nowRight = toRight = targetRight;
+                    slideStart = now - SLIDE_MS;
+                } else if (Math.abs(targetLeft - toLeft) > 0.5f || Math.abs(targetRight - toRight) > 0.5f) {
+                    fromLeft = nowLeft;
+                    fromRight = nowRight;
+                    toLeft = targetLeft;
+                    toRight = targetRight;
+                    slideStart = now;
                 }
-                capsuleLeft += (targetLeft - capsuleLeft) * 0.45f;
-                capsuleRight += (targetRight - capsuleRight) * 0.45f;
-                boolean settled = Math.abs(targetLeft - capsuleLeft) < 0.5f && Math.abs(targetRight - capsuleRight) < 0.5f;
-                if (settled) {
-                    capsuleLeft = targetLeft;
-                    capsuleRight = targetRight;
-                }
-                capsule.set(capsuleLeft, rect.top + inset, capsuleRight, rect.bottom - inset);
-                tick((capsuleLeft + capsuleRight) / 2f);
+                float progress = slideProgress(now - slideStart);
+                nowLeft = fromLeft + (toLeft - fromLeft) * progress;
+                nowRight = fromRight + (toRight - fromRight) * progress;
+                capsule.set(nowLeft, rect.top + inset, nowRight, rect.bottom - inset);
+                tick((nowLeft + nowRight) / 2f);
                 fill.setColor(highlight(base));
                 float capsuleRadius = capsule.height() / 2f;
                 canvas.drawRoundRect(capsule, capsuleRadius, capsuleRadius, fill);
-                if (!settled) invalidateSelf();
+                if (progress < 1f) invalidateSelf();
             }
 
             /** A light tick each time the capsule's middle moves over a different tab. */
@@ -593,143 +583,108 @@ public final class GlassTabBar {
                 if (over < 0 || over == tickedTab) return;
                 boolean first = tickedTab < 0;
                 tickedTab = over;
-                if (!first && haptics) bar.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                if (!first && haptics) Haptics.tick(bar);
+            }
+
+            /** Draws the backdrop node recorded for this frame into the pill, and says whether it did. */
+            private boolean drawBackdrop(Canvas canvas) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !canvas.isHardwareAccelerated()) return false;
+                if (node == null || !recorded) recordBackdrop();
+                RenderNode backdrop = node;
+                if (backdrop == null || !recorded) return false;
+                canvas.save();
+                canvas.translate(nodeLeft, nodeTop);
+                canvas.scale(DOWNSAMPLE, DOWNSAMPLE);
+                canvas.drawRenderNode(backdrop);
+                canvas.restore();
+                return true;
             }
 
             /**
-             * Asks for a fresh copy of the strip of screen just above the pill, at most every 40 ms and
-             * one at a time. Called as each frame is about to draw, so a screen that isn't changing asks
-             * for nothing; the copy draws the bar again only when it differs from the last.
+             * Records what's under the bar into this drawable's own render node, to be blurred into the pill.
+             *
+             * <p>The screen isn't copied: the views drawn under the bar (in 450 the tab pager, beside an empty
+             * content container) are recorded once more into the node, which keeps a reference to each of
+             * them, the way a transition draws a view in a second place. The blur and the colour run on that
+             * node on the GPU, at a quarter of the size, and nothing is read back. It's called as each frame
+             * is about to draw, so it moves with what's under it, and because it records a render node and
+             * not a view, it never asks for a frame of its own. What it shows is the strip of screen just
+             * above the bar, upside down, as if the glass reflected it: Instagram's screens stop above its
+             * bar themselves, so that strip always has what you're looking at.
              */
-            void refresh() {
-                Trace.beginSection("hushgram:refresh");
+            void recordBackdrop() {
+                if (drawingBackdrop || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
+                if (!(bar.getParent() instanceof ViewGroup) || !pillBounds(area)) return;
+                ViewGroup parent = (ViewGroup) bar.getParent();
+                int barIndex = parent.indexOfChild(bar);
+                if (barIndex <= 0) return;
+                Trace.beginSection("hushgram:recordBackdrop");
+                drawingBackdrop = true;
                 try {
-                    refreshStrip();
-                } finally {
-                    Trace.endSection();
-                }
-            }
-
-            private void refreshStrip() {
-                if (copying || blurBroken || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
-                long now = SystemClock.uptimeMillis();
-                if (now - lastRequest < COPY_EVERY_MS || now < quietUntil || !bar.isAttachedToWindow() || rect.isEmpty()) return;
-                int[] at = new int[2];
-                bar.getLocationInWindow(at);
-                int width = Math.round(rect.width());
-                int height = Math.round(rect.height());
-                source.set(at[0] + Math.round(rect.left), at[1] - height, at[0] + Math.round(rect.left) + width, at[1]);
-                if (source.top < 0) source.top = 0;
-                if (source.width() <= 0 || source.height() <= 0) return;
-                int smallWidth = Math.max(8, width / 6);
-                int smallHeight = Math.max(4, height / 6);
-                if (scratch == null || scratch.getWidth() != smallWidth || scratch.getHeight() != smallHeight) {
-                    scratch = Bitmap.createBitmap(smallWidth, smallHeight, Bitmap.Config.ARGB_8888);
-                }
-                final Bitmap into = scratch;
-                copying = true;
-                lastRequest = now;
-                try {
-                    PixelCopy.request(window, source, into, result -> {
-                        if (result != PixelCopy.SUCCESS) {
-                            main.post(() -> {
-                                copying = false;
-                                if (++failures >= 8) {
-                                    blurBroken = true;
-                                    diagnose("pixel copy keeps failing, last result " + result, null);
-                                }
-                            });
-                            return;
-                        }
-                        failures = 0;
-                        stored(into);
-                    }, handler);
-                } catch (Throwable failure) {
-                    copying = false;
-                    blurBroken = true;
-                    HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "pixel copy", failure);
-                    diagnose("pixel copy failed", failure);
-                }
-            }
-
-            /** A copy arrived: if the screen above the pill changed, it becomes the strip and the bar draws again. */
-            private void stored(Bitmap copy) {
-                // This runs on the copy's own thread. Only the swap, which the drawing reads, is done on the main one.
-                Trace.beginSection("hushgram:stored");
-                try {
-                    storedOnCopyThread(copy);
-                } finally {
-                    Trace.endSection();
-                }
-            }
-
-            private void storedOnCopyThread(Bitmap copy) {
-                int count = copy.getWidth() * copy.getHeight();
-                if (pixels.length != count) pixels = new int[count];
-                copy.getPixels(pixels, 0, copy.getWidth(), 0, 0, copy.getWidth(), copy.getHeight());
-                int hash = Arrays.hashCode(pixels);
-                main.post(() -> {
-                    if (strip == null || hash != stripHash) {
-                        stripHash = hash;
-                        scratch = strip;
-                        strip = copy;
-                        bar.invalidate();
-                    }
-                    copying = false;
-                });
-            }
-
-            /** Draws the blurred strip, upside down, into the pill, and says whether it did. */
-            private boolean drawBackdrop(Canvas canvas) {
-                Bitmap copy = strip;
-                if (copy == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !canvas.isHardwareAccelerated()) {
-                    return false;
-                }
-                try {
-                    int width = Math.round(rect.width());
-                    int height = Math.round(rect.height());
+                    float scale = 1f / DOWNSAMPLE;
+                    float pad = dp(BLUR_DP);
+                    float radius = area.height() / 2f;
+                    float wide = area.width() + 2 * pad;
+                    float tall = area.height() + 2 * pad;
+                    int width = Math.max(1, (int) Math.ceil(wide * scale));
+                    int height = Math.max(1, (int) Math.ceil(tall * scale));
                     RenderNode backdrop = node;
                     if (backdrop == null) {
                         backdrop = new RenderNode("hushgram-glass");
                         backdrop.setClipToOutline(true);
-                        float blur = dp(BLUR_DP);
+                        float blur = Math.max(1f, dp(BLUR_DP) * scale);
                         ColorMatrix saturate = new ColorMatrix();
                         saturate.setSaturation(1.5f);
                         ColorFilter colour = new ColorMatrixColorFilter(saturate);
                         backdrop.setRenderEffect(RenderEffect.createChainEffect(
-                                RenderEffect.createBlurEffect(blur, blur, Shader.TileMode.MIRROR),
-                                RenderEffect.createColorFilterEffect(colour)));
+                                RenderEffect.createColorFilterEffect(colour),
+                                RenderEffect.createBlurEffect(blur, blur, Shader.TileMode.CLAMP)));
                         node = backdrop;
                     }
                     if (width != nodeWidth || height != nodeHeight) {
                         backdrop.setPosition(0, 0, width, height);
                         Outline outline = new Outline();
-                        outline.setRoundRect(0, 0, width, height, height / 2f);
+                        float inner = pad * scale;
+                        outline.setRoundRect(Math.round(inner), Math.round(inner), Math.round(width - inner),
+                                Math.round(height - inner), radius * scale);
                         backdrop.setOutline(outline);
                         nodeWidth = width;
                         nodeHeight = height;
                     }
+                    nodeLeft = area.left - pad;
+                    nodeTop = area.top - pad;
+
+                    float x0 = bar.getLeft() + area.left - pad;
+                    float edge = bar.getTop();
                     Canvas recording = backdrop.beginRecording(width, height);
                     try {
-                        recording.translate(0, height);
+                        recording.scale(scale, scale);
                         recording.scale(1f, -1f);
-                        target.set(0, 0, width, height);
-                        recording.drawBitmap(copy, null, target, bitmapPaint);
+                        recording.translate(-x0, -edge);
+                        recording.clipRect(x0, edge - tall, x0 + wide, edge);
+                        for (int i = 0; i < barIndex; i++) {
+                            View sibling = parent.getChildAt(i);
+                            if (sibling.getVisibility() != View.VISIBLE || sibling.getWidth() <= 0
+                                    || sibling.getBottom() <= edge - tall || sibling.getTop() >= edge) continue;
+                            recording.save();
+                            recording.translate(sibling.getLeft(), sibling.getTop());
+                            if (!sibling.getMatrix().isIdentity()) recording.concat(sibling.getMatrix());
+                            sibling.draw(recording);
+                            recording.restore();
+                        }
                     } finally {
                         backdrop.endRecording();
                     }
-                    canvas.save();
-                    canvas.translate(rect.left, rect.top);
-                    canvas.drawRenderNode(backdrop);
-                    canvas.restore();
-                    report("backdrop drawn: pill " + width + "x" + height + " from strip "
-                            + copy.getWidth() + "x" + copy.getHeight() + " of " + source.toShortString());
-                    return true;
+                    recorded = true;
+                    report("backdrop recorded under " + barIndex + " views: pill " + Math.round(area.width()) + "x"
+                            + Math.round(area.height()) + " as " + width + "x" + height);
                 } catch (Throwable failure) {
                     blurBroken = true;
                     HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "blur", failure);
                     diagnose("backdrop failed", failure);
-                    return false;
+                } finally {
+                    drawingBackdrop = false;
+                    Trace.endSection();
                 }
             }
 
@@ -744,6 +699,63 @@ public final class GlassTabBar {
             @Override public int getOpacity() {
                 return PixelFormat.TRANSLUCENT;
             }
+        }
+    }
+
+    /**
+     * How far the capsule has got through a slide that started [elapsed] ms ago: eased out, so it starts
+     * quick and settles, and 1 once {@link #SLIDE_MS} has passed.
+     */
+    static float slideProgress(long elapsed) {
+        if (elapsed >= SLIDE_MS) return 1f;
+        if (elapsed <= 0) return 0f;
+        float t = elapsed / (float) SLIDE_MS;
+        float rest = 1f - t;
+        return 1f - rest * rest * rest;
+    }
+
+    /**
+     * The tick when the capsule passes a tab. On Android 13 and newer it's played on a thread of its own,
+     * with the touch usage, so it follows the phone's touch feedback setting and never holds up a frame; a
+     * call to the system on the UI thread can take a few milliseconds. Older Android uses the view's own
+     * haptic feedback.
+     */
+    static final class Haptics {
+        private static Handler handler;
+
+        private Haptics() {
+        }
+
+        static void tick(View view) {
+            try {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                    return;
+                }
+                Context context = view.getContext().getApplicationContext();
+                handler().post(() -> {
+                    try {
+                        android.os.VibratorManager manager = context.getSystemService(android.os.VibratorManager.class);
+                        android.os.Vibrator vibrator = manager == null ? null : manager.getDefaultVibrator();
+                        if (vibrator == null || !vibrator.hasVibrator()) return;
+                        vibrator.vibrate(android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK),
+                                android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH));
+                    } catch (Throwable failure) {
+                        diagnose("haptic failed", failure);
+                    }
+                });
+            } catch (Throwable failure) {
+                diagnose("haptic failed", failure);
+            }
+        }
+
+        private static synchronized Handler handler() {
+            if (handler == null) {
+                android.os.HandlerThread thread = new android.os.HandlerThread("hushgram-haptics");
+                thread.start();
+                handler = new Handler(thread.getLooper());
+            }
+            return handler;
         }
     }
 }
