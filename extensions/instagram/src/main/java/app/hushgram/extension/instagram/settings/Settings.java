@@ -119,50 +119,6 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_view_stories_anonymously", TRUE);
 
     /**
-     * The "mark this chat read" request Instagram sends when you open a chat is held back, so the
-     * other person's chat never shows Seen ({@link app.hushgram.extension.instagram.privacy.Ghost}).
-     * The patch is off in the default selection, so a build that has it asked for it, and the
-     * switch starts on. Read each time a chat is opened.
-     */
-    public static final BooleanSetting VIEW_CHATS_ANONYMOUSLY =
-            new BooleanSetting("hushgram_view_chats_anonymously", TRUE);
-
-    /** The composer doesn't tell a chat you're typing. Starts on once the patch is picked. */
-    public static final BooleanSetting DISABLE_TYPING_STATUS =
-            new BooleanSetting("hushgram_disable_typing_status", TRUE);
-
-    /** A screenshot of a chat or story isn't reported to the other person. Starts on once picked. */
-    public static final BooleanSetting DISABLE_SCREENSHOT_DETECTION =
-            new BooleanSetting("hushgram_disable_screenshot_detection", TRUE);
-
-    /** A live video doesn't count you as a viewer. Starts on once the patch is picked. */
-    public static final BooleanSetting VIEW_LIVE_ANONYMOUSLY =
-            new BooleanSetting("hushgram_view_live_anonymously", TRUE);
-
-    /**
-     * Photos are shown at the largest copy Instagram's server sent
-     * ({@link app.hushgram.extension.instagram.media.ImageSize}). The patch is off in the default
-     * selection, so a build that has it asked for it, and the switch starts on.
-     */
-    public static final BooleanSetting IMPROVE_IMAGE_VIEWING =
-            new BooleanSetting("hushgram_improve_image_viewing", TRUE);
-
-    /**
-     * Under {@link #IMPROVE_IMAGE_VIEWING}: Instagram is told this phone's screen is larger than it is,
-     * in the User-Agent header of each request, so the server sends bigger copies to pick from.
-     */
-    public static final BooleanSetting IMPROVE_IMAGE_REQUEST =
-            new BooleanSetting("hushgram_improve_image_request", TRUE, parent(IMPROVE_IMAGE_VIEWING));
-
-    /**
-     * A view-once or replay-once photo or video that hasn't expired is shown as a permanent one
-     * ({@link app.hushgram.extension.instagram.direct.EphemeralMedia}). Starts on once the patch is
-     * picked.
-     */
-    public static final BooleanSetting KEEP_EPHEMERAL_MEDIA =
-            new BooleanSetting("hushgram_keep_ephemeral_media", TRUE);
-
-    /**
      * The text of messages other people send is kept on this phone, and the ones they later delete
      * are listed in HushGram's settings ({@link app.hushgram.extension.instagram.direct.SavedMessages}).
      * Starts on once the patch is picked.
