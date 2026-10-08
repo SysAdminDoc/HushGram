@@ -873,6 +873,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             storage.addPreference(mark(clearNow, SettingsIcons.DELETE));
         }
 
+        if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+            PreferenceCategory glass = category(screen, L10n.t("Tab bar"));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
+                    L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
+                            + "you're on. Restart Instagram after changing it.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
+                    L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
+                    L10n.t("Home, Reels and the other tabs run down behind the pill. Reels' buttons and caption sit "
+                            + "behind it too, so it starts off.")));
+        }
+
         // Any download patch brings this section, so each one that saves joins this condition.
         if (build.contains(PatchFamily.REEL_DOWNLOAD) || build.contains(PatchFamily.STORY_DOWNLOAD)
                 || build.contains(PatchFamily.VIDEO_DOWNLOAD) || build.contains(PatchFamily.PROFILE_PICTURE)
