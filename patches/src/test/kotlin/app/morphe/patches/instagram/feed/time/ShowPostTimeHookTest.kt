@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -19,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -26,12 +28,16 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21s
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
@@ -39,6 +45,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * Show a post's exact time: every call that writes a feed post's or a comment's time goes to the
@@ -102,6 +109,29 @@ class ShowPostTimeHookTest {
         PatchContexts.of(standIns(rowTime = false) + ExtensionDex.classDef(POST_TIME)).findPostTimes()
     }
 
+    /** 450's 385611395 and 385611400 ask a pool of shared strings for the row's tag (#77). */
+    @Test
+    fun aRowAskingAPoolForItsTagIsFound() {
+        val context = PatchContexts.of(standIns(pooledRow = true) + ExtensionDex.classDef(POST_TIME))
+        val found = context.findPostTimes()
+        assertEquals("the row's two times", 2, found.row.size)
+        assertEquals(ROW_TIME, found.row.map { it.method.definingClass }.distinct().single())
+        context.showPostTime(found)
+        val relative = context.mutableClassDefBy(ROW_TIME).methods.single { it.name == "relative" }.code()
+        assertEquals(TIME_AS_DOUBLE, relative.single { it.opcode == Opcode.INVOKE_STATIC }.text())
+    }
+
+    @Test
+    fun aRowAskingThePoolForAnotherStringFailsThePatch() = refuses("expected one comment row") {
+        PatchContexts.of(standIns(pooledRow = true).map { if (it.type == POOL) pool(number = POOLED + 1) else it } +
+            ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
+    @Test
+    fun aPooledRowWithoutItsPoolFailsThePatch() = refuses("expected one comment row") {
+        PatchContexts.of(standIns(pooledRow = true).filter { it.type != POOL } + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
     @Test
     fun aRowWhoseTimeNothingWritesFailsThePatch() = refuses("nothing asks") {
         PatchContexts.of(standIns().filter { it.type != ROW_TIME } + ExtensionDex.classDef(POST_TIME)).findPostTimes()
@@ -124,56 +154,78 @@ class ShowPostTimeHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val kept = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER ||
-                                    string == COMMENT_ROW_TIME || string.startsWith(COMMENT_HEADER) } }
-                        ) kept += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val row = kept.single { classDef ->
-                    classDef.methods.any { it.holds { string -> string == COMMENT_ROW_TIME } } &&
-                        classDef.fields.count { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX } == 1
-                }
-                val time = row.fields.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method ->
-                                method.code().any { instruction ->
-                                    val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
-                                    instruction.opcode == Opcode.IGET_OBJECT && field?.definingClass == row.type && field.name == time.name
-                                }
-                            }
-                        ) kept += ImmutableClassDef.of(classDef)
-                    }
-                }
-                val classes = kept.distinctBy { it.type }
-                val context = PatchContexts.of(classes + ExtensionDex.classDef(POST_TIME))
-                val found = context.findPostTimes()
-                assertEquals("${bundle.name}: the footer's times", 2, found.feed.size)
-                assertEquals("${bundle.name}: the header's time", 1, found.header.size)
-                assertEquals("${bundle.name}: the row's times", 2, found.row.size)
-                assertEquals("${bundle.name}: both shapes", setOf(true, false), found.sites.map { it.asLong }.toSet())
-
-                val before = found.sites.groupBy { it.method }.mapValues { (method, _) -> method.code() }
-                context.showPostTime(found)
-                for ((method, sites) in found.sites.groupBy { it.method }) {
-                    val patched = context.mutableClassDefBy(method.definingClass).methods.single {
-                        it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
-                    }
-                    val code = patched.code()
-                    for (site in sites) {
-                        val hook = if (site.asLong) TIME_AS_LONG else TIME_AS_DOUBLE
-                        assertEquals("${bundle.name} ${method.definingClass}->${method.name} @${site.index}", hook, code[site.index].text())
-                        assertEquals("the same registers", before.getValue(method)[site.index].registers(), code[site.index].registers())
-                    }
-                    assertEquals("nothing else moved", before.getValue(method).size, code.size)
-                }
+                writesExactTimes(bundle, bundle.name)
                 checked++
             }
         }
         assertTrue("no fixture of a declared build", checked > 0)
+    }
+
+    /** The same in 450's other arm64 builds, two of which ask a string pool for the row's tag (#77). */
+    @Test
+    fun eachOtherBuildWritesExactTimes() {
+        for (bundle in Fixtures.otherBuilds()) writesExactTimes(bundle, bundle.parentFile.name)
+    }
+
+    private fun writesExactTimes(bundle: File, label: String) {
+        val kept = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER ||
+                            string == COMMENT_ROW_TIME || string.startsWith(COMMENT_HEADER) } }
+                ) kept += ImmutableClassDef.of(classDef)
+            }
+        }
+        // From 450's 385611395 the row asks a pool of shared strings for its tag (#77), so the
+        // classes keeping one time that call a pool holding it come too.
+        val pools = kept.flatMap { it.methods }.filter { it.isPool() && it.holds { string -> string == COMMENT_ROW_TIME } }
+            .mapTo(HashSet()) { "${it.definingClass}->${it.name}" }
+        if (pools.isNotEmpty()) FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.times() == 1 && classDef.methods.any { method ->
+                        method.code().any { it.opcode == Opcode.INVOKE_STATIC && it.called()?.let { call -> "${call.definingClass}->${call.name}" } in pools }
+                    }
+                ) kept += ImmutableClassDef.of(classDef)
+            }
+        }
+        val pooled = PatchContexts.of(kept.distinctBy { it.type })
+        val row = kept.distinctBy { it.type }.single { classDef ->
+            classDef.times() == 1 && classDef.methods.any { pooled.loadsString(it, COMMENT_ROW_TIME) }
+        }
+        val time = row.fields.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method ->
+                        method.code().any { instruction ->
+                            val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+                            instruction.opcode == Opcode.IGET_OBJECT && field?.definingClass == row.type && field.name == time.name
+                        }
+                    }
+                ) kept += ImmutableClassDef.of(classDef)
+            }
+        }
+        val classes = kept.distinctBy { it.type }
+        val context = PatchContexts.of(classes + ExtensionDex.classDef(POST_TIME))
+        val found = context.findPostTimes()
+        assertEquals("$label: the footer's times", 2, found.feed.size)
+        assertEquals("$label: the header's time", 1, found.header.size)
+        assertEquals("$label: the row's times", 2, found.row.size)
+        assertEquals("$label: both shapes", setOf(true, false), found.sites.map { it.asLong }.toSet())
+
+        val before = found.sites.groupBy { it.method }.mapValues { (method, _) -> method.code() }
+        context.showPostTime(found)
+        for ((method, sites) in found.sites.groupBy { it.method }) {
+            val patched = context.mutableClassDefBy(method.definingClass).methods.single {
+                it.name == method.name && it.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+            }
+            val code = patched.code()
+            for (site in sites) {
+                val hook = if (site.asLong) TIME_AS_LONG else TIME_AS_DOUBLE
+                assertEquals("$label ${method.definingClass}->${method.name} @${site.index}", hook, code[site.index].text())
+                assertEquals("the same registers", before.getValue(method)[site.index].registers(), code[site.index].registers())
+            }
+            assertEquals("nothing else moved", before.getValue(method).size, code.size)
+        }
     }
 
     private fun refuses(reason: String, patch: () -> Unit) {
@@ -199,6 +251,11 @@ class ShowPostTimeHookTest {
     private fun Method.holds(accept: (String) -> Boolean) = code().any {
         ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.let(accept) == true
     }
+    /** A static (int)String method, the shape of a Redex pool of shared strings. */
+    private fun Method.isPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING && parameterTypes.map(CharSequence::toString) == listOf("I")
+    /** How many boxed Long instance fields the class keeps. */
+    private fun ClassDef.times() = fields.count { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
+    private fun Instruction.called() = (this as? ReferenceInstruction)?.reference as? MethodReference
     private fun Instruction.text(): String? = (this as? ReferenceInstruction)?.reference?.toString()
     private fun Instruction.registers(): List<Int> = when (this) {
         is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
@@ -216,6 +273,9 @@ class ShowPostTimeHookTest {
         val PUBLIC_FINAL = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val PUBLIC_STATIC = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val ROW_FIELD = ImmutableFieldReference(ROW, "time", LONG_BOX)
+        const val POOL = "Lfixture/Strings;"
+        const val POOLED = 7
+        val POOL_CALL = ImmutableMethodReference(POOL, "A00", listOf("I"), STRING)
         val UNBOX = ImmutableMethodReference("Ljava/lang/Number;", "longValue", emptyList(), "J")
 
         fun formatting(name: String, time: String) = ImmutableMethodReference(FORMATTER, name, listOf(CONTEXT, time), STRING)
@@ -236,8 +296,11 @@ class ShowPostTimeHookTest {
             registers.getOrElse(2) { 0 }, registers.getOrElse(3) { 0 }, registers.getOrElse(4) { 0 }, reference,
         )
 
-        /** Shaped like 450's: the formatter, the footer, the Compose header, the row and the row's time lambda. */
-        fun standIns(secondFormatting: Boolean = false, rowTime: Boolean = true): List<ClassDef> {
+        /**
+         * Shaped like 450's: the formatter, the footer, the Compose header, the row and the row's time
+         * lambda. With [pooledRow] the row asks [pool] for its tag, as 385611395 and 385611400 do.
+         */
+        fun standIns(secondFormatting: Boolean = false, rowTime: Boolean = true, pooledRow: Boolean = false): List<ClassDef> {
             val formatter = type(FORMATTER, listOf(
                 method(FORMATTER, "core", listOf("Landroid/content/res/Resources;", "Lfixture/Unit;", FORMATTER, "Ljava/lang/Integer;", "D", "D", "Z", "Z", "Z", "Z"),
                     STRING, PUBLIC_STATIC, 13, listOf(string(0, LONG_AGO_PATTERN), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
@@ -265,9 +328,13 @@ class ShowPostTimeHookTest {
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             ))))
+            val tag = if (pooledRow) listOf(
+                ImmutableInstruction21s(Opcode.CONST_16, 0, POOLED),
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, POOL_CALL),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ) else listOf(string(0, COMMENT_ROW_TIME))
             val row = type(ROW,
-                listOf(method(ROW, "render", emptyList(), "V", AccessFlags.PUBLIC.value, 2,
-                    listOf(string(0, COMMENT_ROW_TIME), ImmutableInstruction10x(Opcode.RETURN_VOID)))),
+                listOf(method(ROW, "render", emptyList(), "V", AccessFlags.PUBLIC.value, 2, tag + ImmutableInstruction10x(Opcode.RETURN_VOID))),
                 if (rowTime) listOf(ImmutableField(ROW, "time", LONG_BOX, PUBLIC_FINAL, null, null, null)) else emptyList(),
             )
             fun own(name: String, fieldType: String) = ImmutableFieldReference(ROW_TIME, name, fieldType)
@@ -309,7 +376,20 @@ class ShowPostTimeHookTest {
                     ImmutableInstruction11x(Opcode.RETURN_OBJECT, 2),
                 )),
             ), lambdaFields.map { ImmutableField(ROW_TIME, it.name, it.type, PUBLIC_FINAL, null, null, null) })
-            return listOf(formatter, footer, header, row, lambda)
+            return listOf(formatter, footer, header, row, lambda) + if (pooledRow) listOf(pool()) else emptyList()
         }
+
+        /**
+         * A pool of shared strings as 450's Redex writes it: a static (int)String switch that
+         * answers [COMMENT_ROW_TIME] for [number]. p0 is v1.
+         */
+        fun pool(number: Int = POOLED): ClassDef = type(POOL, listOf(method(POOL, POOL_CALL.name, listOf("I"), STRING, PUBLIC_STATIC, 2, listOf(
+            ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 8),
+            ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+            string(0, COMMENT_ROW_TIME),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+            ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(number, 5))),
+        ))))
     }
 }

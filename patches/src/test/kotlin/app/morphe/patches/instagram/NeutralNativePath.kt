@@ -18,11 +18,18 @@ internal class NeutralNativePath(method: Method) {
     private val registers = method.implementation!!.registerCount
     private val handlers = handlers(method) { it }
 
-    fun assertPreserved(what: String, method: Method, added: Set<Int>) {
+    /**
+     * [added] are the indices of the hook's own instructions in [method]. [substituted] are indices
+     * that each replace one stock instruction in its place: they keep its edges, and the caller checks
+     * what they became.
+     */
+    fun assertPreserved(what: String, method: Method, added: Set<Int>, substituted: Set<Int> = emptySet()) {
         val after = ControlFlow.of(method)
         val kept = after.instructions.indices.filterNot(added::contains)
         assertEquals("$what: native register frame", registers, method.implementation!!.registerCount)
-        assertEntries("$what: every stock opcode and operand", operands, kept.map { operands(after.instructions[it]) })
+        assertEntries("$what: every stock opcode and operand",
+            operands.mapIndexed { at, stock -> if (kept.getOrNull(at)?.let { it in substituted } == true) null else stock },
+            kept.map { if (it in substituted) null else operands(after.instructions[it]) })
         val oldIndex = kept.withIndex().associate { it.value to it.index }
         fun project(target: Int): Int = if (target == after.instructions.size) kept.size else
             oldIndex.getValue(if (target in added) kept.first { it > target } else target)

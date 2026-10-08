@@ -74,8 +74,9 @@ val hideMetaAiPatch = bytecodePatch(
     description = "Takes Meta AI out of the search bars, in the Search tab and at the top of your messages, so they " +
         "search the plain way, drops the Ask a follow-up bar under search results and Meta AI's buttons in Home's " +
         "top bar and the message composer, hides its optional row in your inbox, and removes Meta AI's posts from your home feed. " +
-        "It can also take About this reel, or only its Ask Meta AI box, out of a reel's More menu. " +
-        "Search, posts, About this reel and Ask Meta AI have separate switches, and the last two start off. " +
+        "It can also take About this reel, or only its Ask Meta AI box, out of a reel's More menu, and Meta AI's " +
+        "target out of the share sheet. Search, posts, About this reel, Ask Meta AI and the share sheet have " +
+        "separate switches, and the last three start off. " +
         "The search switch applies after Instagram restarts.",
 ) {
     category("Interface")
@@ -93,6 +94,7 @@ val hideMetaAiPatch = bytecodePatch(
         val inbox = findOptionalInboxRow()
         val about = findAboutSummaryCalls()
         val askBox = findAskMetaAiBox()
+        val shareTarget = findShareTargetCheck()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
         dropFollowUpBar(followUp)
@@ -101,6 +103,7 @@ val hideMetaAiPatch = bytecodePatch(
         holdOptionalInboxRow(inbox)
         dropAboutSummary(about)
         holdAskMetaAiBox(askBox)
+        holdShareTarget(shareTarget)
         enableStatus("metaAi")
     }
 }

@@ -31,6 +31,26 @@ public class DoubleTapLikeTest {
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.resetToDefault();
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES.resetToDefault();
+    }
+
+    /** Messages keep their double-tap reaction until their switch is on, and then only while the main one is. */
+    @Test
+    public void messagesAreHeldBackOnlyWithTheirOwnSwitch() {
+        assertFalse("off to start", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES.get());
+        assertFalse(DoubleTapLike.holdBackMessage());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES.save(true);
+        FeedFilterCounters.snapshotAndClear();
+        assertTrue(DoubleTapLike.holdBackMessage());
+        assertTrue(FeedFilterCounters.report().toString().contains(DoubleTapLike.HELD_BACK));
+        assertFalse("comments keep their own switch", DoubleTapLike.holdBackComment());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(false);
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.save(false);
+        assertTrue("posts and reels don't matter", DoubleTapLike.holdBackMessage());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(false);
+        assertFalse(DoubleTapLike.holdBackMessage());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
+        SettingsContextRule.withoutContext(() -> assertFalse("not before settings are ready", DoubleTapLike.holdBackMessage()));
     }
 
     /** Comments keep double tap to like until their switch is on, and then only while the main one is. */

@@ -30,6 +30,8 @@ public final class NavigationSettings {
         final String tab;
         final WeakReference<View.OnLongClickListener> original;
         final boolean hadOriginal;
+        /** A Press for this binding was handed to the view, and no later change took it back. */
+        volatile boolean opens;
         Binding(String tab, View.OnLongClickListener original) {
             this.tab = tab;
             this.original = new WeakReference<>(original);
@@ -133,12 +135,50 @@ public final class NavigationSettings {
                 if (chosen != NavigationTarget.OFF && chosen.name().equals(binding.tab)) {
                     view.setOnLongClickListener(new Press(binding, original));
                 } else {
+                    binding.opens = false;
                     view.setOnLongClickListener(original);
                     if (original == null) view.setLongClickable(false);
                 }
             }
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not apply the tab choice", t);
+        }
+    }
+
+    /**
+     * Whether a tab button Instagram built right now carries the chosen long press, so HushGram can
+     * be opened from the tab bar (#84). Off, Pause, a tab the account doesn't show, a hidden button
+     * or one whose own listener is gone all answer false, which keeps Instagram's menu row in place:
+     * there's always one way into settings. Never throws.
+     */
+    static boolean opensFromATab() {
+        try {
+            if (!Utils.settingsReady()) return false;
+            NavigationTarget chosen = Settings.NAVIGATION_SETTINGS_TARGET.get();
+            if (chosen == NavigationTarget.OFF) return false;
+            List<Map.Entry<View, Binding>> bound;
+            synchronized (nativeBindings) {
+                bound = new ArrayList<>(nativeBindings.entrySet());
+            }
+            for (Map.Entry<View, Binding> entry : bound) {
+                View view = entry.getKey();
+                Binding binding = entry.getValue();
+                if (view == null || binding == null || !binding.opens || !chosen.name().equals(binding.tab)) continue;
+                if (binding.hadOriginal && binding.original.get() == null) continue;
+                // Only the button's own state is read. The bar around it can be out of sight
+                // for a moment while Instagram's settings cover it, and that's when this is asked.
+                if (view.isAttachedToWindow() && view.isEnabled() && view.getVisibility() == View.VISIBLE) return true;
+            }
+        } catch (Throwable t) {
+            Logger.printException(() -> "Navigation settings: could not check the chosen tab", t);
+        }
+        return false;
+    }
+
+    /** Tabs another test bound stay attached to its activity's window; a test starts without them. */
+    static void forgetTabsForTests() {
+        synchronized (nativeBindings) {
+            nativeBindings.clear();
         }
     }
 
@@ -149,7 +189,11 @@ public final class NavigationSettings {
     private static final class Press implements View.OnLongClickListener {
         private final Binding binding;
         private final View.OnLongClickListener original;
-        Press(Binding binding, View.OnLongClickListener original) { this.binding = binding; this.original = original; }
+        Press(Binding binding, View.OnLongClickListener original) {
+            this.binding = binding;
+            this.original = original;
+            binding.opens = true;
+        }
 
         @Override public boolean onLongClick(View view) {
             // Retained or programmatic actions on a removed/disabled button must do nothing.

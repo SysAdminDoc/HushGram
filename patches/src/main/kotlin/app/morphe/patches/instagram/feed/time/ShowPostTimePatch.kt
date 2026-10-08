@@ -15,6 +15,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -125,7 +126,7 @@ internal class PostTimes(
  *  - the relative formatter, the class of the one core method [RelativeTimeFingerprint] finds;
  *  - the feed footer: the one method holding [FEED_FOOTER] that calls the formatter;
  *  - the comment header: the one method holding a string starting with [COMMENT_HEADER] that does;
- *  - the comment row: the one class whose render holds [COMMENT_ROW_TIME] and that keeps one Long,
+ *  - the comment row: the one class whose render loads [COMMENT_ROW_TIME] and that keeps one Long,
  *    the comment's time, and each call, wherever it is, whose time is that Long read and unboxed in
  *    straight code just before it.
  * A formatter call here is one answering a String from a context and a time, as a double or a long.
@@ -157,9 +158,11 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
     val headers = classDefByStrings(COMMENT_HEADER, StringComparisonType.STARTS_WITH).filterNot { it.type.startsWith(EXTENSION_ROOT) }
     val header = one("comment header holding \"$COMMENT_HEADER\"", headers) { it.startsWith(COMMENT_HEADER) }
 
-    val rows = classesHolding(COMMENT_ROW_TIME).filter { row -> row.longFields().size == 1 }
+    // 450's 385611395 and 385611400 ask a string pool for the row's tag, so the class holding it
+    // there is the pool and a static helper, neither of which keeps a time (#77).
+    val rows = classesLoadingString(COMMENT_ROW_TIME).filter { row -> row.longFields().size == 1 }
     val row = rows.singleOrNull()
-        ?: refuse("expected one comment row holding \"$COMMENT_ROW_TIME\" with one Long, found ${rows.size}")
+        ?: refuse("expected one comment row loading \"$COMMENT_ROW_TIME\" with one Long, found ${rows.size}")
     val time = row.longFields().single()
     val rowSites = classesAccessing(row.type, time.name, Opcode.IGET_OBJECT).flatMap { it.methods }
         .flatMap { method -> method.formatterCalls().filter { method.timeReadFrom(it.index, time) } }

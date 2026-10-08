@@ -21,7 +21,8 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipInputStream
 
 /**
- * Reads the classes a fixture test needs out of an Instagram bundle's base APK, one dex at a time, so
+ * Reads the classes a fixture test needs out of an Instagram bundle's base APK, or out of a plain
+ * base APK (an `.apk` file, as [app.morphe.Fixtures.otherBuilds] hands out), one dex at a time, so
  * no APK lands on disk and no more than one dex is held at once. What it hands back are immutable
  * copies, which keep none of the dex they came from.
  */
@@ -29,6 +30,14 @@ internal object FixtureDex {
     private val DEX = Regex("""classes\d*\.dex""")
 
     private fun forEachDex(bundle: File, visit: (DexBackedDexFile) -> Unit) {
+        if (bundle.extension == "apk") {
+            ZipFile(bundle).use { apk ->
+                for (entry in apk.entries().asSequence().filter { DEX.matches(it.name) }.toList()) {
+                    visit(DexBackedDexFile(Opcodes.getDefault(), ByteBuffer.wrap(apk.getInputStream(entry).use { it.readBytes() })))
+                }
+            }
+            return
+        }
         ZipFile(bundle).use { zip ->
             val base = checkNotNull(zip.getEntry("base.apk")) { "${bundle.name} holds no base.apk" }
             ZipInputStream(zip.getInputStream(base).buffered()).use { apk ->

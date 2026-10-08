@@ -36,6 +36,7 @@ private const val DOUBLE_TAP_LIKE = "$EXTENSION_PACKAGE/reels/DoubleTapLike;"
 internal const val HOLD_BACK_POST = "$DOUBLE_TAP_LIKE->holdBackPost()Z"
 internal const val LIKE_ACTION = "$DOUBLE_TAP_LIKE->likeAction(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val HOLD_BACK_COMMENT = "$DOUBLE_TAP_LIKE->holdBackComment()Z"
+internal const val HOLD_BACK_MESSAGE = "$DOUBLE_TAP_LIKE->holdBackMessage()Z"
 
 /** The report the feed's onDoubleTapMedia files when it has no activity: the one string it holds. */
 internal const val FEED_DOUBLE_TAP = "DefaultMediaHolderGestureDetectorDelegateImpl#onDoubleTapMedia called with null activity"
@@ -59,6 +60,14 @@ internal const val LIKE_COMMENT = "like_comment"
 internal const val UNLIKE_COMMENT = "unlike_comment"
 private const val GESTURE_LISTENER = "Landroid/view/GestureDetector\$SimpleOnGestureListener;"
 
+/**
+ * What a chat's double tap on a message loads: the count of double-tap tips it has shown, then the
+ * reaction's source. The chat's gesture listeners and its Compose message list both call it.
+ */
+internal const val MESSAGE_TIP_COUNT = "should_show_like_direct_message_count"
+internal const val MESSAGE_DOUBLE_TAP = "double_tap"
+private const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageIdentifier;"
+
 /** The Reels gesture handler's double tap, and its setter for the action a double tap likes through. */
 internal const val HANDLE_DOUBLE_TAP = "GestureActionHandler_handleDoubleTapMedia"
 internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
@@ -73,8 +82,8 @@ internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
 @Suppress("unused")
 val turnOffDoubleTapLikePatch = bytecodePatch(
     name = "Turn off double tap to like",
-    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A switch for " +
-        "comments starts off. A single tap still does what it did, and the Like button still likes.",
+    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. Switches for " +
+        "comments and chat messages start off. A single tap still does what it did, and the Like button still likes.",
     default = false,
 ) {
     category("Interface")
@@ -96,12 +105,13 @@ internal fun BytecodePatchContext.turnOffDoubleTapLikes() {
     holdBackPostDoubleTap(found)
     emptyReelLikeAction(found)
     holdBackCommentDoubleTaps(found)
+    holdBackMessageDoubleTap(found)
 }
 
 /**
  * The double taps: the feed's double-tap like, which [post] (the single photo's delegate) calls like
- * every other kind of post's, the Reels handler's read of its like action at [read], and each comment
- * row's double tap in [comments].
+ * every other kind of post's, the Reels handler's read of its like action at [read], each comment
+ * row's double tap in [comments], and the chat's double tap on a message in [message].
  */
 internal class DoubleTaps(
     val post: Method,
@@ -110,6 +120,7 @@ internal class DoubleTaps(
     val read: Int,
     val action: FieldReference,
     val comments: List<Method>,
+    val message: Method,
 )
 
 internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
@@ -117,6 +128,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     val reels = mutableListOf<Method>()
     val setters = mutableListOf<Method>()
     val comments = mutableListOf<Method>()
+    val messages = mutableListOf<Method>()
     // Every method called with a post's view and the post, and the methods that call it.
     val likeShapes = mutableMapOf<String, MethodReference>()
     val likeCallers = mutableMapOf<String, MutableMap<String, Method>>()
@@ -128,6 +140,7 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
             if (HANDLE_DOUBLE_TAP in markers) reels += method
             if (SET_LIKE_ACTION in markers) setters += method
             if (classDef.superclass == GESTURE_LISTENER && method.isCommentDoubleTap(code)) comments += method
+            if (code.any { it.stringLoaded() == MESSAGE_TIP_COUNT } && code.any { it.stringLoaded() == MESSAGE_DOUBLE_TAP }) messages += method
             code.mapNotNull { it.likeShapedCall() }.forEach { call ->
                 likeShapes.putIfAbsent(call.text(), call)
                 likeCallers.getOrPut(call.text()) { mutableMapOf() }[method.text()] = method
@@ -186,7 +199,30 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
         refuse("no comment row's double tap loads \"$FB_COMMENT_DOUBLE_TAP\", or both \"$LIKE_COMMENT\" and \"$UNLIKE_COMMENT\"")
     }
     comments.firstOrNull { it.localRegisterCount() < 1 }?.let { refuse("the comment double tap ${it.definingClass}->onDoubleTap has no local register") }
-    return DoubleTaps(post, like, reel, read, action, comments)
+    val message = findMessageDoubleTap(messages)
+    return DoubleTaps(post, like, reel, read, action, comments, message)
+}
+
+/**
+ * The chat's double tap on a message: the one method loading [MESSAGE_TIP_COUNT] and
+ * [MESSAGE_DOUBLE_TAP], returning nothing, that hands one message to a reaction through an
+ * interface. Other methods read the tip count to show the tip, and they load no source.
+ */
+private fun findMessageDoubleTap(messages: List<Method>): Method {
+    val message = messages.singleOrNull()
+        ?: refuse("expected one message double tap loading \"$MESSAGE_TIP_COUNT\" and \"$MESSAGE_DOUBLE_TAP\", found ${messages.size}")
+    val name = "${message.definingClass}->${message.name}"
+    if (message.returnType != "V" || message.implementation == null) refuse("the message double tap $name doesn't return nothing")
+    // Its reaction: an interface call handed the message's id, the only one the method makes.
+    val reactions = message.code().mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.INVOKE_INTERFACE && instruction.opcode != Opcode.INVOKE_INTERFACE_RANGE) return@mapNotNull null
+        ((instruction as ReferenceInstruction).reference as? MethodReference)
+            ?.takeIf { call -> call.returnType == "V" && call.parameterTypes.any { it.toString() == MESSAGE_ID } }
+    }
+    if (reactions.size != 1) refuse("the message double tap $name hands a message's id to ${reactions.size} reactions, expected one")
+    // The guard borrows v0 at index 0.
+    if (message.localRegisterCount() < 1) refuse("the message double tap $name has no register of its own")
+    return message
 }
 
 /**
@@ -223,6 +259,26 @@ private fun BytecodePatchContext.holdBackCommentDoubleTaps(found: DoubleTaps) {
                 if-eqz v0, :tap
                 const/4 v0, 0x0
                 return v0
+            """,
+            ExternalLabel("tap", getInstruction(0)),
+        )
+    }
+}
+
+/**
+ * First thing in the chat's double tap on a message: return while the switch holds it back, before
+ * the tip count and the reaction. Whoever called it has already taken the double tap, so nothing
+ * else happens. A long press opens the reactions through other code.
+ */
+private fun BytecodePatchContext.holdBackMessageDoubleTap(found: DoubleTaps) {
+    mutable(found.message).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static { }, $HOLD_BACK_MESSAGE
+                move-result v0
+                if-eqz v0, :tap
+                return-void
             """,
             ExternalLabel("tap", getInstruction(0)),
         )

@@ -327,6 +327,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Set<PatchFamily> build = PatchFamily.inThisBuild();
         PreferenceCategory entry = category(screen, L10n.t("Settings entry"));
         entry.addPreference(navigationRow(context));
+        entry.addPreference(toggle(context, Settings.HIDE_MENU_ROW, L10n.t("Hide the HushGram row in Instagram's menu"),
+                L10n.t("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out "
+                        + "the HushGram row. Turn the long press off and the row comes back.")));
         entry.addPreference(toggle(context, Settings.CATEGORY_PAGES, L10n.t("Open categories as pages"),
                 L10n.t("Settings shows a list of its categories, and a tap opens one on its own page. "
                         + "Search still looks through all of them.")));
@@ -475,6 +478,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "The menu's other options stay.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_ASK_META_AI, L10n.t("Hide Ask Meta AI in About this reel"),
                     L10n.t("About this reel keeps its summary and Sources without the Ask Meta AI box under them.")));
+            metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_SHARE_TARGET, L10n.t("Hide Meta AI in the share sheet"),
+                    L10n.t("Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.")));
         }
 
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)) {
@@ -605,6 +610,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("A double tap on a reel doesn't like it. Turn this off to keep double tap to like on reels.")));
             reels.add(toggle(context, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS, L10n.t("On comments"),
                     L10n.t("A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.")));
+            reels.add(toggle(context, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES, L10n.t("On messages"),
+                    L10n.t("A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.")));
         }
         if (build.contains(PatchFamily.LIKE_ANIMATION)) {
             reels.add(toggle(context, Settings.CHANGE_LIKE_ANIMATION, L10n.t("Change the like animation"),
@@ -780,6 +787,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.COMMENT_COPY)) {
                 comments.addPreference(toggle(context, Settings.COPY_COMMENTS, L10n.t("Copy comment"),
                         L10n.t("Adds Copy to a selected comment's menu. Copies the original text, including line breaks.")));
+                comments.addPreference(toggle(context, Settings.COPY_COMMENT_AUTHORS, L10n.t("Copy the commenter's username"),
+                        L10n.t("Adds Copy username to a selected comment's menu, for the account that wrote it.")));
             }
             if (build.contains(PatchFamily.COMMENT_PHOTO)) {
                 comments.addPreference(toggle(context, Settings.SAVE_COMMENT_PHOTOS, L10n.t("Save comment photo"),

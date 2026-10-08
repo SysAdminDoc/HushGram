@@ -15,7 +15,8 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 @Suppress("unused")
 val copyCommentPatch = bytecodePatch(
     name = "Copy comment",
-    description = "Adds an optional Copy action to the common comment menu. Copies the original text with its line breaks.",
+    description = "Adds optional Copy and Copy username actions to the common comment menu. Copy keeps the original " +
+        "text with its line breaks, and Copy username copies the commenter's username. Their switches start off.",
     default = true,
 ) {
     category("Interface")
@@ -51,4 +52,5 @@ internal fun BytecodePatchContext.applyCommentMenu(menu: CommentMenu) {
         return-object v0
     """)
     applyActionRow(menu.surface, COPY_ROW, COMMENT_NATIVE, menu.icon, menu.label)
+    menu.author?.let { applyCopyAuthor(menu.surface, it, menu.icon, menu.label) }
 }

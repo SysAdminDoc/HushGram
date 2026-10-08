@@ -42,19 +42,19 @@ internal fun BytecodePatchContext.findOverrideEditor(): OverrideEditor {
     val found = mutableListOf<Method>()
     val editors = mutableSetOf<String>()
     var hasBridge = false
-    val titled = classesHolding(OVERRIDE_TITLE, "TITLE_KEY").mapTo(HashSet()) { it.type }
+    val titled = classesHolding(OVERRIDE_TITLE).mapTo(HashSet()) { it.type }
     classDefForEach { clazz ->
         if (clazz.type == OVERRIDE_BRIDGE) hasBridge = true
         if (clazz.originalName() == "QuickExperimentEditFragment") editors += clazz.type
         if (clazz.type in titled && !clazz.type.startsWith(EXTENSION_ROOT)) clazz.methods.filterTo(found) { method ->
-            val strings = method.implementation?.instructions?.mapNotNull {
-                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string
-            }.orEmpty()
-            strings.containsAll(listOf(OVERRIDE_TITLE, "TITLE_KEY"))
+            method.implementation?.instructions?.any {
+                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == OVERRIDE_TITLE
+            } == true
         }
     }
-    // 450 asks a pool of shared strings for the last key.
-    found.retainAll { loadsString(it, "IS_OVERRIDE_KEY") }
+    // 450 asks a pool of shared strings for the keys, and which ones differs by build: 385611438
+    // loads TITLE_KEY itself, 385611395 and 385611400 pool it too (#77).
+    found.retainAll { loadsString(it, "TITLE_KEY") && loadsString(it, "IS_OVERRIDE_KEY") }
     if (!hasBridge) editorRefuse("extension has no override bridge class")
     val branch = found.singleOrNull() ?: editorRefuse("expected one native override branch, found ${found.size}")
     val code = branch.implementation!!.instructions.toList()

@@ -12,8 +12,18 @@ import app.morphe.patcher.methodCall
 import app.morphe.patcher.newInstance
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /*
  * Instagram 449 has about 200,000 classes, and a walk over every one of them, reading each
@@ -35,6 +45,65 @@ internal fun BytecodePatchContext.classesHolding(vararg strings: String): List<C
     val others = sets.filter { it !== smallest }.map { set -> set.mapTo(HashSet()) { it.type } }
     return smallest.filter { classDef -> !classDef.type.startsWith(EXTENSION_ROOT) && others.all { classDef.type in it } }
 }
+
+/**
+ * The classes outside the extension whose code loads [value]: the ones [classesHolding] it, then
+ * the ones asking a static pool of shared strings for it by number, as 450's Redex has it. Which
+ * strings Redex pools differs from build to build of one version (#77), so a class holding a
+ * string in one build can ask a pool for it in another, while the pool holds it in both.
+ */
+internal fun BytecodePatchContext.classesLoadingString(value: String): List<ClassDef> {
+    val holders = classesHolding(value)
+    val askers = holders.flatMap { holder ->
+        holder.methods.mapNotNull { pool -> pool.numbersFor(value).takeIf { it.isNotEmpty() }?.let { pool to it } }
+    }.flatMap { (pool, numbers) ->
+        classesCalling(pool.definingClass, pool.name).filter { caller -> caller.methods.any { it.asksPool(pool, numbers) } }
+    }
+    return (holders + askers).distinctBy { it.type }
+}
+
+/**
+ * The numbers this static `(I)String` pool answers [value] for, read off its switches the way
+ * `pooledString` reads them: the first switch whose case for a number loads a string decides it.
+ * Empty for any other method.
+ */
+private fun Method.numbersFor(value: String): Set<Int> {
+    if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != STRING || parameterTypes.map(Any::toString) != listOf("I")) {
+        return emptySet()
+    }
+    val code = implementation?.instructions?.toList() ?: return emptySet()
+    val address = IntArray(code.size + 1)
+    code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+    val answered = HashSet<Int>()
+    val numbers = HashSet<Int>()
+    for (switch in code.indices) {
+        if (code[switch].opcode != Opcode.PACKED_SWITCH && code[switch].opcode != Opcode.SPARSE_SWITCH) continue
+        val payload = code.getOrNull(address.indexOf(address[switch] + (code[switch] as OffsetInstruction).codeOffset)) as? SwitchPayload
+            ?: continue
+        for (case in payload.switchElements) {
+            val load = code.getOrNull(address.indexOf(address[switch] + case.offset)) ?: continue
+            if (load.opcode != Opcode.CONST_STRING && load.opcode != Opcode.CONST_STRING_JUMBO || !answered.add(case.key)) continue
+            if (((load as ReferenceInstruction).reference as StringReference).string == value) numbers += case.key
+        }
+    }
+    return numbers
+}
+
+/** Whether this method asks [pool] for one of [numbers], a constant loaded into the call's register right before it. */
+private fun Method.asksPool(pool: Method, numbers: Set<Int>): Boolean {
+    val code = implementation?.instructions?.toList() ?: return false
+    return code.indices.any { at ->
+        val call = code[at]
+        val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+        val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
+        call.opcode == Opcode.INVOKE_STATIC && called.definingClass == pool.definingClass && called.name == pool.name &&
+            called.parameterTypes.map(Any::toString) == listOf("I") && called.returnType == STRING &&
+            (number as OneRegisterInstruction).registerA == (call as FiveRegisterInstruction).registerC &&
+            number.narrowLiteral in numbers
+    }
+}
+
+private const val STRING = "Ljava/lang/String;"
 
 /**
  * The classes outside the extension whose code loads [literal] (a `const` or `const-wide` value),

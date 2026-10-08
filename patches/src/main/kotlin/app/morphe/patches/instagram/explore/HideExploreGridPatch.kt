@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -112,9 +113,10 @@ internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
     val code = method.implementation!!.instructions.toList()
     val where = "$type->${method.name}"
 
+    // A key is loaded by const-string or asked of a Redex string pool, which differs by build:
+    // 450's 385611395 pools auto_load_more_enabled and the others load it themselves (#77).
     fun fieldAfter(key: String, opcode: Opcode, fieldType: String): Pair<FieldReference, Int> {
-        val at = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == key } }
-        if (at < 0) refuse("$where doesn't read $key")
+        val at = code.indices.firstOrNull { stringLoadedAt(code, it) == key } ?: refuse("$where doesn't read $key")
         val write = code.drop(at + 1).firstOrNull { it.opcode in FIELD_WRITES }
             ?: refuse("$where reads $key into nothing")
         val field = (write as ReferenceInstruction).reference as FieldReference

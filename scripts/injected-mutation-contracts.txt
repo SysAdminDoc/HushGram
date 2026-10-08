@@ -507,6 +507,11 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->followUpBar(Landroid
 shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_hasAiDiscoveryMenu
 shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object; in static (Landroid/view/View;L*;L*;Lcom/instagram/feed/media/Media;L*;ZZZ)V holding android_purge_26_q3_ClipsOrganicMediaItemViewMoreOptionsController_getBottomSheetHeaderItems
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroid/view/ViewGroup;Landroid/view/View;)V in instance ()V holding overflow_open defer_eligibility_enabled
+# The share sheet's target builder, the one static method holding these four target names (450
+# 0nuj.A00), passes the answer of its "hatch" case's name check through shareTarget(), once, between
+# the move-result and the if-eqz. A no there skips the name as an unknown one, so the bottom row has
+# no Meta AI target. Left out, the target stays with Hide Meta AI in the share sheet on.
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in static (L*;Ljava/lang/Object;)Ljava/util/ArrayList; holding hatch whatsapp_status add_to_audio_note screenshot_preview
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
 # parser, the one method holding "sectional_items" and "session_paging_token". Search results come
@@ -795,6 +800,12 @@ once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->likeAction(Lja
 start-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackComment()Z in instance (Landroid/view/MotionEvent;)Z holding fb_comment_double_tap LX/0SxY;->A02:LX/0Bjh;
 start-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackComment()Z in instance (Landroid/view/MotionEvent;)Z holding fb_comment_double_tap LX/0Sxd;->A02:LX/0ZOm;
 start-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackComment()Z in instance (Landroid/view/MotionEvent;)Z holding like_comment unlike_comment
+# Its On messages switch asks first thing in the chat's double tap on a message, the one static
+# method loading should_show_like_direct_message_count and double_tap (450 0A4f.A00), and returns
+# there before the tip count and the reaction. The thread's gesture listeners (through 0A4f.A01) and
+# the Compose message list (05Yt.FJi) both call it. Left out, a double tap on a message reacts.
+start-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackMessage()Z in static (L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Z)V holding should_show_like_direct_message_count double_tap
+once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackMessage()Z in static (L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Z)V holding should_show_like_direct_message_count double_tap
 #
 # Hide the Reels tab asks the extension first thing in the tab host's switch to a tab, the one
 # static method holding the report it files when it finds no pager, and the switch goes on with the
@@ -939,6 +950,13 @@ once-call Lapp/hushgram/extension/instagram/profile/FollowingList;->answered(Lja
 # elsewhere, it isn't the hook the patches wrote. The renderer holds no string; its class holds the
 # matching selection-dismissal marker.
 once-call Lapp/hushgram/extension/instagram/comment/CommentActions;->rows(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)Ljava/util/List; in instance (L*;L*;L*;Ljava/util/List;F)V class-holding select_comment_screen_comment_unselect_tap_
+
+# Copy comment's Copy username (#35) borrows Copy's string id for its row, so the same renderer's
+# one Context.getString on a row's label is replaced in place by CommentAuthor.label, which answers
+# the username row's own text and every other row's as before. Left out, no username row is added;
+# twice or elsewhere, it isn't the call the patch wrote. CopyCommentHookTest checks where it lands
+# on the 450 fixture.
+once-call Lapp/hushgram/extension/instagram/comment/CommentAuthor;->label(Landroid/content/Context;ILjava/lang/Object;)Ljava/lang/String; in instance (L*;L*;L*;Ljava/util/List;F)V class-holding select_comment_screen_comment_unselect_tap_
 
 # Hide suggested people on profiles hands the action row's show flag for its inline row of
 # suggestions to ProfileSuggestions right after the read, and the person-plus button to it right

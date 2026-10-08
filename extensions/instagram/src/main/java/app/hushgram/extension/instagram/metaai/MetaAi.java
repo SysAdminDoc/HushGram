@@ -44,6 +44,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * summary, its Sources and an Ask Meta AI box. Every menu asks one factory for it and leaves the
  * block out on a null, so the factory's answer goes through {@link #aboutThisReel}. The summary
  * row adds the box alone with one addView, which goes through {@link #askMetaAiBox} instead.
+ *
+ * <p>The share sheet builds the targets in its bottom row from a list of names. Meta AI's ("hatch",
+ * shown as Muse on some accounts) has its own case, and the answer of the case's name check goes
+ * through {@link #shareTarget}.
  */
 public final class MetaAi {
     /**
@@ -195,6 +199,25 @@ public final class MetaAi {
             hide = false;
         }
         if (!hide) row.addView(box);
+    }
+
+    /**
+     * Injected right after the share sheet's target builder checks whether a name is Meta AI's
+     * ("hatch"), with the answer as an int (non-zero is yes). Answers false, which the builder takes
+     * as a name it doesn't know and builds no target for, while Hide Meta AI in the share sheet is
+     * on, and the answer otherwise, or when anything goes wrong. Never throws.
+     */
+    public static boolean shareTarget(int matches) {
+        if (matches == 0) return false;
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_SHARE_TARGET.get()) return true;
+            Logger.printDebug(() -> "Meta AI: left Meta AI's target out of the share sheet");
+            return false;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "share target", failure);
+            return true;
+        }
     }
 
     /**

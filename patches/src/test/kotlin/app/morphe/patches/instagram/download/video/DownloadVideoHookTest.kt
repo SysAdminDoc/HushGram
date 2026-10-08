@@ -39,12 +39,14 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -68,6 +70,7 @@ class DownloadVideoHookTest {
     private val pager = "Lfixture/Pager;"
     private val elsewhere = "Lfixture/Elsewhere;"
     private val pageLookup = "$MEDIA_EXT->A0Q($MEDIA" + "I)$MEDIA"
+    private val outline = "Lfixture/Outlined;"
 
     /** The hooks the patch writes are in the extension the bundle ships, public and static. */
     @Test
@@ -454,6 +457,67 @@ class DownloadVideoHookTest {
         assertUntouched(context)
     }
 
+    /**
+     * A builder that never touches the menu itself still gets offer(): it's found by its row adder,
+     * a static method of the state the menu keeps a field of. 450's 385611395 build merged the
+     * builder somewhere it never touches the menu (#77).
+     */
+    @Test
+    fun aBuilderThatNeverTouchesTheMenuIsFoundByItsState() {
+        val context = PatchContexts.of(classes(builderUsesMenu = false))
+
+        context.offerDownloadOnEveryVideo()
+
+        val code = context.method(lambda, "invoke").code()
+        val offer = code.indexOfFirst { it.referenceText() == OFFER_VIDEO }
+        assertEquals("offer() calls", 1, code.count { it.referenceText() == OFFER_VIDEO })
+        assertEquals("anyone else's first row follows", "$state->other:Ljava/lang/Object;", code[offer + 1].referenceText())
+    }
+
+    /** A builder adding rows of a state the menu doesn't keep isn't the feed menu's, and nothing changes. */
+    @Test
+    fun aBuilderOfAStateTheMenuDoesntKeepFailsBeforeAnythingChanges() {
+        val context = PatchContexts.of(classes(menuKeepsState = false))
+        val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryVideo() }
+        assertTrue(failure.message!!, failure.message!!.contains("expected one builder of the feed menu"))
+        assertUntouched(context)
+    }
+
+    /**
+     * A builder that makes its list and reads Download's label through methods R8 outlined, as
+     * 450's 385611400 build does, gets every row in the same places, and the row bridge reads the
+     * label by the same resource id itself (#77).
+     */
+    @Test
+    fun anOutlinedListAndLabelStillGetEveryRow() {
+        val context = PatchContexts.of(classes(outlinedList = true, outlinedLabel = true, builderUsesMenu = false))
+
+        context.offerDownloadOnEveryVideo()
+
+        val code = context.method(lambda, "invoke").code()
+        val offer = code[code.indexOfFirst { it.referenceText() == OFFER_VIDEO }] as Instruction35c
+        assertEquals("offer()'s arguments", listOf(0, 3), listOf(offer.registerC, offer.registerD))
+        val cast = code.indexOfFirst { it.opcode == Opcode.CHECK_CAST && it.referenceText() == state }
+        assertEquals("Save all right after the state cast", OFFER_ALL, code[cast + 1].referenceText())
+        assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+        val bridge = context.method(INSTAGRAM_MEDIA, "addDownloadRow").code()
+        assertEquals("the label", 0x7f131703, bridge.filterIsInstance<NarrowLiteralInstruction>().single { it.narrowLiteral != 0 }.narrowLiteral)
+        assertTrue("the bridge reads the label itself", bridge.any { it.referenceText() == "Landroid/content/res/Resources;->getString(I)Ljava/lang/String;" })
+    }
+
+    /** A method of an outline's shape that does something else isn't taken for one, and nothing changes. */
+    @Test
+    fun anOutlineThatDoesSomethingElseFailsBeforeAnythingChanges() {
+        for ((case, classes) in listOf(
+            "the list" to classes(outlinedList = true, outlinesOnlyDoThat = false),
+            "the label" to classes(outlinedLabel = true, outlinesOnlyDoThat = false),
+        )) {
+            val context = PatchContexts.of(classes)
+            assertThrows(case, PatchException::class.java) { context.offerDownloadOnEveryVideo() }
+            assertUntouched(context)
+        }
+    }
+
     @Test
     fun aMissingMenuClassFailsThePatch() {
         val context = PatchContexts.of(classes(name = "SomethingElse"))
@@ -476,119 +540,139 @@ class DownloadVideoHookTest {
     @Test
     fun eachDeclaredBuildOffersDownloadOnEveryVideo() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
-        val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, MEDIA_EXT, OPTION)
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
-                FixtureDex.forEach(bundle) { dex ->
-                    val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) == ELIGIBLE_MARKER }
-                    val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
-                    val named = dex.stringSection.any { it == FEED_HELPER_NAME }
-                    val options = dex.fieldSection.any { it.toString() == WHY_OPTION }
-                    val pages = dex.methodSection.any { it.definingClass == MEDIA_EXT }
-                    if (!marked && !loads && !named && !options && !pages && dex.classes.none { it.type in types }) return@forEach
-                    for (classDef in dex.classes) {
-                        val wanted = classDef.type in types || classDef.originalName() == FEED_HELPER_NAME || classDef.methods.any { method ->
-                            ELIGIBLE_MARKER in method.markers() || method.code().any { it.referenceText() == DOWNLOAD } ||
-                                method.isShortMenuList() || method.pageReads().isNotEmpty()
-                        }
-                        if (wanted) classes += ImmutableClassDef.of(classDef)
-                    }
-                }
-                // The caption's comment type, from Media's getter that holds the key's hash, and its
-                // classes, which Copy caption's bridges read.
-                val caption = classes.single { it.type == MEDIA }.methods.single { method ->
-                    method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType.startsWith("L") &&
-                        method.code().any { it is NarrowLiteralInstruction && it.narrowLiteral == "caption".hashCode() }
-                }
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if ((classDef.type == caption.returnType || caption.returnType in classDef.interfaces) && classes.none { it.type == classDef.type }) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val context = PatchContexts.of(classes)
-
-                context.offerDownloadOnEveryVideo()
-
-                // Copy caption reads Media's caption, then the comment's text through its interface,
-                // by the name the tree-backed class that holds the text's hash gives the getter.
-                val captionRead = context.method(INSTAGRAM_MEDIA, "caption").code()
-                assertEquals("${bundle.name}: caption", "$MEDIA->${caption.name}()${caption.returnType}", captionRead[1].referenceText())
-                val textRead = context.method(INSTAGRAM_MEDIA, "captionText").code()
-                assertEquals("${bundle.name}: the caption's type", caption.returnType, textRead[0].referenceText())
-                assertEquals("${bundle.name}: through the interface", Opcode.INVOKE_INTERFACE, textRead[1].opcode)
-                val textGetter = textRead[1].referenceText()!!
-                assertTrue("${bundle.name}: $textGetter", textGetter.startsWith("${caption.returnType}->") && textGetter.endsWith("()Ljava/lang/String;"))
-                val tree = classes.filter { caption.returnType in it.interfaces }.single { type ->
-                    type.methods.any { "${caption.returnType}->${it.name}()${it.returnType}" == textGetter &&
-                        it.code().any { instruction -> instruction is NarrowLiteralInstruction && instruction.narrowLiteral == "text".hashCode() } }
-                }
-                assertTrue("${bundle.name}: a tree-backed caption", tree.superclass != "Ljava/lang/Object;")
-
-                val menu = classes.single { it.originalName() == FEED_HELPER_NAME }
-                val handler = menu.methods.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(OPTION) && it.returnType == "V" }
-                val handled = context.method(menu.type, handler.name, listOf(OPTION)).code()
-                val save = handled.indexOfFirst { it.referenceText() == SAVE_VIDEO }
-                assertEquals("${bundle.name}: the current-page save", SAVE_VIDEO, handled[save].referenceText())
-                assertEquals("${bundle.name}: one batch tap", 1, handled.count { it.referenceText() == SAVE_ALL })
-                assertEquals("${bundle.name}: one player tap", 1, handled.count { it.referenceText() == PLAY_VIDEO })
-                assertEquals("${bundle.name}: one Details tap", 1, handled.count { it.referenceText() == SHOW_DETAILS })
-                val constructor = context.method(INSTAGRAM_MEDIA, "saveAllOption").code().single { it.opcode == Opcode.INVOKE_DIRECT }
-                assertEquals("${bundle.name}: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", constructor.referenceText())
-                assertEquals("${bundle.name}: the native option class was preserved", classes.single { it.type == OPTION }.methods.map { it.code().map { instruction -> instruction.referenceText() } },
-                    context.classDefBy(OPTION).methods.map { it.code().map { instruction -> instruction.referenceText() } })
-                // The menu hands save() the feed state whose page the index bridge reads.
-                val itemType = handled[save - 1].referenceText()!!.substringAfterLast(':')
-                val index = context.method(INSTAGRAM_MEDIA, "carouselIndex").code()
-                assertEquals("${bundle.name}: the page's class", itemType, index[0].referenceText())
-                assertEquals("${bundle.name}: the page", Opcode.IGET, index[1].opcode)
-                assertTrue("${bundle.name}: the page is on the feed state", index[1].referenceText()!!.startsWith("$itemType->"))
-                val item = context.method(INSTAGRAM_MEDIA, "feedMenuItemState").code()
-                assertTrue("${bundle.name}: the builder's feed state", item[1].referenceText()!!.endsWith(":$itemType"))
-                assertEquals("${bundle.name}: the carousel bridge", Opcode.INVOKE_VIRTUAL, context.method(INSTAGRAM_MEDIA, "carouselMedia").code()[1].opcode)
-                val builders = classes.flatMap { it.methods }.filter { method ->
-                    context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code().any { it.referenceText() == OFFER_VIDEO }
-                }
-                assertEquals("${bundle.name}: the builders offering Download", 1, builders.size)
-                val code = context.method(builders.single().definingClass, builders.single().name, builders.single().parameterTypes.map(Any::toString)).code()
-                assertEquals("${bundle.name}: offer() calls", 1, code.count { it.referenceText() == OFFER_VIDEO })
-                assertEquals("${bundle.name}: Save all offered once", 1, code.count { it.referenceText() == OFFER_ALL })
-                assertEquals("${bundle.name}: the player offered once, right after it",
-                    code.indexOfFirst { it.referenceText() == OFFER_ALL } + 1, code.indexOfLast { it.referenceText() == OFFER_PLAYER })
-                assertEquals("${bundle.name}: Details offered once, right after the player",
-                    code.indexOfFirst { it.referenceText() == OFFER_PLAYER } + 1, code.indexOfLast { it.referenceText() == OFFER_DETAILS })
-                val own = code.indexOfFirst { it.referenceText() == OWN_POST }
-                assertEquals("${bundle.name}: ownPost() calls", 1, code.count { it.referenceText() == OWN_POST })
-                assertEquals("${bundle.name}: ownPost() takes the download check's answer", Opcode.MOVE_RESULT, code[own - 1].opcode)
-                assertTrue("${bundle.name}: right after the check", code[own - 2].referenceText()!!.contains(";->") &&
-                    classes.any { classDef -> classDef.methods.any { ELIGIBLE_MARKER in it.markers() && code[own - 2].referenceText() == "${classDef.type}->${it.name}(${it.parameterTypes.joinToString("")})Z" } })
-                assertEquals("${bundle.name}: its answer replaces the check's", (code[own - 1] as OneRegisterInstruction).registerA,
-                    (code[own + 1] as OneRegisterInstruction).registerA)
-                val offer = code.indexOfFirst { it.referenceText() == OFFER_VIDEO }
-                assertTrue("${bundle.name}: offer() follows the Download row's jump", code[offer - 1].opcode.name.startsWith("goto"))
-                assertTrue("${bundle.name}: a jump reaches offer()", code.indices.any { it < offer && code[it].opcode == Opcode.IF_EQZ && code.target(it) == offer })
-                val row = context.method(INSTAGRAM_MEDIA, "addDownloadRow").code()
-                assertTrue("${bundle.name}: the row bridge", row.any { it.referenceText() == DOWNLOAD } && row.any { it.opcode == Opcode.INVOKE_STATIC_RANGE })
-                assertEquals("${bundle.name}: the post bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, "feedMenuMedia").code().first().opcode)
-                val lists = classes.flatMap { it.methods }.filter { it.isShortMenuList() }
-                assertEquals("${bundle.name}: the short menu's lists", 1, lists.size)
-                val list = context.method(lists.single().definingClass, lists.single().name, listOf("Z")).code()
-                val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
-                assertEquals("${bundle.name}: allow() calls", returns.size, list.count { it.referenceText() == ALLOW_VIDEO })
-                returns.forEach { at ->
-                    assertEquals("${bundle.name}: allow() before the return at $at", ALLOW_VIDEO, list[at - 2].referenceText())
-                    assertEquals("${bundle.name}: Download handed to it", DOWNLOAD, list[at - 3].referenceText())
-                }
-                val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in videoBridges }
-                assertEquals("${bundle.name}: the video bridges", videoBridges.size, bridges.size)
-                bridges.forEach { assertEquals("${bundle.name}: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
+                offersDownloadOnEveryVideo(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /**
+     * The same holds in the other arm64 builds of each declared version, where R8 merged the
+     * builder elsewhere and outlined its list and label in some (#77).
+     */
+    @Test
+    fun eachOtherBuildOffersDownloadOnEveryVideo() {
+        for (apk in Fixtures.otherBuilds()) offersDownloadOnEveryVideo(apk, apk.parentFile.name)
+    }
+
+    private fun offersDownloadOnEveryVideo(bundle: File, label: String) {
+        val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, MEDIA_EXT, OPTION)
+        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
+        FixtureDex.forEach(bundle) { dex ->
+            val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) == ELIGIBLE_MARKER }
+            val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
+            val named = dex.stringSection.any { it == FEED_HELPER_NAME }
+            val options = dex.fieldSection.any { it.toString() == WHY_OPTION }
+            val pages = dex.methodSection.any { it.definingClass == MEDIA_EXT }
+            if (!marked && !loads && !named && !options && !pages && dex.classes.none { it.type in types }) return@forEach
+            for (classDef in dex.classes) {
+                val wanted = classDef.type in types || classDef.originalName() == FEED_HELPER_NAME || classDef.methods.any { method ->
+                    ELIGIBLE_MARKER in method.markers() || method.code().any { it.referenceText() == DOWNLOAD } ||
+                        method.isShortMenuList() || method.pageReads().isNotEmpty()
+                }
+                if (wanted) classes += ImmutableClassDef.of(classDef)
+            }
+        }
+        // The caption's comment type, from Media's getter that holds the key's hash, and its
+        // classes, which Copy caption's bridges read.
+        val caption = classes.single { it.type == MEDIA }.methods.single { method ->
+            method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType.startsWith("L") &&
+                method.code().any { it is NarrowLiteralInstruction && it.narrowLiteral == "caption".hashCode() }
+        }
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if ((classDef.type == caption.returnType || caption.returnType in classDef.interfaces) && classes.none { it.type == classDef.type }) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        // The static methods R8 outlined `new ArrayList()` and getString into, in a build that has them.
+        val outlined = classes.asSequence().flatMap { it.methods.asSequence() }.flatMap { it.code().asSequence() }
+            .mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { (it.returnType == "Ljava/util/ArrayList;" && it.parameterTypes.isEmpty()) ||
+                (it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("Landroid/content/res/Resources;", "I")) }
+            .map { it.definingClass }.filter { type -> classes.none { it.type == type } }.toSet()
+        if (outlined.isNotEmpty()) classes += FixtureDex.classes(bundle, outlined).values
+        val context = PatchContexts.of(classes)
+
+        context.offerDownloadOnEveryVideo()
+
+        // Copy caption reads Media's caption, then the comment's text through its interface,
+        // by the name the tree-backed class that holds the text's hash gives the getter.
+        val captionRead = context.method(INSTAGRAM_MEDIA, "caption").code()
+        assertEquals("$label: caption", "$MEDIA->${caption.name}()${caption.returnType}", captionRead[1].referenceText())
+        val textRead = context.method(INSTAGRAM_MEDIA, "captionText").code()
+        assertEquals("$label: the caption's type", caption.returnType, textRead[0].referenceText())
+        assertEquals("$label: through the interface", Opcode.INVOKE_INTERFACE, textRead[1].opcode)
+        val textGetter = textRead[1].referenceText()!!
+        assertTrue("$label: $textGetter", textGetter.startsWith("${caption.returnType}->") && textGetter.endsWith("()Ljava/lang/String;"))
+        val tree = classes.filter { caption.returnType in it.interfaces }.single { type ->
+            type.methods.any { "${caption.returnType}->${it.name}()${it.returnType}" == textGetter &&
+                it.code().any { instruction -> instruction is NarrowLiteralInstruction && instruction.narrowLiteral == "text".hashCode() } }
+        }
+        assertTrue("$label: a tree-backed caption", tree.superclass != "Ljava/lang/Object;")
+
+        val menu = classes.single { it.originalName() == FEED_HELPER_NAME }
+        val handler = menu.methods.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(OPTION) && it.returnType == "V" }
+        val handled = context.method(menu.type, handler.name, listOf(OPTION)).code()
+        val save = handled.indexOfFirst { it.referenceText() == SAVE_VIDEO }
+        assertEquals("$label: the current-page save", SAVE_VIDEO, handled[save].referenceText())
+        assertEquals("$label: one batch tap", 1, handled.count { it.referenceText() == SAVE_ALL })
+        assertEquals("$label: one player tap", 1, handled.count { it.referenceText() == PLAY_VIDEO })
+        assertEquals("$label: one Details tap", 1, handled.count { it.referenceText() == SHOW_DETAILS })
+        val constructor = context.method(INSTAGRAM_MEDIA, "saveAllOption").code().single { it.opcode == Opcode.INVOKE_DIRECT }
+        assertEquals("$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", constructor.referenceText())
+        assertEquals("$label: the native option class was preserved", classes.single { it.type == OPTION }.methods.map { it.code().map { instruction -> instruction.referenceText() } },
+            context.classDefBy(OPTION).methods.map { it.code().map { instruction -> instruction.referenceText() } })
+        // The menu hands save() the feed state whose page the index bridge reads.
+        val itemType = handled[save - 1].referenceText()!!.substringAfterLast(':')
+        val index = context.method(INSTAGRAM_MEDIA, "carouselIndex").code()
+        assertEquals("$label: the page's class", itemType, index[0].referenceText())
+        assertEquals("$label: the page", Opcode.IGET, index[1].opcode)
+        assertTrue("$label: the page is on the feed state", index[1].referenceText()!!.startsWith("$itemType->"))
+        val item = context.method(INSTAGRAM_MEDIA, "feedMenuItemState").code()
+        assertTrue("$label: the builder's feed state", item[1].referenceText()!!.endsWith(":$itemType"))
+        assertEquals("$label: the carousel bridge", Opcode.INVOKE_VIRTUAL, context.method(INSTAGRAM_MEDIA, "carouselMedia").code()[1].opcode)
+        val builders = classes.flatMap { it.methods }.filter { method ->
+            context.method(method.definingClass, method.name, method.parameterTypes.map(Any::toString)).code().any { it.referenceText() == OFFER_VIDEO }
+        }
+        assertEquals("$label: the builders offering Download", 1, builders.size)
+        val code = context.method(builders.single().definingClass, builders.single().name, builders.single().parameterTypes.map(Any::toString)).code()
+        assertEquals("$label: offer() calls", 1, code.count { it.referenceText() == OFFER_VIDEO })
+        assertEquals("$label: Save all offered once", 1, code.count { it.referenceText() == OFFER_ALL })
+        assertEquals("$label: the player offered once, right after it",
+            code.indexOfFirst { it.referenceText() == OFFER_ALL } + 1, code.indexOfLast { it.referenceText() == OFFER_PLAYER })
+        assertEquals("$label: Details offered once, right after the player",
+            code.indexOfFirst { it.referenceText() == OFFER_PLAYER } + 1, code.indexOfLast { it.referenceText() == OFFER_DETAILS })
+        val own = code.indexOfFirst { it.referenceText() == OWN_POST }
+        assertEquals("$label: ownPost() calls", 1, code.count { it.referenceText() == OWN_POST })
+        assertEquals("$label: ownPost() takes the download check's answer", Opcode.MOVE_RESULT, code[own - 1].opcode)
+        assertTrue("$label: right after the check", code[own - 2].referenceText()!!.contains(";->") &&
+            classes.any { classDef -> classDef.methods.any { ELIGIBLE_MARKER in it.markers() && code[own - 2].referenceText() == "${classDef.type}->${it.name}(${it.parameterTypes.joinToString("")})Z" } })
+        assertEquals("$label: its answer replaces the check's", (code[own - 1] as OneRegisterInstruction).registerA,
+            (code[own + 1] as OneRegisterInstruction).registerA)
+        val offer = code.indexOfFirst { it.referenceText() == OFFER_VIDEO }
+        assertTrue("$label: offer() follows the Download row's jump", code[offer - 1].opcode.name.startsWith("goto"))
+        assertTrue("$label: a jump reaches offer()", code.indices.any { it < offer && code[it].opcode == Opcode.IF_EQZ && code.target(it) == offer })
+        val row = context.method(INSTAGRAM_MEDIA, "addDownloadRow").code()
+        assertTrue("$label: the row bridge", row.any { it.referenceText() == DOWNLOAD } && row.any { it.opcode == Opcode.INVOKE_STATIC_RANGE })
+        assertEquals("$label: the post bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, "feedMenuMedia").code().first().opcode)
+        val lists = classes.flatMap { it.methods }.filter { it.isShortMenuList() }
+        assertEquals("$label: the short menu's lists", 1, lists.size)
+        val list = context.method(lists.single().definingClass, lists.single().name, listOf("Z")).code()
+        val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
+        assertEquals("$label: allow() calls", returns.size, list.count { it.referenceText() == ALLOW_VIDEO })
+        returns.forEach { at ->
+            assertEquals("$label: allow() before the return at $at", ALLOW_VIDEO, list[at - 2].referenceText())
+            assertEquals("$label: Download handed to it", DOWNLOAD, list[at - 3].referenceText())
+        }
+        val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in videoBridges }
+        assertEquals("$label: the video bridges", videoBridges.size, bridges.size)
+        bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
     }
 
     private val videoBridges = setOf(
@@ -634,6 +718,11 @@ class DownloadVideoHookTest {
         flagSkipsRow: Boolean = false,
         optionEnum: Boolean = true,
         optionInitializesIcon: Boolean = true,
+        menuKeepsState: Boolean = true,
+        builderUsesMenu: Boolean = true,
+        outlinedList: Boolean = false,
+        outlinedLabel: Boolean = false,
+        outlinesOnlyDoThat: Boolean = true,
     ): List<ClassDef> {
         val menu = ImmutableClassDef(
             helper, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
@@ -644,6 +733,7 @@ class DownloadVideoHookTest {
                 field(helper, "post", MEDIA),
                 field(helper, "item", itemState).takeIf { menuHoldsItem },
                 field(helper, "elsewhere", elsewhere),
+                field(helper, "rows", state).takeIf { menuKeepsState },
             ),
             listOf(
                 method(helper, "A09", listOf(OPTION), "V", handlerRegisters, static = false, body = """
@@ -663,10 +753,12 @@ class DownloadVideoHookTest {
             ),
         )
         // The feed menu's builder, one case of a merged lambda: your own post goes past the download
-        // check and two flags to the Download row, out of line; anyone else's jumps past it.
+        // check and two flags to the Download row, out of line; anyone else's jumps past it. Some
+        // builds make the list and read the label through methods R8 outlined, and some never touch
+        // the menu in the builder.
         val builder = classDef(lambda, listOf(method(lambda, "invoke", emptyList(), "Ljava/lang/Object;", 15, static = false, body = """
-            new-instance v3, Ljava/util/ArrayList;
-            invoke-direct { v3 }, Ljava/util/ArrayList;-><init>()V
+            ${if (outlinedList) "invoke-static {}, $outline->A0b()Ljava/util/ArrayList;\nmove-result-object v3"
+                else "new-instance v3, Ljava/util/ArrayList;\ninvoke-direct { v3 }, Ljava/util/ArrayList;-><init>()V"}
             ${if (branchBeforeStateCast) "goto :captured\n:captured" else ""}
             iget-object v0, p0, $lambda->state:$state
             ${List(stateCasts) { "check-cast v0, $state" }.joinToString("\n")}
@@ -687,7 +779,7 @@ class DownloadVideoHookTest {
             move-result v1
             if-eqz v1, :row
             :mine
-            invoke-static { v13 }, $helper->A01($helper)$MEDIA
+            ${if (builderUsesMenu) "invoke-static { v13 }, $helper->A01($helper)$MEDIA" else "nop"}
             return-object v3
             :row
             sget-object v7, $DOWNLOAD
@@ -695,7 +787,8 @@ class DownloadVideoHookTest {
             invoke-virtual { v1 }, Landroid/content/Context;->getResources()Landroid/content/res/Resources;
             move-result-object v2
             const v1, 0x7f131703
-            invoke-virtual { v2, v1 }, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;
+            ${if (outlinedLabel) "invoke-static { v2, v1 }, $outline->A0y(Landroid/content/res/Resources;I)Ljava/lang/String;"
+                else "invoke-virtual { v2, v1 }, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;"}
             move-result-object v9
             sget-object v6, $kind->A05:$kind
             move-object v8, v0
@@ -789,8 +882,31 @@ class DownloadVideoHookTest {
                 move-result-object v1
                 return-object v1
             """)
+        // What R8 outlines `new ArrayList()` and a label's getString into, or methods of the same
+        // shape that do something else.
+        val outlines = classDef(outline, listOf(
+            method(outline, "A0b", emptyList(), "Ljava/util/ArrayList;", 1, static = true, body = if (outlinesOnlyDoThat) """
+                new-instance v0, Ljava/util/ArrayList;
+                invoke-direct { v0 }, Ljava/util/ArrayList;-><init>()V
+                return-object v0
+            """ else """
+                new-instance v0, Ljava/util/ArrayList;
+                const/4 v0, 0x0
+                return-object v0
+            """),
+            method(outline, "A0y", listOf("Landroid/content/res/Resources;", "I"), "Ljava/lang/String;", 3, static = true,
+                body = if (outlinesOnlyDoThat) """
+                    invoke-virtual { p0, p1 }, Landroid/content/res/Resources;->getString(I)Ljava/lang/String;
+                    move-result-object v0
+                    invoke-static { v0 }, Lfixture/Checks;->A0F(Ljava/lang/Object;)V
+                    return-object v0
+                """ else """
+                    const-string v0, "Download"
+                    return-object v0
+                """),
+        ))
         return listOf(
-            menu, builder, eligible, shortMenus, mediaExt, classDef(pager, calls),
+            menu, builder, eligible, shortMenus, mediaExt, classDef(pager, calls), outlines,
             ImmutableClassDef(OPTION, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or
                 (if (optionEnum) AccessFlags.ENUM.value else 0),
                 "Ljava/lang/Enum;", null, null, null, emptyList(), listOf(

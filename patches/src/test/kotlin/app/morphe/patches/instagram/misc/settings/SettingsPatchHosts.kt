@@ -13,11 +13,16 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21s
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
@@ -60,13 +65,57 @@ internal object SettingsPatchHosts {
         )
     }
 
+    const val KEY_POOL = "Lfixture/Strings;"
+    const val SCREEN_KEY = 5
+    const val SESSION_KEY = 6
+    val POOL_CALL = ImmutableMethodReference(KEY_POOL, "A00", listOf("I"), "Ljava/lang/String;")
+
+    /**
+     * A pool of shared strings as 450's Redex writes it: a static (int)String switch answering
+     * "screen_id" for [SCREEN_KEY] and [session] for [SESSION_KEY]. p0 is v1; the nop puts the
+     * payload on an even address.
+     */
+    fun keyPool(session: String = "new_settings_session"): ClassDef = ImmutableClassDef(
+        KEY_POOL, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null,
+        listOf(ImmutableMethod(
+            KEY_POOL, POOL_CALL.name, listOf(ImmutableMethodParameter("I", null, null)), "Ljava/lang/String;",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(2, listOf(
+                ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 12),
+                ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("screen_id")),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(session)),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+                ImmutableInstruction10x(Opcode.NOP),
+                ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(SCREEN_KEY, 5), ImmutableSwitchElement(SESSION_KEY, 8))),
+            ), null, null),
+        )),
+    )
+
     /**
      * A settings screen shaped like Instagram 449's: a static factory that puts the two keys in the
      * arguments and answers an instance, and an onCreateView answering a view from v1, reached
      * from a branch at 1 and falling through from 2 when [branched], or straight after it's made.
+     * With [pooledKeys] the factory asks [keyPool] for both keys, as 450's 385611400 does.
      */
-    fun settingsScreen(branched: Boolean = false): ClassDef {
+    fun settingsScreen(branched: Boolean = false, pooledKeys: Boolean = false): ClassDef {
         val view = ImmutableTypeReference("Landroid/view/View;")
+        val keys = if (pooledKeys) {
+            listOf(SCREEN_KEY, SESSION_KEY).flatMap { number ->
+                listOf(
+                    ImmutableInstruction21s(Opcode.CONST_16, 0, number),
+                    ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, POOL_CALL),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                )
+            }
+        } else {
+            listOf(
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("screen_id")),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("new_settings_session")),
+            )
+        }
         val createView = if (branched) {
             listOf(
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, view),
@@ -87,9 +136,7 @@ internal object SettingsPatchHosts {
                     SETTINGS_SCREEN, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value, null, null,
                     ImmutableMethodImplementation(
                         3,
-                        listOf(
-                            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("screen_id")),
-                            ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("new_settings_session")),
+                        keys + listOf(
                             ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(SETTINGS_SCREEN)),
                             ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
                         ),

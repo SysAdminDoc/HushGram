@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -28,6 +29,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /** The HushGram settings row, put in front of each view Instagram's settings screen answers. */
 class SettingsRowTest {
@@ -69,6 +71,26 @@ class SettingsRowTest {
         assertTrue(failure.message, failure.message!!.contains("expected a settings screen factory in this Instagram build, found none"))
     }
 
+    /** 450's 385611400 asks a pool of shared strings for both keys in every factory (#77). */
+    @Test
+    fun aFactoryAskingAPoolForItsKeysIsFound() {
+        val context = PatchContexts.of(listOf(SettingsPatchHosts.settingsScreen(pooledKeys = true), SettingsPatchHosts.keyPool()))
+
+        context.addSettingsRow()
+
+        val createView = context.mutableClassDefBy(SettingsPatchHosts.SETTINGS_SCREEN).methods.single { it.name == "onCreateView" }
+        assertInjectedAt(createView, 1, view = 1)
+    }
+
+    @Test
+    fun aFactoryAskingAPoolForAnotherKeyIsNoFactory() {
+        val failure = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(SettingsPatchHosts.settingsScreen(pooledKeys = true), SettingsPatchHosts.keyPool(session = "old_settings_session")))
+                .addSettingsRow()
+        }
+        assertTrue(failure.message, failure.message!!.contains("expected a settings screen factory in this Instagram build, found none"))
+    }
+
     /**
      * In each declared build the factory is found on Instagram's own SettingsScreenFragment, by the
      * name Redex keeps for it, and every view its onCreateView answers goes through the hook with
@@ -80,46 +102,57 @@ class SettingsRowTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val candidates = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    if (dex.stringSection.none { it == "new_settings_session" }) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.instructions().any { it.string() == "new_settings_session" } }) {
-                            candidates += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                // 449's factory is a static on the screen itself; 450's makes the screen from
-                // another class, so the classes the factory makes come along.
-                val factories = candidates.flatMap { it.methods }.filter { method ->
-                    method.instructions().any { it.string() == "screen_id" } &&
-                        method.instructions().any { it.string() == "new_settings_session" }
-                }
-                val made = factories.flatMap { method ->
-                    method.instructions().filter { it.opcode == Opcode.NEW_INSTANCE }
-                        .map { ((it as ReferenceInstruction).reference as TypeReference).type }
-                }.toSet()
-                candidates += FixtureDex.classes(bundle, made - candidates.map { it.type }.toSet()).values
-                val context = PatchContexts.of(candidates)
-
-                context.addSettingsRow()
-
-                val screen = candidates.filter { it.type in made }.single { classDef -> classDef.methods.any { it.name == "onCreateView" } }
-                val originalName = screen.staticFields.single { it.name == "__redex_internal_original_name" }.initialValue
-                assertEquals("${bundle.name}: the screen found", "SettingsScreenFragment", (originalName as StringEncodedValue).value)
-
-                val before = screen.methods.single { it.name == "onCreateView" }.instructions()
-                val returns = before.withIndex().filter { it.value.opcode == Opcode.RETURN_OBJECT }
-                assertTrue("${bundle.name}: onCreateView returns nothing", returns.isNotEmpty())
-                val after = context.mutableClassDefBy(screen.type).methods.single { it.name == "onCreateView" }
-                assertEquals("${bundle.name}: instruction count", before.size + 4 * returns.size, after.instructions().size)
-                returns.forEachIndexed { shift, (index, instruction) ->
-                    assertInjectedAt(after, index + 4 * shift, (instruction as OneRegisterInstruction).registerA)
-                }
+                getsTheRowOnItsSettingsScreen(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /** The same in 450's other arm64 builds; 385611400 asks a pool for both keys in every factory (#77). */
+    @Test
+    fun eachOtherBuildGetsTheRowOnItsSettingsScreen() {
+        for (bundle in Fixtures.otherBuilds()) getsTheRowOnItsSettingsScreen(bundle, bundle.parentFile.name)
+    }
+
+    private fun getsTheRowOnItsSettingsScreen(bundle: File, label: String) {
+        val candidates = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.stringSection.none { it == NEW_SETTINGS_SESSION }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.instructions().any { it.string() == NEW_SETTINGS_SESSION } }) {
+                    candidates += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        // 449's factory is a static on the screen itself; 450's makes the screen from another class
+        // too, so the classes a factory makes come along, and the pools its keys may come from.
+        val withPools = FixtureDex.withStringPools(bundle, candidates)
+        val pools = PatchContexts.of(withPools)
+        val factories = withPools.flatMap { it.methods }.filter { method ->
+            pools.loadsString(method, SCREEN_ID) && pools.loadsString(method, NEW_SETTINGS_SESSION)
+        }
+        val made = factories.flatMap { method ->
+            method.instructions().filter { it.opcode == Opcode.NEW_INSTANCE }
+                .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+        }.toSet()
+        val classes = withPools + FixtureDex.classes(bundle, made - withPools.map { it.type }.toSet()).values
+        val context = PatchContexts.of(classes)
+
+        context.addSettingsRow()
+
+        val screen = classes.filter { it.type in made }.single { classDef -> classDef.methods.any { it.name == "onCreateView" } }
+        val originalName = screen.staticFields.single { it.name == "__redex_internal_original_name" }.initialValue
+        assertEquals("$label: the screen found", "SettingsScreenFragment", (originalName as StringEncodedValue).value)
+
+        val before = screen.methods.single { it.name == "onCreateView" }.instructions()
+        val returns = before.withIndex().filter { it.value.opcode == Opcode.RETURN_OBJECT }
+        assertTrue("$label: onCreateView returns nothing", returns.isNotEmpty())
+        val after = context.mutableClassDefBy(screen.type).methods.single { it.name == "onCreateView" }
+        assertEquals("$label: instruction count", before.size + 4 * returns.size, after.instructions().size)
+        returns.forEachIndexed { shift, (index, instruction) ->
+            assertInjectedAt(after, index + 4 * shift, (instruction as OneRegisterInstruction).registerA)
+        }
     }
 
     private fun injected() = listOf(

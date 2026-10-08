@@ -92,6 +92,8 @@ private const val CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
 private const val CONTEXT = "Landroid/content/Context;"
 private const val GET_RESOURCES = "Landroid/content/Context;->getResources()Landroid/content/res/Resources;"
 private const val GET_STRING = "Landroid/content/res/Resources;->getString(I)Ljava/lang/String;"
+private const val RESOURCES = "Landroid/content/res/Resources;"
+private const val STRING = "Ljava/lang/String;"
 
 /**
  * The bridges this patch writes: the post a menu is for, Instagram's Download row, the post's feed
@@ -207,13 +209,18 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
         throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean for a Media")
     }
     val type = helper.type
-    val builders = loaders.filter { it.calls(eligible) && it.uses(type) }
+    // The builder adds Download with a static method of its state, which the menu keeps a field of.
+    // R8 merges the builder into a different method in each build, and whether that method also
+    // touches the menu itself varies (450's 385611395 build never does), so the state is what counts.
+    val states = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.mapTo(HashSet()) { it.type }
+    val builders = loaders.filter { it.calls(eligible) && it.addsRowOfAStateIn(states) }
     val builder = builders.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one builder of the feed menu adding Download after the download check, found " +
             if (builders.isEmpty()) "none" else builders.joinToString { "${it.definingClass}->${it.name}" },
     )
-    val others = builder.othersRow(eligible)
-    val batchAt = builder.batchRow(others)
+    val outlined = { call: MethodReference -> classDefByOrNull(call.definingClass)?.methods?.firstOrNull { it.isTargetOf(call) } }
+    val others = builder.othersRow(eligible, outlined)
+    val batchAt = builder.batchRow(others, outlined)
     val own = builder.ownPost(eligible, others)
     val icon = optionIcon(PATCH)
     val handlers = helper.methods.filter {
@@ -465,8 +472,11 @@ private fun downloadRow(stub: Method, found: OthersRow, all: Boolean = false): M
     }
 }
 
-/** Both the fresh row list and captured feed state are valid before the split by ownership. */
-internal fun Method.batchRow(found: OthersRow): Int {
+/**
+ * Both the fresh row list and captured feed state are valid before the split by ownership. The list
+ * is made in place, or by a static method R8 outlined that making into, which [outlined] looks up.
+ */
+internal fun Method.batchRow(found: OthersRow, outlined: (MethodReference) -> Method? = { null }): Int {
     val code = code()
     val cast = code.indices.singleOrNull {
         code[it].opcode == Opcode.CHECK_CAST && code[it].referenceText() == found.stateType &&
@@ -474,12 +484,47 @@ internal fun Method.batchRow(found: OthersRow): Int {
     } ?: throw PatchException("$PATCH: the feed builder has no unique initial state cast")
     val list = (cast - 1 downTo 0).firstOrNull { code[it].writes(found.rows) }
         ?: throw PatchException("$PATCH: the feed builder has no initial row list")
-    if (code[list].opcode != Opcode.NEW_INSTANCE || code[list].referenceText() != ARRAY_LIST ||
-        (list + 1 until cast).none { code[it].referenceText() == "$ARRAY_LIST-><init>()V" &&
-            code[it].argumentRegisters() == listOf(found.rows) } || cast >= found.at ||
-        (list + 1..cast).any { code[it] is OffsetInstruction }
-    ) throw PatchException("$PATCH: the row list isn't initialized before the feed builder's state cast")
+    val madeHere = code[list].opcode == Opcode.NEW_INSTANCE && code[list].referenceText() == ARRAY_LIST &&
+        (list + 1 until cast).any { code[it].referenceText() == "$ARRAY_LIST-><init>()V" && code[it].argumentRegisters() == listOf(found.rows) }
+    val madeByOutline = code[list].opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(list - 1)?.let { call ->
+        val reference = call.methodReference()
+        call.opcode in STATIC_CALLS && reference != null && reference.returnType == ARRAY_LIST && reference.parameterTypes.isEmpty() &&
+            outlined(reference)?.makesAnEmptyList() == true
+    } == true
+    if (!(madeHere || madeByOutline) || cast >= found.at || (list + 1..cast).any { code[it] is OffsetInstruction }) {
+        throw PatchException("$PATCH: the row list isn't initialized before the feed builder's state cast")
+    }
     return cast + 1
+}
+
+/** Whether [this] only makes an empty ArrayList and answers it, the way R8 outlines `new ArrayList()`. */
+private fun Method.makesAnEmptyList(): Boolean {
+    val code = code().filter { it.opcode != Opcode.NOP }
+    if (!AccessFlags.STATIC.isSet(accessFlags) || code.size != 3) return false
+    if (code[0].opcode != Opcode.NEW_INSTANCE || code[0].referenceText() != ARRAY_LIST) return false
+    val list = (code[0] as OneRegisterInstruction).registerA
+    return code[1].referenceText() == "$ARRAY_LIST-><init>()V" && code[1].argumentRegisters() == listOf(list) &&
+        code[2].opcode == Opcode.RETURN_OBJECT && (code[2] as OneRegisterInstruction).registerA == list
+}
+
+/**
+ * Whether [this] reads a string resource: Resources.getString, or a static (Resources, int) method
+ * R8 outlined that read into, which [outlined] looks up and which hands its two parameters to
+ * getString and answers what it gets back.
+ */
+private fun Instruction.readsLabel(outlined: (MethodReference) -> Method?): Boolean {
+    val call = methodReference() ?: return false
+    if (call.toString() == GET_STRING) return true
+    if (opcode !in STATIC_CALLS || call.returnType != STRING || call.parameterTypes.map(Any::toString) != listOf(RESOURCES, "I")) return false
+    val body = outlined(call) ?: return false
+    val registers = body.implementation?.registerCount ?: return false
+    val code = body.code().filter { it.opcode != Opcode.NOP }
+    val read = code.indices.singleOrNull { code[it].referenceText() == GET_STRING } ?: return false
+    val result = (code.getOrNull(read + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT } as? OneRegisterInstruction)?.registerA ?: return false
+    val last = code.last()
+    return AccessFlags.STATIC.isSet(body.accessFlags) && code[read].argumentRegisters() == listOf(registers - 2, registers - 1) &&
+        code.none { it is OffsetInstruction } && (read + 2 until code.size - 1).none { code[it].writes(result) } &&
+        last.opcode == Opcode.RETURN_OBJECT && (last as OneRegisterInstruction).registerA == result
 }
 
 /**
@@ -489,9 +534,10 @@ internal fun Method.batchRow(found: OthersRow): Int {
  * after ends the row. The instruction after that jump starts anyone else's rows, and every jump
  * there comes before the download check, so only anyone else's posts reach it. The state and the
  * list there are the ones the first call after it that takes both is handed, and neither changes
- * on the way.
+ * on the way. The row's label may be read through a method R8 outlined getString into, which
+ * [outlined] looks up.
  */
-internal fun Method.othersRow(eligible: Method): OthersRow {
+internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> Method? = { null }): OthersRow {
     val code = code()
     val where = "$definingClass->$name"
     val row = code.indices.singleOrNull { code[it].opcode == Opcode.SGET_OBJECT && code[it].referenceText() == DOWNLOAD }
@@ -528,9 +574,9 @@ internal fun Method.othersRow(eligible: Method): OthersRow {
         (code[index].takeIf { it.opcode == Opcode.IGET_OBJECT } as? ReferenceInstruction)?.reference as? FieldReference
     }.filter { it.definingClass == stateType && it.type == CONTEXT }
     val context = contexts.singleOrNull() ?: throw PatchException("$PATCH: in $where expected one Context the Download row's label is read with")
-    val read = block.singleOrNull { code[it].referenceText() == GET_STRING }
+    val read = block.singleOrNull { code[it].readsLabel(outlined) }
         ?: throw PatchException("$PATCH: in $where the Download row's label isn't read once")
-    val id = (code[read] as Instruction35c).registerD
+    val id = code[read].argumentRegisters()[1]
     val label = (read - 1 downTo row).firstOrNull { code[it].writes(id) }?.let { code[it] as? NarrowLiteralInstruction }?.narrowLiteral
         ?: throw PatchException("$PATCH: in $where the Download row's label isn't a resource")
     val known = listOf(kind.type, OPTION, stateType, CHAR_SEQUENCE, ARRAY_LIST)
@@ -719,13 +765,20 @@ private fun Instruction.calls(method: Method): Boolean {
 
 private fun Method.calls(method: Method): Boolean = code().any { it.calls(method) }
 
-/** Whether [this] reads or calls anything of [type]. */
-private fun Method.uses(type: String): Boolean = code().any { instruction ->
-    when (val reference = (instruction as? ReferenceInstruction)?.reference) {
-        is FieldReference -> reference.definingClass == type
-        is MethodReference -> reference.definingClass == type
-        else -> false
-    }
+/** Whether [this] is the method [call] names. */
+private fun Method.isTargetOf(call: MethodReference): Boolean =
+    definingClass == call.definingClass && name == call.name && returnType == call.returnType &&
+        parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString)
+
+/**
+ * Whether [this] adds a row the way the feed menu's builder adds Download: a static call returning
+ * nothing, declared by one of [states] and taking it, with an option, a label and the row list.
+ */
+private fun Method.addsRowOfAStateIn(states: Set<String>): Boolean = code().any { instruction ->
+    val call = instruction.methodReference() ?: return@any false
+    val types = call.parameterTypes.map(Any::toString)
+    instruction.opcode in STATIC_CALLS && call.returnType == "V" && call.definingClass in states && call.definingClass in types &&
+        OPTION in types && CHAR_SEQUENCE in types && ARRAY_LIST in types
 }
 
 private fun Instruction.writes(register: Int): Boolean {

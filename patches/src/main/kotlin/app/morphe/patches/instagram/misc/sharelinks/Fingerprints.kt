@@ -19,16 +19,7 @@ internal object PermalinkParserFingerprint : Fingerprint(
 
 internal const val PERMALINK_TYPE = "XDTPermalinkResponse"
 
-/**
- * The same for a story's share link, the [STORY_SHARE_URL_FIELD] field. 450 asks a pool of shared
- * strings for the field's name, so the patch checks that name once it has the parser.
- */
-internal object StoryShareUrlParserFingerprint : Fingerprint(
-    name = "unsafeParseFromJson",
-    returnType = "Ljava/lang/Object;",
-    strings = listOf(STORY_SHARE_URL_TYPE),
-)
-
+/** The field of a story's share link, read by its own parser, which names [STORY_SHARE_URL_TYPE]. */
 internal const val STORY_SHARE_URL_FIELD = "story_item_to_share_url"
 
 internal const val STORY_SHARE_URL_TYPE = "XDTStoryItemThirdPartySharingUrlResponse"

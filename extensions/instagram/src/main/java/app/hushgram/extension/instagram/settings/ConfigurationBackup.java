@@ -89,6 +89,7 @@ public final class ConfigurationBackup {
         }
         settings.put(BaseSettings.DEBUG.key, BaseSettings.DEBUG);
         settings.put(Settings.NAVIGATION_SETTINGS_TARGET.key, Settings.NAVIGATION_SETTINGS_TARGET);
+        settings.put(Settings.HIDE_MENU_ROW.key, Settings.HIDE_MENU_ROW);
         settings.put(Settings.CATEGORY_PAGES.key, Settings.CATEGORY_PAGES);
         return settings;
     }

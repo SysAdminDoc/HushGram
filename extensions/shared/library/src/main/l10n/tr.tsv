@@ -225,6 +225,8 @@ Hide About this reel	Bu reel hakkında bölümünü gizle
 A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, in Reels and in your feed. In your feed, the audio row under the summary goes too. The menu's other options stay.	Bir reelin diğer seçenekler menüsü, üstteki özet, kaynakları ve Meta AI'a sor kutusu olmadan açılır. Bu, Reels'te ve akışında geçerlidir. Akışında özetin altındaki ses satırı da kaldırılır. Menünün diğer seçenekleri kalır.
 Hide Ask Meta AI in About this reel	Bu reel hakkında bölümünde Meta AI'a sor kutusunu gizle
 About this reel keeps its summary and Sources without the Ask Meta AI box under them.	Bu reel hakkında bölümü özeti ve kaynakları korur, altındaki Meta AI'a sor kutusu gizlenir.
+Hide Meta AI in the share sheet	Paylaşım sayfasında Meta AI'ı gizle
+Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.	Paylaşım sayfasının altındaki satırdan Meta AI hedefini kaldırır. Bazı hesaplar bunu Muse olarak görür.
 Explore	Keşfet
 Hide the Explore grid	Keşfet ızgarasını gizle
 The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	Ara sekmesinin çubuğu altındaki gönderiler ve reels videoları. Arama, son aramaların ve arama sonuçları kalır.
@@ -352,6 +354,8 @@ Whitehat settings are unavailable on this screen. Open HushGram settings from Ho
 Comments	Yorumlar
 Copy comment	Yorumu kopyala
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Seçilen yorumun menüsüne Kopyala seçeneğini ekler. Satır sonları dahil özgün metni kopyalar.
+Copy the commenter's username	Yorum yapanın kullanıcı adını kopyala
+Adds Copy username to a selected comment's menu, for the account that wrote it.	Seçilen bir yorumun menüsüne, yorumu yazan hesap için Kullanıcı adını kopyala seçeneğini ekler.
 Comment copied	Yorum kopyalandı
 Couldn't copy comment	Yorum kopyalanamadı
 Save comment photo	Yorum fotoğrafını kaydet
@@ -523,11 +527,15 @@ Hide story rewinds	Hikaye geri sarmalarını gizle
 Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	Ana Sayfa'nın üstündeki hikaye satırında, kendi hikayen dahil hiçbir şey yüklenmez, bu da veri tasarrufu sağlar. Bir profildeki veya sohbetteki hikaye halkası yine hikayelerini açar.
 Open categories as pages	Kategorileri sayfa olarak aç
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Ayarlar kategorilerinin bir listesini gösterir ve bir dokunuş birini kendi sayfasında açar. Arama yine hepsinde arar.
+Hide the HushGram row in Instagram's menu	Instagram menüsündeki HushGram satırını gizle
+While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.	Bir sekmeye uzun basmak HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Uzun basmayı kapatınca satır geri gelir.
 Stop loading stories	Hikayeleri yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram'ın oluşturduğu anıları, özetleri, takip yıl dönümlerini ve doğum günü kartlarını Ana Sayfa'nın üstündeki hikaye satırından kaldırır. İnsanların paylaştığı hikayeler kalır.
 Takes the rewind cards, which bring back old highlights, out of the row of stories at the top of Home.	Eski öne çıkanları geri getiren geri sarma kartlarını Ana Sayfa'nın üstündeki hikaye satırından kaldırır.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Bir yoruma iki kez dokunmak onu beğenmez. Kapalı başlar, yani sen bunu açana kadar yorumlar iki kez dokunarak beğenmeyi korur.
+On messages	Mesajlarda
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Sohbetteki bir mesaja çift dokunmak ona tepki vermez. Kapalı başlar. Uzun basmak tepkileri yine gösterir.
 Hide the Share button	Paylaş düğmesini gizle
 On comments	Yorumlarda
 Takes the Share button and its count off the posts in your feed and off reels.	Paylaş düğmesini ve sayısını akışındaki gönderilerden ve reel'lerden kaldırır.
