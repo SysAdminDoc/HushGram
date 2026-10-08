@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.*
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
+import java.io.File
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -36,6 +37,7 @@ class OverrideEditorTest {
     private val navigation = "Lfixture/Navigation;"
     private val activity = "Landroidx/fragment/app/FragmentActivity;"
     private val androidFragment = "Landroidx/fragment/app/Fragment;"
+    private val pool = "Lfixture/Strings;"
     private val public = AccessFlags.PUBLIC.value
     private val static = public or AccessFlags.STATIC.value
 
@@ -46,10 +48,19 @@ class OverrideEditorTest {
         assertEditor(patch, editor)
     }
 
+    /** A branch asking a string pool for both keys, as 450's 385611395 and 385611400 builds do, is found the same (#77). */
+    @Test fun aBranchAskingAPoolForItsKeysIsFound() {
+        val patch = PatchContexts.of(classes(pooledKeys = true))
+        val editor = patch.findOverrideEditor()
+        patch.fillOverrideEditor(editor)
+        assertEditor(patch, editor)
+    }
+
     @Test fun missingAmbiguousOrInaccessibleNativePartsLeaveTheBridgeUntouched() {
         val valid = classes()
         val cases = mapOf(
             "missing title" to classes(title = "Other screen"),
+            "pooled keys without their pool" to classes(pooledKeys = true).filter { it.type != pool },
             "ambiguous branch" to valid + clazz("Lfixture/Other;", methods = listOf(branch("Lfixture/Other;"))),
             "unmarked editor" to classes(editorName = "OtherFragment"),
             "private constructor" to classes(constructorFlags = AccessFlags.PRIVATE.value),
@@ -136,33 +147,42 @@ class OverrideEditorTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-            val anchors = mutableListOf<ClassDef>()
-            val types = mutableSetOf(main, modal, base, user)
-            FixtureDex.forEach(bundle) { dex ->
-                for (clazz in dex.classes) {
-                    if (clazz.originalName() == "QuickExperimentEditFragment" || clazz.methods.any { method ->
-                            method.implementation?.instructions?.any {
-                                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == OVERRIDE_TITLE
-                            } == true
-                        }) {
-                        anchors += ImmutableClassDef.of(clazz)
-                        clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
-                            when (val reference = (it as? ReferenceInstruction)?.reference) {
-                                is MethodReference -> types += reference.definingClass
-                                is TypeReference -> types += reference.type
-                            }
+            suppliesTheDirectOverrideEditor(bundle)
+            checked += version
+        }
+        assertEquals("declared build has no fixture", versions, checked)
+    }
+
+    /** The same in the other arm64 builds of each declared version, two of which pool both keys (#77). */
+    @Test fun everyOtherBuildSuppliesTheDirectOverrideEditor() {
+        for (apk in Fixtures.otherBuilds()) suppliesTheDirectOverrideEditor(apk)
+    }
+
+    private fun suppliesTheDirectOverrideEditor(bundle: File) {
+        val anchors = mutableListOf<ClassDef>()
+        val types = mutableSetOf(main, modal, base, user)
+        FixtureDex.forEach(bundle) { dex ->
+            for (clazz in dex.classes) {
+                if (clazz.originalName() == "QuickExperimentEditFragment" || clazz.methods.any { method ->
+                        method.implementation?.instructions?.any {
+                            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == OVERRIDE_TITLE
+                        } == true
+                    }) {
+                    anchors += ImmutableClassDef.of(clazz)
+                    clazz.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach {
+                        when (val reference = (it as? ReferenceInstruction)?.reference) {
+                            is MethodReference -> types += reference.definingClass
+                            is TypeReference -> types += reference.type
                         }
                     }
                 }
             }
-            val nativeClasses = FixtureDex.classes(bundle, types).values + anchors
-            val patch = PatchContexts.of(nativeClasses.distinctBy { it.type } + bridgeClass())
-            val editor = patch.findOverrideEditor()
-            patch.fillOverrideEditor(editor)
-            assertEditor(patch, editor)
-            checked += version
         }
-        assertEquals("declared build has no fixture", versions, checked)
+        val nativeClasses = FixtureDex.classes(bundle, types).values + anchors
+        val patch = PatchContexts.of(nativeClasses.distinctBy { it.type } + bridgeClass())
+        val editor = patch.findOverrideEditor()
+        patch.fillOverrideEditor(editor)
+        assertEditor(patch, editor)
     }
 
     private fun assertEditor(patch: BytecodePatchContext, editor: OverrideEditor) {
@@ -181,7 +201,8 @@ class OverrideEditorTest {
 
     private fun classes(title: String = OVERRIDE_TITLE, editorName: String = "QuickExperimentEditFragment",
                         constructorFlags: Int = public, factoryFlags: Int = static, modalSupport: Boolean = true,
-                        extraGetter: Boolean = false, alterBranch: (String) -> String = { it }): List<ClassDef> = listOf(
+                        extraGetter: Boolean = false, pooledKeys: Boolean = false,
+                        alterBranch: (String) -> String = { it }): List<ClassDef> = listOf(
         clazz(user, supertype = session),
         clazz(main, methods = listOf(method(main, "session", emptyList(), session, 2, public, """
             const/4 v0, 0x0
@@ -194,11 +215,33 @@ class OverrideEditorTest {
             fields = listOf(ImmutableField(fragment, "__redex_internal_original_name", "Ljava/lang/String;", static,
                 ImmutableStringEncodedValue(editorName), null, null))),
         clazz(native, methods = listOf(
-            branch(native, title, alterBranch),
+            branch(native, title) { code -> alterBranch(if (pooledKeys) poolKeys(code) else code) },
             method(native, "factory", listOf(activity, session), navigation, 3, factoryFlags, "const/4 v0, 0x0\nreturn-object v0"),
             method(native, "present", listOf(androidFragment, navigation), "V", 2, static, "return-void"),
         )), bridgeClass(),
+        // A Redex string pool: a packed switch from each key's number to the key, anything else null.
+        clazz(pool, methods = listOf(method(pool, "A00", listOf("I"), "Ljava/lang/String;", 2, static, """
+            packed-switch p0, :keys
+            const/4 v0, 0x0
+            return-object v0
+            :title
+            const-string v0, "TITLE_KEY"
+            return-object v0
+            :override
+            const-string v0, "IS_OVERRIDE_KEY"
+            return-object v0
+            :keys
+            .packed-switch 0x5
+                :title
+                :override
+            .end packed-switch
+        """))),
     )
+
+    /** [code] asking the pool for both keys by number, as Redex has it, instead of loading them. */
+    private fun poolKeys(code: String): String = listOf("TITLE_KEY" to 5, "IS_OVERRIDE_KEY" to 6).fold(code) { body, (key, number) ->
+        body.replace("const-string v3, \"$key\"", "const/16 v3, 0x$number\ninvoke-static { v3 }, $pool->A00(I)Ljava/lang/String;\nmove-result-object v3")
+    }
 
     private fun bridgeClass() = clazz(OVERRIDE_BRIDGE, methods = listOf(method(OVERRIDE_BRIDGE, "openOverridesNative",
         listOf("Ljava/lang/Object;"), "I", 2, static, "const/4 v0, 0x0\nreturn v0")))

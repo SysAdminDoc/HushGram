@@ -226,6 +226,8 @@ Hide About this reel	이 릴스 정보 숨기기
 A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, in Reels and in your feed. In your feed, the audio row under the summary goes too. The menu's other options stay.	릴스의 더보기 메뉴가 상단의 요약, 출처, Meta AI에게 물어보기 입력란 없이 열립니다. 릴스와 피드 모두에 적용되며 메뉴의 다른 옵션은 그대로 유지됩니다. 피드에서는 요약 아래의 오디오 행도 함께 사라집니다
 Hide Ask Meta AI in About this reel	이 릴스 정보에서 Meta AI에게 물어보기 숨기기
 About this reel keeps its summary and Sources without the Ask Meta AI box under them.	이 릴스 정보에 요약과 출처는 남기고 그 아래의 Meta AI에게 물어보기 입력란만 숨깁니다
+Hide Meta AI in the share sheet	공유 시트에서 Meta AI 숨기기
+Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.	공유 시트 하단 줄에서 Meta AI 대상을 없앱니다. 일부 계정에서는 Muse로 보입니다.
 Explore	탐색
 Hide the Explore grid	탐색 그리드 숨기기
 The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	검색 탭에서 검색창 아래에 표시되는 게시물과 릴스가 숨겨집니다. 검색 내용, 최근 검색 기록 및 검색 결과는 계속 유지됩니다
@@ -353,6 +355,8 @@ Whitehat settings are unavailable on this screen. Open HushGram settings from Ho
 Comments	댓글
 Copy comment	댓글 복사
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	선택한 댓글의 메뉴에 복사를 추가합니다. 줄바꿈을 포함한 원본 텍스트를 그대로 복사합니다
+Copy the commenter's username	댓글 작성자의 사용자 이름 복사
+Adds Copy username to a selected comment's menu, for the account that wrote it.	선택한 댓글의 메뉴에 그 댓글을 쓴 계정의 사용자 이름 복사를 추가합니다.
 Comment copied	댓글이 복사됨
 Couldn't copy comment	댓글을 복사할 수 없습니다
 Save comment photo	댓글 사진 저장
@@ -522,11 +526,15 @@ Hide story rewinds	스토리 리와인드 숨기기
 Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	홈 상단의 스토리 줄에서는 내 스토리를 포함해 아무것도 불러오지 않아 데이터를 아낍니다. 프로필이나 채팅의 스토리 링은 여전히 스토리를 엽니다.
 Open categories as pages	카테고리를 페이지로 열기
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	설정에 카테고리 목록이 표시되고, 탭하면 해당 카테고리가 별도 페이지로 열립니다. 검색은 여전히 모든 카테고리를 찾습니다.
+Hide the HushGram row in Instagram's menu	Instagram 메뉴에서 HushGram 항목 숨기기
+While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.	탭을 길게 탭해 HushGram을 여는 동안에는 Instagram의 설정 및 활동 화면에 HushGram 항목이 표시되지 않습니다. 길게 탭하기를 끄면 항목이 다시 나타납니다.
 Stop loading stories	스토리 불러오기 중지
 Takes the Comment button and the comment count off the posts in your feed.	피드 게시물에서 댓글 버튼과 댓글 수를 없앱니다.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram이 만드는 추억, 요약, 팔로우 기념일, 생일 카드를 홈 상단의 스토리 줄에서 없앱니다. 사람들이 올린 스토리는 그대로 남습니다.
 Takes the rewind cards, which bring back old highlights, out of the row of stories at the top of Home.	오래된 하이라이트를 다시 보여 주는 리와인드 카드를 홈 상단의 스토리 줄에서 없앱니다.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	댓글을 두 번 탭해도 좋아요가 눌리지 않습니다. 처음에는 꺼져 있으므로 이 스위치를 켜기 전까지 댓글은 두 번 탭으로 좋아요가 눌립니다.
+On messages	메시지에서
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	채팅에서 메시지를 두 번 탭해도 반응이 남지 않습니다. 처음에는 꺼져 있습니다. 길게 누르면 여전히 반응이 표시됩니다.
 Hide the Share button	공유 버튼 숨기기
 On comments	댓글에서
 Takes the Share button and its count off the posts in your feed and off reels.	피드 게시물과 릴스에서 공유 버튼과 공유 수를 없앱니다.

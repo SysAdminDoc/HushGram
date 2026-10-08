@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.direct.seen
 
 import app.morphe.ExtensionDex
+import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.assertUploadedDelayIsZero
@@ -15,11 +16,14 @@ import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.ass
 import app.morphe.patches.instagram.direct.seen.ThreadSeenHookTest.Companion.traceThreadGuard
 import app.morphe.patches.instagram.direct.seen.VisualSeenHookTest.Companion.assertVisualGuard
 import app.morphe.patches.instagram.direct.seen.VisualSeenHookTest.Companion.snapshot
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -48,6 +52,19 @@ class NativeThreadSeenTest {
         for ((type, original) in before) {
             val now = snapshot(context.mutableClassDefBy(type).methods)
             assertEquals("native $type changed", original.filterNot { it.first.startsWith(hooked) }, now.filterNot { it.first.startsWith(hooked) })
+        }
+    }
+
+    /** 450's other arm64 builds, two of which keep the callback's completion helper on another class (#77). */
+    @Test fun eachOtherBuildHoldsTheChatReceiptInItsOwnHandler() {
+        for (bundle in Fixtures.otherBuilds()) {
+            val context = PatchContexts.of(threadClasses(bundle).values)
+            val found = context.findThreadSeen()
+            val first = found.handler.visualCode().first()
+            context.holdBackThreadSeen()
+            assertThreadGuard(found.handler, found.complete.toString(), first, found.account.toString())
+            assertEquals("${bundle.parentFile.name} held", ThreadTrace(completed = 1, sent = 0), traceThreadGuard(found.handler, true))
+            assertEquals("${bundle.parentFile.name} let through", ThreadTrace(completed = 0, sent = 1), traceThreadGuard(found.handler, false))
         }
     }
 
@@ -106,8 +123,24 @@ class NativeThreadSeenTest {
             val providers = classes.getValue(handler.definingClass).methods.single { it.name == "<clinit>" }.visualCode()
                 .mapNotNull { (it.visualReference() as? FieldReference)?.definingClass }.toSet() - handler.definingClass
             classes += FixtureDex.classes(bundle, providers)
+            // 450's 385611395 and 385611400 keep the callback's completion helper on another class.
+            val callback = handler.parameterTypes[1].toString()
+            FixtureDex.forEach(bundle) { dex ->
+                if (dex.typeSection.any { it == callback }) for (candidate in dex.classes) {
+                    if (candidate.type !in classes && candidate.methods.any { it.castsToFirst(callback) }) {
+                        classes[candidate.type] = ImmutableClassDef.of(candidate)
+                    }
+                }
+            }
             classes[THREAD_SEEN] = ImmutableClassDef.of(ExtensionDex.classDef(THREAD_SEEN))
             classes
+        }
+
+        /** A static (Object)V whose first act is to cast its argument to [type]. */
+        private fun Method.castsToFirst(type: String): Boolean {
+            if (!AccessFlags.STATIC.isSet(accessFlags) || returnType != "V" || parameterTypes.map(Any::toString) != listOf(OBJECT)) return false
+            val first = visualCode().firstOrNull() ?: return false
+            return first.opcode == Opcode.CHECK_CAST && (first.visualReference() as? TypeReference)?.type == type
         }
 
         private fun threadHandler(classes: Map<String, ClassDef>): Method = classes.values.flatMap { it.methods }.single { method ->

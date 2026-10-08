@@ -42,6 +42,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_navigation_settings_target", NavigationTarget.OFF, false);
 
     /**
+     * Leaves the HushGram row out of Instagram's own settings menu while a tab long press opens
+     * HushGram (#84). Off to start. The row is left out only while the chosen tab is on a button
+     * Instagram built ({@link NavigationSettings#opensFromATab}), so turning the long press off,
+     * or Pause, brings the row back and there's always a way in.
+     */
+    public static final BooleanSetting HIDE_MENU_ROW =
+            new BooleanSetting("hushgram_hide_menu_row", FALSE);
+
+    /**
      * HushGram's settings list their categories, and a tap opens one as its own page. Search still
      * looks through every category. Off to start, so the page stays one long list. A choice about
      * the page itself, so it's read saved, not through Pause.
@@ -425,6 +434,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_ASK_META_AI =
             new BooleanSetting("hushgram_hide_ask_meta_ai", FALSE);
 
+    /**
+     * Meta AI's target ("hatch", shown as Muse on some accounts) in the row at the bottom of the
+     * share sheet. The row is built each time the sheet opens. Off to start.
+     */
+    public static final BooleanSetting HIDE_META_AI_SHARE_TARGET =
+            new BooleanSetting("hushgram_hide_meta_ai_share_target", FALSE);
+
     /** The grid of posts and reels under the Search tab's bar. Search and its results stay. */
     public static final BooleanSetting HIDE_EXPLORE_GRID =
             new BooleanSetting("hushgram_hide_explore_grid", TRUE);
@@ -637,6 +653,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);
 
+    /**
+     * A selected comment's menu gets Copy username, for the account that wrote it
+     * ({@link app.hushgram.extension.instagram.comment.CommentAuthor}). Off until enabled.
+     */
+    public static final BooleanSetting COPY_COMMENT_AUTHORS =
+            new BooleanSetting("hushgram_copy_comment_authors", FALSE);
+
     /** An explicit Save action for a photo the comment itself carries. Off until enabled. */
     public static final BooleanSetting SAVE_COMMENT_PHOTOS =
             new BooleanSetting("hushgram_save_comment_photos", FALSE);
@@ -737,6 +760,13 @@ public class Settings extends BaseSettings {
     /** Under {@link #TURN_OFF_DOUBLE_TAP_LIKE}: a double tap on a comment doesn't like it. Off to start. */
     public static final BooleanSetting TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS =
             new BooleanSetting("hushgram_turn_off_double_tap_like_on_comments", FALSE, parent(TURN_OFF_DOUBLE_TAP_LIKE));
+
+    /**
+     * Under {@link #TURN_OFF_DOUBLE_TAP_LIKE}: a double tap on a message in a chat doesn't react to
+     * it. Off to start. A long press still offers the reactions.
+     */
+    public static final BooleanSetting TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES =
+            new BooleanSetting("hushgram_turn_off_double_tap_like_on_messages", FALSE, parent(TURN_OFF_DOUBLE_TAP_LIKE));
 
     /**
      * The heart that pops up when you double tap a post plays {@link #LIKE_ANIMATION}

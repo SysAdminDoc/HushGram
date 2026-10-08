@@ -98,6 +98,25 @@ class ThreadSeenHookTest {
         it.add(1, ImmutableInstruction21t(Opcode.IF_EQZ, 1, 0))
         it[1] = ImmutableInstruction21t(Opcode.IF_EQZ, 1, offset(it, 1, 3))
     }
+    /** 450's 385611395 and 385611400 keep the callback's helper on another class (#77). */
+    @Test fun aCallbackWhoseHelperLivesOnAnotherClassIsAccepted() {
+        val input = F.helperElsewhere()
+        val context = PatchContexts.of(input)
+        val found = context.findThreadSeen()
+        val first = input.single { it.type == F.HANDLER }.methods.single { it.name == "send" }.visualCode().first()
+        context.holdBackThreadSeen()
+        val patched = context.mutableClassDefBy(F.HANDLER).methods.single { it.name == "send" }
+        assertThreadGuard(patched, found.complete.toString(), first, F.ACCOUNT.toString())
+        assertEquals(ThreadTrace(completed = 1, sent = 0), traceThreadGuard(patched, true))
+    }
+    @Test fun aCallbackWithNoHelperAnywhereIsRefused() = refuses(F.classes().map {
+        if (it.type == F.CALLBACK) F.callback(ownHelper = false) else it
+    }, "the callback interface never completes a task with two nulls")
+    @Test fun aHelperElsewhereCastingToAnotherTypeIsRefused() = refuses(F.helperElsewhere("Lfixture/OtherCallback;"),
+        "the callback interface never completes a task with two nulls")
+    @Test fun aHelperElsewhereFinishingWithAnErrorIsRefused() = refuses(replace(F.helperElsewhere(), F.CALLBACKS, "finish") {
+        it[2] = call(Opcode.INVOKE_INTERFACE, listOf(1, 0, 1), F.COMPLETE)
+    }, "the callback interface never completes a task with two nulls")
     @Test fun theWrongMutationCastIsRefused() = changed(F.HANDLER, "send") {
         it[0] = ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 1, 4)
     }
@@ -231,6 +250,7 @@ internal object ChatSeenFixture {
     const val BASE = "Lfixture/QueuedMutation;"
     const val MUTATION = "Lfixture/ChatSeenMutation;"
     const val CALLBACK = "Lfixture/QueueCallback;"
+    const val CALLBACKS = "Lfixture/QueueCallbacks;"
     const val ERROR = "Lfixture/QueueError;"
     const val TASK = "Lfixture/QueueTask;"
     const val PROVIDER = "Lfixture/ChatSeenProvider;"
@@ -289,16 +309,31 @@ internal object ChatSeenFixture {
             )),
         ))
 
-    /** The queue's callback, whose own helper finishes a task with no error and no message. */
-    fun callback(flags: Int = AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value): ClassDef =
-        ImmutableClassDef(CALLBACK, flags, OBJECT, null, null, null, null, listOf(
-            ImmutableMethod(CALLBACK, "complete", listOf(ERROR, STRING).map { ImmutableMethodParameter(it, null, null) }, "V",
-                AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null),
-            method(CALLBACK, "finish", listOf(OBJECT), "V", 2, listOf(
-                typed(Opcode.CHECK_CAST, 1, CALLBACK), ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
-                call(Opcode.INVOKE_INTERFACE, listOf(1, 0, 0), COMPLETE), ImmutableInstruction10x(Opcode.RETURN_VOID),
-            ), static = true),
-        ))
+    /** The queue's callback, whose own helper finishes a task with no error and no message unless [ownHelper] is false. */
+    fun callback(
+        flags: Int = AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,
+        ownHelper: Boolean = true,
+    ): ClassDef = ImmutableClassDef(CALLBACK, flags, OBJECT, null, null, null, null, listOfNotNull(
+        ImmutableMethod(CALLBACK, "complete", listOf(ERROR, STRING).map { ImmutableMethodParameter(it, null, null) }, "V",
+            AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null),
+        if (ownHelper) finish(CALLBACK) else null,
+    ))
+
+    /**
+     * The callback's helper where R8 leaves it in 450's 385611395 and 385611400 builds: on another
+     * class, still casting its argument to the callback first. [cast] is the type it casts to.
+     */
+    fun callbacks(cast: String = CALLBACK): ClassDef = clazz(CALLBACKS, listOf(finish(CALLBACKS, cast)))
+
+    /** p0 is v1, cast to [cast] and completed with one null register for both arguments. */
+    private fun finish(type: String, cast: String = CALLBACK) = method(type, "finish", listOf(OBJECT), "V", 2, listOf(
+        typed(Opcode.CHECK_CAST, 1, cast), ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+        call(Opcode.INVOKE_INTERFACE, listOf(1, 0, 0), COMPLETE), ImmutableInstruction10x(Opcode.RETURN_VOID),
+    ), static = true)
+
+    /** [classes] with the callback's helper moved off it onto [callbacks]. */
+    fun helperElsewhere(cast: String = CALLBACK): List<ClassDef> =
+        classes().map { if (it.type == CALLBACK) callback(ownHelper = false) else it } + callbacks(cast)
 
     fun provider(): ClassDef = clazz(PROVIDER, listOf(method(PROVIDER, "get", listOf(USER_SESSION), OBJECT, 3, listOf(
         typed(Opcode.NEW_INSTANCE, 0, HANDLER),

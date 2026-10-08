@@ -51,6 +51,7 @@ public class AboutThisReelSettingsTest {
     @Before public void prepare() {
         Settings.HIDE_ABOUT_THIS_REEL.resetToDefault();
         Settings.HIDE_ASK_META_AI.resetToDefault();
+        Settings.HIDE_META_AI_SHARE_TARGET.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -62,6 +63,7 @@ public class AboutThisReelSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_ABOUT_THIS_REEL.resetToDefault();
         Settings.HIDE_ASK_META_AI.resetToDefault();
+        Settings.HIDE_META_AI_SHARE_TARGET.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -105,7 +107,13 @@ public class AboutThisReelSettingsTest {
             keys[i] = row.getKey();
         }
         assertEquals(Arrays.asList(Settings.HIDE_META_AI_SEARCH.key, Settings.HIDE_META_AI_POSTS.key,
-                Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key), Arrays.asList(keys));
+                Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key, Settings.HIDE_META_AI_SHARE_TARGET.key),
+                Arrays.asList(keys));
+        SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
+        assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
+        assertEquals("Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                String.valueOf(share.getSummary()));
+        assertFalse("the share sheet switch starts off", share.isChecked());
     }
 
     /** Each switch reaches only its own setting. */
@@ -123,13 +131,15 @@ public class AboutThisReelSettingsTest {
     }
 
     @Test public void pauseTurnsThemOffAndExportCarriesThem() {
-        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_ABOUT_THIS_REEL, Settings.HIDE_ASK_META_AI}) {
+        for (BooleanSetting setting : new BooleanSetting[] {Settings.HIDE_ABOUT_THIS_REEL, Settings.HIDE_ASK_META_AI,
+                Settings.HIDE_META_AI_SHARE_TARGET}) {
             assertTrue(setting.key, PatchFamily.META_AI.switches.contains(setting));
             assertFalse(setting.key, setting.rebootApp);
         }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_ABOUT_THIS_REEL.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_ASK_META_AI.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_META_AI_SHARE_TARGET.key));
 
         Settings.HIDE_ABOUT_THIS_REEL.save(true);
         Settings.HIDE_ASK_META_AI.save(true);

@@ -29,8 +29,14 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>A comment row's double tap likes or unlikes the comment, and the patch asks
  * {@link #holdBackComment} first thing there.
  *
- * <p>The switch has one under it for posts, one for reels and one for comments, so a double tap can
- * keep liking in some places and not others. The one for comments starts off. The Like button likes through other code, so it goes through, and so does
+ * <p>A double tap on a message in a chat reacts to it with the chat's quick reaction, a heart unless
+ * it was changed. The chat's gesture listeners and its Compose message list both hand the double tap
+ * to one helper that counts the double-tap tip and sends the reaction; the patch asks
+ * {@link #holdBackMessage} first thing there. A long press opens the reactions through other code.
+ *
+ * <p>The switch has one under it for posts, one for reels, one for comments and one for messages, so
+ * a double tap can keep liking in some places and not others. The ones for comments and messages
+ * start off. The Like button likes through other code, so it goes through, and so does
  * every double tap while the switch or the one for its place is off, HushGram is paused or the
  * settings aren't ready, or when anything in here fails.
  */
@@ -58,6 +64,14 @@ public final class DoubleTapLike {
      */
     public static boolean holdBackComment() {
         return holdingBack("comment", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS);
+    }
+
+    /**
+     * Asked first thing in a chat's double tap on a message, before the reaction it sends. True
+     * makes it return, so the message gets no reaction. Never throws.
+     */
+    public static boolean holdBackMessage() {
+        return holdingBack("message", Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES);
     }
 
     /**

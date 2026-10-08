@@ -52,8 +52,9 @@ internal data class CommentSurface(
     val labelConstructor: MethodReference, val callback: FieldReference, val copyAction: String,
 )
 
-/** Copy's own boundaries on top of the shared surface. */
-internal data class CommentMenu(val surface: CommentSurface, val text: FieldReference, val icon: Int, val label: Int)
+/** Copy's own boundaries on top of the shared surface, and Copy username's when they were found. */
+internal data class CommentMenu(val surface: CommentSurface, val text: FieldReference, val icon: Int, val label: Int,
+                                val author: CopyAuthorPlan? = null)
 
 private val surfaces = java.util.WeakHashMap<BytecodePatchContext, CommentSurface>()
 private val discoveringPatch = ThreadLocal.withInitial { COPY_PATCH }
@@ -138,7 +139,7 @@ internal fun BytecodePatchContext.findCommentMenu(): CommentMenu = discovering(C
     requirePublicField(model, text)
     val (icon, label) = actionResources(clazz(surface.copyAction), classes)
     validateCommentStubs()
-    CommentMenu(surface, text, icon, label)
+    CommentMenu(surface, text, icon, label, findCopyAuthor(surface, classes))
 }
 
 /** Everything both families need from the selection, the row builder and the renderer. */

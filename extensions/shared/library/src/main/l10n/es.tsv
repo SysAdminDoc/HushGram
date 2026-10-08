@@ -225,6 +225,8 @@ Hide About this reel	Ocultar Información sobre este reel
 A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, in Reels and in your feed. In your feed, the audio row under the summary goes too. The menu's other options stay.	El menú de más opciones de un reel se abre sin el resumen de arriba, sus fuentes ni el cuadro Pregúntale a Meta AI, en Reels y en tu feed. En tu feed también desaparece la fila de audio que está debajo del resumen. Las demás opciones del menú se quedan.
 Hide Ask Meta AI in About this reel	Ocultar Pregúntale a Meta AI en Información sobre este reel
 About this reel keeps its summary and Sources without the Ask Meta AI box under them.	Información sobre este reel conserva el resumen y las fuentes, sin el cuadro Pregúntale a Meta AI debajo.
+Hide Meta AI in the share sheet	Ocultar Meta AI en el menú para compartir
+Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.	Quita el destino de Meta AI de la fila inferior del menú para compartir. Algunas cuentas lo ven como Muse.
 Explore	Explorar
 Hide the Explore grid	Ocultar la cuadrícula de Explorar
 The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	Las publicaciones y reels debajo de la barra de la pestaña Buscar. La búsqueda, tus búsquedas recientes y los resultados se quedan.
@@ -352,6 +354,8 @@ Whitehat settings are unavailable on this screen. Open HushGram settings from Ho
 Comments	Comentarios
 Copy comment	Copiar comentario
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Añade Copiar al menú de un comentario seleccionado. Copia el texto original, incluidos los saltos de línea.
+Copy the commenter's username	Copiar el nombre de usuario de quien comenta
+Adds Copy username to a selected comment's menu, for the account that wrote it.	Añade Copiar nombre de usuario al menú de un comentario seleccionado, para la cuenta que lo escribió.
 Comment copied	Comentario copiado
 Couldn't copy comment	No se pudo copiar el comentario
 Save comment photo	Guardar foto del comentario
@@ -523,11 +527,15 @@ Hide story rewinds	Ocultar rewinds de historias
 Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	No se carga nada en la fila de historias de arriba de Inicio, ni siquiera tu propia historia, lo que ahorra datos. Un anillo de historia en un perfil o en un chat sigue abriendo sus historias.
 Open categories as pages	Abrir categorías como páginas
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Los ajustes muestran una lista de sus categorías, y al tocar una se abre en su propia página. La búsqueda sigue buscando en todas.
+Hide the HushGram row in Instagram's menu	Ocultar la fila de HushGram en el menú de Instagram
+While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.	Mientras mantener pulsada una pestaña abra HushGram, la pantalla Configuración y actividad de Instagram no muestra la fila de HushGram. Desactiva la pulsación larga y la fila vuelve.
 Stop loading stories	No cargar historias
 Takes the Comment button and the comment count off the posts in your feed.	Quita el botón Comentar y el número de comentarios de las publicaciones de tu feed.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Quita de la fila de historias de arriba de Inicio los recuerdos, resúmenes, aniversarios de seguimiento y tarjetas de cumpleaños que crea Instagram. Las historias que publica la gente se quedan.
 Takes the rewind cards, which bring back old highlights, out of the row of stories at the top of Home.	Quita de la fila de historias de arriba de Inicio las tarjetas de rewind, que traen de vuelta destacadas antiguas.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Tocar dos veces un comentario no le da me gusta. Empieza desactivado, así que los comentarios mantienen tocar dos veces para dar me gusta hasta que lo actives.
+On messages	En los mensajes
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Tocar dos veces un mensaje en un chat no reacciona a él. Empieza desactivado. Mantener pulsado sigue mostrando las reacciones.
 Hide the Share button	Ocultar el botón Compartir
 On comments	En los comentarios
 Takes the Share button and its count off the posts in your feed and off reels.	Quita el botón Compartir y su número de las publicaciones de tu feed y de los reels.

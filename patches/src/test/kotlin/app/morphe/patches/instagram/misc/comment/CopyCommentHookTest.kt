@@ -10,6 +10,8 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
+import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -235,10 +237,32 @@ class CopyCommentHookTest {
             val menu = patch.findCommentMenu()
             val renderer = patch.mutableClassDefBy(menu.surface.renderer.definingClass).methods.single { it.matches(menu.surface.renderer) }
             val original = NeutralNativePath(renderer)
+            // #35: who wrote the comment, read through the raw comment like Save comment photo's
+            // name is, and the renderer's one getString on a row's label.
+            val author = menu.author ?: error("${bundle.name}: Copy username's boundaries weren't found")
+            assertEquals(menu.surface.raw, author.user.definingClass)
+            assertEquals(USER, author.user.returnType)
+            val stockLabel = labelSite(renderer, author.label)
+            assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
             patch.applyCommentMenu(menu)
             assertWiring(patch, menu)
             val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
-            original.assertPreserved(bundle.name, renderer, (hook - 3..hook + 1).toSet())
+            val labelAt = renderer.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
+            assertEquals("one label read goes through Copy username", 1, renderer.code().count { it.call()?.toString() == AUTHOR_LABEL })
+            assertEquals("the label read keeps its place", Opcode.IGET, renderer.code()[labelAt - 1].opcode)
+            assertEquals(author.label.idField.toString(), renderer.code()[labelAt - 1].field().toString())
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, renderer.code()[labelAt + 1].opcode)
+            assertEquals("the call keeps the row's context and id, and adds the row",
+                renderer.code()[labelAt].arguments(), listOf(stockLabel.context, stockLabel.id, stockLabel.row))
+            assertTrue("no row label is read past Copy username", renderer.code().none { it.call()?.toString() == GET_STRING &&
+                renderer.code().getOrNull(renderer.code().indexOf(it) - 1)?.field()?.toString() == author.label.idField.toString() })
+            val reader = patch.mutableClassDefBy(AUTHOR_NATIVE).methods.single { it.name == "author" }.code()
+            assertTrue(reader.any { it.field()?.toString() == menu.surface.rawField.toString() })
+            assertTrue(reader.any { it.call()?.toString() == author.user.toString() })
+            assertEquals(menu.surface.rowConstructor.definingClass, patch.mutableClassDefBy(AUTHOR_ROW).superclass)
+            val username = patch.mutableClassDefBy(INSTAGRAM_MEDIA).methods.single { it.name == "username" }.code()
+            assertTrue("User's username bridge is written", username.any { it.call()?.definingClass == USER })
+            original.assertPreserved(bundle.name, renderer, (hook - 3..hook + 1).toSet(), setOf(labelAt))
             assertEquals("legacy surface must not be reported as patched", unchanged, CommentWorld.snapshot(patch, legacy))
             checked += version
         }
@@ -262,5 +286,6 @@ class CopyCommentHookTest {
         assertTrue(factory.code().any { (it.reference() as? TypeReference)?.type == COPY_ROW })
     }
 
-    private fun extension() = listOf(COMMENT_NATIVE, COPY_ROW, COMMENT_COPY, COMMENT_ACTIONS).map(ExtensionDex::classDef)
+    private fun extension() = listOf(COMMENT_NATIVE, COPY_ROW, COMMENT_COPY, COMMENT_ACTIONS,
+        AUTHOR_NATIVE, AUTHOR_ROW, COMMENT_AUTHOR, INSTAGRAM_MEDIA).map(ExtensionDex::classDef)
 }

@@ -5,6 +5,7 @@
  */
 package app.morphe
 
+import app.morphe.patches.shared.compat.AppCompatibilities
 import java.io.File
 import org.junit.Assert.fail
 import org.junit.Assume.assumeTrue
@@ -24,6 +25,34 @@ internal object Fixtures {
 
     /** The files in the fixture folder that [accept] takes, sorted by name. */
     fun files(accept: (File) -> Boolean): List<File> {
+        val directory = folder()
+        val found = directory.listFiles()?.filter { it.isFile && accept(it) }?.sortedBy { it.name }.orEmpty()
+        if (found.isEmpty()) fail("$VARIABLE names $directory, which holds none of the Instagram files this test reads.")
+        return found
+    }
+
+    /**
+     * The base APKs of the other builds of each declared Instagram version, sorted by build. Each
+     * is in a folder named `instagram-<version>-<version code>` in the fixture folder, and the
+     * declared build's own folder is left out. Instagram ships one version as several builds
+     * (450.0.0.50.77 has five for arm64), each compiled on its own, and the patches find what
+     * they change by its shape, so these are read too (#77).
+     */
+    fun otherBuilds(): List<File> {
+        val directory = folder()
+        val folders = directory.listFiles()?.filter { it.isDirectory }.orEmpty()
+        val found = AppCompatibilities.instagram().flatMap { it.targets }.flatMap { target ->
+            val version = target.version ?: return@flatMap emptyList()
+            val declared = target.versionCodes.orEmpty().values.mapTo(HashSet()) { "instagram-$version-$it" }
+            folders.filter { it.name.startsWith("instagram-$version-") && it.name !in declared }.map { File(it, "base.apk") }.filter { it.isFile }
+        }.sortedBy { it.parentFile.name }
+        if (found.isEmpty()) {
+            fail("$VARIABLE names $directory, which holds no instagram-<version>-<version code> folder with another build's base.apk.")
+        }
+        return found
+    }
+
+    private fun folder(): File {
         val configured = System.getenv(VARIABLE)
         assumeTrue(
             "$VARIABLE is not set, so the Instagram fixture tests skip. Point it at the folder " +
@@ -32,9 +61,7 @@ internal object Fixtures {
         )
         val directory = File(configured!!)
         if (!directory.isDirectory) fail("$VARIABLE names $directory, which is not a folder.")
-        val found = directory.listFiles()?.filter { it.isFile && accept(it) }?.sortedBy { it.name }.orEmpty()
-        if (found.isEmpty()) fail("$VARIABLE names $directory, which holds none of the Instagram files this test reads.")
-        return found
+        return directory
     }
 
     /** Every Instagram APK or bundle in the fixture folder. */

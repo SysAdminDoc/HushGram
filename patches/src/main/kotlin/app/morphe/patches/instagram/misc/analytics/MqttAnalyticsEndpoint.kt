@@ -142,6 +142,26 @@ internal fun BytecodePatchContext.loadsString(method: Method, value: String): Bo
     }
 }
 
+/**
+ * The string [code] loads at [at]: a const-string's, or, as 450's Redex has it, a static pool's
+ * asked for it by a constant number loaded right before the call. Null for anything else. Which
+ * strings Redex pools differs from build to build of one version (#77).
+ */
+internal fun BytecodePatchContext.stringLoadedAt(code: List<Instruction>, at: Int): String? {
+    val load = code[at]
+    if (load.opcode == Opcode.CONST_STRING || load.opcode == Opcode.CONST_STRING_JUMBO) {
+        return ((load as ReferenceInstruction).reference as StringReference).string
+    }
+    val pool = (load as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+    val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return null
+    if (load.opcode != Opcode.INVOKE_STATIC || pool.parameterTypes.map(Any::toString) != listOf("I") ||
+        pool.returnType != "Ljava/lang/String;" || (number as OneRegisterInstruction).registerA != (load as Instruction35c).registerC
+    ) {
+        return null
+    }
+    return pooledString(pool, number.narrowLiteral)
+}
+
 private fun Method.strings(): Set<String> = implementation?.instructions?.mapNotNull { instruction ->
     if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) null
     else ((instruction as ReferenceInstruction).reference as StringReference).string

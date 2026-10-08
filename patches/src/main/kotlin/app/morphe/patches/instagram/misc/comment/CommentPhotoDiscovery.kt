@@ -161,9 +161,20 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
  * the patch log says why, when any of them or User's username can't be told.
  */
 private fun BytecodePatchContext.commentAuthor(raw: ClassDef, pando: ClassDef): CommentAuthor? = try {
-    fun onRaw(getter: Method, what: String) = raw.methods
-        .filter { it.matches(getter) && AccessFlags.ABSTRACT.isSet(it.accessFlags) }.one("raw comment's $what getter")
     val created = hashGetter(pando, "created_at", LONG)
+    CommentAuthor(commentUserGetter(raw, pando), onRaw(raw, created, "created_at"), usernameBridge(PHOTO_PATCH))
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. Save comment photo goes in, and its saves keep their usual name.")
+    null
+}
+
+/**
+ * The raw comment's getter for who wrote it, the User getter on its tree-backed class answering the
+ * field the tree's "user" read is stored in, as declared on the raw interface both of the comment's
+ * classes implement. Save comment photo names its saves with it and Copy comment's Copy username
+ * copies its username. Refuses, naming the patch discovering, when it can't be told.
+ */
+internal fun commentUserGetter(raw: ClassDef, pando: ClassDef): Method {
     val userKey = "user".hashCode()
     val stored = pando.methods.flatMap { method ->
         val code = method.code()
@@ -178,11 +189,11 @@ private fun BytecodePatchContext.commentAuthor(raw: ClassDef, pando: ClassDef): 
         method.code().map { it.opcode } == listOf(Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT) &&
         method.code()[0].field()?.toString() == stored.toString()
     }.one("tree comment's user getter")
-    CommentAuthor(onRaw(user, "user"), onRaw(created, "created_at"), usernameBridge(PHOTO_PATCH))
-} catch (unknown: PatchException) {
-    patchLog.warning("${unknown.message}. Save comment photo goes in, and its saves keep their usual name.")
-    null
+    return onRaw(raw, user, "user")
 }
+
+private fun onRaw(raw: ClassDef, getter: Method, what: String) = raw.methods
+    .filter { it.matches(getter) && AccessFlags.ABSTRACT.isSet(it.accessFlags) }.one("raw comment's $what getter")
 
 
 /** Only called after discovery and every accessibility/register/stub check succeeded. */

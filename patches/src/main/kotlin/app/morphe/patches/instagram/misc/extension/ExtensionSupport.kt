@@ -193,8 +193,9 @@ internal fun Method.liveAcrossInjection(index: Int, targets: Collection<Int> = e
 
 /**
  * The lowest [count] locals, v[highest] or below, that code put in front of instruction [index] may
- * write without changing what the method goes on to read: no parameter, and nothing
- * [liveAcrossInjection] finds live. Throws naming [what] when there aren't that many.
+ * write without changing what the method goes on to read: no parameter, nothing
+ * [liveAcrossInjection] finds live, and none of [except], registers the code itself reads after
+ * writing one it borrows. Throws naming [what] when there aren't that many.
  *
  * @param highest the highest register the code's operands can name, v15 for an `invoke` or an
  *        `iget`, v255 for a `move-result` or an `if-eqz`
@@ -205,9 +206,10 @@ internal fun Method.freeLocalsAt(
     count: Int,
     targets: Collection<Int> = emptyList(),
     highest: Int = 15,
+    except: Collection<Int> = emptyList(),
 ): List<Int> {
     val live = liveAcrossInjection(index, targets)
-    val free = (0 until minOf(localRegisterCount(), highest + 1)).filter { it !in live }
+    val free = (0 until minOf(localRegisterCount(), highest + 1)).filter { it !in live && it !in except }
     if (free.size < count) {
         throw PatchException(
             "$what: $definingClass->$name has ${free.size} local register(s) up to v$highest that nothing reads " +

@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -303,6 +304,63 @@ class OpenLinksExternallyTest {
         assertEquals(listOf(2, 0) to 0, bundleCopy.redirectAt(4))
     }
 
+    /**
+     * Some builds keep onCreate's parameters above v15 and hand the super call copies in low locals
+     * (450's 385611395 keeps p0 in v17 and passes v8). The redirect reads the activity from the
+     * copy, and never borrows the copy's register for the intent, even when nothing reads it later (#77).
+     */
+    @Test
+    fun `a super call handed copies of the parameters gets the redirect on the copies`() {
+        val kept = method(
+            "onCreate", bundle,
+            """
+                move-object/from16 v11, p1
+                move-object/from16 v8, p0
+                invoke-super { v8, v11 }, $superOnCreate
+                invoke-static { v8 }, Lfixture/Log;->keep(Ljava/lang/Object;)V
+                return-void
+            """,
+            registers = 19,
+        )
+        kept.hookRedirect(intentFromActivity = true)
+        assertEquals(getIntent, kept.body()[3].call)
+        assertEquals("the activity's intent is read off the copy", 8, (kept.body()[3] as FiveRegisterInstruction).registerC)
+        assertEquals(listOf(8, 0) to 0, kept.redirectAt(5))
+
+        val dropped = method(
+            "onCreate", bundle,
+            """
+                move-object/from16 v1, p1
+                move-object/from16 v0, p0
+                invoke-super { v0, v1 }, $superOnCreate
+                return-void
+            """,
+            registers = 19,
+        )
+        dropped.hookRedirect(intentFromActivity = true)
+        assertEquals("v0 is the activity, so the intent goes in v1", listOf(0, 1) to 1, dropped.redirectAt(5))
+    }
+
+    /** A copy the patch can't be sure still holds the parameter at the super call stops the patch. */
+    @Test
+    fun `a copy that may hold something else stops the patch`() {
+        val cases = mapOf(
+            "the parameter written on the way" to "move-object/from16 v0, p0\nconst/16 p0, 0x0",
+            "a branch on the way" to "move-object/from16 v0, p0\nif-eqz v0, :next\n:next",
+            "no copy" to "new-instance v0, Lfixture/BrowserActivity;",
+        )
+        for ((case, prologue) in cases) {
+            val method = method(
+                "onCreate", bundle,
+                "$prologue\nmove-object/from16 v1, p1\ninvoke-super { v0, v1 }, $superOnCreate\nreturn-void",
+                registers = 19,
+            )
+            val refused = assertThrows(case, PatchException::class.java) { method.hookRedirect(intentFromActivity = true) }
+            assertTrue("$case: ${refused.message}", refused.message.orEmpty().contains("or copies of them"))
+            assertTrue("$case: something was written", method.body().none { it.referenceText() == REDIRECT })
+        }
+    }
+
     @Test
     fun `no super call of the host's own shape stops the patch`() {
         val otherPrototype = onCreate(
@@ -403,35 +461,50 @@ class OpenLinksExternallyTest {
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (apks in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val browser = FixtureDex.classes(apks, setOf(IN_APP_BROWSER)).values.single()
-                val context = PatchContexts.of(listOf(browser))
-
-                context.openLinksExternally()
-
-                val methods = context.mutableClassDefBy(IN_APP_BROWSER).methods
-                val onCreate = methods.single { it.name == "onCreate" && it.parameterTypes.map(CharSequence::toString) == listOf(bundle) }
-                val create = onCreate.body()
-                val superCall = create.indexOfFirst { it.opcode == Opcode.INVOKE_SUPER && it.call.endsWith("->onCreate($bundle)V") }
-                assertEquals("${apks.name}: onCreate reads its intent after super", getIntent, create[superCall + 1].call)
-                assertEquals("${apks.name}: onCreate asks", REDIRECT, create[superCall + 3].call)
-                assertEquals("${apks.name}: onCreate asks once", 1, create.count { it.referenceText() == REDIRECT })
-                assertEquals(Opcode.IF_NEZ, create[superCall + 5].opcode)
-                val handled = (create[superCall + 5] as BuilderOffsetInstruction).target.location.index
-                assertEquals("${apks.name}: the jump lands on the close's const", Opcode.CONST, create[handled].opcode)
-                assertEquals("${apks.name}: then the close", Opcode.INVOKE_STATIC, create[handled + 1].opcode)
-                assertEquals("${apks.name}: then the return", Opcode.RETURN_VOID, create[handled + 2].opcode)
-
-                val onNewIntent = methods.single { it.name == "onNewIntent" }
-                val renewed = onNewIntent.body()
-                val newSuper = renewed.indexOfFirst { it.opcode == Opcode.INVOKE_SUPER && it.call.endsWith("->onNewIntent($intentType)V") }
-                assertEquals("${apks.name}: onNewIntent asks", REDIRECT, renewed[newSuper + 1].call)
-                assertEquals("${apks.name}: onNewIntent asks once", 1, renewed.count { it.referenceText() == REDIRECT })
-                assertEquals(Opcode.IF_EQZ, renewed[newSuper + 3].opcode)
-                assertEquals(Opcode.RETURN_VOID, renewed[newSuper + 4].opcode)
-                assertTrue("${apks.name}: the kept path lands after the return", newSuper + 5 in onNewIntent.jumpTargets())
+                getsBothHooks(apks, apks.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /**
+     * The same in the other arm64 builds of each declared version, two of which hand onCreate's
+     * super call copies of its parameters (#77). There the intent is read off the copy of `this`.
+     */
+    @Test
+    fun `each other build gets both hooks where they belong`() {
+        for (apk in Fixtures.otherBuilds()) getsBothHooks(apk, apk.parentFile.name)
+    }
+
+    private fun getsBothHooks(apks: File, label: String) {
+        val browser = FixtureDex.classes(apks, setOf(IN_APP_BROWSER)).values.single()
+        val context = PatchContexts.of(listOf(browser))
+
+        context.openLinksExternally()
+
+        val methods = context.mutableClassDefBy(IN_APP_BROWSER).methods
+        val onCreate = methods.single { it.name == "onCreate" && it.parameterTypes.map(CharSequence::toString) == listOf(bundle) }
+        val create = onCreate.body()
+        val superCall = create.indexOfFirst { it.opcode == Opcode.INVOKE_SUPER && it.call.endsWith("->onCreate($bundle)V") }
+        assertEquals("$label: onCreate reads its intent after super", getIntent, create[superCall + 1].call)
+        assertEquals("$label: off what super got as this", (create[superCall] as FiveRegisterInstruction).registerC,
+            (create[superCall + 1] as FiveRegisterInstruction).registerC)
+        assertEquals("$label: onCreate asks", REDIRECT, create[superCall + 3].call)
+        assertEquals("$label: onCreate asks once", 1, create.count { it.referenceText() == REDIRECT })
+        assertEquals(Opcode.IF_NEZ, create[superCall + 5].opcode)
+        val handled = (create[superCall + 5] as BuilderOffsetInstruction).target.location.index
+        assertEquals("$label: the jump lands on the close's const", Opcode.CONST, create[handled].opcode)
+        assertEquals("$label: then the close", Opcode.INVOKE_STATIC, create[handled + 1].opcode)
+        assertEquals("$label: then the return", Opcode.RETURN_VOID, create[handled + 2].opcode)
+
+        val onNewIntent = methods.single { it.name == "onNewIntent" }
+        val renewed = onNewIntent.body()
+        val newSuper = renewed.indexOfFirst { it.opcode == Opcode.INVOKE_SUPER && it.call.endsWith("->onNewIntent($intentType)V") }
+        assertEquals("$label: onNewIntent asks", REDIRECT, renewed[newSuper + 1].call)
+        assertEquals("$label: onNewIntent asks once", 1, renewed.count { it.referenceText() == REDIRECT })
+        assertEquals(Opcode.IF_EQZ, renewed[newSuper + 3].opcode)
+        assertEquals(Opcode.RETURN_VOID, renewed[newSuper + 4].opcode)
+        assertTrue("$label: the kept path lands after the return", newSuper + 5 in onNewIntent.jumpTargets())
     }
 }

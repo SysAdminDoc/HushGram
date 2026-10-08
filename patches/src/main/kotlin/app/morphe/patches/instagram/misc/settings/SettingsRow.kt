@@ -4,12 +4,13 @@
  */
 package app.morphe.patches.instagram.misc.settings
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,27 +23,30 @@ private const val WHAT = "HushGram settings row"
 
 internal const val CREATE_VIEW_PARAMETERS = "Landroid/view/LayoutInflater;Landroid/view/ViewGroup;Landroid/os/Bundle;"
 
-/**
- * Where Instagram makes its settings screen fragment: the screen to show goes under "screen_id" and a
- * fresh "new_settings_session" into a new instance's arguments. In 449 that's a static factory on the
- * screen's own class. 450 inlines it into the caller that opens the screen, so the screen is the one
- * class here that's made with `new-instance` and draws its view in onCreateView. Instagram's string
- * tables hold both strings too, but make nothing.
- */
-internal object SettingsScreenFactoryFingerprint : Fingerprint(
-    strings = listOf("screen_id", "new_settings_session"),
-    custom = { method, _ -> method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE } == true },
-)
+/** The keys Instagram's settings screen fragment is made with: the screen to show, and a fresh session. */
+internal const val SCREEN_ID = "screen_id"
+internal const val NEW_SETTINGS_SESSION = "new_settings_session"
 
 private fun Method.isCreateView() = name == "onCreateView" && returnType == "Landroid/view/View;" &&
     implementation != null && parameterTypes.joinToString("") == CREATE_VIEW_PARAMETERS
 
-/** The settings screen fragment: the one class a [SettingsScreenFactoryFingerprint] method makes that has an onCreateView. */
+/**
+ * The settings screen fragment: the one class with an onCreateView that a factory makes. A factory
+ * is a method that loads [SCREEN_ID] and [NEW_SETTINGS_SESSION], the keys it puts in a new
+ * instance's arguments, and makes something with `new-instance`. In 449 that's a static on the
+ * screen's own class; 450 also inlines it into the caller that opens the screen. Instagram's string
+ * tables hold both keys too, but make nothing. Redex asks a pool of shared strings for the keys in
+ * some of these methods and not others, differently from build to build: 450's 385611400 loads
+ * neither key itself in any of them (#77), so the keys are read through the pools as well.
+ */
 internal fun BytecodePatchContext.settingsScreenType(): String {
-    val makers = SettingsScreenFactoryFingerprint.matchAllOrNull().orEmpty()
+    val makers = classesLoadingString(NEW_SETTINGS_SESSION).flatMap { it.methods }.filter { method ->
+        method.implementation?.instructions?.any { it.opcode == Opcode.NEW_INSTANCE } == true &&
+            loadsString(method, NEW_SETTINGS_SESSION) && loadsString(method, SCREEN_ID)
+    }
     if (makers.isEmpty()) throw PatchException("$WHAT: expected a settings screen factory in this Instagram build, found none")
-    val screens = makers.flatMap { match ->
-        match.originalMethod.implementation!!.instructions
+    val screens = makers.flatMap { method ->
+        method.implementation!!.instructions
             .filter { it.opcode == Opcode.NEW_INSTANCE }
             .mapNotNull { ((it as? ReferenceInstruction)?.reference as? TypeReference)?.type }
     }.distinct().filter { type -> classDefByOrNull(type)?.methods?.any { it.isCreateView() } == true }

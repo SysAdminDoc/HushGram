@@ -225,6 +225,8 @@ Hide About this reel	„Info zu diesem Reel“ ausblenden
 A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, in Reels and in your feed. In your feed, the audio row under the summary goes too. The menu's other options stay.	Das Mehr-Menü eines Reels öffnet sich ohne die Zusammenfassung oben, ihre Quellen und das Feld „Meta AI fragen“, in Reels und in deinem Feed. Im Feed verschwindet auch die Audiozeile unter der Zusammenfassung. Die anderen Optionen des Menüs bleiben.
 Hide Ask Meta AI in About this reel	„Meta AI fragen“ in „Info zu diesem Reel“ ausblenden
 About this reel keeps its summary and Sources without the Ask Meta AI box under them.	„Info zu diesem Reel“ behält Zusammenfassung und Quellen, ohne das Feld „Meta AI fragen“ darunter.
+Hide Meta AI in the share sheet	Meta AI im Teilen-Menü ausblenden
+Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.	Entfernt das Ziel von Meta AI aus der Leiste unten im Teilen-Menü. Manche Konten sehen es als Muse.
 Explore	Entdecken
 Hide the Explore grid	Entdecken-Raster ausblenden
 The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	Die Beiträge und Reels unter der Suchleiste im Tab Suche. Die Suche, deine letzten Suchen und die Suchergebnisse bleiben.
@@ -352,6 +354,8 @@ Whitehat settings are unavailable on this screen. Open HushGram settings from Ho
 Comments	Kommentare
 Copy comment	Kommentar kopieren
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Fügt dem Menü eines ausgewählten Kommentars Kopieren hinzu. Kopiert den Originaltext einschließlich Zeilenumbrüchen.
+Copy the commenter's username	Benutzernamen des Kommentierenden kopieren
+Adds Copy username to a selected comment's menu, for the account that wrote it.	Fügt dem Menü eines ausgewählten Kommentars „Benutzernamen kopieren“ hinzu, für das Konto, das ihn geschrieben hat.
 Comment copied	Kommentar kopiert
 Couldn't copy comment	Kommentar konnte nicht kopiert werden
 Save comment photo	Kommentarfoto speichern
@@ -523,11 +527,15 @@ Hide story rewinds	Story-Rewinds ausblenden
 Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	Nichts in der Stories-Leiste oben auf der Startseite lädt, auch deine eigene Story nicht, was Daten spart. Ein Story-Ring auf einem Profil oder in einem Chat öffnet seine Stories weiterhin.
 Open categories as pages	Kategorien als Seiten öffnen
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Die Einstellungen zeigen eine Liste ihrer Kategorien, und ein Tippen öffnet eine davon auf eigener Seite. Die Suche durchsucht weiterhin alle.
+Hide the HushGram row in Instagram's menu	HushGram-Zeile in Instagrams Menü ausblenden
+While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.	Solange langes Drücken auf einen Tab HushGram öffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivität. Schaltest du das lange Drücken aus, ist die Zeile wieder da.
 Stop loading stories	Stories nicht laden
 Takes the Comment button and the comment count off the posts in your feed.	Entfernt den Kommentieren-Button und die Kommentarzahl von den Beiträgen in deinem Feed.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Entfernt Erinnerungen, Rückblicke, Follow-Jahrestage und Geburtstagskarten, die Instagram erstellt, aus der Stories-Leiste oben auf der Startseite. Stories, die Leute posten, bleiben.
 Takes the rewind cards, which bring back old highlights, out of the row of stories at the top of Home.	Entfernt die Rewind-Karten, die alte Highlights zurückbringen, aus der Stories-Leiste oben auf der Startseite.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Ein Doppeltippen auf einen Kommentar liket ihn nicht. Startet ausgeschaltet, Kommentare behalten also Doppeltippen zum Liken, bis du das einschaltest.
+On messages	Bei Nachrichten
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Ein Doppeltippen auf eine Nachricht in einem Chat reagiert nicht darauf. Startet ausgeschaltet. Langes Drücken zeigt die Reaktionen weiterhin.
 Hide the Share button	Teilen-Button ausblenden
 On comments	Bei Kommentaren
 Takes the Share button and its count off the posts in your feed and off reels.	Entfernt den Teilen-Button und seine Zahl von den Beiträgen in deinem Feed und von Reels.

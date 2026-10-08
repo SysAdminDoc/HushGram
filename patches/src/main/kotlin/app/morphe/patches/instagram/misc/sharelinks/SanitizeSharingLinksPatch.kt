@@ -4,14 +4,15 @@
  */
 package app.morphe.patches.instagram.misc.sharelinks
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.handleTargets
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -38,7 +39,7 @@ private const val PATCH = "Sanitize sharing links"
 
 private const val CLEANER = "$EXTENSION_PACKAGE/misc/LinkCleaner;"
 
-private const val SANITIZE = "$CLEANER->sanitizeShared(Ljava/lang/String;)Ljava/lang/String;"
+internal const val SANITIZE = "$CLEANER->sanitizeShared(Ljava/lang/String;)Ljava/lang/String;"
 
 internal const val BROWSER_LINK = "$CLEANER->browserLink(Ljava/lang/String;)Ljava/lang/String;"
 
@@ -123,8 +124,8 @@ val sanitizeSharingLinksPatch = bytecodePatch(
         handleTargets(PATCH, "ways a link leaves Instagram", targets,
             coverage = { writeTargetCoverage("sanitizeSharingLinks", it) }) { target ->
             when (target) {
-                "permalink parser" -> sanitizeParsedLink(PermalinkParserFingerprint, PERMALINK_TYPE)
-                "story link parser" -> sanitizeParsedLink(StoryShareUrlParserFingerprint, STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
+                "permalink parser" -> sanitizeParsedLink(PermalinkParserFingerprint.matchAllOrNull().orEmpty().map { it.method }, PERMALINK_TYPE)
+                "story link parser" -> cleanStoryLink()
                 "clipboard copies" -> if (rerouteLinkExits(CLIPBOARD_EXITS) > 0) null
                     else "no code calls ClipboardManager.setPrimaryClip"
                 "share sheets" -> if (rerouteLinkExits(SHARE_SHEET_EXITS) > 0) null
@@ -140,16 +141,33 @@ val sanitizeSharingLinksPatch = bytecodePatch(
 }
 
 /**
+ * Cleans the link a story's share link parser reads, the [STORY_SHARE_URL_FIELD] field. The parser
+ * is the one unsafeParseFromJson answering an object that loads [STORY_SHARE_URL_TYPE]. Redex asks
+ * a pool of shared strings for that name in 450's 385611395 and 385611400, where 385611438 loads it
+ * itself (#77), and for the field's name in all of them, so both are read through the pools.
+ */
+internal fun BytecodePatchContext.cleanStoryLink(): String? {
+    val parsers = classesLoadingString(STORY_SHARE_URL_TYPE).flatMap { it.methods }.filter { method ->
+        method.name == "unsafeParseFromJson" && method.returnType == "Ljava/lang/Object;" && loadsString(method, STORY_SHARE_URL_TYPE)
+    }.map { parser ->
+        mutableClassDefBy(parser.definingClass).methods.single {
+            it.name == parser.name && it.returnType == parser.returnType &&
+                it.parameterTypes.map(Any::toString) == parser.parameterTypes.map(Any::toString)
+        }
+    }
+    return sanitizeParsedLink(parsers, STORY_SHARE_URL_TYPE, STORY_SHARE_URL_FIELD)
+}
+
+/**
  * Cleans the link a share-link parser reads, just before it's stored in the model the parser
  * builds. The model is named by [typeName], loaded right before it's made, and the link is the first
  * String field stored after that. Answers null when done, or why not.
  */
-private fun BytecodePatchContext.sanitizeParsedLink(fingerprint: Fingerprint, typeName: String, field: String? = null): String? {
-    val matches = fingerprint.matchAllOrNull().orEmpty()
-    if (matches.size != 1) return "expected one parser naming $typeName, found ${matches.size}"
-    val parser = matches.single().method
+private fun BytecodePatchContext.sanitizeParsedLink(parsers: List<MutableMethod>, typeName: String, field: String? = null): String? {
+    if (parsers.size != 1) return "expected one parser naming $typeName, found ${parsers.size}"
+    val parser = parsers.single()
     if (field != null && !loadsString(parser, field)) return "the parser naming $typeName doesn't read \"$field\""
-    val store = parser.linkStore(typeName)
+    val store = linkStore(parser, typeName)
         ?: return "the parser naming $typeName stores no String field after loading its type name"
     val (index, register) = store
     parser.addInstructions(
@@ -248,14 +266,13 @@ private fun Instruction.argumentRegisters(): List<Int> = when (this) {
     else -> emptyList()
 }
 
-/** The index and source register of the first `iput-object` of a String after [typeName] is loaded. */
-internal fun Method.linkStore(typeName: String): Pair<Int, Int>? {
-    val instructions = implementation?.instructions?.toList() ?: return null
-    val load = instructions.indexOfFirst { instruction ->
-        (instruction.opcode == Opcode.CONST_STRING || instruction.opcode == Opcode.CONST_STRING_JUMBO) &&
-            ((instruction as ReferenceInstruction).reference as StringReference).string == typeName
-    }
-    if (load < 0) return null
+/**
+ * The index and source register of the first `iput-object` of a String after [typeName] is loaded,
+ * by the parser itself or from a pool of shared strings.
+ */
+internal fun BytecodePatchContext.linkStore(method: Method, typeName: String): Pair<Int, Int>? {
+    val instructions = method.implementation?.instructions?.toList() ?: return null
+    val load = instructions.indices.firstOrNull { stringLoadedAt(instructions, it) == typeName } ?: return null
     for (index in load + 1 until instructions.size) {
         val instruction = instructions[index]
         if (instruction.opcode != Opcode.IPUT_OBJECT) continue

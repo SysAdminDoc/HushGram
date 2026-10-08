@@ -18,6 +18,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -27,8 +28,10 @@ import app.morphe.util.singleOrPatchException
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val REDIRECT =
@@ -97,40 +100,46 @@ internal fun MutableMethod.hookRedirect(intentFromActivity: Boolean) = planRedir
  *
  * The redirect must go after the superclass call. Before it, the superclass call does not run, and
  * Android answers with `SuperNotCalledException`.
+ *
+ * The redirect reads the activity, and onNewIntent's intent, from the registers the super call was
+ * handed them in, which hold them right after it: the parameters' own, or copies R8 made in low
+ * locals (see [superCallParameters]).
  */
 internal fun MutableMethod.planRedirect(intentFromActivity: Boolean): RedirectPlan {
     val superCall = ownSuperCallIndex()
     val injectIndex = superCall + 1
+    val passed = superCallParameters(superCall, if (intentFromActivity) 1 else 2)
 
-    // The calls below name p0, and onNewIntent's p1, in operands that only reach v15. The
-    // patcher's smali compiler leaves out an instruction whose register doesn't fit, without a
-    // word, so a method with its parameters higher up has to stop the patch here instead.
-    val highest = localRegisterCount() + if (intentFromActivity) 0 else 1
-    if (highest > 15) {
+    // The calls below name them in operands that only reach v15. The patcher's smali compiler
+    // leaves out an instruction whose register doesn't fit, without a word, so a method keeping
+    // them higher up has to stop the patch here instead.
+    passed.firstOrNull { it > 15 }?.let { highest ->
         throw PatchException(
-            "$PATCH: $definingClass->$name holds a parameter the redirect names in v$highest, above v15",
+            "$PATCH: $definingClass->$name keeps a register the redirect names in v$highest, above v15",
         )
     }
-    requireSuperCallPassesParameters(superCall, if (intentFromActivity) 1 else 2)
 
     val traceClose = traceCloseIndex(superCall)
-    val register = redirectRegister(injectIndex, traceClose)
-    return RedirectPlan(this, injectIndex, traceClose, register, intentFromActivity)
+    val register = redirectRegister(injectIndex, traceClose, passed)
+    return RedirectPlan(this, injectIndex, traceClose, register, passed[0], passed.getOrNull(1))
 }
 
-/** A redirect [planRedirect] checked, written by [write]. */
+/**
+ * A redirect [planRedirect] checked, written by [write]. The activity is in [activity], and the
+ * new intent in [intent], or in [register] once read from the activity when [intent] is null.
+ */
 internal class RedirectPlan(
     private val method: MutableMethod,
     private val injectIndex: Int,
     private val traceClose: Int?,
     private val register: Int,
-    private val intentFromActivity: Boolean,
+    private val activity: Int,
+    private val intent: Int?,
 ) {
     fun write() {
-        val intent = if (intentFromActivity) "v$register" else "p1"
-        val loadIntent = if (intentFromActivity) {
+        val loadIntent = if (intent == null) {
             """
-                invoke-virtual { p0 }, Landroid/app/Activity;->getIntent()Landroid/content/Intent;
+                invoke-virtual { v$activity }, Landroid/app/Activity;->getIntent()Landroid/content/Intent;
                 move-result-object v$register
             """
         } else {
@@ -138,7 +147,7 @@ internal class RedirectPlan(
         }
         val call = """
             $loadIntent
-            invoke-static { p0, $intent }, $REDIRECT
+            invoke-static { v$activity, v${intent ?: register} }, $REDIRECT
             move-result v$register
         """
 
@@ -168,28 +177,58 @@ internal class RedirectPlan(
  * v15 or below since the redirect call names it, that nothing reads from there on. When the
  * redirect jumps to the trace section's close at [traceClose], nothing may read it from there
  * either. The redirect sits in the middle of the method, where a local can still hold something
- * the rest of it wants, so v0 isn't taken on trust.
+ * the rest of it wants, so v0 isn't taken on trust. Nor is one of [reads], the registers the
+ * redirect reads the activity and intent from after writing the one it borrows.
  */
-internal fun Method.redirectRegister(injectIndex: Int, traceClose: Int?): Int =
-    freeLocalsAt(PATCH, injectIndex, 1, targets = listOfNotNull(traceClose)).single()
+internal fun Method.redirectRegister(injectIndex: Int, traceClose: Int?, reads: Collection<Int> = emptyList()): Int =
+    freeLocalsAt(PATCH, injectIndex, 1, targets = listOfNotNull(traceClose), except = reads).single()
 
 /**
- * Throws unless the super call at [superCall] passes the method's own first [count] parameter
- * registers, `this` and then the rest, in order. The redirect right after it reads p0, and
- * onNewIntent's p1, as the activity and the new intent. A method that had put something else in
- * one of them would still hand the super call the real ones from another register, and the
- * redirect would read the other value without a word.
+ * The registers the super call at [superCall] passes as the method's own first [count]
+ * parameters, `this` and then the rest, in order. The redirect right after it reads them as the
+ * activity and onNewIntent's new intent.
+ *
+ * Each is the parameter's own register, or a copy of it. Builds 385611395 and 385611400 of
+ * Instagram 450 keep onCreate's parameters in v17 and v18 and copy them into low locals for the
+ * super call (#77). A copy counts when the method runs straight through to the super call, never
+ * writes the parameter on the way, and copies it with a move-object that nothing writes over.
+ * A method that had put something else in a parameter would still hand the super call the real
+ * one from another register, and the redirect would read the other value without a word.
  */
-internal fun Method.requireSuperCallPassesParameters(superCall: Int, count: Int) {
-    val call = implementation!!.instructions.elementAt(superCall)
-    val passed = call.namedRegisters()
+internal fun Method.superCallParameters(superCall: Int, count: Int): List<Int> {
+    val code = implementation!!.instructions.toList()
+    val passed = code[superCall].namedRegisters()
     val parameters = (0 until count).map { localRegisterCount() + it }
-    if (passed.take(count) != parameters) {
+    // Straight through: no branch on the way, and nothing jumps or throws to anywhere up to the call.
+    val straight = code.take(superCall).none { it is OffsetInstruction } && jumpTargets().none { it <= superCall }
+    val named = parameters.mapIndexedNotNull { at, parameter ->
+        val register = passed.getOrNull(at) ?: return@mapIndexedNotNull null
+        when {
+            register == parameter -> register
+            !straight || (0 until superCall).any { code[it].writes(parameter) } -> null
+            else -> {
+                val copy = (superCall - 1 downTo 0).firstOrNull { code[it].writes(register) }
+                register.takeIf {
+                    copy != null && code[copy].opcode in OBJECT_MOVES && (code[copy] as TwoRegisterInstruction).registerB == parameter
+                }
+            }
+        }
+    }
+    if (named.size != count) {
         throw PatchException(
             "$PATCH: $definingClass->$name's super call passes ${passed.joinToString { "v$it" }}, not its own " +
-                parameters.joinToString { "v$it" } + ", so they may hold something else where the redirect reads them",
+                parameters.joinToString { "v$it" } + " or copies of them, so they may hold something else where the redirect reads them",
         )
     }
+    return named
+}
+
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val first = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return first == register || (opcode.setsWideRegister() && first + 1 == register)
 }
 
 /**

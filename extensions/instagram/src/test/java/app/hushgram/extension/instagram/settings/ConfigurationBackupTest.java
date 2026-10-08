@@ -109,10 +109,11 @@ public class ConfigurationBackupTest {
         original.edit().putString("private-session", "secret-token").commit();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
-        assertEquals(4, values.length());
+        assertEquals(5, values.length());
         assertTrue(values.getJSONObject(Settings.HIDE_ADS.key).getBoolean("value"));
         assertTrue(values.has(BaseSettings.DEBUG.key));
         assertEquals("OFF", values.getJSONObject(Settings.NAVIGATION_SETTINGS_TARGET.key).getString("value"));
+        assertFalse(values.getJSONObject(Settings.HIDE_MENU_ROW.key).getBoolean("value"));
         assertFalse(values.getJSONObject(Settings.CATEGORY_PAGES.key).getBoolean("value"));
         assertFalse(values.has(BaseSettings.PAUSED.key));
         assertFalse(values.has(BaseSettings.SAFE_MODE.key));

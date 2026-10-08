@@ -75,6 +75,28 @@ public class MetaAiTest {
         }
     }
 
+    /** Meta AI's share target is left out only with its own switch, which starts off, and never while paused. */
+    @Test
+    public void theShareTargetFollowsItsOwnSwitch() {
+        assertFalse("off to start", Settings.HIDE_META_AI_SHARE_TARGET.get());
+        assertTrue(MetaAi.shareTarget(1));
+        assertFalse(MetaAi.shareTarget(0));
+        Settings.HIDE_META_AI_SHARE_TARGET.save(true);
+        try {
+            assertFalse(MetaAi.shareTarget(1));
+            assertFalse(MetaAi.shareTarget(-1));
+            assertFalse(MetaAi.shareTarget(0));
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            assertFalse("the search switch doesn't matter", MetaAi.shareTarget(1));
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertTrue("paused, Instagram decides", MetaAi.shareTarget(1));
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_SHARE_TARGET.resetToDefault();
+        }
+    }
+
     /** The search switch also leaves the results page's Ask a follow-up bar out, and only that switch. */
     @Test
     public void theFollowUpBarFollowsTheSearchSwitch() {

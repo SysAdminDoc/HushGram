@@ -225,6 +225,8 @@ Hide About this reel	Sembunyikan Tentang reel ini
 A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, in Reels and in your feed. In your feed, the audio row under the summary goes too. The menu's other options stay.	Menu lainnya di reel terbuka tanpa ringkasan di atas, Sumbernya, atau kotak Tanya Meta AI, di Reels dan di feed Anda. Di feed Anda, baris audio di bawah ringkasan juga ikut hilang. Opsi menu lainnya tetap ada.
 Hide Ask Meta AI in About this reel	Sembunyikan Tanya Meta AI di Tentang reel ini
 About this reel keeps its summary and Sources without the Ask Meta AI box under them.	Tentang reel ini tetap menampilkan ringkasan dan Sumbernya tanpa kotak Tanya Meta AI di bawahnya.
+Hide Meta AI in the share sheet	Sembunyikan Meta AI di lembar berbagi
+Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.	Menghapus target Meta AI dari baris di bagian bawah lembar berbagi. Beberapa akun melihatnya sebagai Muse.
 Explore	Jelajahi
 Hide the Explore grid	Sembunyikan kisi Jelajahi
 The posts and reels under the Search tab's bar. Search, your recent searches and search results stay.	Postingan dan reel di bawah bilah tab Cari. Pencarian, pencarian terbaru kamu, dan hasil pencarian tetap ada.
@@ -352,6 +354,8 @@ Whitehat settings are unavailable on this screen. Open HushGram settings from Ho
 Comments	Komentar
 Copy comment	Salin komentar
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Menambahkan Salin ke menu komentar yang dipilih. Menyalin teks asli, termasuk pergantian baris.
+Copy the commenter's username	Salin nama pengguna pemberi komentar
+Adds Copy username to a selected comment's menu, for the account that wrote it.	Menambahkan Salin nama pengguna ke menu komentar yang dipilih, untuk akun yang menulisnya.
 Comment copied	Komentar disalin
 Couldn't copy comment	Tidak dapat menyalin komentar
 Save comment photo	Simpan foto komentar
@@ -523,11 +527,15 @@ Hide story rewinds	Sembunyikan rewind cerita
 Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	Tidak ada yang dimuat di baris cerita di bagian atas Beranda, termasuk cerita Anda sendiri, sehingga menghemat data. Cincin cerita di profil atau di chat tetap membuka ceritanya.
 Open categories as pages	Buka kategori sebagai halaman
 Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Pengaturan menampilkan daftar kategorinya, dan satu ketukan membuka satu kategori di halamannya sendiri. Pencarian tetap mencari di semuanya.
+Hide the HushGram row in Instagram's menu	Sembunyikan baris HushGram di menu Instagram
+While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.	Selama menekan lama tab membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Matikan tekan lama itu dan barisnya kembali.
 Stop loading stories	Berhenti memuat cerita
 Takes the Comment button and the comment count off the posts in your feed.	Menghapus tombol Komentar dan jumlah komentar dari postingan di feed Anda.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Menghapus kenangan, rangkuman, peringatan mengikuti, dan kartu ulang tahun buatan Instagram dari baris cerita di bagian atas Beranda. Cerita yang diposting orang tetap ada.
 Takes the rewind cards, which bring back old highlights, out of the row of stories at the top of Home.	Menghapus kartu rewind, yang menampilkan kembali sorotan lama, dari baris cerita di bagian atas Beranda.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Ketuk dua kali pada komentar tidak menyukainya. Awalnya nonaktif, jadi komentar tetap bisa disukai dengan ketuk dua kali sampai Anda menyalakannya.
+On messages	Pada pesan
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	Ketuk dua kali pada pesan di obrolan tidak memberi reaksi. Mulai dalam keadaan mati. Tekan lama tetap menampilkan reaksi.
 Hide the Share button	Sembunyikan tombol Bagikan
 On comments	Pada komentar
 Takes the Share button and its count off the posts in your feed and off reels.	Menghapus tombol Bagikan dan jumlahnya dari postingan di feed Anda dan dari reel.

@@ -466,11 +466,16 @@ public final class SettingsEntry {
      * Injected before each return of the {@code onCreateView} of Instagram's settings screen, with
      * the screen's arguments and the view it made. On the top screen, Settings and activity, it
      * answers that view with the HushGram settings row above it; on every other screen, and when
-     * anything goes wrong, the view as it came.
+     * anything goes wrong, the view as it came. With {@link Settings#HIDE_MENU_ROW} on, the row
+     * is left out while the chosen tab long press can open HushGram instead (#84).
      */
     public static View withSettingsRow(Bundle arguments, View screen) {
         try {
             if (screen == null || !SettingsScreenRow.isMainScreen(arguments)) return screen;
+            if (Utils.settingsReady() && Settings.HIDE_MENU_ROW.get() && NavigationSettings.opensFromATab()) {
+                Logger.printInfo(() -> "Settings entry: menu row left out, the tab long press opens HushGram");
+                return screen;
+            }
             return SettingsScreenRow.above(screen);
         } catch (Throwable t) {
             Logger.printException(() -> "Settings entry: could not add the row to Instagram's settings", t);

@@ -17,7 +17,7 @@ public final class CommentActions {
 
     public static List<?> rows(List<?> rows, Object comment, Context context) {
         return dispatch(rows, SettingsStatus.commentCopy(), SettingsStatus.commentPhoto(),
-                list -> CommentCopy.rows(list, comment, context),
+                list -> CommentAuthor.rows(CommentCopy.rows(list, comment, context), comment, context),
                 list -> CommentPhoto.rows(list, comment, context));
     }
 
