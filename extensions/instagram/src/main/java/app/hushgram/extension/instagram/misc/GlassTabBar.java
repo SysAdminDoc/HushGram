@@ -33,6 +33,7 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.PixelCopy;
 import android.view.Gravity;
+import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -116,7 +117,7 @@ public final class GlassTabBar {
 
     /**
      * Proportions of the floating tab bar on the iPhone: the pill is about 90% of the screen's width
-     * (5% left clear each side, so it floats without touching the edges), 52dp tall, with its tabs 7dp
+     * (5% left clear each side, so it floats without touching the edges), 52dp tall when content runs behind it (otherwise it fits the bar's own height), with its tabs 7dp
      * in from its ends, and 8dp above whatever the phone keeps at the bottom. A wide screen keeps the
      * pill from growing past {@link #MAX_PILL_DP}.
      */
@@ -126,6 +127,12 @@ public final class GlassTabBar {
     static final int INNER_DP = 7;
     static final int PILL_DP = 52;
     static final int BOTTOM_DP = 8;
+    /**
+     * Without {@link Settings#GLASS_TAB_BAR_FLOAT} the bar keeps the height Instagram laid every screen out
+     * for, so nothing above it, a reel's seek bar included, is covered. The pill then sits this far in from
+     * the top and the bottom of that height.
+     */
+    static final int FIT_GAP_DP = 3;
     static final int BLUR_DP = 18;
     /** The selected tab's capsule sits 4dp in from the pill's top and bottom and stands 4dp past its slot. */
     static final int HIGHLIGHT_INSET_DP = 4;
@@ -239,13 +246,14 @@ public final class GlassTabBar {
         private final Window window;
         private final float density;
         private final boolean blurWanted;
+        private final boolean haptics;
         private final boolean floating;
         private final PillDrawable pill = new PillDrawable();
         private int base;
         private boolean blurBroken;
         /** The padding Instagram gave the bar, and what this last put on it, to tell their changes from ours. */
-        private int originalLeft, originalRight, originalBottom;
-        private int lastLeft = -1, lastRight = -1, lastBottom = -1;
+        private int originalLeft, originalRight, originalTop, originalBottom;
+        private int lastLeft = -1, lastRight = -1, lastTop = -1, lastBottom = -1;
         /** How far each side of the pill is kept clear, as of the last layout. */
         private int outer;
         /** The bottom margin Instagram gave the content, as first seen, to tell its changes from ours. */
@@ -261,9 +269,11 @@ public final class GlassTabBar {
             this.density = bar.getResources().getDisplayMetrics().density;
             this.blurWanted = Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
+            this.haptics = Settings.GLASS_TAB_BAR_HAPTICS.get();
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
+            this.originalTop = bar.getPaddingTop();
             this.originalBottom = bar.getPaddingBottom();
             diagnose("glass on: blurWanted=" + blurWanted + " floating=" + floating + " base="
                     + Integer.toHexString(base) + " height=" + bar.getLayoutParams().height
@@ -278,6 +288,16 @@ public final class GlassTabBar {
 
         private int dp(int value) {
             return Math.round(value * density);
+        }
+
+        /** The clear space above the pill: none when it floats over the content, a little when it sits under it. */
+        private int topGap() {
+            return floating ? 0 : dp(FIT_GAP_DP);
+        }
+
+        /** The clear space under the pill. */
+        private int bottomGap() {
+            return dp(floating ? BOTTOM_DP : FIT_GAP_DP);
         }
 
         /** The colour Instagram gave the bar, or white or black by the theme when it wasn't a plain one. */
@@ -299,11 +319,11 @@ public final class GlassTabBar {
                     : bar.getResources().getDisplayMetrics().widthPixels;
             outer = outerPx(width, density);
 
-            // Height: the pill and the gap under it.
+            // Height: the pill and the gap under it when it floats over the content, otherwise the bar's own.
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
                 if (originalBarHeight < 0) originalBarHeight = params.height;
-                int wanted = dp(PILL_DP + BOTTOM_DP);
+                int wanted = floating ? dp(PILL_DP + BOTTOM_DP) : originalBarHeight;
                 if (params.height != wanted) {
                     params.height = wanted;
                     bar.setLayoutParams(params);
@@ -312,19 +332,23 @@ public final class GlassTabBar {
 
             // Padding: a change nobody here made is Instagram's, and becomes the new starting point.
             if (bar.getPaddingLeft() != lastLeft || bar.getPaddingRight() != lastRight
-                    || bar.getPaddingBottom() != lastBottom) {
+                    || bar.getPaddingTop() != lastTop || bar.getPaddingBottom() != lastBottom) {
                 originalLeft = bar.getPaddingLeft();
                 originalRight = bar.getPaddingRight();
+                originalTop = bar.getPaddingTop();
                 originalBottom = bar.getPaddingBottom();
             }
             int left = originalLeft + outer + dp(INNER_DP);
             int right = originalRight + outer + dp(INNER_DP);
-            int under = originalBottom + dp(BOTTOM_DP);
-            if (left != bar.getPaddingLeft() || right != bar.getPaddingRight() || under != bar.getPaddingBottom()) {
-                bar.setPadding(left, bar.getPaddingTop(), right, under);
+            int above = originalTop + topGap();
+            int under = originalBottom + bottomGap();
+            if (left != bar.getPaddingLeft() || right != bar.getPaddingRight()
+                    || above != bar.getPaddingTop() || under != bar.getPaddingBottom()) {
+                bar.setPadding(left, above, right, under);
             }
             lastLeft = left;
             lastRight = right;
+            lastTop = above;
             lastBottom = under;
 
             if (parent != null) {
@@ -434,6 +458,8 @@ public final class GlassTabBar {
             private int nodeHeight = -1;
             private float capsuleLeft = Float.NaN;
             private float capsuleRight = Float.NaN;
+            /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
+            private int tickedTab = -1;
             private boolean reported;
 
             PillDrawable() {
@@ -442,9 +468,9 @@ public final class GlassTabBar {
 
             @Override public void draw(@NonNull Canvas canvas) {
                 float left = outer;
-                float top = 0;
+                float top = topGap();
                 float right = bar.getWidth() - outer;
-                float bottomEdge = bar.getHeight() - dp(BOTTOM_DP);
+                float bottomEdge = bar.getHeight() - bottomGap();
                 if (right - left <= 0 || bottomEdge - top <= 0) return;
                 rect.set(left, top, right, bottomEdge);
                 float radius = rect.height() / 2f;
@@ -501,10 +527,28 @@ public final class GlassTabBar {
                     capsuleRight = targetRight;
                 }
                 capsule.set(capsuleLeft, rect.top + inset, capsuleRight, rect.bottom - inset);
+                tick((capsuleLeft + capsuleRight) / 2f);
                 fill.setColor(highlight(base));
                 float capsuleRadius = capsule.height() / 2f;
                 canvas.drawRoundRect(capsule, capsuleRadius, capsuleRadius, fill);
                 if (!settled) invalidateSelf();
+            }
+
+            /** A light tick each time the capsule's middle moves over a different tab. */
+            private void tick(float middle) {
+                int over = -1;
+                for (int i = 0; i < bar.getChildCount(); i++) {
+                    View child = bar.getChildAt(i);
+                    if (child.getVisibility() == View.VISIBLE
+                            && middle >= child.getLeft() && middle < child.getRight()) {
+                        over = i;
+                        break;
+                    }
+                }
+                if (over < 0 || over == tickedTab) return;
+                boolean first = tickedTab < 0;
+                tickedTab = over;
+                if (!first && haptics) bar.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
             }
 
             /**

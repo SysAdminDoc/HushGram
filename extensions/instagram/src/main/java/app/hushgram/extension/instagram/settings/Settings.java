@@ -510,6 +510,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_float", FALSE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: a light tick each time the highlight slides across a tab, so the
+     * buzz follows the bar as it moves, whether you tapped a tab or swiped to another screen.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_HAPTICS =
+            new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but

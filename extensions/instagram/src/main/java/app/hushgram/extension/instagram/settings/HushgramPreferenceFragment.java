@@ -880,6 +880,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "you're on. Restart Instagram after changing it.")));
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
                     L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
+                    L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
+                            + "or swipe between screens.")));
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                     L10n.t("Home, Reels and the other tabs run down behind the pill. Reels' buttons and caption sit "
                             + "behind it too, so it starts off.")));
