@@ -117,20 +117,18 @@ public final class GlassTabBar {
 
     /**
      * Proportions of the floating tab bar on the iPhone: the pill is about 90% of the screen's width
-     * (5% left clear each side, so it floats without touching the edges), 52dp tall when content runs behind it (otherwise it fits the bar's own height), with its tabs 7dp
-     * in from its ends, and 8dp above whatever the phone keeps at the bottom. A wide screen keeps the
-     * pill from growing past {@link #MAX_PILL_DP}.
+     * (5% left clear each side, so it floats without touching the edges), with its tabs 7dp in from its
+     * ends. It's as tall as the bar Instagram laid out, less a gap above and under. A wide screen keeps
+     * the pill from growing past {@link #MAX_PILL_DP}.
      */
     static final float SIDE_SHARE = 0.05f;
     static final int MIN_SIDE_DP = 16;
     static final int MAX_PILL_DP = 420;
     static final int INNER_DP = 7;
-    static final int PILL_DP = 52;
-    static final int BOTTOM_DP = 8;
     /**
-     * Without {@link Settings#GLASS_TAB_BAR_FLOAT} the bar keeps the height Instagram laid every screen out
-     * for, so nothing above it, a reel's seek bar included, is covered. The pill then sits this far in from
-     * the top and the bottom of that height.
+     * The bar keeps the height Instagram laid every screen out for, floating or not, so nothing it keeps
+     * clear above the bar, a reel's seek bar included, is covered. The pill sits this far in from the top
+     * and the bottom of that height.
      */
     static final int FIT_GAP_DP = 3;
     static final int BLUR_DP = 18;
@@ -290,14 +288,9 @@ public final class GlassTabBar {
             return Math.round(value * density);
         }
 
-        /** The clear space above the pill: none when it floats over the content, a little when it sits under it. */
-        private int topGap() {
-            return floating ? 0 : dp(FIT_GAP_DP);
-        }
-
-        /** The clear space under the pill. */
-        private int bottomGap() {
-            return dp(floating ? BOTTOM_DP : FIT_GAP_DP);
+        /** The clear space above and under the pill. */
+        private int gap() {
+            return dp(FIT_GAP_DP);
         }
 
         /** The colour Instagram gave the bar, or white or black by the theme when it wasn't a plain one. */
@@ -319,11 +312,11 @@ public final class GlassTabBar {
                     : bar.getResources().getDisplayMetrics().widthPixels;
             outer = outerPx(width, density);
 
-            // Height: the pill and the gap under it when it floats over the content, otherwise the bar's own.
+            // Height: the bar's own, which is what Instagram keeps every screen's own controls above.
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
                 if (originalBarHeight < 0) originalBarHeight = params.height;
-                int wanted = floating ? dp(PILL_DP + BOTTOM_DP) : originalBarHeight;
+                int wanted = originalBarHeight;
                 if (params.height != wanted) {
                     params.height = wanted;
                     bar.setLayoutParams(params);
@@ -340,8 +333,8 @@ public final class GlassTabBar {
             }
             int left = originalLeft + outer + dp(INNER_DP);
             int right = originalRight + outer + dp(INNER_DP);
-            int above = originalTop + topGap();
-            int under = originalBottom + bottomGap();
+            int above = originalTop + gap();
+            int under = originalBottom + gap();
             if (left != bar.getPaddingLeft() || right != bar.getPaddingRight()
                     || above != bar.getPaddingTop() || under != bar.getPaddingBottom()) {
                 bar.setPadding(left, above, right, under);
@@ -468,9 +461,9 @@ public final class GlassTabBar {
 
             @Override public void draw(@NonNull Canvas canvas) {
                 float left = outer;
-                float top = topGap();
+                float top = gap();
                 float right = bar.getWidth() - outer;
-                float bottomEdge = bar.getHeight() - bottomGap();
+                float bottomEdge = bar.getHeight() - gap();
                 if (right - left <= 0 || bottomEdge - top <= 0) return;
                 rect.set(left, top, right, bottomEdge);
                 float radius = rect.height() / 2f;
