@@ -526,6 +526,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_saved_on_profile", TRUE, true);
 
     /**
+     * Instagram stops waking itself with an alarm every minute or two to note that it is still running
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat}). Read each time the next alarm would be set.
+     * Starts on in a build that has the patch.
+     */
+    public static final BooleanSetting STOP_HEARTBEAT =
+            new BooleanSetting("hushgram_stop_heartbeat", TRUE);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but
