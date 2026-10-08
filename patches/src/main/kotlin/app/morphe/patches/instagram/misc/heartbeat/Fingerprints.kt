@@ -17,3 +17,13 @@ internal object HeartbeatAlarmFingerprint : Fingerprint(
     parameters = listOf("L"),
     strings = listOf("WarmHeartbeat", "AlarmManager not available, cannot schedule heartbeat"),
 )
+
+/**
+ * The method that schedules Instagram's analytics uploads. One of the ways it can schedule them is an
+ * AlarmManager alarm that wakes the phone five minutes on, tagged AnalyticsUploadAlarm and carrying the
+ * action_batch_upload intent, and it holds both strings.
+ */
+internal object UploadAlarmFingerprint : Fingerprint(
+    returnType = "V",
+    strings = listOf("AnalyticsUploadAlarm", "action_batch_upload"),
+)

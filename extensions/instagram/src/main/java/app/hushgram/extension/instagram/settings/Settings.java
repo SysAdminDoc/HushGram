@@ -550,6 +550,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_heartbeat", TRUE);
 
     /**
+     * Instagram stops setting the alarm that wakes the phone five minutes on to upload its usage events
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat#setUploadAlarm}). Read each time the alarm would be
+     * set. Starts on in a build that has the patch.
+     */
+    public static final BooleanSetting STOP_UPLOAD_ALARM =
+            new BooleanSetting("hushgram_stop_upload_alarm", TRUE);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but
