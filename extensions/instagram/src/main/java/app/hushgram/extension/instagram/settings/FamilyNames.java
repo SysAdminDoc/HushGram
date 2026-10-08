@@ -42,12 +42,6 @@ public final class FamilyNames {
     public static final String REPOST_BUTTON = "Hide the Repost button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
     public static final String GLASS_TAB_BAR = "Glass tab bar";
-    public static final String VIEW_CHATS = "View chats anonymously";
-    public static final String TYPING_STATUS = "Disable typing status";
-    public static final String SCREENSHOT_DETECTION = "Disable screenshot detection";
-    public static final String VIEW_LIVE = "View live anonymously";
-    public static final String IMAGE_VIEWING = "Improve image viewing";
-    public static final String EPHEMERAL_MEDIA = "Make ephemeral media permanent";
     public static final String DELETED_MESSAGES = "Save deleted messages";
     public static final String FRIENDSHIP_STATUS = "Show if a profile follows you";
     public static final String PROFILE_SUGGESTIONS = "Hide suggested people on profiles";

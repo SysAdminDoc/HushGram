@@ -765,33 +765,6 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in i
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 
-# The privacy patches (GhostPatches.kt) each ask Ghost one question at the top of the method that
-# would tell someone something about you. A chat's read marker is the one static method holding
-# its trace name, the screenshot report the instance method of a timestamp holding the chat
-# screenshot's log name, and the screenshot folder watcher the runnable holding both of its
-# strings, where the question skips startWatching. Typing status is asked in the message
-# composer's onTextChanged, which holds no string, so its rule names the field its first
-# statement reads. Live viewer heartbeats are stopped where the network layer's startRequest has
-# just read a request's address. Left out, Instagram tells people as before; twice or elsewhere,
-# it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdChatSeen()Z in static (Lcom/instagram/common/session/UserSession;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V holding mark_thread_seen-
-once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdChatSeen()Z in static (Lcom/instagram/common/session/UserSession;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V holding mark_thread_seen-
-start-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdScreenshots()Z in instance (J)V holding igd_screenshot_capture
-once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdScreenshots()Z in instance (J)V holding igd_screenshot_capture
-once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdScreenshots()Z in instance ()V holding ig_android_story_screenshot_directory screenshot_detector
-once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->holdTyping()Z in instance (Ljava/lang/CharSequence;III)V holding LX/010U;->A02:LX/00y1;
-once-call Lapp/hushgram/extension/instagram/privacy/Ghost;->gate(Ljava/net/URI;)V in instance (L*;L*;L*;)L*; holding http_client_send_request tigon_send_request
-
-# Improve image viewing raises the size the photo picker is asked for (a static method of the
-# mode, the list of copies and the wanted size; it holds no string of its own, so its rule rests on
-# ImproveImageViewingTest checking on the 449 fixture where it lands) and the width and the height
-# in the User-Agent, in the method that holds the screen size's format. Make ephemeral media
-# permanent hands the expiry and the view mode of a message to EphemeralMedia where the one method
-# that holds all four of a view-once message's field names is about to return it. Left out, nothing
-# changes; twice or elsewhere, it isn't the hook the patch wrote.
-once-call Lapp/hushgram/extension/instagram/media/ImageSize;->screen(Ljava/lang/Integer;)Ljava/lang/Integer; in static (Landroid/content/Context;)Ljava/lang/String; holding %sdpi;\s%sx%s
-once-call Lapp/hushgram/extension/instagram/direct/EphemeralMedia;->mode(Ljava/lang/Long;Ljava/lang/String;)Ljava/lang/String; in instance (L*;)Ljava/lang/Object; holding url_expire_at_secs view_mode seen_count tap_models
-
 # Save deleted messages hands each parsed direct message, and each real-time one, to SavedMessages
 # right before it's returned, and tells it the id of a message Instagram hides, at the start of the
 # one method holding the hide-by-id message. The JSON parser is the one method holding the four
