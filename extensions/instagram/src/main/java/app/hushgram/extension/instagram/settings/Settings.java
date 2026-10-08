@@ -656,8 +656,10 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_reels", TRUE);
 
     /**
-     * A reel with a video gets Download cover under Download in its menu, saving the still picture
-     * Instagram shows before the reel plays (#48). Starts off, so the menu stays as it was.
+     * A video gets Download cover under Download in its menu, saving the still picture Instagram
+     * shows before it plays: a reel in Reels or in a profile's Reels tab (#48), and with the cover
+     * row beside the feed and profile post ones ({@link app.hushgram.extension.instagram.download.CoverDownload}).
+     * Starts off, so the menu stays as it was.
      */
     public static final BooleanSetting DOWNLOAD_REEL_COVER =
             new BooleanSetting("hushgram_download_reel_cover", FALSE, parent(DOWNLOAD_REELS));

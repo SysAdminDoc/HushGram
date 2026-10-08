@@ -79,6 +79,11 @@ internal const val OFFER_DETAILS = "$POST_INFO->offer(Ljava/lang/Object;Ljava/ut
 internal const val DETAILS_OPTION = "$POST_INFO->option()Ljava/lang/Object;"
 internal const val SHOW_DETAILS = "$POST_INFO->show(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
+private const val COVER_DOWNLOAD = "$EXTENSION_PACKAGE/download/CoverDownload;"
+internal const val OFFER_COVER = "$COVER_DOWNLOAD->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
+internal const val COVER_OPTION = "$COVER_DOWNLOAD->option()Ljava/lang/Object;"
+internal const val SAVE_COVER = "$COVER_DOWNLOAD->save(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
+
 /** The options the short feed menu's list of kept options reads first and last: "Why you're seeing this" and Report. */
 internal const val WHY_OPTION = "$OPTION->WHY_AM_I_SEEING_THIS:$OPTION"
 internal const val REPORT_OPTION = "$OPTION->REPORT:$OPTION"
@@ -316,6 +321,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
         """
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_ALL
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_PLAYER
+            invoke-static { v${others.state}, v${others.rows} }, $OFFER_COVER
             invoke-static { v${others.state}, v${others.rows} }, $OFFER_DETAILS
         """,
     )
@@ -349,6 +355,18 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
             :details
             invoke-static {}, $DETAILS_OPTION
             move-result-object v1
+            if-eqz v1, :cover
+            if-ne v0, v1, :cover
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            iget-object v0, v0, ${page.menuState}
+            invoke-static { v1, v0, v2 }, $SHOW_DETAILS
+            return-void
+            :cover
+            invoke-static {}, $COVER_OPTION
+            move-result-object v1
             if-eqz v1, :current
             if-ne v0, v1, :current
             move-object/from16 v0, p0
@@ -356,7 +374,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
             move-result-object v1
             iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
             iget-object v0, v0, ${page.menuState}
-            invoke-static { v1, v0, v2 }, $SHOW_DETAILS
+            invoke-static { v1, v0, v2 }, $SAVE_COVER
             return-void
             :current
             move-object/from16 v0, p1

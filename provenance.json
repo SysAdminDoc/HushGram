@@ -310,6 +310,8 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ReelDownload.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/StoryDownload.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/VideoDownload.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/CoverDownload.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/CoverDownloadTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/MusicVideo.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ExternalDownload.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/ExternalPlayer.java",

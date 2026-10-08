@@ -50,6 +50,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       and the short menu keeps it after Download and Save all.
  *   <li>With Details on, every post gets a Details row there too ({@link PostInfo}), kept last of
  *       these in the short menu.
+ *   <li>With Download cover on, a post, or carousel page on screen, with a video gets a row under
+ *       Download that saves the still picture shown before the video plays ({@link CoverDownload}).
+ *       It is the same switch Reels uses, so one answer covers every video's menu.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
@@ -271,6 +274,7 @@ public final class VideoDownload {
             if (options == null) return options;
             List<?> allowed = download == null || !videos() && !photos() ? options : withSaves(options, download);
             if (ExternalPlayer.on()) allowed = withPlayer(allowed, download);
+            if (CoverDownload.on()) allowed = CoverDownload.withCover(allowed, download);
             return PostInfo.on() ? PostInfo.withDetails(allowed, download, batchOption, playerOption) : allowed;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "short feed menu", t);
