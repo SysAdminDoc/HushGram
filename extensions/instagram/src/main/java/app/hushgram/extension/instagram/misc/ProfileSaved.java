@@ -50,9 +50,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Your own profile shows a row of tabs under the buttons: posts, reels, tagged. This adds one more at
  * the end, a bookmark. Instagram's tab layout takes every view in its row to be one of its own tabs, so the
- * bookmark isn't put in the row. Each of Instagram's tabs is given a quarter of the row's width instead, the
- * bookmark is drawn in the quarter left, on the layout's overlay, and the layout's touch listener answers for
- * that quarter.
+ * bookmark isn't put in the row. The row is shared out evenly instead, one slot for each of Instagram's tabs
+ * (three on some profiles, four with Reposts) and one more for the bookmark, which is drawn in the last slot on
+ * the layout's overlay, with the layout's touch listener answering for that slot.
  *
  * <p>Tapping it does what you'd do by hand: opens the menu at the top right and taps Saved in it.
  * Instagram's own code opens Saved, so nothing in its bytecode is touched. The menu is a Jetpack Compose
@@ -177,13 +177,16 @@ public final class ProfileSaved {
             tabs.setOnTouchListener(this);
         }
 
-        private int quarter() {
-            return tabs.getWidth() / 4;
+        /** The width of one slot: the row shared out evenly among Instagram's tabs and the bookmark. */
+        private int slot() {
+            int own = tabs.getChildCount() > 0 && tabs.getChildAt(0) instanceof ViewGroup
+                    ? ((ViewGroup) tabs.getChildAt(0)).getChildCount() : 3;
+            return tabs.getWidth() / (Math.max(own, 1) + 1);
         }
 
-        /** Puts each of Instagram's tabs back to a quarter of the row after Instagram lays it out again. */
+        /** Puts each of Instagram's tabs back to one slot of the row after Instagram lays it out again. */
         void keep() {
-            int quarter = quarter();
+            int slot = slot();
             View strip = tabs.getChildCount() > 0 ? tabs.getChildAt(0) : null;
             if (strip instanceof LinearLayout) {
                 LinearLayout group = (LinearLayout) strip;
@@ -191,9 +194,9 @@ public final class ProfileSaved {
                 for (int i = 0; i < group.getChildCount(); i++) {
                     View tab = group.getChildAt(i);
                     ViewGroup.LayoutParams params = tab.getLayoutParams();
-                    if (params == null || params.width == quarter) continue;
+                    if (params == null || params.width == slot) continue;
                     if (params instanceof LinearLayout.LayoutParams) ((LinearLayout.LayoutParams) params).weight = 0f;
-                    params.width = quarter;
+                    params.width = slot;
                     tab.setLayoutParams(params);
                     changed = true;
                 }
@@ -202,11 +205,11 @@ public final class ProfileSaved {
                 int gravity = (group.getGravity() & Gravity.VERTICAL_GRAVITY_MASK) | Gravity.START;
                 if (group.getGravity() != gravity) group.setGravity(gravity);
             }
-            icon.setBounds(tabs.getWidth() - quarter, 0, tabs.getWidth(), tabs.getHeight());
+            icon.setBounds(tabs.getWidth() - slot, 0, tabs.getWidth(), tabs.getHeight());
         }
 
         private boolean inBookmark(MotionEvent event) {
-            return event.getX() >= tabs.getWidth() - quarter() && event.getX() <= tabs.getWidth();
+            return event.getX() >= tabs.getWidth() - slot() && event.getX() <= tabs.getWidth();
         }
 
         @Override public boolean onTouch(View view, MotionEvent event) {
