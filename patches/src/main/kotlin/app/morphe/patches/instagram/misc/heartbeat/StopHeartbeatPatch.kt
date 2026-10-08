@@ -26,7 +26,7 @@ val stopHeartbeatPatch = bytecodePatch(
         "are unaffected.",
     default = false,
 ) {
-    category("Battery")
+    category("Fixes")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)
