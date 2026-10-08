@@ -130,11 +130,15 @@ public final class GlassTabBar {
      * clear above the bar, a reel's seek bar included, is covered. The pill sits this far in from the top
      * and the bottom of that height.
      */
-    static final int FIT_GAP_DP = 3;
+    static final int FIT_GAP_DP = 1;
     static final int BLUR_DP = 18;
     /** The selected tab's capsule sits 4dp in from the pill's top and bottom and stands 4dp past its slot. */
     static final int HIGHLIGHT_INSET_DP = 4;
     static final int HIGHLIGHT_GROW_DP = 4;
+
+    /** The strip behind the pill is copied at most this often, and not at all for a moment after a tab change. */
+    static final long COPY_EVERY_MS = 200;
+    static final long QUIET_AFTER_TAB_MS = 450;
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -143,6 +147,18 @@ public final class GlassTabBar {
     private static final WeakHashMap<View, Glass> applied = new WeakHashMap<>();
 
     private GlassTabBar() {
+    }
+
+    private static Handler copyHandler;
+
+    /** A thread for the screen copies' callbacks, so reading the pixels never holds up a frame. */
+    static synchronized Handler copyHandler() {
+        if (copyHandler == null) {
+            android.os.HandlerThread thread = new android.os.HandlerThread("hushgram-glass", android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            thread.start();
+            copyHandler = new Handler(thread.getLooper());
+        }
+        return copyHandler;
     }
 
     /**
@@ -260,6 +276,11 @@ public final class GlassTabBar {
         private int originalBarHeight = -1;
         /** The tab that was selected as of the last frame, to notice a change the bar's own drawing can't see. */
         @Nullable private WeakReference<View> lastSelected;
+        /** The line above the bar and the screens' container, found once: looking them up costs a walk of the whole screen. */
+        @Nullable private WeakReference<View> shadowRef;
+        @Nullable private WeakReference<View> contentRef;
+        /** No screen copy is asked for until this time: a tab change is the busiest moment of a frame. */
+        private long quietUntil;
 
         Glass(ViewGroup bar, Window window) {
             this.bar = bar;
@@ -345,9 +366,17 @@ public final class GlassTabBar {
             lastBottom = under;
 
             if (parent != null) {
-                View shadow = find(parent, TAB_BAR_SHADOW);
+                View shadow = shadowRef == null ? null : shadowRef.get();
+                if (shadow == null || !shadow.isAttachedToWindow()) {
+                    shadow = find(parent, TAB_BAR_SHADOW);
+                    shadowRef = shadow == null ? null : new WeakReference<>(shadow);
+                }
                 if (shadow != null && shadow.getVisibility() != View.GONE) shadow.setVisibility(View.GONE);
-                View content = find(parent, CONTENT);
+                View content = contentRef == null ? null : contentRef.get();
+                if (content == null || !content.isAttachedToWindow()) {
+                    content = find(parent, CONTENT);
+                    contentRef = content == null ? null : new WeakReference<>(content);
+                }
                 if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
                     ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
                     if (contentMargin < 0) contentMargin = margins.bottomMargin;
@@ -398,6 +427,7 @@ public final class GlassTabBar {
                 View before = lastSelected == null ? null : lastSelected.get();
                 if (selected != before) {
                     lastSelected = selected == null ? null : new WeakReference<>(selected);
+                    quietUntil = SystemClock.uptimeMillis() + QUIET_AFTER_TAB_MS;
                     bar.invalidate();
                 }
                 if (!blurBroken && blurWanted) pill.refresh();
@@ -434,7 +464,8 @@ public final class GlassTabBar {
             private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final RectF rect = new RectF();
             private final RectF capsule = new RectF();
-            private final Handler handler = new Handler(Looper.getMainLooper());
+            private final Handler handler = copyHandler();
+            private final Handler main = new Handler(Looper.getMainLooper());
             private final Rect source = new Rect();
             private final RectF target = new RectF();
             private final Paint bitmapPaint = new Paint(Paint.FILTER_BITMAP_FLAG);
@@ -449,6 +480,9 @@ public final class GlassTabBar {
             private long lastRequest;
             private int nodeWidth = -1;
             private int nodeHeight = -1;
+            private float sheenTop = Float.NaN;
+            private float sheenBottom = Float.NaN;
+            private boolean sheenDark;
             private float capsuleLeft = Float.NaN;
             private float capsuleRight = Float.NaN;
             /** The tab the capsule's middle was over when it last ticked, or -1 before the first frame. */
@@ -488,8 +522,13 @@ public final class GlassTabBar {
                 fill.setColor(tint(base, blurred));
                 canvas.drawRoundRect(rect, radius, radius, fill);
 
-                sheen.setShader(new LinearGradient(0, rect.top, 0, rect.bottom,
-                        dark ? 0x22ffffff : 0x40ffffff, 0x00ffffff, Shader.TileMode.CLAMP));
+                if (sheenTop != rect.top || sheenBottom != rect.bottom || sheenDark != dark) {
+                    sheenTop = rect.top;
+                    sheenBottom = rect.bottom;
+                    sheenDark = dark;
+                    sheen.setShader(new LinearGradient(0, rect.top, 0, rect.bottom,
+                            dark ? 0x22ffffff : 0x40ffffff, 0x00ffffff, Shader.TileMode.CLAMP));
+                }
                 canvas.drawRoundRect(rect, radius, radius, sheen);
 
                 drawCapsule(canvas);
@@ -552,7 +591,7 @@ public final class GlassTabBar {
             void refresh() {
                 if (copying || blurBroken || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return;
                 long now = SystemClock.uptimeMillis();
-                if (now - lastRequest < 40 || !bar.isAttachedToWindow() || rect.isEmpty()) return;
+                if (now - lastRequest < COPY_EVERY_MS || now < quietUntil || !bar.isAttachedToWindow() || rect.isEmpty()) return;
                 int[] at = new int[2];
                 bar.getLocationInWindow(at);
                 int width = Math.round(rect.width());
@@ -570,12 +609,14 @@ public final class GlassTabBar {
                 lastRequest = now;
                 try {
                     PixelCopy.request(window, source, into, result -> {
-                        copying = false;
                         if (result != PixelCopy.SUCCESS) {
-                            if (++failures >= 8) {
-                                blurBroken = true;
-                                diagnose("pixel copy keeps failing, last result " + result, null);
-                            }
+                            main.post(() -> {
+                                copying = false;
+                                if (++failures >= 8) {
+                                    blurBroken = true;
+                                    diagnose("pixel copy keeps failing, last result " + result, null);
+                                }
+                            });
                             return;
                         }
                         failures = 0;
@@ -591,15 +632,20 @@ public final class GlassTabBar {
 
             /** A copy arrived: if the screen above the pill changed, it becomes the strip and the bar draws again. */
             private void stored(Bitmap copy) {
+                // This runs on the copy's own thread. Only the swap, which the drawing reads, is done on the main one.
                 int count = copy.getWidth() * copy.getHeight();
                 if (pixels.length != count) pixels = new int[count];
                 copy.getPixels(pixels, 0, copy.getWidth(), 0, 0, copy.getWidth(), copy.getHeight());
                 int hash = Arrays.hashCode(pixels);
-                if (strip != null && hash == stripHash) return;
-                stripHash = hash;
-                scratch = strip;
-                strip = copy;
-                bar.invalidate();
+                main.post(() -> {
+                    if (strip == null || hash != stripHash) {
+                        stripHash = hash;
+                        scratch = strip;
+                        strip = copy;
+                        bar.invalidate();
+                    }
+                    copying = false;
+                });
             }
 
             /** Draws the blurred strip, upside down, into the pill, and says whether it did. */
