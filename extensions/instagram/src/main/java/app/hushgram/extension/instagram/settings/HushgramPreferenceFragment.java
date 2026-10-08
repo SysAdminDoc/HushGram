@@ -954,6 +954,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "posted or when keeps its usual name.")));
         }
 
+        if (build.contains(PatchFamily.STOP_HEARTBEAT)) {
+            PreferenceCategory battery = category(screen, L10n.t("Battery"));
+            battery.addPreference(toggle(context, Settings.STOP_HEARTBEAT, L10n.t("Stop the background heartbeat"),
+                    L10n.t("Instagram wakes your phone every minute or two, screen off included, only to note that it "
+                            + "is still running. This stops that. Messages, notifications and everything you see are "
+                            + "unaffected.")));
+        }
+
         if (build.contains(PatchFamily.BUILD_EXPIRED_POPUP)) {
             PreferenceCategory updates = category(screen, L10n.t("Updates"));
             updates.addPreference(toggle(context, Settings.REMOVE_BUILD_EXPIRED_POPUP,
