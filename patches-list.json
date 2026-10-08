@@ -2674,6 +2674,43 @@
       "options": []
     },
     {
+      "name": "Stop background wake-ups",
+      "description": "Stops two alarms that wake your phone while Instagram is in the background: one every minute or two only to note that it is still running, and one five minutes on to upload its usage events. Messages, notifications and everything you see are unaffected.",
+      "category": "Fixes",
+      "use": false,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Stop swipe to create",
       "description": "Keeps a sideways swipe on Home from opening the camera. The + button and every other way into the camera still work.",
       "category": "Interface",
@@ -2715,43 +2752,6 @@
       "description": "Keeps a sideways swipe from moving between Home, Reels and the other main tabs. Tapping the tab bar still changes tabs, and Reels still scroll up and down.",
       "category": "Interface",
       "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "450.0.0.50.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "450.0.0.50.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 385611438
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Stop the background heartbeat",
-      "description": "Instagram wakes your phone with an alarm every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
-      "category": "Fixes",
-      "use": false,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"

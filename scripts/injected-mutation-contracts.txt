@@ -154,11 +154,14 @@ once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z hol
 start-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 once-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 #
-# Stop the background heartbeat asks the extension first thing in the method that sets Instagram's next
+# Stop background wake-ups asks the extension first thing in the method that sets Instagram's next
 # heartbeat alarm, the one taking its own class and holding both the WarmHeartbeat tag and the message
 # for a missing AlarmManager.
 start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
 once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
+# It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
+# static upload scheduler holding the alarm's tag and its intent action.
+sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload
 #
 # Disable analytics passes the address Instagram uploads its usage events to through the extension
 # before the builder returns it. The builder is the one static method taking a host and a flag that

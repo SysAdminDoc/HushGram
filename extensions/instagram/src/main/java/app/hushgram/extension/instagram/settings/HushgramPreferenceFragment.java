@@ -972,6 +972,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Instagram wakes your phone every minute or two, screen off included, only to note that it "
                             + "is still running. This stops that. Messages, notifications and everything you see are "
                             + "unaffected.")));
+            battery.addPreference(toggle(context, Settings.STOP_UPLOAD_ALARM, L10n.t("Stop the analytics upload alarm"),
+                    L10n.t("Instagram sets an alarm to wake your phone and send its usage events five minutes later. "
+                            + "This stops that alarm; the events go the next time you use the app, or nowhere with "
+                            + "Disable analytics.")));
         }
 
         if (build.contains(PatchFamily.BUILD_EXPIRED_POPUP)) {
