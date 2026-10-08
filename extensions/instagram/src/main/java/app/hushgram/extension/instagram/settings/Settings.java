@@ -517,6 +517,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Your own profile's tabs get one more, a bookmark, that opens Saved
+     * ({@link app.hushgram.extension.instagram.misc.ProfileSaved}). The patch is off in the default
+     * selection, so a build that has it asked for it, and the switch starts on. The tabs are built as the
+     * profile opens, so a change takes a restart.
+     */
+    public static final BooleanSetting SAVED_ON_PROFILE =
+            new BooleanSetting("hushgram_saved_on_profile", TRUE, true);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but

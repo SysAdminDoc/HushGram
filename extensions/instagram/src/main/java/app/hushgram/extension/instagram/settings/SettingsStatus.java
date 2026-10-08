@@ -272,6 +272,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean savedOnProfile() {
+        return false;
+    }
+
     public static boolean keepReelSpeed() {
         return false;
     }
