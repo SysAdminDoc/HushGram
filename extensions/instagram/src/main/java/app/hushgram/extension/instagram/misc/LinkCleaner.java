@@ -264,9 +264,9 @@ public final class LinkCleaner {
     }
 
     /**
-     * [clip] with the Instagram links in its text items cleaned, or [clip] itself when there's
-     * nothing to clean, the switch is off, or anything goes wrong. A clip with a URI, an intent or
-     * HTML in an item is left as it came.
+     * [clip] with the Instagram links in its plain-text and URI-only items cleaned, or [clip]
+     * itself when there's nothing to clean, the switch is off, or anything goes wrong. A clip with
+     * an intent, HTML, or mixed fields in one item is left as it came.
      */
     static ClipData sanitizedClip(ClipData clip) {
         HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
