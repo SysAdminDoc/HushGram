@@ -823,12 +823,13 @@ public final class GlassTabBar {
      * <p>{@link HapticStyle#SHORT} is a single pulse of the motor's own, {@link #SHORT_MS} long at
      * {@link #SHORT_AMPLITUDE} of 255: an iPhone's tick comes and goes in one quick tap, and a motor rings on
      * after a gentler signal of the same length, so the pulse is kept short rather than weak. A phone whose
-     * motor can't be driven at a chosen strength plays the light tick instead. {@link HapticStyle#SYSTEM} asks the
-     * phone for its own selection haptic, which a maker tunes to the motor. {@link HapticStyle#SOFT} is the tick
+     * motor can't be driven at a chosen strength plays the light tick instead. {@link HapticStyle#SYSTEM} plays the
+     * phone's own click effect, which a maker tunes to the motor: crisper and stronger than the selection haptic
+     * of a view, which the phone may soften to an ordinary buzz. {@link HapticStyle#SOFT} is the tick
      * primitive at {@link #SOFT_SCALE} of its strength and {@link HapticStyle#FULL} at all of it, or the built-in
      * tick on a phone that can't play primitives.
      *
-     * <p>All but SYSTEM play on a thread of their own, with the touch usage on Android 13 and newer, so they follow
+     * <p>They play on a thread of their own, with the touch usage on Android 13 and newer, so they follow
      * the phone's touch feedback setting and never hold up a frame; a call to the system on the UI thread can take
      * a few milliseconds. Older Android uses the view's own haptics for the light and full ticks. Ticks closer
      * together than {@link #MIN_TICK_GAP_MS} are dropped.
@@ -858,13 +859,14 @@ public final class GlassTabBar {
                 long now = android.os.SystemClock.uptimeMillis();
                 if (!farEnough(now, lastTick)) return;
                 lastTick = now;
-                if (style == HapticStyle.SYSTEM) {
+                if (style == HapticStyle.SYSTEM && Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                     view.performHapticFeedback(Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
                             ? HapticFeedbackConstants.SEGMENT_TICK : HapticFeedbackConstants.CLOCK_TICK);
                     return;
                 }
                 Context context = view.getContext().getApplicationContext();
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && style != HapticStyle.SHORT) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU && style != HapticStyle.SHORT
+                        && style != HapticStyle.SYSTEM) {
                     view.performHapticFeedback(style == HapticStyle.FULL ? HapticFeedbackConstants.CLOCK_TICK
                             : HapticFeedbackConstants.TEXT_HANDLE_MOVE);
                     return;
@@ -882,7 +884,9 @@ public final class GlassTabBar {
                         : (android.os.Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
                 if (vibrator == null || !vibrator.hasVibrator()) return;
                 android.os.VibrationEffect effect = null;
-                if (style == HapticStyle.SHORT && vibrator.hasAmplitudeControl()) {
+                if (style == HapticStyle.SYSTEM) {
+                    effect = android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_CLICK);
+                } else if (style == HapticStyle.SHORT && vibrator.hasAmplitudeControl()) {
                     effect = android.os.VibrationEffect.createOneShot(SHORT_MS, SHORT_AMPLITUDE);
                 } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     if (primitives < 0) {
