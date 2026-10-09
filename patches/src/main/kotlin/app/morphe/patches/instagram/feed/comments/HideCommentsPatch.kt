@@ -39,8 +39,8 @@ internal const val COMMENT_COUNT_LABEL = ", shouldShowCommentCountInUfi="
 @Suppress("unused")
 val hideCommentsPatch = bytecodePatch(
     name = "Hide comments",
-    description = "Takes the Comment button and the comment count off the posts in your feed, with a switch " +
-        "under Comments that starts off.",
+    description = "Takes the Comment button and the comment count off the posts in your feed. Off until you turn it " +
+        "on. Switch: HushGram settings > Comments.",
     default = true,
 ) {
     category("Interface")

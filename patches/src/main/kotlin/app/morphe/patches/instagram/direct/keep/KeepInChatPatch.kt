@@ -46,9 +46,9 @@ internal object VisualMediaParseFingerprint : Fingerprint(
 @Suppress("unused")
 val keepInChatPatch = bytecodePatch(
     name = "Keep in chat",
-    description = "Keeps view once and replayable photos and videos in your chats, as if they'd been sent with " +
-        "Keep in chat, so they don't disappear after you open them. Turning it on or off reaches the ones already " +
-        "loaded once the chat loads again.",
+    description = "Keeps view once and replayable photos and videos in your chats, as if they'd been sent with Keep " +
+        "in chat, so they don't disappear after you open them. Turning it on or off reaches the ones already loaded " +
+        "once the chat loads again. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
     category("Privacy")

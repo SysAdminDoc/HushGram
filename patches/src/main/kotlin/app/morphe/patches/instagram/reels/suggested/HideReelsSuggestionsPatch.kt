@@ -54,15 +54,15 @@ internal val SUGGESTED_KINDS = listOf(
 private const val STRING = "Ljava/lang/String;"
 
 /**
- * Leaves the cards of accounts to follow out of Reels. Off in the default selection: suggestions
- * are one of Instagram's features, so leaving them out is the user's pick. Asked for in #15 and #20.
+ * Leaves the cards of accounts to follow out of Reels. In the default selection with its switch
+ * off: suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked
+ * for in #15 and #20.
  */
 @Suppress("unused")
 val hideReelsSuggestionsPatch = bytecodePatch(
     name = "Hide suggested accounts in Reels",
-    description = "Leaves out the cards of people and creators to follow that Instagram puts between reels. " +
-        "Every reel still plays.",
-    default = false,
+    description = "Leaves out the cards of people and creators to follow that Instagram puts between reels. Every " +
+        "reel still plays. Off until you turn it on. Switch: HushGram settings > Reels.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

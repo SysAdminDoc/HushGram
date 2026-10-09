@@ -18,13 +18,17 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 
 internal const val TYPING_PATCH = "Hide that you're typing"
 
-/** Opt-in and one-sided: your typing indicator stays home, and other people's still show. */
+/**
+ * One-sided: your typing indicator stays home, and other people's still show. In the default
+ * selection with its switch off.
+ */
 @Suppress("unused")
 val hideTypingPatch = bytecodePatch(
     name = "Hide that you're typing",
-    description = "Adds an off-by-default switch so the people you're chatting with don't see when you're " +
-        "typing. Unlike turning off the typing indicator in Instagram's settings, you still see when they're typing.",
-    default = false,
+    description = "Keeps the people you're chatting with from seeing when you're typing. Unlike turning off the " +
+        "typing indicator in Instagram's settings, you still see when they're typing. Off until you turn it on. " +
+        "Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the " +
+        "others.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)

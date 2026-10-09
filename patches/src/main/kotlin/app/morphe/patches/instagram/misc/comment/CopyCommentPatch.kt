@@ -15,8 +15,9 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 @Suppress("unused")
 val copyCommentPatch = bytecodePatch(
     name = "Copy comment",
-    description = "Adds optional Copy and Copy username actions to the common comment menu. Copy keeps the original " +
-        "text with its line breaks, and Copy username copies the commenter's username. Their switches start off.",
+    description = "Adds Copy and Copy username to the common comment menu. Copy keeps the original text with its " +
+        "line breaks, and Copy username copies the commenter's username. Both are off until you turn them on. " +
+        "Switches: HushGram settings > Comments.",
     default = true,
 ) {
     category("Interface")

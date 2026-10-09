@@ -72,7 +72,8 @@ val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
     description = "Keeps a swipe in Reels from moving on to the next reel, and a pull down from loading new ones. " +
         "The reel you opened still plays, and its buttons still work. A second switch lets you watch 20 reels, then " +
-        "stops swiping until you've had a 15 minute break.",
+        "stops swiping until you've had a 15 minute break. Both are off until you turn them on. Switches: HushGram " +
+        "settings > Reels.",
     default = true,
 ) {
     category("Interface")

@@ -62,7 +62,7 @@ internal object LikeButtonFingerprint : Fingerprint(
 val askBeforeLikePatch = bytecodePatch(
     name = "Ask before a like",
     description = "Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't. Continue " +
-        "goes ahead and Cancel doesn't. Its switch, under Feed, starts off.",
+        "goes ahead and Cancel doesn't. Off until you turn it on. Switch: HushGram settings > Feed.",
     default = true,
 ) {
     category("Interface")

@@ -21,8 +21,8 @@ private const val HIDE = "$EXTENSION_PACKAGE/ads/Ads;->hide()Z"
 @Suppress("unused")
 val hideAdsPatch = bytecodePatch(
     name = "Hide ads",
-    description = "Hides sponsored posts, reels and stories. Instagram is told the ad didn't go in, " +
-        "so no gap is left where it would have been.",
+    description = "Hides sponsored posts, reels and stories. Instagram is told the ad didn't go in, so no gap is " +
+        "left where it would have been. On to start. Switch: HushGram settings > Ads and privacy.",
     default = true,
 ) {
     category("Ads")

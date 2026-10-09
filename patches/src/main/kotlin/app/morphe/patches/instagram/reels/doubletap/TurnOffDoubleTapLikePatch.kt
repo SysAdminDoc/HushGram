@@ -77,15 +77,17 @@ internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
  * Keeps a double tap on a post or a reel from liking it. See DoubleTapLike in the extension for
  * where each double tap likes and what the hooks ask.
  *
- * Off in the default selection, as Hushfacebook's is: a double tap to like is a gesture people use on
- * purpose, so taking it away is a choice to make. Picked, its switch starts on.
+ * In the default selection with its switch off: a double tap to like is a gesture people use on
+ * purpose, so taking it away is a choice to make. The posts and reels switches under it start on,
+ * so turning it on covers both.
  */
 @Suppress("unused")
 val turnOffDoubleTapLikePatch = bytecodePatch(
     name = "Turn off double tap to like",
-    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. Switches for " +
-        "comments and chat messages start off. A single tap still does what it did, and the Like button still likes.",
-    default = false,
+    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A single tap " +
+        "still does what it did, and the Like button still likes. Off until you turn it on. The posts and reels " +
+        "switches under it start on, and the ones for comments and chat messages start off. Switches: HushGram " +
+        "settings > Reels.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -77,8 +77,9 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
 @Suppress("unused")
 val downloadStoryPatch = bytecodePatch(
     name = "Download any story",
-    description = "Adds Download to the menu of anyone's story. A video saves at the Download quality you set, " +
-        "a photo at its largest size. A photo story with music offers Download as video and Download as photo.",
+    description = "Adds Download to the menu of anyone's story. A video saves at the Download quality you set, a " +
+        "photo at its largest size. A photo story with music offers Download as video and Download as photo. On to " +
+        "start. Switch: HushGram settings > Stories.",
     default = true,
 ) {
     category("Downloads")

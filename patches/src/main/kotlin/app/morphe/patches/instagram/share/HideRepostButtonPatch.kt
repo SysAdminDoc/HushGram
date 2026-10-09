@@ -95,15 +95,14 @@ internal const val BUTTON_ROLE = "android.widget.Button"
 private const val HASH_REACH = 4
 
 /**
- * Takes the Repost button off posts and reels. Off in the default selection: reposting is one of
- * Instagram's features, so leaving it out is the user's pick.
+ * Takes the Repost button off posts and reels. In the default selection with its switch off:
+ * reposting is one of Instagram's features, so leaving it out is the user's pick.
  */
 @Suppress("unused")
 val hideRepostButtonPatch = bytecodePatch(
     name = "Hide the Repost button",
     description = "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. " +
-        "Share still sends a post or reel to someone.",
-    default = false,
+        "Share still sends a post or reel to someone. Off until you turn it on. Switch: HushGram settings > Sharing.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

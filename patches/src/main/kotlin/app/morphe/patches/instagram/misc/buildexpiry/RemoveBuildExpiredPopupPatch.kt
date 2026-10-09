@@ -21,9 +21,9 @@ private const val SUPPRESS = "$EXTENSION_PACKAGE/misc/BuildExpiry;->suppress()Z"
 @Suppress("unused")
 val removeBuildExpiredPopupPatch = bytecodePatch(
     name = "Remove build expired popup",
-    description = "Stops Instagram from locking you out with a screen that says this version is too " +
-        "old. A patched build doesn't update on its own, so without this it would stop working after a " +
-        "few weeks.",
+    description = "Stops Instagram from locking you out with a screen that says this version is too old. A patched " +
+        "build doesn't update on its own, so without this it would stop working after a few weeks. On to start. " +
+        "Switch: HushGram settings > Updates.",
     default = true,
 ) {
     category("Updates")

@@ -90,8 +90,9 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
 val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns " +
-        "if they've set any, or as a chip under their counts that also says Following each other. A second switch, " +
-        "off to start, marks the accounts on your own Following list that don't follow you back.",
+        "if they've set any, or as a chip under their counts that also says Following each other. On to start. The " +
+        "chip, and a switch that marks the accounts on your own Following list that don't follow you back, are off " +
+        "until you turn them on. Switches: HushGram settings > Profiles.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

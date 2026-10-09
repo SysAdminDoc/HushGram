@@ -150,11 +150,11 @@ private const val CAROUSEL_FIELD = "carousel_media"
 val downloadVideoPatch = bytecodePatch(
     name = "Download any video",
     description = "Adds Download to the menu of a post in your feed with a video, and of a carousel showing a video. " +
-        "Videos save at the Download quality you set, without Instagram's watermark. " +
-        "A second switch does the same for photo posts, and a third adds Download cover, which saves the still " +
-        "picture a video shows before it plays. " +
-        "Another adds Details, with the post's time, who posted it, its media ID and buttons that copy its direct link, the username and the caption.",
-    default = false,
+        "Videos save at the Download quality you set, without Instagram's watermark. A second switch does the same " +
+        "for photo posts, and a third adds Download cover, which saves the still picture a video shows before it " +
+        "plays. Another adds Details, with the post's time, who posted it, its media ID and buttons that copy its " +
+        "direct link, the username and the caption. Every switch is off until you turn it on. Switches: HushGram " +
+        "settings > Downloads.",
 ) {
     category("Downloads")
     dependsOn(settingsPatch)

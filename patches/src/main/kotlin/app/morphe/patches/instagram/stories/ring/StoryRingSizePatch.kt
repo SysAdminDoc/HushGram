@@ -45,7 +45,8 @@ internal const val SETTLED_PER_METHOD = 3
 val storyRingSizePatch = bytecodePatch(
     name = "Story ring size",
     description = "Draws the rings in the stories row at the top of Home smaller, so more fit on the screen, or " +
-        "larger. Pick the size in HushGram's settings.",
+        "larger. Its switch starts on, but the size starts as Instagram's own, so nothing changes until you pick " +
+        "one. Switch: HushGram settings > Stories.",
     default = true,
 ) {
     category("Interface")

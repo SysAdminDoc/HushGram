@@ -80,15 +80,15 @@ internal object RelativeTimeFingerprint : Fingerprint(
 
 /**
  * Shows the date and time a post went up, under it in the feed, and when each comment was written,
- * instead of how long ago. Off in the default selection: Instagram's "3 hours ago" is its own
- * design, so the date is the user's pick, and the switch starts on in a build that has it.
+ * instead of how long ago. In the default selection with its switch off: Instagram's "3 hours
+ * ago" is its own design, so the date is the user's pick.
  */
 @Suppress("unused")
 val showPostTimePatch = bytecodePatch(
     name = "Show a post's exact time",
     description = "Shows the date and time a post went up, like Oct 2, 3:45 PM, under it in your feed, and the date " +
-        "and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.",
-    default = false,
+        "and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour " +
+        "setting. Off until you turn it on. Switch: HushGram settings > Feed.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

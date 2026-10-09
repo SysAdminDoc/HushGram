@@ -51,8 +51,8 @@ private const val BIT_SET = "Ljava/util/BitSet;"
 @Suppress("unused")
 val hideNotesRowPatch = bytecodePatch(
     name = "Hide the notes row",
-    description = "Takes the row of notes off the top of your messages, the Map bubble in it too. " +
-        "Your chats, search and requests stay.",
+    description = "Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search " +
+        "and requests stay. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
     category("Interface")

@@ -53,7 +53,7 @@ val clearMediaCachePatch = bytecodePatch(
     name = "Clear the media cache",
     description = "Once Instagram's cache holds more than 500 MB of images and videos, deletes the images when it " +
         "goes to the background and the videos the next time it starts. A Clear now row shows what it freed. Your " +
-        "sign-in, drafts and settings stay.",
+        "sign-in, drafts and settings stay. Off until you turn it on. Switch: HushGram settings > Storage.",
     default = true,
 ) {
     category("Interface")

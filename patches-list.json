@@ -6,7 +6,7 @@
   "patches": [
     {
       "name": "Allow screenshots",
-      "description": "Lets screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos in your chats.",
+      "description": "Lets screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos in your chats. Off until you turn it on. Switch: HushGram settings > Messages.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -43,7 +43,7 @@
     },
     {
       "name": "Ask before a call",
-      "description": "Asks before a call starts from a chat, so a stray tap on a call button doesn't ring anyone. Call starts it and Cancel doesn't. Its switch starts off.",
+      "description": "Asks before a call starts from a chat, so a stray tap on a call button doesn't ring anyone. Call starts it and Cancel doesn't. Off until you turn it on. Switch: HushGram settings > Messages.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -80,7 +80,7 @@
     },
     {
       "name": "Ask before a like",
-      "description": "Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't. Continue goes ahead and Cancel doesn't. Its switch, under Feed, starts off.",
+      "description": "Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't. Continue goes ahead and Cancel doesn't. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -117,7 +117,7 @@
     },
     {
       "name": "Ask before a refresh",
-      "description": "Asks before pulling down refreshes Home, Reels or another list, so a stray pull keeps what's on screen. Refresh goes ahead, and Cancel stops the spinner. Its switch, under Feed, starts off.",
+      "description": "Asks before pulling down refreshes Home, Reels or another list, so a stray pull keeps what's on screen. Refresh goes ahead, and Cancel stops the spinner. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -154,7 +154,7 @@
     },
     {
       "name": "Change the like animation",
-      "description": "Plays an animation you pick, from the ones Instagram made for Instagram Rings creators, in the heart that pops up when you double tap a post. Its switch, under Reels, starts off.",
+      "description": "Plays an animation you pick, from the ones Instagram made for Instagram Rings creators, in the heart that pops up when you double tap a post. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -191,7 +191,7 @@
     },
     {
       "name": "Change version code",
-      "description": "Raises this build's version code to the highest Android allows, so Google Play stops offering Meta's updates over it. Instagram's checks against the version it was built as still see the real one. Once it's in, going back to an unpatched Instagram means uninstalling first, which deletes Instagram's data on your phone, and later HushGram builds need this patch too or they won't install over this one.",
+      "description": "Raises this build's version code to the highest Android allows, so Google Play stops offering Meta's updates over it. Instagram's checks against the version it was built as still see the real one. Once it's in, going back to an unpatched Instagram means uninstalling first, which deletes Instagram's data on your phone, and later HushGram builds need this patch too or they won't install over this one. It's set when you patch, with no switch.",
       "category": "Updates",
       "use": false,
       "dependencies": [
@@ -228,9 +228,9 @@
     },
     {
       "name": "Clean up Reels",
-      "description": "Hides the Follow button on reels, the pills that push Edits, templates, Meta AI and Ray-Ban Meta glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. Each part has its own switch.",
+      "description": "Hides the Follow button on reels, the pills that push Edits, templates, Meta AI and Ray-Ban Meta glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. Each part has its own switch, and every one is off until you turn it on. Switches: HushGram settings > Reels.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -265,7 +265,7 @@
     },
     {
       "name": "Clear the media cache",
-      "description": "Once Instagram's cache holds more than 500 MB of images and videos, deletes the images when it goes to the background and the videos the next time it starts. A Clear now row shows what it freed. Your sign-in, drafts and settings stay.",
+      "description": "Once Instagram's cache holds more than 500 MB of images and videos, deletes the images when it goes to the background and the videos the next time it starts. A Clear now row shows what it freed. Your sign-in, drafts and settings stay. Off until you turn it on. Switch: HushGram settings > Storage.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -302,7 +302,7 @@
     },
     {
       "name": "Copy comment",
-      "description": "Adds optional Copy and Copy username actions to the common comment menu. Copy keeps the original text with its line breaks, and Copy username copies the commenter's username. Their switches start off.",
+      "description": "Adds Copy and Copy username to the common comment menu. Copy keeps the original text with its line breaks, and Copy username copies the commenter's username. Both are off until you turn them on. Switches: HushGram settings > Comments.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -339,7 +339,7 @@
     },
     {
       "name": "Data saver",
-      "description": "Loads photos at a smaller size and starts videos, reels and stories at the lowest quality, on mobile data or on every network. It works through Full resolution photos and Default playback quality, so it brings both along.",
+      "description": "Loads photos at a smaller size and starts videos, reels and stories at the lowest quality, on mobile data or on every network. It works through Full resolution photos and Default playback quality, so it brings both along. Off until you turn it on, and then it starts with mobile data only. Switch: HushGram settings > Playback.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -378,7 +378,7 @@
     },
     {
       "name": "Default playback quality",
-      "description": "Plays videos, reels and video stories at the quality you choose in HushGram's settings, such as Data saver or up to 720p, instead of the one Instagram picks as it plays.",
+      "description": "Plays videos, reels and video stories at the quality you choose, such as Data saver or up to 720p, instead of the one Instagram picks as it plays. Its switch starts on, but the quality starts as Instagram's own, so nothing changes until you pick one. Switch: HushGram settings > Playback.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -415,7 +415,7 @@
     },
     {
       "name": "Disable analytics",
-      "description": "Sends Instagram's usage events and crash reports to an address on your phone that refuses them, instead of to Instagram's and Facebook's servers. It also skips the contacts and location setup screens, which would come back on every start without those events. Restart Instagram after changing the switch.",
+      "description": "Sends Instagram's usage events and crash reports to an address on your phone that refuses them, instead of to Instagram's and Facebook's servers. It also skips the contacts and location setup screens, which would come back on every start without those events. Restart Instagram after changing the switch. On to start. Switch: HushGram settings > Ads and privacy.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -452,7 +452,7 @@
     },
     {
       "name": "Don't report screenshots",
-      "description": "Keeps Instagram from noticing your screenshots, so whoever sent you a disappearing photo or video isn't told you took one.",
+      "description": "Keeps Instagram from noticing your screenshots, so whoever sent you a disappearing photo or video isn't told you took one. Off until you turn it on. Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the others.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -489,7 +489,7 @@
     },
     {
       "name": "Don't save recent searches",
-      "description": "Keeps what you open from search out of Recent, both in the app and on Instagram's side. Searches already in Recent stay until you clear them.",
+      "description": "Keeps what you open from search out of Recent, both in the app and on Instagram's side. Searches already in Recent stay until you clear them. Off until you turn it on. Switch: HushGram settings > Explore.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -526,9 +526,9 @@
     },
     {
       "name": "Don't send reel watch history",
-      "description": "Stops telling Instagram which reels you watched and how far into them you got. It's used to rank your Reels, and nobody else sees it. Reels you've already watched may come back.",
+      "description": "Stops telling Instagram which reels you watched and how far into them you got. It's used to rank your Reels, and nobody else sees it. Reels you've already watched may come back. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Privacy",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -563,7 +563,7 @@
     },
     {
       "name": "Download any reel",
-      "description": "Adds Download to every reel's more menu. Reels save at the Download quality you set, best by default, without Instagram's watermark. Turn on Download cover for a row that saves the still picture shown before the reel plays.",
+      "description": "Adds Download to every reel's more menu. Reels save at the Download quality you set, best by default, without Instagram's watermark. On to start. Download cover, off until you turn it on, adds a row that saves the still picture shown before the reel plays. Switches: HushGram settings > Reels.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -601,7 +601,7 @@
     },
     {
       "name": "Download any story",
-      "description": "Adds Download to the menu of anyone's story. A video saves at the Download quality you set, a photo at its largest size. A photo story with music offers Download as video and Download as photo.",
+      "description": "Adds Download to the menu of anyone's story. A video saves at the Download quality you set, a photo at its largest size. A photo story with music offers Download as video and Download as photo. On to start. Switch: HushGram settings > Stories.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -638,9 +638,9 @@
     },
     {
       "name": "Download any video",
-      "description": "Adds Download to the menu of a post in your feed with a video, and of a carousel showing a video. Videos save at the Download quality you set, without Instagram's watermark. A second switch does the same for photo posts, and a third adds Download cover, which saves the still picture a video shows before it plays. Another adds Details, with the post's time, who posted it, its media ID and buttons that copy its direct link, the username and the caption.",
+      "description": "Adds Download to the menu of a post in your feed with a video, and of a carousel showing a video. Videos save at the Download quality you set, without Instagram's watermark. A second switch does the same for photo posts, and a third adds Download cover, which saves the still picture a video shows before it plays. Another adds Details, with the post's time, who posted it, its media ID and buttons that copy its direct link, the username and the caption. Every switch is off until you turn it on. Switches: HushGram settings > Downloads.",
       "category": "Downloads",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings",
@@ -676,7 +676,7 @@
     },
     {
       "name": "Download voice messages",
-      "description": "Adds an optional Save to the menu you get by holding a voice message in a chat. It saves the recording as an audio file. Its switch starts off.",
+      "description": "Adds Save to the menu you get by holding a voice message in a chat. It saves the recording as an audio file. Off until you turn it on. Switch: HushGram settings > Downloads.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -713,7 +713,7 @@
     },
     {
       "name": "Emoji style",
-      "description": "Draws every emoji in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. Its switch, under Layout, starts off, and a change shows fully after Instagram restarts.",
+      "description": "Draws every emoji in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. A change shows fully after Instagram restarts. Off until you turn it on. Switch: HushGram settings > Layout.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -750,7 +750,7 @@
     },
     {
       "name": "Full resolution photos",
-      "description": "Loads photos in your feed, in carousels and in posts you open at the largest size Instagram sends rather than the size it picks for your screen. A second switch asks for a larger size on a phone under 1440 pixels wide. It can use more data.",
+      "description": "Loads photos in your feed, in carousels and in posts you open at the largest size Instagram sends rather than the size it picks for your screen. A second switch asks for a larger size on a phone under 1440 pixels wide. It can use more data. Both are off until you turn them on. Switches: HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -787,7 +787,7 @@
     },
     {
       "name": "Group Instagram's notifications",
-      "description": "Puts Instagram's notifications in one group, or in a group per type with a second switch, so they don't fill the notification shade. A group of two or more shows how many it holds. Tapping a notification still opens what it did.",
+      "description": "Puts Instagram's notifications in one group, or in a group per type with a second switch, so they don't fill the notification shade. A group of two or more shows how many it holds. Tapping a notification still opens what it did. Both are off until you turn them on. Switches: HushGram settings > Notifications.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -824,7 +824,7 @@
     },
     {
       "name": "Hide Instants",
-      "description": "Takes the stack of Instants out of your messages. Instagram is told your account doesn't have Instants, its no-edit camera for friends.",
+      "description": "Takes the stack of Instants out of your messages. Instagram is told your account doesn't have Instants, its no-edit camera for friends. Off until you turn it on. Switch: HushGram settings > Messages.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -861,7 +861,7 @@
     },
     {
       "name": "Hide Meta AI",
-      "description": "Takes Meta AI out of the search bars, in the Search tab and at the top of your messages, so they search the plain way, drops the Ask a follow-up bar under search results and Meta AI's buttons in Home's top bar and the message composer, hides its optional row in your inbox, and removes Meta AI's posts from your home feed. It can also take About this reel, or only its Ask Meta AI box, out of a reel's More menu, and Meta AI's target out of the share sheet. Search, posts, About this reel, Ask Meta AI and the share sheet have separate switches, and the last three start off. The search switch applies after Instagram restarts.",
+      "description": "Takes Meta AI out of the search bars, in the Search tab and at the top of your messages, so they search the plain way, drops the Ask a follow-up bar under search results and Meta AI's buttons in Home's top bar and the message composer, hides its optional row in your inbox, and removes Meta AI's posts from your home feed. It can also take About this reel, or only its Ask Meta AI box, out of a reel's More menu, and Meta AI's target out of the share sheet. Search and posts have switches that start on. About this reel, Ask Meta AI and the share sheet each have one that's off until you turn it on. The search switch applies after Instagram restarts. Switches: HushGram settings > Meta AI.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -898,9 +898,9 @@
     },
     {
       "name": "Hide Reels in the feed",
-      "description": "Removes the rows of suggested reels between posts in your home feed, and the other units that open the Reels viewer from there. A reel someone you follow posts stays.",
+      "description": "Removes the rows of suggested reels between posts in your home feed, and the other units that open the Reels viewer from there. A reel someone you follow posts stays. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Feed",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -935,7 +935,7 @@
     },
     {
       "name": "Hide ads",
-      "description": "Hides sponsored posts, reels and stories. Instagram is told the ad didn't go in, so no gap is left where it would have been.",
+      "description": "Hides sponsored posts, reels and stories. Instagram is told the ad didn't go in, so no gap is left where it would have been. On to start. Switch: HushGram settings > Ads and privacy.",
       "category": "Ads",
       "use": true,
       "dependencies": [
@@ -972,7 +972,7 @@
     },
     {
       "name": "Hide comments",
-      "description": "Takes the Comment button and the comment count off the posts in your feed, with a switch under Comments that starts off.",
+      "description": "Takes the Comment button and the comment count off the posts in your feed. Off until you turn it on. Switch: HushGram settings > Comments.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1009,9 +1009,9 @@
     },
     {
       "name": "Hide group buttons on the share sheet",
-      "description": "Takes the New group button away from beside the share sheet's search bar, and the button that sends to the people you picked as one group, so they get it one by one. You can still start a group from your messages.",
+      "description": "Takes the New group button away from beside the share sheet's search bar, and the button that sends to the people you picked as one group, so they get it one by one. You can still start a group from your messages. Off until you turn it on. Switch: HushGram settings > Sharing.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1046,7 +1046,7 @@
     },
     {
       "name": "Hide highlights",
-      "description": "Takes the row of story highlights off profiles, yours and other people's. Bios, counts, posts and the Add to highlight list on your stories stay.",
+      "description": "Takes the row of story highlights off profiles, yours and other people's. Bios, counts, posts and the Add to highlight list on your stories stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1083,9 +1083,9 @@
     },
     {
       "name": "Hide suggested accounts in Reels",
-      "description": "Leaves out the cards of people and creators to follow that Instagram puts between reels. Every reel still plays.",
+      "description": "Leaves out the cards of people and creators to follow that Instagram puts between reels. Every reel still plays. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Feed",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1120,9 +1120,9 @@
     },
     {
       "name": "Hide suggested people on profiles",
-      "description": "Takes Suggested for you and the Discover people button off profiles, yours and other people's. Bios, counts, posts and follower lists stay.",
+      "description": "Takes Suggested for you and the Discover people button off profiles, yours and other people's. Bios, counts, posts and follower lists stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
       "category": "Feed",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1157,7 +1157,7 @@
     },
     {
       "name": "Hide suggested posts",
-      "description": "Removes the posts and reels from accounts you don't follow that Instagram puts in your home feed as Suggested for you, the rows of accounts, shops and hashtags it suggests you follow, the posts and accounts from Threads it mixes in, the surveys it asks you to fill in, and its shopping rows. Each has its own switch. Posts from accounts you follow stay, unless you turn on Hide videos, Hide photos or Hide carousels, which start off and take every post of that type out of Home.",
+      "description": "Removes the posts and reels from accounts you don't follow that Instagram puts in your home feed as Suggested for you, the rows of accounts, shops and hashtags it suggests you follow, the posts and accounts from Threads it mixes in, the surveys it asks you to fill in, and its shopping rows. Each has its own switch, on to start. Posts from accounts you follow stay, unless you turn on Hide videos, Hide photos or Hide carousels, which take every post of that type out of Home and are off until you turn them on. Switches: HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -1194,7 +1194,7 @@
     },
     {
       "name": "Hide suggested stories",
-      "description": "Removes the stories from accounts you don't follow, and the accounts Instagram suggests, from the row of stories at the top of Home. More switches, off to start, take out rewinds, memories and recaps, stop the row's stories loading, or take the whole row away.",
+      "description": "Removes the stories from accounts you don't follow, and the accounts Instagram suggests, from the row of stories at the top of Home. On to start. More switches, off until you turn them on, take out rewinds, memories and recaps, stop the row's stories loading, or take the whole row away. Switches: HushGram settings > Stories.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -1231,9 +1231,9 @@
     },
     {
       "name": "Hide that you're typing",
-      "description": "Adds an off-by-default switch so the people you're chatting with don't see when you're typing. Unlike turning off the typing indicator in Instagram's settings, you still see when they're typing.",
+      "description": "Keeps the people you're chatting with from seeing when you're typing. Unlike turning off the typing indicator in Instagram's settings, you still see when they're typing. Off until you turn it on. Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the others.",
       "category": "Privacy",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1268,9 +1268,9 @@
     },
     {
       "name": "Hide the Explore grid",
-      "description": "Empties the grid of posts and reels under the Search tab's bar. Search, your recent searches and search results stay.",
+      "description": "Empties the grid of posts and reels under the Search tab's bar. Search, your recent searches and search results stay. Off until you turn it on. Switch: HushGram settings > Explore.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1305,9 +1305,9 @@
     },
     {
       "name": "Hide the Reels tab",
-      "description": "Takes the Reels tab off the tab bar, and a start or a notification meant for it opens Home. Reels in your feed and reels people send you still open, and a change to the switch shows once Instagram restarts.",
+      "description": "Takes the Reels tab off the tab bar, and a start or a notification meant for it opens Home. Reels in your feed and reels people send you still open. A change to the switch shows once Instagram restarts. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1342,9 +1342,9 @@
     },
     {
       "name": "Hide the Repost button",
-      "description": "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. Share still sends a post or reel to someone.",
+      "description": "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. Share still sends a post or reel to someone. Off until you turn it on. Switch: HushGram settings > Sharing.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1379,7 +1379,7 @@
     },
     {
       "name": "Hide the Share button",
-      "description": "Takes the Share button and its count off the posts in your feed and off reels, with a switch under Sharing that starts off.",
+      "description": "Takes the Share button and its count off the posts in your feed and off reels. Off until you turn it on. Switch: HushGram settings > Sharing.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1416,7 +1416,7 @@
     },
     {
       "name": "Hide the Threads button",
-      "description": "Takes the Threads button off the top of profiles, yours and other people's. The menu and the other buttons stay. Its switch starts off.",
+      "description": "Takes the Threads button off the top of profiles, yours and other people's. The menu and the other buttons stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1453,7 +1453,7 @@
     },
     {
       "name": "Hide the home feed",
-      "description": "Empties your home feed on purpose, so Home shows the stories row and nothing under it. Profiles, Explore and Reels still show posts.",
+      "description": "Empties your home feed on purpose, so Home shows the stories row and nothing under it. Profiles, Explore and Reels still show posts. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -1490,7 +1490,7 @@
     },
     {
       "name": "Hide the notes row",
-      "description": "Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.",
+      "description": "Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay. Off until you turn it on. Switch: HushGram settings > Messages.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1527,7 +1527,7 @@
     },
     {
       "name": "HushGram settings",
-      "description": "Adds HushGram settings to Instagram. Long-press Instagram's launcher icon and pick HushGram settings, or tap HushGram settings at the top of Instagram's Settings and activity. You can also choose one tab whose long press opens HushGram. That choice starts off. Turn features on or off, pause HushGram and export diagnostics. The licenses are there too.",
+      "description": "Adds HushGram settings to Instagram. Long-press Instagram's launcher icon and pick HushGram settings, or tap HushGram settings at the top of Instagram's Settings and activity. You can also choose one tab whose long press opens HushGram. That choice starts off. Turn features on or off, pause HushGram and export diagnostics. Most features start off, so this is where you turn on the ones you want. The licenses are there too.",
       "category": "Settings",
       "use": true,
       "dependencies": [
@@ -1563,9 +1563,9 @@
     },
     {
       "name": "Keep Reels auto scroll on",
-      "description": "Once you turn on Instagram's auto scroll in Reels, it stays on after Instagram restarts or you leave Reels, until you turn it off yourself.",
+      "description": "Once you turn on Instagram's auto scroll in Reels, it stays on after Instagram restarts or you leave Reels, until you turn it off yourself. Off until you turn it on. Switch: HushGram settings > Reels.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1600,9 +1600,9 @@
     },
     {
       "name": "Keep a seek bar on Reels",
-      "description": "Keeps Instagram's seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Ads keep Instagram's own rules.",
+      "description": "Keeps Instagram's seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Ads keep Instagram's own rules. Off until you turn it on, and so is the seek thumb under it. Switches: HushGram settings > Reels.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1637,7 +1637,7 @@
     },
     {
       "name": "Keep in chat",
-      "description": "Keeps view once and replayable photos and videos in your chats, as if they'd been sent with Keep in chat, so they don't disappear after you open them. Turning it on or off reaches the ones already loaded once the chat loads again.",
+      "description": "Keeps view once and replayable photos and videos in your chats, as if they'd been sent with Keep in chat, so they don't disappear after you open them. Turning it on or off reaches the ones already loaded once the chat loads again. Off until you turn it on. Switch: HushGram settings > Messages.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -1674,7 +1674,7 @@
     },
     {
       "name": "Keep the reel speed",
-      "description": "Lock a reel at 2x with Instagram's own lock (hold its edge, then slide down) and the next reels play at 2x too, until you slide the lock off, hold the edge and let go, or Instagram restarts.",
+      "description": "Lock a reel at 2x with Instagram's own lock (hold its edge, then slide down) and the next reels play at 2x too, until you slide the lock off, hold the edge and let go, or Instagram restarts. On to start. Switch: HushGram settings > Reels.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1711,7 +1711,7 @@
     },
     {
       "name": "Lock your messages",
-      "description": "Adds switches that keep your inbox and chats, or all of Instagram, covered until your fingerprint, face or screen lock says it's you. They lock again when you leave Instagram or after the time you pick, and message notifications say only that a message came.",
+      "description": "Adds switches that keep your inbox and chats, or all of Instagram, covered until your fingerprint, face or screen lock says it's you. They lock again when you leave Instagram or after the time you pick, and message notifications say only that a message came. Both are off until you turn them on. Switches: HushGram settings > Messages.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -1748,9 +1748,9 @@
     },
     {
       "name": "Loop a story",
-      "description": "A story plays again from the start when it ends, instead of moving on to the next one. Tap or swipe to move on.",
+      "description": "A story plays again from the start when it ends, instead of moving on to the next one. Tap or swipe to move on. Off until you turn it on. Switch: HushGram settings > Stories.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1785,7 +1785,7 @@
     },
     {
       "name": "Open developer options",
-      "description": "A long press on the Home tab opens Instagram's own developer options, where its server flags (MetaConfig and quick experiments) can be looked at and overridden on your phone. A wrong flag can break parts of Instagram until you reset it there.",
+      "description": "A long press on the Home tab opens Instagram's own developer options, where its server flags (MetaConfig and quick experiments) can be looked at and overridden on your phone. A wrong flag can break parts of Instagram until you reset it there. On to start once you pick the patch. Switch: HushGram settings > Developer.",
       "category": "Settings",
       "use": false,
       "dependencies": [
@@ -1822,7 +1822,7 @@
     },
     {
       "name": "Open links in external browser",
-      "description": "Opens a web link you tap in your default browser instead of Instagram's in-app browser, without Instagram's click tracker. Instagram and other Meta pages, and ads, still open in the app.",
+      "description": "Opens a web link you tap in your default browser instead of Instagram's in-app browser, without Instagram's click tracker. Instagram and other Meta pages, and ads, still open in the app. On to start. Switch: HushGram settings > Ads and privacy.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1897,9 +1897,9 @@
     },
     {
       "name": "Read messages without the seen receipt",
-      "description": "Adds an off-by-default switch so opening a chat doesn't tell people you've seen their messages. Unlike turning off read receipts in Instagram's settings, you still see when they've seen yours. Instagram's Mark as read still lets them know, whether you long press one chat or pick several. View-once photos and videos have their own patch.",
+      "description": "Keeps opening a chat from telling people you've seen their messages. Unlike turning off read receipts in Instagram's settings, you still see when they've seen yours. Instagram's Mark as read still lets them know, whether you long press one chat or pick several. View-once photos and videos have their own patch. Off until you turn it on. Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the others.",
       "category": "Privacy",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -1934,7 +1934,7 @@
     },
     {
       "name": "Remove build expired popup",
-      "description": "Stops Instagram from locking you out with a screen that says this version is too old. A patched build doesn't update on its own, so without this it would stop working after a few weeks.",
+      "description": "Stops Instagram from locking you out with a screen that says this version is too old. A patched build doesn't update on its own, so without this it would stop working after a few weeks. On to start. Switch: HushGram settings > Updates.",
       "category": "Updates",
       "use": true,
       "dependencies": [
@@ -1971,7 +1971,7 @@
     },
     {
       "name": "Remove the advertising ID",
-      "description": "Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw or tapped. The permissions for them are taken out of the build, so Google Play services hands Instagram a string of zeros in place of the ID.",
+      "description": "Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw or tapped. The permissions for them are taken out of the build, so Google Play services hands Instagram a string of zeros in place of the ID. It's set when you patch, with no switch.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -2009,9 +2009,9 @@
     },
     {
       "name": "Remove the empty space at the bottom",
-      "description": "Takes away the empty room Instagram leaves under its tab bar for a navigation bar that isn't there, on a phone that hides its navigation bar and in a pop-up window. A change to the switch shows once Instagram restarts.",
+      "description": "Takes away the empty room Instagram leaves under its tab bar for a navigation bar that isn't there, on a phone that hides its navigation bar and in a pop-up window. A change to the switch shows once Instagram restarts. Off until you turn it on. Switch: HushGram settings > Layout.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2046,7 +2046,7 @@
     },
     {
       "name": "Restore trust on re-signed builds",
-      "description": "Lets Instagram's own signature checks pass on a re-signed build, so the parts of the app that check who signed it keep working. Threads, Facebook and Messenger patched with the same key open from Instagram too, and Instagram trusts them when they share to it or ask it for your sign-in. A Root Mount install doesn't need this patch.",
+      "description": "Lets Instagram's own signature checks pass on a re-signed build, so the parts of the app that check who signed it keep working. Threads, Facebook and Messenger patched with the same key open from Instagram too, and Instagram trusts them when they share to it or ask it for your sign-in. A Root Mount install doesn't need this patch. It works as soon as you patch, with no switch.",
       "category": "Fixes",
       "use": true,
       "dependencies": [
@@ -2083,7 +2083,7 @@
     },
     {
       "name": "Resume long videos",
-      "description": "A video or reel longer than two minutes that you left partway picks up where you left it the next time it plays on the same account. Live videos and ads start as usual. Its switch starts off.",
+      "description": "A video or reel longer than two minutes that you left partway picks up where you left it the next time it plays on the same account. Live videos and ads start as usual. Off until you turn it on. Switch: HushGram settings > Playback.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2120,7 +2120,7 @@
     },
     {
       "name": "Sanitize sharing links",
-      "description": "Takes stkn, igsh, utm_source and Instagram's other tracking keys off the links you copy or share, and opens a bio link without going through Instagram's click tracker. The post, reel, story or profile a link opens stays the same.",
+      "description": "Takes stkn, igsh, utm_source and Instagram's other tracking keys off the links you copy or share, and opens a bio link without going through Instagram's click tracker. The post, reel, story or profile a link opens stays the same. On to start. Switch: HushGram settings > Ads and privacy.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -2157,7 +2157,7 @@
     },
     {
       "name": "Save comment photo",
-      "description": "Adds an optional Save action to the common comment menu when a comment has a photo of its own. It saves the largest size Instagram sent, the same way Download saves a post's photo.",
+      "description": "Adds Save to the common comment menu when a comment has a photo of its own. It saves the largest size Instagram sent, the same way Download saves a post's photo. Off until you turn it on. Switch: HushGram settings > Comments.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -2194,7 +2194,7 @@
     },
     {
       "name": "Save profile picture",
-      "description": "Adds optional Save profile picture, View profile picture, Copy username and Copy bio rows to the menu on someone's profile. Save keeps their picture at the largest size Instagram has, View opens it full screen with pinch zoom, and the copy rows copy the text exactly. Their switches start off.",
+      "description": "Adds Save profile picture, View profile picture, Copy username and Copy bio rows to the menu on someone's profile. Save keeps their picture at the largest size Instagram has, View opens it full screen with pinch zoom, and the copy rows copy the text exactly. Every switch is off until you turn it on. Switches: HushGram settings > Downloads.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -2231,9 +2231,9 @@
     },
     {
       "name": "See who a story mentions",
-      "description": "Adds a pill under the name in a story's header saying how many accounts the story mentions, even when the mention sticker is hidden or off screen. Tap it for a list with each account's picture, name and username, and tap one to open their profile. A story with no mentions gets no pill.",
+      "description": "Adds a pill under the name in a story's header saying how many accounts the story mentions, even when the mention sticker is hidden or off screen. Tap it for a list with each account's picture, name and username, and tap one to open their profile. A story with no mentions gets no pill. Off until you turn it on. Switch: HushGram settings > Stories.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2268,9 +2268,9 @@
     },
     {
       "name": "Show a post's exact time",
-      "description": "Shows the date and time a post went up, like Oct 2, 3:45 PM, under it in your feed, and the date and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.",
+      "description": "Shows the date and time a post went up, like Oct 2, 3:45 PM, under it in your feed, and the date and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour setting. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2305,9 +2305,9 @@
     },
     {
       "name": "Show a story's exact time",
-      "description": "Shows the date and time a story was posted in its header, like Oct 2, 3:45 PM, instead of how long ago. A choice under its switch can show the time left before the story expires, or only the time it went up. It follows your phone's language and 12 or 24-hour setting.",
+      "description": "Shows the date and time a story was posted in its header, like Oct 2, 3:45 PM, instead of how long ago. A choice under its switch can show the time left before the story expires, or only the time it went up. It follows your phone's language and 12 or 24-hour setting. Off until you turn it on. Switch: HushGram settings > Stories.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2342,7 +2342,7 @@
     },
     {
       "name": "Show if a profile follows you",
-      "description": "Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any, or as a chip under their counts that also says Following each other. A second switch, off to start, marks the accounts on your own Following list that don't follow you back.",
+      "description": "Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any, or as a chip under their counts that also says Following each other. On to start. The chip, and a switch that marks the accounts on your own Following list that don't follow you back, are off until you turn them on. Switches: HushGram settings > Profiles.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2379,9 +2379,9 @@
     },
     {
       "name": "Spoof location",
-      "description": "Tells Instagram the phone is at a place you set in HushGram's settings, for the location sticker, nearby places and maps. Photos keep their own places.",
+      "description": "Tells Instagram the phone is at a place you set, for the location sticker, nearby places and maps. Photos keep their own places. Off until you turn it on and pick a place. Switch: HushGram settings > Ads and privacy.",
       "category": "Privacy",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2416,9 +2416,9 @@
     },
     {
       "name": "Start Home on Following",
-      "description": "Opens Home on posts from accounts you follow. Tap Following at the top to switch to For you, and Home remembers your pick. A second switch, off to start, takes For you out of Home. A change to either shows once Instagram restarts.",
+      "description": "Opens Home on posts from accounts you follow. Tap Following at the top to switch to For you, and Home remembers your pick. A second switch takes For you out of Home. A change to either shows once Instagram restarts. Both are off until you turn them on. Switches: HushGram settings > Feed.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2453,7 +2453,7 @@
     },
     {
       "name": "Start on x86 devices",
-      "description": "Keeps Instagram from crashing or freezing on an x86 device that runs its arm code through a translator, such as an x86 Chromebook or an emulator, by skipping the one code protection step that breaks there. Phones and tablets with arm chips run it as before.",
+      "description": "Keeps Instagram from crashing or freezing on an x86 device that runs its arm code through a translator, such as an x86 Chromebook or an emulator, by skipping the one code protection step that breaks there. Phones and tablets with arm chips run it as before. It works as soon as you patch, with no switch.",
       "category": "Fixes",
       "use": true,
       "dependencies": [
@@ -2490,7 +2490,7 @@
     },
     {
       "name": "Stop Reels scrolling",
-      "description": "Keeps a swipe in Reels from moving on to the next reel, and a pull down from loading new ones. The reel you opened still plays, and its buttons still work. A second switch lets you watch 20 reels, then stops swiping until you've had a 15 minute break.",
+      "description": "Keeps a swipe in Reels from moving on to the next reel, and a pull down from loading new ones. The reel you opened still plays, and its buttons still work. A second switch lets you watch 20 reels, then stops swiping until you've had a 15 minute break. Both are off until you turn them on. Switches: HushGram settings > Reels.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2527,9 +2527,9 @@
     },
     {
       "name": "Stop Story auto-advance",
-      "description": "Keeps each story on screen until you tap or swipe. Turn the switch off for Instagram's timing.",
+      "description": "Keeps each story on screen until you tap or swipe. Off until you turn it on. Switch: HushGram settings > Stories.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2564,7 +2564,7 @@
     },
     {
       "name": "Stop swipe to create",
-      "description": "Keeps a sideways swipe on Home from opening the camera. The + button and every other way into the camera still work.",
+      "description": "Keeps a sideways swipe on Home from opening the camera. The + button and every other way into the camera still work. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2601,7 +2601,7 @@
     },
     {
       "name": "Stop swiping between tabs",
-      "description": "Keeps a sideways swipe from moving between Home, Reels and the other main tabs. Tapping the tab bar still changes tabs, and Reels still scroll up and down.",
+      "description": "Keeps a sideways swipe from moving between Home, Reels and the other main tabs. Tapping the tab bar still changes tabs, and Reels still scroll up and down. Off until you turn it on. Switch: HushGram settings > Feed.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2638,7 +2638,7 @@
     },
     {
       "name": "Story ring size",
-      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on the screen, or larger. Pick the size in HushGram's settings.",
+      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on the screen, or larger. Its switch starts on, but the size starts as Instagram's own, so nothing changes until you pick one. Switch: HushGram settings > Stories.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2675,9 +2675,9 @@
     },
     {
       "name": "Tap to play",
-      "description": "Videos, reels and stories wait for your tap instead of starting by themselves. Feed videos show a play button, the way they do when Instagram saves mobile data.",
+      "description": "Videos, reels and stories wait for your tap instead of starting by themselves. Feed videos show a play button, the way they do when Instagram saves mobile data. A choice under the switch can leave Reels out, or hold only Reels. Off until you turn it on. Switch: HushGram settings > Playback.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2712,7 +2712,7 @@
     },
     {
       "name": "Turn off HDR brightness boosts",
-      "description": "Keeps HDR photos and reels from brightening the screen above everything else, with a switch under Playback that starts off.",
+      "description": "Keeps HDR photos and reels from brightening the screen above everything else. Off until you turn it on. Switch: HushGram settings > Playback.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -2749,9 +2749,9 @@
     },
     {
       "name": "Turn off double tap to like",
-      "description": "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. Switches for comments and chat messages start off. A single tap still does what it did, and the Like button still likes.",
+      "description": "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A single tap still does what it did, and the Like button still likes. Off until you turn it on. The posts and reels switches under it start on, and the ones for comments and chat messages start off. Switches: HushGram settings > Reels.",
       "category": "Interface",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2786,7 +2786,7 @@
     },
     {
       "name": "View DM photos and videos anonymously",
-      "description": "Adds an off-by-default switch to hold back the opened receipt for view-once photos and videos in messages. Ordinary chat and voice receipts keep Instagram's behavior.",
+      "description": "Holds back the opened receipt for view-once photos and videos in messages. Ordinary chat and voice receipts keep Instagram's behavior. Off until you turn it on. Switch: HushGram settings > Ads and privacy. Ghost mode, at the top of the same section, turns it on with the others.",
       "category": "Privacy",
       "use": false,
       "dependencies": [
@@ -2823,7 +2823,7 @@
     },
     {
       "name": "View live anonymously",
-      "description": "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. A live that ends can keep looking live until you leave it. Your own lives still count their viewers.",
+      "description": "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. A live that ends can keep looking live until you leave it. Your own lives still count their viewers. Off until you turn it on. Switch: HushGram settings > Stories. Ghost mode, at the top of Ads and privacy, turns it on with the others.",
       "category": "Privacy",
       "use": true,
       "dependencies": [
@@ -2860,9 +2860,9 @@
     },
     {
       "name": "View stories anonymously",
-      "description": "Holds story-view reports while its switch is on. Replying or reacting still shows you, and stories you've watched keep showing as new. An optional Mark as seen button selects stories to send.",
+      "description": "Keeps the stories you watch from putting you on their viewer lists. Replying or reacting still shows you, and stories you've watched keep showing as new. An optional Mark as seen button sends the stories you pick. Both are off until you turn them on. Switches: HushGram settings > Stories. Ghost mode, at the top of Ads and privacy, turns it on with the others.",
       "category": "Privacy",
-      "use": false,
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"

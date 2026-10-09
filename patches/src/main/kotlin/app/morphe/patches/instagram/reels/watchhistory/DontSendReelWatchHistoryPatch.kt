@@ -46,9 +46,9 @@ internal fun Method.recordParameters(batch: String): String? {
 @Suppress("unused")
 val dontSendReelWatchHistoryPatch = bytecodePatch(
     name = "Don't send reel watch history",
-    description = "Stops telling Instagram which reels you watched and how far into them you got. It's used " +
-        "to rank your Reels, and nobody else sees it. Reels you've already watched may come back.",
-    default = false,
+    description = "Stops telling Instagram which reels you watched and how far into them you got. It's used to rank " +
+        "your Reels, and nobody else sees it. Reels you've already watched may come back. Off until you turn it on. " +
+        "Switch: HushGram settings > Reels.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch)

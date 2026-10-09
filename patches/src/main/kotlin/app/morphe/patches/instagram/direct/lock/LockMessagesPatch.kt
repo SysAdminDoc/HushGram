@@ -75,8 +75,9 @@ internal object BannerFingerprint : Fingerprint(
 val lockMessagesPatch = bytecodePatch(
     name = "Lock your messages",
     description = "Adds switches that keep your inbox and chats, or all of Instagram, covered until your " +
-        "fingerprint, face or screen lock says it's you. They lock again when you leave Instagram or after " +
-        "the time you pick, and message notifications say only that a message came.",
+        "fingerprint, face or screen lock says it's you. They lock again when you leave Instagram or after the time " +
+        "you pick, and message notifications say only that a message came. Both are off until you turn them on. " +
+        "Switches: HushGram settings > Messages.",
     default = true,
 ) {
     category("Privacy")

@@ -65,7 +65,8 @@ private const val ANIMATION = "Landroid/view/animation/Animation;"
 val askBeforeRefreshPatch = bytecodePatch(
     name = "Ask before a refresh",
     description = "Asks before pulling down refreshes Home, Reels or another list, so a stray pull keeps what's on " +
-        "screen. Refresh goes ahead, and Cancel stops the spinner. Its switch, under Feed, starts off.",
+        "screen. Refresh goes ahead, and Cancel stops the spinner. Off until you turn it on. Switch: HushGram " +
+        "settings > Feed.",
     default = true,
 ) {
     category("Interface")

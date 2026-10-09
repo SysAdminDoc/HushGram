@@ -40,8 +40,8 @@ internal const val MPROTECT_EXEC_CODE = "Lcom/facebook/common/dextricks/RuntimeI
 val translatedStartPatch = bytecodePatch(
     name = "Start on x86 devices",
     description = "Keeps Instagram from crashing or freezing on an x86 device that runs its arm code through a " +
-        "translator, such as an x86 Chromebook or an emulator, by skipping the one code protection step that " +
-        "breaks there. Phones and tablets with arm chips run it as before.",
+        "translator, such as an x86 Chromebook or an emulator, by skipping the one code protection step that breaks " +
+        "there. Phones and tablets with arm chips run it as before. It works as soon as you patch, with no switch.",
     default = true,
 ) {
     category("Fixes")

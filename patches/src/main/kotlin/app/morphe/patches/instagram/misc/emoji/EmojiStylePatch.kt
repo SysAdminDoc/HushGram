@@ -51,9 +51,9 @@ private const val CHAR_SEQUENCE = "Ljava/lang/CharSequence;"
 @Suppress("unused")
 val emojiStylePatch = bytecodePatch(
     name = "Emoji style",
-    description = "Draws every emoji in Google's style, from the emoji font Instagram gets through Google Play services, " +
-        "instead of your phone's own style. Its switch, under Layout, starts off, and a change shows fully after " +
-        "Instagram restarts.",
+    description = "Draws every emoji in Google's style, from the emoji font Instagram gets through Google Play " +
+        "services, instead of your phone's own style. A change shows fully after Instagram restarts. Off until you " +
+        "turn it on. Switch: HushGram settings > Layout.",
     default = true,
 ) {
     category("Interface")

@@ -51,8 +51,8 @@ internal val HDR_CALLS = listOf(
 @Suppress("unused")
 val turnOffHdrBoostsPatch = bytecodePatch(
     name = "Turn off HDR brightness boosts",
-    description = "Keeps HDR photos and reels from brightening the screen above everything else, with a switch " +
-        "under Playback that starts off.",
+    description = "Keeps HDR photos and reels from brightening the screen above everything else. Off until you turn " +
+        "it on. Switch: HushGram settings > Playback.",
     default = true,
 ) {
     category("Interface")

@@ -17,8 +17,8 @@ internal const val PATCH = "View stories anonymously"
  * Keeps the stories you watch from being reported, which is what puts you on their viewer lists.
  * Only the viewing report stops: replies and reactions go out through their own requests.
  *
- * Off in the default selection, since it changes what other people see. Picked, its switch starts
- * on. A second switch, off to start, adds a Mark as seen button to the story viewer's header: a
+ * In the default selection with its switch off, since it changes what other people see. A second
+ * switch, off to start, adds a Mark as seen button to the story viewer's header: a
  * story you tap it on is reported, alone, and the rest stay held back.
  *
  * Instagram also writes down on the phone that you watched a story, which greys its ring and sends
@@ -29,9 +29,10 @@ internal const val PATCH = "View stories anonymously"
 val viewStoriesAnonymouslyPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "View stories anonymously",
-    description = "Holds story-view reports while its switch is on. Replying or reacting still shows you, " +
-        "and stories you've watched keep showing as new. An optional Mark as seen button selects stories to send.",
-    default = false,
+    description = "Keeps the stories you watch from putting you on their viewer lists. Replying or reacting still " +
+        "shows you, and stories you've watched keep showing as new. An optional Mark as seen button sends the " +
+        "stories you pick. Both are off until you turn them on. Switches: HushGram settings > Stories. Ghost mode, " +
+        "at the top of Ads and privacy, turns it on with the others.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch)

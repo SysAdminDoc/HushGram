@@ -38,17 +38,16 @@ private const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
 internal const val STORY_LOOP_FLAG = 0x8110170001571aL
 
 /**
- * Plays a story again when it ends instead of moving on. Off in the default selection, since
- * moving on is how stories work. It answers Instagram's own loop test rather than rewinding
+ * Plays a story again when it ends instead of moving on. In the default selection with its switch
+ * off, since moving on is how stories work. It answers Instagram's own loop test rather than rewinding
  * anything itself: the same check decides whether a video loops in the player and whether a photo
  * that's done starts over, so both get Instagram's own handling.
  */
 @Suppress("unused")
 val loopStoryPatch = bytecodePatch(
     name = "Loop a story",
-    description = "A story plays again from the start when it ends, instead of moving on to the next one. " +
-        "Tap or swipe to move on.",
-    default = false,
+    description = "A story plays again from the start when it ends, instead of moving on to the next one. Tap or " +
+        "swipe to move on. Off until you turn it on. Switch: HushGram settings > Stories.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

@@ -44,8 +44,8 @@ private const val PATCH = "Clean up Reels"
 /**
  * Takes four things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
- * activity with the comment preview, all on once the patch is in, and the Add comment bar under a
- * reel opened from a profile's reposts, which starts off. Friends' activity covers the floating
+ * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
+ * reposts. The patch is in the default selection and every switch starts off. Friends' activity covers the floating
  * bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each part.
  *
  * Every part is required: a build where one can't be found once, in the shape its kind has, stops
@@ -54,10 +54,9 @@ private const val PATCH = "Clean up Reels"
 @Suppress("unused")
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
-    description = "Hides the Follow button on reels, the pills that push Edits, templates, Meta AI and " +
-        "Ray-Ban Meta glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. " +
-        "Each part has its own switch.",
-    default = false,
+    description = "Hides the Follow button on reels, the pills that push Edits, templates, Meta AI and Ray-Ban Meta " +
+        "glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. Each part " +
+        "has its own switch, and every one is off until you turn it on. Switches: HushGram settings > Reels.",
 ) {
     category("Interface")
     dependsOn(settingsPatch)
