@@ -837,7 +837,7 @@ public final class GlassTabBar {
         /** How much of the phone's tick primitive the light tick plays. */
         static final float SOFT_SCALE = 0.45f;
         /** The short pulse: how long, and how hard of 255. */
-        static final int SHORT_MS = 6;
+        static final int SHORT_MS = 4;
         static final int SHORT_AMPLITUDE = 170;
         static final long MIN_TICK_GAP_MS = 35;
 
