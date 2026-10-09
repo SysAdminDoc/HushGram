@@ -1,0 +1,1539 @@
+{
+  "artifact": "fixtures/instagram-450.0.0.50.77-385611438/base.apk",
+  "sha256": "ba394ecac1700f353fa5f14c6f88b1046c5fde75d16f7e2cb9bdaeebf71fa5bb",
+  "evidence_kind": "Mixed static evidence: APK metadata and signature verification, DEX string presence, and selected method instruction/caller tracing. No runtime or network capture.",
+  "matches": {
+    "attestation_classes": [
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/common/security/attestation/zca/interceptor/tigon/TigonZeroCodeAttestationRequestInterceptor;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/common/security/attestation/zca/interceptor/tigon/TigonZeroCodeAttestationV2RequestInterceptor;"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationUtils;"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/worker/PlayIntegrityAttestationUtils;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/common/security/attestation/zca/interceptor/tigon/TigonZeroCodeAttestationV2RequestInterceptor;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/client/KeyAttestationClient;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationUtils;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/client/KeyAttestationClient;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationUtils;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/client/IgGooglePlayIntegrityAttestor;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/client/PlayIntegrityAttestationClient;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/client/PlayIntegrityRequester;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/client/clientfoa/IgPlayIntegrityAttestationClient;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/worker/IgPlayIntegrityAttestationUtils;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/worker/PlayIntegrityAttestationUtils;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/worker/PlayIntegrityAttestationWorker;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/common/security/attestation/zca/interceptor/tigon/TigonZeroCodeAttestationRequestInterceptor;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/common/security/attestation/zca/interceptor/tigon/TigonZeroCodeAttestationV2RequestInterceptor;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationWorker;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/worker/PlayIntegrityAttestationWorker;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/scheduler/KeyAttestationPeriodicCancelStartupTaskBinder;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/scheduler/KeyAttestationSchedulerStartupTaskBinder;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/scheduler/PlayIntegrityAttestationPeriodicCancelStartupTaskBinder;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/instagram/security/attestation/playintegrity/scheduler/PlayIntegrityAttestationPeriodicStartupTaskBinder;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationUtils;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/instagram/security/attestation/keystore/worker/KeyAttestationWorker;"
+      }
+    ],
+    "attestation_paths": [
+      {
+        "dex": "classes.dex",
+        "string": "attestation/upload_android_keystore_key/"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "generate_play_integrity_nonce"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "attestation/create_android_keystore/"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "attestation/create_android_playintegrity/"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "attestation/validate/"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "bk.action.attestation.GpiaRefresh"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "bk.action.attestation.KeyPairProof"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "bk.action.attestation.RotateKeyPair"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "bk.action.caa.PerformAttestation"
+      }
+    ],
+    "tracking_keys": [
+      {
+        "dex": "classes.dex",
+        "string": "FAMILY_DEVICE_ID"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "android_id"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "pigeon_session_id"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "ANDROID_ID"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "DEVICE_ID"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "WATERFALL_ID"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "advertising_id"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "android_id"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes10.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes12.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes13.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "advertiser_id"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "pigeon_session_id"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "android_id"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "device_id"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "DEVICE_ID"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "FAMILY_DEVICE_ID"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "device_id"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "pigeon_session_id"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "advertiser_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "analytics_endpoint"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "android_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "pigeon_session_id"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "work_last_analytics_endpoint"
+      },
+      {
+        "dex": "classes21.dex",
+        "string": "ANALYTICS_ENDPOINT"
+      },
+      {
+        "dex": "classes21.dex",
+        "string": "advertiser_id"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "android_id"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "family_device_id"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "igsh,igshid,igsi"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "pigeon_session_id"
+      },
+      {
+        "dex": "classes7.dex",
+        "string": "DEVICE_ID"
+      },
+      {
+        "dex": "classes7.dex",
+        "string": "phone_id"
+      },
+      {
+        "dex": "classes7.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "DEVICE_ID"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "waterfall_id"
+      },
+      {
+        "dex": "classes9.dex",
+        "string": "waterfall_id"
+      }
+    ],
+    "network_classes": [
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger$CollectionControlDecision;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger$CollectionControlDecisionStatus;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/falco/sampling/FFSamplingBridgeJava;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/graphservice/asset/GraphServiceAsset$GraphQLServiceConfig;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/graphservice/asset/GraphServiceAsset;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/FromStringAble;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/graphservice/nativeconfigloader/GraphServiceNativeConfigLoader;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyProvider;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyStream;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacks;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacksIntegerBufferJavaHelper;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorReporter;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonRequestToken;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatBodyProvider;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatBodyStream;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatRequestToken;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatTailingFileBodyProvider;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonAuthHandler;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer$Group;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest$Companion;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequestBuilder$Companion;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequestBuilder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonSamplingPolicy;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolderProvider;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/interceptors/RequestInterceptor;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/interceptors/TigonXplatInterceptorsHolder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/observers/MultibindTigonXplatObserversHolder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/observers/TigonObserver;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/observers/TigonXplatObserversHolder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/requestdomainhelpers/TigonRequestDomainHelpers;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonhuc/TigonHucBodyProvider;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonhuc/TigonHucCallbackForwarder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSConfig;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSServiceHolder$TigonMNSUnexpectedErrorReporter;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSServiceHolder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/TigonObservable;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/TigonObserverData;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonBodyObservation;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestAdded;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestConnectionAcquisitionStarted;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestErrored;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestResponse;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestStarted;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestSucceeded;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/unexpectedeventreporter/TigonUnexpectedEventReporter$Builder;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/facebook/tigon/unexpectedeventreporter/TigonUnexpectedEventReporter;"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes11.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes11.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes11.dex",
+        "string": "Lcom/facebook/tigon/interceptors/TigonXplatInterceptorsHolder;"
+      },
+      {
+        "dex": "classes13.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes13.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes13.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestErrored;"
+      },
+      {
+        "dex": "classes13.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestSucceeded;"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Summary;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkUtils;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyProvider;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyStream;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacks;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonRequestToken;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatBodyProvider;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer$Group;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequestBuilder;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolderProvider;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/javaservice/JavaBackedTigonService;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/tigonhuc/TigonHucBodyProvider;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/tigonhuc/TigonHucCallbackForwarder;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/TigonObservable;"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLQuery;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLService$DataCallbacks;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLService$OperationCallbacks;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Summary;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes16.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "Lcom/facebook/tigon/TigonRequestToken;"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLBaseConsistency;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLConsistency;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLService$DataCallbacks;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLService$Token;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLService;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/PaginableList;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorReporter;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/tigon/interceptors/TigonXplatInterceptorsHolder;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/facebook/tigon/requestdomainhelpers/TigonRequestDomainHelpers;"
+      },
+      {
+        "dex": "classes18.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes19.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/falco/sampling/FFSamplingBridgeJava;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/graphservice/asset/GraphServiceAsset;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLQuery;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Summary;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/msys/mcd/MqttNetworkSessionPlugin;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkMultiPartParam;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkUtils;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacksIntegerBufferJavaHelper;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatBodyProvider;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatBodyStream;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatRequestToken;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonAuthHandler;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer$Group;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest$Companion;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequestBuilder$Companion;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequestBuilder;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonSamplingPolicy;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/observers/MultibindTigonXplatObserversHolder;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/requestdomainhelpers/TigonRequestDomainHelpers;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSConfig;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSServiceHolder;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/TigonObservable;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/TigonObserverData;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonBodyObservation;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/facebook/tigon/unexpectedeventreporter/TigonUnexpectedEventReporter;"
+      },
+      {
+        "dex": "classes2.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/falco/sampling/FFSamplingBridgeJava;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/asset/GraphServiceAsset$GraphQLServiceConfig;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/asset/GraphServiceAsset;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/factory/GraphQLServiceFactory;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/GraphQLQuery;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/PaginationMetadata;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree$DeepEqualGuess;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree$FieldType;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/TreeJsonSerializer;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/TreeSerializer;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/modelutil/GraphServicesData;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/nativeconfigloader/GraphServiceNativeConfigLoader;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/serialization/TreeJsonSerializerJNI;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/serialization/TreeSerializerJNI;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/tree/TreeBuilderJNI;"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "Lcom/facebook/graphservice/tree/TreeJNI;"
+      },
+      {
+        "dex": "classes21.dex",
+        "string": "Lcom/facebook/graphservice/config/GraphQLConsistencyConfig;"
+      },
+      {
+        "dex": "classes21.dex",
+        "string": "Lcom/facebook/graphservice/config/GraphQLServiceConfig;"
+      },
+      {
+        "dex": "classes21.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/FromStringAble;"
+      },
+      {
+        "dex": "classes23.dex",
+        "string": "Lcom/facebook/tigon/observers/MultibindTigonXplatObserversHolder;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/falco/sampling/FFSamplingBridgeJava;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/graphservice/tree/PandoGraphServiceLegacyModel;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyProvider;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyStream;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacks;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatTailingFileBodyProvider;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/interceptors/RequestInterceptor;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/interceptors/TigonXplatInterceptorsHolder;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/observers/TigonObserver;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/observers/TigonXplatObserversHolder;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/facebook/tigon/requestdomainhelpers/TigonRequestDomainHelpers;"
+      },
+      {
+        "dex": "classes3.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "Lcom/facebook/msys/mcd/MqttNetworkSessionPlugin;"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/TreeSerializer;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyProvider;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyStream;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/TigonRequestToken;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonAuthHandler;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer$Group;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/interceptors/RequestInterceptor;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/observers/TigonObserver;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/tigonmns/TigonMNSServiceHolder$TigonMNSUnexpectedErrorReporter;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestConnectionAcquisitionStarted;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestResponse;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestSucceeded;"
+      },
+      {
+        "dex": "classes5.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/msys/mci/NetworkSession;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonBodyProvider;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonCallbacks;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonError;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorException;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonErrorReporter;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonRequestToken;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatRequestToken;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonErrorCode;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonRequest;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonServiceHolder;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestAdded;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestErrored;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestResponse;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestStarted;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/tigonobserver/interfaces/TigonRequestSucceeded;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/facebook/tigon/unexpectedeventreporter/TigonUnexpectedEventReporter$Builder;"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes7.dex",
+        "string": "Lcom/facebook/tigon/TigonXplatService;"
+      },
+      {
+        "dex": "classes7.dex",
+        "string": "Lcom/instagram/realtimeclient/RealtimeClientManager;"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree$DeepEqualGuess;"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/Tree;"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "Lcom/facebook/graphservice/interfaces/TreeSerializer;"
+      },
+      {
+        "dex": "classes8.dex",
+        "string": "Lcom/facebook/tigon/iface/TigonPropertyContainer;"
+      },
+      {
+        "dex": "classes9.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger$CollectionControlDecision;"
+      },
+      {
+        "dex": "classes9.dex",
+        "string": "Lcom/facebook/falco/fabric/FFSingletonJNILogger$CollectionControlDecisionStatus;"
+      }
+    ],
+    "analytics_anchors": [
+      {
+        "dex": "classes.dex",
+        "string": "/logging_client_events"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "/pigeon_nest"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "event.streaming.eligible"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "https://b-www.facebook.com/mobile/extra_data_collector/"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "non-streamable events"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "stateful events"
+      },
+      {
+        "dex": "classes.dex",
+        "string": "stream_is_active"
+      },
+      {
+        "dex": "classes15.dex",
+        "string": "https://b-www.facebook.com/mobile/extra_data_collector/"
+      },
+      {
+        "dex": "classes20.dex",
+        "string": "https://graph.facebook.com/logging_client_events"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "falcoIG4AAmendPersistenceStore"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "falcomobile_streamgroup"
+      }
+    ],
+    "recommendation_section_leads": [
+      {
+        "dex": "classes13.dex",
+        "string": "INBOX_NULL_STATE_RECOMMENDED_USERS_FETCH"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "null_state_cdd"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "null_state_recent"
+      },
+      {
+        "dex": "classes14.dex",
+        "string": "null_state_suggestions"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "inbox_suggestion"
+      },
+      {
+        "dex": "classes17.dex",
+        "string": "recommended_users_unit_hide"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "ACCOUNTS_TO_FOLLOW"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "DirectInboxSuggestionsDelegateImpl"
+      },
+      {
+        "dex": "classes4.dex",
+        "string": "suggested_accounts_to_follow"
+      },
+      {
+        "dex": "classes6.dex",
+        "string": "recommended_users_direct_inbox"
+      }
+    ]
+  },
+  "dex_count": 23,
+  "native_metadata": [
+    "arm64-v8a/libtigonmoq.so 1054912 532593b01574a65b1ad33ee8e71c8b2dde8f3223989c265e6d1a780f94be7a5d",
+    "arm64-v8a/libtigonhttpclient-jni.so 149664 2fdf2ec5c4022892034668f5188a35c2cb273681ed7838e9b0b1a9defeee96ee",
+    "arm64-v8a/libxplat_mobilenetwork_websocketAndroid.so 99256 ff36cb7cec6845851e177024a953f8539266152be976e3f8ad745f3650ada356",
+    "arm64-v8a/libtigonfilebodyproviderjni.so 33392 d88941b67e4480dfcce87015bd9b474e0238dd5da1b39779bd4914214432bede",
+    "arm64-v8a/libxplat_TigonNoise_TigonNoiseCoreAndroid.so 24544 7281bb6aae3f686b39b6698d1506d58bce4d89d7448f5be247ac75712d2b2ff9",
+    "arm64-v8a/libgraphqllivequeriessdklazy.so 14224 111eabacbfc14b31b356753d1f63581ecf5e44611c8f90c18ceec75d9e46cab6",
+    "arm64-v8a/libxplat_TigonNoise_TigonNoiseCoreMbedtlsAndroid.so 13872 36a61be758e027fd0c06445a5afb92dce57de944a153cd5e6834ffb52c301e59",
+    "arm64-v8a/libxplat_mobilenetwork_websocket_connectivity_qplAndroid.so 8976 30bcfbf31b1f91d5233fbcc5e74a26e60a1c5bd26d728ba2b41aaa4f968bcf7d"
+  ],
+  "audit_date": "2026-10-09",
+  "revision": 1,
+  "source_commit": "1bf04031",
+  "identity": {
+    "package": "com.instagram.android",
+    "versionName": "450.0.0.50.77",
+    "versionCode": 385611438,
+    "abi": "arm64-v8a",
+    "minSdk": 28,
+    "targetSdk": 36,
+    "compileSdk": 37,
+    "base_bytes": 134647410,
+    "dex_count": 23,
+    "dex_uncompressed_bytes": 173939208,
+    "loose_native_libraries": 15,
+    "packed_native_records": 64,
+    "distinct_native_basenames": 79,
+    "packed_native_bytes": 25822271
+  },
+  "manifest_components": {
+    "activity": 525,
+    "activity_alias": 24,
+    "service": 100,
+    "receiver": 64,
+    "provider": 25
+  },
+  "signers_sha256": {
+    "api33_plus": "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+    "api24_to32": "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+  },
+  "method_probe": {
+    "evidence_kind": "Current DEX method instructions and direct callers, not runtime or wire evidence",
+    "ad_request_route": "ads/async_ads/",
+    "request_anchors": [
+      "ClipsSponsoredApiUtil",
+      "createFeedOfAdsTask",
+      "getClipsFeedOfAdsIgApiBuilder",
+      "createSponsoredContentRequestTask",
+      "createSponsoredContentTask",
+      "createSponsoredContentStreamingRequestTask"
+    ],
+    "request_dex": "classes4.dex",
+    "insertion_dex": "classes2.dex",
+    "insertion_shape": "static boolean method, three parameters",
+    "insertion_anchors": [
+      "cross_surface_duplicate_ad",
+      "Is ad pod"
+    ],
+    "direct_insertion_call_sites": 4,
+    "request_keys": [
+      "seed_item_id",
+      "seed_ad_id",
+      "seed_ad_token",
+      "keyword",
+      "container_module",
+      "organic_item_ids",
+      "chaining_session_id",
+      "viewer_session_id",
+      "skip_ad_insertion",
+      "client_recorded_request_time_ms",
+      "nav_chain",
+      "host_media_id",
+      "is_instream_ads_request",
+      "host_media_position",
+      "seed_media_id",
+      "is_prefetch",
+      "ad_and_netego_request_information",
+      "paging_token",
+      "is_organic_head_load",
+      "has_user_set_breaks",
+      "take_a_break_nudge_last_seen_time",
+      "session_time_spent",
+      "current_time_in_seconds_since_midnight",
+      "client_view_state_media_list",
+      "is_refresh"
+    ],
+    "commercial_fields": [
+      "is_paid_partnership",
+      "affiliate_info",
+      "is_affiliate_commission_eligible",
+      "ad_id",
+      "is_boosted",
+      "sponsored_ad_disclaimer",
+      "ad_pod_rules",
+      "ad_expiry_timestamp_in_millis",
+      "partnership_ad_advertiser_igid",
+      "partnership_ad_render_format"
+    ]
+  },
+  "limits": [
+    "No application launch or packet capture during this audit",
+    "Base-only inventory excludes additional split or downloaded components",
+    "String presence does not establish execution, transmitted values or a verdict",
+    "Request keys may be optional or gated",
+    "Runtime tests and builds were not executed"
+  ],
+  "string_matches_evidence_kind": "DEX string presence only, not executed paths or network observation"
+}

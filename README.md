@@ -20,7 +20,7 @@
 
 # <img src="assets/icon.png" width="36" alt=""> HushGram
 
-HushGram is a Morphe patch bundle for Instagram on Android. It hides the ads, keeps the tracking keys off the links you share, and stops Instagram from sending its usage events home.
+HushGram is a Morphe patch bundle for Instagram on Android. It blocks sponsored-item insertion, cleans tracking keys from supported sharing routes, and suppresses known usage-event and crash-report routes.
 
 It's the Instagram member of a small family. [Hushfacebook](https://github.com/SysAdminDoc/Hushfacebook) does the same job for Facebook, and HushGram is built on its foundation: the same settings screen, pause switch, diagnostics and checks.
 
@@ -30,12 +30,12 @@ This project has no connection to Meta or to the Morphe project. Neither endorse
 
 ## Why use it
 
-- **No sponsored posts.** Ads in the feed, Reels and Stories don't go in, and Instagram doesn't leave a gap where they would have been.
-- **Cleaner links.** When you copy a link or share one, through Android's share sheet or straight to WhatsApp or another app from Instagram's own, `stkn` (the per-share id Instagram adds now), `igsh`, `utm_source` and the other tracking keys come off. The link still opens the same post. A link in someone's bio opens its page directly, not through `l.instagram.com`, Instagram's click tracker.
-- **Less sent home.** Instagram's usage events and crash reports go to an address on your own phone that refuses them.
+- **Fewer ads.** The ad-insertion hook is designed to keep sponsored items out of the feed, Reels and Stories without leaving a gap. Coverage can vary with Instagram's layout and delivery changes. It doesn't stop every ad request.
+- **Cleaner links.** Supported copy and share routes remove known tracking keys such as `stkn`, `igsh` and `utm_source` while preserving the post link. New tag formats and URI-only clipboard items can need further coverage. Supported bio links skip Instagram's redirect hop. The [audit](docs/sources.md#links-attribution-tags-and-the-in-app-browser) explains the exact boundaries.
+- **Less sent home.** Known usage-event and crash-report routes are redirected to an address on your phone that refuses them. Coverage can be partial, and ordinary content requests still reach Meta.
 - **A build that keeps working.** A patched Instagram doesn't update itself, and Instagram locks out an old build after a few weeks. HushGram stops that lockout screen.
 
-Every feature has its own switch, and one Pause switch turns them all off at once when you want to see whether HushGram is behind something odd.
+Most features have their own switch. Pause restores their normal runtime behavior when you want to check a problem. Patch-time changes, such as removed advertising permissions and rewritten colors, remain installed. Early crash-report handling also has its own startup policy.
 
 ## Install
 
@@ -55,13 +55,13 @@ Instagram ships a new version every week and renames most of its code each time.
 > [!WARNING]
 > Nobody outside Meta knows what gets an account suspended, and HushGram can't make a patched Instagram pass for the Play Store one. Here's what is known, and what each install choice actually does.
 >
-> - **Instagram can tell the app was re-signed.** Instagram asks Google's Play Integrity service and your phone's hardware whether the app is the unmodified one from the Play Store. Google and the phone give that answer, not the app, so a re-signed build gets a no that no patch can change. Instagram's code ties these checks to signing in. What Meta does with the answer isn't public.
+> - **Re-signing remains detectable.** Instagram 450 contains Play Integrity and Keystore attestation code. HushGram's local signature hook doesn't change the installed certificate or create Google's or the device's signed evidence. The exact remote verdict and Meta's response weren't observed in the [current audit](docs/sources.md#native-transport-and-integrity-boundaries).
 > - **Reports aren't proof.** People whose accounts were suspended on patched Instagram often describe a new or long-idle account signing in on a fresh install. That's what they saw, not a measured cause, and suspension waves have hit unpatched accounts too. If you'd rather not put the account you care about on the line, try HushGram with a spare one first.
 > - **A Root Mount install keeps the sign-in you have.** On a rooted phone, Morphe Manager's Root Mount layers HushGram over the Play Store Instagram instead of replacing it, so its data carries over and you don't sign in again. Whether that changes how Meta treats the account isn't known.
 > - **Without root, you'll sign in on the patched app.** Uninstalling the Play Store Instagram (install step 4) signs you out and removes its data. Instagram may ask you to confirm your phone number or identity when you sign in, and HushGram doesn't change that step.
 > - **Keep your signing key, and leave Instagram's data alone.** When a new Instagram version comes out, patch it and install over the top with the same key. Android keeps the app's data that way, so you stay signed in. A different key means uninstalling first, and clearing Instagram's storage signs you out as well.
 >
-> **Can Meta tell?** Assume yes. A patched Instagram is signed with your key, not Meta's, and `Restore trust on re-signed builds` exists so the parts of the app that read that signature keep working. The Play Integrity check above can't be passed either. With `Disable analytics` on, Instagram's usage events and crash reports stop reaching Meta as well, and Meta could notice that too.
+> **Can Meta tell?** Assume yes. A patched Instagram has a different signing certificate. `Restore trust on re-signed builds` changes selected local certificate reads so those app components keep working. It doesn't make the APK Meta-signed. `Disable analytics` changes known reporting routes, but doesn't hide ordinary content requests or prove that all tracking has stopped.
 >
 > **What stays the same?** Your feed, stories and reels still come from Meta's servers, and HushGram decides on your phone which of them to show. It doesn't post, like, follow or message for you, and it doesn't change how you sign in.
 >
@@ -409,6 +409,8 @@ Hide ads, Disable analytics, Remove build expired popup, Remove the advertising 
 Every source file says where it came from in its header, and [provenance.json](provenance.json) maps each file to the project and commit it came from, with its licence. [docs/sources.md](docs/sources.md) covers the other Instagram patch sources and what each one does. The ledger behind it, [sources/instagram-sources.json](sources/instagram-sources.json), pins each source's licence, and code is only ported from a source it lists as adopted.
 
 ## How HushGram works
+
+The detailed [Instagram 450 audit](docs/sources.md#instagram-450-internals-and-patch-opportunities) maps ad delivery, tracking, each major app surface and 34 patch opportunities. It includes source links, an artifact inventory, all 74 open issue dispositions and a factory walkthrough plan. Findings are labeled by evidence strength.
 
 HushGram is a Morphe patch bundle that adds hooks and settings inside Instagram. Morphe Manager takes an original Instagram install package, applies the selected patch definitions, merges HushGram's runtime extensions, then signs the result. The result runs as Instagram, using its navigation and screens as the host for HushGram's settings and selected features.
 
