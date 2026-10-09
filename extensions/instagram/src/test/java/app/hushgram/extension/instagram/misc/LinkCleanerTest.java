@@ -54,6 +54,14 @@ public class LinkCleanerTest {
                 LinkCleaner.sanitizedClip(clip).getItemAt(0).getText().toString());
     }
 
+    @Test
+    public void clipboardCopyAsUriLosesItsShareToken() {
+        ClipData clip = ClipData.newUri(RuntimeEnvironment.getApplication().getContentResolver(), "link",
+                Uri.parse("https://www.instagram.com/reel/DcrhI-AyANW/?dlrf=YWFnb3F3NnJyMjY1"));
+        assertEquals("https://www.instagram.com/reel/DcrhI-AyANW/",
+                LinkCleaner.sanitizedClip(clip).getItemAt(0).getUri().toString());
+    }
+
     /** WhatsApp's button in Instagram's share sheet: an ACTION_SEND for one package, no chooser. */
     @Test
     public void aShareSentStraightToOneAppLosesItsTrackingKeys() {
@@ -201,6 +209,8 @@ public class LinkCleanerTest {
                 LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?mdxt=MXY5Z21sZmQwZnZldg=="));
         assertEquals("https://www.instagram.com/someuser",
                 LinkCleaner.clean("https://www.instagram.com/someuser?obrf=MXJwNGhqa3U4OG84ZA=="));
+        assertEquals("https://www.instagram.com/reel/DeHRwrcxx0Z/",
+                LinkCleaner.clean("https://www.instagram.com/reel/DeHRwrcxx0Z/?srtk=MWJ1eHB0anJwZm9jNA=="));
     }
 
     @Test

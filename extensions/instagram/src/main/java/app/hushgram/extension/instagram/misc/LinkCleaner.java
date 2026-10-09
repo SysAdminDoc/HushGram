@@ -264,31 +264,48 @@ public final class LinkCleaner {
     }
 
     /**
-     * [clip] with the Instagram links in its text items cleaned, or [clip] itself when there's
-     * nothing to clean, the switch is off, or anything goes wrong. A clip with a URI, an intent or
-     * HTML in an item is left as it came.
+     * [clip] with the Instagram links in its plain-text and URI-only items cleaned, or [clip]
+     * itself when there's nothing to clean, the switch is off, or anything goes wrong. A clip with
+     * an intent, HTML, or mixed fields in one item is left as it came.
      */
     static ClipData sanitizedClip(ClipData clip) {
         HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
         if (clip == null || !enabled()) return clip;
         try {
             int count = clip.getItemCount();
+            String domain = SharingDomain.chosen();
             List<ClipData.Item> items = new ArrayList<>(count);
             boolean changed = false;
             for (int i = 0; i < count; i++) {
                 ClipData.Item item = clip.getItemAt(i);
                 CharSequence text = item.getText();
-                if (text == null || item.getUri() != null || item.getIntent() != null || item.getHtmlText() != null) {
+                Uri uri = item.getUri();
+                if (item.getIntent() != null || item.getHtmlText() != null) {
                     items.add(item);
                     continue;
                 }
-                String cleaned = cleanText(text.toString());
-                if (cleaned.contentEquals(text)) {
-                    items.add(item);
-                } else {
-                    items.add(new ClipData.Item(cleaned));
-                    changed = true;
+                if (text != null && uri == null) {
+                    String cleaned = cleanText(text.toString());
+                    if (cleaned.contentEquals(text)) {
+                        items.add(item);
+                    } else {
+                        items.add(new ClipData.Item(cleaned));
+                        changed = true;
+                    }
+                    continue;
                 }
+                if (uri != null && text == null) {
+                    String original = uri.toString();
+                    String cleaned = SharingDomain.moved(clean(original), domain);
+                    if (cleaned.equals(original)) {
+                        items.add(item);
+                    } else {
+                        items.add(new ClipData.Item(Uri.parse(cleaned)));
+                        changed = true;
+                    }
+                    continue;
+                }
+                items.add(item);
             }
             if (!changed || items.isEmpty()) return clip;
             ClipData copy = new ClipData(clip.getDescription(), items.get(0));
