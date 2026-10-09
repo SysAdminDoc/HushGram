@@ -137,6 +137,14 @@ public final class GlassTabBar {
     /** The blur is worked out at a quarter of the size, which also blurs it more for the same work. */
     static final int DOWNSAMPLE = 4;
     /**
+     * A frame whose layout has already run this long is late: the glass records nothing in it and catches up in
+     * a later frame. At 90 Hz a frame has 11 ms, and Instagram's own layout after a tab tap can take 50 ms or
+     * more, which nothing here can shorten but nothing here should add to.
+     */
+    static final long LATE_FRAME_MS = 5;
+    /** A blur this old is recorded even in a late frame, so the glass never trails what's under it for long. */
+    static final long MAX_STALE_MS = 150;
+    /**
      * The blur is recorded again at most this often. A blurred strip looks the same at 30 frames a second as
      * at 90, and each recording makes the GPU render the blur layer again for that frame: on a phone at 90 Hz
      * recording every frame doubled the GPU's busy time.
@@ -253,6 +261,7 @@ public final class GlassTabBar {
         private final float density;
         private final boolean blurWanted;
         private final boolean haptics;
+        private final boolean hapticsFirm;
         private final boolean floating;
         private final PillDrawable pill = new PillDrawable();
         private int base;
@@ -278,6 +287,7 @@ public final class GlassTabBar {
             this.blurWanted = Settings.GLASS_TAB_BAR_BLUR.get() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S;
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
             this.haptics = Settings.GLASS_TAB_BAR_HAPTICS.get();
+            this.hapticsFirm = Settings.GLASS_TAB_BAR_HAPTICS_FIRM.get();
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -591,7 +601,7 @@ public final class GlassTabBar {
                 if (over < 0 || over == tickedTab) return;
                 boolean first = tickedTab < 0;
                 tickedTab = over;
-                if (!first && haptics) Haptics.tick(bar);
+                if (!first && haptics) Haptics.tick(bar, hapticsFirm);
             }
 
             /** Draws the backdrop node recorded for this frame into the pill, and says whether it did. */
@@ -617,16 +627,18 @@ public final class GlassTabBar {
                 bar.invalidate();
             };
 
-            /** Records the backdrop if it's been long enough, or arranges to once it has. */
+            /** Records the backdrop if it's been long enough and this frame isn't late, or arranges to once it can. */
             void recordIfDue() {
                 long now = SystemClock.uptimeMillis();
                 long since = now - lastRecorded;
-                if (!recorded || since >= RECORD_EVERY_MS) {
+                // The animation clock holds the frame's start while it lays out and draws, so this is how far in we are.
+                long inFrame = now - AnimationUtils.currentAnimationTimeMillis();
+                if (shouldRecord(recorded, since, inFrame)) {
                     lastRecorded = now;
                     recordBackdrop();
                 } else if (!catchUpPending) {
                     catchUpPending = true;
-                    bar.postDelayed(catchUp, RECORD_EVERY_MS - since + 4);
+                    bar.postDelayed(catchUp, Math.max(RECORD_EVERY_MS - since, 0) + 4);
                 }
             }
 
@@ -733,6 +745,17 @@ public final class GlassTabBar {
     }
 
     /**
+     * Whether the glass records its backdrop in this frame: always the first time; otherwise once
+     * {@link #RECORD_EVERY_MS} have passed since the last recording, unless the frame is already
+     * {@link #LATE_FRAME_MS} into its work, which only waits as long as {@link #MAX_STALE_MS}.
+     */
+    static boolean shouldRecord(boolean recordedBefore, long sinceLastMs, long inFrameMs) {
+        if (!recordedBefore) return true;
+        if (sinceLastMs < RECORD_EVERY_MS) return false;
+        return inFrameMs <= LATE_FRAME_MS || sinceLastMs >= MAX_STALE_MS;
+    }
+
+    /**
      * How far the capsule has got through a slide that started [elapsed] ms ago: eased out, so it starts
      * quick and settles, and 1 once {@link #SLIDE_MS} has passed.
      */
@@ -745,21 +768,41 @@ public final class GlassTabBar {
     }
 
     /**
-     * The tick when the capsule passes a tab. On Android 13 and newer it's played on a thread of its own,
-     * with the touch usage, so it follows the phone's touch feedback setting and never holds up a frame; a
-     * call to the system on the UI thread can take a few milliseconds. Older Android uses the view's own
-     * haptic feedback.
+     * The tick when the capsule passes a tab, light by default and the phone's full one when [firm].
+     *
+     * <p>On Android 13 and newer it's played on a thread of its own, with the touch usage, so it follows the
+     * phone's touch feedback setting and never holds up a frame; a call to the system on the UI thread can take a
+     * few milliseconds. A phone whose motor can play the tick primitive plays it at {@link #SOFT_SCALE} of its
+     * strength, a short, light tap close to an iPhone's soft impact; one that can't plays its built-in tick,
+     * which can't be turned down. Older Android uses the view's own haptic feedback, the subtle text-handle one
+     * unless [firm]. Ticks closer together than {@link #MIN_TICK_GAP_MS} are dropped, so a jump across several
+     * tabs is a few distinct taps and not a buzz.
      */
     static final class Haptics {
+        /** How much of the phone's tick primitive the light tick plays. */
+        static final float SOFT_SCALE = 0.45f;
+        static final long MIN_TICK_GAP_MS = 35;
+
         private static Handler handler;
+        private static long lastTick;
+        private static int primitives = -1;
 
         private Haptics() {
         }
 
-        static void tick(View view) {
+        /** Whether a tick at [now] is far enough after the one at [last] to play. */
+        static boolean farEnough(long now, long last) {
+            return now - last >= MIN_TICK_GAP_MS;
+        }
+
+        static void tick(View view, boolean firm) {
             try {
+                long now = android.os.SystemClock.uptimeMillis();
+                if (!farEnough(now, lastTick)) return;
+                lastTick = now;
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                    view.performHapticFeedback(firm ? HapticFeedbackConstants.CLOCK_TICK
+                            : HapticFeedbackConstants.TEXT_HANDLE_MOVE);
                     return;
                 }
                 Context context = view.getContext().getApplicationContext();
@@ -768,7 +811,15 @@ public final class GlassTabBar {
                         android.os.VibratorManager manager = context.getSystemService(android.os.VibratorManager.class);
                         android.os.Vibrator vibrator = manager == null ? null : manager.getDefaultVibrator();
                         if (vibrator == null || !vibrator.hasVibrator()) return;
-                        vibrator.vibrate(android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK),
+                        if (primitives < 0) {
+                            primitives = vibrator.areAllPrimitivesSupported(
+                                    android.os.VibrationEffect.Composition.PRIMITIVE_TICK) ? 1 : 0;
+                        }
+                        android.os.VibrationEffect effect = primitives == 1
+                                ? android.os.VibrationEffect.startComposition().addPrimitive(
+                                        android.os.VibrationEffect.Composition.PRIMITIVE_TICK, firm ? 1f : SOFT_SCALE).compose()
+                                : android.os.VibrationEffect.createPredefined(android.os.VibrationEffect.EFFECT_TICK);
+                        vibrator.vibrate(effect,
                                 android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_TOUCH));
                     } catch (Throwable failure) {
                         diagnose("haptic failed", failure);

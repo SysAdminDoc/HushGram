@@ -673,3 +673,5 @@ Entries left out because they repeat or don't fit: %1$d.	Entradas deixadas de fo
 That file has no flag names in it. Nothing changed.	Esse arquivo não tem nomes de opções. Nada mudou.
 Couldn't remove the flag names. Try again.	Não foi possível remover os nomes de opções. Tente de novo.
 Couldn't save the flag names. Nothing changed.	Não foi possível salvar os nomes de opções. Nada mudou.
+Firmer haptics	Vibração mais firme
+Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.	Toca o toque em força total do telefone. Desativado, o toque é leve, como o suave de um iPhone.

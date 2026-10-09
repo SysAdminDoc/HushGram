@@ -903,6 +903,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                     L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                             + "or swipe between screens.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS_FIRM, L10n.t("Firmer haptics"),
+                    L10n.t("Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.")));
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                     L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                             + "Reels still stops above it.")));
