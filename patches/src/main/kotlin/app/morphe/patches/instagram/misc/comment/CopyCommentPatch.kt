@@ -20,7 +20,7 @@ val copyCommentPatch = bytecodePatch(
         "Switches: HushGram settings > Comments.",
     default = true,
 ) {
-    category("Interface")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

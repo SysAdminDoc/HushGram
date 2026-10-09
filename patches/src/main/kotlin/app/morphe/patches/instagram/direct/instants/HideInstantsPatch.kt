@@ -40,7 +40,7 @@ val hideInstantsPatch = bytecodePatch(
         "Instants, its no-edit camera for friends. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
-    category("Interface")
+    category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

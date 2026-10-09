@@ -47,7 +47,7 @@ val defaultPlaybackQualityPatch = bytecodePatch(
         "Instagram's own, so nothing changes until you pick one. Switch: HushGram settings > Playback.",
     default = true,
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

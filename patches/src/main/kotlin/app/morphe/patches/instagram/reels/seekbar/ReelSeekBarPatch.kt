@@ -106,7 +106,7 @@ val reelSeekBarPatch = bytecodePatch(
         "length above it, like 0:10 / 0:55. Ads keep Instagram's own rules. Off until you turn it on, and so is the " +
         "seek thumb under it. Switches: HushGram settings > Reels.",
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

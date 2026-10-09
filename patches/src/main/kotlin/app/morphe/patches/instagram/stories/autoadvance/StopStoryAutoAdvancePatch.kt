@@ -36,7 +36,7 @@ val stopStoryAutoAdvancePatch = bytecodePatch(
     description = "Keeps each story on screen until you tap or swipe. Off until you turn it on. Switch: HushGram " +
         "settings > Stories.",
 ) {
-    category("Interface")
+    category("Stories")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

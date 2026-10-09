@@ -64,7 +64,7 @@ val hideReelsSuggestionsPatch = bytecodePatch(
     description = "Leaves out the cards of people and creators to follow that Instagram puts between reels. Every " +
         "reel still plays. Off until you turn it on. Switch: HushGram settings > Reels.",
 ) {
-    category("Feed")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

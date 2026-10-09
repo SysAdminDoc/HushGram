@@ -34,7 +34,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
         "stories you pick. Both are off until you turn them on. Switches: HushGram settings > Stories. Ghost mode, " +
         "at the top of Ads and privacy, turns it on with the others.",
 ) {
-    category("Privacy")
+    category("Ghost mode")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

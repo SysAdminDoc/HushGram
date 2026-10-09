@@ -43,7 +43,7 @@ val hideCommentsPatch = bytecodePatch(
         "on. Switch: HushGram settings > Comments.",
     default = true,
 ) {
-    category("Interface")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

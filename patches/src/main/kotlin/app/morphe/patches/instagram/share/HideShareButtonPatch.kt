@@ -61,7 +61,7 @@ val hideShareButtonPatch = bytecodePatch(
         "it on. Switch: HushGram settings > Sharing.",
     default = true,
 ) {
-    category("Interface")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

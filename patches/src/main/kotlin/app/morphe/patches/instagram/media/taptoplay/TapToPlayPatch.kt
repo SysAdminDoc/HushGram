@@ -106,7 +106,7 @@ val tapToPlayPatch = bytecodePatch(
         "play button, the way they do when Instagram saves mobile data. A choice under the switch can leave Reels " +
         "out, or hold only Reels. Off until you turn it on. Switch: HushGram settings > Playback.",
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

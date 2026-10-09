@@ -62,7 +62,7 @@ val hideHighlightsPatch = bytecodePatch(
         "Profiles.",
     default = true,
 ) {
-    category("Interface")
+    category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

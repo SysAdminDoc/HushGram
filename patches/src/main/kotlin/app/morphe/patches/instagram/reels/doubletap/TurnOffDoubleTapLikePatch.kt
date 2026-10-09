@@ -89,7 +89,7 @@ val turnOffDoubleTapLikePatch = bytecodePatch(
         "switches under it start on, and the ones for comments and chat messages start off. Switches: HushGram " +
         "settings > Reels.",
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

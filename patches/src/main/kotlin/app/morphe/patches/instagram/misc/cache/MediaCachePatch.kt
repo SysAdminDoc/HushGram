@@ -56,7 +56,7 @@ val clearMediaCachePatch = bytecodePatch(
         "sign-in, drafts and settings stay. Off until you turn it on. Switch: HushGram settings > Storage.",
     default = true,
 ) {
-    category("Interface")
+    category("Settings")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

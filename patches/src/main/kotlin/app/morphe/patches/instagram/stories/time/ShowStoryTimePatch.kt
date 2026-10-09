@@ -64,7 +64,7 @@ val showStoryTimePatch = bytecodePatch(
         "went up. It follows your phone's language and 12 or 24-hour setting. Off until you turn it on. Switch: " +
         "HushGram settings > Stories.",
 ) {
-    category("Interface")
+    category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

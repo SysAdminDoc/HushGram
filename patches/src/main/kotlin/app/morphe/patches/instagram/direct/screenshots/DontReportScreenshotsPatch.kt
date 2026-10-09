@@ -60,7 +60,7 @@ val dontReportScreenshotsPatch = bytecodePatch(
         "top of Ads and privacy, turns it on with the others.",
     default = true,
 ) {
-    category("Privacy")
+    category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

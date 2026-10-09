@@ -94,7 +94,7 @@ val friendshipStatusPatch = bytecodePatch(
         "chip, and a switch that marks the accounts on your own Following list that don't follow you back, are off " +
         "until you turn them on. Switches: HushGram settings > Profiles.",
 ) {
-    category("Interface")
+    category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -20,10 +20,18 @@ import org.junit.Test
  * category, a misspelt one, or a catalog generated before the declarations landed all fail.
  */
 class PatchCategoriesTest {
-    /** One name per group, and no more than fits on a phone screen without scrolling. */
+    /**
+     * One name per group, mostly the HushGram settings section the patch's switch sits in, and
+     * Hushfeed's names where they fit. Ghost mode is the settings card that turns those six
+     * switches on together.
+     */
     private val taxonomy = setOf(
-        "Ads", "Feed", "Privacy", "Downloads", "Interface", "Updates", "Fixes", "Settings",
+        "Ads", "Ghost mode", "Privacy", "Messages", "Feed", "Stories", "Reels", "Playback", "Interaction",
+        "Profiles", "Interface", "Downloads", "Updates", "Fixes", "Settings",
     )
+
+    /** Interface once held 43 patches. A group past this is too long to scan on a phone. */
+    private val largestGroup = 15
 
     private fun shippedPatches() = run {
         val catalog = File("../patches-list.json").takeIf { it.isFile } ?: File("patches-list.json")
@@ -73,5 +81,12 @@ class PatchCategoriesTest {
         val used = patches.map { it.get("category").asString }.toSet()
         assertEquals("a taxonomy name no patch uses is a heading Manager would never show",
             emptyList<String>(), (taxonomy - used).sorted())
+    }
+
+    @Test
+    fun `no group runs too long to scan`() {
+        val crowded = shippedPatches().groupingBy { it.get("category").asString }.eachCount()
+            .filterValues { it > largestGroup }
+        assertEquals("split a group past $largestGroup patches", emptyMap<String, Int>(), crowded)
     }
 }

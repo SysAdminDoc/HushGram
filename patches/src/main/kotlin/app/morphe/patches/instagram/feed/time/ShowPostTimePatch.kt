@@ -90,7 +90,7 @@ val showPostTimePatch = bytecodePatch(
         "and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour " +
         "setting. Off until you turn it on. Switch: HushGram settings > Feed.",
 ) {
-    category("Interface")
+    category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

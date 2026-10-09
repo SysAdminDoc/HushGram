@@ -57,7 +57,7 @@ val stopTabSwipingPatch = bytecodePatch(
         "settings > Feed.",
     default = true,
 ) {
-    category("Interface")
+    category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -58,7 +58,7 @@ val cleanUpReelsPatch = bytecodePatch(
         "glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. Each part " +
         "has its own switch, and every one is off until you turn it on. Switches: HushGram settings > Reels.",
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

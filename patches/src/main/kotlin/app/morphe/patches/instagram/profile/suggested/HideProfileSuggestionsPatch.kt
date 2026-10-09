@@ -79,7 +79,7 @@ val hideProfileSuggestionsPatch = bytecodePatch(
     description = "Takes Suggested for you and the Discover people button off profiles, yours and other people's. " +
         "Bios, counts, posts and follower lists stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
 ) {
-    category("Feed")
+    category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

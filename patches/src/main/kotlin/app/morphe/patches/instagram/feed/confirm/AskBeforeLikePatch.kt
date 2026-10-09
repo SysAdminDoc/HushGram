@@ -65,7 +65,7 @@ val askBeforeLikePatch = bytecodePatch(
         "goes ahead and Cancel doesn't. Off until you turn it on. Switch: HushGram settings > Feed.",
     default = true,
 ) {
-    category("Interface")
+    category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -67,7 +67,7 @@ val storyMentionsPatch = bytecodePatch(
         "username, and tap one to open their profile. A story with no mentions gets no pill. Off until you turn it " +
         "on. Switch: HushGram settings > Stories.",
 ) {
-    category("Interface")
+    category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

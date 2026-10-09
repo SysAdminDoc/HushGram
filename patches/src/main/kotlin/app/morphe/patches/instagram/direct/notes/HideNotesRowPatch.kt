@@ -55,7 +55,7 @@ val hideNotesRowPatch = bytecodePatch(
         "and requests stay. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
-    category("Interface")
+    category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

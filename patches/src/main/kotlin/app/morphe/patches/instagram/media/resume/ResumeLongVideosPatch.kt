@@ -99,7 +99,7 @@ val resumeLongVideosPatch = bytecodePatch(
         "HushGram settings > Playback.",
     default = true,
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
     dependsOn(instagramExtensionPatch)

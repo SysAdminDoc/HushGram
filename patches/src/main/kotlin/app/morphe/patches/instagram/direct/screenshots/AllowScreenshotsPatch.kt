@@ -82,7 +82,7 @@ val allowScreenshotsPatch = bytecodePatch(
         "photos and videos in your chats. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
-    category("Privacy")
+    category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

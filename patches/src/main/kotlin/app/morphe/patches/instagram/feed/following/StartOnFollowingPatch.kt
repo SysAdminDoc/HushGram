@@ -66,7 +66,7 @@ val startOnFollowingPatch = bytecodePatch(
         "Home remembers your pick. A second switch takes For you out of Home. A change to either shows once " +
         "Instagram restarts. Both are off until you turn them on. Switches: HushGram settings > Feed.",
 ) {
-    category("Interface")
+    category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

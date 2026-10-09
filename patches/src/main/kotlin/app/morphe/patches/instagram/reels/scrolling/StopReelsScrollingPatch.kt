@@ -76,7 +76,7 @@ val stopReelsScrollingPatch = bytecodePatch(
         "settings > Reels.",
     default = true,
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -63,7 +63,7 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         "rewinds, memories and recaps, stop the row's stories loading, or take the whole row away. Switches: " +
         "HushGram settings > Stories.",
 ) {
-    category("Feed")
+    category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

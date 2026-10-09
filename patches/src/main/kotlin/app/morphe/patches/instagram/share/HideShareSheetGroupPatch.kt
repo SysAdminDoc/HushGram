@@ -57,7 +57,7 @@ val hideShareSheetGroupPatch = bytecodePatch(
         "sends to the people you picked as one group, so they get it one by one. You can still start a group from " +
         "your messages. Off until you turn it on. Switch: HushGram settings > Sharing.",
 ) {
-    category("Interface")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

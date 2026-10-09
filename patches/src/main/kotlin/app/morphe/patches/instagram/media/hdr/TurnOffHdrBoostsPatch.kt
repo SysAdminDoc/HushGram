@@ -55,7 +55,7 @@ val turnOffHdrBoostsPatch = bytecodePatch(
         "it on. Switch: HushGram settings > Playback.",
     default = true,
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

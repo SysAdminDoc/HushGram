@@ -65,7 +65,7 @@ val hideReelsTabPatch = bytecodePatch(
         "in your feed and reels people send you still open. A change to the switch shows once Instagram restarts. " +
         "Off until you turn it on. Switch: HushGram settings > Reels.",
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

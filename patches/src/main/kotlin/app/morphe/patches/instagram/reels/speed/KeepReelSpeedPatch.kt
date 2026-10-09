@@ -96,7 +96,7 @@ val keepReelSpeedPatch = bytecodePatch(
         "Switch: HushGram settings > Reels.",
     default = true,
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

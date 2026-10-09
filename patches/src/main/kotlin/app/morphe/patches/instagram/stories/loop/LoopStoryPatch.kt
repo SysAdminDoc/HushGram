@@ -49,7 +49,7 @@ val loopStoryPatch = bytecodePatch(
     description = "A story plays again from the start when it ends, instead of moving on to the next one. Tap or " +
         "swipe to move on. Off until you turn it on. Switch: HushGram settings > Stories.",
 ) {
-    category("Interface")
+    category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

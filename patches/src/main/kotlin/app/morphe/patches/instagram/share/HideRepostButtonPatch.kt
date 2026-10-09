@@ -104,7 +104,7 @@ val hideRepostButtonPatch = bytecodePatch(
     description = "Takes the Repost button and its count off posts and reels, so nothing gets reposted by mistake. " +
         "Share still sends a post or reel to someone. Off until you turn it on. Switch: HushGram settings > Sharing.",
 ) {
-    category("Interface")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

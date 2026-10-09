@@ -54,7 +54,7 @@ val openLinksExternallyPatch = bytecodePatch(
         "Switch: HushGram settings > Ads and privacy.",
     default = true,
 ) {
-    category("Interface")
+    category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -30,7 +30,7 @@ val hideTypingPatch = bytecodePatch(
         "Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the " +
         "others.",
 ) {
-    category("Privacy")
+    category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

@@ -51,7 +51,7 @@ val keepInChatPatch = bytecodePatch(
         "once the chat loads again. Off until you turn it on. Switch: HushGram settings > Messages.",
     default = true,
 ) {
-    category("Privacy")
+    category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

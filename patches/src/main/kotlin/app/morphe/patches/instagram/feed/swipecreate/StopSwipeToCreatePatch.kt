@@ -78,7 +78,7 @@ val stopSwipeToCreatePatch = bytecodePatch(
         "camera still work. Off until you turn it on. Switch: HushGram settings > Feed.",
     default = true,
 ) {
-    category("Interface")
+    category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

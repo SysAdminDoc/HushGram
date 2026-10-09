@@ -27,7 +27,7 @@ val viewDmMediaAnonymouslyPatch = bytecodePatch(
         "privacy. Ghost mode, at the top of the same section, turns it on with the others.",
     default = false,
 ) {
-    category("Privacy")
+    category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

@@ -66,7 +66,7 @@ val viewLiveAnonymouslyPatch = bytecodePatch(
         "with the others.",
     default = true,
 ) {
-    category("Privacy")
+    category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {

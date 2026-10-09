@@ -30,7 +30,7 @@ val dataSaverPatch = bytecodePatch(
         "settings > Playback.",
     default = true,
 ) {
-    category("Interface")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch, fullResolutionPhotosPatch, defaultPlaybackQualityPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

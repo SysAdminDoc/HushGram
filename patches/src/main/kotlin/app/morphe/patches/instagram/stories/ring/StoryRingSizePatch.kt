@@ -49,7 +49,7 @@ val storyRingSizePatch = bytecodePatch(
         "one. Switch: HushGram settings > Stories.",
     default = true,
 ) {
-    category("Interface")
+    category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

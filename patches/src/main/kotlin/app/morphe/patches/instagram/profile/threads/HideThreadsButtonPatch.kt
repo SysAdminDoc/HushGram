@@ -62,7 +62,7 @@ val hideThreadsButtonPatch = bytecodePatch(
         "other buttons stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
     default = true,
 ) {
-    category("Interface")
+    category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -58,7 +58,7 @@ val changeLikeAnimationPatch = bytecodePatch(
         "heart that pops up when you double tap a post. Off until you turn it on. Switch: HushGram settings > Reels.",
     default = true,
 ) {
-    category("Interface")
+    category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
