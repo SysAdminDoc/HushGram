@@ -28,6 +28,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.os.Trace;
 import android.util.Log;
 import android.view.Gravity;
@@ -135,6 +136,12 @@ public final class GlassTabBar {
 
     /** The blur is worked out at a quarter of the size, which also blurs it more for the same work. */
     static final int DOWNSAMPLE = 4;
+    /**
+     * The blur is recorded again at most this often. A blurred strip looks the same at 30 frames a second as
+     * at 90, and each recording makes the GPU render the blur layer again for that frame: on a phone at 90 Hz
+     * recording every frame doubled the GPU's busy time.
+     */
+    static final long RECORD_EVERY_MS = 33;
     /** How long the capsule takes to slide to a new tab. */
     static final long SLIDE_MS = 280;
 
@@ -412,10 +419,11 @@ public final class GlassTabBar {
                     lastSelected = selected == null ? null : new WeakReference<>(selected);
                     bar.invalidate();
                 }
-                // Something on screen is drawing a frame, so the glass records what's under it again. Only its
-                // own render node is recorded, not a view, so this asks for no frame of its own: the screen
-                // stops drawing as soon as nothing else changes.
-                if (!blurBroken && blurWanted) pill.recordBackdrop();
+                // Something on screen is drawing a frame, so the glass records what's under it again, at most
+                // every RECORD_EVERY_MS, and once more shortly after a frame it skipped so it never stays behind.
+                // Only its own render node is recorded, not a view, so this asks for no frame of its own: the
+                // screen stops drawing as soon as nothing else changes.
+                if (!blurBroken && blurWanted) pill.recordIfDue();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
@@ -598,6 +606,28 @@ public final class GlassTabBar {
                 canvas.drawRenderNode(backdrop);
                 canvas.restore();
                 return true;
+            }
+
+            private long lastRecorded;
+            private boolean catchUpPending;
+            private final Runnable catchUp = () -> {
+                catchUpPending = false;
+                if (blurBroken || !bar.isAttachedToWindow()) return;
+                recordBackdrop();
+                bar.invalidate();
+            };
+
+            /** Records the backdrop if it's been long enough, or arranges to once it has. */
+            void recordIfDue() {
+                long now = SystemClock.uptimeMillis();
+                long since = now - lastRecorded;
+                if (!recorded || since >= RECORD_EVERY_MS) {
+                    lastRecorded = now;
+                    recordBackdrop();
+                } else if (!catchUpPending) {
+                    catchUpPending = true;
+                    bar.postDelayed(catchUp, RECORD_EVERY_MS - since + 4);
+                }
             }
 
             /**
