@@ -116,7 +116,7 @@ public class ExportFeedbackTest {
             ShadowActivity.IntentForResult picked = pick(page, host.get());
             try (WorkerPoolForTests full = WorkerPoolForTests.fill()) {
                 shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
-                assertEquals("Couldn't start the settings operation. Try again.",
+                assertEquals("Couldn't start that. Try again.",
                         page.findPreference(CONFIGURATION).getSummary());
                 assertTrue(page.findPreference(CONFIGURATION).isEnabled());
             }
@@ -235,7 +235,7 @@ public class ExportFeedbackTest {
             Preference row = page.findPreference(CONFIGURATION);
             row.getOnPreferenceClickListener().onPreferenceClick(row);
             finish();
-            assertEquals("No document picker is available. Your settings haven't changed.", row.getSummary());
+            assertEquals("This phone has no file picker. Your settings haven't changed.", row.getSummary());
             assertTrue(row.isEnabled());
             assertFalse(ExportStatus.CONFIGURATION.active());
         }

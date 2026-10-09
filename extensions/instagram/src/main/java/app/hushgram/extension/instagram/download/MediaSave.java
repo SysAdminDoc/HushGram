@@ -1072,7 +1072,7 @@ public final class MediaSave {
             Feedback.show(application, L10n.t(application, "Saving..."), false);
         } else {
             Feedback.show(application,
-                L10n.t(application, "Saving... Cancel: Downloads in HushGram."), true);
+                L10n.t(application, "Saving... You can cancel from Downloads in HushGram settings."), true);
         }
 
         Thread worker = new Thread(() -> {

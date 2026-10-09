@@ -13,7 +13,7 @@ Before you sign in	Sebelum Anda masuk
 Cancel	Batal
 Changing these	Mengubah pilihan ini
 Clear diagnostic data	Hapus data diagnostik
-Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	Salin laporan singkat atau simpan laporan lengkap di %1$s. Tautan, ID, cookie, dan token masuk dihilangkan. Periksa teks pribadi lainnya sebelum membagikannya.
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Salin laporan singkat atau simpan laporan lengkap ke %1$s. Tautan, ID, cookie, dan data masuk tidak disertakan. Periksa apakah ada teks pribadi lain sebelum membagikannya.
 Copy a short report to the clipboard.	Salin laporan singkat ke papan klip.
 Copy quick report	Salin laporan singkat
 Copying to the gallery	Menyalin ke galeri
@@ -50,7 +50,7 @@ Stops Instagram from sending usage reports and crash reports to Instagram and Fa
 Joining the picture and sound	Menggabungkan gambar dan suara
 Licenses	Lisensi
 Link expired. Reopen the item and try again	Tautan kedaluwarsa. Buka ulang kontennya lalu coba lagi
-Nobody outside Meta knows what gets an account suspended. A re-signed Instagram can't pass Google's check that it's the Play Store app, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same key keeps Instagram's data and your sign-in, and on a rooted phone a Root Mount install keeps the sign-in you already have.	Tidak ada yang di luar Meta tahu apa yang membuat akun ditangguhkan. Instagram yang ditandatangani ulang tidak bisa lolos pemeriksaan Google bahwa ini aplikasi dari Play Store, dan tidak ada patch yang mengubahnya. Kalau tidak mau mempertaruhkan akunmu, coba dulu dengan akun cadangan. Memasang pembaruan di atasnya dengan kunci yang sama menjaga data Instagram dan sesi masukmu, dan di ponsel yang di-root, instalasi Root Mount mempertahankan sesi masuk yang sudah ada.
+Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Tidak ada yang tahu di luar Meta apa yang membuat akun ditangguhkan. Instagram yang sudah di-patch tidak bisa lolos pemeriksaan Google bahwa aplikasi itu berasal dari Play Store, dan tidak ada patch yang mengubahnya. Jika tidak ingin mempertaruhkan akunmu, coba dulu dengan akun cadangan. Memasang pembaruan di atasnya dengan kunci penandatanganan yang sama menjaga data Instagram dan loginmu. Di ponsel yang di-root, pemasangan Root Mount menjaga login yang sudah ada.
 No app on this phone can open the link. The address is %1$s.	Tidak ada aplikasi di ponsel ini yang dapat membuka tautan ini. Alamatnya %1$s.
 Not saved: that isn't an Instagram photo or video	Tidak disimpan: itu bukan foto atau video Instagram
 Not saved: the file is over 512 MB	Tidak disimpan: file lebih dari 512 MB
@@ -73,7 +73,7 @@ Saved. Restart Instagram to apply this change.	Tersimpan. Mulai ulang Instagram 
 Saving a photo	Menyimpan foto
 Saving a video	Menyimpan video
 Saving...	Menyimpan...
-Saving... Cancel: Downloads in HushGram.	Menyimpan... Batal: Unduhan di HushGram.
+Saving... You can cancel from Downloads in HushGram settings.	Menyimpan... Kamu bisa membatalkan dari Unduhan di pengaturan HushGram.
 Set when you patched	Diatur saat Anda menambal
 Settings couldn't open	Pengaturan tidak dapat dibuka
 Settings couldn't refresh completely. Reopen settings and try again.	Pengaturan tidak dapat dimuat ulang sepenuhnya. Buka kembali pengaturan lalu coba lagi.
@@ -314,18 +314,18 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	Batalkan impor pengaturan
 Undo is available until %1$s. Restarting Instagram discards Undo.	Pembatalan tersedia hingga %1$s. Memulai ulang Instagram menghapus opsi pembatalan.
 No settings import to undo.	Tidak ada impor pengaturan yang dapat dibatalkan.
-No document picker is available. Your settings haven't changed.	Pemilih dokumen tidak tersedia. Pengaturan Anda tidak berubah.
+This phone has no file picker. Your settings haven't changed.	Ponsel ini tidak punya pemilih file. Pengaturan kamu tidak berubah.
 Couldn't use that settings file. Your settings haven't changed.	File pengaturan tersebut tidak dapat digunakan. Pengaturan Anda tidak berubah.
 That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Itu file nilai pengganti, bukan file pengaturan. Aktifkan Izinkan impor nilai pengganti di Pengembang, lalu gunakan Impor nilai pengganti. Pengaturan Anda tidak berubah.
 HushGram settings exported.	Pengaturan HushGram diekspor.
 Couldn't export HushGram settings. Try another file.	Pengaturan HushGram tidak dapat diekspor. Coba file lain.
 Settings restored.	Pengaturan dipulihkan.
-Imported %1$d settings. Skipped %2$d unsupported keys.	%1$d pengaturan diimpor. %2$d kunci yang tidak didukung dilewati.
+Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d pengaturan diimpor. %2$d dilewati karena tidak dikenal versi ini.
 Restart Instagram to apply these choices.	Mulai ulang Instagram untuk menerapkan pilihan ini.
 Couldn't save the settings. The previous values were restored.	Pengaturan tidak dapat disimpan. Nilai sebelumnya dipulihkan.
-Undo couldn't fully restore the settings. Check the shown values; Undo has been consumed.	Pembatalan tidak dapat memulihkan semua pengaturan. Periksa nilai yang ditampilkan; opsi pembatalan sudah digunakan.
+Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Urungkan tidak bisa memulihkan pengaturan sepenuhnya. Periksa nilai yang ditampilkan. Urungkan sudah terpakai.
 Couldn't save or fully restore the settings. Check the shown values and try Undo.	Pengaturan tidak dapat disimpan atau dipulihkan sepenuhnya. Periksa nilai yang ditampilkan dan coba batalkan.
-Couldn't start the settings operation. Try again.	Operasi pengaturan tidak dapat dimulai. Coba lagi.
+Couldn't start that. Try again.	Tidak bisa memulainya. Coba lagi.
 A save stopped. Reopen the media and save again.	Penyimpanan terhenti. Buka kembali media dan simpan lagi.
 %1$d saves stopped. Reopen the media and save again.	%1$d penyimpanan terhenti. Buka kembali media dan simpan lagi.
 A save was interrupted	Penyimpanan terputus
@@ -364,15 +364,15 @@ Export overrides	Ekspor nilai pengganti
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Menyimpan override kamu (perubahan pada pengaturan tersembunyi Instagram) untuk versi Instagram yang persis ini.
 Validate an overrides file	Validasi berkas nilai pengganti
 Checks a saved file against this Instagram version. Nothing is applied.	Memeriksa file tersimpan terhadap versi Instagram ini. Tidak ada yang diterapkan.
-No document picker is available. Overrides haven't changed.	Pemilih dokumen tidak tersedia. Nilai pengganti tidak berubah.
-Couldn't use that overrides document. Native overrides haven't changed.	Dokumen nilai pengganti itu tidak dapat digunakan. Nilai pengganti Instagram tidak berubah.
-Validated %1$d overrides only. Nothing was applied.	Hanya memvalidasi %1$d nilai pengganti. Tidak ada yang diterapkan.
-%1$d more are from another Instagram build and aren't in this one, so an import leaves them out.	%1$d lainnya berasal dari versi Instagram lain dan tidak ada di versi ini, jadi impor akan melewatinya.
-None of this file's overrides are in this Instagram build. Nothing changed.	Tidak ada nilai pengganti dalam berkas ini yang ada di versi Instagram ini. Tidak ada yang berubah.
-%1$d overrides from another Instagram build aren't in this one and were left out.	%1$d nilai pengganti dari versi Instagram lain tidak ada di versi ini dan dilewati.
-Overrides exported for this Instagram build and schema.	Nilai pengganti diekspor untuk versi dan skema Instagram ini.
+This phone has no file picker. Overrides haven't changed.	Ponsel ini tidak punya pemilih file. Override tidak berubah.
+Couldn't use that file. Instagram's overrides haven't changed.	Tidak bisa memakai file itu. Override Instagram tidak berubah.
+Checked %1$d overrides only. Nothing was applied.	Hanya memeriksa %1$d override. Tidak ada yang diterapkan.
+%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d lainnya berasal dari versi Instagram yang berbeda dan tidak cocok dengan versi ini, jadi impor melewatkannya.
+None of this file's overrides fit this Instagram version. Nothing changed.	Tidak ada override dalam file ini yang cocok dengan versi Instagram ini. Tidak ada yang berubah.
+%1$d overrides from a different Instagram version don't fit this one and were left out.	%1$d override dari versi Instagram yang berbeda tidak cocok dengan versi ini dan dilewati.
+Overrides exported for this Instagram version.	Override diekspor untuk versi Instagram ini.
 Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat divalidasi. Periksa berkas dan buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
-Couldn't export overrides. The selected file may be incomplete. Native overrides haven't changed.	Nilai pengganti tidak dapat diekspor. Berkas yang dipilih mungkin tidak lengkap. Nilai pengganti Instagram tidak berubah.
+Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Tidak bisa mengekspor override. File yang dipilih mungkin tidak lengkap. Override Instagram tidak berubah.
 Allow importing overrides	Izinkan impor nilai pengganti
 Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	Menampilkan baris Impor dan Pulihkan. Impor mengubah pengaturan tersembunyi Instagram untuk akun yang sedang masuk ini.
 Import overrides	Impor nilai pengganti
@@ -380,7 +380,7 @@ Applies a HushGram export, or Instagram's own overrides file. Your current overr
 Restore previous overrides	Pulihkan nilai pengganti sebelumnya
 Puts back the overrides saved before your last import for this account and Instagram version.	Mengembalikan override yang disimpan sebelum impor terakhir kamu untuk akun dan versi Instagram ini.
 An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Impor sebelumnya masih perlu Pulihkan nilai pengganti sebelumnya, atau Buang nilai pengganti tersimpan jika Pulihkan tidak bisa dijalankan. Tidak ada yang berubah.
-Couldn't restore overrides. There's no saved copy for this session and build. Nothing changed.	Nilai pengganti tidak dapat dipulihkan. Tidak ada salinan tersimpan untuk sesi dan versi ini. Tidak ada yang berubah.
+Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Tidak bisa memulihkan override. Tidak ada salinan tersimpan untuk akun dan versi Instagram ini. Tidak ada yang berubah.
 Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat diimpor. Periksa berkas dan buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
 The current overrides already match the saved copy. Nothing changed.	Nilai pengganti saat ini sudah sama dengan salinan tersimpan. Tidak ada yang berubah.
 This file matches the current overrides. Nothing changed.	Berkas ini sama dengan nilai pengganti saat ini. Tidak ada yang berubah.
@@ -392,13 +392,13 @@ Discard saved overrides	Buang nilai pengganti tersimpan
 Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	Melupakan salinan yang disimpan untuk Pulihkan agar impor bisa berjalan lagi. Pengaturan Instagram sendiri tidak berubah.
 Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Salinan tersimpan sudah dibuang. Impor bisa dijalankan lagi, dan nilai pengganti Instagram tidak berubah.
 There's no saved copy to discard. Nothing changed.	Tidak ada salinan tersimpan untuk dibuang. Tidak ada yang berubah.
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Pulihkan sudah mengembalikan yang bisa, kecuali %1$d nilai pengganti berisi nilai null Instagram, yang tidak bisa dikembalikan dengan cara ini. Impor tetap diblokir sampai Buang nilai pengganti tersimpan digunakan. Mulai ulang Instagram untuk menerapkan sisanya.
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Restart Instagram to apply the rest.	Pulihkan sudah mengembalikan yang bisa, kecuali %1$d nilai pengganti berisi nilai null Instagram, yang tidak bisa dikembalikan dengan cara ini. Mulai ulang Instagram untuk menerapkan sisanya.
-Couldn't restore overrides. The saved copy doesn't fit this session and Instagram build. Use Discard saved overrides if you don't need it. Nothing changed.	Nilai pengganti tidak dapat dipulihkan. Salinan tersimpan tidak cocok dengan sesi dan versi Instagram ini. Gunakan Buang nilai pengganti tersimpan jika tidak diperlukan. Tidak ada yang berubah.
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Pulihkan mengembalikan apa yang bisa, kecuali %1$d override yang diatur ke kosong dan tidak bisa dikembalikan dengan cara ini. Impor tetap diblokir sampai kamu memakai Discard saved overrides. Mulai ulang Instagram untuk menerapkan sisanya.
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Pulihkan mengembalikan apa yang bisa, kecuali %1$d override yang diatur ke kosong dan tidak bisa dikembalikan dengan cara ini. Mulai ulang Instagram untuk menerapkan sisanya.
+Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Tidak bisa memulihkan override. Salinan tersimpan tidak cocok dengan akun dan versi Instagram ini. Pakai Discard saved overrides jika tidak membutuhkannya. Tidak ada yang berubah.
 Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram masih menyimpan perubahan nilai pengganti. Tunggu sebentar lalu coba lagi. Tidak ada yang berubah.
 Allow importing overrides is off or HushGram is paused. Nothing changed.	Izinkan impor nilai pengganti nonaktif atau HushGram sedang dijeda. Tidak ada yang berubah.
 Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Nilai pengganti tidak dapat dipulihkan. Buka pengaturan dari Beranda saat sudah masuk. Tidak ada yang berubah.
-Couldn't start the override operation. Try again. Nothing changed.	Operasi nilai pengganti tidak dapat dimulai. Coba lagi. Tidak ada yang berubah.
+Couldn't start that. Try again. Nothing changed.	Tidak bisa memulainya. Coba lagi. Tidak ada yang berubah.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Tombol Tandai sudah dilihat
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Menambahkan tombol mata di bagian atas setiap cerita saat kamu melihat secara anonim. Ketuk tombol itu agar kamu muncul di daftar penonton cerita tersebut. Cerita lainnya tetap tersembunyi.
@@ -407,7 +407,7 @@ Marked as seen. Tap again to undo.	Ditandai sudah dilihat. Ketuk lagi untuk memb
 Marked as seen and sent	Ditandai sudah dilihat dan dikirim
 View DM photos and videos anonymously	Lihat foto dan video di pesan secara anonim
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Mencegah orang tahu bahwa kamu membuka foto dan video sekali lihat mereka. Foto dan video itu tetap hilang setelah kamu melihatnya. Ini fitur uji coba dan awalnya nonaktif.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Native overrides haven't changed.	Salinan tersimpan belum selesai dibuang. Coba Buang nilai pengganti tersimpan lagi. Nilai pengganti Instagram tidak berubah.
+Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Tidak bisa menyelesaikan penghapusan salinan tersimpan. Coba Discard saved overrides lagi. Override Instagram tidak berubah.
 Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	Pembersihan pemulihan belum selesai. Gunakan Pulihkan nilai pengganti sebelumnya atau Buang nilai pengganti tersimpan.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d pengaturan dipulihkan. %2$d pilihan yang lebih baru dipertahankan.
 Preparing diagnostic report...	Menyiapkan laporan diagnostik...
@@ -484,7 +484,7 @@ Ghost mode is on, and so is each of its switches.	Mode hantu aktif, begitu pula 
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram tidak tahu saat Anda mengambil tangkapan layar, jadi pengirim foto atau video sementara tidak diberi tahu. Tangkapan layar Anda tersimpan seperti biasa.
 Keep in chat	Simpan di chat
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Siaran langsung yang Anda tonton tidak menaruh Anda di daftar penonton host, jadi mereka tidak tahu Anda ada di sana. Berkomentar atau bereaksi tetap menampilkan Anda. Jumlah penonton yang Anda lihat berhenti diperbarui, dan siaran langsung yang sudah berakhir bisa tetap tampak langsung sampai Anda keluar.
-Removed %1$d overrides. Restart Instagram to go back to its own flags.	Menghapus %1$d nilai pengganti. Mulai ulang Instagram agar kembali ke flag bawaannya.
+Removed %1$d overrides. Restart Instagram to go back to its own settings.	%1$d override dihapus. Mulai ulang Instagram untuk kembali ke pengaturannya sendiri.
 Reset all overrides	Atur ulang semua nilai pengganti
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Tangkapan layar dan rekaman layar berfungsi di mana pun Instagram memblokirnya, seperti foto dan video sementara. Aktifkan juga Jangan laporkan tangkapan layar jika pengirim tidak boleh tahu.
 Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Menghapus semua override dari akun yang sedang masuk ini, sehingga Instagram kembali ke pengaturannya sendiri. Override kamu saat ini disimpan dulu untuk Pulihkan.
@@ -496,7 +496,7 @@ Adds Download cover under Download. It saves the still picture a reel shows befo
 After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	Setelah 20 reel, menggeser di Reels berhenti sampai Instagram berada di latar belakang selama 15 menit. Reel yang Anda buka dari pesan atau postingan tetap diputar.
 Clear saved copies now	Hapus salinan tersimpan sekarang
 Clear the media cache	Bersihkan cache media
-Couldn't clear the cache. Try again.	Tidak dapat membersihkan cache. Coba lagi.
+Couldn't clear the saved copies. Try again.	Tidak bisa menghapus salinan tersimpan. Coba lagi.
 Don't save recent searches	Jangan simpan pencarian terbaru
 Download cover	Unduh sampul
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	Unduh pada reel, postingan feed, atau cerita membuka lembar berbagi dengan tautannya, untuk aplikasi pengunduh seperti Seal. Simpan semua dan baris simpan lainnya tetap menyimpan di sini.
@@ -636,15 +636,15 @@ Google's emoji everywhere	Emoji Google di mana saja
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Unduh sampul video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Menambahkan Unduh sampul ke menu postingan feed berisi video, dan ke carousel yang sedang menampilkan video. Ini menyimpan gambar diam yang tampil sebelum video diputar, dalam ukuran terbesarnya.
-Import flag names	Impor nama flag
+Import setting names	Impor nama pengaturan
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Pilih daftar nama MetaConfig, misalnya berkas id_name_mapping.json, dan MetaConfig akan menampilkan nama itu sebagai pengganti angka. Pencarian dengan angka tetap berfungsi.
-Remove flag names	Hapus nama flag
+Remove setting names	Hapus nama pengaturan
 Forget the imported names, so MetaConfig shows Instagram's own labels again.	Melupakan nama yang diimpor, sehingga MetaConfig kembali menampilkan label bawaan Instagram.
-Couldn't read flag names from that file. Nothing changed.	Nama flag tidak dapat dibaca dari berkas itu. Tidak ada yang berubah.
-Flag names removed. Open MetaConfig again to see Instagram's own labels.	Nama flag dihapus. Buka MetaConfig lagi untuk melihat label bawaan Instagram.
-There are no imported flag names to remove.	Tidak ada nama flag yang diimpor untuk dihapus.
-Flag names imported: %1$d. Open MetaConfig again to see them.	Nama flag yang diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.
+Couldn't read setting names from that file. Nothing changed.	Tidak bisa membaca nama pengaturan dari file itu. Tidak ada yang berubah.
+Setting names removed. Open MetaConfig again to see Instagram's own labels.	Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat label bawaan Instagram.
+There are no imported setting names to remove.	Tidak ada nama pengaturan yang diimpor untuk dihapus.
+Setting names imported: %1$d. Open MetaConfig again to see them.	Nama pengaturan diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.
 Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati karena berulang atau tidak cocok: %1$d.
-That file has no flag names in it. Nothing changed.	Berkas itu tidak berisi nama flag. Tidak ada yang berubah.
-Couldn't remove the flag names. Try again.	Nama flag tidak dapat dihapus. Coba lagi.
-Couldn't save the flag names. Nothing changed.	Nama flag tidak dapat disimpan. Tidak ada yang berubah.
+That file has no setting names in it. Nothing changed.	File itu tidak berisi nama pengaturan. Tidak ada yang berubah.
+Couldn't remove the setting names. Try again.	Tidak bisa menghapus nama pengaturan. Coba lagi.
+Couldn't save the setting names. Nothing changed.	Tidak bisa menyimpan nama pengaturan. Tidak ada yang berubah.

@@ -966,7 +966,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 importFlagNames = new Row(context);
                 importFlagNames.setKey("hushgram_import_flag_names");
                 importFlagNames.setPersistent(false);
-                importFlagNames.setTitle(L10n.t("Import flag names"));
+                importFlagNames.setTitle(L10n.t("Import setting names"));
                 importFlagNames.setSummary(L10n.t("Pick a list of MetaConfig names, such as an id_name_mapping.json file, "
                         + "and MetaConfig shows those names in place of numbers. Searching by number still works."));
                 importFlagNames.setOnPreferenceClickListener(row -> { pickOverrides(IMPORT_FLAG_NAMES); return true; });
@@ -974,7 +974,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 removeFlagNames = new Row(context);
                 removeFlagNames.setKey("hushgram_remove_flag_names");
                 removeFlagNames.setPersistent(false);
-                removeFlagNames.setTitle(L10n.t("Remove flag names"));
+                removeFlagNames.setTitle(L10n.t("Remove setting names"));
                 removeFlagNames.setSummary(L10n.t("Forget the imported names, so MetaConfig shows Instagram's own labels again."));
                 removeFlagNames.setOnPreferenceClickListener(row -> { flagNames(null, REMOVE_FLAG_NAMES); return true; });
                 developer.addPreference(removeFlagNames);
@@ -1113,8 +1113,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 L10n.t("Record patch activity and show errors for a bug report. Leave off during normal use.")), SettingsIcons.BUG));
         ExportDiagnosticReportPreference export = exportDiagnostics = new ExportRow(context);
         export.setTitle(L10n.t("Export diagnostic report"));
-        export.setSummary(L10n.f("Copy a quick report or save the full one to %1$s. Links, IDs, cookies "
-                + "and sign-in tokens are left out. Check it for other private text before you share it.",
+        export.setSummary(L10n.f("Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in "
+                + "details are left out. Check it for other private text before you share it.",
                 L10n.isolate(LogBufferManager.reportFolder(context))));
         hushgram.addPreference(mark(export, SettingsIcons.LICENSE));
         ClearLogBufferPreference clear = new ClearRow(context);
@@ -1487,7 +1487,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void pickConfiguration(boolean importing) {
         if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
         if (documentSequence == Integer.MAX_VALUE) {
-            Utils.showToastLong(L10n.t("Couldn't start the settings operation. Try again."));
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
             return;
         }
         if (!importing) {
@@ -1506,16 +1506,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             documentRequest = 0;
             documentCode = 0;
             if (!importing) ExportStatus.CONFIGURATION.finish(configurationExportToken,
-                    L10n.t("No document picker is available. Your settings haven't changed."));
+                    L10n.t("This phone has no file picker. Your settings haven't changed."));
             showConfiguration();
-            Utils.showToastLong(L10n.t("No document picker is available. Your settings haven't changed."));
+            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
         }
     }
 
     private void pickOverrides(int request) {
         if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
         if (documentSequence == Integer.MAX_VALUE) {
-            Utils.showToastLong(L10n.t("Couldn't start the settings operation. Try again."));
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
             return;
         }
         documentRequest = request;
@@ -1531,8 +1531,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         catch (ActivityNotFoundException | SecurityException failure) {
             documentRequest = 0;
             documentCode = 0;
-            overrideFeedback(request, names ? L10n.t("No document picker is available. Your settings haven't changed.")
-                    : L10n.t("No document picker is available. Overrides haven't changed."));
+            overrideFeedback(request, names ? L10n.t("This phone has no file picker. Your settings haven't changed.")
+                    : L10n.t("This phone has no file picker. Overrides haven't changed."));
             showConfiguration();
         }
     }
@@ -1563,9 +1563,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Uri uri = data == null ? null : data.getData();
         if (uri == null || !"content".equals(uri.getScheme())) {
             if (names) {
-                overrideFeedback(request, L10n.t("Couldn't read flag names from that file. Nothing changed."));
+                overrideFeedback(request, L10n.t("Couldn't read setting names from that file. Nothing changed."));
             } else if (overrides) {
-                overrideFeedback(request, L10n.t("Couldn't use that overrides document. Native overrides haven't changed."));
+                overrideFeedback(request, L10n.t("Couldn't use that file. Instagram's overrides haven't changed."));
             } else {
                 if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(configurationExportToken,
                         L10n.t("Couldn't use that settings file. Your settings haven't changed."));
@@ -1626,9 +1626,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         bytes = OverrideExchange.read(input);
                     }
                     OverrideExchange.Checked checked = OverrideExchange.validate(bytes, OverrideExchange.capture(activity));
-                    String validated = L10n.f("Validated %1$d overrides only. Nothing was applied.", checked.fits);
-                    overrideFeedback(request, checked.leftOut == 0 ? validated : validated + " " + L10n.f("%1$d more are from "
-                            + "another Instagram build and aren't in this one, so an import leaves them out.", checked.leftOut));
+                    String validated = L10n.f("Checked %1$d overrides only. Nothing was applied.", checked.fits);
+                    overrideFeedback(request, checked.leftOut == 0 ? validated : validated + " " + L10n.f("%1$d more "
+                            + "come from a different Instagram version and don't fit this one, so the import leaves "
+                            + "them out.", checked.leftOut));
                 } else {
                     OverrideExchange.Snapshot snapshot = OverrideExchange.capture(activity);
                     byte[] bytes = OverrideExchange.export(snapshot);
@@ -1636,9 +1637,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         if (output == null) throw new java.io.IOException();
                         output.write(bytes);
                     }
-                    String exported = L10n.t("Overrides exported for this Instagram build and schema.");
-                    overrideFeedback(request, snapshot.leftOut() == 0 ? exported : exported + " " + L10n.f("%1$d overrides from "
-                            + "another Instagram build aren't in this one and were left out.", snapshot.leftOut()));
+                    String exported = L10n.t("Overrides exported for this Instagram version.");
+                    overrideFeedback(request, snapshot.leftOut() == 0 ? exported : exported + " " + L10n.f("%1$d "
+                            + "overrides from a different Instagram version don't fit this one and were left out.", snapshot.leftOut()));
                 }
             } catch (OverrideImport.RestoreFirst failure) {
                 Logger.printInfo(() -> "Override import refused until Restore runs");
@@ -1651,14 +1652,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 Logger.printInfo(() -> "Override import refused while the native store was still changing");
                 overrideFeedback(request, L10n.t("Instagram is still saving an override change. Wait a moment and try again. Nothing changed."));
             } catch (OverrideImport.NothingSaved failure) {
-                overrideFeedback(request, L10n.t("Couldn't restore overrides. There's no saved copy for this session and build. Nothing changed."));
+                overrideFeedback(request, L10n.t("Couldn't restore overrides. There's no saved copy for this account "
+                        + "and Instagram version. Nothing changed."));
             } catch (OverrideExchange.NothingFits failure) {
                 Logger.printInfo(() -> "Override file holds nothing this build has");
-                overrideFeedback(request, L10n.t("None of this file's overrides are in this Instagram build. Nothing changed."));
+                overrideFeedback(request, L10n.t("None of this file's overrides fit this Instagram version. Nothing "
+                        + "changed."));
             } catch (OverrideImport.SavedCopyDoesntFit failure) {
                 Logger.printInfo(() -> "Override restore refused a saved copy from another build or schema");
-                overrideFeedback(request, L10n.t("Couldn't restore overrides. The saved copy doesn't fit this session and "
-                        + "Instagram build. Use Discard saved overrides if you don't need it. Nothing changed."));
+                overrideFeedback(request, L10n.t("Couldn't restore overrides. The saved copy doesn't fit this "
+                        + "account and Instagram version. Use Discard saved overrides if you don't need it. Nothing "
+                        + "changed."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Override document operation failed before native mutation");
                 overrideFeedback(request, request == RESTORE_OVERRIDES
@@ -1666,16 +1670,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         : request == RESET_OVERRIDES
                         ? L10n.t("Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.")
                         : request == DISCARD_OVERRIDES
-                        ? L10n.t("Couldn't finish discarding the saved copies. Try Discard saved overrides again. Native overrides haven't changed.")
+                        ? L10n.t("Couldn't finish discarding the saved copies. Try Discard saved overrides again. "
+                                + "Instagram's overrides haven't changed.")
                         : request == IMPORT_OVERRIDES
                         ? L10n.t("Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.")
                         : validating
                         ? L10n.t("Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.")
-                        : L10n.t("Couldn't export overrides. The selected file may be incomplete. Native overrides haven't changed."));
+                        : L10n.t("Couldn't export overrides. The selected file may be incomplete. Instagram's "
+                                + "overrides haven't changed."));
             } finally { configurationFinished(); }
         })) {
             changingOverrides = false;
-            overrideFeedback(request, L10n.t("Couldn't start the override operation. Try again. Nothing changed."));
+            overrideFeedback(request, L10n.t("Couldn't start that. Try again. Nothing changed."));
             showConfiguration();
         }
     }
@@ -1696,30 +1702,30 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             try {
                 if (removing) {
                     overrideFeedback(request, FlagNames.clear(context)
-                            ? L10n.t("Flag names removed. Open MetaConfig again to see Instagram's own labels.")
-                            : L10n.t("There are no imported flag names to remove."));
+                            ? L10n.t("Setting names removed. Open MetaConfig again to see Instagram's own labels.")
+                            : L10n.t("There are no imported setting names to remove."));
                 } else {
                     byte[] bytes;
                     try (java.io.InputStream input = context.getContentResolver().openInputStream(uri)) {
                         bytes = FlagNames.read(input);
                     }
                     FlagNames.Names names = FlagNames.importNames(context, bytes);
-                    String imported = L10n.f("Flag names imported: %1$d. Open MetaConfig again to see them.", names.size());
+                    String imported = L10n.f("Setting names imported: %1$d. Open MetaConfig again to see them.", names.size());
                     overrideFeedback(request, names.leftOut == 0 ? imported : imported + " " + L10n.f(
                             "Entries left out because they repeat or don't fit: %1$d.", names.leftOut));
                 }
             } catch (FlagNames.Empty failure) {
-                overrideFeedback(request, L10n.t("That file has no flag names in it. Nothing changed."));
+                overrideFeedback(request, L10n.t("That file has no setting names in it. Nothing changed."));
             } catch (FlagNames.Unreadable failure) {
-                overrideFeedback(request, L10n.t("Couldn't read flag names from that file. Nothing changed."));
+                overrideFeedback(request, L10n.t("Couldn't read setting names from that file. Nothing changed."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Flag names operation failed", failure);
-                overrideFeedback(request, removing ? L10n.t("Couldn't remove the flag names. Try again.")
-                        : L10n.t("Couldn't save the flag names. Nothing changed."));
+                overrideFeedback(request, removing ? L10n.t("Couldn't remove the setting names. Try again.")
+                        : L10n.t("Couldn't save the setting names. Nothing changed."));
             } finally { configurationFinished(); }
         })) {
             changingOverrides = false;
-            overrideFeedback(request, L10n.t("Couldn't start the settings operation. Try again."));
+            overrideFeedback(request, L10n.t("Couldn't start that. Try again."));
             showConfiguration();
         }
     }
@@ -1729,7 +1735,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return L10n.t("There are no overrides to reset. Nothing changed.");
         }
         if (result.outcome != OverrideImport.Outcome.APPLIED) return overrideOutcome(result, false);
-        String message = L10n.f("Removed %1$d overrides. Restart Instagram to go back to its own flags.", result.changes);
+        String message = L10n.f("Removed %1$d overrides. Restart Instagram to go back to its own settings.", result.changes);
         return result.blocked ? message + " " + L10n.t("Recovery cleanup didn't finish. Use Restore previous overrides or "
                 + "Discard saved overrides.") : message;
     }
@@ -1745,16 +1751,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     : L10n.f("Imported %1$d override changes. Restart Instagram to apply them.", result.changes); break;
             case ROLLED_BACK: message = L10n.t("Instagram didn't keep the change, so the overrides were put back as they were."); break;
             case PARTIAL: return result.blocked
-                    ? L10n.f("Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't "
-                    + "be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram "
-                    + "to apply the rest.", result.skipped)
-                    : L10n.f("Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't "
-                    + "be put back this way. Restart Instagram to apply the rest.", result.skipped);
+                    ? L10n.f("Restore put back what it could, except %1$d overrides that were set to nothing, which "
+                    + "can't be put back this way. Imports stay blocked until you use Discard saved overrides. "
+                    + "Restart Instagram to apply the rest.", result.skipped)
+                    : L10n.f("Restore put back what it could, except %1$d overrides that were set to nothing, which "
+                    + "can't be put back this way. Restart Instagram to apply the rest.", result.skipped);
             default: return L10n.t("Instagram didn't keep the change and the overrides couldn't be confirmed. "
                     + "Use Restore previous overrides, then restart Instagram.");
         }
-        if (result.leftOut > 0) message += " " + L10n.f("%1$d overrides from another Instagram build aren't in this one "
-                + "and were left out.", result.leftOut);
+        if (result.leftOut > 0) message += " " + L10n.f("%1$d overrides from a different Instagram version don't fit "
+                + "this one and were left out.", result.leftOut);
         return result.blocked ? message + " " + L10n.t("Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.") : message;
     }
 
@@ -1796,7 +1802,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
             }
         })) {
-            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't start the settings operation. Try again."));
+            ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't start that. Try again."));
             configurationQueueFull();
         }
     }
@@ -1828,14 +1834,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 else {
                     String message = undo ? result.skipped == 0 ? L10n.t("Settings restored.")
                             : L10n.f("Restored %1$d settings. Kept %2$d newer choices.", result.applied, result.skipped)
-                            : L10n.f("Imported %1$d settings. Skipped %2$d unsupported keys.", result.applied, result.skipped);
+                            : L10n.f("Imported %1$d settings. Skipped %2$d that this version doesn't know.", result.applied, result.skipped);
                     if (result.restart) message += " " + L10n.t("Restart Instagram to apply these choices.");
                     showImportFeedback(message);
                 }
             } catch (Setting.BatchFailed failure) {
                 showImportFeedback(failure.restored
                         ? L10n.t("Couldn't save the settings. The previous values were restored.")
-                        : undo ? L10n.t("Undo couldn't fully restore the settings. Check the shown values; Undo has been consumed.")
+                        : undo ? L10n.t("Undo couldn't fully restore the settings. Check the shown values. Undo has "
+                                + "been used up.")
                         : L10n.t("Couldn't save or fully restore the settings. Check the shown values and try Undo."));
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Configuration import failed before applying settings");
@@ -1860,7 +1867,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void configurationQueueFull() {
         changingConfiguration = false;
         showConfiguration();
-        Utils.showToastLong(L10n.t("Couldn't start the settings operation. Try again."));
+        Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
     }
 
     private void configurationFinished() {
@@ -2170,11 +2177,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         notice.setKey(SIGN_IN_NOTICE_KEY);
         notice.setIcon(SettingsIcons.icon(context, SettingsIcons.ABOUT, ScreenColors.DEFAULT.heading));
         notice.setTitle(L10n.t("Before you sign in"));
-        notice.setSummary(L10n.t("Nobody outside Meta knows what gets an account suspended. A re-signed Instagram "
-                + "can't pass Google's check that it's the Play Store app, and no patch changes that. If you'd rather "
-                + "not risk your account, try a spare one first. Installing updates over the top with the same key "
-                + "keeps Instagram's data and your sign-in, and on a rooted phone a Root Mount install keeps the "
-                + "sign-in you already have.")
+        notice.setSummary(L10n.t("Nobody outside Meta knows what gets an account suspended. A patched Instagram "
+                + "can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd "
+                + "rather not risk your account, try a spare one first. Installing updates over the top with the "
+                + "same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install "
+                + "keeps the sign-in you already have.")
                 + " " + L10n.t("Tap to hide this."));
         notice.actsAtOnce = true;
         notice.setOnPreferenceClickListener(row -> {
@@ -2556,7 +2563,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 Utils.showToastShort(shown);
             });
         })) {
-            Utils.showToastLong(L10n.t("Couldn't clear the cache. Try again."));
+            Utils.showToastLong(L10n.t("Couldn't clear the saved copies. Try again."));
         }
     }
 

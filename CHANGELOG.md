@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Messages and notices are plainer too. Import and export results, save progress, the sign-in notice and the Developer page now say what happened and what to do next, without terms like "flag" or "cache". All six languages were updated.
+
 * **Instagram:** The rows in HushGram settings now explain themselves in plain English. Each summary says what you'll notice and, where it matters, to restart Instagram to see the change. The German, Spanish, Indonesian, Brazilian Portuguese, Turkish and Korean text was updated to match.
 
 * **Instagram:** Every patch description in Morphe Manager is rewritten in plain English. Each one says what changes, why you might want it, and ends with where its switch is, or that it works with no switch.

@@ -13,7 +13,7 @@ Before you sign in	Bevor du dich anmeldest
 Cancel	Abbrechen
 Changing these	So änderst du sie
 Clear diagnostic data	Diagnosedaten löschen
-Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	Kopiere einen Kurzbericht oder speichere den vollständigen Bericht unter %1$s. Links, IDs, Cookies und Anmeldetokens werden ausgelassen. Prüfe ihn vor dem Teilen auf andere private Angaben.
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Kopiere einen Kurzbericht oder speichere den vollständigen Bericht unter %1$s. Links, IDs, Cookies und Anmeldedaten werden ausgelassen. Prüfe ihn auf anderen privaten Text, bevor du ihn teilst.
 Copy a short report to the clipboard.	Kurzen Bericht in die Zwischenablage kopieren.
 Copy quick report	Kurzbericht kopieren
 Copying to the gallery	Wird in die Galerie kopiert
@@ -50,7 +50,7 @@ Stops Instagram from sending usage reports and crash reports to Instagram and Fa
 Joining the picture and sound	Bild und Ton werden zusammengefügt
 Licenses	Lizenzen
 Link expired. Reopen the item and try again	Link abgelaufen. Öffne den Inhalt neu und versuche es noch einmal
-Nobody outside Meta knows what gets an account suspended. A re-signed Instagram can't pass Google's check that it's the Play Store app, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same key keeps Instagram's data and your sign-in, and on a rooted phone a Root Mount install keeps the sign-in you already have.	Niemand außerhalb von Meta weiß, was zur Sperrung eines Kontos führt. Ein neu signiertes Instagram besteht Googles Prüfung, ob es die App aus dem Play Store ist, nicht, und kein Patch ändert das. Wenn du dein Konto nicht riskieren willst, probier es zuerst mit einem Zweitkonto. Installierst du Updates mit demselben Schlüssel darüber, bleiben die Daten von Instagram und deine Anmeldung erhalten, und auf einem gerooteten Handy behält eine Root-Mount-Installation die Anmeldung, die du schon hast.
+Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Niemand außerhalb von Meta weiß, was zur Sperrung eines Kontos führt. Ein gepatchtes Instagram kann Googles Prüfung, ob es aus dem Play Store stammt, nicht bestehen, und kein Patch ändert das. Wenn du dein Konto nicht riskieren möchtest, probiere es zuerst mit einem Zweitkonto. Updates, die mit demselben Signaturschlüssel darüber installiert werden, behalten die Daten von Instagram und deine Anmeldung. Auf einem gerooteten Handy behält eine Root-Mount-Installation die Anmeldung, die du schon hast.
 No app on this phone can open the link. The address is %1$s.	Keine App auf diesem Handy kann den Link öffnen. Die Adresse ist %1$s.
 Not saved: that isn't an Instagram photo or video	Nicht gespeichert: Das ist kein Foto oder Video von Instagram
 Not saved: the file is over 512 MB	Nicht gespeichert: Die Datei ist über 512 MB groß
@@ -73,7 +73,7 @@ Saved. Restart Instagram to apply this change.	Gespeichert. Starte Instagram neu
 Saving a photo	Foto wird gespeichert
 Saving a video	Video wird gespeichert
 Saving...	Wird gespeichert …
-Saving... Cancel: Downloads in HushGram.	Wird gespeichert … Abbrechen: Downloads in HushGram.
+Saving... You can cancel from Downloads in HushGram settings.	Speichern... Abbrechen kannst du unter „Downloads“ in den HushGram-Einstellungen.
 Set when you patched	Beim Patchen festgelegt
 Settings couldn't open	Einstellungen ließen sich nicht öffnen
 Settings couldn't refresh completely. Reopen settings and try again.	Die Einstellungen ließen sich nicht vollständig aktualisieren. Öffne sie neu und versuche es noch einmal.
@@ -314,18 +314,18 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	Einstellungsimport rückgängig machen
 Undo is available until %1$s. Restarting Instagram discards Undo.	Rückgängig ist bis %1$s verfügbar. Ein Neustart von Instagram verwirft diese Möglichkeit.
 No settings import to undo.	Kein Einstellungsimport zum Rückgängigmachen.
-No document picker is available. Your settings haven't changed.	Keine Dateiauswahl verfügbar. Deine Einstellungen wurden nicht geändert.
+This phone has no file picker. Your settings haven't changed.	Dieses Handy hat keine Dateiauswahl. Deine Einstellungen haben sich nicht geändert.
 Couldn't use that settings file. Your settings haven't changed.	Diese Einstellungsdatei konnte nicht verwendet werden. Deine Einstellungen wurden nicht geändert.
 That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Das ist eine Überschreibungsdatei, keine Einstellungsdatei. Schalte unter Entwickler „Import von Überschreibungen erlauben“ ein und nutze dann „Überschreibungen importieren“. Deine Einstellungen wurden nicht geändert.
 HushGram settings exported.	HushGram-Einstellungen exportiert.
 Couldn't export HushGram settings. Try another file.	HushGram-Einstellungen konnten nicht exportiert werden. Versuche eine andere Datei.
 Settings restored.	Einstellungen wiederhergestellt.
-Imported %1$d settings. Skipped %2$d unsupported keys.	%1$d Einstellungen importiert. %2$d nicht unterstützte Schlüssel übersprungen.
+Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d Einstellungen importiert. %2$d übersprungen, die diese Version nicht kennt.
 Restart Instagram to apply these choices.	Starte Instagram neu, um diese Werte anzuwenden.
 Couldn't save the settings. The previous values were restored.	Die Einstellungen konnten nicht gespeichert werden. Die vorherigen Werte wurden wiederhergestellt.
-Undo couldn't fully restore the settings. Check the shown values; Undo has been consumed.	Die Einstellungen konnten nicht vollständig wiederhergestellt werden. Prüfe die angezeigten Werte; Rückgängig wurde bereits verwendet.
+Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Rückgängig konnte die Einstellungen nicht vollständig wiederherstellen. Prüfe die angezeigten Werte. Rückgängig wurde verbraucht.
 Couldn't save or fully restore the settings. Check the shown values and try Undo.	Die Einstellungen konnten weder gespeichert noch vollständig wiederhergestellt werden. Prüfe die angezeigten Werte und versuche Rückgängig.
-Couldn't start the settings operation. Try again.	Der Einstellungsvorgang konnte nicht gestartet werden. Versuche es erneut.
+Couldn't start that. Try again.	Das konnte nicht gestartet werden. Versuch es noch einmal.
 A save stopped. Reopen the media and save again.	Ein Speichervorgang wurde gestoppt. Öffne das Medium erneut und speichere es noch einmal.
 %1$d saves stopped. Reopen the media and save again.	%1$d Speichervorgänge wurden gestoppt. Öffne die Medien erneut und speichere sie noch einmal.
 A save was interrupted	Ein Speichervorgang wurde unterbrochen
@@ -364,15 +364,15 @@ Export overrides	Überschreibungen exportieren
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Speichert deine Overrides (Änderungen an Instagrams versteckten Einstellungen) für genau diese Instagram-Version.
 Validate an overrides file	Eine Überschreibungsdatei prüfen
 Checks a saved file against this Instagram version. Nothing is applied.	Prüft eine gespeicherte Datei gegen diese Instagram-Version. Es wird nichts angewendet.
-No document picker is available. Overrides haven't changed.	Es ist keine Dateiauswahl verfügbar. Die Überschreibungen wurden nicht geändert.
-Couldn't use that overrides document. Native overrides haven't changed.	Dieses Überschreibungsdokument konnte nicht verwendet werden. Instagrams Überschreibungen wurden nicht geändert.
-Validated %1$d overrides only. Nothing was applied.	%1$d Überschreibungen wurden nur geprüft. Es wurde nichts übernommen.
-%1$d more are from another Instagram build and aren't in this one, so an import leaves them out.	%1$d weitere stammen aus einer anderen Instagram-Version und fehlen in dieser, deshalb lässt ein Import sie aus.
-None of this file's overrides are in this Instagram build. Nothing changed.	Keine der Überschreibungen in dieser Datei gibt es in dieser Instagram-Version. Es wurde nichts geändert.
-%1$d overrides from another Instagram build aren't in this one and were left out.	%1$d Überschreibungen aus einer anderen Instagram-Version fehlen in dieser und wurden ausgelassen.
-Overrides exported for this Instagram build and schema.	Überschreibungen für diese Instagram-Version und dieses Schema exportiert.
+This phone has no file picker. Overrides haven't changed.	Dieses Handy hat keine Dateiauswahl. Die Overrides haben sich nicht geändert.
+Couldn't use that file. Instagram's overrides haven't changed.	Diese Datei konnte nicht verwendet werden. Instagrams Overrides haben sich nicht geändert.
+Checked %1$d overrides only. Nothing was applied.	Nur %1$d Overrides geprüft. Es wurde nichts angewendet.
+%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d weitere stammen aus einer anderen Instagram-Version und passen nicht zu dieser, deshalb lässt der Import sie aus.
+None of this file's overrides fit this Instagram version. Nothing changed.	Keiner der Overrides in dieser Datei passt zu dieser Instagram-Version. Nichts wurde geändert.
+%1$d overrides from a different Instagram version don't fit this one and were left out.	%1$d Overrides aus einer anderen Instagram-Version passen nicht zu dieser und wurden ausgelassen.
+Overrides exported for this Instagram version.	Overrides für diese Instagram-Version exportiert.
 Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Die Überschreibungen konnten nicht geprüft werden. Prüfe die Datei und öffne die Einstellungen auf der Startseite, während du angemeldet bist. Es wurde nichts geändert.
-Couldn't export overrides. The selected file may be incomplete. Native overrides haven't changed.	Die Überschreibungen konnten nicht exportiert werden. Die ausgewählte Datei ist möglicherweise unvollständig. Instagrams Überschreibungen wurden nicht geändert.
+Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Die Overrides konnten nicht exportiert werden. Die gewählte Datei ist möglicherweise unvollständig. Instagrams Overrides haben sich nicht geändert.
 Allow importing overrides	Import von Überschreibungen erlauben
 Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	Zeigt die Zeilen „Import“ und „Wiederherstellen“. Ein Import ändert Instagrams versteckte Einstellungen für dieses angemeldete Konto.
 Import overrides	Überschreibungen importieren
@@ -380,7 +380,7 @@ Applies a HushGram export, or Instagram's own overrides file. Your current overr
 Restore previous overrides	Vorherige Überschreibungen wiederherstellen
 Puts back the overrides saved before your last import for this account and Instagram version.	Stellt die vor deinem letzten Import gespeicherten Overrides für dieses Konto und diese Instagram-Version wieder her.
 An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Ein früherer Import braucht noch „Vorherige Überschreibungen wiederherstellen“ oder „Gespeicherte Überschreibungen verwerfen“, falls die Wiederherstellung nicht klappt. Es wurde nichts geändert.
-Couldn't restore overrides. There's no saved copy for this session and build. Nothing changed.	Die Überschreibungen konnten nicht wiederhergestellt werden. Für diese Sitzung und Version gibt es keine gespeicherte Kopie. Es wurde nichts geändert.
+Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Die Overrides konnten nicht wiederhergestellt werden. Für dieses Konto und diese Instagram-Version gibt es keine gespeicherte Kopie. Nichts wurde geändert.
 Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Die Überschreibungen konnten nicht importiert werden. Prüfe die Datei und öffne die Einstellungen auf der Startseite, während du angemeldet bist. Es wurde nichts geändert.
 The current overrides already match the saved copy. Nothing changed.	Die aktuellen Überschreibungen entsprechen bereits der gespeicherten Kopie. Es wurde nichts geändert.
 This file matches the current overrides. Nothing changed.	Diese Datei entspricht den aktuellen Überschreibungen. Es wurde nichts geändert.
@@ -392,13 +392,13 @@ Discard saved overrides	Gespeicherte Überschreibungen verwerfen
 Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	Vergisst die für „Wiederherstellen“ gespeicherte Kopie, damit Importe wieder laufen können. Instagrams eigene Einstellungen ändern sich nicht.
 Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Die gespeicherte Kopie wurde verworfen. Importe sind wieder möglich, und Instagrams Überschreibungen wurden nicht geändert.
 There's no saved copy to discard. Nothing changed.	Es gibt keine gespeicherte Kopie zum Verwerfen. Es wurde nichts geändert.
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Die Wiederherstellung hat zurückgesetzt, was ging, außer %1$d Überschreibungen mit Instagrams Nullwert, die sich so nicht zurücksetzen lassen. Importe bleiben gesperrt, bis du „Gespeicherte Überschreibungen verwerfen“ nutzt. Starte Instagram neu, um den Rest anzuwenden.
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Restart Instagram to apply the rest.	Die Wiederherstellung hat zurückgesetzt, was ging, außer %1$d Überschreibungen mit Instagrams Nullwert, die sich so nicht zurücksetzen lassen. Starte Instagram neu, um den Rest anzuwenden.
-Couldn't restore overrides. The saved copy doesn't fit this session and Instagram build. Use Discard saved overrides if you don't need it. Nothing changed.	Die Überschreibungen konnten nicht wiederhergestellt werden. Die gespeicherte Kopie passt nicht zu dieser Sitzung und Instagram-Version. Nutze „Gespeicherte Überschreibungen verwerfen“, wenn du sie nicht brauchst. Es wurde nichts geändert.
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Die Wiederherstellung hat zurückgebracht, was ging, außer %1$d Overrides, die auf „nichts“ gesetzt waren und so nicht zurückgebracht werden können. Importe bleiben gesperrt, bis du „Discard saved overrides“ nutzt. Starte Instagram neu, um den Rest anzuwenden.
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Die Wiederherstellung hat zurückgebracht, was ging, außer %1$d Overrides, die auf „nichts“ gesetzt waren und so nicht zurückgebracht werden können. Starte Instagram neu, um den Rest anzuwenden.
+Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Die Overrides konnten nicht wiederhergestellt werden. Die gespeicherte Kopie passt nicht zu diesem Konto und dieser Instagram-Version. Nutze „Discard saved overrides“, wenn du sie nicht brauchst. Nichts wurde geändert.
 Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram speichert noch eine Änderung an den Überschreibungen. Warte kurz und versuche es erneut. Es wurde nichts geändert.
 Allow importing overrides is off or HushGram is paused. Nothing changed.	„Import von Überschreibungen erlauben“ ist aus oder HushGram ist pausiert. Es wurde nichts geändert.
 Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Die Überschreibungen konnten nicht wiederhergestellt werden. Öffne die Einstellungen auf der Startseite, während du angemeldet bist. Es wurde nichts geändert.
-Couldn't start the override operation. Try again. Nothing changed.	Der Vorgang für Überschreibungen konnte nicht gestartet werden. Versuche es erneut. Es wurde nichts geändert.
+Couldn't start that. Try again. Nothing changed.	Das konnte nicht gestartet werden. Versuch es noch einmal. Nichts wurde geändert.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Schaltfläche Als gesehen markieren
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Fügt oben in jeder Story eine Augen-Schaltfläche hinzu, während du Stories anonym ansiehst. Tippe darauf, um in der Zuschauerliste dieser Story zu erscheinen. Die anderen Stories bleiben verborgen.
@@ -407,7 +407,7 @@ Marked as seen. Tap again to undo.	Als gesehen markiert. Tippe erneut, um es rü
 Marked as seen and sent	Als gesehen markiert und gesendet
 View DM photos and videos anonymously	Fotos und Videos in Nachrichten anonym ansehen
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	Verhindert, dass andere sehen, dass du ihre einmal ansehbaren Fotos und Videos geöffnet hast. Sie verschwinden trotzdem, nachdem du sie angesehen hast. Das ist eine Testfunktion und startet ausgeschaltet.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Native overrides haven't changed.	Die gespeicherten Kopien konnten nicht vollständig verworfen werden. Versuche Gespeicherte Überschreibungen verwerfen erneut. Die Überschreibungen von Instagram wurden nicht geändert.
+Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Das Verwerfen der gespeicherten Kopien konnte nicht abgeschlossen werden. Versuche „Discard saved overrides“ noch einmal. Instagrams Overrides haben sich nicht geändert.
 Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	Die Wiederherstellungsdateien konnten nicht vollständig bereinigt werden. Nutze Vorherige Überschreibungen wiederherstellen oder Gespeicherte Überschreibungen verwerfen.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d Einstellungen wiederhergestellt. %2$d neuere Auswahlen beibehalten.
 Preparing diagnostic report...	Diagnosebericht wird vorbereitet...
@@ -484,7 +484,7 @@ Ghost mode is on, and so is each of its switches.	Der Ghost-Modus ist an, und je
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram bemerkt nicht, wenn du einen Screenshot machst, also erfährt niemand davon, der dir ein verschwindendes Foto oder Video geschickt hat. Deine Screenshots werden wie gewohnt gespeichert.
 Keep in chat	Im Chat behalten
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Lives, die du ansiehst, setzen dich nicht auf die Zuschauerliste des Hosts, also erfährt er nicht, dass du da bist. Kommentare und Reaktionen zeigen dich weiterhin. Die Zuschauerzahl, die du siehst, wird nicht mehr aktualisiert, und ein beendetes Live kann weiter live aussehen, bis du es verlässt.
-Removed %1$d overrides. Restart Instagram to go back to its own flags.	%1$d Überschreibungen entfernt. Starte Instagram neu, damit es wieder seine eigenen Flags nutzt.
+Removed %1$d overrides. Restart Instagram to go back to its own settings.	%1$d Overrides entfernt. Starte Instagram neu, um zu seinen eigenen Einstellungen zurückzukehren.
 Reset all overrides	Alle Überschreibungen zurücksetzen
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Screenshots und Bildschirmaufnahmen funktionieren überall, wo Instagram sie sperrt, etwa bei verschwindenden Fotos und Videos. Schalte auch „Screenshots nicht melden“ ein, wenn der Absender nichts davon erfahren soll.
 Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Entfernt alle Overrides von diesem angemeldeten Konto, sodass Instagram zu seinen eigenen Einstellungen zurückkehrt. Deine aktuellen Overrides werden zuerst für „Wiederherstellen“ gespeichert.
@@ -496,7 +496,7 @@ Adds Download cover under Download. It saves the still picture a reel shows befo
 After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	Nach 20 Reels hört das Wischen in Reels auf, bis Instagram 15 Minuten im Hintergrund war. Ein Reel, das du aus einer Nachricht oder einem Beitrag öffnest, läuft trotzdem.
 Clear saved copies now	Gespeicherte Kopien jetzt löschen
 Clear the media cache	Medien-Cache leeren
-Couldn't clear the cache. Try again.	Der Cache konnte nicht geleert werden. Versuch es noch einmal.
+Couldn't clear the saved copies. Try again.	Die gespeicherten Kopien konnten nicht gelöscht werden. Versuch es noch einmal.
 Don't save recent searches	Letzte Suchen nicht speichern
 Download cover	Cover herunterladen
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	Herunterladen bei einem Reel, einem Feed-Beitrag oder einer Story öffnet das Teilen-Menü mit dem Link, für eine Downloader-App wie Seal. Alle speichern und die anderen Speichern-Zeilen speichern weiterhin hier.
@@ -636,15 +636,15 @@ Google's emoji everywhere	Überall Googles Emojis
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Video-Cover herunterladen
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Fügt dem Menü eines Feed-Beitrags mit Video und eines Karussells, das gerade ein Video zeigt, den Eintrag Cover herunterladen hinzu. Er speichert das Standbild, das vor dem Abspielen des Videos zu sehen ist, in der größten Auflösung.
-Import flag names	Flag-Namen importieren
+Import setting names	Einstellungsnamen importieren
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Wähle eine Liste mit MetaConfig-Namen, etwa eine id_name_mapping.json-Datei, und MetaConfig zeigt diese Namen statt Nummern. Die Suche nach Nummern funktioniert weiterhin.
-Remove flag names	Flag-Namen entfernen
+Remove setting names	Einstellungsnamen entfernen
 Forget the imported names, so MetaConfig shows Instagram's own labels again.	Vergisst die importierten Namen, damit MetaConfig wieder Instagrams eigene Bezeichnungen zeigt.
-Couldn't read flag names from that file. Nothing changed.	Aus dieser Datei konnten keine Flag-Namen gelesen werden. Nichts wurde geändert.
-Flag names removed. Open MetaConfig again to see Instagram's own labels.	Flag-Namen entfernt. Öffne MetaConfig erneut, um Instagrams eigene Bezeichnungen zu sehen.
-There are no imported flag names to remove.	Es gibt keine importierten Flag-Namen zum Entfernen.
-Flag names imported: %1$d. Open MetaConfig again to see them.	Importierte Flag-Namen: %1$d. Öffne MetaConfig erneut, um sie zu sehen.
+Couldn't read setting names from that file. Nothing changed.	Die Einstellungsnamen konnten nicht aus dieser Datei gelesen werden. Nichts wurde geändert.
+Setting names removed. Open MetaConfig again to see Instagram's own labels.	Einstellungsnamen entfernt. Öffne MetaConfig erneut, um Instagrams eigene Bezeichnungen zu sehen.
+There are no imported setting names to remove.	Es gibt keine importierten Einstellungsnamen zum Entfernen.
+Setting names imported: %1$d. Open MetaConfig again to see them.	Einstellungsnamen importiert: %1$d. Öffne MetaConfig erneut, um sie zu sehen.
 Entries left out because they repeat or don't fit: %1$d.	Ausgelassene Einträge, weil sie doppelt sind oder nicht passen: %1$d.
-That file has no flag names in it. Nothing changed.	Diese Datei enthält keine Flag-Namen. Nichts wurde geändert.
-Couldn't remove the flag names. Try again.	Die Flag-Namen konnten nicht entfernt werden. Versuche es erneut.
-Couldn't save the flag names. Nothing changed.	Die Flag-Namen konnten nicht gespeichert werden. Nichts wurde geändert.
+That file has no setting names in it. Nothing changed.	Diese Datei enthält keine Einstellungsnamen. Nichts wurde geändert.
+Couldn't remove the setting names. Try again.	Die Einstellungsnamen konnten nicht entfernt werden. Versuch es noch einmal.
+Couldn't save the setting names. Nothing changed.	Die Einstellungsnamen konnten nicht gespeichert werden. Nichts wurde geändert.

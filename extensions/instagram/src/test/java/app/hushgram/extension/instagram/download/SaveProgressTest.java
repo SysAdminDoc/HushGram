@@ -440,7 +440,7 @@ public class SaveProgressTest {
      */
     @Test
     public void aSaveWithNoNotificationSaysWhereToCancelIt() throws Exception {
-        String elsewhere = "Saving... Cancel: Downloads in HushGram.";
+        String elsewhere = "Saving... You can cancel from Downloads in HushGram settings.";
         assertEquals("Saving...", startMessage());
 
         Shadows.shadowOf(notifications()).setNotificationsEnabled(false);

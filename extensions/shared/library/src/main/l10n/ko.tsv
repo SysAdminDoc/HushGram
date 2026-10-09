@@ -14,7 +14,7 @@ Before you sign in	로그인 전에 읽어보세요
 Cancel	취소
 Changing these	이 기능을 변경하려면...
 Clear diagnostic data	진단 데이터 지우기
-Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in tokens are left out. Check it for other private text before you share it.	빠른 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키 및 로그인 토큰은 제외됩니다. 공유하기 전에 다른 개인정보가 포함되어 있는지 확인하세요
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	간단한 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키, 로그인 정보는 제외됩니다. 공유하기 전에 다른 개인 정보가 없는지 확인하세요.
 Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다
 Copy quick report	빠른 보고서 복사
 Copying to the gallery	갤러리에 복사하는 중
@@ -51,7 +51,7 @@ Stops Instagram from sending usage reports and crash reports to Instagram and Fa
 Joining the picture and sound	사진과 소리가 결합하는 중
 Licenses	라이선스
 Link expired. Reopen the item and try again	링크가 만료되었습니다. 항목을 다시 열고 다시 시도하세요
-Nobody outside Meta knows what gets an account suspended. A re-signed Instagram can't pass Google's check that it's the Play Store app, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same key keeps Instagram's data and your sign-in, and on a rooted phone a Root Mount install keeps the sign-in you already have.	Meta 외부에서는 어떤 경우에 계정이 정지되는지 정확히 알 수 없습니다. 다시 서명된 Instagram은 해당 앱이 Play 스토어에서 설치된 앱인지 확인하는 Google의 검사를 통과할 수 없으며, 어떤 패치를 적용해도 이 부분은 변경되지 않습니다. 계정에 문제가 생길 가능성을 피하고 싶다면 먼저 보조 계정으로 사용하세요. 동일한 키로 기존 앱 위에 업데이트를 설치하면 Instagram의 데이터와 로그인 상태가 유지됩니다. 루팅된 휴대전화에서는 루트 마운트 방식으로 설치하면 기존에 로그인되어 있던 상태를 그대로 유지할 수 있습니다
+Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Meta 밖에서는 아무도 어떤 행동이 계정 정지로 이어지는지 모릅니다. 패치된 Instagram은 Play 스토어에서 받은 앱인지 확인하는 Google의 검사를 통과할 수 없고, 어떤 패치로도 바꿀 수 없습니다. 계정이 위험해지는 것이 싫다면 먼저 보조 계정으로 시도해 보세요. 같은 서명 키로 위에 업데이트를 설치하면 Instagram 데이터와 로그인이 유지됩니다. 루팅된 휴대폰에서는 Root Mount 설치가 지금 로그인된 상태를 그대로 유지합니다.
 No app on this phone can open the link. The address is %1$s.	이 링크를 열 수 있는 앱이 없습니다. 주소는 %1$s입니다
 Not saved: that isn't an Instagram photo or video	저장되지 않음: Instagram 사진 또는 동영상이 아님
 Not saved: the file is over 512 MB	저장되지 않음: 파일 크기가 512MB를 초과함
@@ -74,7 +74,7 @@ Saved. Restart Instagram to apply this change.	저장되었습니다. 변경 사
 Saving a photo	사진을 저장하는 중
 Saving a video	동영상을 저장하는 중
 Saving...	저장하는 중…
-Saving... Cancel: Downloads in HushGram.	저장하는 중… 취소: HushGram에서 다운로드
+Saving... You can cancel from Downloads in HushGram settings.	저장 중... HushGram 설정의 다운로드에서 취소할 수 있습니다.
 Set when you patched	패치할 때 설정되는 기능
 Settings couldn't open	설정을 열 수 없습니다
 Settings couldn't refresh completely. Reopen settings and try again.	설정이 완전히 새로 고쳐지지 않았습니다. 설정을 다시 열고 다시 시도하세요
@@ -315,18 +315,18 @@ Choose a settings file. All valid choices apply together, and ones this version 
 Undo settings import	설정 가져오기 실행 취소
 Undo is available until %1$s. Restarting Instagram discards Undo.	%1$s까지 실행 취소할 수 있습니다. Instagram을 다시 시작하면 실행 취소할 수 없습니다
 No settings import to undo.	실행 취소할 설정 가져오기가 없습니다
-No document picker is available. Your settings haven't changed.	문서 선택기를 사용할 수 없습니다. 설정은 변경되지 않았습니다
+This phone has no file picker. Your settings haven't changed.	이 휴대폰에는 파일 선택기가 없습니다. 설정은 바뀌지 않았습니다.
 Couldn't use that settings file. Your settings haven't changed.	해당 설정 파일을 사용할 수 없습니다. 설정은 변경되지 않았습니다
 That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	설정 파일이 아니라 재정의 파일입니다. 개발자에서 재정의 가져오기 허용을 켠 다음 재정의 가져오기를 사용하세요. 설정은 변경되지 않았습니다
 HushGram settings exported.	HushGram 설정을 내보냈습니다
 Couldn't export HushGram settings. Try another file.	HushGram 설정을 내보낼 수 없습니다. 다른 파일을 사용해 보세요
 Settings restored.	설정이 복원되었습니다
-Imported %1$d settings. Skipped %2$d unsupported keys.	%1$d 개의 설정을 가져왔습니다. %2$d 개의 지원되지 않는 키는 건너뛰었습니다
+Imported %1$d settings. Skipped %2$d that this version doesn't know.	설정 %1$d개를 가져왔습니다. 이 버전이 모르는 %2$d개는 건너뛰었습니다.
 Restart Instagram to apply these choices.	이 설정을 적용하려면 Instagram을 다시 시작하세요
 Couldn't save the settings. The previous values were restored.	설정을 저장하지 못하였습니다. 이전 값으로 복원하였습니다
-Undo couldn't fully restore the settings. Check the shown values; Undo has been consumed.	실행 취소로 설정을 완전히 복원하지 못하였습니다. 표시된 값을 확인하세요. 실행 취소 기회는 이미 사용되었습니다
+Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	되돌리기로 설정을 완전히 복원하지 못했습니다. 표시된 값을 확인하세요. 되돌리기는 이미 사용되었습니다.
 Couldn't save or fully restore the settings. Check the shown values and try Undo.	설정을 저장하거나 완전히 복원하지 못하였습니다. 표시된 값을 확인하고 실행 취소를 다시 시도하세요
-Couldn't start the settings operation. Try again.	설정 작업을 시작하지 못하였습니다. 다시 시도하세요
+Couldn't start that. Try again.	시작하지 못했습니다. 다시 시도하세요.
 A save stopped. Reopen the media and save again.	저장 작업이 중단되었습니다. 미디어를 다시 열고 저장하세요
 %1$d saves stopped. Reopen the media and save again.	%1$d 개의 저장 작업이 중단되었습니다. 미디어를 다시 열고 저장하세요
 A save was interrupted	저장 작업이 중단되었습니다
@@ -365,15 +365,15 @@ Export overrides	재정의 내보내기
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	이 Instagram 버전에 맞춰 오버라이드(Instagram 숨겨진 설정의 변경 사항)를 저장합니다.
 Validate an overrides file	재정의 파일 유효성 검사
 Checks a saved file against this Instagram version. Nothing is applied.	저장된 파일이 이 Instagram 버전과 맞는지 확인합니다. 아무것도 적용되지 않습니다.
-No document picker is available. Overrides haven't changed.	문서 선택기를 사용할 수 없습니다. 재정의는 변경되지 않았습니다.
-Couldn't use that overrides document. Native overrides haven't changed.	해당 재정의 문서를 사용할 수 없습니다. 기본 재정의는 변경되지 않았습니다
-Validated %1$d overrides only. Nothing was applied.	%1$d 개의 재정의만 검증하였습니다. 아무것도 적용되지 않았습니다
-%1$d more are from another Instagram build and aren't in this one, so an import leaves them out.	%1$d 개는 다른 Instagram 버전의 재정의로 이 버전에는 없어서 가져오기에서 제외됩니다.
-None of this file's overrides are in this Instagram build. Nothing changed.	이 파일의 재정의 중 이 Instagram 버전에 있는 것이 없습니다. 변경된 사항은 없습니다.
-%1$d overrides from another Instagram build aren't in this one and were left out.	다른 Instagram 버전의 재정의 %1$d 개는 이 버전에 없어서 제외되었습니다.
-Overrides exported for this Instagram build and schema.	이 Instagram 빌드 및 스키마에 대한 재정의를 내보냈습니다
+This phone has no file picker. Overrides haven't changed.	이 휴대폰에는 파일 선택기가 없습니다. 오버라이드는 바뀌지 않았습니다.
+Couldn't use that file. Instagram's overrides haven't changed.	그 파일을 사용할 수 없습니다. Instagram의 오버라이드는 바뀌지 않았습니다.
+Checked %1$d overrides only. Nothing was applied.	오버라이드 %1$d개만 확인했습니다. 아무것도 적용되지 않았습니다.
+%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d개는 다른 Instagram 버전에서 온 것이라 이 버전에 맞지 않아 가져오기에서 제외됩니다.
+None of this file's overrides fit this Instagram version. Nothing changed.	이 파일의 오버라이드 중 이 Instagram 버전에 맞는 것이 없습니다. 바뀐 것은 없습니다.
+%1$d overrides from a different Instagram version don't fit this one and were left out.	다른 Instagram 버전에서 온 오버라이드 %1$d개는 이 버전에 맞지 않아 제외되었습니다.
+Overrides exported for this Instagram version.	이 Instagram 버전의 오버라이드를 내보냈습니다.
 Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	재정의를 검증하지 못하였습니다. 파일을 확인하고 로그인한 상태에서 홈 화면을 통해 설정을 여세요. 변경된 사항은 없습니다
-Couldn't export overrides. The selected file may be incomplete. Native overrides haven't changed.	재정의를 내보내지 못하였습니다. 선택한 파일이 불완전할 수 있습니다. 기본 재정의는 변경되지 않았습니다
+Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	오버라이드를 내보낼 수 없습니다. 선택한 파일이 불완전할 수 있습니다. Instagram의 오버라이드는 바뀌지 않았습니다.
 Allow importing overrides	재정의 가져오기 허용
 Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	가져오기와 복원 항목을 표시합니다. 가져오기는 로그인된 이 계정의 Instagram 숨겨진 설정을 바꿉니다.
 Import overrides	재정의 가져오기
@@ -381,7 +381,7 @@ Applies a HushGram export, or Instagram's own overrides file. Your current overr
 Restore previous overrides	이전 재정의 복원
 Puts back the overrides saved before your last import for this account and Instagram version.	마지막 가져오기 전에 저장해 둔 이 계정과 Instagram 버전의 오버라이드를 되돌립니다.
 An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	이전에 가져온 설정이 아직 적용된 상태입니다. '이전 재정의 복원’을 실행하거나, 복원이 불가능한 경우 '저장된 재정의 삭제'를 실행해야 합니다. 변경된 사항은 없습니다
-Couldn't restore overrides. There's no saved copy for this session and build. Nothing changed.	재정의를 복원할 수 없습니다. 현재 세션 및 빌드에 저장된 복사본이 없습니다. 변경된 사항은 없습니다
+Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	오버라이드를 복원할 수 없습니다. 이 계정과 Instagram 버전에 저장된 사본이 없습니다. 바뀐 것은 없습니다.
 Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	재정의를 가져올 수 없습니다. 파일을 확인한 후 로그인된 상태에서 홈 화면을 통해 설정을 여세요. 변경된 사항은 없습니다
 The current overrides already match the saved copy. Nothing changed.	현재 재정의 설정이 이미 저장된 복사본과 동일합니다. 변경된 사항은 없습니다
 This file matches the current overrides. Nothing changed.	이 파일의 내용이 현재 재정의 설정과 동일합니다. 변경된 사항은 없습니다
@@ -393,13 +393,13 @@ Discard saved overrides	저장된 재정의 삭제
 Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	가져오기를 다시 실행할 수 있도록 복원용으로 저장한 사본을 지웁니다. Instagram 자체 설정은 바뀌지 않습니다.
 Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	저장된 복사본을 삭제하였습니다. 이제 다시 가져오기를 실행할 수 있으며 Instagram의 재정의 설정은 변경되지 않았습니다
 There's no saved copy to discard. Nothing changed.	삭제할 저장된 복사본이 없습니다. 변경된 사항은 없습니다
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	복원 가능한 재정의 설정을 복원했지만, Instagram의 null 값을 가지고 있는 %1$d 개의 재정의는 이 방법으로 복원할 수 없습니다. ‘저장된 재정의 삭제’를 실행하기 전까지 가져오기가 차단된 상태로 유지됩니다. 나머지 변경 사항을 적용하려면 Instagram을 다시 시작하세요
-Restore put back what it could, except %1$d overrides holding Instagram's null value, which can't be put back this way. Restart Instagram to apply the rest.	복원 가능한 재정의 설정을 복원했지만, Instagram의 null 값을 가지고 있는 %1$d 개의 재정의는 이 방법으로 복원할 수 없습니다. 나머지 변경 사항을 적용하려면 Instagram을 다시 시작하세요
-Couldn't restore overrides. The saved copy doesn't fit this session and Instagram build. Use Discard saved overrides if you don't need it. Nothing changed.	재정의를 복원할 수 없습니다. 저장된 복사본이 현재 세션 및 Instagram 빌드와 호환되지 않습니다. 저장된 복사본이 필요하지 않다면 ‘저장된 재정의 삭제’를 사용하세요. 변경된 사항은 없습니다
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	복원이 가능한 것은 되돌렸지만, 값이 비어 있던 오버라이드 %1$d개는 이 방법으로 되돌릴 수 없습니다. Discard saved overrides를 사용하기 전까지 가져오기는 막혀 있습니다. 나머지를 적용하려면 Instagram을 다시 시작하세요.
+Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	복원이 가능한 것은 되돌렸지만, 값이 비어 있던 오버라이드 %1$d개는 이 방법으로 되돌릴 수 없습니다. 나머지를 적용하려면 Instagram을 다시 시작하세요.
+Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	오버라이드를 복원할 수 없습니다. 저장된 사본이 이 계정과 Instagram 버전에 맞지 않습니다. 필요 없다면 Discard saved overrides를 사용하세요. 바뀐 것은 없습니다.
 Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram이 아직 재정의 변경 사항을 저장하고 있습니다. 잠시 후 다시 시도하세요. 변경된 사항은 없습니다
 Allow importing overrides is off or HushGram is paused. Nothing changed.	‘재정의 가져오기 허용’이 꺼져 있거나 HushGram이 일시 정지되었습니다. 변경된 사항은 없습니다
 Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	재정의를 복원할 수 없습니다. 로그인한 상태에서 홈 화면을 통해 설정을 여세요. 변경된 사항은 없습니다
-Couldn't start the override operation. Try again. Nothing changed.	재정의 작업을 시작하지 못하였습니다. 다시 시도하세요. 변경된 사항은 없습니다
+Couldn't start that. Try again. Nothing changed.	시작하지 못했습니다. 다시 시도하세요. 바뀐 것은 없습니다.
 Mark as seen button	읽음으로 표시 버튼 추가
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	 스토리를 몰래 보는 동안 각 스토리 상단에 눈 모양 버튼을 추가합니다. 이 버튼을 누르면 해당 스토리의 조회자 목록에 내 계정이 표시됩니다. 다른 스토리는 계속 익명으로 유지됩니다
 Mark as seen	읽음으로 표시
@@ -407,7 +407,7 @@ Marked as seen. Tap again to undo.	읽음으로 표시하였습니다. 다시 �
 Marked as seen and sent	읽음으로 표시하고 전송함
 View DM photos and videos anonymously	DM 사진 및 동영상 몰래보기
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	다른 사람이 한 번 보기 사진과 동영상을 내가 열었다는 것을 알지 못하게 합니다. 본 후에는 그대로 사라집니다. 테스트 기능이며 꺼진 상태로 시작합니다.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Native overrides haven't changed.	저장된 복사본을 삭제하는 작업을 완료하지 못하였습니다. ‘저장된 재정의 삭제’를 다시 시도하세요. Instagram의 기본 재정의 설정은 변경되지 않았습니다
+Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	저장된 사본을 모두 삭제하지 못했습니다. Discard saved overrides를 다시 시도하세요. Instagram의 오버라이드는 바뀌지 않았습니다.
 Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	복구 작업을 완료하지 못하였습니다. ‘이전 재정의 복원’ 또는 ‘저장된 재정의 삭제’를 사용하세요
 Restored %1$d settings. Kept %2$d newer choices.	%1$d 개의 설정을 복원하였습니다. 이후에 변경한 선택 %2$d 개의 설정는 유지하였습니다.
 Preparing diagnostic report...	진단 보고서를 준비하는 중...
@@ -483,7 +483,7 @@ Ghost mode is on, and so is each of its switches.	고스트 모드가 켜졌고 
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	스크린샷을 찍어도 Instagram이 알아채지 못하므로 사라지는 사진이나 동영상을 보낸 사람에게 알림이 가지 않습니다. 스크린샷은 평소처럼 저장됩니다.
 Keep in chat	채팅에 보관
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	시청하는 라이브에서 호스트의 시청자 목록에 표시되지 않으므로 호스트는 내가 있다는 것을 모릅니다. 댓글을 달거나 반응하면 여전히 표시됩니다. 보이는 시청자 수는 더 이상 업데이트되지 않으며, 끝난 라이브가 나갈 때까지 계속 라이브처럼 보일 수 있습니다.
-Removed %1$d overrides. Restart Instagram to go back to its own flags.	재정의 %1$d개를 삭제했습니다. Instagram의 기본 플래그로 돌아가려면 Instagram을 다시 시작하세요.
+Removed %1$d overrides. Restart Instagram to go back to its own settings.	오버라이드 %1$d개를 제거했습니다. Instagram의 자체 설정으로 돌아가려면 Instagram을 다시 시작하세요.
 Reset all overrides	모든 재정의 초기화
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	사라지는 사진과 동영상처럼 Instagram이 막는 곳에서도 스크린샷과 화면 녹화가 됩니다. 보낸 사람이 알면 안 된다면 스크린샷 알리지 않기도 켜세요.
 Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	로그인된 이 계정의 모든 오버라이드를 지워서 Instagram이 자체 설정으로 돌아가게 합니다. 복원할 수 있도록 현재 오버라이드를 먼저 저장합니다.
@@ -495,7 +495,7 @@ Adds Download cover under Download. It saves the still picture a reel shows befo
 After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	릴스 20개를 보면 Instagram이 15분 동안 백그라운드에 있을 때까지 릴스 스와이프가 멈춥니다. 메시지나 게시물에서 연 릴스는 계속 재생됩니다.
 Clear saved copies now	저장된 사본 지금 삭제
 Clear the media cache	미디어 캐시 지우기
-Couldn't clear the cache. Try again.	캐시를 지우지 못했습니다. 다시 시도하세요.
+Couldn't clear the saved copies. Try again.	저장된 사본을 삭제하지 못했습니다. 다시 시도하세요.
 Don't save recent searches	최근 검색 저장 안 함
 Download cover	커버 다운로드
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	릴스, 피드 게시물, 스토리에서 다운로드를 누르면 링크와 함께 공유 시트가 열려 Seal 같은 다운로더 앱으로 보낼 수 있습니다. 모두 저장과 다른 저장 항목은 계속 여기에 저장합니다.
@@ -635,15 +635,15 @@ Google's emoji everywhere	모든 곳에 Google 이모티콘
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	동영상 커버 다운로드
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	동영상이 있는 피드 게시물과 동영상을 보여 주는 캐러셀의 메뉴에 커버 다운로드를 추가합니다. 동영상이 재생되기 전에 보이는 정지 이미지를 가장 큰 크기로 저장합니다.
-Import flag names	플래그 이름 가져오기
+Import setting names	설정 이름 가져오기
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json 파일 같은 MetaConfig 이름 목록을 고르면 MetaConfig에서 숫자 대신 그 이름이 표시됩니다. 숫자로 검색하는 기능은 그대로 작동합니다
-Remove flag names	플래그 이름 제거
+Remove setting names	설정 이름 제거
 Forget the imported names, so MetaConfig shows Instagram's own labels again.	가져온 이름을 지워 MetaConfig에 Instagram 기본 라벨이 다시 표시되게 합니다
-Couldn't read flag names from that file. Nothing changed.	해당 파일에서 플래그 이름을 읽을 수 없습니다. 변경된 내용이 없습니다
-Flag names removed. Open MetaConfig again to see Instagram's own labels.	플래그 이름을 제거했습니다. Instagram 기본 라벨을 보려면 MetaConfig를 다시 여세요
-There are no imported flag names to remove.	제거할 가져온 플래그 이름이 없습니다
-Flag names imported: %1$d. Open MetaConfig again to see them.	가져온 플래그 이름: %1$d. 확인하려면 MetaConfig를 다시 여세요
+Couldn't read setting names from that file. Nothing changed.	그 파일에서 설정 이름을 읽을 수 없습니다. 바뀐 것은 없습니다.
+Setting names removed. Open MetaConfig again to see Instagram's own labels.	설정 이름을 제거했습니다. Instagram의 기본 이름을 보려면 MetaConfig를 다시 여세요.
+There are no imported setting names to remove.	제거할 가져온 설정 이름이 없습니다.
+Setting names imported: %1$d. Open MetaConfig again to see them.	가져온 설정 이름: %1$d개. 확인하려면 MetaConfig를 다시 여세요.
 Entries left out because they repeat or don't fit: %1$d.	중복되거나 맞지 않아 제외된 항목: %1$d
-That file has no flag names in it. Nothing changed.	해당 파일에 플래그 이름이 없습니다. 변경된 내용이 없습니다
-Couldn't remove the flag names. Try again.	플래그 이름을 제거할 수 없습니다. 다시 시도하세요
-Couldn't save the flag names. Nothing changed.	플래그 이름을 저장할 수 없습니다. 변경된 내용이 없습니다
+That file has no setting names in it. Nothing changed.	그 파일에는 설정 이름이 없습니다. 바뀐 것은 없습니다.
+Couldn't remove the setting names. Try again.	설정 이름을 제거하지 못했습니다. 다시 시도하세요.
+Couldn't save the setting names. Nothing changed.	설정 이름을 저장하지 못했습니다. 바뀐 것은 없습니다.
