@@ -26,6 +26,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** Sanitize sharing links now also takes off the share id Instagram began adding to copied post, reel and profile links under a different short name each time, such as ?obrf= or ?mdxt=. Every other part of the link stays as Instagram wrote it.
 
+* **Instagram:** README's Troubleshooting has a section for an Instagram that feels slow right after a Root Mount install. Android's compiled copy of the app was made from Meta's code, so it's thrown out and Instagram runs uncompiled until it's compiled again, and the section gives the root shell command that does it straight away.
+
 ## 0.0.7 (2026-10-08)
 
 * **Instagram:** HushGram 0.0.7 adds 3 patches, for 78 in all, and stays on Instagram 450.0.0.50.77 with Morphe Manager 1.34.0 or newer. Besides build 385611438, the other arm64 builds of that version (385611395, 385611400, 385611404 and 385611431) and the x86 and x86_64 ones (385611439 and 385611440) patch now too.

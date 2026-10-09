@@ -339,6 +339,16 @@ If Instagram crashes within a minute of starting three times in a row, HushGram 
 
 Android won't replace an installed app with one signed by a different key. For an update, use the same signing key as the installed build so its data stays. A Root Mount install keeps the Play Store app's existing sign-in. Switching to a standard re-signed install requires removing the differently signed app, which deletes its local data. Save anything you need and make sure you can sign in again before doing that.
 
+### Slow right after a Root Mount install
+
+Root Mount puts HushGram's file where the Play Store's was, but the compiled copy Android keeps for Instagram was made from Meta's code. Android notices it doesn't match and runs Instagram uncompiled, so scrolling and opening things can feel slower until it's compiled again. To do that now, run this in a root shell (`adb shell` then `su`, or Termux with `su`) and reopen Instagram:
+
+```
+cmd package compile -m speed-profile -f com.instagram.android
+```
+
+Run it again whenever you mount a new HushGram build.
+
 ### Play Store keeps offering an Instagram update
 
 Play can list your patched Instagram under its updates and try to install Meta's newer build over it, which costs data and then fails on the signing key. Play has a switch for one app: open Instagram's page in the Play Store, tap the three dots at the top right, and untick **Enable auto update**. Play then leaves that install alone. You'll get HushGram's next Instagram build from the releases here instead.
