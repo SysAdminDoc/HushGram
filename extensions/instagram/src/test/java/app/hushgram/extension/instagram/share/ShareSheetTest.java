@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.share;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,7 +22,17 @@ import app.hushgram.extension.shared.SettingsContextRule;
 public class ShareSheetTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
-    /** Once the patch is picked, its switch starts on, so every group button stays away. */
+    @Before
+    public void switchOn() {
+        Settings.HIDE_SHARE_SHEET_GROUP.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.HIDE_SHARE_SHEET_GROUP.resetToDefault();
+    }
+
+    /** With the switch on, every group button stays away. */
     @Test
     public void theGroupButtonsGoWhileTheSwitchIsOn() {
         assertTrue(ShareSheet.hideGroupButton());

@@ -95,6 +95,7 @@ public class CarouselSaveTest {
         SaveLeftovers.forgetSweepForTests();
         Settings.DOWNLOAD_PHOTOS.save(true);
         LogBufferManager.clearLogBuffer();
+        Settings.DOWNLOAD_VIDEOS.save(true);
     }
 
     @After public void tearDown() throws Exception {

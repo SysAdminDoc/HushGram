@@ -49,10 +49,17 @@ public class DoubleTapLikeSettingsTest {
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_MESSAGES.resetToDefault();
     }
 
-    /** Posts, then reels, right under the switch, each on from the start. */
+    /**
+     * Posts, then reels, right under the switch. The switch starts off and the two under it start
+     * on, so turning it on covers both.
+     */
     @Test
     public void postsAndReelsSitUnderTheSwitch() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DOUBLE_TAP_LIKE);
+        assertFalse("the switch starts off", Settings.TURN_OFF_DOUBLE_TAP_LIKE.get());
+        assertTrue(Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.get());
+        assertTrue(Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.get());
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(DownloadSettingsTest.pageIn(controller));
             int main = indexOfKey(rows, Settings.TURN_OFF_DOUBLE_TAP_LIKE.key);
@@ -98,6 +105,8 @@ public class DoubleTapLikeSettingsTest {
      */
     @Test
     public void theReportSaysOnOnlyWhileADoubleTapIsHeldBack() {
+        assertTrue(line(), line().contains(": disabled by its switch ("));
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
         assertTrue(line(), line().contains(": on ("));
 
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(false);

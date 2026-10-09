@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.reels;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +21,20 @@ import app.hushgram.extension.shared.SettingsContextRule;
 @RunWith(RobolectricTestRunner.class)
 public class ReelDeclutterTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.HIDE_REEL_FOLLOW_BUTTON.save(true);
+        Settings.HIDE_REEL_CHIPS.save(true);
+        Settings.HIDE_REEL_SOCIAL_FOOTER.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.HIDE_REEL_FOLLOW_BUTTON.resetToDefault();
+        Settings.HIDE_REEL_CHIPS.resetToDefault();
+        Settings.HIDE_REEL_SOCIAL_FOOTER.resetToDefault();
+    }
 
     @Test
     public void withTheSwitchesOnEveryPartIsHidden() {

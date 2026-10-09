@@ -261,6 +261,7 @@ public class SettingsSearchTest {
     }
 
     @Test public void hiddenRowsStillSynchronizeStoredChangesAndParentAvailability() throws Exception {
+        Settings.START_ON_FOLLOWING.save(true);
         open(PatchFamily.FOLLOWING_FEED, PatchFamily.DISABLE_ANALYTICS);
         Settings.ONLY_FOLLOWING.save(true);
         ShadowLooper.idleMainLooper();

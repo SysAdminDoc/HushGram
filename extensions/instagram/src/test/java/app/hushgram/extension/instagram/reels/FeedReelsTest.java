@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.reels;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +21,16 @@ import app.hushgram.extension.shared.SettingsContextRule;
 @RunWith(RobolectricTestRunner.class)
 public class FeedReelsTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.HIDE_FEED_REELS.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.HIDE_FEED_REELS.resetToDefault();
+    }
 
     /** Shaped like Instagram 449's feed item kinds, a few of them. */
     enum Kind { MEDIA, AD, CLIPS_NETEGO, IMMERSIVE_SEGUE_ITEM, VIBES_IN_FEED_UNIT, HATCH_IMMERSIVE_IN_FEED_UNIT }

@@ -104,7 +104,7 @@ public class GhostModeSettingsTest {
         open(ALL_GHOST);
         SwitchPreference row = ghost();
         assertNotNull(row);
-        assertFalse("View stories anonymously starts on, the rest off", row.isChecked());
+        assertFalse("every ghost switch starts off", row.isChecked());
         assertFalse(row.isPersistent());
         assertNull("it keeps no value, so it has no setting key", row.getKey());
         assertEquals("Turns the switches that keep what you do to yourself on or off in one go, like View stories "

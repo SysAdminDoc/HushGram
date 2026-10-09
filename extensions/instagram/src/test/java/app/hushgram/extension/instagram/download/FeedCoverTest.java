@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +45,11 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @Config(sdk = {28, 37}, shadows = FeedCoverTest.Post.class)
 public class FeedCoverTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.DOWNLOAD_VIDEOS.save(true);
+    }
 
     private static final String META = "https://scontent.cdninstagram.com/v/t51.2885-15/";
 

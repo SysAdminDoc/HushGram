@@ -62,14 +62,14 @@ public class StoryLoopSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.LOOP_STORIES.key));
     }
-    @Test public void storyLoopSwitchStartsOnUnderStoriesPersistsAndHonorsPause() throws Exception {
+    @Test public void storyLoopSwitchStartsOffUnderStoriesPersistsAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.LOOP_STORIES.key);
         assertNotNull(row);
         assertEquals("Loop a story", row.getTitle().toString());
         assertEquals("Stories", String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row).getTitle()));
-        assertTrue(row.isChecked());
-        assertTrue(Settings.LOOP_STORIES.get());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.LOOP_STORIES.get());
         assertEquals(Collections.singletonList(Settings.LOOP_STORIES), PatchFamily.STORY_LOOP.switches);
         assertEquals("Loop a story", PatchFamily.STORY_LOOP.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LOOP_STORIES.key));

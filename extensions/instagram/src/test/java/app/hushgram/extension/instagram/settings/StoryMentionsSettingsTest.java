@@ -61,12 +61,13 @@ public class StoryMentionsSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_STORY_MENTIONS.key));
     }
-    @Test public void switchStartsOnPersistsAndHonorsPause() throws Exception {
+    @Test public void switchStartsOffPersistsAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_STORY_MENTIONS.key);
         assertNotNull(row);
         assertEquals("See who a story mentions", row.getTitle().toString());
-        assertTrue(row.isChecked());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.SHOW_STORY_MENTIONS.get());
         assertEquals("See who a story mentions", PatchFamily.STORY_MENTIONS.patchName);
         Settings.SHOW_STORY_MENTIONS.save(false);
         assertFalse(Settings.SHOW_STORY_MENTIONS.savedValue());

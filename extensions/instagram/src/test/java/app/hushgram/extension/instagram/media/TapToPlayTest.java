@@ -58,6 +58,7 @@ public class TapToPlayTest {
         SystemClock.sleep(60_000);
         TapToPlayForTests.forget();
         HookStatus.clear();
+        Settings.TAP_TO_PLAY.save(true);
     }
 
     @After
@@ -80,8 +81,9 @@ public class TapToPlayTest {
     }
 
     @Test
-    public void theSwitchStartsOn() {
-        assertTrue("picking the patch is the choice to use it", Settings.TAP_TO_PLAY.get());
+    public void theSwitchStartsOff() {
+        Settings.TAP_TO_PLAY.resetToDefault();
+        assertFalse("the patch is in the default selection, so the reader turns it on", Settings.TAP_TO_PLAY.get());
     }
 
     @Test

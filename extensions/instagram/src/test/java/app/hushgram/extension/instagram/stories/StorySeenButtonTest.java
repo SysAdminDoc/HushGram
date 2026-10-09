@@ -148,6 +148,7 @@ public class StorySeenButtonTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
     }
 
     @After

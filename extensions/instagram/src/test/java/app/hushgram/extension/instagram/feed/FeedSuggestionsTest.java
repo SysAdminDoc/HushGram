@@ -174,18 +174,23 @@ public class FeedSuggestionsTest {
      */
     @Test
     public void besideHideReelsInTheFeedEachTakesOutItsOwn() {
-        for (Kind kind : Kind.values()) {
-            boolean dropped = kind == Kind.CLIPS_NETEGO || FeedSuggestions.KINDS.contains(kind.name());
-            Item item = new Item(kind);
-            Object reelsFirst = FeedSuggestions.filter(FeedReels.filter(item));
-            Object suggestionsFirst = FeedReels.filter(FeedSuggestions.filter(item));
-            if (dropped) {
-                assertNull(kind.name(), reelsFirst);
-                assertNull(kind.name(), suggestionsFirst);
-            } else {
-                assertSame(kind.name(), item, reelsFirst);
-                assertSame(kind.name(), item, suggestionsFirst);
+        Settings.HIDE_FEED_REELS.save(true);
+        try {
+            for (Kind kind : Kind.values()) {
+                boolean dropped = kind == Kind.CLIPS_NETEGO || FeedSuggestions.KINDS.contains(kind.name());
+                Item item = new Item(kind);
+                Object reelsFirst = FeedSuggestions.filter(FeedReels.filter(item));
+                Object suggestionsFirst = FeedReels.filter(FeedSuggestions.filter(item));
+                if (dropped) {
+                    assertNull(kind.name(), reelsFirst);
+                    assertNull(kind.name(), suggestionsFirst);
+                } else {
+                    assertSame(kind.name(), item, reelsFirst);
+                    assertSame(kind.name(), item, suggestionsFirst);
+                }
             }
+        } finally {
+            Settings.HIDE_FEED_REELS.resetToDefault();
         }
     }
 

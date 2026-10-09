@@ -8,6 +8,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,6 +25,16 @@ import app.hushgram.extension.shared.SettingsContextRule;
 @RunWith(RobolectricTestRunner.class)
 public class ExploreGridTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.HIDE_EXPLORE_GRID.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.HIDE_EXPLORE_GRID.resetToDefault();
+    }
 
     @Test
     public void aPageIsEmptiedWhileTheSwitchIsOn() {

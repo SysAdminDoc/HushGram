@@ -59,7 +59,7 @@ public class PostTimeTest {
         context = RuntimeEnvironment.getApplication();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        Settings.SHOW_POST_TIME.resetToDefault();
+        Settings.SHOW_POST_TIME.save(true);
         HookStatus.clear();
         assertTrue(SystemClock.setCurrentTimeMillis((postedOnOctober2(0) + 2 * 60 * 60) * 1000L));
         hourSetting("12");
@@ -76,7 +76,7 @@ public class PostTimeTest {
         HookStatus.clear();
     }
 
-    /** On to start, a post's time as a double and a comment's as a long both read as the date and time. */
+    /** On, a post's time as a double and a comment's as a long both read as the date and time. */
     @Test
     public void bothShapesGetTheDateAndTime() {
         long posted = postedOnOctober2(0);

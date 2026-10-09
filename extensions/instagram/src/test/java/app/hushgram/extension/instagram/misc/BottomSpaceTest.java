@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.misc;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,12 +21,17 @@ import app.hushgram.extension.shared.SettingsContextRule;
 public class BottomSpaceTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.REMOVE_BOTTOM_SPACE.save(true);
+    }
+
     @After
     public void restore() {
         Settings.REMOVE_BOTTOM_SPACE.resetToDefault();
     }
 
-    /** Once the patch is picked, its switch starts on, so the guess leaves no room. */
+    /** With the switch on, the guess leaves no room. */
     @Test
     public void withTheSwitchOnTheGuessIsDropped() {
         assertEquals(0, BottomSpace.navigationBarHeight(135));

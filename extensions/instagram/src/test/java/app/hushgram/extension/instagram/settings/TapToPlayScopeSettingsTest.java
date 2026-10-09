@@ -53,6 +53,7 @@ public class TapToPlayScopeSettingsTest {
     @Test
     public void theChoiceSitsBelowTheSwitchAndSaysWhatItHolds() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.TAP_TO_PLAY);
+        Settings.TAP_TO_PLAY.save(true);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
             Preference found = page.findPreference(Settings.TAP_TO_PLAY_SCOPE.key);

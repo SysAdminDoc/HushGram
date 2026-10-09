@@ -67,6 +67,7 @@ public class PostInfoTest {
         ShadowAlertDialog.reset();
         controller = Robolectric.buildActivity(Activity.class).setup();
         activity = controller.get();
+        Settings.DOWNLOAD_VIDEOS.save(true);
     }
 
     @After
@@ -74,7 +75,7 @@ public class PostInfoTest {
         controller.close();
         Settings.POST_DETAILS.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
-        Settings.DOWNLOAD_VIDEOS.save(true);
+        Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
         Settings.OPEN_IN_PLAYER.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();

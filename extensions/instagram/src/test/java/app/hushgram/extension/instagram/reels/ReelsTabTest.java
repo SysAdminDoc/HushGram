@@ -10,6 +10,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,9 +31,14 @@ public class ReelsTabTest {
 
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.HIDE_REELS_TAB.save(true);
+    }
+
     @After
     public void tearDown() {
-        Settings.HIDE_REELS_TAB.save(true);
+        Settings.HIDE_REELS_TAB.resetToDefault();
     }
 
     /** On, the list comes back as a copy without Reels, in the same order, and the hidden tab is counted. */

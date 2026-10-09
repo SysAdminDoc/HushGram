@@ -291,18 +291,23 @@ public class MetaAiTest {
      */
     @Test
     public void besideTheOtherFeedFiltersAnyOrderAnswersTheSame() {
-        for (Kind kind : Kind.values()) {
-            Item item = new Item(kind);
-            Object metaAiLast = MetaAi.filter(FeedSuggestions.filter(FeedReels.filter(item)));
-            Object metaAiFirst = FeedReels.filter(FeedSuggestions.filter(MetaAi.filter(item)));
-            boolean kept = kind == Kind.MEDIA || kind == Kind.AD;
-            if (kept) {
-                assertSame(kind.name(), item, metaAiLast);
-                assertSame(kind.name(), item, metaAiFirst);
-            } else {
-                assertNull(kind.name(), metaAiLast);
-                assertNull(kind.name(), metaAiFirst);
+        Settings.HIDE_FEED_REELS.save(true);
+        try {
+            for (Kind kind : Kind.values()) {
+                Item item = new Item(kind);
+                Object metaAiLast = MetaAi.filter(FeedSuggestions.filter(FeedReels.filter(item)));
+                Object metaAiFirst = FeedReels.filter(FeedSuggestions.filter(MetaAi.filter(item)));
+                boolean kept = kind == Kind.MEDIA || kind == Kind.AD;
+                if (kept) {
+                    assertSame(kind.name(), item, metaAiLast);
+                    assertSame(kind.name(), item, metaAiFirst);
+                } else {
+                    assertNull(kind.name(), metaAiLast);
+                    assertNull(kind.name(), metaAiFirst);
+                }
             }
+        } finally {
+            Settings.HIDE_FEED_REELS.resetToDefault();
         }
     }
 

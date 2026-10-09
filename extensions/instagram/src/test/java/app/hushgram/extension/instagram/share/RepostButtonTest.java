@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import android.view.View;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +36,11 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class RepostButtonTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.HIDE_REPOST_BUTTON.save(true);
+    }
+
     private static final BooleanSupplier THROWS = () -> {
         throw new IllegalStateException("settings went away");
     };
@@ -45,7 +51,7 @@ public class RepostButtonTest {
         HookStatus.clear();
     }
 
-    /** Once the patch is picked, its switch starts on, so every post reads as one that can't be reposted. */
+    /** With the switch on, every post reads as one that can't be reposted. */
     @Test
     public void withTheSwitchOnNothingCanBeReposted() {
         assertTrue(RepostButton.hide());

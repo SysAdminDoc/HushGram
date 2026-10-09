@@ -11,6 +11,7 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,9 +26,14 @@ import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 public class DoubleTapLikeTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
+    }
+
     @After
     public void tearDown() {
-        Settings.TURN_OFF_DOUBLE_TAP_LIKE.save(true);
+        Settings.TURN_OFF_DOUBLE_TAP_LIKE.resetToDefault();
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.save(true);
         Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_COMMENTS.resetToDefault();

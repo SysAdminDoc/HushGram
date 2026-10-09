@@ -119,7 +119,7 @@ public class StoryMentionsTest {
     public void open() {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        Settings.SHOW_STORY_MENTIONS.resetToDefault();
+        Settings.SHOW_STORY_MENTIONS.save(true);
         StoryMentions.resetForTests();
         StoryMentions.readsForTests = reads;
         HookStatus.clear();
@@ -154,8 +154,9 @@ public class StoryMentionsTest {
     }
 
     @Test
-    public void theSwitchStartsOnAndIsTheFamilysOnly() {
-        assertTrue(Settings.SHOW_STORY_MENTIONS.get());
+    public void theSwitchStartsOffAndIsTheFamilysOnly() {
+        Settings.SHOW_STORY_MENTIONS.resetToDefault();
+        assertFalse(Settings.SHOW_STORY_MENTIONS.get());
         assertEquals(Collections.singletonList(Settings.SHOW_STORY_MENTIONS), PatchFamily.STORY_MENTIONS.switches);
         assertEquals(FamilyNames.STORY_MENTIONS, PatchFamily.STORY_MENTIONS.patchName);
     }

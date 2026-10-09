@@ -281,14 +281,15 @@ public class DownloadSettingsTest {
             SwitchPreference row = (SwitchPreference) rows.get(cover);
             assertEquals("Download video covers", String.valueOf(row.getTitle()));
             assertFalse("Download video covers starts off", row.isChecked());
-            assertTrue(row.isEnabled());
             SwitchPreference videos = (SwitchPreference) rows.get(cover - 1);
-            videos.setChecked(false);
-            ShadowLooper.idleMainLooper();
+            assertFalse("Download feed videos starts off", videos.isChecked());
             assertFalse("Download video covers waits for Download feed videos", row.isEnabled());
             videos.setChecked(true);
             ShadowLooper.idleMainLooper();
             assertTrue(row.isEnabled());
+            videos.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(row.isEnabled());
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_FEED_COVER.key));
         }
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);

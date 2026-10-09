@@ -66,14 +66,14 @@ public class PostTimeSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.SHOW_POST_TIME.key));
     }
 
-    @Test public void postTimeSwitchStartsOnUnderFeedPersistsAndHonorsPause() throws Exception {
+    @Test public void postTimeSwitchStartsOffUnderFeedPersistsAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_POST_TIME.key);
         assertNotNull(row);
         assertEquals("Show a post's exact time", row.getTitle().toString());
         assertEquals("Feed", String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row).getTitle()));
-        assertTrue(row.isChecked());
-        assertTrue(Settings.SHOW_POST_TIME.get());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.SHOW_POST_TIME.get());
         assertEquals(Collections.singletonList(Settings.SHOW_POST_TIME), PatchFamily.POST_TIME.switches);
         assertEquals("Show a post's exact time", PatchFamily.POST_TIME.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SHOW_POST_TIME.key));

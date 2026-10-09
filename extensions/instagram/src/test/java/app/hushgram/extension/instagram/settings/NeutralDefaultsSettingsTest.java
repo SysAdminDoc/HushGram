@@ -40,7 +40,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 import app.hushgram.extension.shared.settings.Setting;
 
-/** Catalog expansion makes controls available without replacing their defaults or saved choices. */
+/**
+ * Manager's default selection picks nearly every patch, so each switch it picks up starts off, its
+ * hooks answer as stock Instagram, and opening the settings never replaces a saved choice.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -65,7 +68,16 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_SCREENSHOTS,
                 Settings.ALLOW_SCREENSHOTS,
                 Settings.KEEP_IN_CHAT,
-                Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI};
+                Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI,
+                Settings.DONT_SEND_REEL_WATCH_HISTORY, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.SHOW_STORY_TIME,
+                Settings.SHOW_STORY_MENTIONS, Settings.SHOW_POST_TIME, Settings.LOOP_STORIES, Settings.VIEW_STORIES_ANONYMOUSLY,
+                Settings.SPOOF_LOCATION, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING,
+                Settings.HIDE_FEED_REELS, Settings.START_ON_FOLLOWING, Settings.HIDE_EXPLORE_GRID,
+                Settings.HIDE_SHARE_SHEET_GROUP, Settings.HIDE_REPOST_BUTTON, Settings.REMOVE_BOTTOM_SPACE,
+                Settings.HIDE_PROFILE_SUGGESTIONS, Settings.HIDE_REELS_SUGGESTIONS, Settings.HIDE_REEL_FOLLOW_BUTTON,
+                Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.TURN_OFF_DOUBLE_TAP_LIKE,
+                Settings.HIDE_REELS_TAB, Settings.REEL_SEEK_BAR, Settings.KEEP_REEL_AUTO_SCROLL,
+                Settings.DOWNLOAD_VIDEOS, Settings.TAP_TO_PLAY};
         restoreDefaults();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -74,7 +86,14 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.PROFILE_HIGHLIGHTS, PatchFamily.THREADS_BUTTON, PatchFamily.NOTES_ROW, PatchFamily.INSTANTS, PatchFamily.SWIPE_TO_CREATE,
                 PatchFamily.REEL_SCROLLING, PatchFamily.STORY_RING, PatchFamily.FULL_RESOLUTION, PatchFamily.HOME_FEED, PatchFamily.FEED_SUGGESTIONS,
                 PatchFamily.TAB_SWIPE, PatchFamily.HDR_BOOST, PatchFamily.RECENT_SEARCHES, PatchFamily.DATA_SAVER, PatchFamily.MEDIA_CACHE, PatchFamily.NOTIFICATION_GROUPS, PatchFamily.MESSAGES_LOCK, PatchFamily.SCREENSHOT_REPORTS, PatchFamily.SCREENSHOT_BLOCK, PatchFamily.KEEP_IN_CHAT, PatchFamily.LIVE_SEEN,
-                PatchFamily.EMOJI_STYLE);
+                PatchFamily.EMOJI_STYLE,
+                PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS,
+                PatchFamily.POST_TIME, PatchFamily.STORY_LOOP, PatchFamily.STORY_SEEN, PatchFamily.SPOOF_LOCATION,
+                PatchFamily.THREAD_SEEN, PatchFamily.TYPING, PatchFamily.FEED_REELS, PatchFamily.FOLLOWING_FEED,
+                PatchFamily.EXPLORE_GRID, PatchFamily.SHARE_SHEET, PatchFamily.REPOST_BUTTON, PatchFamily.BOTTOM_SPACE,
+                PatchFamily.PROFILE_SUGGESTIONS, PatchFamily.REELS_SUGGESTIONS, PatchFamily.DOUBLE_TAP_LIKE,
+                PatchFamily.REELS_TAB, PatchFamily.REEL_SEEK_BAR, PatchFamily.REEL_AUTO_SCROLL,
+                PatchFamily.VIDEO_DOWNLOAD, PatchFamily.TAP_TO_PLAY);
     }
 
     @After public void restore() throws Exception {
@@ -102,21 +121,16 @@ public class NeutralDefaultsSettingsTest {
         assertStockHooks();
     }
 
-    @Test public void remainingOptionalRuntimeFamiliesStartWithTheirBehaviorEnabled() {
-        BooleanSetting[] startsOn = {Settings.HIDE_REEL_FOLLOW_BUTTON, Settings.HIDE_REEL_CHIPS,
-                Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.DONT_SEND_REEL_WATCH_HISTORY,
-                Settings.DOWNLOAD_VIDEOS, Settings.HIDE_FEED_REELS, Settings.HIDE_SHARE_SHEET_GROUP,
-                Settings.HIDE_REELS_SUGGESTIONS, Settings.HIDE_PROFILE_SUGGESTIONS,
-                Settings.HIDE_EXPLORE_GRID, Settings.HIDE_REELS_TAB, Settings.HIDE_REPOST_BUTTON,
-                Settings.KEEP_REEL_AUTO_SCROLL, Settings.REEL_SEEK_BAR, Settings.LOOP_STORIES,
-                Settings.OPEN_DEVELOPER_OPTIONS, Settings.REMOVE_BOTTOM_SPACE, Settings.SHOW_STORY_TIME,
-                Settings.SHOW_STORY_MENTIONS, Settings.START_ON_FOLLOWING, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.TAP_TO_PLAY,
-                Settings.TURN_OFF_DOUBLE_TAP_LIKE, Settings.VIEW_STORIES_ANONYMOUSLY};
-        for (BooleanSetting setting : startsOn) assertEquals(setting.key, Boolean.TRUE, setting.defaultValue);
-        // A false remembered value does not make the enabled persistence feature neutral.
-        assertEquals(Boolean.FALSE, Settings.REEL_AUTO_SCROLL_ON.defaultValue);
-        // DM receipts stay excluded for acceptance even though their switch starts off.
+    /**
+     * Open developer options stays out of the default selection, so picking it is the choice to use
+     * it and its switch starts on. View DM photos and videos anonymously stays out too, with its
+     * switch off.
+     */
+    @Test public void theOptInSwitchesKeepTheirDefaults() {
+        assertEquals(Boolean.TRUE, Settings.OPEN_DEVELOPER_OPTIONS.defaultValue);
         assertEquals(Boolean.FALSE, Settings.VIEW_DM_MEDIA_ANONYMOUSLY.defaultValue);
+        // Auto scroll's remembered choice starts off as well, so it adds nothing while the switch is off.
+        assertEquals(Boolean.FALSE, Settings.REEL_AUTO_SCROLL_ON.defaultValue);
     }
 
     @Test public void ringKeepsExactNativeBitsUntilASizeIsChosen() {
@@ -220,5 +234,20 @@ public class NeutralDefaultsSettingsTest {
         assertEquals(0, app.hushgram.extension.instagram.misc.EmojiStyle.replaceStrategy(0));
         java.util.List<Object> profileButtons = java.util.Arrays.asList(new Object(), new Object());
         assertSame(profileButtons, app.hushgram.extension.instagram.profile.ThreadsButton.buttons(profileButtons));
+        assertFalse(app.hushgram.extension.instagram.reels.ReelWatchHistory.holdBack());
+        assertFalse(app.hushgram.extension.instagram.stories.StoryAdvance.hold());
+        assertFalse(app.hushgram.extension.instagram.stories.StoryLoop.loop(0));
+        Object batch = new Object();
+        assertSame(batch, app.hushgram.extension.instagram.stories.StorySeen.toSend(null, batch));
+        assertFalse(app.hushgram.extension.instagram.feed.FollowingFeed.flag(0));
+        assertEquals("BLENDED_FOR_YOU", app.hushgram.extension.instagram.feed.FollowingFeed.saved("BLENDED_FOR_YOU"));
+        assertFalse(app.hushgram.extension.instagram.explore.ExploreGrid.hide(java.util.Arrays.asList("section", "section")));
+        assertFalse(app.hushgram.extension.instagram.share.ShareSheet.hideGroupButton());
+        assertFalse(app.hushgram.extension.instagram.share.RepostButton.hide());
+        assertEquals(135, app.hushgram.extension.instagram.misc.BottomSpace.navigationBarHeight(135));
+        assertFalse(ReelDeclutter.hideChips());
+        assertFalse(ReelDeclutter.hideFollowButton());
+        assertFalse(app.hushgram.extension.instagram.reels.DoubleTapLike.holdBackPost());
+        assertTrue(app.hushgram.extension.instagram.media.TapToPlay.autoplayAllowed(true));
     }
 }

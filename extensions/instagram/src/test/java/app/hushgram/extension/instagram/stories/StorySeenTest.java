@@ -4,11 +4,13 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +31,11 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class StorySeenTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
+    }
+
     private final Object batch = new Object();
 
     @After
@@ -40,8 +47,9 @@ public class StorySeenTest {
     }
 
     @Test
-    public void theSwitchStartsOn() {
-        assertTrue("picking the patch is the choice to use it", Settings.VIEW_STORIES_ANONYMOUSLY.get());
+    public void theSwitchStartsOff() {
+        Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
+        assertFalse("the patch is in the default selection, so the reader turns it on", Settings.VIEW_STORIES_ANONYMOUSLY.get());
     }
 
     @Test

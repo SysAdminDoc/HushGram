@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,9 +34,14 @@ import app.hushgram.extension.shared.SettingsContextRule;
 public class VideoDownloadTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
+    @Before
+    public void switchOn() {
+        Settings.DOWNLOAD_VIDEOS.save(true);
+    }
+
     @After
     public void tearDown() {
-        Settings.DOWNLOAD_VIDEOS.save(true);
+        Settings.DOWNLOAD_VIDEOS.resetToDefault();
     }
 
     /**

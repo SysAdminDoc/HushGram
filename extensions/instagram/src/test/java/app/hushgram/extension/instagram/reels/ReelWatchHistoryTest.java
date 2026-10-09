@@ -7,6 +7,8 @@ package app.hushgram.extension.instagram.reels;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +24,16 @@ import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 @RunWith(RobolectricTestRunner.class)
 public class ReelWatchHistoryTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.DONT_SEND_REEL_WATCH_HISTORY.resetToDefault();
+    }
 
     @Test
     public void withTheSwitchOnAWatchedReelIsHeldBackAndCounted() {

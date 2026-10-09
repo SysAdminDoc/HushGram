@@ -125,6 +125,7 @@ public class StoryMarksTest {
     public void prepare() {
         marks = new StoryMarks(now::get);
         HookStatus.clear();
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
     }
 
     @After

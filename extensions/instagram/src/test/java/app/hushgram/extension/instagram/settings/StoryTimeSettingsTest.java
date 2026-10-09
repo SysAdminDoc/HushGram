@@ -76,14 +76,14 @@ public class StoryTimeSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.STORY_TIME_MODE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.STORY_TIME_MODE.key));
     }
-    @Test public void storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause() throws Exception {
+    @Test public void storyTimeSwitchStartsOffUnderStoriesPersistsAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SHOW_STORY_TIME.key);
         assertNotNull(row);
         assertEquals("Show a story's exact time", row.getTitle().toString());
         assertEquals("Stories", String.valueOf(sectionOf(page.getPreferenceScreen(), row).getTitle()));
-        assertTrue(row.isChecked());
-        assertTrue(Settings.SHOW_STORY_TIME.get());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.SHOW_STORY_TIME.get());
         assertEquals(Collections.singletonList(Settings.SHOW_STORY_TIME), PatchFamily.STORY_TIME.switches);
         assertEquals("Show a story's exact time", PatchFamily.STORY_TIME.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SHOW_STORY_TIME.key));
@@ -102,6 +102,7 @@ public class StoryTimeSettingsTest {
     }
 
     @Test public void theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows() throws Exception {
+        Settings.SHOW_STORY_TIME.save(true);
         open(true);
         Preference found = page.getPreferenceScreen().findPreference(Settings.STORY_TIME_MODE.key);
         assertTrue("no choice of how with the patch in the build", found instanceof HushgramPreferenceFragment.StoryTimeModeRow);

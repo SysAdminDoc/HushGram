@@ -64,13 +64,13 @@ public class ReelAutoScrollSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_SCROLL_ON.key));
     }
-    @Test public void autoScrollSwitchStartsOnPersistsAndHonorsPause() throws Exception {
+    @Test public void autoScrollSwitchStartsOffPersistsAndHonorsPause() throws Exception {
         open(true);
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key);
         assertNotNull(row);
         assertEquals("Keep auto scroll on", row.getTitle().toString());
-        assertTrue(row.isChecked());
-        assertTrue(Settings.KEEP_REEL_AUTO_SCROLL.get());
+        assertFalse(row.isChecked());
+        assertFalse(Settings.KEEP_REEL_AUTO_SCROLL.get());
         assertNull("the memory isn't a control", page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_SCROLL_ON.key));
         assertEquals(java.util.Collections.singletonList(Settings.KEEP_REEL_AUTO_SCROLL), PatchFamily.REEL_AUTO_SCROLL.switches);
         assertFalse("a backup leaves the memory out", ConfigurationBackup.eligible().containsKey(Settings.REEL_AUTO_SCROLL_ON.key));

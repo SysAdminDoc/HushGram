@@ -189,6 +189,7 @@ public class StorySeenRingsTest {
         marks = new StoryMarks(now::get);
         rings = new StorySeenRings(now::get);
         HookStatus.clear();
+        Settings.VIEW_STORIES_ANONYMOUSLY.save(true);
     }
 
     @After

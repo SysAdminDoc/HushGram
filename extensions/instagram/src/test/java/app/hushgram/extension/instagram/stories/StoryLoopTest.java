@@ -49,11 +49,11 @@ public class StoryLoopTest {
         HookStatus.clear();
     }
 
-    /** Picking the patch is the choice to use it, so its switch starts on. */
+    /** The patch is in Manager's default selection, so its switch starts off and the reader turns it on. */
     @Test
-    public void theSwitchStartsOn() {
+    public void theSwitchStartsOff() {
         Settings.LOOP_STORIES.resetToDefault();
-        assertTrue(Settings.LOOP_STORIES.get());
+        assertFalse(Settings.LOOP_STORIES.get());
     }
 
     /** With the switch on, the viewer's loop test says yes whatever Instagram's server said. */

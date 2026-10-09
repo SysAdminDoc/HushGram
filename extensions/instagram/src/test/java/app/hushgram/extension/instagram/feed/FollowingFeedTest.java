@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +27,16 @@ import app.hushgram.extension.shared.SettingsContextRule;
 @RunWith(RobolectricTestRunner.class)
 public class FollowingFeedTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void switchOn() {
+        Settings.START_ON_FOLLOWING.save(true);
+    }
+
+    @After
+    public void switchBack() {
+        Settings.START_ON_FOLLOWING.resetToDefault();
+    }
 
     @Test
     public void theFlagIsOnWhileTheSwitchIsOn() {

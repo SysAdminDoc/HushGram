@@ -63,13 +63,14 @@ public class ExternalPlayerTest {
         view.addDataType("video/*");
         Shadows.shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).addActivityIfNotPresent(PLAYER);
         Shadows.shadowOf(RuntimeEnvironment.getApplication().getPackageManager()).addIntentFilterForActivity(PLAYER, view);
+        Settings.DOWNLOAD_VIDEOS.save(true);
     }
 
     @After
     public void tearDown() {
         Settings.OPEN_IN_PLAYER.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
-        Settings.DOWNLOAD_VIDEOS.save(true);
+        Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_REELS.save(true);
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
         BaseSettings.PAUSED.save(false);

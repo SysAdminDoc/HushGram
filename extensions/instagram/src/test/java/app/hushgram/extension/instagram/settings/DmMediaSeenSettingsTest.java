@@ -65,7 +65,7 @@ public class DmMediaSeenSettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key));
         assertFalse(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.get());
-        assertTrue(Settings.VIEW_STORIES_ANONYMOUSLY.get());
+        assertFalse("the story switch keeps its own default", Settings.VIEW_STORIES_ANONYMOUSLY.get());
     }
 
     @Test public void directMediaPatchHasItsOwnOffByDefaultSwitchAndPausePreservesChoice() throws Exception {
@@ -85,6 +85,6 @@ public class DmMediaSeenSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.get());
-        assertTrue(Settings.VIEW_STORIES_ANONYMOUSLY.get());
+        assertFalse("the story switch keeps its own default", Settings.VIEW_STORIES_ANONYMOUSLY.get());
     }
 }
