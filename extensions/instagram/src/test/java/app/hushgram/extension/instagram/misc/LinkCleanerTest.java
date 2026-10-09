@@ -209,6 +209,8 @@ public class LinkCleanerTest {
                 LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?mdxt=MXY5Z21sZmQwZnZldg=="));
         assertEquals("https://www.instagram.com/someuser",
                 LinkCleaner.clean("https://www.instagram.com/someuser?obrf=MXJwNGhqa3U4OG84ZA=="));
+        assertEquals("https://www.instagram.com/reel/DeHRwrcxx0Z/",
+                LinkCleaner.clean("https://www.instagram.com/reel/DeHRwrcxx0Z/?srtk=MWJ1eHB0anJwZm9jNA=="));
     }
 
     @Test
