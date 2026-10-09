@@ -673,5 +673,8 @@ Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati kar
 That file has no flag names in it. Nothing changed.	Berkas itu tidak berisi nama flag. Tidak ada yang berubah.
 Couldn't remove the flag names. Try again.	Nama flag tidak dapat dihapus. Coba lagi.
 Couldn't save the flag names. Nothing changed.	Nama flag tidak dapat disimpan. Tidak ada yang berubah.
-Firmer haptics	Haptik lebih kuat
-Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.	Memutar ketukan getar dengan kekuatan penuh. Nonaktif, ketukannya ringan, seperti yang lembut di iPhone.
+Haptic style	Gaya haptik
+Short tick	Ketukan pendek
+System tick	Ketukan sistem
+Soft tick	Ketukan lembut
+Full tick	Ketukan penuh
