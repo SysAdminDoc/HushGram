@@ -24,7 +24,9 @@ $passed = 0
 function Test-BoundarySuiteWiring {
     param([string]$Path)
     $live = @(Get-LiveCommands (Get-ScriptAst $Path))
-    $build = @($live | Where-Object { $_.Extent.Text -like '& $gradle *:extensions:instagram:verifyAndroidBoundaries*' })
+    $build = @($live | Where-Object {
+        $_.GetCommandName() -eq 'Invoke-GradleBuild' -and $_.Extent.Text -like '*-ProjectDir $gate *:extensions:instagram:verifyAndroidBoundaries*'
+    })
     $runs = @($live | Where-Object {
         $_.GetCommandName() -eq 'pwsh' -and $null -ne (Get-CommandArgument $_ 'File') -and
             (Test-NamesFile (Get-CommandArgument $_ 'File') 'test-android-boundaries.ps1')

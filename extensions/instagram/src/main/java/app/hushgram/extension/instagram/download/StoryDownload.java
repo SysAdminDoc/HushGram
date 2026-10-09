@@ -54,6 +54,30 @@ public final class StoryDownload {
     /** What a tap on one of HushGram's rows saves. */
     enum Choice { STORY, VIDEO, PHOTO }
 
+    /** Instagram's media type for a photo, which a story keeps as the type it was posted as. */
+    static final int POSTED_PHOTO = 1;
+
+    /**
+     * What a story's menu is built for, under the fixed name the diagnostic report counts it by,
+     * and whether it gets Download as video and Download as photo.
+     */
+    enum Kind {
+        UNREAD("story not read", false),
+        PHOTO("photo", false),
+        FLAGGED("video flagged as a photo with music", true),
+        POSTED_AS_PHOTO("video posted as a photo", true),
+        POSTED_AS_VIDEO("video posted as a video", false),
+        NO_POSTED_TYPE("video with no posted type", false);
+
+        final String counted;
+        final boolean bothSaves;
+
+        Kind(String counted, boolean bothSaves) {
+            this.counted = counted;
+            this.bothSaves = bothSaves;
+        }
+    }
+
     /** The story menu whose labels are being built, held weakly so a closed menu can go. */
     private static volatile WeakReference<Object> building = new WeakReference<>(null);
 
@@ -96,18 +120,34 @@ public final class StoryDownload {
     }
 
     /**
-     * Whether the story [menu] is open on is a photo with music, which Instagram serves as a video.
-     * No when it can't tell, so the menu keeps its one Download. Never throws.
+     * Whether the story [menu] is open on is a photo with music, which Instagram serves as a video,
+     * counting what the story was for the diagnostic report. No when it can't tell, so the menu
+     * keeps its one Download. Never throws.
      */
     static boolean photoWithMusic(Object menu) {
-        if (menu == null) return false;
         try {
-            Object media = InstagramMedia.storyMedia(menu);
-            return media != null && Boolean.TRUE.equals(InstagramMedia.storyImageWithMusic(media));
+            Kind kind = kind(menu == null ? null : InstagramMedia.storyMedia(menu));
+            HookStatus.counted(FamilyNames.STORY_DOWNLOAD, kind.counted);
+            return kind.bothSaves;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, MUSIC_CHECK, t);
             return false;
         }
+    }
+
+    /**
+     * What [media], a story's Media, is. A photo story with music reaches the menu as a video. Only
+     * some uploads flag it as one, and Instagram's own story viewer tells it from a filmed video by
+     * the type it was posted as, a photo (#98). Without a video there's only the picture to save,
+     * whatever the story says, so it keeps its one Download.
+     */
+    static Kind kind(Object media) {
+        if (media == null) return Kind.UNREAD;
+        if (ReelDownload.renditions(media).isEmpty() && InstagramMedia.dashManifest(media) == null) return Kind.PHOTO;
+        if (Boolean.TRUE.equals(InstagramMedia.storyImageWithMusic(media))) return Kind.FLAGGED;
+        Integer posted = InstagramMedia.originalMediaType(media);
+        if (posted == null) return Kind.NO_POSTED_TYPE;
+        return posted == POSTED_PHOTO ? Kind.POSTED_AS_PHOTO : Kind.POSTED_AS_VIDEO;
     }
 
     /**

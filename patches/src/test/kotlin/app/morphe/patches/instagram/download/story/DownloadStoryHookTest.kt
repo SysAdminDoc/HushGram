@@ -27,12 +27,15 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.value.StringEncodedValue
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -40,6 +43,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -221,6 +225,7 @@ class DownloadStoryHookTest {
             "candidateWidth" to ("$IMAGE_URL->getWidth()I" to Opcode.MOVE_RESULT),
             "candidateHeight" to ("$IMAGE_URL->getHeight()I" to Opcode.MOVE_RESULT),
             "storyImageWithMusic" to ("$MEDIA->A5d()Ljava/lang/Boolean;" to Opcode.MOVE_RESULT_OBJECT),
+            "originalMediaType" to ("$MEDIA->A6P()Ljava/lang/Integer;" to Opcode.MOVE_RESULT_OBJECT),
         )
         expected.forEach { (bridge, call) ->
             val code = context.method(INSTAGRAM_MEDIA, bridge).code()
@@ -273,6 +278,15 @@ class DownloadStoryHookTest {
         assertUntouched(context)
     }
 
+    /** Without the getter for the type a story was posted as, a photo with music can't be told, and nothing changes. */
+    @Test
+    fun aMissingPostedTypeGetterFailsBeforeAnythingChanges() {
+        val context = PatchContexts.of(classes(leaveOutPostedType = true))
+        val failure = assertThrows(PatchException::class.java) { context.offerDownloadOnEveryStory() }
+        assertTrue(failure.message!!, failure.message!!.contains("original_media_type"))
+        assertUntouched(context)
+    }
+
     @Test
     fun aHandlerWithoutLocalsFailsBeforeAnythingChanges() {
         val context = PatchContexts.of(classes(handlerLocals = 1))
@@ -288,16 +302,10 @@ class DownloadStoryHookTest {
     @Test
     fun eachDeclaredBuildOffersDownloadOnEveryStory() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
-        val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL)
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) {
-                        if (classDef.type in types || classDef.isStoryMenu() || classDef.looksLabelsUp()) classes += ImmutableClassDef.of(classDef)
-                    }
-                }
+                val classes = storyClasses(bundle)
                 val context = PatchContexts.of(classes)
 
                 context.offerDownloadOnEveryStory()
@@ -350,10 +358,113 @@ class DownloadStoryHookTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
+    /**
+     * A photo story with music that Instagram serves as a video (#98). Only some uploads set the
+     * music flag, and Instagram's own story viewer tells the rest from a filmed video by the type
+     * the story was posted as. In the declared build and every other build of its version,
+     * originalMediaType() calls the getter the viewer calls on the Media of the story that
+     * storyMedia() reads, and the viewer compares the answer with the media type Instagram builds
+     * with the number the extension takes for a photo.
+     */
+    @Test
+    fun eachBuildReadsAStorysPostedTypeWhereItsViewerDoes() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        val photo = ExtensionDex.intConstant(LABELS.substringBefore("->"), "POSTED_PHOTO")
+        for (bundle in declared + Fixtures.otherBuilds()) {
+            val build = if (bundle.name == "base.apk") bundle.parentFile.name else bundle.name
+            val context = PatchContexts.of(storyClasses(bundle))
+
+            context.offerDownloadOnEveryStory()
+
+            val bridge = context.method(INSTAGRAM_MEDIA, "originalMediaType").code()
+            assertEquals("$build: the posted type bridge's cast", MEDIA, bridge[0].referenceText())
+            val getter = bridge[1].referenceText()!!
+            assertTrue("$build: the posted type bridge calls $getter", getter.startsWith("$MEDIA->") && getter.endsWith("()Ljava/lang/Integer;"))
+            val story = context.method(INSTAGRAM_MEDIA, "storyMedia").code()[3].referenceText()!!
+            val viewers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == getter } }) { method ->
+                method.code().postedTypeChecks(story, getter).isNotEmpty()
+            }
+            val compared = viewers.flatMap { it.code().postedTypeChecks(story, getter) }.toSet()
+            assertTrue("$build: nothing reads $getter on $story and compares it with a media type", compared.isNotEmpty())
+            val types = FixtureDex.classes(bundle, compared.mapTo(HashSet()) { it.substringBefore("->") })
+            compared.forEach { constant ->
+                val numbers = types.getValue(constant.substringBefore("->")).constantNumbers()
+                assertEquals("$build: Instagram's number for $constant, the type its viewer compares with", photo, numbers[constant])
+            }
+        }
+    }
+
+    /** The classes Download any story reads in [bundle], with the extension's bridges. */
+    private fun storyClasses(bundle: File): List<ClassDef> {
+        val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL)
+        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type in types || classDef.isStoryMenu() || classDef.looksLabelsUp()) classes += ImmutableClassDef.of(classDef)
+            }
+        }
+        return classes
+    }
+
+    /**
+     * The media type constants [this] code compares a story's posted type with: where it reads the
+     * story's Media from [story], calls [getter] on it, turns the answer into Instagram's media type
+     * through a static method taking the number, and loads one of that type's constants.
+     */
+    private fun List<Instruction>.postedTypeChecks(story: String, getter: String): List<String> =
+        indices.filter { this[it].opcode == Opcode.INVOKE_VIRTUAL && this[it].referenceText() == getter }.mapNotNull { call ->
+            val media = (this[call] as Instruction35c).registerC
+            val read = (maxOf(0, call - 4) until call).any { at ->
+                this[at].opcode == Opcode.IGET_OBJECT && this[at].referenceText() == story && (this[at] as TwoRegisterInstruction).registerA == media
+            }
+            if (!read) return@mapNotNull null
+            val after = subList(call + 1, minOf(size, call + 8))
+            val type = after.firstNotNullOfOrNull { instruction ->
+                ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
+                    instruction.opcode == Opcode.INVOKE_STATIC && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Integer;")
+                }?.returnType
+            } ?: return@mapNotNull null
+            after.firstOrNull { instruction ->
+                instruction.opcode == Opcode.SGET_OBJECT &&
+                    ((instruction as ReferenceInstruction).reference as FieldReference).let { it.definingClass == type && it.type == type }
+            }?.referenceText()
+        }
+
+    /**
+     * The number each constant of [this] enum is built with in its static initializer, the last of
+     * its constructor's two ints, which is how Instagram's media types map the server's numbers.
+     */
+    private fun ClassDef.constantNumbers(): Map<String, Int> {
+        val constants = setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST)
+        val literals = mutableMapOf<Int, Int>()
+        var built: Int? = null
+        val numbers = mutableMapOf<String, Int>()
+        for (instruction in methods.single { it.name == "<clinit>" }.code()) {
+            when {
+                instruction.opcode in constants ->
+                    literals[(instruction as OneRegisterInstruction).registerA] = (instruction as NarrowLiteralInstruction).narrowLiteral
+                instruction.referenceText() == "$type-><init>(Ljava/lang/String;II)V" -> built = when (instruction) {
+                    is Instruction35c -> literals[instruction.registerF]
+                    is RegisterRangeInstruction -> literals[instruction.startRegister + 3]
+                    else -> null
+                }
+                instruction.opcode == Opcode.SPUT_OBJECT && ((instruction as ReferenceInstruction).reference as FieldReference).type == type -> {
+                    built?.let { numbers[instruction.referenceText()!!] = it }
+                    built = null
+                }
+                // A two-register instruction is a one-register one too, by its first register.
+                instruction.opcode.setsRegister() -> (instruction as? OneRegisterInstruction)?.let { literals.remove(it.registerA) }
+            }
+        }
+        return numbers
+    }
+
     /** The bridges this patch writes; the feed menu's two belong to Download any video. */
     private val storyBridges = setOf(
         "videoVersions", "dashManifest", "mediaId", "owner", "takenAt", "username", "versionUrl", "versionWidth", "versionHeight",
         "imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight", "storyMedia", "storyImageWithMusic",
+        "originalMediaType",
     )
 
     /** A dialog click listener that calls a static method answering labels. */
@@ -371,6 +482,7 @@ class DownloadStoryHookTest {
         assertEquals("the story bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyMedia").code().first().opcode)
         assertEquals("a bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "videoVersions").code().first().opcode)
         assertEquals("the music bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyImageWithMusic").code().first().opcode)
+        assertEquals("the posted type bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "originalMediaType").code().first().opcode)
     }
 
     private fun BytecodePatchContext.method(type: String, name: String, parameters: List<String>? = null): Method =
@@ -395,6 +507,7 @@ class DownloadStoryHookTest {
         leaveOutCandidates: Boolean = false,
         handlerLocals: Int = 11,
         leaveOutMusic: Boolean = false,
+        leaveOutPostedType: Boolean = false,
         arrayReadAgain: Boolean = false,
         jumpToLookup: Boolean = false,
     ): List<ClassDef> {
@@ -468,6 +581,7 @@ class DownloadStoryHookTest {
             "A6v" to ("taken_at" to "Ljava/lang/Long;"),
             "A3F" to ("image_versions2" to IMAGE_INFO),
         ).plus(if (leaveOutMusic) emptyList() else listOf("A5d" to ("is_story_image_with_music" to "Ljava/lang/Boolean;")))
+            .plus(if (leaveOutPostedType) emptyList() else listOf("A6P" to ("original_media_type" to "Ljava/lang/Integer;")))
             .map { (name, field) -> getter(MEDIA, name, field.first, field.second) } +
             method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1, static = false, body = """
                 const/4 v0, 0x0

@@ -142,6 +142,32 @@ function Test-DeclaredBuild {
     return ($pinned.Count -eq 0 -or $pinned -ccontains $VersionCode)
 }
 
+function Find-DeclaredFixture {
+    <#
+    .SYNOPSIS
+        The top-level file of -Folder that is the fixture of one declared version, or $null.
+    .DESCRIPTION
+        Files are named instagram-<version>-<version code>, then optionally more, then .apk, .apks,
+        .apkm or .xapk. When the catalog pins the version to codes, only a file of a pinned code
+        counts, so a second build of the same version name (another arm64 build, a full bundle)
+        sitting beside the declared one is never taken for it, whatever it sorts like. A version
+        pinned to no code takes the first file of that version, by name.
+    #>
+    param(
+        [Parameter(Mandatory = $true)]$Target,
+        [Parameter(Mandatory = $true)][string]$Version,
+        [Parameter(Mandatory = $true)][string]$Folder
+    )
+    $pinned = @($Target.PackageVersionCodes[$Version] | Where-Object { $_ })
+    $prefix = "instagram-$Version-"
+    foreach ($file in @(Get-ChildItem -LiteralPath $Folder -File | Sort-Object Name)) {
+        if ($file.Name -notlike "$prefix*" -or $file.Extension -notin '.apk', '.apks', '.apkm', '.xapk') { continue }
+        $code = [regex]::Match($file.Name.Substring($prefix.Length), '^\d+').Value
+        if ($pinned.Count -eq 0 -or $pinned -ccontains $code) { return $file }
+    }
+    return $null
+}
+
 function Format-DeclaredBuilds {
     # The declared builds the way a refusal names them: 580.0.0.51.74 (475019344), 577.0.0.50.72 (474426275).
     param([Parameter(Mandatory = $true)]$Target)

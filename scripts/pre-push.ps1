@@ -10,7 +10,8 @@
     Every push gets the commit checks: who committed each published commit, trailers or authors
     naming an AI tool, and tracked files that name the maintainer's machine or a phone. A tag, or
     a commit that adds or changes patches-bundle.json (the index Morphe Manager reads), is a
-    release, and a release needs HUSHGRAM_ALLOW_RELEASE=1 set for that one push.
+    release, and a release needs HUSHGRAM_ALLOW_RELEASE=1 set for that one push. A push that moves
+    a PowerShell file has every tracked one parsed, and one that doesn't parse stops it.
 
     When a pushed commit changes the build, the patches, the extension or a root file their tests
     read, the tip is checked out into a clean worktree and built there: the unit tests, both lints,
@@ -19,6 +20,20 @@
     allowlist files counts as a build change too, so the declared builds are verified again with
     them. The ledger's rules run when the ledger or its scripts move, and the injected-register,
     device helper, resource table and release tooling suites when their own files move.
+
+    The build waits for a slot in the machine's build queue and holds it to the end, and Gradle
+    runs through the machine's wrapper (scripts/build-jobs.ps1 says how both are found). Without
+    them it runs straight away with a warning. HUSHGRAM_ALLOW_RELEASE=1 puts the push ahead of
+    everyday builds in the queue.
+
+    Before the gate removes its worktree it keeps what a release needs, pass or fail, in a folder
+    named for the commit (scripts/gate-evidence.ps1 says where): the test results, the bundle and
+    its SBOM, each declared build's reports and passing patch run, and a manifest. The release
+    receipt and the release check read them back with -FromGate rather than building, testing and
+    patching the same commit again. A push whose files are all index files, over a commit the
+    gate passed with nothing since but the index's own lines, isn't built or tested again. Its
+    release check still runs, and a gate here that would patch the declared builds needs the kept
+    run to have patched the same fixtures with the same desktop CLI.
 
     A push that changes a published file (README.md, CHANGELOG.md, the catalog, the version, the
     bug form, the index or the lists and scripts the release check reads) runs
@@ -51,6 +66,8 @@ if ($env:HUSHGRAM_SKIP_PRE_PUSH -eq '1') {
 }
 . (Join-Path $PSScriptRoot 'common.ps1')
 . (Join-Path $PSScriptRoot 'patch-target.ps1')
+. (Join-Path $PSScriptRoot 'build-jobs.ps1')
+. (Join-Path $PSScriptRoot 'gate-evidence.ps1')
 
 # A hook runs with git's environment, which can miss user variables set after the shell started.
 foreach ($envName in @('HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_WORKDIR')) {
@@ -68,12 +85,22 @@ $buildPaths = '^(extensions/|patches/|gradle/|build\.gradle\.kts$|settings\.grad
     'NOTICE$|provenance\.json$|README\.md$|patches-list\.json$|sources/|' +
     'scripts/(build-inputs\.gradle|canonical-build-inputs\.txt|build-identity\.ps1|test-build-identity\.ps1|DexDiff\.java|ResourceTableCheck\.java|MergeSplits\.java|injected-mutation-contracts\.txt|' +
     'injected-register-removal-allowlist\.txt|verify-all-patches\.ps1|verify-injected-registers\.ps1|' +
-    'test-android-boundaries\.ps1|pre-push\.ps1|script-wiring\.ps1)$)'
+    'test-android-boundaries\.ps1|pre-push\.ps1|script-wiring\.ps1|build-jobs\.ps1|gate-evidence\.ps1)$)'
 $ledgerPaths = '^(sources/|scripts/(instagram-sources|test-instagram-sources|audit-instagram-sources)\.ps1$|NOTICE$|provenance\.json$)'
 $zero = '0' * 40
 
 function Write-Step([string]$Message) { Write-Host "[pre-push] $Message" }
-function Stop-Push([string]$Message) { Write-Host "[pre-push] refused: $Message"; exit 1 }
+function Stop-Push([string]$Message) { $script:gateRefusal = $Message; Write-Host "[pre-push] refused: $Message"; exit 1 }
+# The fixture a gate patches for each build the catalog declares: the instagram-<version>-<code>
+# APK, bundle or split bundle of the declared version code in -Folder (Find-DeclaredFixture). Apk is
+# $null for a declared build with none there.
+function Get-DeclaredFixtures([string]$CatalogText, [string]$Folder) {
+    $target = Get-PatchTarget -PatchList ($CatalogText | ConvertFrom-Json)
+    foreach ($version in @($target.PackageVersions)) {
+        $apk = Find-DeclaredFixture -Target $target -Version $version -Folder $Folder
+        [pscustomobject]@{ Version = $version; Apk = $apk }
+    }
+}
 function Invoke-Git {
     # git's output is read as UTF-8 (Use-Utf8ConsoleOutput), so a non-ASCII path or message comes
     # back whole when the push starts in Git Bash. $args is copied first, since inside the block
@@ -116,6 +143,9 @@ if ($changed.Contains('patches-bundle.json')) { $release = $true }
 if ($release -and $env:HUSHGRAM_ALLOW_RELEASE -ne '1') {
     Stop-Push 'this push is a release (a tag or patches-bundle.json). Set HUSHGRAM_ALLOW_RELEASE=1 for the push once it has been approved.'
 }
+# A push made for a release, its source push included, goes ahead of everyday builds in the
+# machine's queue (build-jobs.ps1).
+if ($env:HUSHGRAM_ALLOW_RELEASE -eq '1') { $env:BUILD_QUEUE_PRIORITY = 'release' }
 
 $hits = @(Find-MachineNames -Root $Root -Commit @($published))
 if ($hits.Count -gt 0) {
@@ -123,6 +153,30 @@ if ($hits.Count -gt 0) {
     Stop-Push "$($hits.Count) line(s) name this machine or a phone"
 }
 Write-Step "$($published.Count) commit(s): committer, trailers and machine names are clean"
+
+# Every tracked PowerShell file parses, once a push moves one. Most of these scripts run only for a
+# release or with a phone, and no suite reads them all, so a syntax slip would otherwise turn up
+# there first. Read from the pushed tip, not the working tree, which can hold other edits, and
+# parsed as text, since Windows PowerShell's ParseFile reads a file with no byte order mark as ANSI.
+if (@($changed | Where-Object { $_ -like '*.ps1' }).Count -gt 0) {
+    $unparsed = New-Object System.Collections.Generic.List[string]
+    $parseTip = if ($tips.Count -gt 0) { $tips[$tips.Count - 1] } else { $published[0] }
+    $trackedScripts = @(Invoke-Git -c core.quotepath=false ls-tree -r --name-only $parseTip | Where-Object { $_ -like '*.ps1' })
+    foreach ($trackedScript in $trackedScripts) {
+        $scriptText = (Invoke-Git show "${parseTip}:$trackedScript") -join "`n"
+        $parseErrors = $null
+        [void][System.Management.Automation.Language.Parser]::ParseInput(
+            $scriptText, (Join-Path $Root $trackedScript), [ref]$null, [ref]$parseErrors)
+        foreach ($parseError in @($parseErrors)) {
+            $unparsed.Add("${trackedScript}:$($parseError.Extent.StartLineNumber) $($parseError.Message)")
+        }
+    }
+    if ($unparsed.Count -gt 0) {
+        $unparsed | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
+        Stop-Push "$($unparsed.Count) parse error(s) in the tracked PowerShell files, and a script that doesn't parse stops wherever it's next run"
+    }
+    Write-Step "the $($trackedScripts.Count) tracked PowerShell files parse"
+}
 
 if (@($changed | Where-Object { $_ -match $ledgerPaths }).Count -gt 0) {
     Write-Step 'the source ledger or its rules changed, running them'
@@ -178,6 +232,8 @@ $releaseToolingPaths = @(
     'scripts/dependency-graphs.init.gradle',
     'scripts/build-inputs.gradle',
     'scripts/build-identity.ps1',
+    'scripts/build-jobs.ps1',
+    'scripts/gate-evidence.ps1',
     'scripts/canonical-build-inputs.txt',
     'scripts/test-build-identity.ps1',
     'scripts/dependency-advisory-exceptions.txt',
@@ -248,6 +304,26 @@ if (@($changed | Where-Object {
 }).Count -gt 0) {
     $suites += , @('scripts/test-translations.ps1', 'translation catalog or tooling changed, checking its tests')
 }
+if (@($changed | Where-Object {
+    $_ -in @('scripts/build-jobs.ps1', 'scripts/test-build-jobs.ps1', 'scripts/audit-dependencies.ps1',
+        'scripts/build-release-receipt.ps1', 'scripts/verify-all-patches.ps1', 'scripts/pre-push.ps1', 'scripts/script-wiring.ps1',
+        'scripts/release/patch-all-builds.ps1', 'scripts/release/preflight.ps1')
+}).Count -gt 0) {
+    $suites += , @('scripts/test-build-jobs.ps1', 'the build queue wiring changed, checking its stand-ins')
+}
+if (@($changed | Where-Object {
+    $_ -like 'scripts/release/*' -or $_ -in @('scripts/test-release-helpers.ps1', 'scripts/common.ps1', 'scripts/patch-target.ps1',
+        'scripts/patch-report.ps1', 'scripts/apk-facts.ps1', 'scripts/build-jobs.ps1', 'scripts/gate-evidence.ps1',
+        'scripts/Resolve-Java.ps1', 'scripts/pre-push.ps1', 'scripts/script-wiring.ps1')
+}).Count -gt 0) {
+    $suites += , @('scripts/test-release-helpers.ps1', 'a release helper changed, running its stand-ins')
+}
+if (@($changed | Where-Object {
+    $_ -in @('scripts/pre-push.ps1', 'scripts/test-push-gate.ps1', 'scripts/build-jobs.ps1', 'scripts/gate-evidence.ps1',
+        'scripts/common.ps1', 'scripts/patch-target.ps1', 'scripts/script-wiring.ps1')
+}).Count -gt 0) {
+    $suites += , @('scripts/test-push-gate.ps1', 'the push gate changed, running it end to end on stand-ins')
+}
 foreach ($suite in $suites) {
     $suiteScript = Join-Path $Root $suite[0]
     if (-not (Test-Path -LiteralPath $suiteScript -PathType Leaf)) {
@@ -292,9 +368,11 @@ if (@($changed | Where-Object { $_ -in $releaseFactPaths }).Count -gt 0 -and $ti
             Stop-Push ("an index push checks the bundle and receipt this checkout built, so push it from a clean " +
                 "checkout of $factsTip")
         }
-        $builtHere = (Get-ReleaseFactsArguments -Push Index -Root $Root)['ArtifactPath']
-        if ($builtHere) {
-            Write-Step "a new index, checking the published release against $(Split-Path -Leaf $builtHere) built here"
+        $indexFacts = Get-ReleaseFactsArguments -Push Index -Root $Root
+        if ($indexFacts['ArtifactPath']) {
+            Write-Step "a new index, checking the published release against $(Split-Path -Leaf $indexFacts['ArtifactPath']) built here"
+        } elseif ($indexFacts['FromGate']) {
+            Write-Step "a new index, checking the published release against the bundle the gate built for it"
         } else {
             Write-Step 'a new index and no bundle built here for the version it publishes, so the published asset is checked on its own'
         }
@@ -338,53 +416,140 @@ if (@($changed | Where-Object { $_ -match $buildPaths }).Count -eq 0 -or $tips.C
     exit 0
 }
 
+# An index push over a commit the gate passed. Every file pushed is an index file, and everything
+# since that commit is the index's own lines (gate-evidence.ps1 says which), which nothing the gate
+# builds or tests reads, so the same sources aren't built and tested a second time. The release
+# switch, the commit checks, the suites and the release facts above ran as on any push, the last
+# against the published release. When a gate here would patch the declared builds, the kept run
+# has to have patched the same fixtures with the same desktop CLI, or the gate runs.
+if ($changed.Count -gt 0 -and @($changed | Where-Object { $script:GateIndexFiles -cnotcontains $_ }).Count -eq 0 -and
+        "$(Invoke-Git rev-parse HEAD)".Trim() -eq $tips[$tips.Count - 1]) {
+    $passedRun = Find-GateEvidence -Root $Root -AllowIndexCommits -Prefix '[pre-push]'
+    if ($passedRun) {
+        $gap = $null
+        $wouldPatch = @()
+        $fixtureFolder = $env:HUSHGRAM_FIXTURE_DIR
+        if ($fixtureFolder -and (Test-Path -LiteralPath $fixtureFolder -PathType Container)) {
+            $wouldPatch = @(Get-DeclaredFixtures -CatalogText (Get-Content -LiteralPath (Join-Path $Root 'patches-list.json') -Raw) `
+                -Folder $fixtureFolder)
+            $unfixed = @($wouldPatch | Where-Object { -not $_.Apk })
+            if ($unfixed.Count -gt 0) { $gap = "no fixture for the declared build $($unfixed[0].Version) in $fixtureFolder" }
+        }
+        if (-not $gap) {
+            $gap = Get-GateRunGap -Evidence $passedRun -DesktopJar $(if ($wouldPatch.Count -gt 0) { Resolve-DesktopCli -Root $Root }) `
+                -FixtureFingerprint $(if ($fixtureFolder -and (Test-Path -LiteralPath $fixtureFolder -PathType Container)) { Get-FixtureFingerprint -Folder $fixtureFolder }) `
+                -Fixtures @($wouldPatch | ForEach-Object { [pscustomobject]@{ Version = $_.Version; Apk = $_.Apk.FullName } })
+        }
+        if (-not $gap) {
+            $since = if ($passedRun.IndexOnly) { "everything since $($passedRun.Commit.Substring(0, 12)) is the index" } else { 'the gate passed this commit' }
+            Write-Step "$since, and the gate's run of it holds up, so it isn't built and tested again"
+            exit 0
+        }
+        Write-Step "the gate's run of $($passedRun.Commit.Substring(0, 12)) doesn't cover this push: $gap"
+    }
+}
+
 $tip = $tips[$tips.Count - 1]
 $gate = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-gate-' + [guid]::NewGuid().ToString('N').Substring(0, 12))
 Write-Step "building $($tip.Substring(0, 12)) in a clean worktree"
 Invoke-Git worktree add --detach $gate $tip | Out-Null
+# The whole gate holds one slot in the machine's build queue, so another session's build can't
+# take the cores between its steps. Gradle, the boundary self-tests and the patch runs started
+# inside it see the slot and don't queue again.
+$gateJob = $null
+# What the gate leaves for the release scripts, pass or fail, kept by commit outside the worktree
+# (gate-evidence.ps1): its test results, the bundle and SBOM, each declared build's reports and
+# its patched APK, and a manifest saying how far it got.
+$evidence = $null
+$gateStage = 'setup'
+$gatePassed = $false
+$fixturesPatched = $false
+$fixtureRuns = New-Object System.Collections.Generic.List[object]
 try {
+    $gateJob = Enter-HeavyJob -Label "gate $($tip.Substring(0, 12))"
+    $evidence = Start-GateEvidence -Commit $tip
     $localProperties = Join-Path $Root 'local.properties'
     if (Test-Path -LiteralPath $localProperties) { Copy-Item -LiteralPath $localProperties -Destination $gate }
-    $gradle = Join-Path $gate $(if ($IsWindows -or $env:OS -eq 'Windows_NT') { 'gradlew.bat' } else { 'gradlew' })
-    & $gradle -p $gate --console=plain :patches:test :extensions:instagram:testDebugUnitTest :extensions:instagram:verifyAndroidBoundaries `
-        :extensions:instagram:lint :extensions:shared:library:lint
-    if ($LASTEXITCODE -ne 0) { Stop-Push 'tests or lint failed' }
+
+    # The declared builds' fixtures and the desktop CLI are found before anything is built, so a
+    # missing one stops the push in seconds rather than after the tests.
+    $catalog = Join-Path $gate 'patches-list.json'
+    $before = Get-Content -LiteralPath $catalog -Raw
+    $fixtures = $env:HUSHGRAM_FIXTURE_DIR
+    $fixtureApks = @()
+    $fixtureFingerprint = $null
+    if ($fixtures -and (Test-Path -LiteralPath $fixtures -PathType Container)) {
+        # Taken before anything is built: the patch tests read the whole folder.
+        $fixtureFingerprint = Get-FixtureFingerprint -Folder $fixtures
+        $desktop = Resolve-DesktopCli -Root $Root -Required
+        $fixtureApks = @(foreach ($fixture in @(Get-DeclaredFixtures -CatalogText $before -Folder $fixtures)) {
+            if (-not $fixture.Apk) { Stop-Push "no fixture for the declared build $($fixture.Version) in $fixtures" }
+            $fixture
+        })
+    }
+
+    # Cheap checks first: the catalog, both lints and the runtime tests take a few minutes, and
+    # :patches:test reads every fixture build for most of a quarter hour. v0.0.7's gates ran the
+    # lot as one build, so a lint slip or a stale catalog surfaced after the patch tests.
+    $gateStage = 'quick'
+    Invoke-GradleBuild -ProjectDir $gate -Tasks @('--console=plain', ':patches:generatePatchesList',
+        ':extensions:instagram:testDebugUnitTest', ':extensions:instagram:verifyAndroidBoundaries',
+        ':extensions:instagram:lint', ':extensions:shared:library:lint')
+    if ($LASTEXITCODE -ne 0) { Stop-Push 'the runtime tests, a lint or the catalog failed' }
+    if ((Get-Content -LiteralPath $catalog -Raw) -cne $before) {
+        Stop-Push 'patches-list.json is stale: run :patches:generatePatchesList and commit it'
+    }
 
     if ($touchesAndroidBoundaries) {
+        $gateStage = 'boundaries'
         & pwsh -NoProfile -File (Join-Path $gate 'scripts/test-android-boundaries.ps1') -Root $gate
         if ($LASTEXITCODE -ne 0) { Stop-Push 'Android boundary gate self-tests failed' }
     }
 
-    $catalog = Join-Path $gate 'patches-list.json'
-    $before = Get-Content -LiteralPath $catalog -Raw
-    & $gradle -p $gate --console=plain :patches:generatePatchesList :patches:buildAndroid
-    if ($LASTEXITCODE -ne 0) { Stop-Push 'the bundle did not build' }
-    if ((Get-Content -LiteralPath $catalog -Raw) -ne $before) {
-        Stop-Push 'patches-list.json is stale: run :patches:generatePatchesList and commit it'
-    }
+    $gateStage = 'full'
+    Invoke-GradleBuild -ProjectDir $gate -Tasks @('--console=plain', ':patches:test', ':patches:buildAndroid')
+    if ($LASTEXITCODE -ne 0) { Stop-Push 'the patch tests failed or the bundle did not build' }
 
+    $gateStage = 'fixtures'
     $bundle = Get-ChildItem -LiteralPath (Join-Path $gate 'patches/build/release') -Filter 'patches-*.mpp' | Select-Object -First 1
-    $fixtures = $env:HUSHGRAM_FIXTURE_DIR
-    if (-not $fixtures -or -not (Test-Path -LiteralPath $fixtures -PathType Container)) {
+    if ($fixtureApks.Count -eq 0) {
+        $gatePassed = $true
         Write-Step 'HUSHGRAM_FIXTURE_DIR is not set, so no build was patched'
         exit 0
     }
-    $desktop = Resolve-DesktopCli -Root $Root -Required
-    $target = Get-PatchTarget -PatchList (Get-Content -LiteralPath $catalog -Raw | ConvertFrom-Json)
-    foreach ($version in @($target.PackageVersions)) {
-        $apk = Get-ChildItem -LiteralPath $fixtures -File | Where-Object {
-            $_.Name -like "instagram-$version-*" -and $_.Extension -in '.apk', '.apks', '.apkm', '.xapk'
-        } | Select-Object -First 1
-        if (-not $apk) { Stop-Push "no fixture for the declared build $version in $fixtures" }
+    # The pushed commit's own check, which keeps its passing run when it knows how (-KeepIn).
+    $verifyScript = Join-Path $gate 'scripts/verify-all-patches.ps1'
+    $verifyParameters = @([System.Management.Automation.Language.Parser]::ParseInput(
+        [System.IO.File]::ReadAllText($verifyScript), [ref]$null, [ref]$null).ParamBlock.Parameters |
+        ForEach-Object { $_.Name.VariablePath.UserPath })
+    foreach ($fixture in $fixtureApks) {
+        $version = $fixture.Version
+        $apk = $fixture.Apk
         $work = Join-Path $gate "build/verify-$version"
         New-Item -ItemType Directory -Path $work -Force | Out-Null
-        & pwsh -NoProfile -File (Join-Path $gate 'scripts/verify-all-patches.ps1') -Apk $apk.FullName `
-            -DesktopJar $desktop -WorkDir $work -Bundle $bundle.FullName -PatchList $catalog
+        $fixtureRuns.Add([pscustomobject]@{ Version = $version; Apk = $apk.FullName; WorkDir = $work })
+        $keep = if ($verifyParameters -contains 'KeepIn') { @('-KeepIn', (Join-Path $evidence "fixtures/$version/kept")) } else { @() }
+        & pwsh -NoProfile -File $verifyScript -Apk $apk.FullName `
+            -DesktopJar $desktop -WorkDir $work -Bundle $bundle.FullName -PatchList $catalog @keep
         if ($LASTEXITCODE -ne 0) { Stop-Push "patching Instagram $version failed" }
     }
+    $fixturesPatched = $true
+    $gateStage = 'done'
+    $gatePassed = $true
     Write-Step 'every check passed'
 } finally {
+    if ($evidence) {
+        # Kept even when the gate refused, so a failed run's test results outlive its worktree.
+        try {
+            Save-GateEvidence -Directory $evidence -GateRoot $gate -Commit $tip -Passed $gatePassed -Stage $gateStage `
+                -Reason $script:gateRefusal -FixtureRuns $fixtureRuns.ToArray() -FixturesPatched $fixturesPatched -FixtureFingerprint $fixtureFingerprint | Out-Null
+            Write-Step "kept this gate's results in $evidence"
+        } catch {
+            Write-Warning "[pre-push] the gate's results could not be kept: $($_.Exception.Message)"
+        }
+    }
     & git -C $Root worktree remove --force $gate 2>$null | Out-Null
     if (Test-Path -LiteralPath $gate) { Remove-Item -LiteralPath $gate -Recurse -Force -ErrorAction SilentlyContinue }
+    Exit-HeavyJob $gateJob
 }
 exit 0

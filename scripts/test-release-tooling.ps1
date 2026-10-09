@@ -71,6 +71,13 @@ function New-TestBundleArchive {
 foreach ($name in @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WORKDIR', 'HUSHGRAM_JAVA', 'HUSHGRAM_AAPT2')) {
     Remove-Item -LiteralPath "Env:\$name" -ErrorAction SilentlyContinue
 }
+# The stand-ins patch nothing heavy, so they don't wait for a slot in the machine's build queue.
+# build-jobs.ps1 reads the user's environment too, so these are switched off rather than cleared.
+$env:BUILD_QUEUE_SCRIPT = 'none'
+$env:HUSHGRAM_BUILD_WRAPPER = 'none'
+# The gate's kept runs (gate-evidence.ps1) in a folder of the suite's own, so a maintainer's real
+# runs are neither read nor pruned. Nothing is written there before the release root below.
+$env:HUSHGRAM_GATE_CACHE = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-gate-cache-' + [guid]::NewGuid().ToString('N'))
 
 # --- release receipt -------------------------------------------------------------------------
 
@@ -2922,7 +2929,8 @@ try {
     # above, and what the builder says is kept in $builderSaid, warnings included.
     $builderSaid = ''
     function Invoke-ReceiptBuilder([string[]]$Fixtures, [string]$Bundle,
-            [string]$WorkDir = (Join-Path $releaseRoot 'work'), [string]$DesktopJar = $stubJar, [switch]$SkipAdvisoryCheck) {
+            [string]$WorkDir = (Join-Path $releaseRoot 'work'), [string]$DesktopJar = $stubJar, [switch]$SkipAdvisoryCheck,
+            [switch]$FromGate) {
         Remove-Item -LiteralPath $javaLog, $mergeLog -Force -ErrorAction SilentlyContinue
         $saved = @{}
         foreach ($variable in @(Get-ChildItem Env: | Where-Object { $_.Name -like 'GIT_*' })) {
@@ -2954,6 +2962,7 @@ try {
             if ($Fixtures) { $arguments['Fixture'] = $Fixtures }
             if ($Bundle) { $arguments['Bundle'] = $Bundle }
             if ($SkipAdvisoryCheck) { $arguments['SkipAdvisoryCheck'] = $true }
+            if ($FromGate) { $arguments['FromGate'] = $true }
             $script:builderSaid = @(& (Join-Path $PSScriptRoot 'build-release-receipt.ps1') @arguments 3>&1 6>&1 |
                 ForEach-Object { "$_" }) -join "`n"
             if ($LASTEXITCODE -ne 0) { throw "build-release-receipt.ps1 exited $LASTEXITCODE." }
@@ -3222,6 +3231,120 @@ try {
     $builtReceiptBytes = [System.IO.File]::ReadAllBytes($releaseReceipt)
     $builtSumsBytes = [System.IO.File]::ReadAllBytes($releaseSums)
 
+    # -FromGate: the push gate's run of this commit, kept the way pre-push.ps1 keeps it, with the
+    # bundle and SBOM built here, both test runs and the declared build's patch run stamped with
+    # what made it. The newer build has no kept run, so it is still patched here. Each case that
+    # spoils the run patches the declared build again rather than reading it.
+    . (Join-Path $PSScriptRoot 'gate-evidence.ps1')
+    $declaredFixture = $fixturePaths[$declaredBuild]
+    $declaredPatchRun = "patch $declaredFixture merged forced=0"
+    Write-FactsResults $runtimeResults 'RuntimeTest' 5 -Under $releaseRepo
+    Write-FactsResults $patchResults 'PatchTest' 7 -Under $releaseRepo
+    $gateDir = Start-GateEvidence -Commit $releaseCommit
+    $gateKept = Join-Path $gateDir "fixtures/$declaredBuild/kept"
+    $gateStaging = Join-Path $releaseRoot 'gate-staging'
+    New-Item -ItemType Directory -Path $gateStaging -Force | Out-Null
+    Copy-Item -LiteralPath (Join-Path $tools 'patched.apk') -Destination (Join-Path $gateStaging 'patched.apk')
+    Copy-Item -LiteralPath "$declaredFixture.merged.txt" -Destination (Join-Path $gateStaging 'stock-merged.apk')
+    Copy-Item -LiteralPath "$declaredFixture.result.json" -Destination (Join-Path $gateStaging 'result.json')
+    Write-GateKeptRun -KeepIn $gateKept -PatchedApk (Join-Path $gateStaging 'patched.apk') `
+        -Result (Join-Path $gateStaging 'result.json') -MergedApk (Join-Path $gateStaging 'stock-merged.apk') `
+        -Apk $declaredFixture -Bundle $releaseBundle -PatchList (Join-Path $releaseRepo 'patches-list.json') `
+        -DesktopJar $stubJar -VersionName $declaredBuild -VersionCode $declaredCode -Forced $false
+    # The aapt2 stand-in reads a patched APK's manifest from the file beside it.
+    Copy-Item -LiteralPath "$declaredFixture.patched.txt" -Destination (Join-Path $gateKept 'patched.apk.xmltree')
+    Save-GateEvidence -Directory $gateDir -GateRoot $releaseRepo -Commit $releaseCommit -Passed $true -Stage 'done' `
+        -FixtureRuns @([pscustomobject]@{ Version = $declaredBuild; Apk = $declaredFixture; WorkDir = $gateStaging }) `
+        -FixturesPatched $true | Out-Null
+    $gateManifestPath = Join-Path $gateDir 'manifest.json'
+    $gateManifestText = [System.IO.File]::ReadAllText($gateManifestPath)
+    $gateStampPath = Join-Path $gateKept 'stamp.json'
+    $gateStampText = [System.IO.File]::ReadAllText($gateStampPath)
+    $gateBundle = Join-Path $gateDir "release/$(Split-Path -Leaf $releaseBundle)"
+    $gateBundleBytes = [System.IO.File]::ReadAllBytes($gateBundle)
+    $releaseBundleBytes = [System.IO.File]::ReadAllBytes($releaseBundle)
+    $releaseSbomBytes = [System.IO.File]::ReadAllBytes($releaseSbom)
+    $gateAllowlist = @($checkedInAllowlist | Sort-Object -Unique -CaseSensitive) -join "`n"
+    try {
+        Remove-Item -LiteralPath $releaseReceipt -Force
+        Invoke-ReceiptBuilder -Fixtures $allFixtures -FromGate
+        Assert-True ((@(Get-Content -LiteralPath $javaLog) -join '; ') -eq "patch $($fixturePaths[$newerBuild]) merged forced=1" -and
+            (@(Get-Content -LiteralPath $mergeLog) -join '; ') -eq "merge $($fixturePaths[$newerBuild])") `
+            ("With the gate's run of the declared build, the builder merged or patched it again, or skipped the newer one: " +
+                "$(@(Get-Content -LiteralPath $javaLog) -join '; ')")
+        foreach ($expected in @("*reading the gate's run of $($releaseCommit.Substring(0, 12))*",
+                "*$(Split-Path -Leaf $declaredFixture): reading the gate's patch run*",
+                "*the gate kept no run of $newerBuild, so it is patched here*",
+                '*the sources here are not compared with it by date*',
+                "*kept a copy of both with the gate's run*")) {
+            Assert-True ($builderSaid -like $expected) "The builder reading the gate's run did not say $expected`: $builderSaid"
+        }
+        $gateReceipt = Get-Content -LiteralPath $releaseReceipt -Raw | ConvertFrom-Json
+        $gateTarget = @($gateReceipt.targets | Where-Object { [string]$_.source.versionName -eq $declaredBuild })
+        Assert-True (@($gateReceipt.targets).Count -eq 2 -and $gateTarget.Count -eq 1 -and -not $gateTarget[0].source.forced -and
+            $gateTarget[0].source.sha256 -eq (Get-Sha256Hex -Path $declaredFixture) -and
+            @($gateTarget[0].patches | Where-Object { $_.applied }).Count -eq $releaseNames.Count -and
+            (@(ConvertTo-ManifestDeltaEntries -Delta $gateTarget[0].manifestDelta) -join "`n") -ceq $gateAllowlist) `
+            "The receipt read from the gate's run does not record the declared build as a run here does: $($gateTarget | ConvertTo-Json -Depth 6 -Compress)"
+        $said = Invoke-ReleaseCheck
+        Assert-True ($said -like "*$builtProved*") "The release check refused the receipt cut from the gate's run: $said"
+        foreach ($pair in @(@($releaseReceipt, "release-receipt-$releaseVersionHere.json"), @($releaseSums, 'SHA256SUMS.txt'))) {
+            $keptCopy = Join-Path $gateDir "receipt/$($pair[1])"
+            Assert-True ((Test-Path -LiteralPath $keptCopy -PathType Leaf) -and
+                (Get-Sha256Hex -Path $keptCopy) -ceq (Get-Sha256Hex -Path $pair[0])) "The builder kept no copy of $($pair[1]) with the gate's run."
+        }
+
+        # No bundle built here: the gate's bundle and SBOM are copied in where buildAndroid leaves
+        # them, and nothing is merged or patched.
+        Remove-Item -LiteralPath $releaseBundle, $releaseSbom, $releaseSums -Force
+        Invoke-ReceiptBuilder -Fixtures @($declaredFixture) -FromGate
+        Assert-True (-not (Test-Path -LiteralPath $javaLog) -and -not (Test-Path -LiteralPath $mergeLog)) `
+            'With no bundle built here, the builder patched the declared build the gate already patched.'
+        Assert-True ($builderSaid -like "*no bundle built here, so the gate's $(Split-Path -Leaf $releaseBundle) and its SBOM were copied*" -and
+            (Get-Sha256Hex -Path $releaseBundle) -ceq (Get-Sha256Hex -Path $gateBundle) -and
+            [System.Linq.Enumerable]::SequenceEqual([byte[]][System.IO.File]::ReadAllBytes($releaseSbom), [byte[]]$releaseSbomBytes)) `
+            "With no bundle built here, the gate's bundle and SBOM were not copied in: $builderSaid"
+
+        # Without -FromGate the kept run is never read.
+        Invoke-ReceiptBuilder -Fixtures @($declaredFixture)
+        Assert-True ((@(Get-Content -LiteralPath $javaLog) -join '; ') -eq $declaredPatchRun -and $builderSaid -notlike "*the gate's*") `
+            "The builder read the gate's run without -FromGate: $builderSaid"
+
+        # And a run that doesn't hold up is not read: one stamped with another bundle, a gate that
+        # didn't pass, and a bundle here that isn't the one the gate built. The evidence's bundle is
+        # changed with the manifest hashing it, so only the comparison with this checkout's tells.
+        $otherBundleHash = '0' * 64
+        $changedGateBundle = [byte[]]($gateBundleBytes + [byte]10)
+        foreach ($spoiled in @(
+                @{ Name = 'a kept run made with another bundle'; Pattern = "*was made with another bundle, so it is patched here*"
+                    Spoil = { [System.IO.File]::WriteAllText($gateStampPath, ($gateStampText -replace '"bundleSha256":\s*"[0-9A-F]{64}"', "`"bundleSha256`": `"$otherBundleHash`"")) } },
+                @{ Name = 'a gate that did not pass'; Pattern = "*isn't used: that gate didn't pass*"
+                    Spoil = { [System.IO.File]::WriteAllText($gateManifestPath, ($gateManifestText -replace '"passed":\s*true', '"passed": false')) } },
+                @{ Name = 'a bundle here other than the one the gate built'; Pattern = "*isn't the one the gate built and tested, so the gate's run isn't read*"
+                    Spoil = {
+                        [System.IO.File]::WriteAllBytes($gateBundle, $changedGateBundle)
+                        [System.IO.File]::WriteAllText($gateManifestPath, $gateManifestText.Replace(
+                            (Get-Sha256Hex -Path $releaseBundle), (Get-Sha256Hex -Path $gateBundle)))
+                    } })) {
+            & $spoiled.Spoil
+            try {
+                Invoke-ReceiptBuilder -Fixtures @($declaredFixture) -FromGate
+                Assert-True ((@(Get-Content -LiteralPath $javaLog) -join '; ') -eq $declaredPatchRun -and $builderSaid -like $spoiled.Pattern) `
+                    "The builder read $($spoiled.Name) instead of patching: $builderSaid"
+            } finally {
+                [System.IO.File]::WriteAllText($gateStampPath, $gateStampText)
+                [System.IO.File]::WriteAllText($gateManifestPath, $gateManifestText)
+                [System.IO.File]::WriteAllBytes($gateBundle, $gateBundleBytes)
+            }
+        }
+    } finally {
+        [System.IO.File]::WriteAllBytes($releaseBundle, $releaseBundleBytes)
+        [System.IO.File]::WriteAllBytes($releaseSbom, $releaseSbomBytes)
+        [System.IO.File]::WriteAllBytes($releaseReceipt, $builtReceiptBytes)
+        [System.IO.File]::WriteAllBytes($releaseSums, $builtSumsBytes)
+        Remove-Item -LiteralPath $gateStaging -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
     Write-Host '[release-tooling] receipt builder contracts passed'
 
     # The index push. The release is published from the source commit above (its tag, the bundle,
@@ -3355,6 +3478,10 @@ try {
     foreach ($skip in @('SkipUrlCheck', 'SkipDescriptionTestCount', 'SkipLocalBuild', 'AllowPublishedIndexLag', 'SkipAdvisoryCheck')) {
         Assert-True (-not $publishedRun.Contains($skip)) "The hook's index push passes -$skip, so a release goes out with that check left out."
     }
+    # The gate's run of the source commit doesn't stand for this index commit: it dates the
+    # CHANGELOG too, which no index-only change touches.
+    Assert-True (-not $publishedRun.Contains('FromGate')) `
+        "The hook's index push read the gate's run of a commit the index changes more than the index of: $($publishedRun | ConvertTo-Json -Compress)"
     $said = Invoke-IndexPushCheck $publishedRun
     foreach ($expected in @(
             "*indexed bundle URL answers 200*",
@@ -3385,6 +3512,80 @@ try {
             "The hosted asset was not checked on its own: $said"
     } finally {
         Move-Item -LiteralPath $asideBundle -Destination $releaseBundle -Force
+    }
+    # A gate run of the index commit itself, with the receipt cut from it kept beside it, from a
+    # checkout holding no bundle, test results or receipt of its own: the hook's set reads the
+    # gate's and every published-asset check still runs on them. A gate run whose results don't
+    # match the description is refused like local ones, and one that didn't pass leaves nothing to
+    # read, so the run fails on the missing results as it did before there was a gate run.
+    $indexCommit = "$(Invoke-FixtureGit -Root $releaseRepo -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+    $indexGate = Start-GateEvidence -Commit $indexCommit
+    Save-GateEvidence -Directory $indexGate -GateRoot $releaseRepo -Commit $indexCommit -Passed $true -Stage 'done' -FixturesPatched $true | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $indexGate 'receipt') -Force | Out-Null
+    Copy-Item -LiteralPath $releaseReceipt, $releaseSums -Destination (Join-Path $indexGate 'receipt') -Force
+    $indexManifestPath = Join-Path $indexGate 'manifest.json'
+    $indexManifestText = [System.IO.File]::ReadAllText($indexManifestPath)
+    $asideRoot = Join-Path $releaseRoot 'aside'
+    $localOutputs = @($releaseBundle, $releaseReceipt, (Join-Path $releaseRepo $runtimeResults), (Join-Path $releaseRepo $patchResults))
+    New-Item -ItemType Directory -Path $asideRoot -Force | Out-Null
+    for ($i = 0; $i -lt $localOutputs.Count; $i++) { Move-Item -LiteralPath $localOutputs[$i] -Destination (Join-Path $asideRoot "$i") }
+    try {
+        $gateSet = Get-ReleaseFactsArguments -Push Index -Root $releaseRepo
+        Assert-True ($gateSet['FromGate'] -and -not $gateSet.Contains('ArtifactPath') -and -not $gateSet.Contains('ArtifactIsHosted')) `
+            "The hook's index push with the gate's run of HEAD did not read it: $($gateSet | ConvertTo-Json -Compress)"
+        foreach ($skip in @('SkipUrlCheck', 'SkipDescriptionTestCount', 'SkipLocalBuild', 'AllowPublishedIndexLag', 'SkipAdvisoryCheck')) {
+            Assert-True (-not $gateSet.Contains($skip)) "The hook's index push from the gate's run passes -$skip."
+        }
+        $said = Invoke-IndexPushCheck $gateSet
+        foreach ($expected in @(
+                "*reading the gate's run of $($indexCommit.Substring(0, 12))*",
+                "*the test results are the gate's run of $($indexCommit.Substring(0, 12))*",
+                '*5 runtime tests, 7 patch tests*',
+                '*no bundle built here, so the one the gate built is the local artifact*',
+                "*the hosted patches-$releaseVersionHere.mpp matches the bundle built here byte for byte*",
+                "*no receipt here, so the one cut from the gate's run is checked*",
+                "*the hosted release-receipt-$releaseVersionHere.json is the receipt checked here, as SHA256SUMS.txt lists it*",
+                "*the receipt proves $($releaseNames.Count) patches*")) {
+            Assert-True ($said -like $expected) "The index push from the gate's run did not say $expected`: $said"
+        }
+        # A bundle built here that isn't the gate's can't borrow the gate's test results: the set
+        # names it as -ArtifactPath beside -FromGate, and the check reads the build outputs here
+        # (aside, so none) in place of the gate's run.
+        $localSet = [ordered]@{}
+        foreach ($key in $gateSet.Keys) { $localSet[$key] = $gateSet[$key] }
+        $localSet['ArtifactPath'] = $releaseBundle
+        [System.IO.File]::WriteAllBytes($releaseBundle, [byte[]](1, 2, 3))
+        try {
+            Assert-Throws { Invoke-IndexPushCheck $localSet } '*No runtime test results found*' `
+                "A local bundle other than the gate's was checked against the gate's test results."
+        } finally {
+            Remove-Item -LiteralPath $releaseBundle -Force -ErrorAction SilentlyContinue
+        }
+        $sevenPatchTests = Get-ChildItem -LiteralPath (Join-Path $indexGate 'test-results/test') -Filter '*.xml' | Select-Object -First 1
+        $sevenPatchTestsText = [System.IO.File]::ReadAllText($sevenPatchTests.FullName)
+        try {
+            # Six patch tests in the gate's results, with the manifest saying so, against a
+            # description that quotes seven.
+            $sixPatchTests = $sevenPatchTestsText -replace 'tests="7"', 'tests="6"' -replace '<testcase name="t7"[^>]*/>', ''
+            [System.IO.File]::WriteAllText($sevenPatchTests.FullName, $sixPatchTests)
+            [System.IO.File]::WriteAllText($indexManifestPath, ($indexManifestText -replace '("patches":\s*\{\s*"files":\s*1,\s*"tests":\s*)7', '${1}6'))
+            Assert-True ((Get-JUnitCounts -Directory (Join-Path $indexGate 'test-results/test')).tests -eq 6 -and
+                (Get-ReleaseFactsArguments -Push Index -Root $releaseRepo)['FromGate']) 'The six-test gate run was not set up as a usable one.'
+            Assert-Throws { Invoke-IndexPushCheck $gateSet } '*patch test count*' `
+                "An index push went through on a gate run whose patch test count the description doesn't quote."
+            [System.IO.File]::WriteAllText($sevenPatchTests.FullName, $sevenPatchTestsText)
+            [System.IO.File]::WriteAllText($indexManifestPath, ($indexManifestText -replace '"passed":\s*true', '"passed": false'))
+            Assert-True (-not (Get-ReleaseFactsArguments -Push Index -Root $releaseRepo).Contains('FromGate')) `
+                "The hook's index push read the run of a gate that didn't pass."
+            Assert-Throws { Invoke-IndexPushCheck $gateSet } '*No runtime test results found*' `
+                "An index push read the results of a gate that didn't pass."
+        } finally {
+            [System.IO.File]::WriteAllText($sevenPatchTests.FullName, $sevenPatchTestsText)
+            [System.IO.File]::WriteAllText($indexManifestPath, $indexManifestText)
+        }
+    } finally {
+        for ($i = 0; $i -lt $localOutputs.Count; $i++) { Move-Item -LiteralPath (Join-Path $asideRoot "$i") -Destination $localOutputs[$i] -Force }
+        Remove-Item -LiteralPath $indexGate -Recurse -Force -ErrorAction SilentlyContinue
     }
     # What the hook's set reads that the suite's own runs used to skip: the repository description
     # GitHub shows, Morphe's add-source page, and the test counts the index description quotes.
@@ -3474,6 +3675,7 @@ try {
     }
 } finally {
     Remove-Item -LiteralPath $releaseRoot -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $env:HUSHGRAM_GATE_CACHE -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host '[release-tooling] release root and index push contracts passed'

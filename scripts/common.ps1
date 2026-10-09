@@ -115,7 +115,10 @@ function Get-ReleaseFactsArguments {
         Index is the push that rewrites patches-bundle.json and hands a release to Manager users.
         It's held to everything: the published files, the network, the description's test counts,
         and the bundle this checkout built for the version the index publishes, or the hosted one
-        on its own when there's none.
+        on its own when there's none. When the push gate kept a run that stands for HEAD
+        (gate-evidence.ps1), the set adds -FromGate: that run's test results are the ones the
+        counts are read from, and its bundle is compared with the hosted one when none was built
+        here.
 
         Ordinary is every other push that moves a file the check reads. The description stays
         with the release it describes, the index may lag a version still being prepared, and this
@@ -145,8 +148,14 @@ function Get-ReleaseFactsArguments {
         $arguments = [ordered]@{ Root = $Root; VerifyPublishedAsset = $true }
         $indexVersion = [string](Get-Content -LiteralPath (Join-Path $Root 'patches-bundle.json') -Raw | ConvertFrom-Json).version
         $builtHere = Get-ReleaseBundlePath -Root $Root -Version $indexVersion
+        # The push gate's run of the source commit, when HEAD is that commit or an index commit
+        # over it (gate-evidence.ps1): its test results stand for the ones here, and its bundle for
+        # one built here. Every check still runs on them.
+        if (-not (Get-Command Find-GateEvidence -ErrorAction SilentlyContinue)) { . (Join-Path $PSScriptRoot 'gate-evidence.ps1') }
+        $gateRun = Find-GateEvidence -Root $Root -AllowIndexCommits 6>$null
+        if ($gateRun) { $arguments['FromGate'] = $true }
         if (Test-Path -LiteralPath $builtHere -PathType Leaf) { $arguments['ArtifactPath'] = $builtHere }
-        else { $arguments['ArtifactIsHosted'] = $true }
+        elseif (-not $gateRun) { $arguments['ArtifactIsHosted'] = $true }
     }
     if (-not $Script) { return $arguments }
 
@@ -156,6 +165,9 @@ function Get-ReleaseFactsArguments {
     $known = @(if ($paramBlock) { $paramBlock.Parameters | ForEach-Object { $_.Name.VariablePath.UserPath } })
     $adapted = [ordered]@{}
     foreach ($key in $arguments.Keys) {
+        # Reading the gate's run saves a rebuild and leaves no check out, so a check that predates
+        # it just reads the build outputs here.
+        if ($key -eq 'FromGate' -and $key -notin $known) { continue }
         $name = if ($key -eq 'SkipLocalBuild' -and $key -notin $known -and 'SkipTestResults' -in $known) { 'SkipTestResults' } else { $key }
         if ($name -notin $known) { throw "$Script takes no -$key, so it can't run the hook's $Push set." }
         $adapted[$name] = $arguments[$key]

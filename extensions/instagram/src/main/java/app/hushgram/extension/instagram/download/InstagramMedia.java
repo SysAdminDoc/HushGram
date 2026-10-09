@@ -95,6 +95,14 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * A Media's {@code original_media_type}: the type its poster uploaded, 1 for a photo. A photo
+     * story with music that Instagram serves as a video keeps 1 here.
+     */
+    public static Integer originalMediaType(Object media) {
+        return null;
+    }
+
     /** A Media's {@code image_versions2}: the sizes Instagram lists for its picture. */
     public static Object imageVersions(Object media) {
         return null;

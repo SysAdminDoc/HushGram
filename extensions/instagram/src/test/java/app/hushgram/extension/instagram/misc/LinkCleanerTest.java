@@ -185,6 +185,77 @@ public class LinkCleanerTest {
                         + "&x=1&igshid=b&fbclid=c#top"));
     }
 
+    /*
+     * Instagram 450 (385611438, 385611440), 2026-10-08: the per-share id came back under a random
+     * four-letter key, with base64 of a short [a-z0-9] id as its value. Codes and ids here are made up.
+     */
+    @Test
+    public void theShareIdUnderARotatingKeyGoesOnEveryShape() {
+        assertEquals("https://www.instagram.com/p/Abc123xyz_Q/",
+                LinkCleaner.clean("https://www.instagram.com/p/Abc123xyz_Q/?obrf=a2k3NmE5MnUzcGFi"));
+        assertEquals("https://www.instagram.com/p/Abc123xyz_Q/",
+                LinkCleaner.clean("https://www.instagram.com/p/Abc123xyz_Q/?exln=a2k3NmE5MnUzcGFi"));
+        assertEquals("https://www.instagram.com/p/Abc123xyz_Q-AbCdEfGhI-JkLmNoP-QrStUvWxYz012/",
+                LinkCleaner.clean("https://www.instagram.com/p/Abc123xyz_Q-AbCdEfGhI-JkLmNoP-QrStUvWxYz012/?dlrf=ejVjNGdpY2lpNnBv"));
+        assertEquals("https://www.instagram.com/reel/Abc123xyz_Q/",
+                LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?mdxt=MXY5Z21sZmQwZnZldg=="));
+        assertEquals("https://www.instagram.com/someuser",
+                LinkCleaner.clean("https://www.instagram.com/someuser?obrf=MXJwNGhqa3U4OG84ZA=="));
+    }
+
+    @Test
+    public void aShareIdWithEscapedPaddingGoesToo() {
+        // %3D is "=": a 13 or 14 character id always pads, so the link carries it escaped.
+        assertEquals("https://www.instagram.com/reel/Abc123xyz_Q/",
+                LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?obrf=MXY5Z21sZmQwZnZldg%3D%3D"));
+        assertEquals("https://www.instagram.com/reel/Abc123xyz_Q/?img_index=2",
+                LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?img_index=2&obrf=MXY5Z21sZmQwZnZldg%3d%3d"));
+    }
+
+    @Test
+    public void aValueWithAMalformedEscapeStays() {
+        for (String pair : new String[] {"obrf=MXY5Z21sZmQwZnZldg%G1", "obrf=MXY5Z21sZmQwZnZldg%3", "obrf=MXY5Z21sZmQwZnZldg%"}) {
+            String link = "https://www.instagram.com/p/Abc123xyz_Q/?" + pair;
+            assertEquals(pair, link, LinkCleaner.clean(link));
+        }
+    }
+
+    @Test
+    public void cleaningTheRotatingKeyTwiceChangesNothing() {
+        String once = LinkCleaner.clean("https://www.instagram.com/reel/Abc123xyz_Q/?mdxt=MXY5Z21sZmQwZnZldg==");
+        assertEquals(once, LinkCleaner.clean(once));
+    }
+
+    @Test
+    public void theRotatingKeyGoesAndTheOtherPairsStay() {
+        assertEquals("https://www.instagram.com/p/Abc123xyz_Q/?img_index=2",
+                LinkCleaner.clean("https://www.instagram.com/p/Abc123xyz_Q/?img_index=2&obrf=a2k3NmE5MnUzcGFi"));
+        assertEquals("https://www.instagram.com/p/Abc123xyz_Q/?img_index=2&hl=en#c",
+                LinkCleaner.clean("https://www.instagram.com/p/Abc123xyz_Q/?img_index=2&obrf=a2k3NmE5MnUzcGFi&hl=en#c"));
+    }
+
+    @Test
+    public void aLookAlikePairOnAnotherSiteStays() {
+        String other = "https://example.com/p/Abc123xyz_Q/?obrf=a2k3NmE5MnUzcGFi";
+        assertEquals(other, LinkCleaner.clean(other));
+    }
+
+    @Test
+    public void aFourLetterKeyWithoutABase64IdStays() {
+        // Not base64, base64 of something with capitals, too short once decoded, a real key.
+        for (String pair : new String[] {"obrf=hello", "obrf=QWJjMTIzeHl6UTEy", "obrf=YWJj", "obrf=a2k3NmE5MnUzcGFi!",
+                "obrf=", "OBRF=a2k3NmE5MnUzcGFi", "obrfx=a2k3NmE5MnUzcGFi", "next=a2k3NmE5MnUzcGFi"}) {
+            String link = "https://www.instagram.com/p/Abc123xyz_Q/?" + pair;
+            assertEquals(pair, link, LinkCleaner.clean(link));
+        }
+    }
+
+    @Test
+    public void theShareSheetTextWithARotatingKeyIsCleaned() {
+        assertEquals("Look at this https://www.instagram.com/p/Abc123xyz_Q/ and that.",
+                LinkCleaner.cleanText("Look at this https://www.instagram.com/p/Abc123xyz_Q/?obrf=a2k3NmE5MnUzcGFi and that."));
+    }
+
     @Test
     public void everyInstagramHostIsCleaned() {
         assertEquals("https://instagr.am/p/C1/", LinkCleaner.clean("https://instagr.am/p/C1/?stkn=abc"));

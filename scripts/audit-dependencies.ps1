@@ -12,15 +12,13 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 . (Join-Path $PSScriptRoot 'release-advisories.ps1')
 . (Join-Path $PSScriptRoot 'release-receipt.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'build-jobs.ps1')
 
 if (-not $GraphPath) {
-    Push-Location -LiteralPath $Root
-    try {
-        $wrapper = if ($IsWindows -or $env:OS -eq 'Windows_NT') { './gradlew.bat' } else { './gradlew' }
-        & $wrapper '-I' (Join-Path $PSScriptRoot 'dependency-graphs.init.gradle') 'dependencyGraphReport' `
-            '--no-configuration-cache' '--console=plain'
-        if ($LASTEXITCODE -ne 0) { throw 'Dependency resolution failed. No advisory result is certified.' }
-    } finally { Pop-Location }
+    # Through the machine's build queue when it has one (build-jobs.ps1).
+    Invoke-GradleBuild -ProjectDir $Root -Tasks @('-I', (Join-Path $PSScriptRoot 'dependency-graphs.init.gradle'),
+        'dependencyGraphReport', '--no-configuration-cache', '--console=plain')
+    if ($LASTEXITCODE -ne 0) { throw 'Dependency resolution failed. No advisory result is certified.' }
     $GraphPath = Join-Path $Root 'build/reports/dependencies/all-graphs.json'
 }
 $graphs = Read-DependencyGraphs -Path $GraphPath

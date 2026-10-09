@@ -17,6 +17,7 @@ import android.os.Bundle;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -67,6 +68,22 @@ public final class LinkCleaner {
      */
     private static final Set<String> TRACKING = keys("igsh", "igshid", "igsi", "stkn", "fbclid",
             "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "utm_id");
+
+    /*
+     * The per-share id again, moved. On Instagram 450 (builds 385611438 and 385611440, 2026-10-08)
+     * Copy link on a post or reel, and a profile's Copy profile URL, end in one pair like
+     * ?obrf=a2k3NmE5MnUzcGFi, ?dlrf=..., ?exln=... or ?mdxt=...: the key is four random lowercase
+     * letters that change on every copy, the value is base64 of a short lowercase id (a 12 to 14
+     * character [a-z0-9] string). The server adds it and the app's code names none of the keys,
+     * so no fixed list can hold them. {@link #isRotatingShareId} matches the shape instead.
+     */
+
+    /**
+     * Real four-letter keys Instagram or its pages use. The value test below is the main guard,
+     * so this only covers a key that could ever carry a base64 id by chance.
+     */
+    private static final Set<String> REAL_FOUR_LETTER_KEYS = keys("next", "lang", "page", "from", "type",
+            "mode", "text", "code", "name", "user", "view");
 
     /** Meta's click id alone, which a link to another site loses on its way out of the in-app browser. */
     private static final Set<String> CLICK_ID = keys("fbclid");
@@ -125,7 +142,7 @@ public final class LinkCleaner {
         HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
         if (url == null || !enabled()) return url;
         try {
-            return withoutKeys(cleaned(url), LinkCleaner::isAdKey, false);
+            return withoutKeys(cleaned(url), pair -> isAdKey(keyOf(pair)), false);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.SANITIZE_SHARING_LINKS, "in-app browser menu", t);
             return url;
@@ -354,18 +371,68 @@ public final class LinkCleaner {
     static String withoutClickId(String url) {
         if (url == null) return null;
         try {
-            return withoutKeys(url, CLICK_ID::contains, false);
+            return withoutKeys(url, pair -> CLICK_ID.contains(keyOf(pair)), false);
         } catch (Throwable t) {
             return url;
         }
     }
 
     private static String cleaned(String url) {
-        return withoutKeys(url, TRACKING::contains, true);
+        return withoutKeys(url, pair -> TRACKING.contains(keyOf(pair)) || isRotatingShareId(pair), true);
     }
 
     /**
-     * {@code url} without the pairs whose decoded, lower-cased key {@code drop} picks, on an Instagram
+     * Whether {@code pair} is the per-share id Instagram 450 adds under a rotating key: a key of
+     * exactly four lowercase ASCII letters that isn't a real key, and a value that is base64 of
+     * 8 to 24 characters of [a-z0-9]. Both halves have to fit, and the pair is taken off an
+     * Instagram link only. A value that isn't base64, or decodes to anything else, stays.
+     */
+    static boolean isRotatingShareId(String pair) {
+        int equals = pair.indexOf('=');
+        if (equals != 4) return false;
+        for (int i = 0; i < 4; i++) {
+            char c = pair.charAt(i);
+            if (c < 'a' || c > 'z') return false;
+        }
+        if (REAL_FOUR_LETTER_KEYS.contains(pair.substring(0, 4))) return false;
+        String value = percentDecoded(pair.substring(5));
+        if (!value.matches("[A-Za-z0-9+/]{8,40}={0,2}")) return false;
+        try {
+            byte[] decoded = Base64.getDecoder().decode(value);
+            if (decoded.length < 8 || decoded.length > 24) return false;
+            for (byte b : decoded) {
+                if (!((b >= 'a' && b <= 'z') || (b >= '0' && b <= '9'))) return false;
+            }
+            return true;
+        } catch (IllegalArgumentException notBase64) {
+            return false;
+        }
+    }
+
+    /**
+     * {@code value} with each valid %XX turned into its character, so the padding and the + and /
+     * of a base64 id read the same whether the link escaped them or not. A % that doesn't start
+     * two hex digits stays as it is, which keeps the value from passing as base64. Only the
+     * shape test reads this; the link itself is rewritten from the pairs as written.
+     */
+    private static String percentDecoded(String value) {
+        if (value.indexOf('%') < 0) return value;
+        StringBuilder out = new StringBuilder(value.length());
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (c == '%' && i + 2 < value.length() && Character.digit(value.charAt(i + 1), 16) >= 0
+                    && Character.digit(value.charAt(i + 2), 16) >= 0) {
+                out.append((char) Integer.parseInt(value.substring(i + 1, i + 3), 16));
+                i += 2;
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    /**
+     * {@code url} without the pairs {@code drop} picks (given a pair as written), on an Instagram
      * host alone when {@code instagramOnly}.
      */
     private static String withoutKeys(String url, Predicate<String> drop, boolean instagramOnly) {
@@ -384,7 +451,7 @@ public final class LinkCleaner {
         List<String> kept = new ArrayList<>();
         boolean removed = false;
         for (String pair : url.substring(query + 1, end).split("&", -1)) {
-            if (drop.test(keyOf(pair))) {
+            if (drop.test(pair)) {
                 removed = true;
             } else {
                 kept.add(pair);

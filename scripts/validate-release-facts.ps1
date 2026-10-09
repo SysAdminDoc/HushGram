@@ -79,7 +79,15 @@ param(
     # Only for running a published asset check with no way to reach OSV: the release SBOM is still
     # held to the receipt and the bundle, but its libraries aren't put to OSV, and the run says so.
     # Nothing in the repo passes it, the pre-push hook included.
-    [switch]$SkipAdvisoryCheck
+    [switch]$SkipAdvisoryCheck,
+    # Reads the push gate's run of this commit (gate-evidence.ps1) in place of this checkout's
+    # build outputs: its test results, and its bundle where none was built here. HEAD may be an
+    # index commit over the commit the gate ran. Every check below still runs on them, apart from
+    # comparing the test results' dates with the sources here, which a checkout made after the gate
+    # always fails: git gives the same tree, so the gate tested these sources. With no gate run that
+    # holds up (another commit, a changed tree, a hash or count that reads back differently, or a
+    # gate that didn't pass), this checkout's own outputs are read as without it.
+    [switch]$FromGate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -162,6 +170,21 @@ if ($ArtifactIsHosted -and $ArtifactPath) {
 }
 if ($SkipLocalBuild -and ($VerifyPublishedAsset -or $ArtifactPath)) {
     throw '-SkipLocalBuild leaves the bundle built here unread, and a published asset check or -ArtifactPath reads one.'
+}
+if ($SkipLocalBuild -and $FromGate) {
+    throw '-FromGate reads the gate''s build outputs in place of the ones here, and -SkipLocalBuild reads neither.'
+}
+$gateRun = $null
+if ($FromGate) {
+    . (Join-Path $PSScriptRoot 'gate-evidence.ps1')
+    $gateRun = Find-GateEvidence -Root $rootPath -AllowIndexCommits -Prefix '[release]'
+    # A bundle built here that isn't the gate's can't borrow the gate's test results.
+    if ($gateRun -and $ArtifactPath -and (Test-Path -LiteralPath $ArtifactPath -PathType Leaf) -and
+            (Get-EvidenceHash -Path $ArtifactPath) -cne [string]$gateRun.Manifest.bundle.sha256) {
+        Write-Host "[release] the bundle at $ArtifactPath isn't the one the gate built and tested, so the gate's run isn't read"
+        $gateRun = $null
+    }
+    if (-not $gateRun) { Write-Host '[release] -FromGate found no gate run that stands for this checkout, so the build outputs here are read' }
 }
 
 # No index until HushGram's first release is published, and a release check can't run without one:
@@ -435,7 +458,9 @@ if (-not $hasIndex) {
         ", " + $descriptionPatchCount + " patches and Instagram " + $descriptionTargetVersion)
 }
 
-$testRoot = Join-Path $rootPath 'extensions/instagram/build/test-results/testDebugUnitTest'
+$testRoot = if ($gateRun) { Join-Path $gateRun.Directory 'test-results/testDebugUnitTest' } else {
+    Join-Path $rootPath 'extensions/instagram/build/test-results/testDebugUnitTest'
+}
 if ($SkipLocalBuild -and -not $SkipDescriptionTestCount) {
     throw '-SkipLocalBuild leaves nothing to hold the description test counts to. Pass -SkipDescriptionTestCount with it.'
 }
@@ -472,7 +497,10 @@ $newestSource = $sourceRoots |
     ForEach-Object { Get-ChildItem -LiteralPath $_ -Recurse -File -ErrorAction SilentlyContinue } |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
-if ($null -ne $newestSource -and $testFiles.Count -gt 0) {
+if ($gateRun -and $testFiles.Count -gt 0) {
+    Write-Host ("[release] the test results are the gate's run of $($gateRun.Commit.Substring(0, 12)), whose tree " +
+        'git gives for the sources here, so their dates are not compared with the checkout''s')
+} elseif ($null -ne $newestSource -and $testFiles.Count -gt 0) {
     $newestResult = $testFiles | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
     if ($newestResult.LastWriteTimeUtc -lt $newestSource.LastWriteTimeUtc) {
         throw ("Runtime test results are older than the sources. The newest result " +
@@ -547,7 +575,9 @@ if ($SkipDescriptionTestCount) {
 # them: they are a fact about the release, and a push that rewrites no description has no count
 # to compare them with and no reason to have run them.
 if (-not $SkipDescriptionTestCount) {
-    $patchTestRoot = Join-Path $rootPath 'patches/build/test-results/test'
+    $patchTestRoot = if ($gateRun) { Join-Path $gateRun.Directory 'test-results/test' } else {
+        Join-Path $rootPath 'patches/build/test-results/test'
+    }
     $patchTestFiles = @(Get-ChildItem -LiteralPath $patchTestRoot -Filter '*.xml' -File -ErrorAction SilentlyContinue)
     if ($patchTestFiles.Count -eq 0) {
         throw ("No patch test results found under $patchTestRoot. Run :patches:test with " +
@@ -563,7 +593,8 @@ if (-not $SkipDescriptionTestCount) {
         Sort-Object LastWriteTimeUtc -Descending |
         Select-Object -First 1
     $newestPatchResult = $patchTestFiles | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
-    if ($null -ne $newestPatchSource -and $newestPatchResult.LastWriteTimeUtc -lt $newestPatchSource.LastWriteTimeUtc) {
+    if (-not $gateRun -and $null -ne $newestPatchSource -and
+            $newestPatchResult.LastWriteTimeUtc -lt $newestPatchSource.LastWriteTimeUtc) {
         throw ("Patch test results are older than the sources. The newest result " +
             "$($newestPatchResult.Name) was written $($newestPatchResult.LastWriteTimeUtc.ToString('u')) but " +
             "$($newestPatchSource.FullName) changed $($newestPatchSource.LastWriteTimeUtc.ToString('u')). " +
@@ -634,6 +665,10 @@ if ($VerifyPublishedAsset) {
     if (-not $ArtifactIsHosted) {
         if ([string]::IsNullOrWhiteSpace($ArtifactPath)) {
             $ArtifactPath = Get-ReleaseBundlePath -Root $rootPath -Version $releaseVersion
+            if ($gateRun -and -not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+                $ArtifactPath = $gateRun.Bundle
+                Write-Host "[release] no bundle built here, so the one the gate built is the local artifact: $ArtifactPath"
+            }
         }
         if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
             throw "The local release artifact is missing: $ArtifactPath"
@@ -1028,6 +1063,15 @@ function Test-ReleaseReceiptHere {
     $receiptPath = if ($Receipt) { $Receipt } else {
         Join-Path $rootPath "release-receipt-$releaseVersion.json"
     }
+    # The copy build-release-receipt.ps1 -FromGate keeps with the gate's run, for a checkout that
+    # didn't cut the receipt itself.
+    if (-not $Receipt -and $gateRun -and -not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) {
+        $keptReceipt = Join-Path $gateRun.Directory "receipt/release-receipt-$releaseVersion.json"
+        if (Test-Path -LiteralPath $keptReceipt -PathType Leaf) {
+            $receiptPath = $keptReceipt
+            Write-Host "[release] no receipt here, so the one cut from the gate's run is checked: $receiptPath"
+        }
+    }
     if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) {
         if ($VerifyPublishedAsset) {
             throw ("There is no release provenance receipt at $receiptPath. Run " +
@@ -1198,6 +1242,7 @@ function Test-ReleaseReceiptHere {
 $bundlePath = if ($ArtifactPath) { $ArtifactPath } else {
     Get-ReleaseBundlePath -Root $rootPath -Version $releaseVersion
 }
+if (-not $ArtifactPath -and $gateRun -and -not (Test-Path -LiteralPath $bundlePath -PathType Leaf)) { $bundlePath = $gateRun.Bundle }
 if ($SkipLocalBuild) {
     Write-Host ("[release] the bundle in patches/build/release was left unread, since it can belong to another " +
         "commit, so its patcher stamp is not compared against the catalog pin $pinnedPatcher")
