@@ -673,3 +673,5 @@ Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya u
 That file has no flag names in it. Nothing changed.	Bu dosyada bayrak adı yok. Hiçbir şey değişmedi.
 Couldn't remove the flag names. Try again.	Bayrak adları kaldırılamadı. Yeniden dene.
 Couldn't save the flag names. Nothing changed.	Bayrak adları kaydedilemedi. Hiçbir şey değişmedi.
+Firmer haptics	Daha güçlü haptik
+Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.	Telefonun tam güçteki tıkını çalar. Kapalıyken tık, iPhone'daki yumuşak tık gibi hafiftir.

@@ -85,4 +85,25 @@ public class GlassTabBarTest {
             last = now;
         }
     }
+
+    @Test
+    public void aLateFrameGetsNoRecordingUntilTheBlurIsTooOld() {
+        // The first recording is always made.
+        assertTrue(GlassTabBar.shouldRecord(false, 0, 40));
+        // Not yet due.
+        assertFalse(GlassTabBar.shouldRecord(true, GlassTabBar.RECORD_EVERY_MS - 1, 0));
+        // Due, and the frame is on time.
+        assertTrue(GlassTabBar.shouldRecord(true, GlassTabBar.RECORD_EVERY_MS, GlassTabBar.LATE_FRAME_MS));
+        // Due, but the frame is late: it waits.
+        assertFalse(GlassTabBar.shouldRecord(true, GlassTabBar.RECORD_EVERY_MS + 20, GlassTabBar.LATE_FRAME_MS + 1));
+        // Too old to keep waiting, so it records even in a late frame.
+        assertTrue(GlassTabBar.shouldRecord(true, GlassTabBar.MAX_STALE_MS, 60));
+    }
+
+    @Test
+    public void hapticTicksCloserThanTheMinimumGapAreDropped() {
+        assertTrue(GlassTabBar.Haptics.farEnough(1000, 1000 - GlassTabBar.Haptics.MIN_TICK_GAP_MS));
+        assertFalse(GlassTabBar.Haptics.farEnough(1000, 1000 - GlassTabBar.Haptics.MIN_TICK_GAP_MS + 1));
+        assertTrue(GlassTabBar.Haptics.SOFT_SCALE > 0.2f && GlassTabBar.Haptics.SOFT_SCALE < 0.7f);
+    }
 }

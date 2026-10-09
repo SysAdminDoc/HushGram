@@ -673,3 +673,5 @@ Entries left out because they repeat or don't fit: %1$d.	Ausgelassene Einträge,
 That file has no flag names in it. Nothing changed.	Diese Datei enthält keine Flag-Namen. Nichts wurde geändert.
 Couldn't remove the flag names. Try again.	Die Flag-Namen konnten nicht entfernt werden. Versuche es erneut.
 Couldn't save the flag names. Nothing changed.	Die Flag-Namen konnten nicht gespeichert werden. Nichts wurde geändert.
+Firmer haptics	Kräftigere Haptik
+Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.	Spielt den vollen Tick des Handys. Aus ist der Tick leicht, wie der sanfte auf einem iPhone.
