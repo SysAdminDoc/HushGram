@@ -83,6 +83,7 @@ import app.hushgram.extension.instagram.misc.OverrideImport;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveControl;
@@ -903,8 +904,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                     L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                             + "or swipe between screens.")));
-            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS_FIRM, L10n.t("Firmer haptics"),
-                    L10n.t("Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.")));
+            glass.addPreference(hapticStyleRow(context));
             glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                     L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                             + "Reels still stops above it.")));
@@ -1219,6 +1219,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK && Settings.LOCK_AGAIN.key.equals(key);
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
@@ -2644,6 +2645,40 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** The tick the glass tab bar plays. Its summary is the entry chosen, so there are no sentences to keep in step. */
+    static HapticStyleRow hapticStyleRow(Context context) {
+        HapticStyleRow row = new HapticStyleRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key);
+        row.setTitle(L10n.t("Haptic style"));
+        row.setDialogTitle(L10n.t("Haptic style"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HapticStyle[] styles = HapticStyle.values();
+        CharSequence[] entries = new CharSequence[styles.length];
+        CharSequence[] values = new CharSequence[styles.length];
+        for (int i = 0; i < styles.length; i++) {
+            entries[i] = hapticStyleLabel(styles[i]);
+            values[i] = styles[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [style]. */
+    static String hapticStyleLabel(HapticStyle style) {
+        switch (style) {
+            case SYSTEM:
+                return L10n.t("System tick");
+            case SOFT:
+                return L10n.t("Soft tick");
+            case FULL:
+                return L10n.t("Full tick");
+            default:
+                return L10n.t("Short tick");
+        }
+    }
+
     /**
      * How a story's time shows. Like Tap to play's choice of where, its values are the setting's own
      * names and its summary says what the choice does.
@@ -3676,6 +3711,27 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case FIVE_MINUTES: return L10n.t("5 minutes");
             case FIFTEEN_MINUTES: return L10n.t("15 minutes");
             default: return L10n.t("1 hour");
+        }
+    }
+
+    static final class HapticStyleRow extends ListPreference {
+        HapticStyleRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
         }
     }
 

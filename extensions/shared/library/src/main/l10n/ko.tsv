@@ -672,5 +672,8 @@ Entries left out because they repeat or don't fit: %1$d.	중복되거나 맞지 
 That file has no flag names in it. Nothing changed.	해당 파일에 플래그 이름이 없습니다. 변경된 내용이 없습니다
 Couldn't remove the flag names. Try again.	플래그 이름을 제거할 수 없습니다. 다시 시도하세요
 Couldn't save the flag names. Nothing changed.	플래그 이름을 저장할 수 없습니다. 변경된 내용이 없습니다
-Firmer haptics	더 강한 햅틱
-Plays the phone's full-strength tick. Off, the tick is light, like the soft one on an iPhone.	휴대폰의 최대 강도 틱을 재생합니다. 끄면 iPhone의 부드러운 틱처럼 가벼운 틱이 재생됩니다.
+Haptic style	햅틱 스타일
+Short tick	짧은 틱
+System tick	시스템 틱
+Soft tick	부드러운 틱
+Full tick	최대 틱
