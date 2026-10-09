@@ -142,6 +142,8 @@ public final class GlassTabBar {
      * more, which nothing here can shorten but nothing here should add to.
      */
     static final long LATE_FRAME_MS = 5;
+    /** How long a video seen under the bar keeps the blur off before the views are walked again. */
+    static final long VIDEO_HOLD_MS = 100;
     /** A blur this old is recorded even in a late frame, so the glass never trails what's under it for long. */
     static final long MAX_STALE_MS = 150;
     /**
@@ -666,6 +668,10 @@ public final class GlassTabBar {
                 ViewGroup parent = (ViewGroup) bar.getParent();
                 int barIndex = parent.indexOfChild(bar);
                 if (barIndex <= 0) return;
+                if (videoUnder(parent, barIndex)) {
+                    recorded = false;
+                    return;
+                }
                 Trace.beginSection("hushgram:recordBackdrop");
                 drawingBackdrop = true;
                 try {
@@ -735,6 +741,44 @@ public final class GlassTabBar {
                     Trace.endSection();
                 }
             }
+
+            private long videoSeen;
+
+            /**
+             * Whether a video is on screen under the bar. The blur draws the views under the bar a second time, and a
+             * SurfaceView drawn in two places has its video layer moved and cropped to the second, so the reel
+             * shrinks to a strip behind the bar and the rest of the screen is black. A TextureView is left out of
+             * the copy for the same reason. A video can't be blurred from its own layer anyway, so while one shows
+             * the pill is the frosted tint. A video that has been seen holds for {@link #VIDEO_HOLD_MS}, so the
+             * views aren't walked again every frame.
+             */
+            private boolean videoUnder(ViewGroup parent, int barIndex) {
+                long now = SystemClock.uptimeMillis();
+                if (now - videoSeen < VIDEO_HOLD_MS) return true;
+                for (int i = 0; i < barIndex; i++) {
+                    View sibling = parent.getChildAt(i);
+                    if (sibling.getVisibility() == View.VISIBLE && hasVideo(sibling, 0)) {
+                        videoSeen = now;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            private boolean hasVideo(View view, int depth) {
+                if (view.getVisibility() != View.VISIBLE || depth > 40) return false;
+                if (view instanceof android.view.SurfaceView || view instanceof android.view.TextureView) {
+                    return view.getGlobalVisibleRect(videoRect);
+                }
+                if (!(view instanceof ViewGroup)) return false;
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0, count = group.getChildCount(); i < count; i++) {
+                    if (hasVideo(group.getChildAt(i), depth + 1)) return true;
+                }
+                return false;
+            }
+
+            private final android.graphics.Rect videoRect = new android.graphics.Rect();
 
             private void report(String what) {
                 if (reported) return;
