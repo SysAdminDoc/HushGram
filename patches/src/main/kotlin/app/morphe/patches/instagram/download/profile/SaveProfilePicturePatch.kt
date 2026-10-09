@@ -68,10 +68,9 @@ internal val PROFILE_MENUS = listOf("UserOptionsBottomSheetOverflowHelper", "Use
 @Suppress("unused")
 val saveProfilePicturePatch = bytecodePatch(
     name = "Save profile picture",
-    description = "Adds Save profile picture, View profile picture, Copy username and Copy bio rows to the menu on " +
-        "someone's profile. Save keeps their picture at the largest size Instagram has, View opens it full screen " +
-        "with pinch zoom, and the copy rows copy the text exactly. Every switch is off until you turn it on. " +
-        "Switches: HushGram settings > Downloads.",
+    description = "Adds Save profile picture, View profile picture, Copy username and Copy bio to the menu on " +
+        "someone's profile. View opens the picture full screen and lets you zoom. Starts off. Turn it on in " +
+        "HushGram settings > Downloads.",
     default = true,
 ) {
     category("Downloads")

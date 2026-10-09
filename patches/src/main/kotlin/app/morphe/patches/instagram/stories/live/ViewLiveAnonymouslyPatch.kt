@@ -60,10 +60,9 @@ internal object ViewerHeartbeatFingerprint : Fingerprint(
 @Suppress("unused")
 val viewLiveAnonymouslyPatch = bytecodePatch(
     name = "View live anonymously",
-    description = "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. A live " +
-        "that ends can keep looking live until you leave it. Your own lives still count their viewers. Off until you " +
-        "turn it on. Switch: HushGram settings > Stories. Ghost mode, at the top of Ads and privacy, turns it on " +
-        "with the others.",
+    description = "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. " +
+        "Your own lives still count their viewers. Ghost mode turns it on too. Starts off. Turn it on in HushGram " +
+        "settings > Stories.",
     default = true,
 ) {
     category("Ghost mode")

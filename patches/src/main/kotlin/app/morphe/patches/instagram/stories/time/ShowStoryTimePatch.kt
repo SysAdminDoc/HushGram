@@ -59,10 +59,9 @@ private const val STRING = "Ljava/lang/String;"
 @Suppress("unused")
 val showStoryTimePatch = bytecodePatch(
     name = "Show a story's exact time",
-    description = "Shows the date and time a story was posted in its header, like Oct 2, 3:45 PM, instead of how " +
-        "long ago. A choice under its switch can show the time left before the story expires, or only the time it " +
-        "went up. It follows your phone's language and 12 or 24-hour setting. Off until you turn it on. Switch: " +
-        "HushGram settings > Stories.",
+    description = "Shows the date and time a story was posted, like Oct 2, 3:45 PM, instead of how long ago. A " +
+        "choice under the switch can show the time left instead. Starts off. Turn it on in HushGram settings > " +
+        "Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)

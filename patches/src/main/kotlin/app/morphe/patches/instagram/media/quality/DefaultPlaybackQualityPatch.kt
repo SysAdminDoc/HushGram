@@ -42,9 +42,9 @@ private const val STRING = "Ljava/lang/String;"
 @Suppress("unused")
 val defaultPlaybackQualityPatch = bytecodePatch(
     name = "Default playback quality",
-    description = "Plays videos, reels and video stories at the quality you choose, such as Data saver or up to " +
-        "720p, instead of the one Instagram picks as it plays. Its switch starts on, but the quality starts as " +
-        "Instagram's own, so nothing changes until you pick one. Switch: HushGram settings > Playback.",
+    description = "Plays videos, reels and video stories at the quality you choose, instead of the one Instagram " +
+        "picks as it plays. Nothing changes until you pick a quality. On by default. Turn it off in HushGram " +
+        "settings > Playback.",
     default = true,
 ) {
     category("Playback")

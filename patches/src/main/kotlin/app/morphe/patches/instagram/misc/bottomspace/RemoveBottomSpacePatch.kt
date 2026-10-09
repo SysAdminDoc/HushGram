@@ -47,9 +47,8 @@ private const val CONTEXT = "Landroid/content/Context;"
 @Suppress("unused")
 val removeBottomSpacePatch = bytecodePatch(
     name = "Remove the empty space at the bottom",
-    description = "Takes away the empty room Instagram leaves under its tab bar for a navigation bar that isn't " +
-        "there, on a phone that hides its navigation bar and in a pop-up window. A change to the switch shows once " +
-        "Instagram restarts. Off until you turn it on. Switch: HushGram settings > Layout.",
+    description = "Takes away the empty gap Instagram leaves under its tab bar for a navigation bar that isn't " +
+        "there. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Layout.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

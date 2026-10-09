@@ -104,9 +104,9 @@ internal val DIRECT_SHARE_EXITS = listOf(
 @Suppress("unused")
 val sanitizeSharingLinksPatch = bytecodePatch(
     name = "Sanitize sharing links",
-    description = "Takes stkn, igsh, utm_source and Instagram's other tracking keys off the links you copy or share, " +
-        "and opens a bio link without going through Instagram's click tracker. The post, reel, story or profile a " +
-        "link opens stays the same. On to start. Switch: HushGram settings > Ads and privacy.",
+    description = "Removes tracking tags from the links you copy or share, and opens bio links without " +
+        "Instagram's click tracker. The link still opens the same post, reel, story or profile. On by default. " +
+        "Turn it off in HushGram settings > Ads and privacy.",
     default = true,
 ) {
     category("Privacy")

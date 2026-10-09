@@ -62,9 +62,9 @@ internal const val NO_IMAGE_URL =
 @Suppress("unused")
 val fullResolutionPhotosPatch = bytecodePatch(
     name = "Full resolution photos",
-    description = "Loads photos in your feed, in carousels and in posts you open at the largest size Instagram sends " +
-        "rather than the size it picks for your screen. A second switch asks for a larger size on a phone under 1440 " +
-        "pixels wide. It can use more data. Both are off until you turn them on. Switches: HushGram settings > Feed.",
+    description = "Loads photos in the largest size Instagram sends instead of one picked for your screen. A " +
+        "second switch asks for a larger size on screens under 1440 pixels wide. Uses more data. Starts off. Turn " +
+        "it on in HushGram settings > Feed.",
     default = true,
 ) {
     category("Feed")

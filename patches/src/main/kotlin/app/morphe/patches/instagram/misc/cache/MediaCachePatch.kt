@@ -51,9 +51,9 @@ internal object VideoCacheFolderFingerprint : Fingerprint(
 @Suppress("unused")
 val clearMediaCachePatch = bytecodePatch(
     name = "Clear the media cache",
-    description = "Once Instagram's cache holds more than 500 MB of images and videos, deletes the images when it " +
-        "goes to the background and the videos the next time it starts. A Clear now row shows what it freed. Your " +
-        "sign-in, drafts and settings stay. Off until you turn it on. Switch: HushGram settings > Storage.",
+    description = "Frees storage by deleting Instagram's saved copies of photos and videos once they pass 500 MB. " +
+        "Your sign-in, drafts and settings stay. A row clears them right away. Starts off. Turn it on in " +
+        "HushGram settings > Storage.",
     default = true,
 ) {
     category("Settings")

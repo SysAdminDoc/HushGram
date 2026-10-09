@@ -52,8 +52,8 @@ internal object RegisterRecentSearchFingerprint : Fingerprint(
 @Suppress("unused")
 val dontSaveRecentSearchesPatch = bytecodePatch(
     name = "Don't save recent searches",
-    description = "Keeps what you open from search out of Recent, both in the app and on Instagram's side. Searches " +
-        "already in Recent stay until you clear them. Off until you turn it on. Switch: HushGram settings > Explore.",
+    description = "Keeps the accounts and tags you open from search out of your Recent list. Searches already in " +
+        "Recent stay until you clear them. Starts off. Turn it on in HushGram settings > Explore.",
     default = true,
 ) {
     category("Privacy")

@@ -86,9 +86,8 @@ internal object RelativeTimeFingerprint : Fingerprint(
 @Suppress("unused")
 val showPostTimePatch = bytecodePatch(
     name = "Show a post's exact time",
-    description = "Shows the date and time a post went up, like Oct 2, 3:45 PM, under it in your feed, and the date " +
-        "and time of each comment, instead of how long ago. It follows your phone's language and 12 or 24-hour " +
-        "setting. Off until you turn it on. Switch: HushGram settings > Feed.",
+    description = "Shows the date and time a post went up, like Oct 2, 3:45 PM, instead of how long ago. It does " +
+        "the same for comments. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

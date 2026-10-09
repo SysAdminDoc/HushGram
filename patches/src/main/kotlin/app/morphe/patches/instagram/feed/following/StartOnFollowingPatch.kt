@@ -62,9 +62,8 @@ internal val FEED_PICKER_FLAGS = listOf(REMEMBERED_FEED_FLAG, FOR_YOU_PICKER_FLA
 @Suppress("unused")
 val startOnFollowingPatch = bytecodePatch(
     name = "Start Home on Following",
-    description = "Opens Home on posts from accounts you follow. Tap Following at the top to switch to For you, and " +
-        "Home remembers your pick. A second switch takes For you out of Home. A change to either shows once " +
-        "Instagram restarts. Both are off until you turn them on. Switches: HushGram settings > Feed.",
+    description = "Opens Home on posts from accounts you follow instead of For you. A second switch removes For " +
+        "you from Home. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

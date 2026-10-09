@@ -49,9 +49,9 @@ internal const val IN_APP_BROWSER = "Lcom/instagram/inappbrowser/fragments/Brows
 @Suppress("unused")
 val openLinksExternallyPatch = bytecodePatch(
     name = "Open links in external browser",
-    description = "Opens a web link you tap in your default browser instead of Instagram's in-app browser, without " +
-        "Instagram's click tracker. Instagram and other Meta pages, and ads, still open in the app. On to start. " +
-        "Switch: HushGram settings > Ads and privacy.",
+    description = "Opens web links you tap in your usual browser instead of Instagram's built-in one, without " +
+        "Instagram's click tracker. Instagram pages and ads still open in the app. On by default. Turn it off in " +
+        "HushGram settings > Ads and privacy.",
     default = true,
 ) {
     category("Privacy")

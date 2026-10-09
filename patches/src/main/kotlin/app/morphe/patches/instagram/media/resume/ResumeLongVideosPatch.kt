@@ -94,9 +94,9 @@ private const val OBJECT = "Ljava/lang/Object;"
 @Suppress("unused")
 val resumeLongVideosPatch = bytecodePatch(
     name = "Resume long videos",
-    description = "A video or reel longer than two minutes that you left partway picks up where you left it the next " +
-        "time it plays on the same account. Live videos and ads start as usual. Off until you turn it on. Switch: " +
-        "HushGram settings > Playback.",
+    description = "A video or reel longer than two minutes picks up where you left off the next time you play it " +
+        "on the same account. Live videos and ads start as usual. Starts off. Turn it on in HushGram settings > " +
+        "Playback.",
     default = true,
 ) {
     category("Playback")

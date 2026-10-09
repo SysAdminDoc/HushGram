@@ -54,10 +54,9 @@ private const val MAIN_ACTIVITY = "Lcom/instagram/mainactivity/InstagramMainActi
 @Suppress("unused")
 val openDeveloperOptionsPatch = bytecodePatch(
     name = "Open developer options",
-    description = "A long press on the Home tab opens Instagram's own developer options, where its server flags " +
-        "(MetaConfig and quick experiments) can be looked at and overridden on your phone. A wrong flag can break " +
-        "parts of Instagram until you reset it there. On to start once you pick the patch. Switch: HushGram settings " +
-        "> Developer.",
+    description = "A long press on the Home tab opens Instagram's own developer options, where you can change its " +
+        "hidden settings. A wrong change can break parts of Instagram until you reset it. On once you patch it " +
+        "in. Turn it off in HushGram settings > Developer.",
     default = false,
 ) {
     category("Settings")

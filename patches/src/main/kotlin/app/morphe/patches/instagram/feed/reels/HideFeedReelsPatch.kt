@@ -22,9 +22,8 @@ internal val REEL_UNITS = listOf("CLIPS_NETEGO", "IMMERSIVE_SEGUE_ITEM", "VIBES_
 @Suppress("unused")
 val hideFeedReelsPatch = bytecodePatch(
     name = "Hide Reels in the feed",
-    description = "Removes the rows of suggested reels between posts in your home feed, and the other units that " +
-        "open the Reels viewer from there. A reel someone you follow posts stays. Off until you turn it on. Switch: " +
-        "HushGram settings > Reels.",
+    description = "Removes the rows of suggested reels from your home feed. A reel posted by someone you follow " +
+        "stays. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)

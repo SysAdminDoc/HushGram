@@ -62,8 +62,8 @@ private val FIELD_WRITES = setOf(
 @Suppress("unused")
 val hideExploreGridPatch = bytecodePatch(
     name = "Hide the Explore grid",
-    description = "Empties the grid of posts and reels under the Search tab's bar. Search, your recent searches and " +
-        "search results stay. Off until you turn it on. Switch: HushGram settings > Explore.",
+    description = "Empties the grid of posts and reels on the Search tab. Search, recent searches and results " +
+        "stay. Starts off. Turn it on in HushGram settings > Explore.",
 ) {
     category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)

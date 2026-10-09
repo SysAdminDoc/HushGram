@@ -76,8 +76,8 @@ private const val INTEGER = "Ljava/lang/Integer;"
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
-    description = "Takes Suggested for you and the Discover people button off profiles, yours and other people's. " +
-        "Bios, counts, posts and follower lists stay. Off until you turn it on. Switch: HushGram settings > Profiles.",
+    description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts, posts and " +
+        "follower lists stay. Starts off. Turn it on in HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)

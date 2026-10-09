@@ -68,9 +68,9 @@ private val removeAdPermissionsPatch = resourcePatch {
 @Suppress("unused")
 val removeAdIdPatch = bytecodePatch(
     name = "Remove the advertising ID",
-    description = "Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw " +
-        "or tapped. The permissions for them are taken out of the build, so Google Play services hands Instagram a " +
-        "string of zeros in place of the ID. It's set when you patch, with no switch.",
+    description = "Stops Instagram from reading your phone's advertising ID, which ad companies use to follow you " +
+        "between apps. Instagram gets a string of zeros instead. Works as soon as you patch it in, with no " +
+        "switch.",
     default = true,
 ) {
     category("Privacy")

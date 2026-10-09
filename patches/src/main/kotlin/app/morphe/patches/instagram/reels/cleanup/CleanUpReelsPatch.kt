@@ -54,9 +54,9 @@ private const val PATCH = "Clean up Reels"
 @Suppress("unused")
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
-    description = "Hides the Follow button on reels, the pills that push Edits, templates, Meta AI and Ray-Ban Meta " +
-        "glasses, friends' activity with the comment preview, and the comment bar under a reposted reel. Each part " +
-        "has its own switch, and every one is off until you turn it on. Switches: HushGram settings > Reels.",
+    description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
+        "Meta glasses, friends' activity and the comment bar on reposts. Each one has its own switch. Starts off. " +
+        "Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)

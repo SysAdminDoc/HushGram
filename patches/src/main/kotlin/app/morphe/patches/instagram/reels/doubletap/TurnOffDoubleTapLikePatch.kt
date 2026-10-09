@@ -84,10 +84,9 @@ internal const val SET_LIKE_ACTION = "GestureActionHandler_setOnLikeMediaAction"
 @Suppress("unused")
 val turnOffDoubleTapLikePatch = bytecodePatch(
     name = "Turn off double tap to like",
-    description = "Stops a double tap on a post or a reel from liking it, and the heart doesn't show. A single tap " +
-        "still does what it did, and the Like button still likes. Off until you turn it on. The posts and reels " +
-        "switches under it start on, and the ones for comments and chat messages start off. Switches: HushGram " +
-        "settings > Reels.",
+    description = "Stops a double tap on a post or reel from liking it, and the heart doesn't show. The Like " +
+        "button still works. Separate switches cover posts, reels, comments and chat messages. Starts off. Turn " +
+        "it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)

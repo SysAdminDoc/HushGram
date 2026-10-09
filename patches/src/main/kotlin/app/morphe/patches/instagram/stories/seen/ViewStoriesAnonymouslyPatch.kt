@@ -29,10 +29,9 @@ internal const val PATCH = "View stories anonymously"
 val viewStoriesAnonymouslyPatch = bytecodePatch(
     // The README table check reads this literal; PATCH carries the same text for the messages.
     name = "View stories anonymously",
-    description = "Keeps the stories you watch from putting you on their viewer lists. Replying or reacting still " +
-        "shows you, and stories you've watched keep showing as new. An optional Mark as seen button sends the " +
-        "stories you pick. Both are off until you turn them on. Switches: HushGram settings > Stories. Ghost mode, " +
-        "at the top of Ads and privacy, turns it on with the others.",
+    description = "Keeps you off the viewer list of the stories you watch. Replying or reacting still shows you. " +
+        "An optional Mark as seen button lets you choose. Ghost mode turns it on too. Starts off. Turn it on in " +
+        "HushGram settings > Stories.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch)

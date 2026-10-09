@@ -62,10 +62,8 @@ private const val STRING = "Ljava/lang/String;"
 @Suppress("unused")
 val storyMentionsPatch = bytecodePatch(
     name = "See who a story mentions",
-    description = "Adds a pill under the name in a story's header saying how many accounts the story mentions, even " +
-        "when the mention sticker is hidden or off screen. Tap it for a list with each account's picture, name and " +
-        "username, and tap one to open their profile. A story with no mentions gets no pill. Off until you turn it " +
-        "on. Switch: HushGram settings > Stories.",
+    description = "Adds a small label in a story's header showing how many accounts it mentions. Tap it for a " +
+        "list and tap an account to open their profile. Starts off. Turn it on in HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)

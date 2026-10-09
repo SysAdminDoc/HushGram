@@ -121,9 +121,9 @@ internal const val REDUCED_MARKER = "ClipsOrganicMediaItemViewMoreOptionsControl
 @Suppress("unused")
 val downloadReelPatch = bytecodePatch(
     name = "Download any reel",
-    description = "Adds Download to every reel's more menu. Reels save at the Download quality you set, best by " +
-        "default, without Instagram's watermark. On to start. Download cover, off until you turn it on, adds a row " +
-        "that saves the still picture shown before the reel plays. Switches: HushGram settings > Reels.",
+    description = "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose " +
+        "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
+        "picture. On by default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {
     category("Downloads")

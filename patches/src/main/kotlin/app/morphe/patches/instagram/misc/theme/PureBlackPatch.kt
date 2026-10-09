@@ -160,9 +160,9 @@ private val pureBlackStylesPatch = resourcePatch {
 @Suppress("unused")
 val pureBlackPatch = bytecodePatch(
     name = "Pure black dark mode",
-    description = "Instagram's dark mode uses pure black instead of its near-black gray, which looks deeper and saves " +
-        "power on an OLED screen. Menus, sheets and buttons keep their own grays so they stay easy to see. " +
-        "Chosen when you patch, with no switch.",
+    description = "Makes Instagram's dark mode pure black instead of dark gray. It looks deeper and can save " +
+        "battery on an OLED screen. Menus and buttons keep their grays so they stay easy to see. Works as soon as " +
+        "you patch it in, with no switch.",
     default = false,
 ) {
     category("Interface")

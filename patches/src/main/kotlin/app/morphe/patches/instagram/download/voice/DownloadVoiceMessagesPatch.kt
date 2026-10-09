@@ -86,8 +86,8 @@ private val COPIES = setOf(
 @Suppress("unused")
 val downloadVoiceMessagesPatch = bytecodePatch(
     name = "Download voice messages",
-    description = "Adds Save to the menu you get by holding a voice message in a chat. It saves the recording as an " +
-        "audio file. Off until you turn it on. Switch: HushGram settings > Downloads.",
+    description = "Adds Save to the menu you get when you hold a voice message in a chat. It saves the recording " +
+        "as an audio file. Starts off. Turn it on in HushGram settings > Downloads.",
     default = true,
 ) {
     category("Downloads")

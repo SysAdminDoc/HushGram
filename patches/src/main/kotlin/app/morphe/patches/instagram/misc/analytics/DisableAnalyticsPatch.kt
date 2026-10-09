@@ -32,10 +32,9 @@ internal const val SETUP_SCREEN = "$EXTENSION_PACKAGE/misc/Analytics;->setupScre
 @Suppress("unused")
 val disableAnalyticsPatch = bytecodePatch(
     name = "Disable analytics",
-    description = "Sends Instagram's usage events and crash reports to an address on your phone that refuses them, " +
-        "instead of to Instagram's and Facebook's servers. It also skips the contacts and location setup screens, " +
-        "which would come back on every start without those events. Restart Instagram after changing the switch. On " +
-        "to start. Switch: HushGram settings > Ads and privacy.",
+    description = "Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. It " +
+        "also skips the contacts and location setup screens. Restart Instagram after you change it. On by " +
+        "default. Turn it off in HushGram settings > Ads and privacy.",
     default = true,
 ) {
     category("Privacy")

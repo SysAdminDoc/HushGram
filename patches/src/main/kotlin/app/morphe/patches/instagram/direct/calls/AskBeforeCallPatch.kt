@@ -63,8 +63,8 @@ internal object ChatCallStartFingerprint : Fingerprint(
 @Suppress("unused")
 val askBeforeCallPatch = bytecodePatch(
     name = "Ask before a call",
-    description = "Asks before a call starts from a chat, so a stray tap on a call button doesn't ring anyone. Call " +
-        "starts it and Cancel doesn't. Off until you turn it on. Switch: HushGram settings > Messages.",
+    description = "Asks you to confirm before a call starts from a chat, so a stray tap on the call button " +
+        "doesn't ring anyone. Starts off. Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
     category("Messages")

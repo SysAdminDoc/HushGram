@@ -22,9 +22,9 @@ internal const val PATCH = "View DM photos and videos anonymously"
 @Suppress("unused")
 val viewDmMediaAnonymouslyPatch = bytecodePatch(
     name = "View DM photos and videos anonymously",
-    description = "Holds back the opened receipt for view-once photos and videos in messages. Ordinary chat and " +
-        "voice receipts keep Instagram's behavior. Off until you turn it on. Switch: HushGram settings > Ads and " +
-        "privacy. Ghost mode, at the top of the same section, turns it on with the others.",
+    description = "Holds back the Opened notice for view once photos and videos in messages, so the sender " +
+        "doesn't see you opened them. Ghost mode turns it on too. Starts off. Turn it on in HushGram settings > " +
+        "Ads and privacy.",
     default = false,
 ) {
     category("Ghost mode")

@@ -27,10 +27,9 @@ private const val ORIGINAL_SIGNERS = "Lapp/hushgram/extension/instagram/misc/Ins
 @Suppress("unused")
 val restoreTrustPatch = bytecodePatch(
     name = "Restore trust on re-signed builds",
-    description = "Lets Instagram's own signature checks pass on a re-signed build, so the parts of the app that " +
-        "check who signed it keep working. Threads, Facebook and Messenger patched with the same key open from " +
-        "Instagram too, and Instagram trusts them when they share to it or ask it for your sign-in. A Root Mount " +
-        "install doesn't need this patch. It works as soon as you patch, with no switch.",
+    description = "Lets Instagram's own checks of who signed the app pass on a patched build, so the parts that " +
+        "need them keep working. Threads, Facebook and Messenger patched with the same key work too. Works as " +
+        "soon as you patch it in, with no switch.",
     default = true,
 ) {
     category("Fixes")

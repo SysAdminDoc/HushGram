@@ -24,10 +24,9 @@ internal const val DATA_SAVER = "$EXTENSION_PACKAGE/media/DataSaver;"
 @Suppress("unused")
 val dataSaverPatch = bytecodePatch(
     name = "Data saver",
-    description = "Loads photos at a smaller size and starts videos, reels and stories at the lowest quality, on " +
-        "mobile data or on every network. It works through Full resolution photos and Default playback quality, so " +
-        "it brings both along. Off until you turn it on, and then it starts with mobile data only. Switch: HushGram " +
-        "settings > Playback.",
+    description = "Saves mobile data by loading smaller photos and starting videos at the lowest quality. It uses " +
+        "Full resolution photos and Default playback quality, so it turns both on. It starts with mobile data " +
+        "only. Starts off. Turn it on in HushGram settings > Playback.",
     default = true,
 ) {
     category("Playback")

@@ -51,11 +51,9 @@ private val versionCodeReadsPatch = bytecodePatch {
 @Suppress("unused")
 val changeVersionCodePatch = resourcePatch(
     name = "Change version code",
-    description = "Raises this build's version code to the highest Android allows, so Google Play stops offering " +
-        "Meta's updates over it. Instagram's checks against the version it was built as still see the real one. Once " +
-        "it's in, going back to an unpatched Instagram means uninstalling first, which deletes Instagram's data on " +
-        "your phone, and later HushGram builds need this patch too or they won't install over this one. It's set " +
-        "when you patch, with no switch.",
+    description = "Stops Google Play from offering Meta's updates over your patched Instagram. Going back to the " +
+        "normal Instagram later means uninstalling first, which deletes its data. Later HushGram builds need this " +
+        "patch too. Works as soon as you patch it in, with no switch.",
     default = false,
 ) {
     category("Updates")

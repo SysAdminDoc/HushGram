@@ -102,9 +102,9 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 @Suppress("unused")
 val tapToPlayPatch = bytecodePatch(
     name = "Tap to play",
-    description = "Videos, reels and stories wait for your tap instead of starting by themselves. Feed videos show a " +
-        "play button, the way they do when Instagram saves mobile data. A choice under the switch can leave Reels " +
-        "out, or hold only Reels. Off until you turn it on. Switch: HushGram settings > Playback.",
+    description = "Makes videos, reels and stories wait for your tap instead of starting by themselves, like " +
+        "Instagram does when it saves mobile data. A choice under the switch can leave Reels out or hold only " +
+        "Reels. Starts off. Turn it on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch)

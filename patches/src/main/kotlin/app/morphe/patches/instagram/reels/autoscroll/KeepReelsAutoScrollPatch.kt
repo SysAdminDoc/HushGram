@@ -94,8 +94,8 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 @Suppress("unused")
 val keepReelsAutoScrollPatch = bytecodePatch(
     name = "Keep Reels auto scroll on",
-    description = "Once you turn on Instagram's auto scroll in Reels, it stays on after Instagram restarts or you " +
-        "leave Reels, until you turn it off yourself. Off until you turn it on. Switch: HushGram settings > Reels.",
+    description = "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, " +
+        "until you turn it off yourself. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)

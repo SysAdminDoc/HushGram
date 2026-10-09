@@ -25,10 +25,9 @@ internal const val TYPING_PATCH = "Hide that you're typing"
 @Suppress("unused")
 val hideTypingPatch = bytecodePatch(
     name = "Hide that you're typing",
-    description = "Keeps the people you're chatting with from seeing when you're typing. Unlike turning off the " +
-        "typing indicator in Instagram's settings, you still see when they're typing. Off until you turn it on. " +
-        "Switch: HushGram settings > Messages. Ghost mode, at the top of Ads and privacy, turns it on with the " +
-        "others.",
+    description = "Stops the people you're chatting with from seeing when you're typing. You still see when they " +
+        "type. Ghost mode, at the top of Ads and privacy, turns it on with the others. Starts off. Turn it on in " +
+        "HushGram settings > Messages.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch)
