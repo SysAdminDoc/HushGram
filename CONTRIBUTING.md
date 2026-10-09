@@ -16,7 +16,9 @@ GitHub doesn't let the person who opened an issue reopen it once a maintainer cl
 
 Instagram renames most of its code every week, so a patch never looks for a method by its name. Each one anchors on something Instagram keeps from build to build: a log string, a server field name, a manifest component, or a call into Android itself. When patching stops, the message names the anchor it couldn't find.
 
-To fix it, find where that anchor went in the new build and tighten the fingerprint so it matches exactly one method again. A fingerprint that matches two methods fails too, on purpose: a guess that lands on the wrong method gives you an app that looks patched and does nothing, or worse.
+To fix it, find where that anchor went in the new build and tighten the fingerprint so it matches exactly one method again. A fingerprint that matches two methods fails too, on purpose. A guess that lands on the wrong method gives you an app that looks patched and does nothing, or worse.
+
+When the behavior is unclear, compare the original Meta-signed Instagram build with a HushGram build. Follow the README's [factory-baseline procedure](README.md#establishing-a-factory-baseline) and keep the two installs' results separate. Turning HushGram switches off doesn't remove the hooks from its build.
 
 ## Building and checking
 
