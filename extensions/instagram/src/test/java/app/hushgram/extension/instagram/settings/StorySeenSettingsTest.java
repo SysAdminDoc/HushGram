@@ -72,7 +72,7 @@ public class StorySeenSettingsTest {
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_STORIES_SEEN.key);
         assertNotNull(label);
         assertNotNull(row);
-        assertTrue(label.isChecked());
+        assertFalse("View stories anonymously starts off", label.isChecked());
         assertEquals("Mark as seen button", row.getTitle().toString());
         assertFalse(row.isChecked());
         assertFalse(Settings.MARK_STORIES_SEEN.get());
