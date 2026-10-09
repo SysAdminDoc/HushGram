@@ -410,7 +410,7 @@ Every source file says where it came from in its header, and [provenance.json](p
 
 ## How HushGram works
 
-The detailed [Instagram 450 audit](docs/sources.md#instagram-450-internals-and-patch-opportunities) maps ad delivery, tracking, each major app surface and 34 patch opportunities. It includes source links, an artifact inventory, all 74 open issue dispositions and a factory walkthrough plan. Findings are labeled by evidence strength.
+The detailed [Instagram 450 audit](docs/sources.md#instagram-450-internals-and-patch-opportunities) maps ad delivery, tracking, each major app surface and 34 patch opportunities. It includes source links, an artifact inventory, all 74 open issue dispositions and a factory walkthrough plan. Findings are labeled by evidence strength. A [measured runtime section](docs/sources.md#measured-network-background-activity-and-battery) records network traffic, background work and unplugged battery discharge from an installation reporting HushGram 0.0.5, separate from current-source and release acceptance.
 
 HushGram is a Morphe patch bundle that adds hooks and settings inside Instagram. Morphe Manager takes an original Instagram install package, applies the selected patch definitions, merges HushGram's runtime extensions, then signs the result. The result runs as Instagram, using its navigation and screens as the host for HushGram's settings and selected features.
 

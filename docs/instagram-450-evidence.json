@@ -1,7 +1,7 @@
 {
   "artifact": "fixtures/instagram-450.0.0.50.77-385611438/base.apk",
   "sha256": "ba394ecac1700f353fa5f14c6f88b1046c5fde75d16f7e2cb9bdaeebf71fa5bb",
-  "evidence_kind": "Mixed static evidence: APK metadata and signature verification, DEX string presence, and selected method instruction/caller tracing. No runtime or network capture.",
+  "evidence_kind": "Mixed static evidence: APK metadata and signature verification, DEX string presence, and selected method instruction/caller tracing. This inventory contains static evidence only; runtime observations are in the separate runtime observation file.",
   "matches": {
     "attestation_classes": [
       {
@@ -1529,11 +1529,62 @@
     ]
   },
   "limits": [
-    "No application launch or packet capture during this audit",
+    "No runtime observation is represented by this static inventory. See instagram-450-runtime-observation.json for the separately identified installed artifact.",
     "Base-only inventory excludes additional split or downloaded components",
     "String presence does not establish execution, transmitted values or a verdict",
     "Request keys may be optional or gated",
-    "Runtime tests and builds were not executed"
+    "Automated application tests and builds were not executed for this documentation delivery"
   ],
-  "string_matches_evidence_kind": "DEX string presence only, not executed paths or network observation"
+  "string_matches_evidence_kind": "DEX string presence only, not executed paths or network observation",
+  "runtime_observation_reference": "instagram-450-runtime-observation.json",
+  "background_scheduler_method_trace": {
+    "evidence_kind": "Selected original base-APK method tracing, not execution of the measured patched artifact",
+    "batch_upload": {
+      "anchors": [
+        "action_batch_upload",
+        "AnalyticsUploadAlarm",
+        "com.instagram.analytics.uploadscheduler.AnalyticsUploadAlarmReceiver"
+      ],
+      "requested_delay_ms": 300000,
+      "alarm_type": "ELAPSED_REALTIME_WAKEUP",
+      "scheduling_api": "AlarmManager.set",
+      "one_shot": true,
+      "duplicate_guard": "native pending flag",
+      "receiver_actions": [
+        "action_batch_upload",
+        "action_upload_retry"
+      ],
+      "receiver_behavior": [
+        "dispatch a distinct reason to analytics manager",
+        "clear the matching pending flag",
+        "configuration-gated dispatch can reenter scheduler"
+      ],
+      "unresolved": [
+        "persisted-batch retirement",
+        "failure-to-retry interval and ownership",
+        "selected runtime controller",
+        "actual transport operation from manager dispatch"
+      ]
+    },
+    "warm_heartbeat": {
+      "anchors": [
+        "com.instagram.warm_heartbeat",
+        "com.instagram.util.startup.appwarmer.KeepWarmReceiver",
+        "WarmHeartbeat",
+        "EXTRA_KEEP_WARM_TIME_MS"
+      ],
+      "alarm_type": "RTC non-wakeup",
+      "schedule": "configured base interval multiplied by received count plus one; state and duration-budget gates",
+      "receiver_process_guard": true,
+      "network_sender_identified": false
+    },
+    "work_manager": {
+      "service": "androidx.work.impl.background.systemjob.SystemJobService",
+      "join_keys": [
+        "EXTRA_WORK_SPEC_ID",
+        "EXTRA_WORK_SPEC_GENERATION"
+      ],
+      "concrete_observed_workers_identified": false
+    }
+  }
 }

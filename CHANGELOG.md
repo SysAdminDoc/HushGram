@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Tooling:** The Instagram internals reference now includes measured network traffic, background activity and unplugged battery discharge, with exact installed-build evidence and the limits of each measurement. The observation uses an installation reporting HushGram 0.0.5 and does not establish savings against stock or validate the current release.
+
 * **Instagram:** Messages and notices are plainer too. Import and export results, save progress, the sign-in notice and the Developer page now say what happened and what to do next, without terms like "flag" or "cache". All six languages were updated.
 
 * **Instagram:** The rows in HushGram settings now explain themselves in plain English. Each summary says what you'll notice and, where it matters, to restart Instagram to see the change. The German, Spanish, Indonesian, Brazilian Portuguese, Turkish and Korean text was updated to match.

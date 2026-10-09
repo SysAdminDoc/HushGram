@@ -4,11 +4,12 @@ This reference maps Instagram's current client behavior to HushGram's hooks. It 
 
 ## Instagram 450 internals and patch opportunities
 
-Audit revision 1, October 9, 2026. HushGram source baseline [1bf04031](https://github.com/SysAdminDoc/HushGram/tree/1bf04031). The published bundle is v0.0.7. Current main contains later changes, so **implemented** below means present in the reviewed source, not necessarily shipped in that release.
+Audit revision 2, October 9, 2026. Revision 1 supplied the static mapping. Revision 2 adds the bounded physical-device observations below. HushGram source baseline [1bf04031](https://github.com/SysAdminDoc/HushGram/tree/1bf04031). The published bundle is v0.0.7. Current main contains later changes, so **implemented** below means present in the reviewed source, not necessarily shipped in that release.
 
 ### Reading guide
 
 - [Evidence and limits](#evidence-and-limits)
+- [Measured network, background activity and battery](#measured-network-background-activity-and-battery)
 - [Artifact and application structure](#artifact-and-application-structure)
 - [Ad delivery and suppression](#ad-delivery-and-suppression)
 - [Tracking and privacy](#tracking-and-privacy)
@@ -27,11 +28,12 @@ Audit revision 1, October 9, 2026. HushGram source baseline [1bf04031](https://g
 | Current binary | The original Meta-signed 450 base APK was checked. Bounded DEX probes traced the ad request builders and insertion path. A separate string-table scan recorded tracking and integrity names. | Execution, a captured request payload, a server rollout or a remote integrity verdict. |
 | Historical observation | Earlier repository notes or issue comments report a result, with its version/date kept explicit. | Current 450 acceptance on another account, device or release. |
 | Reported | An open issue describes a symptom or request. All 74 open threads were read, together with two open PR diffs and the discussion intake. | Independent reproduction. Linked screenshots and videos were not all retrievable and are not treated as inspected. |
+| Runtime observation | A timed packet capture, UID activity and physically unplugged battery observations on the separately identified installed build. | A factory baseline, a matched patch-saving comparison, current-release acceptance or decrypted request contents. |
 | Candidate | Source reasoning identifies a useful change or an experiment that can settle a question. | A confirmed bug, safe implementation or automatic promise to ship it. |
 
-No stock or patched app was opened for this audit, and no network capture was taken. Both available physical installations were already re-signed, so neither was a factory baseline. Existing accounts, app data and signing keys were preserved. Credentials and account content are excluded from this reference and its evidence file.
+Revision 1 was static inspection. Revision 2 opened the existing patched installation and measured its traffic, background activity and battery discharge. Both available physical installations were already re-signed, so neither supplied a factory baseline. Existing accounts, app data and signing keys were preserved. Credentials and account content are excluded from the published evidence.
 
-This is a detailed static audit with a runtime acceptance plan. It does not claim to enumerate every server feature, hidden rollout, native message path or live ad placement. Tests were inspected, not executed. No patch behavior or release artifact changed in this documentation delivery.
+This audit combines a static map with one bounded runtime observation and a broader acceptance plan. It does not enumerate every server feature, hidden rollout, native message path or live ad placement. Application tests were inspected, not executed. The measurement parsers received focused offline checks. No patch behavior or release artifact changed in this documentation delivery.
 
 The most actionable findings are these.
 
@@ -42,7 +44,209 @@ The most actionable findings are these.
 | Home empty-state flags live for the whole process. | Source, independently reviewed | Account and feed-generation transitions deserve focused investigation against #104/#105/#28. The cause of those reports is not proved. |
 | The clipboard adapter skips URI-only items. | Source and PR #107 | Earlier parsers might clean some URLs, but the final clipboard boundary is incomplete. |
 | Ads, recommendations, paid partnerships and affiliate commerce have different native representations. | Source plus current binary | New filters need accurate classification and separate switches. |
+| Background work continued with Home awake. Seven non-wakeup heartbeat deliveries were recorded, with 18.736 CPU seconds and small continuing traffic. | Bounded runtime observation on extension 0.0.5 | Trace the scheduler and classify its work. These observations do not assign CPU or traffic to the heartbeat or establish battery savings. |
 | Several requests are already implemented, while live reports still identify failures. | Source and issue intake | Prioritize remaining coverage and correctness before duplicating feature families. |
+
+### Measured network, background activity and battery
+
+Runtime observation, October 9, 2026. This run used an existing patched Instagram installation on a physical Galaxy S22 Ultra. Its embedded extension reports **0.0.5**, with Hide ads and Disable analytics enabled. It is neither a factory installation nor validation of HushGram 0.0.7 or the reviewed source commit. The [runtime evidence file](instagram-450-runtime-observation.json) records the measured artifact separately from the original APK inventory.
+
+#### Installed build and workload
+
+| Property | Recorded condition |
+| --- | --- |
+| Instagram | `450.0.0.50.77`, build `385611438` |
+| Installed APK SHA-256 | `eca328755547023867b41dea1415daf7f0c07f674dfe8303473005f970524306` |
+| Embedded build fingerprint | `hg1:0a7209f6530934d4c9cf995d0a75eb89d6b64ef2f893417a720e1c15c544678a` |
+| Phone and system | SM-S908U1, Android 16 / API 36, firmware `S908U1UESAGZE3` |
+| Display and network | 1080 by 2316 pixels, manual brightness setting 50, Wi-Fi |
+| Relevant switches | Hide ads on, Disable analytics on, reel watch-history suppression on, Data saver off, Default playback quality on. Pause and Debug logging off. |
+| Patch target report | Analytics 7/7, sharing links 6/6. These are patch-time matches, not measured network suppression. |
+
+Home showed an empty welcome state. Explore contained content, so the foreground workload opened a Reel from Explore, then made nine vertical swipes over five minutes. The initial and final UI dumps both showed the Reel viewer with different content. No follows, likes, messages or suggested-person profiles were selected. All existing patch switches were preserved. The diagnostic evidence includes 92 Boolean settings. The playback-quality selector showed Auto in the final settings observation.
+
+The accepted conditions were a three-minute stopped-app control, five minutes of Reels and ten minutes on the Android Home screen with the display awake and Instagram left alive. The final background condition followed a request to keep the phone awake on battery. It made no intermediate device commands. It is not screen-off or Doze evidence. Setup and navigation between conditions are excluded. Boundary collection adds a few seconds to counter intervals.
+
+An earlier ten-minute background attempt was rejected. The display resumed about three seconds after sleep, and BatteryStats counted only 2.519 seconds off during its 602-second interval. Its 551.897 CPU seconds, 0.531 MB received, 2.454 MB sent and 63.56 mAh whole-phone decrease therefore describe an interrupted condition, not idle background behavior. A follow-on quiet attempt was stopped when its initial snapshot also showed the display on. A screen-off repeat was stopped after the requested condition changed to screen on. All rejected and aborted attempts remain labeled in the evidence. They are excluded from the accepted-result tables.
+
+#### Measured app activity
+
+Network bytes below come from Android UID histories on the underlying Wi-Fi network. MB means 1,000,000 bytes. CPU is accumulated across cores, so it can exceed elapsed wall time.
+
+| Condition | Counter interval, about seconds | Received MB | Sent MB | CPU seconds | Partial wakelock seconds | Screen-off wakeup alarms / job starts |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| App stopped, screen off | 182.9 | 0.000000 | 0.000000 | 0.000 | 0.000 | 0 / 0 |
+| Foreground Reels | 302.2 | 56.790531 | 1.128587 | 393.392 | 0.000 | 0 / 0 |
+| Home awake, app in background | 602.1 | 0.081644 | 0.092466 | 18.736 | 0.000 | 0.0 / 0 |
+
+#### Battery results
+
+The fuel-gauge figures cover the whole phone. Android's estimated Instagram mAh appears in a separate column and is not a physical app-only measurement.
+
+| Condition | Fuel-gauge interval, seconds | Whole-phone charge decrease, mAh | Approximate mean battery current, mA | Battery level | Battery temperature, °F | Android estimated app energy, mAh |
+| --- | ---: | ---: | ---: | --- | --- | ---: |
+| App stopped, screen off | 183.1 | Unresolved (counter flat) | Unresolved | 79% to 79% | 85.1 to 84.6 | 0.001 |
+| Foreground Reels | 302.2 | 49.94 | 595 | 79% to 78% | 85.3 to 86.9 | 24.670 |
+| Home awake, app in background | 602.1 | 36.32 | 217 | 76% to 75% | 85.8 to 84.2 | 0.500 |
+
+Foreground CPU time corresponds to about 1.30 fully occupied cores over the interval, not 130% of the entire processor. The smallest observed foreground charge step was 4.54 mAh. That observed step is not a calibration of gauge accuracy. The baseline counter stayed flat, so no baseline drain rate or battery-saving percentage can be calculated.
+
+BatteryStats reported roughly twice the foreground Wi-Fi bytes shown by the underlying-network UID history. The two counters are retained separately in the JSON. The primary table uses the latter, and neither duplicate-looking view is added to packet totals. VPN accounting is one plausible contributor, but this run does not establish the exact cause. Modeled app energy has attribution and rounding limits too.
+
+#### Observed network destinations
+
+The capture selected Instagram. The saved VPN allowlist includes its main app UID and the corresponding SDK sandbox UID, as Android adds for an allowed application. This does not establish that a sandbox process ran or sent traffic. The raw-IP capture cannot distinguish them. Android UID histories here cover the main app only. Packet windows use the recorded workload bounds, excluding the after-snapshot collection. These windows are about 180, 300 and 600 seconds, while the UID counter intervals include a few more seconds.
+
+| Accepted condition | Captured packets | Received IP bytes | Sent IP bytes | Sent transport payload bytes | Sent TCP packets with no payload |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Stopped-app control | 0 | 0 | 0 | 0 | 0 |
+| Foreground Reels | 50,106 | 56,970,384 | 1,151,812 | 925,336 | 25 |
+| Home awake, Instagram in background | 720 | 132,617 | 112,891 | 95,831 | 39 |
+
+Transport payload still includes encrypted records, handshakes and retransmissions. QUIC also carries its acknowledgements and control frames inside encrypted UDP payload, so these bytes cannot be treated as application uploads. Payloadless TCP packets include acknowledgements and connection control. PCAP and Android UID totals use different collection layers and slightly different time bounds, so they are shown separately.
+
+The accepted background capture totals exceed the primary UID history by more than the clock-boundary sensitivity alone explains. Capture reconstruction, Android accounting and the broader main-app-plus-sandbox routing scope are possible contributors. The observation does not isolate the cause, prove sandbox traffic or provide a conversion between these totals.
+
+The following names are attributed to traffic inside accepted phases using visible TLS or QUIC handshakes across the complete capture, including handshakes before a phase. Bytes are capture IP bytes. Hostname attribution does not identify a request path or purpose.
+
+| Visible hostname | Transport | Foreground received / sent bytes | Background received / sent bytes |
+| --- | --- | ---: | ---: |
+| `scontent-iad3-2.cdninstagram.com` | UDP | 36,372,423 / 598,615 | 4,008 / 4,128 |
+| `scontent-iad3-1.cdninstagram.com` | UDP | 11,410,432 / 151,840 | 0 / 0 |
+| `scontent-iad6-1.cdninstagram.com` | UDP | 8,857,440 / 173,216 | 0 / 0 |
+| `i.instagram.com` | UDP | 227,456 / 134,995 | 4,008 / 4,128 |
+| `dns.google` | UDP | 48,097 / 23,545 | 56,525 / 28,705 |
+| `test-gateway.instagram.com` | UDP | 10,848 / 11,481 | 15,450 / 13,983 |
+| `graph.facebook.com` | UDP | 8,500 / 13,728 | 10,262 / 18,291 |
+| `edge-mqtt.facebook.com` | TCP | 9,930 / 18,584 | 6,018 / 11,136 |
+| `scontent-mia5-1.cdninstagram.com` | UDP | 8,256 / 8,448 | 4,008 / 4,128 |
+| `scontent-dfw6-1.cdninstagram.com` | UDP | 8,352 / 8,576 | 0 / 0 |
+| `scontent-mia3-3.cdninstagram.com` | UDP | 8,256 / 8,448 | 0 / 0 |
+| `test-gateway.instagram.com` | TCP | 0 / 0 | 7,277 / 8,946 |
+| `scontent-ord5-1.cdninstagram.com` | UDP | 0 / 0 | 4,128 / 4,224 |
+| `scontent-mia5-2.cdninstagram.com` | UDP | 0 / 0 | 4,128 / 4,224 |
+| `scontent-mia3-1.cdninstagram.com` | UDP | 0 / 0 | 4,128 / 4,224 |
+| `scontent-mia3-2.cdninstagram.com` | UDP | 0 / 0 | 4,008 / 4,128 |
+| `[opaque-label].xy.fbcdn.net` | TCP | 0 / 0 | 4,375 / 1,353 |
+| `[opaque-label].xz.fbcdn.net` | TCP | 0 / 0 | 4,206 / 1,193 |
+| `z-m-gateway.facebook.com` | TCP | 394 / 336 | 0 / 0 |
+| `[unmapped]` | TCP | 0 / 0 | 88 / 100 |
+
+About 99.46% of foreground received IP bytes were attributed to `cdninstagram.com` names. About 98.36% of sent IP bytes used UDP. Only 1,540 sent IP bytes were in TCP packets without payload, including 20 strict ACK-only packets. TCP acknowledgements therefore do not explain most sent bytes. QUIC acknowledgements and control remain encrypted, so the remaining bytes cannot be labeled application uploads or analytics.
+
+Shared API and gateway names remain visible with Disable analytics enabled. This is evidence of continuing transport traffic attributed to those names, not evidence that a particular analytics path bypassed suppression. A decrypted path or local request-classification trace is needed for that conclusion. Opaque hostname labels are replaced in the published tables.
+
+Android adds the mapped SDK sandbox to an application VPN allowlist. The [AOSP VPN implementation](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android15-release/services/core/java/com/android/server/connectivity/Vpn.java) and [UID mapping reference](https://developer.android.com/reference/android/os/Process#getAppUidForSdkSandboxUid(int)) explain that routing rule.
+
+
+#### Background timing
+
+| Seconds after background entry | Received IP bytes | Sent IP bytes | Packets |
+| --- | ---: | ---: | ---: |
+| 0 to 60 | 22,368 | 21,163 | 122 |
+| 60 to 120 | 23,115 | 20,865 | 113 |
+| 120 to 180 | 44,520 | 38,413 | 260 |
+| 180 to 240 | 4,347 | 736 | 14 |
+| 240 to 300 | 17,728 | 10,518 | 70 |
+| 300 to 360 | 0 | 0 | 0 |
+| 360 to 420 | 18,906 | 17,918 | 106 |
+| 420 to 480 | 0 | 0 | 0 |
+| 480 to 540 | 1,633 | 3,278 | 35 |
+| 540 to 600 | 0 | 0 | 0 |
+
+Traffic arrived in bursts. The nominal background packet window ended with about 109 seconds without a captured packet. Capture start/stop observations and the exported file support the collection interval, but they are not a continuous service-state trace. Packet silence alone cannot prove either continuous capture or permanent network inactivity.
+
+
+Packet windows use a device-minus-computer clock offset of 0.840 seconds, with about 0.943 seconds of boundary uncertainty. This is the midpoint and envelope of both clock readings, taken before and after the run. Their uncertainty intervals overlap, so the changed point estimate does not prove drift. An unsampled clock step outside this envelope remains possible. The evidence includes shifted-window and inner/outer-bound counts so a packet near a boundary is not mistaken for precise causal timing.
+
+#### Background scheduling and patch opportunities
+
+The original build 385611438 was also inspected for the scheduler paths seen in the saved device state. This is additional static evidence from the Meta-signed base, separate from the measured patched APK.
+
+| Native route | What the original binary establishes | What the observation still cannot establish |
+| --- | --- | --- |
+| `action_batch_upload` / `AnalyticsUploadAlarmReceiver` | A gated method creates an explicit PendingIntent and calls `AlarmManager.set` with elapsed-realtime wakeup type and a requested delay of 300,000 ms. A pending flag prevents duplicate scheduling on that path. | A fixed repeating timer, execution after every launch, or an upload merely because an alarm was scheduled. |
+| `action_upload_retry` | The same receiver has a separate retry action and dispatch reason. On receipt, it clears the corresponding pending flag. A configuration-gated controller path can return to scheduling. | The failure-to-retry interval, persistent queue ownership or a measured retry loop. |
+| Native event queue | A Handler can queue events, drain them and notify analytics observers. A second controller implementation calls the scheduler directly. | Safe retirement of persisted batches, account ownership or the complete success/failure contract. |
+| `com.instagram.warm_heartbeat` / `KeepWarmReceiver` | The receiver checks a stored process ID. Scheduling uses non-wakeup RTC alarms, increasing delays and state/duration gates. | A network send, tracking purpose or the ability to wake a sleeping phone by itself. |
+| WorkManager `SystemJobService` | Work is dispatched through `EXTRA_WORK_SPEC_ID` plus `EXTRA_WORK_SPEC_GENERATION`. | The concrete worker behind a generic scheduled service, or an analytics classification without that join. |
+
+The pre-workload snapshot had one batch-upload alarm and seven registered WorkManager jobs. None of those jobs was ready or running. During the rejected display-interrupted interval, one warm-heartbeat delivery and one batch-upload delivery were recorded. The batch-upload alarm did not reappear in its final scheduled snapshot. That is not evidence of a repeated retry loop.
+
+##### Accepted setup
+
+The app was left behind Home while the phone stayed awake on battery. The interval contains 602.079 seconds of battery accounting and zero screen-off time. Both saved boundaries report the screen on. Android classified the app for 179.245 seconds as background and 422.834 seconds as cached, totaling the full interval, with 0 seconds TOP or foreground service. The saved final Activity record and UI identify the system launcher. Two app processes remained present at both boundaries. Background or cached state does not mean that no work occurred.
+
+##### Observed work
+
+App CPU increased by 18.736 seconds, comprising 12.221 user seconds and 6.515 system seconds. That is about 3.112% of one core during the accounting interval. Primary physical-network history recorded 81,644 received bytes and 92,466 sent bytes, all in the DEFAULT accounting set. Partial-wakelock time and observed job starts did not increase. The phone remained awake by the requested screen-on setup, so its awake duration is not evidence that the app kept it awake.
+
+##### Alarm deliveries
+
+Seven non-wakeup RTC warm_heartbeat deliveries were retained in the target app's saved AlarmManager history. Their approximate times after phase start were 12, 48, 100, 171, 259, 364 and 486 seconds. These times apply the measured device-to-computer clock conversion to the saved alarm history, rounded to whole seconds. The clock envelope alone is about one second, and these are not trace-synchronized timings. Each delivery was followed by another addition. An eighth instance was still pending inside its allowed delivery window at the final snapshot. No batch-upload or REGISTER_RETRY delivery was recorded in this accepted interval. The seven events are alarm deliveries, not device wakeups. A zero screen-off wakeup count does not contradict them while the display is on.
+
+##### Registered jobs and execution
+
+The final snapshot contains eight registered jobs. Seven use WorkManager's SystemJobService and are Ready:false. The additional IgBgFetchSchedulerService job is Ready:true, with its earliest time about 11.187 seconds past, but it is not marked pending or active. Registration and readiness do not establish execution. Battery accounting shows zero new job starts or completions, and the bounded retained JobScheduler history contains no target START or STOP in the interval. A later execution after the snapshot cannot be inferred.
+
+##### Power interpretation
+
+The phone's fuel gauge fell by 36.32 mAh across 602.084 seconds, about 217.17 mA mean whole-phone current with Home visible. Only before, entry and after battery readings were taken. They confirm discharging without a power connection at those readings, but do not prove every transient state across the approximately 600-second unsampled gap. Battery temperature changed from 85.82 to 84.20 degrees F at the boundaries. Android's separately modeled app-energy delta is 0.5 mAh, rounded and subject to attribution limits. It is not measured app-only energy. VPN history and BatteryStats network attribution must not be added to the primary traffic totals.
+
+##### Comparison limits
+
+The stopped baseline had its screen off, while the accepted background interval kept Home awake. Subtracting those whole-phone readings cannot isolate app background energy because the display conditions differ. The baseline's charge counter also remained flat, so that short baseline did not resolve a drain rate. There is no matched stock control or causal battery-saving result. The interrupted screen-off interval failed its intended condition; two other incomplete attempts are aborted and provide no phase measurements.
+
+##### Follow-up interpretation
+
+Repeated warm_heartbeat delivery and the ready background-fetch job are concrete paths to trace on the installed build. These snapshots cannot assign the observed CPU, traffic or discharge to either path, establish that they are analytics, or show that their work is unnecessary. Preserve notification behavior while identifying each receiver, worker and rescheduling rule.
+
+These observations sharpen the existing analytics and prefetch opportunities. Destination refusal does not by itself remove enqueue, scheduling or queue-management work. A useful next patch experiment would identify the analytics-only queue and completion contract, then compare a narrow enqueue/schedule policy against the same installed build. It must clear or cancel owned pending state correctly, handle work scheduled before the switch changed, and preserve ordinary requests and notification registration. Returning before clearing a native pending flag can leave stale state.
+
+Do not suppress the shared AlarmManager or WorkManager service. First join a WorkSpec identity and generation to its concrete worker, keeping unique work identifiers private. Keep app warming separate from analytics and FBNS notification registration. For the existing ad-suppression work, visible SNI and encrypted byte totals cannot count sponsored tasks. A focused request-classification counter is still needed to evaluate ad-request and prefetch suppression.
+
+The measured diagnostic reported analytics targets matched 7/7. That records patch-time discovery. Its hook invocation totals were taken before the workload and are neither blocked-request counts nor phase deltas. No stock-versus-patched savings percentage, daily battery estimate or zero-tracking claim is supported by this run.
+
+#### How the measurements were collected
+
+The phone used Wi-Fi and wireless debugging after its USB cable was physically removed. Every measured battery sample reported discharging, with AC, USB, wireless and dock power absent. Battery simulation was not used. A brief USB reconnection happened between the baseline and foreground runs. The foreground collector refused to start until power was physically disconnected again. That interval is excluded from the phase results.
+
+PCAPdroid 2.0.2 captured the Instagram application through Android's local VPN. The requested configuration selected both IP versions, classic PCAP output, no TLS interception, no SOCKS proxy, no root capture and no QUIC blocking. Automatic private-DNS blocking was disabled in the start request. Android's existing private-DNS setting was preserved. The local VPN addresses were independently checked and used for packet direction, rather than guessing direction from ports or address ranges.
+
+This is an observation with instrumentation overhead. PCAPdroid adds processing, and wireless debugging plus battery reads can wake the phone. The baseline and foreground phases sampled battery every 30 seconds. The accepted background interval kept the display awake and capture active but made no intermediate device reads. Its boundary snapshots and Android's timebases validate the recorded condition, but they cannot reveal every brief unsampled event. The capture's IP bytes are not exact Wi-Fi radio bytes. In VPN mode, PCAPdroid reconstructs some inbound headers and segmentation, which can change the packet view. See [PCAPdroid's packet-analysis limits](https://emanuele-f.github.io/PCAPdroid/quick_start#14-packet-analysis).
+
+Each boundary saved the battery state, current BatteryStats CSV and text, UID network histories, alarms, jobs, process list, device-idle state and thermal state. Network statistics were polled first, then read in a separate command. No global statistics or logs were reset. Direct per-UID kernel CPU data was denied on this retail build, so CPU time comes from synchronized Android battery accounting.
+
+The app's UID was resolved for Android user 0. A second profile's installation had a different UID and was excluded. UID histories were summed only in the untagged DEFAULT and FOREGROUND sets. Tagged records overlap those totals and weren't added again. Historical VPN identity rows and raw kernel counters are retained separately in the evidence. BatteryStats process CPU overlaps UID CPU, so those figures also aren't added together.
+
+Android cumulative activity counters are differenced within each phase. Packet totals count packets inside that phase. Pre-workload diagnostic invocation totals are separate snapshots. The parser rejects changed statistics epochs, removed history buckets and decreasing counters. It also checks the app identity, completed phase state and monotonic timestamps. Android's on-battery timebase must cover the interval before its counters can be interpreted as a full measurement. The separate snapshots take a few seconds, so battery, network and scheduler intervals have slightly different lengths. Their exact intervals are in the evidence file.
+
+Remaining battery charge is reported in microampere-hours. The physical whole-phone difference is `(starting charge - ending charge) / 1000` mAh. Dividing that difference by elapsed hours gives an approximate mean battery current. This is whole-phone discharge, including Android, the screen, other apps and collection tools. It isn't Instagram-only energy. Android's attributed app mAh is a separate model output. See the [BatteryManager counter definitions](https://developer.android.com/reference/android/os/BatteryManager#BATTERY_PROPERTY_CHARGE_COUNTER).
+
+The device's charge counter changes in discrete steps. A flat short interval leaves drain unresolved. It does not show zero consumption, and it cannot be subtracted as a zero-power baseline. The Samsung-specific instantaneous current field was retained privately without conversion because its driver units weren't independently established.
+
+#### What the traffic can establish
+
+Hostnames were recovered from TLS ClientHello SNI and authenticated QUIC Initial handshakes. TCP handshake fragments and QUIC CRYPTO fragments were reassembled. QUIC Initial protection uses public handshake material, so decoding that handshake does not decrypt application data. Host attribution uses the whole capture, including handshakes before a phase. Only packets inside the selected phase count toward its traffic total.
+
+The phone and collection computer's clocks were compared. Packet windows were shifted by the measured offset, and their boundary uncertainty was retained. The packet parser checked byte order, timestamp precision, raw-IP and Ethernet framing, IPv4/IPv6, unknown direction and phase boundaries. Its offline checks included published QUIC v1 and v2 vectors. Separate saved-data checks covered profile isolation, overlapping counters, stale phases, statistics resets and unresolved battery counters.
+
+SNI establishes a transport destination. It doesn't reveal the HTTPS path, request body, response classification or reason for a transfer. A shared API or media host can serve more than one purpose. No request-body tracking inventory, ad-request count or zero-tracking claim follows from these host totals. Missing hostnames remain unattributed. No TLS interception certificate was installed.
+
+Raw packets, diagnostic dumps and account screens stay local. Published evidence contains selected build facts, settings and numerical summaries. It excludes account names, device serials, network addresses, cookies and message content.
+
+#### Repeating the observation for a patch change
+
+1. Identify the exact APK hash, signer, Instagram build and embedded HushGram build. Keep a genuinely original Meta-signed installation as a separate control. Pause cannot turn a re-signed APK into stock or restore manifest edits.
+2. Resolve the UID for the intended Android user. Save the relevant switches and playback quality. Keep brightness, network, capture configuration and the content workload consistent.
+3. Physically disconnect external power. Check actual power flags and discharge status before collecting. A simulated unplug only changes Android's reported state and is unsuitable for measuring physical drain.
+4. Start one app-filtered capture, then collect complete before/after snapshots for a stopped-app idle control, a timed foreground workload and natural background use. Leave the app alive for the background condition. Keep launch/setup traffic outside those windows and report it separately if needed.
+5. Reassemble handshakes and slice the capture using recorded timestamps with clock uncertainty. Compare UID bytes with capture bytes without expecting identical packet accounting. Report CPU, partial wakelocks, wakeup alarms and job execution separately from pending schedules.
+6. Repeat matched conditions, preferably alternating their order. Use the same media where possible and separate warm-cache and cold-cache runs. A longer idle or overnight run is needed before estimating daily background cost or judging sparse retries.
+7. Stop the capture, restore temporary device state and remove only the generated diagnostic files after their local copies are verified. Keep private evidence outside the repository.
+
+For exact field meanings, consult [BatteryStats accounting](https://android.googlesource.com/platform/frameworks/base/+/main/core/java/android/os/BatteryStats.java), [network-statistics collection](https://android.googlesource.com/platform/packages/modules/Connectivity/+/main/service-t/src/com/android/server/net/NetworkStatsService.java) and [battery-state overrides](https://android.googlesource.com/platform/frameworks/base/+/main/services/core/java/com/android/server/BatteryService.java). Those definitions explain the method. The values in this section come from the saved phone observations.
+
 
 ### Artifact and application structure
 
@@ -153,7 +357,7 @@ Important limit: the helper takes no media, surface, request or account argument
 
 The native guard runs before the insertion method's callbacks and state updates. Callers still perform pool reads before reaching it and other callbacks afterward. Returning false must not be interpreted as turning off the whole advertising subsystem.
 
-CURRENT SOURCE verification inventory. scripts/injected-mutation-contracts.txt:144-150 requires one Ads.hide call at the start of the static boolean method holding cross_surface_duplicate_ad, and forbids additional calls elsewhere. This guards placement and duplication. A source search found no dedicated AdsTest, HideAdsHookTest, Ads.hide runtime exercise or AdInjectorFingerprint fixture test in the two normal test trees at this baseline. Other tests cover catalog inclusion/settings and generic contracts. The audit did not run any tests, so this is an inventory gap, not a failed test result.
+CURRENT SOURCE verification inventory. scripts/injected-mutation-contracts.txt:144-150 requires one Ads.hide call at the start of the static boolean method holding cross_surface_duplicate_ad, and forbids additional calls elsewhere. This guards placement and duplication. A source search found no dedicated AdsTest, HideAdsHookTest, Ads.hide runtime exercise or AdInjectorFingerprint fixture test in the two normal test trees at this baseline. Other tests cover catalog inclusion/settings and generic contracts. The static pass did not run these tests, so this is an inventory gap, not a failed test result.
 
 High-value acceptance cases for this hook:
 
@@ -490,7 +694,7 @@ These are investigation and implementation recommendations. They are not claims 
 | A07 | P1 / medium | Revisit persistent HDR #85, relationship #40 and warm-return feed row #88 as separate failures. | Reproduce each reported path, compare stock, record player layer/current relationship/native rebind as appropriate. A counter alone cannot close the report. |
 | A08 | P1 / large | Establish ordinary versus encrypted/native DM receipt coverage. | Authorized test peer checks the remote state across read, reconnect, process death and explicit Mark as read. Local UI is insufficient. |
 | A09 | P1 / small | Separate an established privacy decision from optional diagnostics. | Inject counter/logging failure after deciding to hold. The hold remains active. Keep documented settings-readiness and Pause behavior. |
-| A10 | P2 / large | Investigate ad request and prefetch suppression at sponsored task construction. | Measure first. Preserve completion callbacks, refill ownership and organic pagination. Cover ordinary and streaming task paths. Do not assume `skip_ad_insertion` is a safe suppression contract. |
+| A10 | P2 / large | Investigate ad request and prefetch suppression at sponsored task construction. | Measure first. Preserve completion callbacks, refill ownership and organic pagination. Cover ordinary and streaming task paths. The measured SNI and encrypted bytes cannot count ads, so request classification at task construction is still needed. Do not assume `skip_ad_insertion` is a safe suppression contract. |
 | A11 | P2 / medium | Scope sparse-feed prefetch and survey/shopping-only empty states. | A bounded request budget, stable cursors, exhausted feed and switch-off behavior. Prove the proposed native empty state can occur before calling it a live bug. |
 | A12 | P2 / medium | Add specific DM Accounts to follow and Music/Popular For you tray filters, #112/#111. | Observe the card, identify its real model/enum or narrow flag, preserve real threads and followed stories, test an account receiving that rollout. |
 | A13 | P2 / medium | Separate search null-state suggestions, chips and shopping pivots. | Search before typing, results, clearing, Back, keyboard and restart. Keep Recent and typed results unless separately selected. |
@@ -498,7 +702,7 @@ These are investigation and implementation recommendations. They are not claims 
 | A15 | P2 / medium | Reuse the download pipeline for an optional visible feed action, #97. | No duplicate save logic, correct media identity after recycling, accessibility action, folder permission changes and progress/cancel feedback. |
 | A16 | P2 / medium | Separate local story watched state from the outgoing receipt, #92/#113. | Colored/gray local preference, sender viewer list unchanged while held, Mark as seen, order, refresh and restart. |
 | A17 | P2 / medium | Trace pending Reel seen batches before adding a flush-time hold. | Create pending records while off, enable offline, restart/reconnect. Preserve ownership and document whether old entries are held. |
-| A18 | P2 / medium | Measure refused telemetry queue cost. | Bounded browse/idle/reconnect comparison of attempts, retained bytes, wakeups and CPU. Only then consider a native completion/drop path. |
+| A18 | P2 / medium | Measure analytics enqueue, persistent-queue and schedule cost after destination refusal. | Use the original five-minute one-shot batch scheduler as a trace anchor. No batch delivery was recorded in accepted background, and the rejected interval showed one, without proof of a retry loop. Compare retained bytes, attempts and CPU before considering a completion/drop path. |
 | A19 | P2 / large | Build an identifier and header ledger from producer to outgoing operation. | Per-install/account/request lifetime, account switching and recovery. Keep live values local. No blanket randomization. |
 | A20 | P2 / medium | Strengthen cached report-address discovery. `storedField` searches a register within a short window without proving intervening dataflow. | Overwritten register, copied value, branch and multiple-store negative fixtures, then exact native builds. Current mis-hooking is not demonstrated. |
 | A21 | P2 / medium | Inventory new feed enums, pooled strings and native/split routes on updates. | Explicit unknown-kind diff and per-target coverage. Preserve unknown content until its role is proved. |
@@ -508,7 +712,7 @@ These are investigation and implementation recommendations. They are not claims 
 | A25 | P2 / medium | Improve seek controls and quality access, #10/#93. | Native player synchronization, all entry surfaces, TalkBack and gesture conflicts, no duplicate bars. |
 | A26 | P2 / small | Add carefully named single-feature flags and flag-name import guidance, #110/#50/#67/#91. | Proved visible effect, supported build, original value restored, no unrelated layout changes. Numeric flags stay numeric when identity is unknown. |
 | A27 | P3 / medium | Split the two setup-nag skips from the analytics policy if useful. | Exact Bloks IDs, both presenters, normal login/dialogs, clear distinction from permission or consent changes. |
-| A28 | P3 / large | Investigate background heartbeat/upload alarms from PR #89. | Trace exact scheduler and persistence, measure wakeups, missed notifications/calls and recovery before claiming battery savings. |
+| A28 | P2 / large | Trace the measured warm-heartbeat and background-fetch paths, extending the PR #89 investigation. | Seven non-wakeup heartbeat deliveries occurred during Home-awake background use. Classify receiver work and rescheduling, join the ready background-fetch job to actual execution, preserve notifications/calls, then compare matched conditions. |
 | A29 | P3 / large | Add per-chat lock/hide with an account-scoped reversible list. | Inbox/search/deep links/notifications/recents, no private first frame, recovery route, no deletion or server-history mutation. |
 | A30 | P3 / medium | Optional external ad destinations. Current external-browser routing excludes ads. | Inherited ad context, checkout/login, app links, browser absence, native fallback. Export cleaning does not undo attribution already sent. |
 | A31 | P3 / large | Contact-sync and location minimization at actual producers. | Trace provider through job/serializer/native handoff. Preserve intentional location stickers and contact lookup. Hidden prompts do not prove suppression. |
