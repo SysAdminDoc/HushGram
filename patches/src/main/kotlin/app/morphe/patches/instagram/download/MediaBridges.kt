@@ -240,10 +240,18 @@ internal fun BytecodePatchContext.carouselBridge(patch: String): () -> Unit {
     return bridgeWriter(patch, listOf(Bridge("carouselMedia", MEDIA, virtual(pages))))
 }
 
-/** The same for whether a story is a photo with music, which Instagram serves as a video. */
+/**
+ * The same for whether a story is a photo with music, which Instagram serves as a video: the flag
+ * only some uploads set, and `original_media_type`, the type the story was posted as, which
+ * Instagram's own story viewer reads to tell such a video from a filmed one (#98).
+ */
 internal fun BytecodePatchContext.storyMusicBridges(patch: String): () -> Unit {
     val photoWithMusic = pandoGetter(patch, MEDIA, "is_story_image_with_music", "Ljava/lang/Boolean;")
-    return bridgeWriter(patch, listOf(Bridge("storyImageWithMusic", MEDIA, virtual(photoWithMusic))))
+    val postedAs = pandoGetter(patch, MEDIA, "original_media_type", "Ljava/lang/Integer;")
+    return bridgeWriter(patch, listOf(
+        Bridge("storyImageWithMusic", MEDIA, virtual(photoWithMusic)),
+        Bridge("originalMediaType", MEDIA, virtual(postedAs)),
+    ))
 }
 
 /** A post's music, the track it comes from, and the part of the track the post plays. All keep their names. */

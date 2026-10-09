@@ -43,6 +43,16 @@
     receipt. A release publishes all four, and the index push downloads the first three back and
     holds each to that list.
 
+    With -FromGate the run reads what the push gate already did for HEAD (gate-evidence.ps1),
+    found only when its manifest, tree, bundle, SBOM and test results all still hold up. The
+    gate's bundle and SBOM are copied in when none was built here, and since that bundle came from
+    a clean worktree of this commit, the source dates in this checkout aren't compared with it.
+    The stamp, the build identity and the clean-tree checks still are. A build the gate patched
+    with this bundle, catalog, CLI and APK, forced the same way, is read back from the gate's kept
+    run instead of being merged and patched again, and its report, coverage and manifests are held
+    to the same checks. Anything else is patched here. The receipt and SHA256SUMS.txt are copied
+    beside the gate's run when it's done.
+
     Taken from Hushfacebook's scripts/build-release-receipt.ps1
     (https://github.com/SysAdminDoc/Hushfacebook, commit 814acd23d7b70d5d23abce6cb6c97767e16a051e),
     which came from Hushfeed (https://github.com/SysAdminDoc/hushfeed). GPL-3.0-only.
@@ -55,6 +65,11 @@
 
     Every declared build's fixture from HUSHGRAM_FIXTURE_DIR, the bundle in patches/build/release,
     and the receipt in the repository root, where .gitignore keeps it out of commits.
+
+.EXAMPLE
+    scripts/build-release-receipt.ps1 -WorkDir C:\scratch -FromGate
+
+    The same, from the gate's run of HEAD when the release commit was pushed.
 
 .EXAMPLE
     One -Fixture taking a comma separated list, not the switch repeated: PowerShell binds a
@@ -80,7 +95,14 @@ param(
     [string]$DependencyGraph,
     # For working with no network only: OSV isn't asked about the SBOM's libraries, and the run
     # says so. The index push asks again, so a release can't go out on it.
-    [switch]$SkipAdvisoryCheck
+    [switch]$SkipAdvisoryCheck,
+    # Reads the push gate's run of HEAD (gate-evidence.ps1) instead of doing its work again: its
+    # bundle and SBOM are copied into patches/build/release when none was built here, and each
+    # build the gate patched with this bundle, catalog, CLI and APK is read back from its kept run
+    # rather than merged and patched a second time. Everything the receipt records is still read
+    # and checked the same way. A run that doesn't hold up for HEAD, or a bundle here that isn't
+    # the gate's, and the receipt is cut as without it.
+    [switch]$FromGate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -92,6 +114,7 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 . (Join-Path $PSScriptRoot 'release-receipt.ps1')
 . (Join-Path $PSScriptRoot 'release-advisories.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'build-jobs.ps1')
 
 $Java = Resolve-Java -Explicit $Java
 $Aapt2 = Resolve-Aapt2 -Explicit $Aapt2 -Root $Root
@@ -100,6 +123,28 @@ $DesktopJar = Resolve-DesktopCli -Explicit $DesktopJar -Root $Root -Required
 
 $releaseVersion = Get-BundleVersion -Root $Root
 if (-not $Bundle) { $Bundle = Get-ReleaseBundlePath -Root $Root -Version $releaseVersion }
+$gateRun = $null
+if ($FromGate) {
+    . (Join-Path $PSScriptRoot 'gate-evidence.ps1')
+    $gateRun = Find-GateEvidence -Root $Root -Prefix '[receipt]'
+    if ($gateRun -and [string]$gateRun.Manifest.bundle.file -cne (Split-Path -Leaf $Bundle)) {
+        Write-Host ("[receipt] the gate built $($gateRun.Manifest.bundle.file), not $(Split-Path -Leaf $Bundle), " +
+            "so its run isn't read")
+        $gateRun = $null
+    } elseif ($gateRun -and -not (Test-Path -LiteralPath $Bundle -PathType Leaf)) {
+        # The gate's bundle and SBOM where buildAndroid would have left them, so the receipt and
+        # SHA256SUMS.txt are written beside them as usual and the release uploads them from here.
+        $releaseDir = Split-Path -Parent $Bundle
+        New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+        foreach ($kept in @(Get-ChildItem -LiteralPath (Split-Path -Parent $gateRun.Bundle) -File)) {
+            Copy-Item -LiteralPath $kept.FullName -Destination (Join-Path $releaseDir $kept.Name) -Force
+        }
+        Write-Host "[receipt] no bundle built here, so the gate's $(Split-Path -Leaf $Bundle) and its SBOM were copied into $releaseDir"
+    } elseif ($gateRun -and (Get-Sha256Hex -Path $Bundle) -cne [string]$gateRun.Manifest.bundle.sha256) {
+        Write-Host "[receipt] the bundle at $Bundle isn't the one the gate built and tested, so the gate's run isn't read"
+        $gateRun = $null
+    }
+}
 if (-not (Test-Path -LiteralPath $Bundle -PathType Leaf)) {
     throw "No bundle for version ${releaseVersion}: $Bundle. Run :patches:generatePatchesList then :patches:buildAndroid."
 }
@@ -124,9 +169,7 @@ if (-not $Fixture -or $Fixture.Count -eq 0) {
             "The receipt needs a run of $($expectedTarget.PackageName) $(Format-DeclaredBuilds -Target $expectedTarget).")
     }
     $Fixture = @(foreach ($version in @($expectedTarget.PackageVersions)) {
-        Get-ChildItem -LiteralPath $fixtureDir -File | Where-Object {
-            $_.Name -like "instagram-$version-*" -and $_.Extension -in '.apk', '.apks', '.apkm', '.xapk'
-        } | Sort-Object Name | Select-Object -First 1 | ForEach-Object { $_.FullName }
+        Find-DeclaredFixture -Target $expectedTarget -Version $version -Folder $fixtureDir | ForEach-Object { $_.FullName }
     })
     if ($Fixture.Count -eq 0) {
         throw ("HUSHGRAM_FIXTURE_DIR ($fixtureDir) holds no fixture of " +
@@ -182,8 +225,14 @@ if ($bundleManifest.timestamp -ne $expectedStamp) {
         'from this commit. Nothing was patched.')
 }
 # And what changed after the build started: an edit made and put back since leaves the tree clean
-# and the stamp right, and a file written after the bundle is the trace it leaves.
-$newerSources = @(Get-SourcesNewerThanBundle -Root $Root -Bundle $Bundle)
+# and the stamp right, and a file written after the bundle is the trace it leaves. The gate's bundle
+# was built in a worktree of its own from this commit's tree, so dates in this checkout, which a
+# checkout made after the gate always has newer, say nothing about it.
+$newerSources = @(if (-not $gateRun) { Get-SourcesNewerThanBundle -Root $Root -Bundle $Bundle })
+if ($gateRun) {
+    Write-Host ("[receipt] the bundle is the gate's build of $($commit.Substring(0, 12)) from a clean worktree, so the " +
+        'sources here are not compared with it by date')
+}
 if ($newerSources.Count -gt 0) {
     throw ("$($newerSources.Count) source file(s) changed after the bundle was built, the newest " +
         "$($newerSources[0].FullName). The bundle may not hold what they hold now, so build it again. " +
@@ -301,46 +350,69 @@ if ($unfixed.Count -gt 0) {
 
 foreach ($apk in $Fixture) {
     $label = Split-Path -Leaf $apk
-    Write-Host "[receipt] patching $label with $($patchNames.Count) patches"
+    $stock = $stockFacts[$apk]
+    # A fixture of a build the bundle does not declare, by version name or by version code, is
+    # patched under -f, and the receipt says so rather than letting a forced run read like a
+    # declared-compatible one.
+    $forced = -not (Test-DeclaredBuild -Target $expectedTarget -VersionName ([string]$stock.versionName) `
+        -VersionCode ([string]$stock.versionCode))
+    # The gate's run of this build, when it patched these very inputs the way this run would: the
+    # same CLI arguments, so the same report and APK. Read back, it is held to everything below
+    # exactly as a run made here is.
+    $keptRun = $null
+    if ($gateRun) {
+        $notKept = $null
+        $keptRun = Get-GateKeptRun -Evidence $gateRun -VersionName ([string]$stock.versionName) -Apk $apk `
+            -BundleSha256 $bundleHash -PatchList $PatchList -DesktopJar $DesktopJar -Forced $forced -Why ([ref]$notKept)
+        if (-not $keptRun) { Write-Host "[receipt] ${label}: $notKept, so it is patched here" }
+    }
+    if ($keptRun) {
+        Write-Host "[receipt] ${label}: reading the gate's patch run with $($patchNames.Count) patches"
+    } else {
+        Write-Host "[receipt] patching $label with $($patchNames.Count) patches"
+    }
 
     $runId = [guid]::NewGuid().ToString('N')
     $runDir = Resolve-WithinRoot -Path (Join-Path $workRoot "receipt-$runId") -Root $workRoot
     New-Item -ItemType Directory -Force -Path $runDir | Out-Null
+    # The merge and the patch run take a slot in the machine's build queue (build-jobs.ps1).
+    $patchJob = $null
     try {
-        $stock = $stockFacts[$apk]
+        $patchJob = Enter-HeavyJob -Label "receipt $label"
 
-        $out = Resolve-WithinRoot -Path (Join-Path $runDir 'patched.apk') -Root $workRoot
-        $temp = Resolve-WithinRoot -Path (Join-Path $runDir 'tmp') -Root $workRoot
-        $resultPath = Resolve-WithinRoot -Path (Join-Path $runDir 'result.json') -Root $workRoot
+        if ($keptRun) {
+            $out = $keptRun.PatchedApk
+            $resultPath = $keptRun.Result
+            $patchInput = if ($keptRun.MergedApk) { $keptRun.MergedApk } else { $apk }
+            $cliExitCode = 0
+        } else {
+            $out = Resolve-WithinRoot -Path (Join-Path $runDir 'patched.apk') -Root $workRoot
+            $temp = Resolve-WithinRoot -Path (Join-Path $runDir 'tmp') -Root $workRoot
+            $resultPath = Resolve-WithinRoot -Path (Join-Path $runDir 'result.json') -Root $workRoot
 
-        # A fixture of a build the bundle does not declare, by version name or by version code, is
-        # patched under -f, and the receipt says so rather than letting a forced run read like a
-        # declared-compatible one.
-        $forced = -not (Test-DeclaredBuild -Target $expectedTarget -VersionName ([string]$stock.versionName) `
-            -VersionCode ([string]$stock.versionCode))
+            # The one APK the CLI patches: the fixture's merge when it's a split bundle, made here
+            # because the CLI deletes its own, or the fixture itself. No merge, no receipt.
+            $mergedApk = Resolve-WithinRoot -Path (Join-Path $runDir 'stock-merged.apk') -Root $workRoot
+            $patchInput = Get-MergedApk -Apk $apk -Destination $mergedApk -Java $Java -DesktopJar $DesktopJar
 
-        # The one APK the CLI patches: the fixture's merge when it's a split bundle, made here
-        # because the CLI deletes its own, or the fixture itself. No merge, no receipt.
-        $mergedApk = Resolve-WithinRoot -Path (Join-Path $runDir 'stock-merged.apk') -Root $workRoot
-        $patchInput = Get-MergedApk -Apk $apk -Destination $mergedApk -Java $Java -DesktopJar $DesktopJar
-
-        $enable = @()
-        foreach ($name in $patchNames) { $enable += '-e'; $enable += $name }
-        $arguments = @('patch', '--exclusive', '--continue-on-error', '--unsigned', '-p', $Bundle,
-            '-o', $out, '-t', $temp, '-r', $resultPath)
-        if ($forced) { $arguments += '-f' }
-        $arguments = $arguments + $enable + @($patchInput)
-        # Continue for the call alone: the CLI logs WARNING and SEVERE on stderr, which Windows
-        # PowerShell 5.1 turns into a terminating error under Stop. The report and the exit code
-        # are what decide.
-        $preference = $ErrorActionPreference
-        try {
-            $ErrorActionPreference = 'Continue'
-            $global:LASTEXITCODE = -1
-            & $Java '-jar' $DesktopJar @arguments 2>&1 | Out-Null
-            $cliExitCode = $LASTEXITCODE
-        } finally {
-            $ErrorActionPreference = $preference
+            $enable = @()
+            foreach ($name in $patchNames) { $enable += '-e'; $enable += $name }
+            $arguments = @('patch', '--exclusive', '--continue-on-error', '--unsigned', '-p', $Bundle,
+                '-o', $out, '-t', $temp, '-r', $resultPath)
+            if ($forced) { $arguments += '-f' }
+            $arguments = $arguments + $enable + @($patchInput)
+            # Continue for the call alone: the CLI logs WARNING and SEVERE on stderr, which Windows
+            # PowerShell 5.1 turns into a terminating error under Stop. The report and the exit code
+            # are what decide.
+            $preference = $ErrorActionPreference
+            try {
+                $ErrorActionPreference = 'Continue'
+                $global:LASTEXITCODE = -1
+                & $Java '-jar' $DesktopJar @arguments 2>&1 | Out-Null
+                $cliExitCode = $LASTEXITCODE
+            } finally {
+                $ErrorActionPreference = $preference
+            }
         }
 
         if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
@@ -398,6 +470,7 @@ foreach ($apk in $Fixture) {
             (Test-Path -LiteralPath $runDir)) {
             Remove-Item -LiteralPath $runDir -Recurse -Force -ErrorAction SilentlyContinue
         }
+        Exit-HeavyJob $patchJob
     }
 }
 
@@ -460,6 +533,14 @@ $lines = foreach ($file in @($Bundle, $Sbom, $OutputPath)) {
 }
 [System.IO.File]::WriteAllText($sums, (($lines -join "`n") + "`n"), (New-Object System.Text.UTF8Encoding($false)))
 Write-Host "[receipt] wrote $sums"
+if ($gateRun) {
+    # Beside the gate's run, so the index push over this commit finds the receipt and the list
+    # with the bundle they describe when the release was cut in another checkout.
+    $keptReceipt = Join-Path $gateRun.Directory 'receipt'
+    New-Item -ItemType Directory -Force -Path $keptReceipt | Out-Null
+    Copy-Item -LiteralPath $OutputPath, $sums -Destination $keptReceipt -Force
+    Write-Host "[receipt] kept a copy of both with the gate's run in $keptReceipt"
+}
 Write-Host ("[receipt] a release publishes $(Split-Path -Leaf $Bundle), $(Split-Path -Leaf $Sbom), " +
     "$(Split-Path -Leaf $OutputPath) and SHA256SUMS.txt")
 exit 0
