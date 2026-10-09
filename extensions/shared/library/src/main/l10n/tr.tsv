@@ -633,9 +633,34 @@ Mentioned in this story	Bu hikâyede bahsedilenler
 See who a story mentions	Bir hikâyede kimlerden bahsedildiğini gör
 Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. Restart Instagram after changing it.	Her emoji, telefonunun kendi stili yerine, Instagram'ın Google Play hizmetlerinden aldığı emoji yazı tipinden Google stilinde görünür. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Google's emoji everywhere	Her yerde Google emojileri
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Vurgu bir sekmenin üzerinden her geçtiğinde hafif bir titreşim verir; ekranlar arasında dokunurken veya kaydırırken çubuğu takip eder.
+Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 ve üzerinde hapın arkasındaki görüntüyü bulanıklaştırır. Kapalıyken hap, buzlu bir renk tonudur.
+Clear all	Tümünü temizle
+Deleted messages	Silinen mesajlar
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
+Glass tab bar	Cam sekme çubuğu
+Haptics on the tab bar	Sekme çubuğunda titreşim
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Ana Sayfa ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur. Reels yine de onun üstünde biter.
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Başkalarının sana gönderdiği mesajların metnini bu telefonda saklar ve sildiklerini işaretler. Hiçbir şey telefondan çıkmaz ve yalnızca metin saklanır.
+Messages other people deleted after this phone saved them. Tap to read them.	Bu telefon kaydettikten sonra başkalarının sildiği mesajlar. Okumak için dokun.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Henüz hiçbir şey silinmedi. Bu telefon bir mesajı daha önce görmüşse, gönderen kişi sildiğinde mesaj burada görünür.
+Save deleted messages	Silinen mesajları kaydet
+Saved messages cleared.	Kayıtlı mesajlar temizlendi.
+Sender	Gönderen
+Show content behind the tab bar	İçeriği sekme çubuğunun arkasında göster
+Tab bar	Sekme çubuğu
+Saved	Kaydedilenler
+Saved tab on your profile	Profilinde Kaydedilenler sekmesi
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Kendi profilinin sekmelerine Kaydedilenler'i açan bir yer imi ekler. Değiştirdikten sonra Instagram'ı yeniden başlat.
+Battery	Pil
+Stop the background heartbeat	Arka plandaki kalp atışını durdur
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Video kapaklarını indir
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Videolu bir akış gönderisinin ve video gösteren bir karuselin menüsüne Kapağı indir ekler. Video oynatılmadan önce görünen hareketsiz görüntüyü en büyük boyutunda kaydeder.
+Stop the analytics upload alarm	Analiz yükleme alarmını durdur
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur; veriler uygulamayı bir sonraki kullanışında gider, Analizleri kapat açıkken hiçbir yere gitmez.
 Import flag names	Bayrak adlarını içe aktar
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json dosyası gibi bir MetaConfig ad listesi seç, MetaConfig sayılar yerine bu adları göstersin. Sayıyla arama çalışmaya devam eder.
 Remove flag names	Bayrak adlarını kaldır
@@ -648,3 +673,8 @@ Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya u
 That file has no flag names in it. Nothing changed.	Bu dosyada bayrak adı yok. Hiçbir şey değişmedi.
 Couldn't remove the flag names. Try again.	Bayrak adları kaldırılamadı. Yeniden dene.
 Couldn't save the flag names. Nothing changed.	Bayrak adları kaydedilemedi. Hiçbir şey değişmedi.
+Haptic style	Haptik stili
+Short tick	Kısa tık
+System tick	Sistem tıkı
+Soft tick	Yumuşak tık
+Full tick	Tam tık

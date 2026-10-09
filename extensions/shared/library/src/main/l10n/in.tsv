@@ -633,9 +633,34 @@ Mentioned in this story	Disebut di cerita ini
 See who a story mentions	Lihat siapa yang disebut cerita
 Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. Restart Instagram after changing it.	Setiap emoji tampil dengan gaya Google, dari font emoji yang didapat Instagram lewat layanan Google Play, bukan gaya ponselmu sendiri. Mulai ulang Instagram setelah mengubahnya.
 Google's emoji everywhere	Emoji Google di mana saja
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Getaran halus setiap kali sorotan melewati sebuah tab, jadi mengikuti bilah saat kamu mengetuk atau menggeser antar layar.
+Blur behind the tab bar	Blur di belakang bilah tab
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Memburamkan yang ada di belakang pil pada Android 12 ke atas. Nonaktif, pil berupa warna buram.
+Clear all	Hapus semua
+Deleted messages	Pesan yang dihapus
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Menggambar bilah tab Instagram sebagai pil kaca bulat yang melayang dengan sorotan pada tab yang sedang dibuka. Mulai ulang Instagram setelah mengubahnya.
+Glass tab bar	Bilah tab kaca
+Haptics on the tab bar	Getaran pada bilah tab
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Beranda dan tab lainnya berlanjut di belakang pil, sehingga kaca punya konten nyata untuk diburamkan. Reels tetap berhenti di atasnya.
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Menyimpan teks pesan yang dikirim orang lain kepadamu di ponsel ini, dan menandai yang mereka hapus. Tidak ada yang keluar dari ponsel, dan hanya teks yang disimpan.
+Messages other people deleted after this phone saved them. Tap to read them.	Pesan yang dihapus orang lain setelah ponsel ini menyimpannya. Ketuk untuk membacanya.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Belum ada yang dihapus. Pesan muncul di sini setelah pengirimnya menghapusnya, jika ponsel ini sudah pernah melihatnya.
+Save deleted messages	Simpan pesan yang dihapus
+Saved messages cleared.	Pesan tersimpan dihapus.
+Sender	Pengirim
+Show content behind the tab bar	Tampilkan konten di belakang bilah tab
+Tab bar	Bilah tab
+Saved	Tersimpan
+Saved tab on your profile	Tab Tersimpan di profilmu
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Menambahkan penanda ke tab profilmu sendiri yang membuka Tersimpan. Mulai ulang Instagram setelah mengubahnya.
+Battery	Baterai
+Stop the background heartbeat	Hentikan detak latar belakang
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram membangunkan ponselmu setiap satu atau dua menit, termasuk saat layar mati, hanya untuk mencatat bahwa ia masih berjalan. Ini menghentikannya. Pesan, notifikasi, dan semua yang kamu lihat tidak terpengaruh.
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Unduh sampul video
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Menambahkan Unduh sampul ke menu postingan feed berisi video, dan ke carousel yang sedang menampilkan video. Ini menyimpan gambar diam yang tampil sebelum video diputar, dalam ukuran terbesarnya.
+Stop the analytics upload alarm	Hentikan alarm unggah analitik
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu; data dikirim saat kamu memakai aplikasi berikutnya, atau tidak ke mana pun dengan Nonaktifkan analitik.
 Import flag names	Impor nama flag
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Pilih daftar nama MetaConfig, misalnya berkas id_name_mapping.json, dan MetaConfig akan menampilkan nama itu sebagai pengganti angka. Pencarian dengan angka tetap berfungsi.
 Remove flag names	Hapus nama flag
@@ -648,3 +673,8 @@ Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati kar
 That file has no flag names in it. Nothing changed.	Berkas itu tidak berisi nama flag. Tidak ada yang berubah.
 Couldn't remove the flag names. Try again.	Nama flag tidak dapat dihapus. Coba lagi.
 Couldn't save the flag names. Nothing changed.	Nama flag tidak dapat disimpan. Tidak ada yang berubah.
+Haptic style	Gaya haptik
+Short tick	Ketukan pendek
+System tick	Ketukan sistem
+Soft tick	Ketukan lembut
+Full tick	Ketukan penuh

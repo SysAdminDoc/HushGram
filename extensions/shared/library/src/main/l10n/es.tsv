@@ -633,9 +633,34 @@ Mentioned in this story	Mencionados en esta historia
 See who a story mentions	Ver a quién menciona una historia
 Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play services, instead of your phone's own style. Restart Instagram after changing it.	Todos los emojis se ven con el estilo de Google, de la fuente de emojis que Instagram obtiene de los servicios de Google Play, en lugar del estilo de tu teléfono. Reinicia Instagram después de cambiarlo.
 Google's emoji everywhere	Emojis de Google en todas partes
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Un toque suave cada vez que el resaltado pasa por una pestaña, para que siga la barra al tocar o deslizar entre pantallas.
+Blur behind the tab bar	Desenfoque tras la barra de pestañas
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Desenfoca lo que hay detrás de la píldora en Android 12 y posteriores. Desactivado, la píldora es un tinte esmerilado.
+Clear all	Borrar todo
+Deleted messages	Mensajes eliminados
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Dibuja la barra de pestañas de Instagram como una píldora de cristal flotante y redondeada, con un resaltado en la pestaña actual. Reinicia Instagram tras cambiarlo.
+Glass tab bar	Barra de pestañas de cristal
+Haptics on the tab bar	Vibración en la barra de pestañas
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Inicio y las demás pestañas continúan detrás de la píldora, para que el cristal tenga contenido real que desenfocar. Reels sigue terminando por encima.
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Guarda en este teléfono el texto de los mensajes que te envían otras personas y marca los que eliminan. Nada sale del teléfono y solo se guarda texto.
+Messages other people deleted after this phone saved them. Tap to read them.	Mensajes que otras personas eliminaron después de que este teléfono los guardara. Toca para leerlos.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Todavía no se ha eliminado nada. Un mensaje aparece aquí cuando quien lo envió lo elimina, si este teléfono ya lo había visto.
+Save deleted messages	Guardar mensajes eliminados
+Saved messages cleared.	Mensajes guardados borrados.
+Sender	Remitente
+Show content behind the tab bar	Mostrar contenido detrás de la barra de pestañas
+Tab bar	Barra de pestañas
+Saved	Guardado
+Saved tab on your profile	Pestaña Guardado en tu perfil
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Añade a las pestañas de tu propio perfil un marcador que abre Guardado. Reinicia Instagram tras cambiarlo.
+Battery	Batería
+Stop the background heartbeat	Detener el latido en segundo plano
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram despierta tu teléfono cada minuto o dos, también con la pantalla apagada, solo para anotar que sigue funcionando. Esto lo detiene. Los mensajes, las notificaciones y todo lo que ves no cambian.
 # context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
 Download video covers	Descargar portadas de videos
 Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	Añade Descargar portada al menú de una publicación del feed con video y de un carrusel que muestre uno. Guarda la imagen fija que se ve antes de que se reproduzca el video, en su tamaño más grande.
+Stop the analytics upload alarm	Detener la alarma de subida de analíticas
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm; the events go the next time you use the app, or nowhere with Disable analytics.	Instagram programa una alarma que despierta tu teléfono para enviar sus datos de uso cinco minutos después. Esto detiene esa alarma; los datos se envían la próxima vez que uses la app, o a ninguna parte con Desactivar analíticas.
 Import flag names	Importar nombres de opciones
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Elige una lista de nombres de MetaConfig, como un archivo id_name_mapping.json, y MetaConfig mostrará esos nombres en lugar de números. La búsqueda por número sigue funcionando.
 Remove flag names	Quitar nombres de opciones
@@ -648,3 +673,8 @@ Entries left out because they repeat or don't fit: %1$d.	Entradas omitidas porqu
 That file has no flag names in it. Nothing changed.	Ese archivo no tiene nombres de opciones. No ha cambiado nada.
 Couldn't remove the flag names. Try again.	No se pudieron quitar los nombres de opciones. Inténtalo de nuevo.
 Couldn't save the flag names. Nothing changed.	No se pudieron guardar los nombres de opciones. No ha cambiado nada.
+Haptic style	Estilo de vibración
+Short tick	Toque corto
+System tick	Toque del sistema
+Soft tick	Toque suave
+Full tick	Toque completo

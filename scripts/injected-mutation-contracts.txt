@@ -154,6 +154,15 @@ once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z hol
 start-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 once-call Lapp/hushgram/extension/instagram/misc/BuildExpiry;->suppress()Z in (Landroidx/fragment/app/FragmentActivity;*)V holding lockout_active
 #
+# Stop background wake-ups asks the extension first thing in the method that sets Instagram's next
+# heartbeat alarm, the one taking its own class and holding both the WarmHeartbeat tag and the message
+# for a missing AlarmManager.
+start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
+once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
+# It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
+# static upload scheduler holding the alarm's tag and its intent action.
+sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload
+#
 # Disable analytics passes the address Instagram uploads its usage events to through the extension
 # before the builder returns it. The builder is the one static method taking a host and a flag that
 # holds all three pieces of the address, and it returns once on 449, so one call. The extension's
@@ -1065,6 +1074,17 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in in
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onInterceptTouchEvent
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
+
+# Save deleted messages hands each parsed direct message, and each real-time one, to SavedMessages
+# right before it's returned, and tells it the id of a message Instagram hides, at the start of the
+# one method holding the hide-by-id message. The JSON parser is the one method holding the four
+# keys below, the real-time method the one holding both postprocess strings, and each is hooked at
+# the return of the message's own register; a real-time message has two such returns, so its rule
+# is shared. Left out, nothing is saved; elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding item_id hide_in_thread thread_key client_context
+shared-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;)L*; holding DirectMessage.postprocess.%s Encountered\sDirectMessage\swith\snull\stype
+start-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.
 # Change version code sends Instagram's reads of its own version code through VersionCode.read. The
 # start-up check of the installed code against the one built into the dex, and the constructor that
 # logs "Error getting app version code.", each read it once, picked by the text they load. Left out,

@@ -50,7 +50,11 @@ import app.morphe.patches.instagram.misc.comment.saveCommentPhotoPatch
 import app.morphe.patches.instagram.download.profile.saveProfilePicturePatch
 import app.morphe.patches.instagram.download.voice.downloadVoiceMessagesPatch
 import app.morphe.patches.instagram.misc.developeroptions.openDeveloperOptionsPatch
+import app.morphe.patches.instagram.direct.saved.saveDeletedMessagesPatch
 import app.morphe.patches.instagram.misc.emoji.emojiStylePatch
+import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
+import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
+import app.morphe.patches.instagram.misc.profilesaved.savedOnProfilePatch
 import app.morphe.patches.instagram.misc.externalbrowser.openLinksExternallyPatch
 import app.morphe.patches.instagram.misc.resignedtrust.restoreTrustPatch
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -146,6 +150,10 @@ class DefaultCatalogTest {
     )
 
     private val optIn = listOf<Patch<*>>(
+        glassTabBarPatch,
+        stopHeartbeatPatch,
+        savedOnProfilePatch,
+        saveDeletedMessagesPatch,
         changeVersionCodePatch,
         cleanUpReelsPatch,
         dontSendReelWatchHistoryPatch,
@@ -188,14 +196,14 @@ class DefaultCatalogTest {
     }
 
     @Test fun immediateBehaviorChangesAndUnacceptedDmReceiptsStayOptIn() {
-        assertEquals(29, optIn.size)
+        assertEquals(33, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.use) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.use }
-        assertEquals("every named patch needs one reviewed decision", 78, all.size)
+        assertEquals("every named patch needs one reviewed decision", 82, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

@@ -176,6 +176,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting VIEW_STORIES_ANONYMOUSLY =
             new BooleanSetting("hushgram_view_stories_anonymously", TRUE);
 
+    /**
+     * The text of messages other people send is kept on this phone, and the ones they later delete
+     * are listed in HushGram's settings ({@link app.hushgram.extension.instagram.direct.SavedMessages}).
+     * Starts on once the patch is picked.
+     */
+    public static final BooleanSetting SAVE_DELETED_MESSAGES =
+            new BooleanSetting("hushgram_save_deleted_messages", TRUE);
+
     /** A separate opt-in for the direct visual-media receipt. Ordinary chat receipts stay native. */
     public static final BooleanSetting VIEW_DM_MEDIA_ANONYMOUSLY =
             new BooleanSetting("hushgram_view_dm_media_anonymously", FALSE);
@@ -492,6 +500,70 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting REMOVE_BOTTOM_SPACE =
             new BooleanSetting("hushgram_remove_bottom_space", TRUE, true);
+
+    /**
+     * Instagram's tab bar is drawn as a floating, rounded glass pill
+     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). The patch is off in the default
+     * selection, so a build that has it asked for it, and the switch starts on. Instagram builds
+     * the bar as it starts, so a change takes a restart.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR =
+            new BooleanSetting("hushgram_glass_tab_bar", TRUE, true);
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: the pill blurs what's behind it, on Android 12 and newer. Off, or
+     * on an older Android, it's a frosted tint without the blur.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_BLUR =
+            new BooleanSetting("hushgram_glass_tab_bar_blur", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: Home and the other tabs run down behind the bar, so the glass has
+     * the real content to blur and no strip of Instagram's own colour sits behind the pill. Reels keeps
+     * its own controls above the pill. Off, the content stops above the bar.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_FLOAT =
+            new BooleanSetting("hushgram_glass_tab_bar_float", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: a light tick each time the highlight slides across a tab, so the
+     * buzz follows the bar as it moves, whether you tapped a tab or swiped to another screen.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_HAPTICS =
+            new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
+     * Starts on the phone's own click. A choice because only a hand can say which feels right.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.HapticStyle> GLASS_TAB_BAR_HAPTIC_STYLE =
+            new EnumSetting<>("hushgram_glass_tab_bar_haptic_style",
+                    app.hushgram.extension.instagram.misc.HapticStyle.SYSTEM, parent(GLASS_TAB_BAR_HAPTICS));
+
+    /**
+     * Your own profile's tabs get one more, a bookmark, that opens Saved
+     * ({@link app.hushgram.extension.instagram.misc.ProfileSaved}). The patch is off in the default
+     * selection, so a build that has it asked for it, and the switch starts on. The tabs are built as the
+     * profile opens, so a change takes a restart.
+     */
+    public static final BooleanSetting SAVED_ON_PROFILE =
+            new BooleanSetting("hushgram_saved_on_profile", TRUE, true);
+
+    /**
+     * Instagram stops waking itself with an alarm every minute or two to note that it is still running
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat}). Read each time the next alarm would be set.
+     * Starts on in a build that has the patch.
+     */
+    public static final BooleanSetting STOP_HEARTBEAT =
+            new BooleanSetting("hushgram_stop_heartbeat", TRUE);
+
+    /**
+     * Instagram stops setting the alarm that wakes the phone five minutes on to upload its usage events
+     * ({@link app.hushgram.extension.instagram.misc.Heartbeat#setUploadAlarm}). Read each time the alarm would be
+     * set. Starts on in a build that has the patch.
+     */
+    public static final BooleanSetting STOP_UPLOAD_ALARM =
+            new BooleanSetting("hushgram_stop_upload_alarm", TRUE);
 
     /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows

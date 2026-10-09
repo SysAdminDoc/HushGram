@@ -53,6 +53,10 @@ public final class FamilyNames {
     public static final String REPOST_BUTTON = "Hide the Repost button";
     public static final String HIDE_SHARE_BUTTON = "Hide the Share button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
+    public static final String GLASS_TAB_BAR = "Glass tab bar";
+    public static final String SAVED_ON_PROFILE = "Saved on your profile";
+    public static final String STOP_HEARTBEAT = "Stop background wake-ups";
+    public static final String DELETED_MESSAGES = "Save deleted messages";
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String NOTIFICATION_GROUPS = "Group Instagram's notifications";
     public static final String HDR_BOOST = "Turn off HDR brightness boosts";

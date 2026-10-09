@@ -69,6 +69,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
+import app.hushgram.extension.instagram.direct.SavedMessages;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
@@ -82,6 +83,7 @@ import app.hushgram.extension.instagram.misc.OverrideImport;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveControl;
@@ -507,7 +509,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
-                || build.contains(PatchFamily.ASK_BEFORE_CALL)) {
+                || build.contains(PatchFamily.ASK_BEFORE_CALL)
+                || build.contains(PatchFamily.DELETED_MESSAGES)) {
             PreferenceCategory messages = category(screen, L10n.t("Messages"));
             if (build.contains(PatchFamily.NOTES_ROW)) {
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
@@ -556,6 +559,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("All of Instagram stays covered until your fingerprint, face or screen lock says it's "
                                 + "you, your messages too.")));
                 messages.addPreference(lockDelayRow(context));
+            }
+            if (build.contains(PatchFamily.DELETED_MESSAGES)) {
+                messages.addPreference(toggle(context, Settings.SAVE_DELETED_MESSAGES, L10n.t("Save deleted messages"),
+                        L10n.t("Keeps the text of messages other people send you on this phone, and marks the ones "
+                                + "they delete. Nothing leaves the phone, and only text is kept.")));
+                messages.addPreference(deletedMessagesRow(context));
             }
         }
 
@@ -798,7 +807,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
-                || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)) {
+                || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
+                || build.contains(PatchFamily.SAVED_ON_PROFILE)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"));
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
                 profiles.addPreference(toggle(context, Settings.SHOW_FRIENDSHIP_STATUS, L10n.t("Show if a profile follows you"),
@@ -822,6 +832,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.HIDE_HIGHLIGHTS, L10n.t("Hide highlights"),
                         L10n.t("Takes the row of story highlights off profiles, yours included. Bios, counts and "
                                 + "posts stay, and so does Add to highlight on your stories.")));
+            }
+            if (build.contains(PatchFamily.SAVED_ON_PROFILE)) {
+                profiles.addPreference(toggle(context, Settings.SAVED_ON_PROFILE, L10n.t("Saved tab on your profile"),
+                        L10n.t("Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram "
+                                + "after changing it.")));
             }
             if (build.contains(PatchFamily.THREADS_BUTTON)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),
@@ -877,6 +892,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 return true;
             });
             storage.addPreference(mark(clearNow, SettingsIcons.DELETE));
+        }
+
+        if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+            PreferenceCategory glass = category(screen, L10n.t("Tab bar"));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
+                    L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
+                            + "you're on. Restart Instagram after changing it.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
+                    L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
+                    L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
+                            + "or swipe between screens.")));
+            glass.addPreference(hapticStyleRow(context));
+            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
+                    L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
+                            + "Reels still stops above it.")));
         }
 
         // Any download patch brings this section, so each one that saves joins this condition.
@@ -940,6 +971,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "username_20261005_143012, so an account's saves sort by date. A carousel page gets its "
                             + "number on the end. Takes the place of the video file name. A save that doesn't know who "
                             + "posted or when keeps its usual name.")));
+        }
+
+        if (build.contains(PatchFamily.STOP_HEARTBEAT)) {
+            PreferenceCategory battery = category(screen, L10n.t("Battery"));
+            battery.addPreference(toggle(context, Settings.STOP_HEARTBEAT, L10n.t("Stop the background heartbeat"),
+                    L10n.t("Instagram wakes your phone every minute or two, screen off included, only to note that it "
+                            + "is still running. This stops that. Messages, notifications and everything you see are "
+                            + "unaffected.")));
+            battery.addPreference(toggle(context, Settings.STOP_UPLOAD_ALARM, L10n.t("Stop the analytics upload alarm"),
+                    L10n.t("Instagram sets an alarm to wake your phone and send its usage events five minutes later. "
+                            + "This stops that alarm; the events go the next time you use the app, or nowhere with "
+                            + "Disable analytics.")));
         }
 
         if (build.contains(PatchFamily.BUILD_EXPIRED_POPUP)) {
@@ -1176,6 +1219,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK && Settings.LOCK_AGAIN.key.equals(key);
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
@@ -2601,6 +2645,40 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** The tick the glass tab bar plays. Its summary is the entry chosen, so there are no sentences to keep in step. */
+    static HapticStyleRow hapticStyleRow(Context context) {
+        HapticStyleRow row = new HapticStyleRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key);
+        row.setTitle(L10n.t("Haptic style"));
+        row.setDialogTitle(L10n.t("Haptic style"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        HapticStyle[] styles = HapticStyle.values();
+        CharSequence[] entries = new CharSequence[styles.length];
+        CharSequence[] values = new CharSequence[styles.length];
+        for (int i = 0; i < styles.length; i++) {
+            entries[i] = hapticStyleLabel(styles[i]);
+            values[i] = styles[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [style]. */
+    static String hapticStyleLabel(HapticStyle style) {
+        switch (style) {
+            case SYSTEM:
+                return L10n.t("System tick");
+            case SOFT:
+                return L10n.t("Soft tick");
+            case FULL:
+                return L10n.t("Full tick");
+            default:
+                return L10n.t("Short tick");
+        }
+    }
+
     /**
      * How a story's time shows. Like Tap to play's choice of where, its values are the setting's own
      * names and its summary says what the choice does.
@@ -3031,6 +3109,61 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showAllText(view);
             ScreenColors.heading(view);
         }
+    }
+
+    /** Opens the list of messages other people deleted after this phone saved them. */
+    private Row deletedMessagesRow(Context context) {
+        Row row = new Row(context);
+        row.setKey("hushgram_deleted_messages");
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Deleted messages"));
+        row.setSummary(L10n.t("Messages other people deleted after this phone saved them. Tap to read them."));
+        row.setOnPreferenceClickListener(preference -> {
+            showDeletedMessages();
+            return true;
+        });
+        return row;
+    }
+
+    private void showDeletedMessages() {
+        if (getActivity() == null) return;
+        Utils.runOnBackgroundThread(() -> {
+            java.util.List<SavedMessages.Entry> found = SavedMessages.deleted();
+            Utils.runOnMainThread(() -> showDeleted(found));
+        });
+    }
+
+    private void showDeleted(java.util.List<SavedMessages.Entry> found) {
+        Context context = getActivity();
+        if (context == null || getView() == null) return;
+        StringBuilder lines = new StringBuilder();
+        java.text.DateFormat format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT,
+                L10n.locale(context));
+        for (SavedMessages.Entry entry : found) {
+            lines.append(format.format(new Date(entry.sentAt > 0 ? entry.sentAt : entry.deletedAt)))
+                    .append("  \u00b7  ").append(L10n.t("Sender")).append(' ')
+                    .append(entry.sender == null ? "?" : entry.sender).append('\n')
+                    .append(entry.body).append("\n\n");
+        }
+        TextView text = new TextView(context);
+        text.setText(found.isEmpty()
+                ? L10n.t("Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, "
+                        + "if this phone had already seen it.")
+                : lines.toString().trim());
+        text.setTextIsSelectable(true);
+        int pad = Math.round(16 * context.getResources().getDisplayMetrics().density);
+        text.setPadding(pad, pad, pad, pad);
+        text.setTextColor(ScreenColors.DEFAULT.summary);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(text);
+        show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Deleted messages"))
+                .setView(scroll)
+                .setPositiveButton(L10n.t("Close"), null)
+                .setNegativeButton(L10n.t("Clear all"), (dialog, which) -> Utils.runOnBackgroundThread(() -> {
+                    SavedMessages.clear();
+                    Utils.showToastShort(L10n.t("Saved messages cleared."));
+                })));
     }
 
     /** A row of text, which a screen reader calls a button when a tap does something. */
@@ -3578,6 +3711,27 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case FIVE_MINUTES: return L10n.t("5 minutes");
             case FIFTEEN_MINUTES: return L10n.t("15 minutes");
             default: return L10n.t("1 hour");
+        }
+    }
+
+    static final class HapticStyleRow extends ListPreference {
+        HapticStyleRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
         }
     }
 

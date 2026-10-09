@@ -786,6 +786,43 @@
       "options": []
     },
     {
+      "name": "Glass tab bar",
+      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. Pick the options in HushGram's settings, and restart Instagram after changing them.",
+      "category": "Interface",
+      "use": false,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Group Instagram's notifications",
       "description": "Puts Instagram's notifications in one group, or in a group per type with a second switch, so they don't fill the notification shade. A group of two or more shows how many it holds. Tapping a notification still opens what it did.",
       "category": "Interface",
@@ -2193,10 +2230,84 @@
       "options": []
     },
     {
+      "name": "Save deleted messages",
+      "description": "Keeps the text of messages other people send you on this phone, and marks the ones they later delete, so you can read them in HushGram's settings. Nothing leaves the phone, and only text is kept. Has its own switch in HushGram's settings.",
+      "category": "Privacy",
+      "use": false,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Save profile picture",
       "description": "Adds optional Save profile picture, View profile picture, Copy username and Copy bio rows to the menu on someone's profile. Save keeps their picture at the largest size Instagram has, View opens it full screen with pinch zoom, and the copy rows copy the text exactly. Their switches start off.",
       "category": "Downloads",
       "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Saved on your profile",
+      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved. Restart Instagram after changing it in HushGram's settings.",
+      "category": "Interface",
+      "use": false,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
@@ -2529,6 +2640,43 @@
       "name": "Stop Story auto-advance",
       "description": "Keeps each story on screen until you tap or swipe. Turn the switch off for Instagram's timing.",
       "category": "Interface",
+      "use": false,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Stop background wake-ups",
+      "description": "Stops two alarms that wake your phone while Instagram is in the background: one every minute or two only to note that it is still running, and one five minutes on to upload its usage events. Messages, notifications and everything you see are unaffected.",
+      "category": "Fixes",
       "use": false,
       "dependencies": [
         "BytecodePatch",
