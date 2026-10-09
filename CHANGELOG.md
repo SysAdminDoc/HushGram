@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** The rows in HushGram settings now explain themselves in plain English. Each summary says what you'll notice and, where it matters, to restart Instagram to see the change. The German, Spanish, Indonesian, Brazilian Portuguese, Turkish and Korean text was updated to match.
+
 * **Instagram:** Every patch description in Morphe Manager is rewritten in plain English. Each one says what changes, why you might want it, and ends with where its switch is, or that it works with no switch.
 
 * **Instagram:** Morphe Manager's simple mode now picks 74 of the 78 patches, so you don't need Expert mode to get a feature. Every patch with a switch in HushGram settings is in, and one that comes in this way changes nothing until you turn its switch on. The 25 that joined are Clean up Reels, Don't send reel watch history, Download any video, Hide group buttons on the share sheet, Hide Reels in the feed, Hide suggested accounts in Reels, Hide suggested people on profiles, Hide that you're typing, Hide the Explore grid, Hide the Reels tab, Hide the Repost button, Keep a seek bar on Reels, Keep Reels auto scroll on, Loop a story, Read messages without the seen receipt, Remove the empty space at the bottom, See who a story mentions, Show a post's exact time, Show a story's exact time, Spoof location, Start Home on Following, Stop Story auto-advance, Tap to play, Turn off double tap to like and View stories anonymously. Change version code, Open developer options, Pure black dark mode and View DM photos and videos anonymously stay out, and the README says why.

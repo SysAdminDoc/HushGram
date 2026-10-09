@@ -169,7 +169,7 @@ public class DownloadSettingsTest {
             assertEquals(names, values);
 
             assertEquals("BEST", quality.getValue());
-            assertEquals("Each video saves at the best quality the player streams.", String.valueOf(quality.getSummary()));
+            assertEquals("Each video saves at the best quality Instagram offers for it.", String.valueOf(quality.getSummary()));
 
             // A pick in the list, the way its dialog sends one.
             quality.setValue("P480");

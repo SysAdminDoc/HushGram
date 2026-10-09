@@ -90,7 +90,7 @@ public class MediaCacheSettingsTest {
         open(true);
         Preference clear = page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CLEAR_MEDIA_CACHE_NOW);
         assertNotNull(clear);
-        assertEquals("Clear the cache now", clear.getTitle().toString());
+        assertEquals("Clear saved copies now", clear.getTitle().toString());
 
         assertTrue(clear.getOnPreferenceClickListener().onPreferenceClick(clear));
         Utils.awaitBackgroundTasksForTests();

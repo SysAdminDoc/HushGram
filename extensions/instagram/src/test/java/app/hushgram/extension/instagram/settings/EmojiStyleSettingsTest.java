@@ -77,8 +77,8 @@ public class EmojiStyleSettingsTest {
         SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.NOTO_EMOJI.key);
         assertNotNull(row);
         assertEquals("Google's emoji everywhere", row.getTitle().toString());
-        assertEquals("Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play "
-                + "services, instead of your phone's own style. Restart Instagram after changing it.", row.getSummary().toString());
+        assertEquals("Shows every emoji in Google's style instead of your phone's own. Restart Instagram to see the "
+                + "change.", row.getSummary().toString());
         PreferenceGroup layout = row.getParent();
         assertEquals("Layout", layout.getTitle().toString());
         String[] keys = new String[layout.getPreferenceCount()];

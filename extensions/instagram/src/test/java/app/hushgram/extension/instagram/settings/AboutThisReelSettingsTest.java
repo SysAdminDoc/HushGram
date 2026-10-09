@@ -89,11 +89,10 @@ public class AboutThisReelSettingsTest {
         assertNotNull(about);
         assertNotNull(ask);
         assertEquals("Hide About this reel", String.valueOf(about.getTitle()));
-        assertEquals("A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, "
-                + "in Reels and in your feed. In your feed, the audio row under the summary goes too. "
-                + "The menu's other options stay.", String.valueOf(about.getSummary()));
+        assertEquals("Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In your feed the "
+                + "audio row goes too. Other options stay.", String.valueOf(about.getSummary()));
         assertEquals("Hide Ask Meta AI in About this reel", String.valueOf(ask.getTitle()));
-        assertEquals("About this reel keeps its summary and Sources without the Ask Meta AI box under them.",
+        assertEquals("About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.",
                 String.valueOf(ask.getSummary()));
         assertFalse(about.isChecked());
         assertFalse(ask.isChecked());
@@ -111,7 +110,7 @@ public class AboutThisReelSettingsTest {
                 Arrays.asList(keys));
         SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
         assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
-        assertEquals("Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.",
+        assertEquals("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
                 String.valueOf(share.getSummary()));
         assertFalse("the share sheet switch starts off", share.isChecked());
     }

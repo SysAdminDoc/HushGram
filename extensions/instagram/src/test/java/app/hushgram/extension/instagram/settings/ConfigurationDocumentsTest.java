@@ -69,7 +69,8 @@ public class ConfigurationDocumentsTest {
                         ConfigurationBackupTest.entry(Settings.HIDE_ADS.key, "boolean", false)));
                 HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
                 Preference undo = page.findPreference("hushgram_undo_configuration");
-                assertEquals("Choose a settings file. Valid choices apply together. Unsupported keys are skipped. The Undo row shows its deadline.",
+                assertEquals("Choose a settings file. All valid choices apply together, and ones this version "
+                        + "doesn't know are skipped. The Undo row shows how long you can undo.",
                         page.findPreference("hushgram_import_configuration").getSummary().toString());
                 long token = ConfigurationBackup.undoToken();
                 long deadline = ConfigurationBackup.undoDeadline(token);

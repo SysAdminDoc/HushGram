@@ -346,35 +346,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
             privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),
-                    L10n.t("Sponsored posts, reels and stories. Instagram is told no ad went in, so no gap is left.")));
+                    L10n.t("Hides sponsored posts, reels and stories. No empty gap is left where an ad would have "
+                            + "been.")));
         }
         if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
             privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),
-                    L10n.t("Takes stkn, igsh, utm_source and other tracking keys off the links you copy or share, "
-                            + "and opens a bio link without going through Instagram's click tracker. "
-                            + "The post, reel or profile a link opens stays the same.")));
+                    L10n.t("Removes tracking tags from links you copy or share, and opens bio links without "
+                            + "Instagram's click tracker. The link still opens the same post, reel or profile.")));
             privacy.add(sharingDomainRow(context));
         }
         if (build.contains(PatchFamily.EXTERNAL_BROWSER)) {
             privacy.add(toggle(context, Settings.OPEN_LINKS_EXTERNALLY, L10n.t("Open links in external browser"),
-                    L10n.t("Web links open in your default browser, without Instagram's click tracker. "
-                            + "Instagram and other Meta pages, and ads, still open in the app.")));
+                    L10n.t("Web links you tap open in your usual browser, without Instagram's click tracker. "
+                            + "Instagram pages and ads still open in the app.")));
         }
         if (build.contains(PatchFamily.DISABLE_ANALYTICS)) {
             privacy.add(toggle(context, Settings.DISABLE_ANALYTICS, L10n.t("Disable analytics"),
-                    L10n.t("Instagram's usage events and crash reports go to an address on this phone that "
-                            + "refuses them, instead of to Instagram and Facebook. Restart Instagram after "
-                            + "changing it.")));
+                    L10n.t("Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. "
+                            + "Restart Instagram to see the change.")));
         }
         if (build.contains(PatchFamily.DM_MEDIA_SEEN)) {
             privacy.add(toggle(context, Settings.VIEW_DM_MEDIA_ANONYMOUSLY,
                     L10n.t("View DM photos and videos anonymously"),
-                    L10n.t("Holds back seen receipts for view-once photos and videos. Media still expires. "
-                            + "This is a test feature, off to start.")));
+                    L10n.t("Stops people seeing that you opened their view once photos and videos. They still "
+                            + "disappear after you view them. This is a test feature and starts off.")));
         }
         if (build.contains(PatchFamily.SPOOF_LOCATION)) {
             privacy.add(toggle(context, Settings.SPOOF_LOCATION, L10n.t("Spoof location"),
-                    L10n.t("Instagram is told the phone is at the place below, for the location sticker, nearby "
+                    L10n.t("Tells Instagram your phone is at the place set below, for the location sticker, nearby "
                             + "places and maps. Photos keep their own places.")));
             privacy.add(placeRow(context));
         }
@@ -396,40 +395,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 || askLike || askRefresh || postTime ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
-                    L10n.t("Home opens on posts from accounts you follow. Tap Following at the top to switch to For you, "
-                            + "and Home remembers your pick. Restart Instagram after changing it.")));
+                    L10n.t("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to "
+                            + "switch. Restart Instagram to see the change.")));
             feed.addPreference(toggle(context, Settings.ONLY_FOLLOWING, L10n.t("Only accounts you follow"),
-                    L10n.t("Takes For you out of the picker at the top of Home, so Home stays on Following or "
-                            + "Favorites. Works with Start Home on Following on. Restart Instagram after changing it.")));
+                    L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
+                            + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")));
         }
         if (suggestions) {
             feed.addPreference(toggle(context, Settings.HIDE_SUGGESTED_ACCOUNTS, L10n.t("Hide suggested accounts"),
-                    L10n.t("The rows of accounts, shops and hashtags Instagram suggests you follow.")));
+                    L10n.t("Hides the rows of accounts, shops and hashtags Instagram suggests you follow.")));
             feed.addPreference(toggle(context, Settings.HIDE_SUGGESTED_POSTS, L10n.t("Hide suggested posts"),
-                    L10n.t("Posts and reels from accounts you don't follow, marked Suggested for you. Posts from "
-                            + "accounts you follow stay.")));
+                    L10n.t("Hides posts and reels from accounts you don't follow, marked Suggested for you. Posts "
+                            + "from accounts you follow stay.")));
             feed.addPreference(toggle(context, Settings.HIDE_THREADS_POSTS, L10n.t("Hide Threads posts"),
-                    L10n.t("The posts, accounts and communities from Threads that Instagram mixes into your feed.")));
+                    L10n.t("Hides the posts, accounts and communities from Threads that Instagram mixes into your "
+                            + "feed.")));
             feed.addPreference(toggle(context, Settings.HIDE_FEED_SURVEYS, L10n.t("Hide surveys"),
-                    L10n.t("The cards between posts that ask you to rate what you saw.")));
+                    L10n.t("Hides the cards between posts that ask you to rate what you saw.")));
             feed.addPreference(toggle(context, Settings.HIDE_FEED_SHOPPING, L10n.t("Hide shopping"),
-                    L10n.t("The rows of products to shop and live shopping that Instagram puts between posts.")));
+                    L10n.t("Hides the rows of products to shop and live shopping that Instagram puts between posts.")));
             if (PatchFamily.feedTypesInBuild()) {
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_VIDEOS, L10n.t("Hide videos"),
-                        L10n.t("Takes every post that's one video out of Home, reels too, even from accounts you "
-                                + "follow. Pull to refresh Home after changing it.")));
+                        L10n.t("Removes every single-video post and reel from Home, even from accounts you follow. "
+                                + "Pull down on Home to refresh after changing it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_PHOTOS, L10n.t("Hide photos"),
-                        L10n.t("Takes every post that's one photo out of Home, even from accounts you follow. Pull "
-                                + "to refresh Home after changing it.")));
+                        L10n.t("Removes every single-photo post from Home, even from accounts you follow. Pull down "
+                                + "on Home to refresh after changing it.")));
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_CAROUSELS, L10n.t("Hide carousels"),
-                        L10n.t("Takes every post with more than one photo or video out of Home, even from accounts "
-                                + "you follow. Pull to refresh Home after changing it.")));
+                        L10n.t("Removes every post with more than one photo or video from Home, even from accounts "
+                                + "you follow. Pull down on Home to refresh after changing it.")));
             }
         }
         if (homeFeed) {
             feed.addPreference(toggle(context, Settings.HIDE_HOME_FEED, L10n.t("Hide the home feed"),
-                    L10n.t("Empties Home on purpose, so you get the stories row and nothing under it. Profiles, "
-                            + "Explore and Reels still show posts. Pull to refresh Home after changing it.")));
+                    L10n.t("Empties Home on purpose, so you see the stories row and nothing under it. Profiles, "
+                            + "Explore and Reels still show posts. Pull down on Home to refresh after changing it.")));
         }
         if (swipe) {
             feed.addPreference(toggle(context, Settings.STOP_SWIPE_TO_CREATE, L10n.t("Stop swipe to create"),
@@ -443,55 +443,52 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (fullResolution) {
             feed.addPreference(toggle(context, Settings.FULL_RESOLUTION_PHOTOS, L10n.t("Full resolution photos"),
-                    L10n.t("Photos in your feed, in carousels and in posts you open load at the largest size Instagram "
-                            + "sends rather than the size it picks for your screen. This can use more data.")));
+                    L10n.t("Loads photos in your feed, carousels and opened posts at the largest size Instagram "
+                            + "offers. This can use more data.")));
             feed.addPreference(toggle(context, Settings.ASK_FOR_LARGER_PHOTOS, L10n.t("Ask for larger photos"),
-                    L10n.t("On a phone under 1440 pixels wide, Instagram tells its server your screen is 1440 "
-                            + "pixels wide and asks for photos at that width, so there's a larger size to load. "
-                            + "This uses more data. Restart Instagram after changing it.")));
+                    L10n.t("On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. "
+                            + "This uses more data. Restart Instagram to see the change.")));
         }
         if (askLike) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_LIKE, L10n.t("Ask before a like"),
-                    L10n.t("Tapping the Like button under a post asks first, so a stray tap doesn't like or unlike "
-                            + "it. A double tap isn't asked about.")));
+                    L10n.t("Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do "
+                            + "it for you. Double taps aren't asked about.")));
         }
         if (askRefresh) {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_REFRESH, L10n.t("Ask before a refresh"),
-                    L10n.t("Pulling down to refresh Home, Reels or another list asks first. Cancel keeps what's "
-                            + "on screen.")));
+                    L10n.t("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on "
+                            + "screen.")));
         }
         if (postTime) {
             feed.addPreference(toggle(context, Settings.SHOW_POST_TIME, L10n.t("Show a post's exact time"),
-                    L10n.t("Posts in your feed and their comments show the date and time they went up, like "
-                            + "Oct 2, 3:45 PM, instead of how long ago. Posts and comments you load after a change show it.")));
+                    L10n.t("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long "
+                            + "ago. Posts you load after a change show it.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {
             PreferenceCategory metaAi = category(screen, L10n.t("Meta AI"));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_SEARCH, L10n.t("Hide Meta AI in search and Home's bar"),
-                    L10n.t("The Search tab and the top of your messages get a plain search bar. "
-                            + "Search results lose their Ask a follow-up bar. "
-                            + "Meta AI's buttons disappear from Home and the message composer, "
-                            + "and its optional inbox row is hidden. "
-                            + "Restart Instagram after changing it.")));
+                    L10n.t("Gives Search and your messages a plain search bar and removes Meta AI's buttons, "
+                            + "follow-up bar and inbox row. Restart Instagram to see the change.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_POSTS, L10n.t("Hide Meta AI posts"),
-                    L10n.t("Meta AI's videos, chats and pictures of you that Instagram puts in your home feed.")));
+                    L10n.t("Hides Meta AI's videos, chats and pictures of you that Instagram puts in your home feed.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_ABOUT_THIS_REEL, L10n.t("Hide About this reel"),
-                    L10n.t("A reel's more menu opens without the summary at the top, its Sources or the Ask Meta AI box, "
-                            + "in Reels and in your feed. In your feed, the audio row under the summary goes too. "
-                            + "The menu's other options stay.")));
+                    L10n.t("Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In your feed "
+                            + "the audio row goes too. Other options stay.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_ASK_META_AI, L10n.t("Hide Ask Meta AI in About this reel"),
-                    L10n.t("About this reel keeps its summary and Sources without the Ask Meta AI box under them.")));
+                    L10n.t("About this reel keeps its summary and Sources, and only the Ask Meta AI box under them "
+                            + "goes.")));
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_SHARE_TARGET, L10n.t("Hide Meta AI in the share sheet"),
-                    L10n.t("Takes Meta AI's target out of the row at the bottom of the share sheet. Some accounts see it as Muse.")));
+                    L10n.t("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as "
+                            + "Muse.")));
         }
 
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)) {
             PreferenceCategory explore = category(screen, L10n.t("Explore"));
             if (build.contains(PatchFamily.EXPLORE_GRID)) {
                 explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_GRID, L10n.t("Hide the Explore grid"),
-                        L10n.t("The posts and reels under the Search tab's bar. Search, your recent searches and "
-                                + "search results stay.")));
+                        L10n.t("Hides the grid of posts and reels under the Search tab's bar. Search, recent "
+                                + "searches and results stay.")));
             }
             if (build.contains(PatchFamily.RECENT_SEARCHES)) {
                 explore.addPreference(toggle(context, Settings.DONT_SAVE_RECENT_SEARCHES,
@@ -516,8 +513,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.INSTANTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INSTANTS, L10n.t("Hide Instants"),
-                        L10n.t("Instagram treats your account as one without Instants, so the stack of photos in "
-                                + "your messages goes. Applies after Instagram restarts.")));
+                        L10n.t("Removes the stack of Instants (quick photos from friends) from your messages. "
+                                + "Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.THREAD_SEEN)) {
                 messages.addPreference(toggle(context, Settings.READ_WITHOUT_SEEN_RECEIPT,
@@ -541,7 +538,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.KEEP_IN_CHAT)) {
                 messages.addPreference(toggle(context, Settings.KEEP_IN_CHAT, L10n.t("Keep in chat"),
-                        L10n.t("View once and replayable photos and videos you get stay in the chat, as if they'd been sent with Keep in chat, so you can open them again. Turning it on or off reaches the ones already loaded once the chat loads again.")));
+                        L10n.t("Photos and videos sent as view once or replayable stay in the chat so you can open "
+                                + "them again. Open the chat again to update ones already loaded.")));
             }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),
@@ -573,9 +571,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),
                     L10n.t("The Follow button beside a reel's author. Their profile still has one.")));
-            reels.add(toggle(context, Settings.HIDE_REEL_CHIPS, L10n.t("Hide creation and promotion pills"),
-                    L10n.t("Pills such as Edits, Use template, Meta AI and Ray-Ban Meta glasses. A live badge "
-                            + "and a state-controlled media label stay.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_CHIPS, L10n.t("Hide promotion buttons on reels"),
+                    L10n.t("Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live "
+                            + "badges and state-controlled media labels stay.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SOCIAL_FOOTER, L10n.t("Hide friends' activity and comment previews"),
                     L10n.t("The bubbles of friends who liked or commented, the Followed by and Liked by lines with "
                             + "their faces, the comment shown under a reel and the row of friends who saw it. Comments "
@@ -586,8 +584,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.REEL_WATCH_HISTORY)) {
             reels.add(toggle(context, Settings.DONT_SEND_REEL_WATCH_HISTORY, L10n.t("Don't send reel watch history"),
-                    L10n.t("Instagram isn't told which reels you watched or how far into them you got. It ranks "
-                            + "your Reels with that, and nobody else sees it. Reels you've watched may come back.")));
+                    L10n.t("Stops telling Instagram which reels you watched or how far you got. Instagram uses that "
+                            + "to pick your Reels. Watched reels may come back.")));
         }
         if (build.contains(PatchFamily.REEL_DOWNLOAD)) {
             reels.add(toggle(context, Settings.DOWNLOAD_REELS, L10n.t("Download on reels"),
@@ -612,14 +610,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.LIKE_ANIMATION)) {
             reels.add(toggle(context, Settings.CHANGE_LIKE_ANIMATION, L10n.t("Change the like animation"),
-                    L10n.t("The heart that pops up when you double tap a post plays the animation you pick below, "
-                            + "one of the ones Instagram made for Instagram Rings creators.")));
+                    L10n.t("The heart that pops up when you double tap a post plays the animation you pick below. "
+                            + "They're animations Instagram made for its Rings creators.")));
             reels.add(likeAnimationRow(context));
         }
         if (build.contains(PatchFamily.REELS_TAB)) {
             reels.add(toggle(context, Settings.HIDE_REELS_TAB, L10n.t("Hide the Reels tab"),
-                    L10n.t("Takes Reels off the tab bar. Reels in your feed and reels people send you still "
-                            + "open. Restart Instagram after changing it.")));
+                    L10n.t("Takes Reels off the tab bar. Reels in your feed and reels people send you still open. "
+                            + "Restart Instagram to see the change.")));
         }
         if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
             reels.add(toggle(context, Settings.KEEP_REEL_SPEED, L10n.t("Keep the reel speed"),
@@ -631,7 +629,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Instagram's seek bar stays under every reel, short ones too, with the time played and "
                             + "the reel's length above it. Ads keep Instagram's own rules.")));
             reels.add(toggle(context, Settings.REEL_SEEK_THUMB, L10n.t("Show a Reel seek thumb"),
-                    L10n.t("Adds a white circular handle to Instagram's Reel seek bar. Drag to seek. Ads keep their own bar.")));
+                    L10n.t("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.")));
         }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),
@@ -641,7 +639,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.REEL_SCROLLING)) {
             reels.add(toggle(context, Settings.STOP_REELS_SCROLLING, L10n.t("Stop Reels scrolling"),
                     L10n.t("A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new "
-                            + "ones. The reel you opened still plays. Restart Instagram after changing it.")));
+                            + "ones. The reel you opened still plays. Restart Instagram to see the change.")));
             reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after 20 reels"),
                     L10n.t("After 20 reels, swiping in Reels stops until Instagram has been in the background for "
                             + "15 minutes. A reel you open from a message or a post still plays.")));
@@ -654,10 +652,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         List<Preference> stories = new ArrayList<>();
         if (build.contains(PatchFamily.STORIES_TRAY)) {
             stories.add(toggle(context, Settings.HIDE_SUGGESTED_STORIES, L10n.t("Hide suggested stories"),
-                    L10n.t("Stories in the row at the top of Home from accounts you don't follow, and the accounts "
-                            + "Instagram suggests there. Stories from accounts you follow stay.")));
+                    L10n.t("Hides stories from accounts you don't follow, and accounts Instagram suggests, in the "
+                            + "row at the top of Home. Stories from accounts you follow stay.")));
             stories.add(toggle(context, Settings.HIDE_STORY_REWINDS, L10n.t("Hide story rewinds"),
-                    L10n.t("Takes the rewind cards, which bring back old highlights, out of the row of stories at the "
+                    L10n.t("Hides the rewind cards, which bring back old highlights, from the row of stories at the "
                             + "top of Home.")));
             stories.add(toggle(context, Settings.HIDE_STORY_RECAPS, L10n.t("Hide memories and recaps"),
                     L10n.t("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out "
@@ -671,8 +669,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.STORY_RING)) {
             stories.add(toggle(context, Settings.STORY_RING, L10n.t("Story ring size"),
-                    L10n.t("The rings in the stories row at the top of Home are drawn at the size below. "
-                            + "Restart Instagram after changing it.")));
+                    L10n.t("Draws the rings in the stories row at the top of Home at the size below. Restart "
+                            + "Instagram to see the change.")));
             stories.add(storyRingRow(context));
         }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
@@ -745,9 +743,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.DATA_SAVER)) {
                 playback.addPreference(toggle(context, Settings.DATA_SAVER, L10n.t("Data saver"),
-                        L10n.t("Photos load at a smaller size, and videos, reels and stories start at the lowest "
-                                + "quality. Grid thumbnails stay as they are. While it's saving, it wins over Full "
-                                + "resolution photos and the quality above.")));
+                        L10n.t("Loads smaller photos and starts videos, reels and stories at the lowest quality. "
+                                + "Grid thumbnails stay as they are. It takes priority over Full resolution photos "
+                                + "and the quality above.")));
                 playback.addPreference(toggle(context, Settings.DATA_SAVER_MOBILE_DATA_ONLY,
                         L10n.t("Only on mobile data"),
                         L10n.t("Wi-Fi stays as it is. Turn this off to save data on every network.")));
@@ -834,14 +832,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             PreferenceCategory layout = category(screen, L10n.t("Layout"));
             if (build.contains(PatchFamily.BOTTOM_SPACE)) {
                 layout.addPreference(toggle(context, Settings.REMOVE_BOTTOM_SPACE, L10n.t("Remove the empty space at the bottom"),
-                        L10n.t("Instagram can leave empty room under its tab bar for a navigation bar that isn't there, when "
-                                + "your phone hides its navigation bar or Instagram is in a pop-up window. This takes that room "
-                                + "away. Restart Instagram after changing it.")));
+                        L10n.t("Removes the empty gap under Instagram's tab bar that appears when your phone hides "
+                                + "its navigation bar or Instagram is in a pop-up window. Restart Instagram to see "
+                                + "the change.")));
             }
             if (build.contains(PatchFamily.EMOJI_STYLE)) {
                 layout.addPreference(toggle(context, Settings.NOTO_EMOJI, L10n.t("Google's emoji everywhere"),
-                        L10n.t("Every emoji draws in Google's style, from the emoji font Instagram gets through Google Play "
-                                + "services, instead of your phone's own style. Restart Instagram after changing it.")));
+                        L10n.t("Shows every emoji in Google's style instead of your phone's own. Restart Instagram "
+                                + "to see the change.")));
             }
         }
 
@@ -863,15 +861,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (build.contains(PatchFamily.MEDIA_CACHE)) {
             PreferenceCategory storage = category(screen, L10n.t("Storage"));
             storage.addPreference(toggle(context, Settings.CLEAR_MEDIA_CACHE, L10n.t("Clear the media cache"),
-                    L10n.t("When Instagram goes to the background with more than 500 MB of images and videos in its "
-                            + "cache, HushGram deletes the images, and the videos the next time Instagram starts. Your "
-                            + "sign-in, drafts and settings stay.")));
+                    L10n.t("When Instagram has more than 500 MB of saved photos and videos, deletes the photos as "
+                            + "you leave it and the videos the next time it starts. Your sign-in, drafts and "
+                            + "settings stay.")));
             Row clearNow = new Row(context);
             clearNow.setKey(CLEAR_MEDIA_CACHE_NOW);
             clearNow.setPersistent(false);
-            clearNow.setTitle(L10n.t("Clear the cache now"));
-            clearNow.setSummary(L10n.t("Deletes the images Instagram keeps to show again now, whatever their size, and "
-                    + "the videos the next time it starts."));
+            clearNow.setTitle(L10n.t("Clear saved copies now"));
+            clearNow.setSummary(L10n.t("Deletes the saved photos Instagram keeps to show again, whatever their size, "
+                    + "and the saved videos the next time it starts."));
             clearNow.setOnPreferenceClickListener(p -> {
                 clearMediaCache(p);
                 return true;
@@ -896,9 +894,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("The same Download on a photo post, and on a carousel showing a photo. Saves the largest "
                                 + "size Instagram has.")));
                 downloads.addPreference(toggle(context, Settings.POST_DETAILS, L10n.t("Details in a post's menu"),
-                        L10n.t("Adds Details to the menu of a post in your feed: when it went up, who posted it, its "
-                                + "media ID and the size Download saves, with buttons that copy the file's direct link, the username "
-                                + "and the caption.")));
+                        L10n.t("Adds Details to a feed post's menu. It shows when the post went up, who posted it, "
+                                + "its media ID and the size Download saves, with buttons to copy the file link, "
+                                + "username and caption.")));
             }
             if (build.contains(PatchFamily.PROFILE_PICTURE)) {
                 downloads.addPreference(toggle(context, Settings.SAVE_PROFILE_PICTURES, L10n.t("Save profile picture"),
@@ -954,11 +952,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             PreferenceCategory developer = category(screen, L10n.t("Developer"));
             developer.addPreference(toggle(context, Settings.OPEN_DEVELOPER_OPTIONS,
                     L10n.t("Developer options on a long press of Home"),
-                    L10n.t("Opens Instagram's own developer options, where its server flags can be looked at and "
-                            + "changed. A wrong flag can break parts of Instagram until you reset it there.")));
+                    L10n.t("Opens Instagram's own developer options, where you can look at and change its hidden "
+                            + "settings. A wrong change can break parts of Instagram until you reset it.")));
             developer.addPreference(nativeScreenRow(context, "hushgram_open_overrides",
                     L10n.t("Open MetaConfig overrides"),
-                    L10n.t("Opens Instagram's native flag editor. A wrong override can break parts of Instagram."),
+                    L10n.t("Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, "
+                            + "which is a changed setting, can break parts of Instagram."),
                     app.hushgram.extension.instagram.misc.DeveloperOptions::openOverrides,
                     L10n.t("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.")));
             // The names go through the patch's hook on MetaConfig's list, which a build goes without
@@ -994,49 +993,52 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 exportOverrides.setKey("hushgram_export_overrides");
                 exportOverrides.setPersistent(false);
                 exportOverrides.setTitle(L10n.t("Export overrides"));
-                exportOverrides.setSummary(L10n.t("Save this signed-in session's overrides for the exact Instagram build and schema."));
+                exportOverrides.setSummary(L10n.t("Saves your overrides (changes to Instagram's hidden settings) for "
+                        + "this exact Instagram version."));
                 exportOverrides.setOnPreferenceClickListener(row -> { pickOverrides(EXPORT_OVERRIDES); return true; });
                 developer.addPreference(exportOverrides);
                 validateOverrides = new Row(context);
                 validateOverrides.setKey("hushgram_validate_overrides");
                 validateOverrides.setPersistent(false);
                 validateOverrides.setTitle(L10n.t("Validate an overrides file"));
-                validateOverrides.setSummary(L10n.t("Check a saved file against this session's typed schema. Validation applies nothing."));
+                validateOverrides.setSummary(L10n.t("Checks a saved file against this Instagram version. Nothing is "
+                        + "applied."));
                 validateOverrides.setOnPreferenceClickListener(row -> { pickOverrides(VALIDATE_OVERRIDES); return true; });
                 developer.addPreference(validateOverrides);
             }
             if (PatchFamily.overrideImportInBuild()) {
                 developer.addPreference(toggle(context, Settings.ALLOW_OVERRIDE_IMPORT,
                         L10n.t("Allow importing overrides"),
-                        L10n.t("Shows Import and Restore for overrides. An import changes Instagram's native flags for "
-                                + "this signed-in session.")));
+                        L10n.t("Shows the Import and Restore rows. An import changes Instagram's hidden settings for "
+                                + "this signed-in account.")));
                 developerSection = developer;
                 importOverrides = new Row(context);
                 importOverrides.setKey("hushgram_import_overrides");
                 importOverrides.setPersistent(false);
                 importOverrides.setTitle(L10n.t("Import overrides"));
-                importOverrides.setSummary(L10n.t("Apply a HushGram export from this session and build, or Instagram's own "
-                        + "overrides file, through Instagram's own override editor. The current overrides are saved for Restore first."));
+                importOverrides.setSummary(L10n.t("Applies a HushGram export, or Instagram's own overrides file. "
+                        + "Your current overrides are saved first so Restore can bring them back."));
                 importOverrides.setOnPreferenceClickListener(row -> { pickOverrides(IMPORT_OVERRIDES); return true; });
                 restoreOverrides = new Row(context);
                 restoreOverrides.setKey("hushgram_restore_overrides");
                 restoreOverrides.setPersistent(false);
                 restoreOverrides.setTitle(L10n.t("Restore previous overrides"));
-                restoreOverrides.setSummary(L10n.t("Put back the overrides saved before the last import for this session and build."));
+                restoreOverrides.setSummary(L10n.t("Puts back the overrides saved before your last import for this "
+                        + "account and Instagram version."));
                 restoreOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, RESTORE_OVERRIDES); return true; });
                 discardOverrides = new Row(context);
                 discardOverrides.setKey("hushgram_discard_overrides");
                 discardOverrides.setPersistent(false);
                 discardOverrides.setTitle(L10n.t("Discard saved overrides"));
-                discardOverrides.setSummary(L10n.t("Forget the copy saved for Restore so imports can run again. "
-                        + "Instagram's overrides don't change."));
+                discardOverrides.setSummary(L10n.t("Forgets the copy saved for Restore so imports can run again. "
+                        + "Instagram's own settings don't change."));
                 discardOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, DISCARD_OVERRIDES); return true; });
                 resetOverrides = new Row(context);
                 resetOverrides.setKey("hushgram_reset_overrides");
                 resetOverrides.setPersistent(false);
                 resetOverrides.setTitle(L10n.t("Reset all overrides"));
-                resetOverrides.setSummary(L10n.t("Take every override in this signed-in session away, so Instagram goes back to "
-                        + "its own flags. The current overrides are saved for Restore first."));
+                resetOverrides.setSummary(L10n.t("Removes every override from this signed-in account, so Instagram "
+                        + "goes back to its own settings. Your current overrides are saved first for Restore."));
                 resetOverrides.setOnPreferenceClickListener(row -> { exchangeOverrides(null, RESET_OVERRIDES); return true; });
                 if (Settings.ALLOW_OVERRIDE_IMPORT.get()) {
                     developer.addPreference(importOverrides);
@@ -1052,8 +1054,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             PreferenceCategory patched = category(screen, L10n.t("Set when you patched"));
             if (build.contains(PatchFamily.RESTORE_TRUST)) {
                 patched.addPreference(mark(info(context, L10n.t("Re-signed build fix"),
-                        L10n.t("Instagram's own signature checks see its original certificates, so they keep "
-                                + "passing on this re-signed build.")), SettingsIcons.BUILD));
+                        L10n.t("Instagram's own checks of who signed the app keep passing on this patched build.")), SettingsIcons.BUILD));
             }
             if (build.contains(PatchFamily.REMOVE_AD_ID)) {
                 patched.addPreference(mark(info(context, L10n.t("Advertising ID removed"),
@@ -1068,11 +1069,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.VERSION_CODE)) {
                 patched.addPreference(mark(info(context, L10n.t("Version code raised"),
-                        L10n.t("This build's version code is the highest Android allows, so Google Play doesn't offer "
-                                + "Meta's updates over it. Instagram's checks against the version it was built as still "
-                                + "see the real one. To go back to an unpatched Instagram, uninstall this one first, "
-                                + "which deletes Instagram's data on this phone. Later HushGram builds need Change "
-                                + "version code too, or they won't install over this one.")), SettingsIcons.UPDATES));
+                        L10n.t("Google Play won't offer Meta's updates over this build. To go back to the normal "
+                                + "Instagram, uninstall this one first, which deletes Instagram's data on this "
+                                + "phone. Later HushGram builds need Change version code too, or they won't install "
+                                + "over this one.")), SettingsIcons.UPDATES));
             }
             patched.addPreference(info(context, L10n.t("Changing these"),
                     L10n.t("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. "
@@ -1091,7 +1091,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         importConfiguration.setKey("hushgram_import_configuration");
         importConfiguration.setPersistent(false);
         importConfiguration.setTitle(L10n.t("Import HushGram settings"));
-        importConfiguration.setSummary(L10n.t("Choose a settings file. Valid choices apply together. Unsupported keys are skipped. The Undo row shows its deadline."));
+        importConfiguration.setSummary(L10n.t("Choose a settings file. All valid choices apply together, and ones "
+                + "this version doesn't know are skipped. The Undo row shows how long you can undo."));
         importConfiguration.setOnPreferenceClickListener(p -> { pickConfiguration(true); return true; });
         backup.addPreference(mark(importConfiguration, SettingsIcons.EXPORT));
         undoConfiguration = new Row(context);
@@ -1118,7 +1119,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         hushgram.addPreference(mark(export, SettingsIcons.LICENSE));
         ClearLogBufferPreference clear = new ClearRow(context);
         clear.setTitle(L10n.t("Clear diagnostic data"));
-        clear.setClearAndUndoSummaries(L10n.t("Empties the log and the hook counts a report would include."),
+        clear.setClearAndUndoSummaries(L10n.t("Empties the activity log that a diagnostic report would include."),
                 L10n.t("Diagnostic data cleared. Tap again to put it back."));
         hushgram.addPreference(mark(clear, SettingsIcons.DELETE));
         String stays = PatchFamily.staysWhilePausedSummary(build);
@@ -1885,7 +1886,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 ? L10n.f("Undo is available until %1$s.",
                 DateFormat.getTimeInstance(DateFormat.MEDIUM, L10n.locale(row.getContext())).format(
                         new Date(System.currentTimeMillis() + Math.max(0, deadline - SystemClock.elapsedRealtime()))))
-                : L10n.t("Up to 200 positions, kept for 30 days. Tap to clear them from this device."));
+                : L10n.t("HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them "
+                        + "from this device."));
         row.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
             @Override public boolean onPreferenceClick(Preference preference) {
                 if (isResumed() && clearPositions == row && row.isEnabled()
@@ -2468,7 +2470,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static String qualitySummary(DownloadQuality quality) {
         switch (quality) {
             case BEST:
-                return L10n.t("Each video saves at the best quality the player streams.");
+                return L10n.t("Each video saves at the best quality Instagram offers for it.");
             case SMALLEST:
                 return L10n.t("Each video saves at its lowest quality, for the smallest file.");
             default:
@@ -2700,8 +2702,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (resumingFromOverview && setting == BaseSettings.PAUSED) preference.setEnabled(false);
         if (setting == Settings.ONLY_FOLLOWING) {
             preference.setSummary(setting.isAvailable()
-                    ? L10n.t("Takes For you out of the picker at the top of Home, so Home stays on Following or "
-                            + "Favorites. Works with Start Home on Following on. Restart Instagram after changing it.")
+                    ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
+                            + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
         } else if (preference instanceof PlaybackQualityRow) {
             ((PlaybackQualityRow) preference).showSummary();
@@ -2889,7 +2891,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         double[] place = SpoofLocation.parse(text);
         return place == null
                 ? L10n.t("No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.")
-                : L10n.f("Instagram is told the phone is at %1$s.", L10n.isolate(SpoofLocation.describe(place)));
+                : L10n.f("Tells Instagram your phone is at %1$s.", L10n.isolate(SpoofLocation.describe(place)));
     }
 
     static FileNameRow fileNameRow(Context context) {
