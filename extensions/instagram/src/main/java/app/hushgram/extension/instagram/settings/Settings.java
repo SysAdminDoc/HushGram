@@ -534,11 +534,11 @@ public class Settings extends BaseSettings {
 
     /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
-     * Starts on the short pulse. A choice because only a hand can say which feels right.
+     * Starts on the phone's own click. A choice because only a hand can say which feels right.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.misc.HapticStyle> GLASS_TAB_BAR_HAPTIC_STYLE =
             new EnumSetting<>("hushgram_glass_tab_bar_haptic_style",
-                    app.hushgram.extension.instagram.misc.HapticStyle.SHORT, parent(GLASS_TAB_BAR_HAPTICS));
+                    app.hushgram.extension.instagram.misc.HapticStyle.SYSTEM, parent(GLASS_TAB_BAR_HAPTICS));
 
     /**
      * Your own profile's tabs get one more, a bookmark, that opens Saved
