@@ -54,6 +54,14 @@ public class LinkCleanerTest {
                 LinkCleaner.sanitizedClip(clip).getItemAt(0).getText().toString());
     }
 
+    @Test
+    public void clipboardCopyAsUriLosesItsShareToken() {
+        ClipData clip = ClipData.newUri(RuntimeEnvironment.getApplication().getContentResolver(), "link",
+                Uri.parse("https://www.instagram.com/reel/DcrhI-AyANW/?dlrf=YWFnb3F3NnJyMjY1"));
+        assertEquals("https://www.instagram.com/reel/DcrhI-AyANW/",
+                LinkCleaner.sanitizedClip(clip).getItemAt(0).getUri().toString());
+    }
+
     /** WhatsApp's button in Instagram's share sheet: an ACTION_SEND for one package, no chooser. */
     @Test
     public void aShareSentStraightToOneAppLosesItsTrackingKeys() {
