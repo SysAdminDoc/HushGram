@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -141,6 +142,24 @@ public final class FeedSuggestions {
 
     /** The counted kind of a Home that was ended, empty, after its latest page lost items to the switches. */
     static final String HOME_ENDED = "home page ended with every post removed";
+
+    /** The counted kind of an Older Posts page whose loading placeholder was dropped after every post on it was removed. */
+    static final String OLDER_ENDED = "older posts page ended with every post removed";
+
+    /** How long after a page of Home's response lost every item the Older Posts placeholder may still be dropped, in nanoseconds. */
+    static final long OLDER_WINDOW_NANOS = 10_000_000_000L;
+
+    /** Set when the latest page of Home's response that held items lost all of them. Tests clear it. */
+    static volatile boolean pageLostEverything;
+
+    /** When that page was parsed, by {@link #clock}. Tests clear it. */
+    static volatile long pageLostEverythingAt;
+
+    /** Set once the report has counted {@link #OLDER_ENDED} for that page. Tests clear it. */
+    static volatile boolean olderEndCounted;
+
+    /** The time {@link #olderPageLoading} measures a page's age by. Tests stand in. */
+    static volatile LongSupplier clock = System::nanoTime;
 
     /** The home feed whose flag the adapter is reading, from {@link #homeFeedRead} to {@link #feedEnded} on one thread. */
     private static final ThreadLocal<Object> READING = new ThreadLocal<>();
@@ -296,6 +315,9 @@ public final class FeedSuggestions {
             if (page == null || page[0] == 0) return;
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
+            pageLostEverything = page[1] >= page[0];
+            pageLostEverythingAt = clock.getAsLong();
+            olderEndCounted = false;
             verdictFeed = null;
             if (homePageLost) {
                 Logger.printDebug(() -> "Feed suggestions: a page of Home lost " + page[1] + " of its " + page[0] + " items");
@@ -332,6 +354,39 @@ public final class FeedSuggestions {
         if (hasMore == 0 || !suggestionsGone()) return hasMore;
         Logger.printDebug(() -> "Feed suggestions: no next page past the end card");
         return 0;
+    }
+
+    /**
+     * Injected right after the contextual feed's model builder asks whether its feed is loading, in
+     * the builder that draws a full-screen loading row while the feed is loading and empty. The
+     * Older Posts page, opened from the "Older posts" link under Home's end card, is a contextual
+     * feed. Its first page comes back through the same parser as Home's, and when the post switches
+     * or Hide suggested posts take every post out of it, the builder runs once with the page empty
+     * and the fetch still marked as loading, and nothing runs it again, so the row stayed for good.
+     * Answers 0 (not loading) while the latest page of Home's response lost every item, parsed in
+     * the last {@link #OLDER_WINDOW_NANOS}, with a switch for it on, and [loading] otherwise. The
+     * builder still asks whether the feed is empty, so a feed with posts keeps what it draws. It
+     * asks for no page, so it can't loop. Never throws.
+     */
+    public static int olderPageLoading(int loading) {
+        if (loading == 0 || !pageLostEverything) return loading;
+        try {
+            if (!Utils.settingsReady()) return loading;
+            boolean suggestions = tookOut && suggestionSwitchOn();
+            boolean posts = typesTookOut && postSwitchOn();
+            if (!suggestions && !posts) return loading;
+            long age = clock.getAsLong() - pageLostEverythingAt;
+            if (age < 0 || age > OLDER_WINDOW_NANOS) return loading;
+            if (!olderEndCounted) {
+                olderEndCounted = true;
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, OLDER_ENDED);
+            }
+            Logger.printDebug(() -> "Feed suggestions: a page lost every post and its feed is empty, so the loading row is dropped");
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "older posts", failure);
+            return loading;
+        }
     }
 
     /** Whether {@link #filter} has taken items out and Hide suggested posts is on. */

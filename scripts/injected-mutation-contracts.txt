@@ -551,6 +551,13 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeFeedRea
 # Left out, Following's end card keeps a spinner under it for good.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->endCardRule(I)I in instance ()Z holding homecoming_following
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->moreAfterFollowing(I)I in instance ()Z holding homecoming_following
+# The Older Posts page is a contextual feed. Its two adapters' model builders (the static methods taking the adapter)
+# draw a full-screen loading row while the fetch is loading and the adapter is empty, and a page that lost every post
+# to the switches left them built once with the fetch still loading. olderPageLoading() passes each isLoading() answer.
+# One adapter's builder holds the BaseItemFilter cast message; the other holds no string, so it is told apart by the
+# three fields it reads (its constructor reads them too, but is not static). Left out, that page keeps its spinner.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.feed.media.baseitemfilter.BaseItemFilter<com.instagram.feed.feeditem.FeedItem>
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->olderPageLoading(I)I in static (L*;)V holding LX/0D9q;->A0T:LX/0AOd; LX/0D9q;->A0S:LX/07YZ; LX/0D9q;->A0N:LX/0E3K;
 #
 # Hide Meta AI answers each read of Meta AI's search flags through searchFlag(), right after the
 # read. The messages inbox's setup, the invoke() holding "direct_inbox" and "hatch_channel_enabled",

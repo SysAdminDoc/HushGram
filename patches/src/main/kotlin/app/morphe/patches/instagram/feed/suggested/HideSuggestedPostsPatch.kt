@@ -79,6 +79,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
         val productTags = findProductTagIndicator()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
+        // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
+        endOlderPostsSpinnerOrWarn()
         exploreShops.write(this)
         productTags.write(this)
         // The post type switches are found whole before their part changes anything, so a build

@@ -48,7 +48,7 @@ class EmptyFeedEndTest {
         val declared = ExtensionDex.classDef(FEED_ENDED.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(FEED_ENDED, HOME_FEED_READ, END_CARD_RULE, MORE_AFTER_FOLLOWING, "$FEED_SUGGESTIONS->$FEED_EMPTY_STUB(Ljava/lang/Object;)I")) {
+        for (hook in listOf(FEED_ENDED, HOME_FEED_READ, END_CARD_RULE, MORE_AFTER_FOLLOWING, OLDER_PAGE_LOADING, "$FEED_SUGGESTIONS->$FEED_EMPTY_STUB(Ljava/lang/Object;)I")) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -236,6 +236,157 @@ class EmptyFeedEndTest {
         assertEquals("every build was checked", bundles.size + others.size, checked)
     }
 
+    private val policy = "Lfixture/LoadMorePolicy;"
+    private val contextual = "Lfixture/ContextualAdapter;"
+    private val contextualToo = "Lfixture/ContextualAdapterToo;"
+
+    /** The load more row's state class, implementing the policy interface the contextual feeds are asked through. */
+    private fun policyImplementation() = classDef(following, followingState().methods.toList(), listOf(policy))
+
+    /**
+     * A contextual feed's model builder: it asks the policy whether the feed is loading, branches on
+     * the answer, and asks its own adapter whether it's empty before the full-screen loading row.
+     */
+    private fun contextualBuilder(type: String, asks: Boolean = true) = classDef(type, listOf(
+        method(type, "build", "V", registers = 5, body = """
+            iget-object v0, v4, $type->policy:$policy
+            invoke-interface { v0 }, $policy->isLoading()Z
+            move-result v1
+            if-eqz v1, :done
+            ${if (asks) "invoke-virtual { v4 }, $type->isEmpty()Z\nmove-result v1" else "const/4 v1, 0x1"}
+            if-eqz v1, :done
+            const-string v2, "row"
+            :done
+            return-void
+        """),
+        method(type, "isEmpty", "Z", registers = 2, body = "const/4 v0, 0x1\nreturn v0"),
+    ))
+
+    /** Something else that asks the policy whether it's loading, and branches, but never asks for emptiness. */
+    private fun otherAsker() = classDef("Lfixture/OtherAsker;", listOf(
+        method("Lfixture/OtherAsker;", "check", "V", registers = 3, body = """
+            iget-object v0, v2, Lfixture/OtherAsker;->policy:$policy
+            invoke-interface { v0 }, $policy->isLoading()Z
+            move-result v1
+            if-eqz v1, :done
+            :done
+            return-void
+        """),
+    ))
+
+    /**
+     * Both of the contextual feed's model builders have their isLoading() answer passed through
+     * olderPageLoading, right after the move-result, in the register that holds it; the other class
+     * that asks the policy the same question is left alone.
+     */
+    @Test
+    fun theContextualFeedsLoadingAnswerGoesPastTheExtension() {
+        val context = PatchContexts.of(listOf(policyImplementation(), feedNames(), contextualBuilder(contextual), contextualBuilder(contextualToo), otherAsker()))
+
+        val rows = context.findLoadingRows()
+        assertEquals(setOf(contextual, contextualToo), rows.map { it.type }.toSet())
+        context.endOlderPostsSpinner(rows)
+
+        for (type in listOf(contextual, contextualToo)) {
+            val code = context.classDefBy(type).methods.single { it.name == "build" }.implementation!!.instructions.toList()
+            val hook = code.indexOfFirst { it.calls(OLDER_PAGE_LOADING) }
+            assertEquals("$type: hooked once", 1, code.count { it.calls(OLDER_PAGE_LOADING) })
+            assertTrue("$type: right after the answer", code[hook - 1].opcode == Opcode.MOVE_RESULT && code[hook - 2].calls("$policy->isLoading()Z"))
+            val answer = (code[hook - 1] as OneRegisterInstruction).registerA
+            assertEquals("$type: the answer", answer, (code[hook] as RegisterRangeInstruction).startRegister)
+            assertEquals(Opcode.MOVE_RESULT, code[hook + 1].opcode)
+            assertEquals("$type: back in the same register", answer, (code[hook + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$type: still branches on it", Opcode.IF_EQZ, code[hook + 2].opcode)
+        }
+        val other = context.classDefBy("Lfixture/OtherAsker;").methods.single { it.name == "check" }.implementation!!.instructions
+        assertTrue("the other asker is left", other.none { it.calls(OLDER_PAGE_LOADING) })
+    }
+
+    /** A builder that doesn't ask the adapter whether it's empty, or no builder at all, fails the finder; the patch then warns and goes on. */
+    @Test
+    fun aBuildWithoutTheContextualBuilderIsRefusedAndLeftAlone() {
+        for (classes in listOf(
+            listOf(policyImplementation(), feedNames(), contextualBuilder(contextual, asks = false)),
+            listOf(policyImplementation(), feedNames()),
+            listOf(classDef(following, followingState().methods.toList()), feedNames(), contextualBuilder(contextual)),
+        )) {
+            val context = PatchContexts.of(classes)
+            assertThrows(PatchException::class.java) { context.findLoadingRows() }
+            context.endOlderPostsSpinnerOrWarn()
+            if (classes.any { it.type == contextual }) {
+                val code = context.classDefBy(contextual).methods.single { it.name == "build" }.implementation!!.instructions
+                assertTrue("left as it was", code.none { it.calls(OLDER_PAGE_LOADING) })
+            }
+        }
+    }
+
+    @Test
+    fun threeBuildersFailTheFinder() {
+        val context = PatchContexts.of(listOf(
+            policyImplementation(), feedNames(), contextualBuilder(contextual), contextualBuilder(contextualToo), contextualBuilder("Lfixture/ThirdAdapter;"),
+        ))
+        assertThrows(PatchException::class.java) { context.findLoadingRows() }
+    }
+
+    /**
+     * In each build of the declared version, the contextual feed (the Older Posts page's fragment)
+     * has its model builders found through the load more row's interface, one or two of them, and
+     * each isLoading() answer goes past the extension in the register that holds it.
+     */
+    @Test
+    fun eachBuildEndsTheOlderPostsSpinner() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        val others = Fixtures.otherBuilds()
+        assertTrue("no fixture of a declared build", bundles.isNotEmpty())
+        assertTrue("other builds of the declared version were not read", others.isNotEmpty())
+        var checked = 0
+        for (bundle in bundles + others) {
+            val where = "${bundle.parentFile.name}/${bundle.name}"
+            val policies = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { it.holds(FOLLOWING_FEED) }) policies += ImmutableClassDef.of(classDef)
+                }
+            }
+            val interfaces = PatchContexts.of(policies.distinctBy { it.type }).findLoadMoreRow().first.interfaces.toSet()
+            assertTrue("$where: the load more row implements an interface", interfaces.isNotEmpty())
+            val askers = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    val asks = classDef.methods.any { method ->
+                        method.implementation?.instructions?.any { instruction ->
+                            ((instruction as? ReferenceInstruction)?.reference as? MethodReference)
+                                ?.let { it.name == "isLoading" && it.definingClass in interfaces } == true
+                        } == true
+                    }
+                    if (asks) askers += ImmutableClassDef.of(classDef)
+                }
+            }
+            val context = PatchContexts.of((policies + askers).distinctBy { it.type })
+            val rows = context.findLoadingRows()
+            assertTrue("$where: ${rows.size} builders", rows.size in 1..2)
+            context.endOlderPostsSpinner(rows)
+            for (row in rows) {
+                val code = context.classDefBy(row.type).methods
+                    .single { it.name == row.name && it.parameterTypes.map(CharSequence::toString) == row.parameters }
+                    .implementation!!.instructions.toList()
+                val hooks = code.indices.filter { code[it].calls(OLDER_PAGE_LOADING) }
+                assertEquals("$where: ${row.type}->${row.name} hooked once", 1, hooks.size)
+                val hook = hooks.single()
+                assertEquals("$where: right after the answer", Opcode.MOVE_RESULT, code[hook - 1].opcode)
+                assertEquals("$where: the question", "isLoading", ((code[hook - 2] as ReferenceInstruction).reference as MethodReference).name)
+                val answer = (code[hook - 1] as OneRegisterInstruction).registerA
+                assertEquals("$where: the answer", answer, (code[hook] as RegisterRangeInstruction).startRegister)
+                assertEquals("$where: back in the register", answer, (code[hook + 1] as OneRegisterInstruction).registerA)
+                assertEquals("$where: still branches on it", Opcode.IF_EQZ, code[hook + 2].opcode)
+                assertEquals("$where: then asks isEmpty", "isEmpty", ((code[hook + 3] as ReferenceInstruction).reference as MethodReference).name)
+            }
+            checked++
+        }
+        assertEquals("every build was checked", bundles.size + others.size, checked)
+    }
+
     /** The index of the instruction the branch at [at] lands on. */
     private fun target(code: List<Instruction>, at: Int): Int {
         val address = IntArray(code.size + 1)
@@ -352,6 +503,6 @@ class EmptyFeedEndTest {
         return ImmutableMethod.of(mutable)
     }
 
-    private fun classDef(type: String, methods: List<Method>): ClassDef =
-        ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, emptyList(), methods)
+    private fun classDef(type: String, methods: List<Method>, interfaces: List<String>? = null): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", interfaces, null, null, emptyList(), methods)
 }

@@ -9,12 +9,14 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -183,18 +185,7 @@ internal fun BytecodePatchContext.tellFeedEmptiness(end: FeedEnd): Boolean {
  * spinner under the card for good.
  */
 internal fun BytecodePatchContext.endFollowingAtItsCard() {
-    val found = mutableListOf<Pair<String, Method>>()
-    classesHolding(FOLLOWING_FEED).forEach { classDef ->
-        classDef.methods.forEach { method ->
-            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.parameterTypes.isEmpty() &&
-                method.holds(FOLLOWING_FEED)
-            ) {
-                found += classDef.type to method
-            }
-        }
-    }
-    val (type, shows) = found.singleOrNull()
-        ?: refuse("expected one instance boolean method holding $FOLLOWING_FEED, found ${found.size}")
+    val (type, shows) = findLoadMoreRow().let { it.first.type to it.second }
     val loading = classDefBy(type).methods.singleOrNull { it.name == "isLoading" && it.returnType == "Z" && it.parameterTypes.isEmpty() }
         ?: refuse("$type has no isLoading()")
     val asked = (loading.ownQuestions(type) intersect shows.ownQuestions(type)).singleOrNull()
@@ -220,6 +211,106 @@ internal fun BytecodePatchContext.endFollowingAtItsCard() {
             """,
         )
     }
+}
+
+/**
+ * The load more row's state class and its show check: the one instance boolean method without
+ * parameters that holds [FOLLOWING_FEED], in the one class that has one.
+ */
+internal fun BytecodePatchContext.findLoadMoreRow(): Pair<ClassDef, Method> {
+    val found = mutableListOf<Pair<ClassDef, Method>>()
+    classesHolding(FOLLOWING_FEED).forEach { classDef ->
+        classDef.methods.forEach { method ->
+            if (!AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" && method.parameterTypes.isEmpty() &&
+                method.holds(FOLLOWING_FEED)
+            ) {
+                found += classDef to method
+            }
+        }
+    }
+    return found.singleOrNull()
+        ?: refuse("expected one instance boolean method holding $FOLLOWING_FEED, found ${found.size}")
+}
+
+/** The extension's answer to "is the feed loading" in the contextual feed's model builder. */
+internal const val OLDER_PAGE_LOADING = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->olderPageLoading(I)I"
+
+/**
+ * A model builder that asks the load more policy whether its feed is loading, and for that answer
+ * asks the adapter whether it's empty before it adds the full-screen loading row. [at] is the index
+ * of the move-result that takes the answer.
+ */
+internal class LoadingRow(val type: String, val name: String, val parameters: List<String>, val at: Int)
+
+/**
+ * The Older Posts page is a contextual feed (the fragment Instagram opens a profile's posts in,
+ * module feed_timeline_older), and its model builder draws a full-screen loading row while its fetch
+ * is loading and its adapter is empty. The fetch's answer comes back through Home's parser, and a page
+ * that loses every post to the switches leaves that builder run once with the fetch still loading and
+ * nothing to run it again, so the row stays for good. The builders are the methods
+ * that ask the load more policy ([findLoadMoreRow]'s class, through the interface it implements)
+ * isLoading(), then branch on the answer, then ask the adapter isEmpty(). Instagram 450 has two, one
+ * for each of the contextual feed's adapters. One or two are taken, none or more fails.
+ */
+internal fun BytecodePatchContext.findLoadingRows(): List<LoadingRow> {
+    val policy = findLoadMoreRow().first
+    val rows = mutableListOf<LoadingRow>()
+    for (policyInterface in policy.interfaces) {
+        val asked = "$policyInterface->isLoading()Z"
+        classesCalling(policyInterface, "isLoading").forEach { classDef ->
+            classDef.methods.forEach { method ->
+                val code = method.implementation?.instructions?.toList() ?: return@forEach
+                code.indices.filter { code[it].calls(asked) }.forEach { call ->
+                    val answer = code.getOrNull(call + 1)
+                    val branch = code.getOrNull(call + 2)
+                    val empty = (code.getOrNull(call + 3) as? ReferenceInstruction)?.reference as? MethodReference
+                    if (answer?.opcode == Opcode.MOVE_RESULT && branch?.opcode == Opcode.IF_EQZ &&
+                        (branch as OneRegisterInstruction).registerA == (answer as OneRegisterInstruction).registerA &&
+                        code[call + 3].opcode == Opcode.INVOKE_VIRTUAL && empty?.name == "isEmpty" &&
+                        empty.returnType == "Z" && empty.parameterTypes.isEmpty()
+                    ) {
+                        rows += LoadingRow(classDef.type, method.name, method.parameterTypes.map { it.toString() }, call + 1)
+                    }
+                }
+            }
+        }
+    }
+    if (rows.isEmpty() || rows.size > 2) {
+        refuse("expected one or two model builders asking isLoading() before isEmpty(), found ${rows.size}")
+    }
+    return rows
+}
+
+/**
+ * Passes each builder's isLoading() answer through [OLDER_PAGE_LOADING], which answers not loading
+ * once a page of Home's response has lost every post to the switches, so the Older Posts page's
+ * loading row isn't drawn over an empty page. The builder still asks the adapter whether it's empty,
+ * and nothing asks for another page.
+ */
+internal fun BytecodePatchContext.endOlderPostsSpinner(rows: List<LoadingRow>) {
+    // The later row first within a method, so an earlier index still holds.
+    for (row in rows.sortedByDescending { it.at }) {
+        val method = mutableClassDefBy(row.type).methods.single { it.name == row.name && it.parameterTypes.map(CharSequence::toString) == row.parameters }
+        val answer = (method.implementation!!.instructions.toList()[row.at] as OneRegisterInstruction).registerA
+        method.addInstructions(
+            row.at + 1,
+            """
+                invoke-static/range { v$answer .. v$answer }, $OLDER_PAGE_LOADING
+                move-result v$answer
+            """,
+        )
+    }
+}
+
+/** [findLoadingRows] and [endOlderPostsSpinner], or a warning and Instagram's own spinner where a build has no such builder. */
+internal fun BytecodePatchContext.endOlderPostsSpinnerOrWarn() {
+    val rows = try {
+        findLoadingRows()
+    } catch (refused: PatchException) {
+        patchLog.warning("${refused.message}. An Older Posts page that loses every post keeps its loading row.")
+        return
+    }
+    endOlderPostsSpinner(rows)
 }
 
 private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
