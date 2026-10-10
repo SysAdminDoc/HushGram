@@ -31,6 +31,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -65,6 +66,7 @@ public class GhostHeaderButtonTest {
     }
 
     @After public void restore() {
+        HomeHeader.standInEndRowForTests(null);
         PatchFamily.inBuildForTests = null;
         Settings.GHOST_BUTTON_ON_HOME.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
@@ -74,6 +76,10 @@ public class GhostHeaderButtonTest {
     }
 
     private ImageView ghost() {
+        return ghostIn(row);
+    }
+
+    private static ImageView ghostIn(LinearLayout row) {
         for (int i = 0; i < row.getChildCount(); i++) {
             View child = row.getChildAt(i);
             if (child instanceof ImageView && ((ImageView) child).getDrawable() instanceof GhostHeaderButton.Ghost) {
@@ -179,6 +185,62 @@ public class GhostHeaderButtonTest {
         header.setDirectInbox(new ImageView(context));
         GhostHeaderButton.place(header);
         assertNull("a Messages button with no parent", ghost());
+    }
+
+    /** Messages is on the tab bar for some accounts on 450, so the header has no Messages button to sit beside. */
+    @Test public void withoutMessagesOnTheHeaderTheButtonGoesAtTheEndOfTheEndRow() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        LinearLayout end = new LinearLayout(context);
+        ImageView bell = new ImageView(context);
+        bell.setPaddingRelative(5, 6, 5, 6);
+        end.addView(bell);
+        header.addView(end);
+        header.setDirectInbox(null);
+        HomeHeader.standInEndRowForTests(asked -> asked == header ? end : null);
+
+        GhostHeaderButton.place(header);
+        ImageView button = ghostIn(end);
+        assertNotNull(button);
+        assertNull("nothing goes in Messages' old row", ghost());
+        assertEquals("at the end of the row", 1, end.indexOfChild(button));
+        assertEquals("a neighbor's padding", 5, button.getPaddingStart());
+        assertEquals("a neighbor's padding", 6, button.getPaddingTop());
+        GhostHeaderButton.place(header);
+        assertSame(button, ghostIn(end));
+        assertEquals(2, end.getChildCount());
+        assertEquals(List.of(FamilyNames.REELS_TAB + ": invoked 0, 0 found, 0 missing. Counted: "
+                + GhostHeaderButton.PLACED_AT_END + " 1"), HookStatus.report());
+
+        Settings.GHOST_BUTTON_ON_HOME.save(false);
+        GhostHeaderButton.place(header);
+        assertNull(ghostIn(end));
+        assertEquals(1, end.getChildCount());
+    }
+
+    @Test public void anEmptyEndRowGetsTheButtonWithItsOwnPadding() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        LinearLayout end = new LinearLayout(context);
+        header.addView(end);
+        header.setDirectInbox(null);
+        HomeHeader.standInEndRowForTests(asked -> end);
+
+        GhostHeaderButton.place(header);
+        ImageView button = ghostIn(end);
+        assertNotNull(button);
+        int pad = Math.round(10 * context.getResources().getDisplayMetrics().density);
+        assertEquals(pad, button.getPaddingStart());
+        assertEquals(pad, button.getPaddingBottom());
+    }
+
+    @Test public void withMessagesOnTheHeaderTheButtonStaysBesideItOverTheEndRow() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        LinearLayout end = new LinearLayout(context);
+        header.addView(end);
+        HomeHeader.standInEndRowForTests(asked -> end);
+
+        GhostHeaderButton.place(header);
+        assertNull(ghostIn(end));
+        assertEquals("right before Messages", row.indexOfChild(inbox) - 1, row.indexOfChild(ghost()));
     }
 
     @Test public void aViewWithNoMessagesGetterIsLeftAlone() {

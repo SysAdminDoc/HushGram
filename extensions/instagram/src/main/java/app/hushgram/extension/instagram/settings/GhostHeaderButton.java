@@ -18,7 +18,6 @@ import android.graphics.drawable.Drawable;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewParent;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
@@ -28,6 +27,7 @@ import androidx.annotation.Nullable;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 
+import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -43,8 +43,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>The patch calls {@link #drew} as the header starts drawing from its state. The button is put in
  * after that call returns, in the row the Messages button sits in, since the header clears its rows
- * when it rebuilds. With the switch off, HushGram paused, or no ghost patch in the build, no button
- * is added, and one left from before is taken out the next time the header draws.
+ * when it rebuilds. Where Messages isn't on the header, it goes at the end of the header's end row
+ * of buttons instead. With the switch off, HushGram paused, or no ghost patch in the build, no
+ * button is added, and one left from before is taken out the next time the header draws.
  */
 public final class GhostHeaderButton {
     private GhostHeaderButton() { }
@@ -52,10 +53,8 @@ public final class GhostHeaderButton {
     /** The name the diagnostic report counts this under, the Reels tab line the header's other hooks use. */
     static final String ROUTE = FamilyNames.REELS_TAB;
     static final String PLACED = "Home header Ghost button placed";
+    static final String PLACED_AT_END = "Home header Ghost button placed at the end, no Messages on the header";
     static final String NO_ANCHOR = "Home header Ghost button not placed, no row to put it in";
-
-    /** The header's public getter for the Messages button, which Instagram's layouts and other code call by name. */
-    static final String INBOX_GETTER = "getDirectInboxView";
 
     /**
      * Injected first thing as Home's header draws from its state. Queues the button's placement
@@ -71,13 +70,20 @@ public final class GhostHeaderButton {
         }
     }
 
-    /** Puts the button in, leaves the one there, or takes it out, as the switch, Pause and the build say. */
+    /**
+     * Puts the button in, leaves the one there, or takes it out, as the switch, Pause and the build
+     * say. It goes right before Messages, or at the end of the header's end row of buttons when
+     * Messages isn't on the header (it's on the tab bar for some accounts).
+     */
     static void place(View header) {
         try {
             List<BooleanSetting> switches = GhostMode.switches(PatchFamily.inThisBuild());
             boolean wanted = Utils.settingsReady() && !HushgramPause.isPaused()
                     && Settings.GHOST_BUTTON_ON_HOME.get() && !switches.isEmpty();
-            LinearLayout row = rowOf(header);
+            View inbox = HomeHeader.inboxOf(header);
+            LinearLayout row = HomeHeader.inboxRowOf(header);
+            boolean besideMessages = row != null;
+            if (row == null) row = HomeHeader.endRowOf(header);
             if (row == null) {
                 if (wanted) HookStatus.counted(ROUTE, NO_ANCHOR);
                 return;
@@ -91,34 +97,19 @@ public final class GhostHeaderButton {
                 existing.invalidate();
                 return;
             }
-            View inbox = inboxButton(header);
-            ImageView button = create(header.getContext(), switches, inbox);
-            row.addView(button, row.indexOfChild(inbox), params(row));
-            HookStatus.counted(ROUTE, PLACED);
+            ImageView button = create(header.getContext(), switches,
+                    besideMessages ? inbox : row.getChildCount() > 0 ? row.getChildAt(row.getChildCount() - 1) : null);
+            if (besideMessages) {
+                row.addView(button, row.indexOfChild(inbox), params(row));
+                HookStatus.counted(ROUTE, PLACED);
+            } else {
+                row.addView(button, params(row));
+                HookStatus.counted(ROUTE, PLACED_AT_END);
+            }
             Logger.printDebug(() -> "Ghost mode: the button is on Home's header");
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "ghost button", failure);
             Logger.printException(() -> "Ghost mode: could not put the button on Home's header", failure);
-        }
-    }
-
-    /** The row the Messages button sits in, when it's a LinearLayout, or null. */
-    @Nullable
-    static LinearLayout rowOf(View header) {
-        View inbox = inboxButton(header);
-        if (inbox == null) return null;
-        ViewParent parent = inbox.getParent();
-        return parent instanceof LinearLayout ? (LinearLayout) parent : null;
-    }
-
-    /** Home's Messages button, asked of the header by its getter's name, or null when it has none yet. */
-    @Nullable
-    static View inboxButton(View header) {
-        try {
-            Object view = header.getClass().getMethod(INBOX_GETTER).invoke(header);
-            return view instanceof View ? (View) view : null;
-        } catch (ReflectiveOperationException | RuntimeException missing) {
-            return null;
         }
     }
 
@@ -138,13 +129,13 @@ public final class GhostHeaderButton {
         return params;
     }
 
-    private static ImageView create(Context context, List<BooleanSetting> switches, View inbox) {
+    private static ImageView create(Context context, List<BooleanSetting> switches, @Nullable View neighbor) {
         ImageView button = new ImageView(context);
         BooleanSupplier on = () -> GhostMode.on(switches);
         button.setImageDrawable(new Ghost(context.getResources().getDisplayMetrics().density, night(context), on));
         button.setScaleType(ImageView.ScaleType.CENTER);
-        // The Messages button's own padding sizes the touch target the same as its neighbors.
-        button.setPaddingRelative(inbox.getPaddingStart(), inbox.getPaddingTop(), inbox.getPaddingEnd(), inbox.getPaddingBottom());
+        // A neighbor's own padding, Messages' where it's there, sizes the touch target the same as theirs.
+        HomeHeader.padLike(button, neighbor);
         button.setClickable(true);
         button.setFocusable(true);
         button.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);

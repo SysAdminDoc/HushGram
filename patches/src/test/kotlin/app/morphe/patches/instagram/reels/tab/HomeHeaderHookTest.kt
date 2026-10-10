@@ -51,6 +51,7 @@ class HomeHeaderHookTest {
         assertTrue("$GHOST_BUTTON is not in the extension: $ghost", GHOST_BUTTON.substringAfter("->") in ghost)
         assertTrue("the $HEADER_ICON_STUB stub is not in the extension: $declared", "$HEADER_ICON_STUB(Ljava/lang/Object;)I" in declared)
         assertTrue("the $HEADER_HEART_STUB stub is not in the extension: $declared", "$HEADER_HEART_STUB(Ljava/lang/Object;)I" in declared)
+        assertTrue("the $HEADER_ROW_STUB stub is not in the extension: $declared", "$HEADER_ROW_STUB(Ljava/lang/Object;)Ljava/lang/Object;" in declared)
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -130,6 +131,30 @@ class HomeHeaderHookTest {
             val heart = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_HEART_STUB }.code()
             assertEquals("$name: heart stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), heart.map { it.opcode })
             assertEquals("$name: heart stub type", hook.badge, (heart[0].reference() as TypeReference).type)
+
+            // The end row is the header's LinearLayout field the draw method adds the heart's view to,
+            // and the row stub reads it out of the header after asking the header's type.
+            assertTrue("$name: the end row ${hook.row}", hook.row.startsWith("$MAIN_FEED_ACTION_BAR->") && hook.row.endsWith(":Landroid/widget/LinearLayout;"))
+            val rowMethod = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_ROW_STUB }
+            val row = rowMethod.code()
+            assertEquals(
+                "$name: row stub",
+                listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT, Opcode.CONST_4, Opcode.RETURN_OBJECT),
+                row.map { it.opcode },
+            )
+            assertEquals("$name: row stub type", MAIN_FEED_ACTION_BAR, (row[0].reference() as TypeReference).type)
+            assertEquals("$name: row stub cast", MAIN_FEED_ACTION_BAR, (row[2].reference() as TypeReference).type)
+            assertEquals("$name: row stub field", hook.row, row[3].referenceText())
+            // The stub's local never lands on the header's register, which it reads after instance-of writes.
+            val header = rowMethod.implementation!!.registerCount - 1
+            assertEquals("$name: the row stub has one local", 1, rowMethod.localRegisterCount())
+            assertNotEquals("$name: instance-of keeps off the header's register", header, (row[0] as OneRegisterInstruction).registerA)
+            assertEquals("$name: instance-of asks about the header", header, (row[0] as TwoRegisterInstruction).registerB)
+            assertEquals("$name: the cast is on the header", header, (row[2] as OneRegisterInstruction).registerA)
+            assertEquals("$name: the read is from the header", header, (row[3] as TwoRegisterInstruction).registerB)
+            assertNotEquals("$name: the read lands off the header's register", header, (row[3] as OneRegisterInstruction).registerA)
+            val badgeAdds = hook.draw.code().count { it.opcode == Opcode.CHECK_CAST && (it.reference() as TypeReference).type == TOASTING_BADGE }
+            assertTrue("$name: the draw method casts the heart's view", badgeAdds >= 1)
         }
     }
 

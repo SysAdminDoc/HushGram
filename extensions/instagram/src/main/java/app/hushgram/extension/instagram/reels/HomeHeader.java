@@ -6,11 +6,17 @@ package app.hushgram.extension.instagram.reels;
 
 import android.content.Context;
 import android.content.res.Resources;
+import android.view.View;
+import android.view.ViewParent;
+import android.widget.LinearLayout;
+
+import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 
@@ -32,6 +38,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The hook fails open: a switch off, HushGram paused, the settings not read yet, an icon that
  * can't be named or anything thrown, and the list goes through as it came.
+ *
+ * <p>It also finds where the buttons HushGram adds to the header go: the row Messages sits in, and
+ * the header's end row of buttons, which the patch reads for {@link #endRow}.
  */
 public final class HomeHeader {
     /** The start of the resource name of Instagram's plus icon, which the Create button on Home's header wears. */
@@ -122,5 +131,74 @@ public final class HomeHeader {
      */
     public static int heart(Object button) {
         return 0;
+    }
+
+    // ---- where HushGram's own header buttons go ------------------------------------------------
+
+    /** The header's public getter for the Messages button, which Instagram's layouts and other code call by name. */
+    static final String INBOX_GETTER = "getDirectInboxView";
+
+    /** Stands in for the patched {@link #endRow} in tests, or null to ask the stub. */
+    @Nullable
+    private static volatile Function<Object, Object> endRowForTests;
+
+    /** For tests only: answers {@link #endRowOf} from [rows] in place of the stub, or from the stub again with null. */
+    public static void standInEndRowForTests(@Nullable Function<Object, Object> rows) {
+        endRowForTests = rows;
+    }
+
+    /**
+     * Home's header's row of buttons on its end side, the LinearLayout Instagram always puts the
+     * notifications heart in. A stub: the patch writes its body, which reads the row out of
+     * [header]. Answers null unpatched or for anything that isn't Home's header.
+     */
+    @Nullable
+    public static Object endRow(Object header) {
+        return null;
+    }
+
+    /** The header's end row of buttons, from {@link #endRow}, or null. Never throws. */
+    @Nullable
+    public static LinearLayout endRowOf(View header) {
+        try {
+            Function<Object, Object> stand = endRowForTests;
+            Object row = stand != null ? stand.apply(header) : endRow(header);
+            return row instanceof LinearLayout ? (LinearLayout) row : null;
+        } catch (RuntimeException failure) {
+            return null;
+        }
+    }
+
+    /** Home's Messages button, asked of the header by its getter's name, or null when it has none. */
+    @Nullable
+    public static View inboxOf(View header) {
+        try {
+            Object view = header.getClass().getMethod(INBOX_GETTER).invoke(header);
+            return view instanceof View ? (View) view : null;
+        } catch (ReflectiveOperationException | RuntimeException missing) {
+            return null;
+        }
+    }
+
+    /** The row the Messages button sits in, when it's on the header and the row is a LinearLayout, or null. */
+    @Nullable
+    public static LinearLayout inboxRowOf(View header) {
+        View inbox = inboxOf(header);
+        if (inbox == null) return null;
+        ViewParent parent = inbox.getParent();
+        return parent instanceof LinearLayout ? (LinearLayout) parent : null;
+    }
+
+    /**
+     * Pads [button] like [like], one of the header's own buttons, so its touch target matches its
+     * neighbors', or 10dp all round with none to copy.
+     */
+    public static void padLike(View button, @Nullable View like) {
+        if (like != null) {
+            button.setPaddingRelative(like.getPaddingStart(), like.getPaddingTop(), like.getPaddingEnd(), like.getPaddingBottom());
+            return;
+        }
+        int pad = Math.round(10 * button.getResources().getDisplayMetrics().density);
+        button.setPaddingRelative(pad, pad, pad, pad);
     }
 }

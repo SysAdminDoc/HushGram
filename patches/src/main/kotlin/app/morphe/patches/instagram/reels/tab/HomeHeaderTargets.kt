@@ -15,10 +15,12 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Hide the Reels tab"
@@ -30,19 +32,26 @@ private const val HOME_HEADER = "$EXTENSION_PACKAGE/reels/HomeHeader;"
 internal const val HEADER_BUTTONS = "$HOME_HEADER->buttons(Ljava/util/List;)Ljava/util/List;"
 internal const val HEADER_ICON_STUB = "icon"
 internal const val HEADER_HEART_STUB = "heart"
+internal const val HEADER_ROW_STUB = "endRow"
 
 /** Called as the header starts drawing from its state, with the header, to put the Ghost mode button in beside Messages. */
 internal const val GHOST_BUTTON = "$EXTENSION_PACKAGE/settings/GhostHeaderButton;->drew(Landroid/view/View;)V"
 
+/** The notifications heart's view, a class Instagram's layouts name, so every build keeps the name. */
+internal const val TOASTING_BADGE = "Lcom/instagram/notifications/badging/ui/component/ToastingBadge;"
+
 private const val OBJECT = "Ljava/lang/Object;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
+private const val LINEAR_LAYOUT = "Landroid/widget/LinearLayout;"
+private const val VIEW_GROUP = "Landroid/view/ViewGroup;"
+private const val VIEW = "Landroid/view/View;"
 
 /**
  * Home's header: the constructor of the state class the header draws from, and the register its list
  * of buttons arrives in, the type of an image button (Create, Messages and the others) with the int
- * field holding its icon's resource id, and the type of the notifications heart, and the method that
- * draws the header from a state.
+ * field holding its icon's resource id, and the type of the notifications heart, the method that
+ * draws the header from a state, and the header's field holding its end row of buttons.
  */
 internal class HomeHeaderHook(
     val draw: Method,
@@ -51,6 +60,7 @@ internal class HomeHeaderHook(
     val image: String,
     val icon: String,
     val badge: String,
+    val row: String,
 )
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
@@ -66,7 +76,9 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  *    icon, and stores that icon in an int field;
  *  - the drawing method asks, by type, whether each button is the image button or the notifications
  *    heart, which extends the same class as the image button and is the only other type it asks about
- *    that does.
+ *    that does;
+ *  - the drawing method adds the heart's view, cast to [TOASTING_BADGE], to one of the header's
+ *    LinearLayout fields through a static (ViewGroup, View) helper, and that field is the end row.
  */
 internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     val bar = classDefByOrNull(MAIN_FEED_ACTION_BAR) ?: refuse("this Instagram build has no $MAIN_FEED_ACTION_BAR")
@@ -135,10 +147,21 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     val badgeClass = classDefByOrNull(badge) ?: refuse("the notifications button type $badge isn't in the app")
     if (!AccessFlags.PUBLIC.isSet(badgeClass.accessFlags)) refuse("$badge isn't public, so the extension can't ask about it")
 
+    val rows = endRows(draw.code())
+    val row = rows.singleOrNull() ?: refuse("expected the header to add its heart's view to one row, found ${rows.map { it.name }}")
+    val rowField = bar.fields.singleOrNull { it.name == row.name && it.type == LINEAR_LAYOUT }
+        ?: refuse("$MAIN_FEED_ACTION_BAR has no LinearLayout field ${row.name}")
+    if (!AccessFlags.PUBLIC.isSet(bar.accessFlags) || !AccessFlags.PUBLIC.isSet(rowField.accessFlags) ||
+        AccessFlags.STATIC.isSet(rowField.accessFlags)
+    ) {
+        refuse("the header's end row ${row.name} isn't a public instance field, so the extension can't read it")
+    }
+
     val extension = classDefByOrNull(HOME_HEADER) ?: refuse("the extension has no $HOME_HEADER")
     for (stub in listOf(HEADER_ICON_STUB, HEADER_HEART_STUB)) {
         if (extension.methods.none { it.isStub(stub) }) refuse("$HOME_HEADER has no public static I $stub($OBJECT)")
     }
+    if (extension.methods.none { it.isRowStub() }) refuse("$HOME_HEADER has no public static $OBJECT $HEADER_ROW_STUB($OBJECT)")
     val ghost = classDefByOrNull(GHOST_BUTTON.substringBefore("->")) ?: refuse("the extension has no ${GHOST_BUTTON.substringBefore("->")}")
     if (ghost.methods.none { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == GHOST_BUTTON.substringAfter("->") && it.isPublicStatic() }) {
         refuse("the extension has no public static $GHOST_BUTTON")
@@ -146,8 +169,30 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     if (extension.methods.none { it.name == "buttons" && it.parameterTypes.map(CharSequence::toString) == listOf(LIST) && it.returnType == LIST && it.isPublicStatic() }) {
         refuse("the extension has no public static $HEADER_BUTTONS")
     }
-    return HomeHeaderHook(draw, constructor, list, image, "$image->${icon.name}:I", badge)
+    return HomeHeaderHook(draw, constructor, list, image, "$image->${icon.name}:I", badge, "$MAIN_FEED_ACTION_BAR->${row.name}:$LINEAR_LAYOUT")
 }
+
+/**
+ * The header's LinearLayout fields the draw method adds the heart's view to: a read of the field
+ * straight before a static (ViewGroup, View)V call handed it with a view the last write to was a cast
+ * to [TOASTING_BADGE]. Image buttons go to the start or the end row by a server flag; the heart
+ * always goes to the end row.
+ */
+private fun endRows(code: List<Instruction>): List<FieldReference> = code.indices.mapNotNull { index ->
+    val read = code[index]
+    val add = code.getOrNull(index + 1) ?: return@mapNotNull null
+    val field = read.fieldReference()?.takeIf {
+        read.opcode == Opcode.IGET_OBJECT && it.definingClass == MAIN_FEED_ACTION_BAR && it.type == LINEAR_LAYOUT
+    } ?: return@mapNotNull null
+    ((add as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
+        add.opcode == Opcode.INVOKE_STATIC && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_GROUP, VIEW)
+    } ?: return@mapNotNull null
+    val registers = add as FiveRegisterInstruction
+    if (registers.registerC != (read as OneRegisterInstruction).registerA) return@mapNotNull null
+    val view = registers.registerD
+    val written = code.subList(0, index).lastOrNull { it.opcode.setsRegister() && (it as? OneRegisterInstruction)?.registerA == view }
+    field.takeIf { written?.opcode == Opcode.CHECK_CAST && ((written as ReferenceInstruction).reference as? TypeReference)?.type == TOASTING_BADGE }
+}.distinctBy { it.name }
 
 /**
  * Writes the two stubs, then hands the header state's list of buttons to [HEADER_BUTTONS] as its
@@ -172,6 +217,18 @@ internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
         instance-of v0, p0, ${hook.badge}
         return v0
     """)
+    // Answers an Object: the end row, or null for anything that isn't the header. Two registers for
+    // the same reason as the icon stub: v0 is a local and p0, the header, is v1.
+    replace(mutableClassDefBy(HOME_HEADER).methods.single { it.isRowStub() }, 2, """
+        instance-of v0, p0, $MAIN_FEED_ACTION_BAR
+        if-eqz v0, :other
+        check-cast p0, $MAIN_FEED_ACTION_BAR
+        iget-object v0, p0, ${hook.row}
+        return-object v0
+        :other
+        const/4 v0, 0x0
+        return-object v0
+    """)
     val state = mutableClassDefBy(hook.state.definingClass).methods.single { it.sameShape(hook.state) }
     state.addInstructions(
         0,
@@ -192,6 +249,9 @@ private fun Method.isPublicStatic() = AccessFlags.PUBLIC.isSet(accessFlags) && A
 
 private fun Method.isStub(name: String) =
     this.name == name && parameterTypes.map(CharSequence::toString) == listOf(OBJECT) && returnType == "I" && isPublicStatic()
+
+private fun Method.isRowStub() =
+    name == HEADER_ROW_STUB && parameterTypes.map(CharSequence::toString) == listOf(OBJECT) && returnType == OBJECT && isPublicStatic()
 
 private fun MutableMethod.sameShape(other: Method) =
     name == other.name && returnType == other.returnType &&
