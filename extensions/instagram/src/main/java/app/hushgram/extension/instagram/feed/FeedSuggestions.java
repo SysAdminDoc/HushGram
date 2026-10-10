@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.feed;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -122,6 +123,13 @@ public final class FeedSuggestions {
     /** Set once the report has counted {@link #HOME_ENDED} for that page. Tests clear it. */
     static volatile boolean homePageEndCounted;
 
+    /**
+     * The home feed that first read the latest page's verdict, set by that read. Each account has a
+     * feed of its own, so another account's Home, still waiting on its first page or offline, isn't
+     * ended by a page that belonged to the account before it. Null until a feed reads it. Tests clear it.
+     */
+    static volatile WeakReference<Object> verdictFeed;
+
     /** The counted kind of a Home that was ended, empty, after its latest page lost items to the switches. */
     static final String HOME_ENDED = "home page ended with every post removed";
 
@@ -211,6 +219,11 @@ public final class FeedSuggestions {
         boolean homeReads = forced != null ? forced : PatchFamily.feedTypesInBuild();
         if (!homeReads) return true;
         if (!homePageLost) return false;
+        if (feed != null) {
+            WeakReference<Object> bound = verdictFeed;
+            if (bound == null) verdictFeed = new WeakReference<>(feed);
+            else if (bound.get() != feed) return false;
+        }
         int empty = feedIsEmpty(feed);
         if (empty == 0) return false;
         if (empty == 1 && !homePageEndCounted) {
@@ -267,6 +280,7 @@ public final class FeedSuggestions {
             if (page == null || page[0] == 0) return;
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
+            verdictFeed = null;
             if (homePageLost) {
                 Logger.printDebug(() -> "Feed suggestions: a page of Home lost " + page[1] + " of its " + page[0] + " items");
             }

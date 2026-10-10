@@ -61,6 +61,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homeReadsForTests = false;
         FeedSuggestions.homePageLost = false;
         FeedSuggestions.homePageEndCounted = false;
+        FeedSuggestions.verdictFeed = null;
         FeedSuggestions.tookOut = false;
     }
 
@@ -71,6 +72,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homeReadsForTests = null;
         FeedSuggestions.homePageLost = false;
         FeedSuggestions.homePageEndCounted = false;
+        FeedSuggestions.verdictFeed = null;
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
         FeedSuggestions.tookOut = false;
         for (BooleanSetting setting : suggestionSwitches()) setting.resetToDefault();
@@ -375,15 +377,37 @@ public class FeedSuggestionsTest {
         FeedSuggestions.emptiness = feed -> {
             throw new IllegalStateException("gone");
         };
-        assertEquals("the check threw", 1, adapterReads(new Feed(true), 0));
+        Feed home = new Feed(true);
+        assertEquals("the check threw", 1, adapterReads(home, 0));
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
-        assertEquals("the stub, unfilled", 1, adapterReads(new Feed(true), 0));
+        assertEquals("the stub, unfilled", 1, adapterReads(home, 0));
         assertEquals("no feed handed over", 1, FeedSuggestions.feedEnded(0));
         String report = String.join("\n", FeedFilterCounters.report());
         assertFalse(report, report.contains(FeedSuggestions.HOME_ENDED));
 
         withHomeReads();
         assertEquals("a feed with posts", 0, adapterReads(new Feed(false), 0));
+    }
+
+    /**
+     * A page's verdict belongs to the Home that read it first. Another account's Home, empty while
+     * its first page is on the way or its request failed, keeps Instagram's answer until a page of
+     * its own comes, rather than getting the end card from the account before it.
+     */
+    @Test
+    public void anotherAccountsHomeWaitsForItsOwnPage() {
+        withHomeReads();
+        Feed first = new Feed(true);
+        Feed next = new Feed(true);
+        homePage(new Item(Kind.EXPLORE_STORY));
+        assertEquals(1, adapterReads(first, 0));
+
+        assertEquals("ended by the other account's page", 0, adapterReads(next, 0));
+        assertEquals("the first account's Home stays ended", 1, adapterReads(first, 0));
+
+        homePage(new Item(Kind.SUGGESTED_USERS));
+        assertEquals("its own page lost everything", 1, adapterReads(next, 0));
+        assertEquals(0, adapterReads(first, 0));
     }
 
     /** The feed handed over is the next flag read's alone: a read without one doesn't reuse it. */
