@@ -24,11 +24,16 @@ val copyCommentPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.instagram())
     execute {
         requireStatusMethod("commentCopy")
+        requireStatusMethod(COMMENT_AUTHOR_STATUS)
         val menu = findCommentMenu()
         applyCommentMenu(menu)
+        if (menu.author != null) enableStatus(COMMENT_AUTHOR_STATUS)
         enableStatus("commentCopy")
     }
 }
+
+/** The status of the second switch, Copy the commenter's username, which a build can lack while Copy goes in (#35). */
+internal const val COMMENT_AUTHOR_STATUS = "commentAuthor"
 
 /** Validate the extension too, so a missing bridge can't leave the native renderer half changed. */
 internal fun BytecodePatchContext.validateCommentStubs() {

@@ -222,6 +222,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Copy the commenter's username, Copy comment's second switch, which a build can lack. */
+    public static boolean commentAuthor() {
+        return false;
+    }
+
     public static boolean commentPhoto() {
         return false;
     }

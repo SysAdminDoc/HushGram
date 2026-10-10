@@ -12,11 +12,14 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.instagram.misc.extension.PatchLogCapture
+import app.morphe.patches.instagram.misc.extension.SETTINGS_STATUS
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -244,8 +247,10 @@ class CopyCommentHookTest {
             assertEquals(USER, author.user.returnType)
             val stockLabel = labelSite(renderer, author.label)
             assertEquals(GET_STRING, renderer.code()[stockLabel.at + 2].call().toString())
-            patch.applyCommentMenu(menu)
+            copyCommentPatch.execute(patch)
             assertWiring(patch, menu)
+            assertEquals("${bundle.name}: Copy's status", 1, status(patch, "commentCopy"))
+            assertEquals("${bundle.name}: Copy username's status", 1, status(patch, COMMENT_AUTHOR_STATUS))
             val hook = renderer.code().indexOfFirst { it.call()?.toString() == COMMENT_HOOK }
             val labelAt = renderer.code().indexOfFirst { it.call()?.toString() == AUTHOR_LABEL }
             assertEquals("one label read goes through Copy username", 1, renderer.code().count { it.call()?.toString() == AUTHOR_LABEL })
@@ -286,6 +291,27 @@ class CopyCommentHookTest {
         assertTrue(factory.code().any { (it.reference() as? TypeReference)?.type == COPY_ROW })
     }
 
+    /**
+     * #35: Copy username gets its own status, so a build whose username boundaries can't be told
+     * keeps Copy and its switch, says why, and doesn't offer a username switch that does nothing.
+     */
+    @Test fun aBuildWithoutCopyUsernameStampsOnlyCopysStatus() {
+        val patch = PatchContexts.of(CommentWorld.nativeClasses("First") + extension().filter { it.type != AUTHOR_ROW })
+        val renderer = patch.findCommentMenu().surface.renderer
+        val warnings = PatchLogCapture.warnings { copyCommentPatch.execute(patch) }
+
+        assertTrue(warnings.toString(), warnings.any { it.endsWith("Copy comment goes in without Copy username.") })
+        assertEquals(1, status(patch, "commentCopy"))
+        assertEquals(0, status(patch, COMMENT_AUTHOR_STATUS))
+        assertEquals("no label read goes through Copy username", 0, patch.mutableClassDefBy(renderer.definingClass).methods
+            .single { it.matches(renderer) }.code().count { it.call()?.toString() == AUTHOR_LABEL })
+    }
+
+    /** What a SettingsStatus method answers: 1 once the patch switches it on, 0 as shipped. */
+    private fun status(patch: BytecodePatchContext, name: String): Int =
+        (patch.classDefByOrNull(SETTINGS_STATUS)!!.methods.single { it.name == name }
+            .implementation!!.instructions.first() as NarrowLiteralInstruction).narrowLiteral
+
     private fun extension() = listOf(COMMENT_NATIVE, COPY_ROW, COMMENT_COPY, COMMENT_ACTIONS,
-        AUTHOR_NATIVE, AUTHOR_ROW, COMMENT_AUTHOR, INSTAGRAM_MEDIA).map(ExtensionDex::classDef)
+        AUTHOR_NATIVE, AUTHOR_ROW, COMMENT_AUTHOR, INSTAGRAM_MEDIA, SETTINGS_STATUS).map(ExtensionDex::classDef)
 }

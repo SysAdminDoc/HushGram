@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** New patch, Hide suggested accounts in DMs. Turn on its switch under Messages and restart Instagram, and the Accounts to follow section at the bottom of your messages isn't built. Your chats and follow requests stay, and so does a section of people who follow you. It's in the default selection with its switch off. Asked for in #112.
 
+* **Instagram:** Copy the commenter's username only shows up in HushGram settings when Copy username actually went into your build. On an Instagram build where it couldn't, Copy comment still works, the extra switch stays out of the way, and the diagnostic report says why.
+
 * **Tooling:** Release notes now have to open with a short What's new list of 5 to 8 one-line bullets, with the full list of changes under it. The notes builder won't write them without one, or with one that's grown too long to scan. Asked for in #86 and #106.
 
 * **Instagram:** With Hide the Stories tray on, the tray could still show up at the top of Home for a few seconds after you watched a story you opened in DMs. When you come back to Home partway down the feed, Instagram floats a copy of the tray over it, and that copy now stays hidden too. Reported in #88.

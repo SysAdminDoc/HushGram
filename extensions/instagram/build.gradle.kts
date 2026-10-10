@@ -465,7 +465,9 @@ tasks.register("verifyAndroidBoundaries") {
                 "adsAndOtherScreensGetNoLabel[28]", "adsAndOtherScreensGetNoLabel[37]"),
             "app.hushgram.extension.instagram.settings.CommentCopySettingsTest" to listOf(
                 "missingPatchHasNoCommentSwitch[28]", "missingPatchHasNoCommentSwitch[37]",
-                "commentsSwitchStartsOffPersistsAndHonorsPause[28]", "commentsSwitchStartsOffPersistsAndHonorsPause[37]"),
+                "commentsSwitchStartsOffPersistsAndHonorsPause[28]", "commentsSwitchStartsOffPersistsAndHonorsPause[37]",
+                "aBuildWithoutCopyUsernameKeepsCopyWithoutTheSecondSwitch[28]", "aBuildWithoutCopyUsernameKeepsCopyWithoutTheSecondSwitch[37]",
+                "aBuildCopyingUsernamesReportsNothingMissing[28]", "aBuildCopyingUsernamesReportsNothingMissing[37]"),
             "app.hushgram.extension.instagram.settings.CommentPhotoSettingsTest" to listOf(
                 "missingPatchHasNoCommentPhotoSwitch[28]", "missingPatchHasNoCommentPhotoSwitch[37]",
                 "commentPhotoSwitchStartsOffPersistsAndHonorsPause[28]", "commentPhotoSwitchStartsOffPersistsAndHonorsPause[37]",

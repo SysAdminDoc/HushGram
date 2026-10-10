@@ -8,6 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.SwitchPreference;
 import java.util.EnumSet;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,6 +46,7 @@ public class CommentCopySettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.commentAuthorForTests = null;
         Settings.COPY_COMMENTS.resetToDefault();
         Settings.COPY_COMMENT_AUTHORS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -95,5 +97,21 @@ public class CommentCopySettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.COPY_COMMENTS.get());
         assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+    /** #35: a build whose Copy username didn't go in keeps Copy comment and doesn't offer a switch that does nothing. */
+    @Test public void aBuildWithoutCopyUsernameKeepsCopyWithoutTheSecondSwitch() throws Exception {
+        PatchFamily.commentAuthorForTests = false;
+        open(true);
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.COPY_COMMENTS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.COPY_COMMENT_AUTHORS.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_COPY), false);
+        assertTrue(report.toString(), report.contains("  Copy the commenter's username: not in this build "
+                + "(the comment menu's label or the comment's author didn't match)"));
+    }
+    @Test public void aBuildCopyingUsernamesReportsNothingMissing() throws Exception {
+        open(true);
+        assertTrue(PatchFamily.commentAuthorInBuild());
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_COPY), false);
+        for (String line : report) assertFalse(line, line.contains("not in this build ("));
     }
 }

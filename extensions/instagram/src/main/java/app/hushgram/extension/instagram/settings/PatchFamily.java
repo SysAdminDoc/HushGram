@@ -194,6 +194,22 @@ public enum PatchFamily {
         return FRIENDSHIP_STATUS.inBuild() && SettingsStatus.followingListMark();
     }
 
+    /** Whether a test says this build copies a commenter's username, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean commentAuthorForTests;
+
+    /**
+     * Whether this build copies a commenter's username. Copy comment goes in without it when the
+     * comment menu's label or the comment's author have moved, so its second switch isn't offered then.
+     */
+    public static boolean commentAuthorInBuild() {
+        Boolean forced = commentAuthorForTests;
+        if (forced != null) return forced;
+        Set<PatchFamily> families = inBuildForTests;
+        if (families != null) return families.contains(COMMENT_COPY);
+        return COMMENT_COPY.inBuild() && SettingsStatus.commentAuthor();
+    }
+
     /** Whether a test says this build filters Home by a post's type, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean feedTypesForTests;
@@ -293,6 +309,9 @@ public enum PatchFamily {
                 lines.add(family.reportLine(paused));
                 if (family == FEED_SUGGESTIONS && !feedTypesInBuild()) {
                     lines.add("  Hide videos, Hide photos and Hide carousels: not in this build (Home's feed or a post's type didn't match)");
+                }
+                if (family == COMMENT_COPY && !commentAuthorInBuild()) {
+                    lines.add("  Copy the commenter's username: not in this build (the comment menu's label or the comment's author didn't match)");
                 }
                 if (family == FRIENDSHIP_STATUS && !followingListMarkInBuild()) {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");

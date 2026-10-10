@@ -793,8 +793,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (build.contains(PatchFamily.COMMENT_COPY)) {
                 comments.addPreference(toggle(context, Settings.COPY_COMMENTS, L10n.t("Copy comment"),
                         L10n.t("Adds Copy to a selected comment's menu. Copies the original text, including line breaks.")));
-                comments.addPreference(toggle(context, Settings.COPY_COMMENT_AUTHORS, L10n.t("Copy the commenter's username"),
-                        L10n.t("Adds Copy username to a selected comment's menu, for the account that wrote it.")));
+                if (PatchFamily.commentAuthorInBuild()) {
+                    comments.addPreference(toggle(context, Settings.COPY_COMMENT_AUTHORS, L10n.t("Copy the commenter's username"),
+                            L10n.t("Adds Copy username to a selected comment's menu, for the account that wrote it.")));
+                }
             }
             if (build.contains(PatchFamily.COMMENT_PHOTO)) {
                 comments.addPreference(toggle(context, Settings.SAVE_COMMENT_PHOTOS, L10n.t("Save comment photo"),
