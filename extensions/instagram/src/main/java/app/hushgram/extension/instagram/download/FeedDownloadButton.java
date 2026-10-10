@@ -75,6 +75,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * recycles it like its own buttons. The first hook above stays for the rows still bound the old
  * way (#97).
  *
+ * <p>The icon goes only on a post a tap would save with the download switches as they are, the
+ * check the post's menu makes for its Download and Save all rows ({@link VideoDownload#saves}): a
+ * photo with Download feed photos off gets none, in either row (#97). A tap that still finds nothing
+ * to save, once a switch has changed since, says so.
+ *
  * <p>Every part fails open. With the switch off, or while paused, the icon is hidden, and a row
  * that can't take it is left as it was.
  */
@@ -84,6 +89,7 @@ public final class FeedDownloadButton {
     private static final String COUNT_REFUSED = "feed button not placed";
     private static final String COUNT_LITHO_PLACED = "feed button placed (litho row)";
     private static final String COUNT_LITHO_REFUSED = "feed button not placed (litho row)";
+    private static final String COUNT_TYPE_OFF = "feed button left off a post whose type is switched off";
     /** Instagram's download glyphs, by resource name since the numbers change; the first one found is used. */
     private static final String[] ICON_NAMES = {"instagram_download_outline_24", "instagram_download_pano_outline_24"};
     /** The theme attribute Instagram colors its action-row icons with; looked up by name since the numbers change. */
@@ -116,6 +122,9 @@ public final class FeedDownloadButton {
 
     /** What a tap saves, and what shows the carousel choice. Replaced by tests. */
     interface Actions {
+        /** Whether a tap could save anything of [post] with the download switches as they are. */
+        boolean saves(Object post);
+
         List<?> pages(Object post);
 
         boolean save(Object post, Object itemState, Activity activity);
@@ -128,6 +137,10 @@ public final class FeedDownloadButton {
     }
 
     static Actions actions = new Actions() {
+        @Override public boolean saves(Object post) {
+            return VideoDownload.saves(post);
+        }
+
         @Override public List<?> pages(Object post) {
             return post == null ? null : InstagramMedia.carouselMedia(post);
         }
@@ -283,6 +296,10 @@ public final class FeedDownloadButton {
             if (row == null || save == null || state == null) return;
             if (!enabled()) return;
             HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            if (!actions.saves(litho.post(state))) {
+                HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_TYPE_OFF);
+                return;
+            }
             Object icon = lithoSpec(save, state);
             if (icon == null) {
                 HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_LITHO_REFUSED);
@@ -459,6 +476,12 @@ public final class FeedDownloadButton {
                 return;
             }
             HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            if (!actions.saves(post)) {
+                // A row Instagram reuses for this post can hold the icon from a post that had one.
+                if (button != null && button.getVisibility() != View.GONE) button.setVisibility(View.GONE);
+                HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_TYPE_OFF);
+                return;
+            }
             if (button == null) {
                 button = make(save);
                 if (!place(row, save, button)) {
@@ -487,6 +510,11 @@ public final class FeedDownloadButton {
     static boolean enabled() {
         return Utils.settingsReady() && Settings.FEED_DOWNLOAD_BUTTON.get()
                 && (Settings.DOWNLOAD_VIDEOS.get() || Settings.DOWNLOAD_PHOTOS.get());
+    }
+
+    /** Whether the button's own switch is on, whatever the download switches say. Paused answers no. */
+    private static boolean switchedOn() {
+        return Utils.settingsReady() && Settings.FEED_DOWNLOAD_BUTTON.get();
     }
 
     @Nullable
@@ -611,10 +639,17 @@ public final class FeedDownloadButton {
         }
     }
 
-    /** What a tap does with [post]: save it, or on a carousel ask which. Never throws. */
+    /**
+     * What a tap does with [post]: save it, or on a carousel ask which. A post the switches no longer
+     * let a tap save, since the icon went on, gets a short note instead. Off or paused, nothing.
+     * Never throws.
+     */
     static void tap(View anchor, Object post, Object itemState, @Nullable Activity activity) {
         try {
-            if (!enabled()) return;
+            if (!enabled() || !actions.saves(post)) {
+                if (switchedOn()) actions.nothing(contextOf(anchor, activity));
+                return;
+            }
             List<?> pages = actions.pages(post);
             if (pages != null && pages.size() > 1) {
                 actions.choose(anchor, () -> saveOne(anchor, post, itemState, activity), () -> saveEvery(anchor, post, activity));

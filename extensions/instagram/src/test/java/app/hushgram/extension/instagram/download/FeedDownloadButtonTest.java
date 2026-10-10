@@ -29,7 +29,9 @@ import android.widget.RelativeLayout;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -85,13 +87,18 @@ public class FeedDownloadButtonTest {
         HookStatus.clear();
     }
 
-    /** The calls a tap makes, and the carousel pages the post answers with. */
+    /** The calls a tap makes, the carousel pages the post answers with, and the posts the switches leave nothing to save on. */
     private static final class Recorder implements FeedDownloadButton.Actions {
         final List<String> calls = new ArrayList<>();
+        final Set<Object> switchedOff = new HashSet<>();
         List<?> pages;
         boolean saves = true;
         Runnable page;
         Runnable all;
+
+        @Override public boolean saves(Object post) {
+            return !switchedOff.contains(post);
+        }
 
         @Override public List<?> pages(Object post) {
             return pages;
@@ -337,6 +344,65 @@ public class FeedDownloadButtonTest {
         assertTrue(recorder.calls.isEmpty());
     }
 
+    /**
+     * #97: with Download feed videos on and Download feed photos off, a photo post got the icon and a
+     * tap did nothing. A post the switches leave nothing to save on gets no icon, and a row Instagram
+     * reuses for one hides the icon an earlier post had, until a post that saves comes back.
+     */
+    @Test
+    public void aPostWhoseTypeIsSwitchedOffGetsNoIconAndAReusedRowHidesIt() {
+        recorder.switchedOff.add("photo");
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "photo", "state", activity);
+        assertEquals("no icon added", 4, row.getChildCount());
+        assertNull(FeedDownloadButton.existing(row));
+        String report = report();
+        assertTrue(report, report.contains("feed button left off a post whose type is switched off"));
+
+        FeedDownloadButton.bind(save, "video", "state", activity);
+        ImageView button = buttonOf(row);
+        assertEquals(View.VISIBLE, button.getVisibility());
+
+        FeedDownloadButton.bind(save, "photo", "state", activity);
+        assertEquals("the reused row hides it", View.GONE, button.getVisibility());
+        assertSame(button, buttonOf(row));
+
+        FeedDownloadButton.bind(save, "video", "state", activity);
+        assertEquals(View.VISIBLE, button.getVisibility());
+        button.performClick();
+        assertEquals(Collections.singletonList("save video state"), recorder.calls);
+    }
+
+    /**
+     * A tap that can't save says so: a post the switches stopped letting a tap save after the icon
+     * went on, or both download switches turned off since. With the icon's own switch off it stays
+     * quiet, as Instagram's row would.
+     */
+    @Test
+    public void aTapThatStillCantSaveSaysSo() {
+        ImageView save = save(activity);
+        LinearLayout row = linearRow(save);
+        FeedDownloadButton.bind(save, "post", "state", activity);
+        ImageView button = buttonOf(row);
+
+        recorder.switchedOff.add("post");
+        button.performClick();
+        assertEquals("the post's type was switched off", Collections.singletonList("nothing"), recorder.calls);
+
+        recorder.switchedOff.clear();
+        recorder.calls.clear();
+        Settings.DOWNLOAD_VIDEOS.save(false);
+        Settings.DOWNLOAD_PHOTOS.save(false);
+        button.performClick();
+        assertEquals("every download switch off", Collections.singletonList("nothing"), recorder.calls);
+
+        recorder.calls.clear();
+        Settings.FEED_DOWNLOAD_BUTTON.save(false);
+        button.performClick();
+        assertTrue("the icon's own switch off", recorder.calls.isEmpty());
+    }
+
     @Test
     public void whatCannotBeBoundIsLeftAlone() {
         FeedDownloadButton.bind(null, "post", "state", activity);
@@ -530,6 +596,31 @@ public class FeedDownloadButtonTest {
             FeedDownloadButton.litho(row, "save", "state");
             assertTrue("nothing was added", row.isEmpty());
             assertNull("Instagram's classes were not asked", fake.savedSpec);
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    /** #97 on the component row: a post the switches leave nothing to save on gets no icon spec. */
+    @Test
+    public void aComponentRowLeavesTheIconOffAPostWhoseTypeIsSwitchedOff() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            recorder.switchedOff.add("post of photo row");
+            List<Object> row = new ArrayList<>(Collections.singletonList("share"));
+            FeedDownloadButton.litho(row, "save", "photo row");
+            assertEquals("nothing added", Collections.singletonList("share"), row);
+            assertNull("Instagram's classes were not asked", fake.savedSpec);
+            String report = report();
+            assertTrue(report, report.contains("feed button left off a post whose type is switched off"));
+
+            FeedDownloadButton.litho(row, "save", "video row");
+            assertEquals(Arrays.asList("share", "icon"), row);
+
+            recorder.switchedOff.add("post of video row");
+            fake.click.invoke(new View(activity));
+            assertEquals("a tap after the switch changed says so", Collections.singletonList("nothing"), recorder.calls);
         } finally {
             FeedDownloadButton.litho = originalLitho;
         }

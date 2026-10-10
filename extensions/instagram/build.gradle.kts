@@ -699,7 +699,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "currentPageDownloadAndSaveAllReadDifferentSnapshots[30]", "theSeparateMenuActionUsesItsLabelAndKeepsNativeOptionsIntact[30]",
                 "exhaustedPreferenceRetirementDoesNotTurnTheBatchIntoAnInterruption[30]", "cancellationSurvivesExhaustedPreferenceRetirementToo[30]",
                 "completeCountsArePublishedBeforeTheRowEndsAndRefusedStartsKeepThem[30]",
-                "theSameNotificationCancelSurvivesEveryPageAndPhase[28]", "theSameNotificationCancelSurvivesEveryPageAndPhase[37]"),
+                "theSameNotificationCancelSurvivesEveryPageAndPhase[28]", "theSameNotificationCancelSurvivesEveryPageAndPhase[37]",
+                "theFeedButtonGoesOnlyWhereTheMenuWouldSave[30]"),
             "app.hushgram.extension.instagram.download.SaveProgressTest" to listOf(
                 "aSaveShowsItsProgressAtOnceAndCancelStopsIt[28]", "aSaveShowsItsProgressAtOnceAndCancelStopsIt[37]",
                 "belowAndroid13TheCancelReceiverIsRegisteredWithNoFlag[30]", "onAndroid17TheCancelReceiverIsNotExported[37]",

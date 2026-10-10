@@ -472,6 +472,35 @@ public class CarouselSaveTest {
         assertEquals("nothing was fetched to decide", 0, fetched);
     }
 
+    /**
+     * #97: the feed's Download button asks what the menu asks. With Download feed videos on and
+     * Download feed photos off, a photo post and an all-photo carousel have nothing to save, while a
+     * video, or a carousel with a video page, does. Nothing is fetched to decide.
+     */
+    @Test public void theFeedButtonGoesOnlyWhereTheMenuWouldSave() {
+        MediaSave.Item photo = page(false, "/photo.jpg", "1");
+        MediaSave.Item video = page(true, "/video.mp4", "2");
+        Settings.DOWNLOAD_PHOTOS.save(false);
+        assertFalse("a photo with the photo switch off", VideoDownload.saves(photo));
+        assertTrue(VideoDownload.saves(video));
+        assertFalse(VideoDownload.saves(null));
+
+        MediaBridge.post = Arrays.asList(page(false, "/a.jpg", "3"), page(false, "/b.jpg", "4"));
+        assertFalse("an all-photo carousel", VideoDownload.saves(MediaBridge.post));
+        MediaBridge.post = Arrays.asList(page(false, "/c.jpg", "5"), page(true, "/d.mp4", "6"));
+        assertTrue("its video page saves", VideoDownload.saves(MediaBridge.post));
+
+        Settings.DOWNLOAD_PHOTOS.save(true);
+        Settings.DOWNLOAD_VIDEOS.save(false);
+        assertTrue(VideoDownload.saves(photo));
+        assertFalse("a video's cover isn't a photo to save", VideoDownload.saves(video));
+        Settings.DOWNLOAD_PHOTOS.save(false);
+        assertFalse("every switch off", VideoDownload.saves(photo));
+        int fetched = 0;
+        for (String path : Arrays.asList("/photo.jpg", "/video.mp4", "/a.jpg", "/b.jpg", "/c.jpg", "/d.mp4")) fetched += server.hits(path);
+        assertEquals("nothing was fetched to decide", 0, fetched);
+    }
+
     @Test public void exhaustedPreferenceRetirementDoesNotTurnTheBatchIntoAnInterruption() throws Exception {
         Context wrapped = withRetirementFailure();
         CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();

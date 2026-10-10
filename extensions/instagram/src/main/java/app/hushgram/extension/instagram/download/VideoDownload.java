@@ -482,6 +482,24 @@ public final class VideoDownload {
     /** What a tap on Download saves of [media]. */
     enum Save { VIDEO, PHOTO, NONE }
 
+    /**
+     * Whether the feed's Download button has something to save on [post] with the switches as they
+     * are: on a carousel any page, as {@link #offerAll} offers Save all, and otherwise the post itself,
+     * as {@link #offer} offers Download. A photo with Download feed photos off has nothing (#97).
+     * Never throws: a post that can't be read has nothing.
+     */
+    static boolean saves(Object post) {
+        try {
+            if (post == null || !videos() && !photos()) return false;
+            List<?> pages = InstagramMedia.carouselMedia(post);
+            if (pages != null && !pages.isEmpty()) return anySaves(pages);
+            return what(post) != Save.NONE;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed button post check", failure);
+            return false;
+        }
+    }
+
     /** Whether Save all would save any of [pages]: an all-photo carousel with the photo switch off saves nothing. */
     static boolean anySaves(List<?> pages) {
         for (Object page : pages) {
