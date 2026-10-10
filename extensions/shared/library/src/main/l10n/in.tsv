@@ -681,3 +681,13 @@ Short tick	Ketukan pendek
 System tick	Ketukan sistem
 Soft tick	Ketukan lembut
 Full tick	Ketukan penuh
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	Obrolan ini terkunci
+Unlock this chat	Buka kunci obrolan ini
+Locked chats	Obrolan terkunci
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Kunci obrolan satu per satu. Obrolan yang terkunci meminta sidik jari, wajah, atau kunci layar Anda setiap kali dibuka, dan notifikasinya hanya memberi tahu bahwa ada pesan masuk.
+Open a chat in Instagram, then come back here to lock it.	Buka obrolan di Instagram, lalu kembali ke sini untuk menguncinya.
+%1$s (opened last)	%1$s (terakhir dibuka)
+%1$s is locked	%1$s terkunci
+%1$s is unlocked	%1$s sudah tidak terkunci
+Chat %1$s	Obrolan %1$s

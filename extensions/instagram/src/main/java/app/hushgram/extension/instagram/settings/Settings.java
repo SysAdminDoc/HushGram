@@ -230,10 +230,18 @@ public class Settings extends BaseSettings {
     public static final EnumSetting<app.hushgram.extension.instagram.direct.LockDelay> LOCK_AGAIN =
             new EnumSetting<>("hushgram_lock_again", app.hushgram.extension.instagram.direct.LockDelay.RIGHT_AWAY);
 
+    /**
+     * The chats that stay locked one at a time, each as its thread id and the name it had when you
+     * locked it ({@link app.hushgram.extension.instagram.direct.ChatLocks}), a line for each. It
+     * isn't a switch, and a backup leaves it out, since the ids are only good on this phone's account.
+     */
+    public static final StringSetting LOCKED_CHATS =
+            new StringSetting("hushgram_locked_chats", "", false, false);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
-        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN);
+        Setting.keepWhenPaused(LOCK_MESSAGES, LOCK_APP, LOCK_AGAIN, LOCKED_CHATS);
     }
 
     /**

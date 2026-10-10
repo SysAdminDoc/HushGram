@@ -681,3 +681,13 @@ Short tick	Toque curto
 System tick	Toque do sistema
 Soft tick	Toque suave
 Full tick	Toque total
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	Esta conversa está bloqueada
+Unlock this chat	Desbloquear esta conversa
+Locked chats	Conversas bloqueadas
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Bloqueia conversas uma a uma. Uma conversa bloqueada pede sua digital, seu rosto ou o bloqueio de tela toda vez que você a abre, e as notificações dela dizem só que chegou uma mensagem.
+Open a chat in Instagram, then come back here to lock it.	Abra uma conversa no Instagram e volte aqui para bloqueá-la.
+%1$s (opened last)	%1$s (aberta por último)
+%1$s is locked	%1$s está bloqueada
+%1$s is unlocked	%1$s está desbloqueada
+Chat %1$s	Conversa %1$s

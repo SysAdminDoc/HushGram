@@ -680,3 +680,13 @@ Short tick	짧은 틱
 System tick	시스템 틱
 Soft tick	부드러운 틱
 Full tick	최대 틱
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	이 채팅은 잠겨 있습니다
+Unlock this chat	이 채팅 잠금 해제
+Locked chats	잠긴 채팅
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	채팅을 하나씩 잠급니다. 잠긴 채팅은 열 때마다 지문, 얼굴 또는 화면 잠금을 요구하고, 알림에는 메시지가 왔다는 내용만 표시됩니다.
+Open a chat in Instagram, then come back here to lock it.	Instagram에서 채팅을 연 다음 여기로 돌아와 잠그세요.
+%1$s (opened last)	%1$s (마지막으로 연 채팅)
+%1$s is locked	%1$s 잠김
+%1$s is unlocked	%1$s 잠금 해제됨
+Chat %1$s	채팅 %1$s

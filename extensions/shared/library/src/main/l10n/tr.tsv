@@ -681,3 +681,13 @@ Short tick	Kısa tık
 System tick	Sistem tıkı
 Soft tick	Yumuşak tık
 Full tick	Tam tık
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	Bu sohbet kilitli
+Unlock this chat	Bu sohbetin kilidini aç
+Locked chats	Kilitli sohbetler
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Sohbetleri tek tek kilitler. Kilitli bir sohbet her açışında parmak izini, yüzünü veya ekran kilidini ister ve bildirimleri yalnızca bir mesaj geldiğini söyler.
+Open a chat in Instagram, then come back here to lock it.	Instagram'da bir sohbet aç, sonra kilitlemek için buraya dön.
+%1$s (opened last)	%1$s (en son açılan)
+%1$s is locked	%1$s kilitli
+%1$s is unlocked	%1$s artık kilitli değil
+Chat %1$s	Sohbet %1$s

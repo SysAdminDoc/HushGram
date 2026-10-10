@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.DownloadQuality;
@@ -120,6 +121,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The Before you sign in notice's key, which finds it on the screen. */
     static final String SIGN_IN_NOTICE_KEY = "hushgram_sign_in_notice";
     static final String CLEAR_MEDIA_CACHE_NOW = "hushgram_clear_media_cache_now";
+    /** The row that lists the chats locked one at a time. */
+    static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of the rows that open each category's page, numbered in the page's order. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
@@ -566,6 +569,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("All of Instagram stays covered until your fingerprint, face or screen lock says it's "
                                 + "you, your messages too.")));
                 messages.addPreference(lockDelayRow(context));
+                messages.addPreference(lockedChatsRow(context));
             }
         }
 
@@ -1236,7 +1240,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
-                    belongs |= family == PatchFamily.MESSAGES_LOCK && Settings.LOCK_AGAIN.key.equals(key);
+                    belongs |= family == PatchFamily.MESSAGES_LOCK
+                            && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key));
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD
                             || family == PatchFamily.VIDEO_DOWNLOAD || family == PatchFamily.PROFILE_PICTURE
@@ -2433,6 +2438,80 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case FIFTEEN_MINUTES: return L10n.t("After 15 minutes");
             case ONE_HOUR: return L10n.t("After 1 hour");
             default: return L10n.t("Right away");
+        }
+    }
+
+    /** The row that opens the list of chats locked one at a time. */
+    private Row lockedChatsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(LOCKED_CHATS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Locked chats"));
+        row.setSummary(L10n.t("Lock single chats. A locked chat asks for your fingerprint, face or screen lock each "
+                + "time you open it, and its notifications say only that a message came."));
+        row.setOnPreferenceClickListener(tapped -> {
+            showLockedChats();
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The locked chats, each with a check, and the chat you opened last above them when it isn't on
+     * the list. Checking one locks it at once; unchecking one asks the phone's lock first while
+     * anything is locked, so the list can't be used to get around it.
+     */
+    private void showLockedChats() {
+        Context context = getActivity();
+        if (context == null) return;
+        List<ChatLocks.Chat> chats = new ArrayList<>(ChatLocks.chats());
+        ChatLocks.Chat last = ChatLocks.lastOpened();
+        int offered = last == null ? 0 : 1;
+        if (last != null) chats.add(0, last);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Locked chats"));
+        if (chats.isEmpty()) {
+            builder.setMessage(L10n.t("Open a chat in Instagram, then come back here to lock it."));
+        } else {
+            CharSequence[] names = new CharSequence[chats.size()];
+            boolean[] locked = new boolean[chats.size()];
+            for (int i = 0; i < names.length; i++) {
+                boolean offer = i < offered;
+                names[i] = offer ? L10n.f("%1$s (opened last)", chats.get(i).name) : chats.get(i).name;
+                locked[i] = !offer;
+            }
+            builder.setMultiChoiceItems(names, locked, (dialog, which, checked) ->
+                    lockChat((AlertDialog) dialog, chats.get(which), which, checked));
+        }
+        show(builder.setPositiveButton(L10n.t("OK"), null));
+    }
+
+    private void lockChat(AlertDialog dialog, ChatLocks.Chat chat, int position, boolean lock) {
+        if (lock) {
+            ChatLocks.add(chat.id, chat.name);
+            Utils.showToastShort(L10n.f("%1$s is locked", chat.name));
+            return;
+        }
+        Runnable unlock = () -> {
+            ChatLocks.remove(chat.id);
+            Utils.showToastShort(L10n.f("%1$s is unlocked", chat.name));
+            setChecked(dialog, position, false);
+        };
+        Activity activity = getActivity();
+        if (activity == null) {
+            setChecked(dialog, position, true);
+            return;
+        }
+        // Stays checked until the phone's lock says it's you, if anything is locked.
+        setChecked(dialog, position, true);
+        MessagesLock.confirmChatsThen(activity, unlock);
+    }
+
+    private static void setChecked(AlertDialog dialog, int position, boolean checked) {
+        try {
+            dialog.getListView().setItemChecked(position, checked);
+        } catch (RuntimeException e) {
+            // The dialog is gone; the list already holds the answer.
+            Logger.printInfo(() -> "Locked chats: dialog closed before the row could change");
         }
     }
 

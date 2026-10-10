@@ -87,9 +87,11 @@ val lockMessagesPatch = bytecodePatch(
         requireStatusMethod("messagesLock")
         val targets = findLockTargets()
         val posts = findDirectPosts(targets.notify)
+        val chats = findChatLockTargets()
         hideNotificationText(targets.notify)
         hideDirectPosts(posts)
         holdBanner(targets.banner)
+        hookChatLocks(chats)
         enableStatus("messagesLock")
     }
 }

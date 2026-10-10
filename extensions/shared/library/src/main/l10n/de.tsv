@@ -681,3 +681,13 @@ Short tick	Kurzer Tick
 System tick	System-Tick
 Soft tick	Sanfter Tick
 Full tick	Voller Tick
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	Dieser Chat ist gesperrt
+Unlock this chat	Diesen Chat entsperren
+Locked chats	Gesperrte Chats
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	Einzelne Chats sperren. Ein gesperrter Chat fragt bei jedem Öffnen nach Fingerabdruck, Gesicht oder Displaysperre, und seine Benachrichtigungen sagen nur, dass eine Nachricht kam.
+Open a chat in Instagram, then come back here to lock it.	Öffne einen Chat in Instagram und komm dann hierher zurück, um ihn zu sperren.
+%1$s (opened last)	%1$s (zuletzt geöffnet)
+%1$s is locked	%1$s ist gesperrt
+%1$s is unlocked	%1$s ist entsperrt
+Chat %1$s	Chat %1$s

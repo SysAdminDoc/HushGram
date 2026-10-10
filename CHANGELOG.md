@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Lock your messages can now lock single chats. Open HushGram settings > Messages > Locked chats, tick the chat you want, and that chat asks for your fingerprint, face or screen lock every time you open it, even with the main switch off. The chat you opened last is at the top of the list, so open it in Instagram first and come back. Other chats open as before, cancelling shows nothing, and unticking a chat asks once before it clears the lock. A locked chat's notifications only say a message came, matched by the chat id the push carries. While any chat lock is up, in-app banners wait until you unlock. Needs a device check on a real push.
+
 * **Instagram:** Hide Meta AI has a sixth switch, Hide the Muse card on profiles, that starts on. With Hide Meta AI on, the Meet Muse card with its Try Muse button is gone from a profile's banners, and the rest of your profile cards (Your dashboard and the others) stay. Turn the switch off to bring the card back.
 
 * **Instagram:** Pure black dark mode now reaches the comments sheet, which stayed gray because Instagram paints every bottom sheet's background itself. With the patch on and Instagram in dark mode, the comments sheet is black behind the comments and keeps its rounded top edge. Other sheets, menus and light mode are as they were. Refs #108.
