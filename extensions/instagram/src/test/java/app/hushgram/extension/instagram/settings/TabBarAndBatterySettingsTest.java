@@ -28,6 +28,8 @@ import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowLooper;
 
+import app.hushgram.extension.instagram.misc.GlassHeight;
+import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -65,6 +67,8 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
+        Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
         Settings.SAVED_ON_PROFILE.resetToDefault();
         Settings.STOP_HEARTBEAT.resetToDefault();
         Settings.STOP_UPLOAD_ALARM.resetToDefault();
@@ -86,7 +90,7 @@ public class TabBarAndBatterySettingsTest {
 
     @Test public void withoutThePatchesNoneOfTheirRowsShow() throws Exception {
         open();
-        for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key,
+        for (String key : List.of(Settings.GLASS_TAB_BAR.key, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key, Settings.GLASS_TAB_BAR_OPACITY.key, Settings.GLASS_TAB_BAR_HEIGHT.key,
                 Settings.SAVED_ON_PROFILE.key, Settings.STOP_HEARTBEAT.key, Settings.STOP_UPLOAD_ALARM.key)) {
             assertNull(key, row(key));
         }
@@ -119,6 +123,37 @@ public class TabBarAndBatterySettingsTest {
         assertEquals(HapticStyle.SOFT, Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue());
         assertEquals("Soft tick", String.valueOf(tick.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
+    }
+
+    @Test public void opacityAndHeightAreListsThatStartOnTodaysLookAndAreBackedUp() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        Preference opacityFound = row(Settings.GLASS_TAB_BAR_OPACITY.key);
+        assertTrue(opacityFound instanceof HushgramPreferenceFragment.GlassOpacityRow);
+        HushgramPreferenceFragment.GlassOpacityRow opacity = (HushgramPreferenceFragment.GlassOpacityRow) opacityFound;
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : opacity.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Clearest", "Clear", "Standard", "Frosted"), entries);
+        assertEquals("STANDARD", opacity.getValue());
+        assertEquals("Standard", String.valueOf(opacity.getSummary()));
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), opacity).getTitle()));
+        opacity.setValue("CLEAR");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassOpacity.CLEAR, Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertEquals("Clearest", String.valueOf(opacity.getSummary()));
+
+        Preference heightFound = row(Settings.GLASS_TAB_BAR_HEIGHT.key);
+        assertTrue(heightFound instanceof HushgramPreferenceFragment.GlassHeightRow);
+        HushgramPreferenceFragment.GlassHeightRow height = (HushgramPreferenceFragment.GlassHeightRow) heightFound;
+        entries = new ArrayList<>();
+        for (CharSequence entry : height.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Compact", "Standard", "Tall"), entries);
+        assertEquals("STANDARD", height.getValue());
+        height.setValue("TALL");
+        ShadowLooper.idleMainLooper();
+        assertEquals(GlassHeight.TALL, Settings.GLASS_TAB_BAR_HEIGHT.savedValue());
+        assertEquals("Tall", String.valueOf(height.getSummary()));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_OPACITY.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HEIGHT.key));
     }
 
     @Test public void savedOnYourProfileStartsOffUnderProfiles() throws Exception {

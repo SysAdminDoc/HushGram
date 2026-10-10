@@ -48,6 +48,82 @@ public class GlassTabBarTest {
         assertEquals(0x00, Color.red(GlassTabBar.edge(Color.WHITE)));
     }
 
+    @Test
+    public void theStandardOpacityIsExactlyTodaysTint() {
+        for (int base : new int[] {Color.BLACK, Color.WHITE}) {
+            for (boolean blurred : new boolean[] {true, false}) {
+                assertEquals(GlassTabBar.tint(base, blurred), GlassTabBar.tint(base, blurred, GlassOpacity.STANDARD));
+            }
+        }
+        assertEquals(0x70, Color.alpha(GlassTabBar.tint(Color.BLACK, true, GlassOpacity.STANDARD)));
+        assertEquals(0xa6, Color.alpha(GlassTabBar.tint(Color.WHITE, true, GlassOpacity.STANDARD)));
+        assertEquals(0xe6, Color.alpha(GlassTabBar.tint(Color.WHITE, false, GlassOpacity.STANDARD)));
+    }
+
+    @Test
+    public void eachOpacityStepIsStrictlyMoreSolidAndStaysInRange() {
+        for (int base : new int[] {Color.BLACK, Color.WHITE}) {
+            for (boolean blurred : new boolean[] {true, false}) {
+                int last = -1;
+                for (GlassOpacity step : GlassOpacity.values()) {
+                    int alpha = Color.alpha(GlassTabBar.tint(base, blurred, step));
+                    assertTrue(alpha >= 0 && alpha <= 255);
+                    assertTrue(step + " " + blurred, alpha >= last);
+                    last = alpha;
+                }
+                assertTrue(Color.alpha(GlassTabBar.tint(base, blurred, GlassOpacity.CLEAR))
+                        < Color.alpha(GlassTabBar.tint(base, blurred, GlassOpacity.STANDARD)));
+            }
+        }
+        // Frosted never overflows the alpha byte, and a missing step reads as the standard one.
+        assertEquals(255, Color.alpha(GlassTabBar.tint(Color.WHITE, false, GlassOpacity.FROSTED)));
+        assertEquals(GlassTabBar.tint(Color.BLACK, true), GlassTabBar.tint(Color.BLACK, true, null));
+    }
+
+    @Test
+    public void theStandardHeightChangesNothing() {
+        float density = 2.625f;
+        int bar = Math.round(52 * density);
+        assertEquals(0, GlassTabBar.pillInsetPx(GlassHeight.STANDARD, bar, 3, density));
+        assertEquals(0, GlassTabBar.pillInsetPx(GlassHeight.TALL, bar, 3, density));
+        assertEquals(bar, GlassTabBar.barHeightPx(GlassHeight.STANDARD, bar, density));
+        assertEquals(bar, GlassTabBar.barHeightPx(GlassHeight.COMPACT, bar, density));
+    }
+
+    @Test
+    public void aCompactPillIsSlimmerButNeverShorterThanFortyDp() {
+        float density = 3f;
+        int gap = 3;
+        // A 52dp bar has room to lose 4dp a side: the pill goes from 50dp to 42dp.
+        int bar = Math.round(52 * density);
+        int inset = GlassTabBar.pillInsetPx(GlassHeight.COMPACT, bar, gap, density);
+        assertEquals(Math.round(4 * density), inset);
+        assertTrue(bar - 2 * gap - 2 * inset >= 40 * density);
+        // A 44dp bar can only lose what keeps the pill at 40dp, and a 40dp one loses nothing.
+        for (int dp = 20; dp <= 90; dp++) {
+            int height = Math.round(dp * density);
+            int slim = GlassTabBar.pillInsetPx(GlassHeight.COMPACT, height, gap, density);
+            assertTrue(dp + "dp", slim >= 0 && slim <= Math.round(4 * density));
+            int pill = height - 2 * gap - 2 * slim;
+            assertTrue(dp + "dp", slim == 0 || pill >= 40 * density - 1);
+        }
+        assertEquals(0, GlassTabBar.pillInsetPx(GlassHeight.COMPACT, Math.round(40 * density), gap, density));
+    }
+
+    @Test
+    public void aTallBarGrowsBy8dpUpToSeventyTwo() {
+        float density = 2f;
+        assertEquals(Math.round(60 * density), GlassTabBar.barHeightPx(GlassHeight.TALL, Math.round(52 * density), density));
+        assertEquals(Math.round(72 * density), GlassTabBar.barHeightPx(GlassHeight.TALL, Math.round(68 * density), density));
+        // A bar already taller than the limit is left as Instagram made it.
+        assertEquals(Math.round(80 * density), GlassTabBar.barHeightPx(GlassHeight.TALL, Math.round(80 * density), density));
+        for (int dp = 30; dp <= 100; dp++) {
+            int original = Math.round(dp * density);
+            int tall = GlassTabBar.barHeightPx(GlassHeight.TALL, original, density);
+            assertTrue(tall >= original && tall <= Math.max(original, Math.round(72 * density)));
+        }
+    }
+
     /** A 411dp phone (1080px at 2.625) keeps 5% clear each side: a pill about 90% as wide as the screen. */
     @Test
     public void aPhoneKeepsFivePercentClearEachSide() {

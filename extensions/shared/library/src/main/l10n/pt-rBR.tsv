@@ -784,3 +784,11 @@ Queued. It starts once the post before it is saved.	Na fila. Começa assim que o
 Not saved: %1$d posts are already waiting	Não salvo: já há %1$d posts esperando
 Show all settings as a list	Mostrar todas as configurações como lista
 Show settings by category	Mostrar configurações por categoria
+Tab bar opacity	Opacidade da barra de abas
+Tab bar height	Altura da barra de abas
+Clearest	Mais transparente
+Clear	Transparente
+Frosted	Fosco
+Standard	Padrão
+Compact	Compacta
+Tall	Alta

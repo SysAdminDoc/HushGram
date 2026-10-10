@@ -784,3 +784,11 @@ Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto s
 Not saved: %1$d posts are already waiting	No se guardó: ya hay %1$d publicaciones esperando
 Show all settings as a list	Mostrar todos los ajustes como lista
 Show settings by category	Mostrar los ajustes por categoría
+Tab bar opacity	Opacidad de la barra de pestañas
+Tab bar height	Altura de la barra de pestañas
+Clearest	Lo más transparente
+Clear	Transparente
+Frosted	Esmerilado
+Standard	Estándar
+Compact	Compacta
+Tall	Alta

@@ -654,6 +654,22 @@ public class Settings extends BaseSettings {
                     app.hushgram.extension.instagram.misc.HapticStyle.SYSTEM, parent(GLASS_TAB_BAR_HAPTICS));
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: how see-through the pill is ({@link app.hushgram.extension.instagram.misc.GlassOpacity}).
+     * Starts on the look the bar has always had. A change shows after a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassOpacity> GLASS_TAB_BAR_OPACITY =
+            new EnumSetting<>("hushgram_glass_tab_bar_opacity",
+                    app.hushgram.extension.instagram.misc.GlassOpacity.STANDARD, parent(GLASS_TAB_BAR));
+
+    /**
+     * Under {@link #GLASS_TAB_BAR}: how tall the pill is ({@link app.hushgram.extension.instagram.misc.GlassHeight}).
+     * Starts on the height the bar has always had. A change shows after a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.GlassHeight> GLASS_TAB_BAR_HEIGHT =
+            new EnumSetting<>("hushgram_glass_tab_bar_height",
+                    app.hushgram.extension.instagram.misc.GlassHeight.STANDARD, parent(GLASS_TAB_BAR));
+
+    /**
      * Your own profile's tabs get one more, a bookmark, that opens Saved
      * ({@link app.hushgram.extension.instagram.misc.ProfileSaved}). The tabs are built as the profile
      * opens, so a change takes a restart. Off to start.

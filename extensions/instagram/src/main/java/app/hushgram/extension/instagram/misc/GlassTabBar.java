@@ -217,10 +217,51 @@ public final class GlassTabBar {
      * solid and a dark one is lifted a little so the pill still shows against the bar.
      */
     static int tint(int base, boolean blurred) {
+        return tint(base, blurred, GlassOpacity.STANDARD);
+    }
+
+    /** {@link #tint(int, boolean)} with the strength of the fill scaled by the opacity step chosen. */
+    static int tint(int base, boolean blurred, GlassOpacity opacity) {
         boolean dark = isDark(base);
-        if (blurred) return (base & 0x00ffffff) | ((dark ? 0x70 : 0xa6) << 24);
+        float scale = opacity == null ? 1f : opacity.scale;
+        if (blurred) return (base & 0x00ffffff) | (scaledAlpha(dark ? 0x70 : 0xa6, scale) << 24);
         int solid = dark ? blend(base, Color.WHITE, 0.10f) : base;
-        return (solid & 0x00ffffff) | (0xe6 << 24);
+        return (solid & 0x00ffffff) | (scaledAlpha(0xe6, scale) << 24);
+    }
+
+    static int scaledAlpha(int alpha, float scale) {
+        return Math.max(0, Math.min(255, Math.round(alpha * scale)));
+    }
+
+    /** The shortest a compact pill is drawn, so the icons, the capsule round the selected one and badges fit. */
+    static final int MIN_PILL_DP = 40;
+    /** How much slimmer a compact pill is than the standard one, on each side. */
+    static final int COMPACT_INSET_DP = 4;
+    /** How much taller a tall bar is than the one Instagram laid out. */
+    static final int TALL_EXTRA_DP = 8;
+    /** A tall bar is never made taller than this, so the screens above it keep their room. */
+    static final int MAX_BAR_DP = 72;
+
+    /**
+     * How far the pill is drawn in from the top and the bottom of the bar, beyond the gap: 0 unless the
+     * height is compact, and then {@link #COMPACT_INSET_DP}, less if that would leave the pill shorter than
+     * {@link #MIN_PILL_DP}. The bar and its tabs keep their size, so every touch target still fills the bar.
+     */
+    static int pillInsetPx(GlassHeight height, int barHeightPx, int gapPx, float density) {
+        if (height != GlassHeight.COMPACT) return 0;
+        int room = (barHeightPx - 2 * gapPx - Math.round(MIN_PILL_DP * density)) / 2;
+        return Math.max(0, Math.min(Math.round(COMPACT_INSET_DP * density), room));
+    }
+
+    /**
+     * The height the bar is given: the one Instagram laid out, or for a tall bar {@link #TALL_EXTRA_DP}
+     * more, up to {@link #MAX_BAR_DP} (a bar already past that is left as it is). The tabs fill the bar, so
+     * a taller bar only gives them more to tap.
+     */
+    static int barHeightPx(GlassHeight height, int originalPx, float density) {
+        if (height != GlassHeight.TALL) return originalPx;
+        int limit = Math.max(originalPx, Math.round(MAX_BAR_DP * density));
+        return Math.min(originalPx + Math.round(TALL_EXTRA_DP * density), limit);
     }
 
     /** The selected tab's capsule: a quarter of white on dark glass, a sixth of grey on light. */
@@ -264,6 +305,8 @@ public final class GlassTabBar {
         private final boolean blurWanted;
         private final boolean haptics;
         private final HapticStyle hapticStyle;
+        private final GlassOpacity opacity;
+        private final GlassHeight height;
         /** Whether this slide has had its tick: one tick for a change of tab, however many tabs the capsule crosses. */
         private boolean tickedThisSlide;
         private final boolean floating;
@@ -292,6 +335,8 @@ public final class GlassTabBar {
             this.floating = Settings.GLASS_TAB_BAR_FLOAT.get();
             this.haptics = Settings.GLASS_TAB_BAR_HAPTICS.get();
             this.hapticStyle = Settings.GLASS_TAB_BAR_HAPTIC_STYLE.get();
+            this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
+            this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -317,6 +362,11 @@ public final class GlassTabBar {
             return dp(FIT_GAP_DP);
         }
 
+        /** How far a compact pill is drawn in from the top and bottom, beyond the gap. */
+        private int pillInset() {
+            return pillInsetPx(height, bar.getHeight(), gap(), density);
+        }
+
         /** The colour Instagram gave the bar, or white or black by the theme when it wasn't a plain one. */
         private int baseColor(@Nullable Drawable background) {
             if (background instanceof ColorDrawable) return ((ColorDrawable) background).getColor() | 0xff000000;
@@ -340,7 +390,7 @@ public final class GlassTabBar {
             ViewGroup.LayoutParams params = bar.getLayoutParams();
             if (params != null && params.height > 0) {
                 if (originalBarHeight < 0) originalBarHeight = params.height;
-                int wanted = originalBarHeight;
+                int wanted = barHeightPx(height, originalBarHeight, density);
                 if (params.height != wanted) {
                     params.height = wanted;
                     bar.setLayoutParams(params);
@@ -507,9 +557,9 @@ public final class GlassTabBar {
             /** Puts the pill's bounds in [into], in the bar's coordinates, and says whether it has any. */
             private boolean pillBounds(RectF into) {
                 float left = outer;
-                float top = gap();
+                float top = gap() + pillInset();
                 float right = bar.getWidth() - outer;
-                float bottomEdge = bar.getHeight() - gap();
+                float bottomEdge = bar.getHeight() - gap() - pillInset();
                 if (right - left <= 0 || bottomEdge - top <= 0) return false;
                 into.set(left, top, right, bottomEdge);
                 return true;
@@ -536,7 +586,7 @@ public final class GlassTabBar {
                     }
                 }
                 boolean blurred = !blurBroken && blurWanted && drawBackdrop(canvas);
-                fill.setColor(tint(base, blurred));
+                fill.setColor(tint(base, blurred, opacity));
                 canvas.drawRoundRect(rect, radius, radius, fill);
 
                 if (sheenTop != rect.top || sheenBottom != rect.bottom || sheenDark != dark) {

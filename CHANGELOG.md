@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Glass tab bar:** Under Tab bar in HushGram settings there are two new lists, Tab bar opacity and Tab bar height. Opacity runs from Clearest to Frosted, height from Compact to Tall, and both start on Standard, which is the pill exactly as it looks now. A compact pill is a slimmer pill drawn inside the same bar, so every tab keeps its whole tap area. A tall bar is a little taller than Instagram's and stops growing well short of the screens above it, so icons and badges are never cut off. A change shows after a restart. Refs #65.
+
 * **Instagram - Start Home on Following:** New switch under Feed, Instagram logo on Home. It starts off and needs Start Home on Following. Turn it on and restart Instagram, and the top of Home shows Instagram's logo with its arrow where the feed's name would be. Tap it to switch feeds like before. The logo stands in for whichever feed you pick, Following, Favorites or For you, so the name isn't there to tell you which one you're on. Turn it off or pause HushGram and Home shows the name the way Instagram does.
 
 * **Instagram - Hide the Reels tab:** Tab bar has a new switch, Search button on Home's header. It starts off. Turn it on and restart Instagram, and a magnifier sits in front of the buttons on the right of Home's header. Tap it and Instagram's own Search tab opens, just like from the tab bar. It works with Hide the Search tab on too, so you can take Search off the bar and still reach it from Home. The one place it can't is an account whose tabs swipe sideways, where a hidden Search has nowhere to open, and a toast tells you. Turn the switch off or pause HushGram and the header looks the way Instagram draws it.

@@ -89,6 +89,8 @@ import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
+import app.hushgram.extension.instagram.misc.GlassHeight;
+import app.hushgram.extension.instagram.misc.GlassOpacity;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
@@ -1008,6 +1010,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
                 glass.addPreference(hapticStyleRow(context));
+                glass.addPreference(glassOpacityRow(context));
+                glass.addPreference(glassHeightRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                         L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                                 + "Reels still stops above it.")));
@@ -1380,6 +1384,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
+                            || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key));
                     belongs |= family == PatchFamily.REELS_TAB
                             && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
@@ -3155,6 +3161,46 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** How see-through the glass tab bar's pill is. Its summary is the step chosen. */
+    static GlassOpacityRow glassOpacityRow(Context context) {
+        GlassOpacityRow row = new GlassOpacityRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_OPACITY.key);
+        row.setTitle(L10n.t("Tab bar opacity"));
+        row.setDialogTitle(L10n.t("Tab bar opacity"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassOpacity[] steps = GlassOpacity.values();
+        CharSequence[] entries = new CharSequence[steps.length];
+        CharSequence[] values = new CharSequence[steps.length];
+        for (int i = 0; i < steps.length; i++) {
+            entries[i] = glassOpacityLabel(steps[i]);
+            values[i] = steps[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_OPACITY.savedValue().name());
+        return row;
+    }
+
+    /** How tall the glass tab bar's pill is. Its summary is the step chosen. */
+    static GlassHeightRow glassHeightRow(Context context) {
+        GlassHeightRow row = new GlassHeightRow(context);
+        row.setKey(Settings.GLASS_TAB_BAR_HEIGHT.key);
+        row.setTitle(L10n.t("Tab bar height"));
+        row.setDialogTitle(L10n.t("Tab bar height"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        GlassHeight[] steps = GlassHeight.values();
+        CharSequence[] entries = new CharSequence[steps.length];
+        CharSequence[] values = new CharSequence[steps.length];
+        for (int i = 0; i < steps.length; i++) {
+            entries[i] = glassHeightLabel(steps[i]);
+            values[i] = steps[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.GLASS_TAB_BAR_HEIGHT.savedValue().name());
+        return row;
+    }
+
     /** The row that opens the tab order list. Its summary names the order chosen. */
     private Row tabOrderRow(Context context) {
         Row row = new Row(context);
@@ -3275,6 +3321,32 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return L10n.f("Instagram opens on %1$s when you start it from its icon. A notification or a link still opens "
                 + "what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.",
                 L10n.isolate(startTabLabel(tab)));
+    }
+
+    /** What the list calls [step]. */
+    static String glassOpacityLabel(GlassOpacity step) {
+        switch (step) {
+            case CLEAR:
+                return L10n.t("Clearest");
+            case LIGHT:
+                return L10n.t("Clear");
+            case FROSTED:
+                return L10n.t("Frosted");
+            default:
+                return L10n.t("Standard");
+        }
+    }
+
+    /** What the list calls [step]. */
+    static String glassHeightLabel(GlassHeight step) {
+        switch (step) {
+            case COMPACT:
+                return L10n.t("Compact");
+            case TALL:
+                return L10n.t("Tall");
+            default:
+                return L10n.t("Standard");
+        }
     }
 
     /** What the list calls [style]. */
@@ -4334,6 +4406,70 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case FIVE_MINUTES: return L10n.t("5 minutes");
             case FIFTEEN_MINUTES: return L10n.t("15 minutes");
             default: return L10n.t("1 hour");
+        }
+    }
+
+    static final class GlassOpacityRow extends ListPreference {
+        GlassOpacityRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the step chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            GlassOpacity step = GlassOpacity.STANDARD;
+            for (GlassOpacity candidate : GlassOpacity.values()) {
+                if (candidate.name().equals(value)) step = candidate;
+            }
+            setSummary(glassOpacityLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class GlassHeightRow extends ListPreference {
+        GlassHeightRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the step chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            GlassHeight step = GlassHeight.STANDARD;
+            for (GlassHeight candidate : GlassHeight.values()) {
+                if (candidate.name().equals(value)) step = candidate;
+            }
+            setSummary(glassHeightLabel(step));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
         }
     }
 

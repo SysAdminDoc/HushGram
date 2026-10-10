@@ -784,3 +784,11 @@ Queued. It starts once the post before it is saved.	In der Warteschlange. Starte
 Not saved: %1$d posts are already waiting	Nicht gespeichert: Es warten schon %1$d Beiträge
 Show all settings as a list	Alle Einstellungen als Liste anzeigen
 Show settings by category	Einstellungen nach Kategorie anzeigen
+Tab bar opacity	Deckkraft der Tab-Leiste
+Tab bar height	Höhe der Tab-Leiste
+Clearest	Am klarsten
+Clear	Klar
+Frosted	Milchglas
+Standard	Standard
+Compact	Kompakt
+Tall	Hoch

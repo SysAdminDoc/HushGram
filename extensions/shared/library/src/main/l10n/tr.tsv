@@ -784,3 +784,11 @@ Queued. It starts once the post before it is saved.	Sırada. Önceki gönderi ka
 Not saved: %1$d posts are already waiting	Kaydedilmedi: zaten %1$d gönderi bekliyor
 Show all settings as a list	Tüm ayarları liste olarak göster
 Show settings by category	Ayarları kategoriye göre göster
+Tab bar opacity	Sekme çubuğu opaklığı
+Tab bar height	Sekme çubuğu yüksekliği
+Clearest	En saydam
+Clear	Saydam
+Frosted	Buzlu
+Standard	Standart
+Compact	Kompakt
+Tall	Yüksek
