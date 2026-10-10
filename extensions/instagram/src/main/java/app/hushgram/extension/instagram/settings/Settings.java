@@ -463,11 +463,11 @@ public class Settings extends BaseSettings {
 
     /**
      * The Meet Muse card (Try Muse button) among a profile's banners, built from the profile's data
-     * each time the profile or Edit featured opens. Starts on, like the other parts that
-     * follow Hide Meta AI.
+     * each time the profile or Edit featured opens. Off to start, like every part added to Hide
+     * Meta AI after its first two, so an update never takes the card away unasked.
      */
     public static final BooleanSetting HIDE_META_AI_PROFILE_BANNER =
-            new BooleanSetting("hushgram_hide_meta_ai_profile_banner", TRUE);
+            new BooleanSetting("hushgram_hide_meta_ai_profile_banner", FALSE);
 
     /**
      * The Blend invite button on a reel, in the Reels viewer and the clips viewer. Everything else

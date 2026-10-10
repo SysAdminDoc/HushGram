@@ -118,7 +118,7 @@ public class AboutThisReelSettingsTest {
         assertEquals("Hide the Muse card on profiles", String.valueOf(banner.getTitle()));
         assertEquals("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile cards stay.",
                 String.valueOf(banner.getSummary()));
-        assertTrue("the Muse card switch starts on", banner.isChecked());
+        assertFalse("the Muse card switch starts off", banner.isChecked());
         SwitchPreference blend = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_BLEND.key);
         assertEquals("Hide Blend on reels", String.valueOf(blend.getTitle()));
         assertEquals("Removes the Blend invite button from reels. Everything else on a reel stays.",

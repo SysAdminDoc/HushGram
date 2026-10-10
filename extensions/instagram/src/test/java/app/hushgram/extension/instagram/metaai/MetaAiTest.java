@@ -97,17 +97,12 @@ public class MetaAiTest {
         }
     }
 
-    /** The Muse card is left out only with its own switch, which starts on, and never while paused. */
+    /** The Muse card is left out only with its own switch, which starts off, and never while paused. */
     @Test
     public void theMuseBannerFollowsItsOwnSwitch() {
-        assertTrue("on to start", Settings.HIDE_META_AI_PROFILE_BANNER.get());
-        assertTrue(MetaAi.museBanner());
-        Settings.HIDE_META_AI_PROFILE_BANNER.save(false);
-        try {
-            assertFalse(MetaAi.museBanner());
-        } finally {
-            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
-        }
+        assertFalse("off to start", Settings.HIDE_META_AI_PROFILE_BANNER.get());
+        assertFalse(MetaAi.museBanner());
+        Settings.HIDE_META_AI_PROFILE_BANNER.save(true);
         Settings.HIDE_META_AI_SEARCH.save(false);
         try {
             assertTrue("the search switch doesn't matter", MetaAi.museBanner());
@@ -116,6 +111,7 @@ public class MetaAiTest {
         } finally {
             PauseForTests.resume();
             Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
         }
     }
 
