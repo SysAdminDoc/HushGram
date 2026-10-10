@@ -221,6 +221,24 @@ public final class MetaAi {
     }
 
     /**
+     * Injected at the start of the method that builds a profile's Muse banner (the Meet Muse card
+     * with its Try Muse button). Answers true to have it answer no banner, which every place that
+     * adds the banner to a list takes as a profile without one, while Hide the Muse card on
+     * profiles is on. Answers false otherwise, or when anything goes wrong. Never throws.
+     */
+    public static boolean museBanner() {
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_PROFILE_BANNER.get()) return false;
+            Logger.printDebug(() -> "Meta AI: left the Muse card out of a profile");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "Muse banner", failure);
+            return false;
+        }
+    }
+
+    /**
      * Injected at the return of Instagram's feed item parse helper. Answers null for a Meta AI unit
      * while Hide Meta AI posts is on, and [item] itself otherwise, or when anything goes wrong.
      * Never throws.

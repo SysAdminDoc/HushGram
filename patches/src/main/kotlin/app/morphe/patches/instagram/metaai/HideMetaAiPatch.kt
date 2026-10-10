@@ -91,6 +91,7 @@ val hideMetaAiPatch = bytecodePatch(
         val about = findAboutSummaryCalls()
         val askBox = findAskMetaAiBox()
         val shareTarget = findShareTargetCheck()
+        val museBanner = findMuseBannerBuilder()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
         dropFollowUpBar(followUp)
@@ -100,6 +101,7 @@ val hideMetaAiPatch = bytecodePatch(
         dropAboutSummary(about)
         holdAskMetaAiBox(askBox)
         holdShareTarget(shareTarget)
+        holdMuseBanner(museBanner)
         enableStatus("metaAi")
     }
 }

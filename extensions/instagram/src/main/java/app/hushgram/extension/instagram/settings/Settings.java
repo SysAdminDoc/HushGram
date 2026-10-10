@@ -443,6 +443,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_META_AI_SHARE_TARGET =
             new BooleanSetting("hushgram_hide_meta_ai_share_target", FALSE);
 
+    /**
+     * The Meet Muse card (Try Muse button) among a profile's banners, built from the profile's data
+     * each time the profile or Edit featured opens. Starts on, like the other parts that
+     * follow Hide Meta AI.
+     */
+    public static final BooleanSetting HIDE_META_AI_PROFILE_BANNER =
+            new BooleanSetting("hushgram_hide_meta_ai_profile_banner", TRUE);
+
     /** The grid of posts and reels under the Search tab's bar. Search and its results stay. Off to start. */
     public static final BooleanSetting HIDE_EXPLORE_GRID =
             new BooleanSetting("hushgram_hide_explore_grid", FALSE);

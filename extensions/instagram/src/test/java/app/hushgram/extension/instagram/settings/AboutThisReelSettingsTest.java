@@ -106,13 +106,19 @@ public class AboutThisReelSettingsTest {
             keys[i] = row.getKey();
         }
         assertEquals(Arrays.asList(Settings.HIDE_META_AI_SEARCH.key, Settings.HIDE_META_AI_POSTS.key,
-                Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key, Settings.HIDE_META_AI_SHARE_TARGET.key),
+                Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key, Settings.HIDE_META_AI_SHARE_TARGET.key,
+                Settings.HIDE_META_AI_PROFILE_BANNER.key),
                 Arrays.asList(keys));
         SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
         assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
         assertEquals("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
                 String.valueOf(share.getSummary()));
         assertFalse("the share sheet switch starts off", share.isChecked());
+        SwitchPreference banner = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_PROFILE_BANNER.key);
+        assertEquals("Hide the Muse card on profiles", String.valueOf(banner.getTitle()));
+        assertEquals("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile cards stay.",
+                String.valueOf(banner.getSummary()));
+        assertTrue("the Muse card switch starts on", banner.isChecked());
     }
 
     /** Each switch reaches only its own setting. */

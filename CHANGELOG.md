@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Hide Meta AI has a sixth switch, Hide the Muse card on profiles, that starts on. With Hide Meta AI on, the Meet Muse card with its Try Muse button is gone from a profile's banners, and the rest of your profile cards (Your dashboard and the others) stay. Turn the switch off to bring the card back.
+
 * **Instagram:** Pure black dark mode now reaches the comments sheet, which stayed gray because Instagram paints every bottom sheet's background itself. With the patch on and Instagram in dark mode, the comments sheet is black behind the comments and keeps its rounded top edge. Other sheets, menus and light mode are as they were. Refs #108.
 
 * **Instagram:** Hide the Reels tab has a second switch, Show the Reels tab, that starts off. With it on, if Instagram built your tab bar without Reels, the tab is put back right after Home and opens Reels. If Hide the Reels tab is on too, Hide wins. Restart Instagram to see the change. Asked for in #120.

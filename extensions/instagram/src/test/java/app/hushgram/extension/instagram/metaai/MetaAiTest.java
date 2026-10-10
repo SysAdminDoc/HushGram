@@ -97,6 +97,28 @@ public class MetaAiTest {
         }
     }
 
+    /** The Muse card is left out only with its own switch, which starts on, and never while paused. */
+    @Test
+    public void theMuseBannerFollowsItsOwnSwitch() {
+        assertTrue("on to start", Settings.HIDE_META_AI_PROFILE_BANNER.get());
+        assertTrue(MetaAi.museBanner());
+        Settings.HIDE_META_AI_PROFILE_BANNER.save(false);
+        try {
+            assertFalse(MetaAi.museBanner());
+        } finally {
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
+        }
+        Settings.HIDE_META_AI_SEARCH.save(false);
+        try {
+            assertTrue("the search switch doesn't matter", MetaAi.museBanner());
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram decides", MetaAi.museBanner());
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_SEARCH.save(true);
+        }
+    }
+
     /** The search switch also leaves the results page's Ask a follow-up bar out, and only that switch. */
     @Test
     public void theFollowUpBarFollowsTheSearchSwitch() {
