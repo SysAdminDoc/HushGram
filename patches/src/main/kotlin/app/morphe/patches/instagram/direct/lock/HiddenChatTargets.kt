@@ -199,15 +199,19 @@ private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
 /**
  * The inbox's one list of chats, by what reads it. Every list Instagram hands the inbox screen (the
  * one read from the phone at start, a fresh page from the server, a pull to refresh, a switch of
- * folder tab) ends up in one field of one holder (07HZ.A03 on 450), and the holder's only use of it
- * is to start the row factory on it, a runnable logging [INBOX_ROWS] that turns each chat into a
- * row. Reading back from the factory: the one method making it (07HZ.A01) loads the list from its
- * own class's one List field, and that field has one write in the whole app, the holder's
- * subscriber to the inbox's state (a case of 09kY.accept). The filter goes right in front of that
- * write, so the field, the rows and the counts read from the field all leave a hidden chat out,
- * while the inbox's state, its pagination and Instagram's save to the phone keep every chat. The
- * write's value must be read nowhere after it, so handing the field the filter's answer changes
- * nothing else the method does.
+ * folder tab) ends up in one field of one holder (07HZ.A03 on 450). One of the field's readers
+ * starts the row factory on it, a runnable logging [INBOX_ROWS] that turns each chat into a row.
+ * Reading back from the factory: the one method making it (07HZ.A01) loads the list from its own
+ * class's one List field, and that field has one write in the whole app, the holder's subscriber
+ * to the inbox's state (a case of 09kY.accept). The filter goes right in front of that write.
+ *
+ * The starter isn't the field's only reader. On 450 six others read it too: 07HZ.A05, 07Ml.A05,
+ * 04BN.A06 (onPause), 04BN.onAppBackgrounded, 09iQ.invoke and 09wL.FOY. Each reads the field
+ * itself, so each gets the same filtered list the rows are drawn from and none of them sees a
+ * hidden chat. 04BN sets 08CL.A00 from the unread count of that list, so a hidden chat's unread
+ * messages don't count there either. The inbox's state, its pagination and Instagram's save to the
+ * phone keep every chat. The write's value must be read nowhere after it, so handing the field the
+ * filter's answer changes nothing else the method does.
  */
 internal fun BytecodePatchContext.findInboxRows(): ListSite {
     val factory = uniqueMethod(LOCK_PATCH, "inbox row factory", InboxRowsFingerprint)
