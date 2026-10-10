@@ -26,8 +26,6 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide Meta AI:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. Turn it off and the button is back the next time your profile loads.
 
-* **Instagram - Hide Meta AI:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. A change shows after you restart Instagram.
-
 * **Instagram - Default playback quality:** Default playback quality has a new row under Playback, Pick the playback quality with a tab long press. Choose a tab, Reels for example, and a long press on it opens a short list of Auto, Data saver, Up to 480p, Up to 720p and Highest. The pick is the same Playback quality you set in settings, and the next video you open uses it. It starts off, and a tab that already opens HushGram keeps doing that. Asked for in [#93](https://github.com/SysAdminDoc/HushGram/issues/93).
 
 * **Instagram:** Ghost mode now works from inside Instagram. Press and hold New message at the top of your inbox and the Ghost mode switches in your build all turn on or off together, with a toast that says which way it went. A tap still starts a new message. The press does nothing while HushGram is paused.
