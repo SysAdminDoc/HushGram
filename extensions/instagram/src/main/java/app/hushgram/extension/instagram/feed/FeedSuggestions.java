@@ -169,8 +169,8 @@ public final class FeedSuggestions {
 
     /**
      * Injected at each read of the home feed adapter's "no next page" flag. Answers 1 (no next
-     * page) once the suggestion switches have emptied Home ({@link #suggestionsEmptiedHome}), once
-     * {@link #homeItem} has taken posts out and a post type switch is still on, or once Hide the
+     * page) once the suggestion switches, or the post switches {@link #homeItem} takes posts out
+     * for, have emptied Home ({@link #suggestionsEmptiedHome}), or once Hide the
      * home feed has emptied Home ({@link HomeFeed#emptied}), and [noMorePages] otherwise. Turning
      * every switch off restores Instagram's answer in this run.
      *
@@ -188,8 +188,9 @@ public final class FeedSuggestions {
         if (!tookOut && !typesTookOut) return noMorePages;
         try {
             if (!Utils.settingsReady()) return noMorePages;
-            if (tookOut && suggestionSwitchOn() && suggestionsEmptiedHome(feed)) return 1;
-            return typesTookOut && postSwitchOn() ? 1 : noMorePages;
+            boolean suggestions = tookOut && suggestionSwitchOn();
+            boolean posts = typesTookOut && postSwitchOn();
+            return (suggestions || posts) && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
@@ -377,7 +378,8 @@ public final class FeedSuggestions {
      * while Hide posts you've liked is on, or a post by an account on {@link HiddenAccounts}, and
      * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
      * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
-     * that page, and whether it was lost to {@link #filter}, for {@link #homePageParsed}. Never throws.
+     * that page, and whether it was lost to {@link #filter} or to its own removals, for
+     * {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
         return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked, FeedSuggestions::author);
@@ -401,9 +403,10 @@ public final class FeedSuggestions {
             if (lost) page[1]++;
         }
         if (item == null) return null;
-        if (byType(item, typeOf) == null) return null;
-        if (byLiked(item, likedOf) == null) return null;
-        return byAuthor(item, authorOf);
+        Object kept = byType(item, typeOf) == null ? null
+                : byLiked(item, likedOf) == null ? null : byAuthor(item, authorOf);
+        if (kept == null && page != null) page[1]++;
+        return kept;
     }
 
     /** [item], or null while the switch for its post's type is on. */

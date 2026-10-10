@@ -419,6 +419,86 @@ public class FeedSuggestionsTest {
         assertEquals("a read with no feed handed over can't tell", 1, FeedSuggestions.feedEnded(0));
     }
 
+    /** One item Home reads, with a post of [type] that a type switch may take out. */
+    private static Object homeTyped(Item item, int type) {
+        return FeedSuggestions.homeItem(FeedSuggestions.filter(item), ignored -> type);
+    }
+
+    /**
+     * Home reads its store of the last run before its first page. A post a type switch takes out there
+     * is not a page of Home's response, so a Home waiting on that page isn't ended (#28's flash).
+     */
+    @Test
+    public void aStoreReadThatRemovesPostsBeforeAnyPageDoesntEndHome() {
+        withHomeReads();
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        try {
+            assertNull(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.VIDEO));
+            assertTrue(FeedSuggestions.typesTookOut);
+            assertEquals("waiting on its first page", 0, adapterReads(new Feed(true), 0));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
+        }
+    }
+
+    /** A page whose posts were all taken out by a type switch ends an empty Home, and the report counts it once. */
+    @Test
+    public void aPageEmptiedByATypeSwitchEndsAnEmptyHome() {
+        withHomeReads();
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        try {
+            FeedFilterCounters.snapshotAndClear();
+            FeedSuggestions.homePageStarts();
+            assertNull(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.VIDEO));
+            assertNull(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.VIDEO));
+            FeedSuggestions.homePageParsed();
+            assertTrue(FeedSuggestions.homePageLost);
+            assertEquals(1, adapterReads(new Feed(true), 0));
+            String report = String.join("\n", FeedFilterCounters.report());
+            assertTrue(report, report.contains(FeedSuggestions.HOME_ENDED + " 1"));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
+        }
+    }
+
+    /** A Home that still shows posts keeps Instagram's answer, however many posts the page lost. */
+    @Test
+    public void aHomeStillShowingPostsKeepsInstagramsAnswerOnThePostPath() {
+        withHomeReads();
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        try {
+            FeedSuggestions.homePageStarts();
+            assertNull(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.VIDEO));
+            assertTrue(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.PHOTO) != null);
+            FeedSuggestions.homePageParsed();
+            assertEquals(0, adapterReads(new Feed(false), 0));
+            assertEquals(1, adapterReads(new Feed(false), 1));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
+        }
+    }
+
+    /** A page that kept every post it read doesn't end Home just because a store read lost one earlier. */
+    @Test
+    public void aKeptPageClearsAnEarlierTypeVerdict() {
+        withHomeReads();
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        try {
+            homeTyped(new Item(Kind.MEDIA), FeedSuggestions.VIDEO);
+            FeedSuggestions.homePageStarts();
+            assertTrue(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.PHOTO) != null);
+            FeedSuggestions.homePageParsed();
+            assertFalse(FeedSuggestions.homePageLost);
+            assertEquals(0, adapterReads(new Feed(true), 0));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
+        }
+    }
+
     @Test
     @Config(sdk = {28, 37})
     public void turningOffAllSuggestionSwitchesRestoresBothNativeEndAnswers() {
