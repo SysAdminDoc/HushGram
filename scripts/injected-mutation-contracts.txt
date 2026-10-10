@@ -1233,19 +1233,22 @@ shared-call Lapp/hushgram/extension/instagram/misc/VersionCode;->read(Landroid/c
 start-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
-# Show hidden like counts hands HiddenLikeCounts.hidden the post's hidden-count flag first thing in the
-# method every like row asks whether to hide a post's count (04wE.A06 on 450), the one instance
-# (UserSession, String, boolean) method reading your own hide-like-counts setting (03zP.A00). Left out,
-# the switch shows nothing; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
-once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
+# Show hidden like counts hands HiddenLikeCounts.hidden the poster's id and the post's hidden-count flag
+# first thing in the method every caller asks whether to hide a post's count (04wE.A06 on 450, asked by
+# the six like rows below and by at least eight other callers, among them the Reels item config), the one
+# instance (UserSession, String, boolean) method reading your own hide-like-counts setting (03zP.A00).
+# The String is the poster's id, not a post's. Left out, the switch shows nothing; twice or elsewhere, it
+# isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(Ljava/lang/String;I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(Ljava/lang/String;I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
 # It also hands HiddenLikeCounts.sawCount the post's data and the like_count it read, once, in the like
 # count reader behind Media.A0B (04wK.A00 on 450), the static method reading a post's tree out of
 # 03p2.A01 and its count with CtN. Left out, the report can't say whether the count arrives. The
-# rows below decide which posts show a count. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
+# rows below note the same. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/04wI;)I calling instance LX/0A0W;->CtN(I)Ljava/lang/Integer; holding LX/03p2;->A01:LX/0A0W;
 # Each like row that reads a post's hidden-count flag and then asks that method hands HiddenLikeCounts.rowRead
-# the post's data and the flag it just read, once, so the decision is that post's own count and not another's.
+# the post's data and the flag it just read, once, so the poster is noted by that post's own count and not
+# another's.
 # Six rows on 450: 08um.A05, 00gF.A09, 00gF.A0P, 04uv.A00 (the hash of the like row's view model), 04uv.A01
 # and 05wC.A00. Left out, a hidden post is never let through; elsewhere or twice, it isn't the hook the patch wrote.
 # NativeHiddenLikeCountsTest checks each row on all seven 450 builds.

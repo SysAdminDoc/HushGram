@@ -46,6 +46,13 @@ class NativeHiddenLikeCountsTest {
             assertEquals(name, DECIDE, anchors.decider.parameterTypes.map(Any::toString))
             assertEquals(name, "Z", anchors.decider.returnType)
             assertEquals("$name: the flag is the decider's last register", anchors.decider.implementation!!.registerCount - 1, anchors.flag)
+            assertEquals("$name: the poster's id is the register before it", anchors.flag - 1, anchors.poster)
+            assertEquals("$name: the decider's second parameter is the id", "Ljava/lang/String;", anchors.decider.parameterTypes[1].toString())
+            assertEquals("$name: the poster is read with the interface the flag is", anchors.treeFlagRead.definingClass,
+                anchors.childRead.definingClass)
+            assertEquals("$name: a poster's data is the same interface", anchors.treeFlagRead.definingClass, anchors.childRead.returnType)
+            assertEquals("$name: the id is read off the same interface", anchors.treeFlagRead.definingClass, anchors.textRead.definingClass)
+            assertEquals("$name: the id is a string", "Ljava/lang/String;", anchors.textRead.returnType)
             assertTrue("$name: the reader is static", AccessFlags.STATIC.isSet(anchors.counter.accessFlags))
             assertEquals(name, "I", anchors.counter.returnType)
             assertEquals(name, 1, anchors.counter.parameterTypes.size)
@@ -78,6 +85,10 @@ class NativeHiddenLikeCountsTest {
                 anchors.treeFlagRead.toString())
             assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_COUNT_STUB },
                 anchors.countRead.toString())
+            assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_CHILD_STUB },
+                anchors.childRead.toString())
+            assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_TEXT_STUB },
+                anchors.textRead.toString())
             for ((type, rows) in anchors.rows.groupBy { it.method.definingClass }) {
                 for (method in context.mutableClassDefBy(type).methods.filter { it.toString() in rowMethods }) {
                     val here = rows.filter { it.method.toString() == method.toString() }.sortedBy { it.at }
@@ -103,7 +114,10 @@ class NativeHiddenLikeCountsTest {
             val anchors = context.findHiddenLikeCounts()
             assertEquals(copied.decider.toString(), anchors.decider.toString())
             assertEquals(copied.counter.toString(), anchors.counter.toString())
-            assertEquals(listOf(copied.flag, copied.countAt, copied.tree, copied.count), listOf(anchors.flag, anchors.countAt, anchors.tree, anchors.count))
+            assertEquals(listOf(copied.poster, copied.flag, copied.countAt, copied.tree, copied.count),
+                listOf(anchors.poster, anchors.flag, anchors.countAt, anchors.tree, anchors.count))
+            assertEquals(listOf(copied.childRead.toString(), copied.textRead.toString()),
+                listOf(anchors.childRead.toString(), anchors.textRead.toString()))
             val decider = anchors.decider.code()
             val counter = anchors.counter.code()
             assertEquals(copied.rows.map { it.method.toString() to it.at }, anchors.rows.map { it.method.toString() to it.at })

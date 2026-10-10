@@ -248,8 +248,8 @@ public class NeutralDefaultsSettingsTest {
         Object heart = new Object();
         assertSame(heart, app.hushgram.extension.instagram.feed.LikeAnimation.pick(heart));
         assertFalse(app.hushgram.extension.instagram.feed.LikeAnimation.allow(0));
-        assertTrue(app.hushgram.extension.instagram.feed.HiddenLikeCounts.hidden(1));
-        assertFalse(app.hushgram.extension.instagram.feed.HiddenLikeCounts.hidden(0));
+        assertTrue(app.hushgram.extension.instagram.feed.HiddenLikeCounts.hidden("poster", 1));
+        assertFalse(app.hushgram.extension.instagram.feed.HiddenLikeCounts.hidden("poster", 0));
         assertFalse(app.hushgram.extension.instagram.feed.LikeConfirm.hold(new Object(), null, null, null, null, 0));
         Object refreshListener = new Object();
         assertSame(refreshListener, app.hushgram.extension.instagram.feed.RefreshConfirm.listener(

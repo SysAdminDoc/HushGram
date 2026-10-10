@@ -57,6 +57,10 @@ class ShowHiddenLikeCountsHookTest {
             "${LikeFixture.TREE}->CtD(I)Ljava/lang/Boolean;")
         assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_COUNT_STUB },
             "${LikeFixture.TREE}->CtN(I)Ljava/lang/Integer;")
+        assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_CHILD_STUB },
+            "${LikeFixture.TREE}->CtQ(I)${LikeFixture.TREE}")
+        assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_TEXT_STUB },
+            "${LikeFixture.TREE}->DF9(I)Ljava/lang/String;")
         val rows = context.mutableClassDefBy(LikeFixture.ROWS).methods.sortedBy { it.name }
         assertEquals(3, rows.size)
         val originals = LikeFixture.rows().methods.sortedBy { it.name }
@@ -76,6 +80,23 @@ class ShowHiddenLikeCountsHookTest {
         assertEquals("${LikeFixture.TREE}->CtN(I)Ljava/lang/Integer;", anchors.countRead.toString())
     }
 
+    @Test fun thePosterIsReadWithTheRowsOwnCallsAndTheDeciderTakesItsId() {
+        val anchors = PatchContexts.of(LikeFixture.classes()).findHiddenLikeCounts()
+        assertEquals("${LikeFixture.TREE}->CtQ(I)${LikeFixture.TREE}", anchors.childRead.toString())
+        assertEquals("${LikeFixture.TREE}->DF9(I)Ljava/lang/String;", anchors.textRead.toString())
+        assertEquals("the poster's id, then the flag", listOf(3, 4), listOf(anchors.poster, anchors.flag))
+        assertEquals("user".hashCode(), POSTER_KEY)
+        assertEquals("id".hashCode(), ID_KEY)
+        assertEquals("the extension reads the poster by the same key", POSTER_KEY, ExtensionDex.intConstant(HIDDEN_LIKE_COUNTS, "USER_KEY"))
+        assertEquals("the extension reads the id by the same key", ID_KEY, ExtensionDex.intConstant(HIDDEN_LIKE_COUNTS, "ID_KEY"))
+    }
+
+    @Test fun noPosterReadIsRefused() = refuses("read a post's poster with one call on ${LikeFixture.TREE}, found 0",
+        LikeFixture.classes().map { if (it.type == LikeFixture.POSTERS) LikeFixture.posters(poster = false) else it })
+    @Test fun noPosterIdReadIsRefused() = refuses("read a poster's id with one call on ${LikeFixture.TREE}, found 0",
+        LikeFixture.classes().map { if (it.type == LikeFixture.POSTERS) LikeFixture.posters(id = false) else it })
+    @Test fun twoPosterReadsAreRefusedRatherThanGuessed() = refuses("read a post's poster with one call on ${LikeFixture.TREE}, found 2",
+        LikeFixture.classes().map { if (it.type == LikeFixture.POSTERS) LikeFixture.posters(otherPoster = true) else it })
     @Test fun aMissingExtensionIsRefused() = refuses("the extension has no $HIDDEN_LIKE_COUNTS",
         LikeFixture.classes().filter { it.type != HIDDEN_LIKE_COUNTS })
     @Test fun aPostModelWithoutTheCountGetterIsRefused() = refuses("for $LIKE_COUNT_FIELD",
@@ -114,7 +135,7 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals(1, code.count { it.reference() == HIDDEN_DECISION })
             assertEquals(listOf(Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT), code.take(2).map { it.opcode })
             assertEquals(HIDDEN_DECISION, code[0].reference())
-            assertEquals("the hook reads the flag", listOf(flag), code[0].namedRegisters())
+            assertEquals("the hook reads the poster's id and the flag", listOf(flag - 1, flag), code[0].namedRegisters())
             assertEquals("the answer goes back in the flag", listOf(flag), code[1].namedRegisters())
             assertEquals("two instructions come in front, nothing else", original.size + 2, code.size)
             assertEquals(original.map { it.shape() }, code.drop(2).map { it.shape() })
@@ -184,6 +205,7 @@ internal object LikeFixture {
     const val ROWS = "Lfixture/LikeRows;"
     const val DECIDER = "Lfixture/LikeDecider;"
     const val COUNTER = "Lfixture/LikeCounter;"
+    const val POSTERS = "Lfixture/LikePosters;"
     private const val HOLDER = "Lfixture/Holder;"
     private const val SELF = "Lfixture/Self;"
     private const val OBJECT = "Ljava/lang/Object;"
@@ -195,7 +217,39 @@ internal object LikeFixture {
     private val flagRead = ImmutableMethodReference(TREE, "CtD", listOf("I"), BOOLEAN)
     private val countRead = ImmutableMethodReference(TREE, "CtN", listOf("I"), INTEGER)
 
-    fun classes(): List<ClassDef> = listOf(post(), rows(), deciderClass(), counterClass(), ExtensionDex.classDef(HIDDEN_LIKE_COUNTS))
+    fun classes(): List<ClassDef> = listOf(post(), rows(), deciderClass(), counterClass(), posters(), ExtensionDex.classDef(HIDDEN_LIKE_COUNTS))
+
+    /**
+     * A like row's way to the poster's id, as 450's rows read it: the flag of the post's data, then
+     * its `user` through the interface's tree call and that tree's `id` through its string call.
+     * Asks no decider, so it isn't a row of its own. [otherPoster] adds a second, different call
+     * for the poster.
+     */
+    fun posters(poster: Boolean = true, id: Boolean = true, otherPoster: Boolean = false): ClassDef {
+        val child = ImmutableMethodReference(TREE, "CtQ", listOf("I"), TREE)
+        val otherChild = ImmutableMethodReference(TREE, "GgL", listOf("I"), TREE)
+        val text = ImmutableMethodReference(TREE, "DF9", listOf("I"), STRING)
+        val code = mutableListOf<Instruction>(
+            ImmutableInstruction31i(Opcode.CONST, 0, LIKES_HIDDEN_KEY),
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 3, 0, 0, 0, 0, flagRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction31i(Opcode.CONST, 0, POSTER_KEY),
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 3, 0, 0, 0, 0, if (poster) child else flagRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+        )
+        if (otherPoster) code += listOf(
+            ImmutableInstruction31i(Opcode.CONST, 0, POSTER_KEY),
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 3, 0, 0, 0, 0, otherChild),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+        )
+        code += listOf(
+            ImmutableInstruction31i(Opcode.CONST, 0, ID_KEY),
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 1, 0, 0, 0, 0, if (id) text else countRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+        )
+        return clazz(POSTERS, listOf(method(POSTERS, "posterId", listOf(TREE), OBJECT, 4, code, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
+    }
 
     /** The post model: a getter for each field, holding its key, and the like count getter calling the reader. */
     fun post(countGetter: Boolean = true, callsCounter: Boolean = true): ClassDef {

@@ -20,12 +20,13 @@ import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 internal const val HIDDEN_LIKE_COUNTS_PATCH = "Show hidden like counts"
 
 internal const val HIDDEN_LIKE_COUNTS = "$EXTENSION_PACKAGE/feed/HiddenLikeCounts;"
-internal const val HIDDEN_DECISION = "$HIDDEN_LIKE_COUNTS->hidden(I)Z"
+internal const val HIDDEN_DECISION = "$HIDDEN_LIKE_COUNTS->hidden(Ljava/lang/String;I)Z"
 internal const val SAW_LIKE_COUNT = "$HIDDEN_LIKE_COUNTS->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V"
 
 internal const val ROW_READ = "$HIDDEN_LIKE_COUNTS->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V"
@@ -35,6 +36,12 @@ internal const val TREE_FLAG_STUB = "flag"
 
 /** The extension's stub the patch fills: the like count read off a post's data, by key. */
 internal const val TREE_COUNT_STUB = "count"
+
+/** The extension's stub the patch fills: the part of a post's data kept under a key, its poster. */
+internal const val TREE_CHILD_STUB = "child"
+
+/** The extension's stub the patch fills: the string a poster's data keeps under a key, their id. */
+internal const val TREE_TEXT_STUB = "text"
 
 /** The post model, a kept name. */
 internal const val POST_MODEL = "Lcom/instagram/feed/media/Media;"
@@ -47,9 +54,14 @@ internal const val LIKES_HIDDEN_FIELD = "like_and_view_counts_disabled"
 internal val LIKES_HIDDEN_KEY = LIKES_HIDDEN_FIELD.hashCode()
 internal const val LIKE_COUNT_FIELD = "like_count"
 internal val LIKE_COUNT_KEY = LIKE_COUNT_FIELD.hashCode()
+internal const val POSTER_FIELD = "user"
+internal val POSTER_KEY = POSTER_FIELD.hashCode()
+internal const val ID_FIELD = "id"
+internal val ID_KEY = ID_FIELD.hashCode()
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private val DECIDER_PARAMETERS = listOf(USER_SESSION, "Ljava/lang/String;", "Z")
+private const val POSTER_PARAMETER = 1
 private const val FLAG_PARAMETER = 2
 private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val INTEGER = "Ljava/lang/Integer;"
@@ -65,13 +77,16 @@ private fun refuse(why: String): Nothing = throw PatchException("$HIDDEN_LIKE_CO
 
 /**
  * What the patch changes. [decider] is the method every like row asks whether to hide a post's
- * count, with the post's hidden-count flag in register [flag]. [counter] is Instagram's like count
+ * count, with the poster's id in register [poster] and the post's hidden-count flag in register
+ * [flag], the next one. [counter] is Instagram's like count
  * reader, which reads the post's `like_count` off its data tree in register [tree] into register
  * [count] at instruction [countAt]. [treeFlagRead] is the boolean read the counter makes on that
- * tree, which the stub uses to read the flag.
+ * tree, which the stub uses to read the flag. [childRead] and [textRead] are the reads the like rows
+ * make of a post's poster and of that poster's id, which the stubs use to find who posted a post.
  */
 internal class HiddenLikeCountAnchors(
     val decider: Method,
+    val poster: Int,
     val flag: Int,
     val counter: Method,
     val countAt: Int,
@@ -79,6 +94,8 @@ internal class HiddenLikeCountAnchors(
     val count: Int,
     val treeFlagRead: MethodReference,
     val countRead: MethodReference,
+    val childRead: MethodReference,
+    val textRead: MethodReference,
     val rows: List<RowRead>,
 )
 
@@ -113,6 +130,8 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
     pandoGetter(HIDDEN_LIKE_COUNTS_PATCH, POST_MODEL, LIKE_COUNT_FIELD, INTEGER)
 
     val (decider, flag, asked) = findDecider()
+    val poster = decider.parameterRegisterNumber(POSTER_PARAMETER)
+    if (flag != poster + 1) refuse("${decider.definingClass}->${decider.name} doesn't keep the poster's id and the flag in neighboring registers")
     val counter = findCounter()
     val code = counter.code()
     val read = code.indices.single { code.readsKey(it, LIKE_COUNT_KEY, INTEGER) }
@@ -136,6 +155,8 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
     val treeFlagRead = flagReads.singleOrNull()
         ?: refuse("$where makes ${flagReads.size} kinds of boolean read on its data tree, not one")
 
+    val (childRead, textRead) = findPosterReads(treeFlagRead.definingClass)
+
     val extension = classDefByOrNull(HIDDEN_LIKE_COUNTS) ?: refuse("the extension has no $HIDDEN_LIKE_COUNTS")
     for (hook in listOf(HIDDEN_DECISION, SAW_LIKE_COUNT, ROW_READ)) {
         extension.methods.singleOrNull {
@@ -147,10 +168,12 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
         it.name == TREE_FLAG_STUB && it.returnType == BOOLEAN && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "I") && it.implementation != null
     } ?: refuse("$HIDDEN_LIKE_COUNTS has no static $BOOLEAN $TREE_FLAG_STUB($OBJECT I)")
-    extension.methods.singleOrNull {
-        it.name == TREE_COUNT_STUB && it.returnType == OBJECT && AccessFlags.STATIC.isSet(it.accessFlags) &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "I") && it.implementation != null
-    } ?: refuse("$HIDDEN_LIKE_COUNTS has no static $OBJECT $TREE_COUNT_STUB($OBJECT I)")
+    for (stub in listOf(TREE_COUNT_STUB, TREE_CHILD_STUB, TREE_TEXT_STUB)) {
+        extension.methods.singleOrNull {
+            it.name == stub && it.returnType == OBJECT && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "I") && it.implementation != null
+        } ?: refuse("$HIDDEN_LIKE_COUNTS has no static $OBJECT $stub($OBJECT I)")
+    }
 
     val rows = asked.map { (method, readAt) ->
         val reader = "${method.definingClass}->${method.name}"
@@ -167,7 +190,29 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
         RowRead(method, readAt + 1, rowTree, rowFlag)
     }
 
-    return HiddenLikeCountAnchors(decider, flag, counter, read + 1, tree, count, treeFlagRead, countRead, rows)
+    return HiddenLikeCountAnchors(decider, poster, flag, counter, read + 1, tree, count, treeFlagRead, countRead, childRead, textRead, rows)
+}
+
+/**
+ * The two reads the like rows make to find who posted a post: the call on a post's data that
+ * answers the poster's data, loaded with the key of `user`, and the call on that answering the
+ * poster's id, loaded with the key of `id`. Each is looked for in the classes the rows are in, on
+ * the data interface the flag is read with, and each has to be the same call everywhere, or the
+ * patch refuses rather than guess which one reads the poster.
+ */
+private fun BytecodePatchContext.findPosterReads(tree: String): Pair<MethodReference, MethodReference> {
+    val reads = classesLoading(LIKES_HIDDEN_KEY.toLong()).filter { it.type != POST_MODEL }.flatMap { classDef ->
+        classDef.methods.flatMap { method ->
+            val code = method.code()
+            code.indices.mapNotNull { at -> code.keyedRead(at)?.let { (key, called) -> key to called } }
+        }
+    }.filter { (_, called) -> called.definingClass == tree }
+    fun one(what: String, key: Int, returns: String): MethodReference {
+        val found = reads.filter { (read, called) -> read == key && called.returnType == returns }.map { it.second }.distinctBy { it.key() }
+        return found.singleOrNull()
+            ?: refuse("expected the like rows to read $what with one call on $tree, found ${found.size}: ${found.joinToString { it.key() }}")
+    }
+    return one("a post's poster", POSTER_KEY, tree) to one("a poster's id", ID_KEY, "Ljava/lang/String;")
 }
 
 /** The decider and the register its flag parameter is in. */
@@ -261,6 +306,25 @@ private fun List<Instruction>.readsKey(at: Int, key: Int, answer: String): Boole
     val loaded = getOrNull(at - 1) as? NarrowLiteralInstruction ?: return false
     return loaded.narrowLiteral == key && (loaded as OneRegisterInstruction).registerA == (call as FiveRegisterInstruction).registerD &&
         getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+}
+
+/**
+ * The key and the call when instruction [at] is an interface call taking only an int, whose
+ * argument is a constant loaded within the four instructions before it, straight or through moves.
+ */
+private fun List<Instruction>.keyedRead(at: Int): Pair<Int, MethodReference>? {
+    val call = this[at]
+    val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+    if (call.opcode != Opcode.INVOKE_INTERFACE || called.parameterTypes.map(CharSequence::toString) != listOf("I")) return null
+    var register = (call as FiveRegisterInstruction).registerD
+    for (earlier in at - 1 downTo maxOf(0, at - 4)) {
+        val instruction = this[earlier]
+        if ((instruction as? OneRegisterInstruction)?.registerA != register) continue
+        if (instruction is NarrowLiteralInstruction) return instruction.narrowLiteral to called
+        if (instruction.opcode != Opcode.MOVE && instruction.opcode != Opcode.MOVE_FROM16 && instruction.opcode != Opcode.MOVE_16) return null
+        register = (instruction as TwoRegisterInstruction).registerB
+    }
+    return null
 }
 
 /** The index of the instruction the branch at [at] goes to. */

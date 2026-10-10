@@ -39,12 +39,14 @@ val showHiddenLikeCountsPatch = bytecodePatch(
 }
 
 /**
- * The flag goes through [HIDDEN_DECISION] first thing in the decider, as an int, and what it
- * answers is what the decider tests; the like count reader hands its tree and what it read to
+ * The poster's id and the flag go through [HIDDEN_DECISION] first thing in the decider, the flag as
+ * an int, and what it answers is what the decider tests, so every caller of the decider gets the
+ * answer for its own poster; the like count reader hands its tree and what it read to
  * [SAW_LIKE_COUNT] right after the read, before its own null test; each like row hands its tree and
- * the flag it just read to [ROW_READ], so the decision is that post's own; and the two stubs are
- * filled with the reader's own reads on the tree, so the extension reads the flag and the count the
- * way Instagram reads its own fields.
+ * the flag it just read to [ROW_READ], and both note under the post's poster whether that post's
+ * count came; and the four stubs are filled with Instagram's own reads on the tree, so the
+ * extension reads the flag, the count, the poster and the poster's id the way Instagram reads its
+ * own fields.
  */
 internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCountAnchors) {
     mutable(anchors.counter).addInstructions(
@@ -54,13 +56,13 @@ internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCount
     mutable(anchors.decider).addInstructions(
         0,
         """
-            invoke-static/range { v${anchors.flag} .. v${anchors.flag} }, $HIDDEN_DECISION
+            invoke-static/range { v${anchors.poster} .. v${anchors.flag} }, $HIDDEN_DECISION
             move-result v${anchors.flag}
         """,
     )
 
     // Each like row hands the post it just read the flag of, and the flag, to the extension, which
-    // looks at that post's own count. Later reads first, so earlier indexes stay where they were.
+    // looks at that post's own count and poster. Later reads first, so earlier indexes stay where they were.
     for ((method, reads) in anchors.rows.groupBy { it.method.toString() }.values.map { it.first().method to it }) {
         val target = mutable(method)
         for (row in reads.sortedByDescending { it.at }) {
@@ -68,7 +70,13 @@ internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCount
         }
     }
 
-    for ((stub, read) in listOf(TREE_FLAG_STUB to anchors.treeFlagRead, TREE_COUNT_STUB to anchors.countRead)) {
+    val stubs = listOf(
+        TREE_FLAG_STUB to anchors.treeFlagRead,
+        TREE_COUNT_STUB to anchors.countRead,
+        TREE_CHILD_STUB to anchors.childRead,
+        TREE_TEXT_STUB to anchors.textRead,
+    )
+    for ((stub, read) in stubs) {
         mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single {
             it.name == stub && AccessFlags.STATIC.isSet(it.accessFlags)
         }.addInstructions(
