@@ -14,10 +14,12 @@ import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -116,10 +118,39 @@ internal fun BytecodePatchContext.findProductTagIndicator(): ProductTagIndicator
     if (addresses[branchAt] + (branch as OffsetInstruction).codeOffset != addresses[readAt + 2]) {
         refuse("$where doesn't go on to its next indicator after a no")
     }
+    // The hook turns the register into an int it passes on, so nothing but the check's answer may reach
+    // the branch: another jump, switch or handler landing on it could bring a reference in its place.
+    if (addresses[branchAt] in jumpTargets(method, code, addresses)) {
+        refuse("$where has another way into the branch on its check besides the check")
+    }
     return ProductTagIndicator(
         method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
         branchAt, register,
     )
+}
+
+/**
+ * The code addresses [code] of [method] can jump or be thrown to: the targets of its gotos and
+ * conditional branches, of its switches through their payloads (offsets relative to the switch), and
+ * its exception handlers.
+ */
+private fun jumpTargets(method: Method, code: List<Instruction>, addresses: List<Int>): Set<Int> {
+    val targets = HashSet<Int>()
+    code.forEachIndexed { at, instruction ->
+        when (instruction.opcode) {
+            Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH -> {
+                val payloadAt = addresses.indexOf(addresses[at] + (instruction as OffsetInstruction).codeOffset)
+                val payload = code.getOrNull(payloadAt) as? SwitchPayload
+                payload?.switchElements?.forEach { targets += addresses[at] + it.offset }
+            }
+            Opcode.FILL_ARRAY_DATA -> Unit
+            else -> if (instruction is OffsetInstruction) targets += addresses[at] + instruction.codeOffset
+        }
+    }
+    method.implementation?.tryBlocks?.forEach { block ->
+        block.exceptionHandlers.forEach { targets += it.handlerCodeAddress }
+    }
+    return targets
 }
 
 /** Whether the instruction at [at] reads [constant] and the next one returns it. */

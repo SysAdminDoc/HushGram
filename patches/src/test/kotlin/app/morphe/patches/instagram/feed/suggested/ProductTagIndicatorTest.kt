@@ -29,7 +29,10 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
@@ -97,6 +100,20 @@ class ProductTagIndicatorTest {
 
     @Test
     fun anAnswerPastV15FailsThePatch() = refused("past v15", classes(answerRegister = 16))
+
+    /** Another branch or switch landing on the hooked branch could bring a reference where the hook passes an int. */
+    @Test
+    fun aSecondWayIntoTheBranchFailsThePatch() = refused("another way into the branch", classes(entry = Entry.IF))
+
+    @Test
+    fun aSwitchIntoTheBranchFailsThePatch() = refused("another way into the branch", classes(entry = Entry.SWITCH))
+
+    /** The same jumps, aimed anywhere else in the method, leave the branch alone. */
+    @Test
+    fun aJumpPastTheBranchIsFine() {
+        val found = PatchContexts.of(classes(entry = Entry.ELSEWHERE)).findProductTagIndicator()
+        assertEquals("the if-eqz, behind the jump that came first", 4, found.branchAt)
+    }
 
     /**
      * In each declared build one method answers the products indicator, after a static check's
@@ -211,6 +228,9 @@ class ProductTagIndicatorTest {
         const val MEDIA_TYPE = "Lcom/instagram/feed/media/Media;"
         const val PUBLIC = 0x11 // public final
 
+        /** A jump put ahead of the method's code: none, onto the branch by if or by switch, or onto the people indicator. */
+        enum class Entry { NONE, IF, SWITCH, ELSEWHERE }
+
         /** Each name's constant, as 450's 385611438 names them. */
         val FIELDS = mapOf("NONE" to "A0D", "PEOPLE" to "A0G", PRODUCTS to "A0I", SHOPPING_ADS to "A0J")
 
@@ -255,6 +275,7 @@ class ProductTagIndicatorTest {
             checkOpcode: Opcode = Opcode.INVOKE_STATIC,
             branchOffset: Int = 5,
             answerRegister: Int = 0,
+            entry: Entry = Entry.NONE,
         ): List<ClassDef> {
             fun read(name: String) = listOf(
                 ImmutableInstruction21c(Opcode.SGET_OBJECT, 0, constant(name)),
@@ -266,9 +287,17 @@ class ProductTagIndicatorTest {
                 ImmutableInstruction11x(Opcode.MOVE_RESULT, answerRegister),
                 ImmutableInstruction21t(Opcode.IF_EQZ, answerRegister, branchOffset),
             ) + read(PRODUCTS) + read("PEOPLE") + read("NONE")
+            // Addresses of the code above: the branch at 6, the people indicator at 11. The jump goes in ahead of it.
+            val withEntry: List<Instruction> = when (entry) {
+                Entry.NONE -> code
+                Entry.IF -> listOf<Instruction>(ImmutableInstruction21t(Opcode.IF_EQZ, 1, 2 + 6)) + code
+                Entry.ELSEWHERE -> listOf<Instruction>(ImmutableInstruction21t(Opcode.IF_EQZ, 1, 2 + 11)) + code
+                Entry.SWITCH -> listOf<Instruction>(ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 3 + 17)) + code +
+                    ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(0, 3 + 6)))
+            }
             val decider = ImmutableClassDef(
                 DECIDER, PUBLIC, "Ljava/lang/Object;", null, null, null, null,
-                listOf(method(DECIDER, "A06", parameters, INDICATOR, deciderFlags, 21, code)),
+                listOf(method(DECIDER, "A06", parameters, INDICATOR, deciderFlags, 21, withEntry)),
             )
             val other = ImmutableClassDef(
                 OTHER_DECIDER, PUBLIC, "Ljava/lang/Object;", null, null, null, null,
