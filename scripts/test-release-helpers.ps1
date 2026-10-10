@@ -27,6 +27,9 @@ $variables = @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WORKDIR
     'BUILD_QUEUE_TICKET', 'HUSHGRAM_HELPERS_LOG', 'HUSHGRAM_HELPERS_STALE', 'HUSHGRAM_HELPERS_GRADLE_EXIT')
 $saved = @{}
 foreach ($name in $variables) { $saved[$name] = [Environment]::GetEnvironmentVariable($name, [EnvironmentVariableTarget]::Process) }
+# Run from the machine's queue, this process inherits that slot's ticket, and the all-builds checks
+# would read it as a slot already held and never take the stand-in queue's.
+Remove-Item Env:\BUILD_QUEUE_TICKET, Env:\BUILD_QUEUE_PRIORITY -ErrorAction SilentlyContinue
 
 function Assert-True([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw $Message }
