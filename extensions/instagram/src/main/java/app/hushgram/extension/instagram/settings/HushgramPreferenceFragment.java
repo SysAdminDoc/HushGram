@@ -1415,10 +1415,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 else setting.save(on);
             }
             showGhostMode();
-            Utils.showToastShort(GhostMode.all(ghostSwitches, on)
-                    ? on ? L10n.t("Ghost mode is on, and so is each of its switches.")
-                            : L10n.t("Ghost mode is off, and so is each of its switches.")
-                    : L10n.t("Couldn't change every Ghost mode switch. Check them below."));
+            Utils.showToastShort(GhostMode.message(ghostSwitches, on,
+                    L10n.t("Couldn't change every Ghost mode switch. Check them below.")));
             return false;
         });
         row.setChecked(GhostMode.on(ghostSwitches));

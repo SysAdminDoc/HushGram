@@ -1175,3 +1175,11 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V h
 # It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
 # static upload scheduler holding the alarm's tag and its intent action.
 sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload
+
+# Ghost mode from the inbox: GhostModeEntry.longPress() goes into the inbox header's static builder
+# (07OJ.A01 on 450's 385611438), right after the New message button's tap listener is stored in its
+# configuration, and its answer is stored in the configuration's long press field. No rule: the builder
+# loads no string, and its siblings in that class share its shape and read the same fields, so no
+# rule can single it out. GhostModeEntryHookTest finds it on every declared 450 build through the tap's
+# own log string and the listener's switch case, and checks the stored call, its registers and that
+# nothing else in the builder or the configuration sets a long press.

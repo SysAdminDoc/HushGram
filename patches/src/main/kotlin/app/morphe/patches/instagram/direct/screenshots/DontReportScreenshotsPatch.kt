@@ -14,6 +14,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -61,7 +62,7 @@ val dontReportScreenshotsPatch = bytecodePatch(
     default = true,
 ) {
     category("Ghost mode")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, ghostModeEntryPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {
         requireStatusMethod("screenshotReports")

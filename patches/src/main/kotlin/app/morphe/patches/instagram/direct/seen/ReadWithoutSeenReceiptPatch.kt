@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -30,7 +31,7 @@ val readWithoutSeenReceiptPatch = bytecodePatch(
         "HushGram settings > Messages.",
 ) {
     category("Ghost mode")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, ghostModeEntryPatch)
     compatibleWith(*AppCompatibilities.instagram())
     execute {
         requireStatusMethod("threadSeen")

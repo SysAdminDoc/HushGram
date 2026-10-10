@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.stories.seen
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -36,7 +37,7 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
     category("Ghost mode")
     dependsOn(settingsPatch)
     compatibleWith(*AppCompatibilities.instagram())
-    dependsOn(instagramExtensionPatch)
+    dependsOn(instagramExtensionPatch, ghostModeEntryPatch)
 
     execute {
         // Found first, so a build without it changes nothing.
