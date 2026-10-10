@@ -264,9 +264,10 @@ public final class LinkCleaner {
     }
 
     /**
-     * [clip] with the Instagram links in its text items cleaned, or [clip] itself when there's
-     * nothing to clean, the switch is off, or anything goes wrong. A clip with a URI, an intent or
-     * HTML in an item is left as it came.
+     * [clip] with the Instagram links in its text items and its URI-only items cleaned, or [clip]
+     * itself when there's nothing to clean, the switch is off, or anything goes wrong. An item with
+     * an intent, HTML, or both text and a URI is left as it came. Some copy routes put the link in
+     * the item's URI rather than its text, and those kept their share id (PR #107).
      */
     static ClipData sanitizedClip(ClipData clip) {
         HookStatus.invoked(FamilyNames.SANITIZE_SHARING_LINKS);
@@ -277,18 +278,9 @@ public final class LinkCleaner {
             boolean changed = false;
             for (int i = 0; i < count; i++) {
                 ClipData.Item item = clip.getItemAt(i);
-                CharSequence text = item.getText();
-                if (text == null || item.getUri() != null || item.getIntent() != null || item.getHtmlText() != null) {
-                    items.add(item);
-                    continue;
-                }
-                String cleaned = cleanText(text.toString());
-                if (cleaned.contentEquals(text)) {
-                    items.add(item);
-                } else {
-                    items.add(new ClipData.Item(cleaned));
-                    changed = true;
-                }
+                ClipData.Item cleaned = cleanedItem(item);
+                items.add(cleaned != null ? cleaned : item);
+                changed |= cleaned != null;
             }
             if (!changed || items.isEmpty()) return clip;
             ClipData copy = new ClipData(clip.getDescription(), items.get(0));
@@ -298,6 +290,26 @@ public final class LinkCleaner {
             HookStatus.threw(FamilyNames.SANITIZE_SHARING_LINKS, "clipboard", t);
             return clip;
         }
+    }
+
+    /**
+     * A new item holding [item]'s text or URI cleaned, or null when it has nothing to clean or
+     * holds more than one of text, a URI, an intent and HTML.
+     */
+    private static ClipData.Item cleanedItem(ClipData.Item item) {
+        if (item.getIntent() != null || item.getHtmlText() != null) return null;
+        CharSequence text = item.getText();
+        Uri uri = item.getUri();
+        if (text != null && uri == null) {
+            String cleaned = cleanText(text.toString());
+            return cleaned.contentEquals(text) ? null : new ClipData.Item(cleaned);
+        }
+        if (uri != null && text == null) {
+            String link = uri.toString();
+            String cleaned = SharingDomain.moved(clean(link), SharingDomain.chosen());
+            return cleaned.equals(link) ? null : new ClipData.Item(Uri.parse(cleaned));
+        }
+        return null;
     }
 
     /**

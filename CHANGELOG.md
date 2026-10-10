@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Sanitize sharing links now also cleans a link that's copied to the clipboard as a link item rather than as text, which kept its share id before. Thanks to @Aholicknight, who spotted it and sent the approach in #107.
+
 * **Instagram:** With Hide suggested posts on, Home no longer sits on gray loading boxes after you switch to an account whose Home is all suggestions, such as a new account that follows nobody. Home used to remember every post it had kept since Instagram started, so the first account's posts kept it from ending. Now only Home's latest load counts. Reported in #104 and #105.
 
 * **Tooling:** The Instagram internals reference now includes measured network traffic, background activity and unplugged battery discharge, with exact installed-build evidence and the limits of each measurement. The observation uses an installation reporting HushGram 0.0.5 and does not establish savings against stock or validate the current release.
