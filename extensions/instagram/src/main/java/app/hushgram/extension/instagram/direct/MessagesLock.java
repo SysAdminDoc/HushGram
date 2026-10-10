@@ -743,10 +743,13 @@ public final class MessagesLock {
         cover.setClickable(true);
         cover.setFocusable(true);
 
+        // The column spans the cover. A column that wraps its content shrinks rows that match it to
+        // the icon's width, which cut the title to its first word and the Unlock link to nothing.
         LinearLayout column = new LinearLayout(activity);
         column.setOrientation(LinearLayout.VERTICAL);
         column.setGravity(Gravity.CENTER_HORIZONTAL);
-        cover.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+        column.setPadding(dp(activity, 32), 0, dp(activity, 32), 0);
+        cover.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
 
         ImageView icon = new ImageView(activity);
@@ -761,7 +764,8 @@ public final class MessagesLock {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         title.setGravity(Gravity.CENTER);
         title.setPadding(0, dp(activity, 12), 0, dp(activity, 12));
-        column.addView(title);
+        column.addView(title, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         cover.title = title;
 
         TextView unlock = new TextView(activity);
@@ -771,7 +775,8 @@ public final class MessagesLock {
         unlock.setGravity(Gravity.CENTER);
         unlock.setPadding(dp(activity, 24), dp(activity, 12), dp(activity, 24), dp(activity, 12));
         unlock.setOnClickListener(v -> ask(activity, null));
-        column.addView(unlock);
+        column.addView(unlock, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
         return cover;
     }
 

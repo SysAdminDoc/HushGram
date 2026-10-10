@@ -29,6 +29,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import org.junit.After;
 import org.junit.Before;
@@ -352,6 +353,41 @@ public class MessagesLockTest {
         asks.get(0)[0].run();
         MessagesLock.check(activity);
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_YES, frame.getImportantForAccessibility());
+    }
+
+    /**
+     * The cover's title and Unlock link get the room their text needs. A column that wrapped its
+     * content shrank both to the lock icon's width, so a chat's cover read "This" and had no visible
+     * way to unlock (seen on the emulator, 2026-10-10).
+     */
+    @Test
+    public void theCoverShowsItsWholeTitleAndTheUnlockLink() {
+        Activity activity = inbox().get();
+        MessagesLock.check(activity);
+        layout(activity);
+        ViewGroup cover = (ViewGroup) cover(activity);
+        assertNotNull(cover);
+        List<TextView> texts = new ArrayList<>();
+        collectTexts(cover, texts);
+        assertEquals("a title and an Unlock link", 2, texts.size());
+        TextView title = texts.get(0);
+        TextView unlock = texts.get(1);
+        assertEquals("Unlock", unlock.getText().toString());
+
+        int icon = Math.round(48 * activity.getResources().getDisplayMetrics().density);
+        assertTrue("the title was squeezed to " + title.getMeasuredWidth() + "px",
+                title.getMeasuredWidth() > icon * 2);
+        assertTrue("the Unlock link has no room for its text",
+                unlock.getMeasuredWidth() > unlock.getPaddingLeft() + unlock.getPaddingRight());
+        assertTrue("the title is cut off", title.getLayout().getHeight()
+                <= title.getMeasuredHeight() - title.getPaddingTop() - title.getPaddingBottom());
+    }
+
+    private static void collectTexts(View view, List<TextView> texts) {
+        if (view instanceof TextView) texts.add((TextView) view);
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) collectTexts(group.getChildAt(i), texts);
     }
 
     /** A hidden inbox list found first doesn't keep the one showing from being covered. */

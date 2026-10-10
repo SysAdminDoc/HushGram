@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** The Lock your messages cover shows its whole title again, with the blue Unlock link under it. On a phone screen the title was cut down to its first word and the link had no room at all, so after cancelling the ask the only way back in was to leave and come back.
+
 * **Instagram:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. Turn it off and the button is back the next time your profile loads.
 
 * **Instagram:** With Hide Meta AI in search and Home's bar on, a keyword search's results no longer end in an Ask a follow-up bar with a + button. Before, only its topic pills went and the bar stayed at the bottom of the page. The header at the top of the results, with Back and your search, stays as it was, and turning the switch off brings the bar back on your next search.
