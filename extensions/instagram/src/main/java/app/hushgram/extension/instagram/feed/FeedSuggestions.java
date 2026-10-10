@@ -4,12 +4,15 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.os.SystemClock;
+
 import androidx.annotation.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -108,10 +111,22 @@ public final class FeedSuggestions {
      */
     private static final ThreadLocal<Boolean> JUST_TOOK_OUT = new ThreadLocal<>();
 
-    /** Set once one of Home's own reads has lost an item to {@link #filter} in this run. Tests clear it. */
+    /**
+     * How long Home's reads can go quiet and still be one read. A page of Home's feed, or its store of
+     * the last run, is read in one go, so a longer gap starts a new read ({@link #readingHome}).
+     */
+    static final long READ_GAP_MS = 2_000;
+
+    /** When {@link #homeItem} last ran, by {@link #clock}. Tests clear it. */
+    static volatile long homeReadAt;
+
+    /** The clock Home's reads are timed by. Tests stand in. */
+    static volatile LongSupplier clock = SystemClock::elapsedRealtime;
+
+    /** Set once Home's latest read has lost an item to {@link #filter}. Tests clear it. */
     static volatile boolean homeLost;
 
-    /** Set once one of Home's own reads has kept an item in this run. Tests clear it. */
+    /** Set once Home's latest read has kept an item. Tests clear it. */
     static volatile boolean homeKept;
 
     /** Whether Home's reads go through {@link #homeItem}, when a test says so instead of the build. */
@@ -158,8 +173,9 @@ public final class FeedSuggestions {
      * The helper {@link #filter} sits on also reads Explore's chain of posts and the shop and ad
      * feeds, and Home reads its store of the last run before its first page, so an item taken out
      * anywhere used to end a Home that was only waiting for that page, and Instagram drew its
-     * Welcome to Instagram card there for a few seconds at startup (#28). Without those reads in the
-     * build, it's once anything's been taken out.
+     * Welcome to Instagram card there for a few seconds at startup (#28). Only Home's latest read
+     * counts ({@link #readingHome}). Without those reads in the build, it's once anything's been taken
+     * out.
      */
     private static boolean suggestionsEmptiedHome() {
         Boolean forced = homeReadsForTests;
@@ -248,6 +264,7 @@ public final class FeedSuggestions {
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
+        readingHome();
         if (item == null) {
             if (lost) homeLost = true;
             return null;
@@ -255,6 +272,22 @@ public final class FeedSuggestions {
         Object kept = byType(item, typeOf);
         if (kept != null) homeKept = true;
         return kept;
+    }
+
+    /**
+     * Starts a new read of Home once the last item came more than {@link #READ_GAP_MS} ago, forgetting
+     * what the reads before it lost and kept. Instagram asks whether Home has ended only once Home is
+     * empty, so posts an earlier read kept (another account's before a switch, or an earlier load's)
+     * are no longer there. Remembered for the whole run, they held off the end of a Home whose next
+     * read lost everything, and it kept its loading placeholder for good (#104, #105).
+     */
+    private static void readingHome() {
+        long now = clock.getAsLong();
+        if (now - homeReadAt > READ_GAP_MS) {
+            homeLost = false;
+            homeKept = false;
+        }
+        homeReadAt = now;
     }
 
     /** [item], or null while the switch for its post's type is on. */
