@@ -2500,12 +2500,22 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
             "The lenient check refused the next version being prepared over the published index: $said"
         Assert-Throws { Invoke-Facts } "*patches-bundle.json version does not match v$nextVersion*" `
             'The strict check accepted an index that lags the source.'
+        # The published index still holds the old layout, an intro line and no version heading. While
+        # it lags the source that description is history and passes as it is. Once this release
+        # wrote the index (the strict run, and the 'no version heading' case above) it can't.
+        Set-FactsFile 'patches-bundle.json' { param($text) $text -replace '"description":\s*"[^"]*"', '"description": "HushGram v0.0.1: 3 patches for Instagram 1.2.3 (com.instagram.android)."' }
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*source $nextVersion is being prepared while the working index remains on $versionHere*") `
+            "The lenient check refused an old-layout description on a lagging index: $said"
+        Assert-Throws { Invoke-Facts } "*patches-bundle.json version does not match v$nextVersion*" `
+            'The strict check accepted an index that lags the source.'
+        Reset-FactsFile 'patches-bundle.json'
         # And the published version's heading can't go while the index still publishes it.
         Set-FactsFile 'CHANGELOG.md' { param($text) $text.Replace("## $versionHere (2026-09-30)", 'Some prose.') }
         Assert-Throws { Invoke-LenientFacts } "*no heading for $versionHere*" `
             'The lenient check accepted a CHANGELOG that dropped the version the index publishes.'
     } finally {
-        foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md')) { Reset-FactsFile $name }
+        foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md', 'patches-bundle.json')) { Reset-FactsFile $name }
     }
 
     # A dead link: the address has every right shape and names a release nobody published. GitHub

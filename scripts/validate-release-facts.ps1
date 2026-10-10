@@ -338,17 +338,19 @@ if ($SkipUrlCheck) {
         -FailureHint 'The README sends Android users through that page, so it must be available before release.'
 }
 Require-Match -Text $readme -Pattern "\b$patchCount patches\b" -Description 'README patch count'
-# Manager draws the description as the release's notes, so it opens on the version heading
+# Manager draws the description as the release's notes, so (once this release wrote it) it opens on the version heading
 # release_notes.py writes: "## [X.Y.Z](compare link) (date)", or "## X.Y.Z (date)" for a first release.
 # The patch count and the Instagram build live in the GitHub description and the README, and a
 # description that names them anyway has to name them right.
-Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
-    -Description 'published bundle description version heading'
 if ($indexLagsSource) {
     $descriptionVersion = "v$publishedVersion"
     if ($null -ne $publishedFacts.PatchCount) { $descriptionPatchCount = $publishedFacts.PatchCount }
     if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
 } else {
+    # Only an index this release wrote is held to the new layout. While it lags, the old
+    # description is history and stands as it is.
+    Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
+            -Description 'published bundle description version heading'
     if ($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) {
         throw 'bundle description patch count does not match the generated release facts.'
     }
