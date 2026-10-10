@@ -37,8 +37,11 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
+import kotlin.jvm.functions.Function1;
+
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -54,6 +57,7 @@ public class FeedDownloadButtonTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
     private final FeedDownloadButton.Actions original = FeedDownloadButton.actions;
+    private final FeedDownloadButton.Litho originalLitho = FeedDownloadButton.litho;
     private final Recorder recorder = new Recorder();
     private Activity activity;
 
@@ -353,5 +357,187 @@ public class FeedDownloadButtonTest {
         assertEquals(android.graphics.PixelFormat.TRANSLUCENT, glyph.getOpacity());
         assertEquals(48, glyph.getIntrinsicWidth());
         assertEquals(48, glyph.getIntrinsicHeight());
+    }
+
+    /** Instagram's classes behind the component row's bridges, as plain objects. */
+    private static final class FakeLitho implements FeedDownloadButton.Litho {
+        final List<String> calls = new ArrayList<>();
+        int drawable = 77;
+        Object icon = "icon";
+        boolean throwing;
+        Function1<Object, Object> click;
+        Function1<Object, Object> consume;
+        int id;
+        CharSequence description;
+        int usedDrawable;
+        Object savedSpec;
+
+        @Override public Object post(Object state) {
+            return "post of " + state;
+        }
+
+        @Override public Object item(Object state) {
+            return "item of " + state;
+        }
+
+        @Override public int drawable(Context context) {
+            return drawable;
+        }
+
+        @Override public Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume, int id,
+                                     CharSequence description, int drawable) {
+            if (throwing) throw new IllegalStateException("Instagram changed");
+            this.savedSpec = save;
+            this.click = click;
+            this.consume = consume;
+            this.id = id;
+            this.description = description;
+            this.usedDrawable = drawable;
+            return icon;
+        }
+    }
+
+    private static String report() {
+        return String.join("\n", HookStatus.report());
+    }
+
+    @Test
+    public void aComponentRowGetsTheIconSpecAheadOfSave() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            List<Object> row = new ArrayList<>(Collections.singletonList("share"));
+            FeedDownloadButton.litho(row, "save spec", "state");
+            assertEquals(Arrays.asList("share", "icon"), row);
+            assertEquals("made from Save's spec", "save spec", fake.savedSpec);
+            assertEquals(77, fake.usedDrawable);
+            assertTrue("a view id of its own", fake.id != 0 && fake.id != View.NO_ID);
+            assertEquals("Download", fake.description.toString());
+            String report = report();
+            assertTrue(report, report.contains("feed button placed (litho row)"));
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void theComponentIconKeepsOneIdAndTakesTheLongPress() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            FeedDownloadButton.litho(new ArrayList<>(), "save", "state");
+            int first = fake.id;
+            FeedDownloadButton.litho(new ArrayList<>(), "save", "state");
+            assertEquals("the same id on every compose", first, fake.id);
+            assertEquals(Boolean.TRUE, fake.consume.invoke(new Object()));
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void aComponentRowIsLeftAloneWhenTheSwitchIsOffOrPausedOrNothingCanBeSaved() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            List<Object> row = new ArrayList<>();
+            Settings.FEED_DOWNLOAD_BUTTON.save(false);
+            FeedDownloadButton.litho(row, "save", "state");
+            Settings.FEED_DOWNLOAD_BUTTON.save(true);
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            FeedDownloadButton.litho(row, "save", "state");
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+            Settings.DOWNLOAD_VIDEOS.save(false);
+            Settings.DOWNLOAD_PHOTOS.save(false);
+            FeedDownloadButton.litho(row, "save", "state");
+            assertTrue("nothing was added", row.isEmpty());
+            assertNull("Instagram's classes were not asked", fake.savedSpec);
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void aComponentRowThatCannotTakeTheIconIsLeftAsItWasAndCounted() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            List<Object> row = new ArrayList<>();
+            FeedDownloadButton.litho(null, "save", "state");
+            FeedDownloadButton.litho(row, null, "state");
+            FeedDownloadButton.litho(row, "save", null);
+            fake.drawable = 0;
+            FeedDownloadButton.litho(row, "save", "state");
+            fake.drawable = 5;
+            fake.icon = null;
+            FeedDownloadButton.litho(row, "save", "state");
+            fake.throwing = true;
+            FeedDownloadButton.litho(row, "save", "state");
+            assertTrue(row.isEmpty());
+            String report = report();
+            assertTrue(report, report.contains("feed button not placed (litho row)"));
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void aTapOnTheComponentIconSavesThePostWithTheFeedStateAndAnchorsOnTheTappedView() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            FeedDownloadButton.litho(new ArrayList<>(), "save", "row");
+            View tapped = new View(activity);
+            fake.click.invoke(tapped);
+            assertEquals(Collections.singletonList("save post of row item of row"), recorder.calls);
+
+            recorder.calls.clear();
+            recorder.pages = Arrays.asList("one", "two");
+            fake.click.invoke(new Object() {
+                @SuppressWarnings("unused") final View view = tapped;
+            });
+            assertEquals(Collections.singletonList("choose"), recorder.calls);
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void aTapWithNoViewFallsBackToTheActivityAndNeverThrows() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            FeedDownloadButton.litho(new ArrayList<>(), "save", "row");
+            Utils.setActivity(activity);
+            assertNull(fake.click.invoke(new Object()));
+            assertEquals(Collections.singletonList("save post of row item of row"), recorder.calls);
+
+            Settings.FEED_DOWNLOAD_BUTTON.save(false);
+            recorder.calls.clear();
+            assertNull(fake.click.invoke(null));
+            assertTrue("a switch turned off after the compose stops the tap", recorder.calls.isEmpty());
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    @Test
+    public void theViewAClickEventCameFromIsFoundInTheEventOrItsFields() {
+        View view = new View(activity);
+        assertSame(view, FeedDownloadButton.viewOf(view));
+        assertNull(FeedDownloadButton.viewOf(null));
+        assertNull(FeedDownloadButton.viewOf("no view"));
+        assertSame(view, FeedDownloadButton.viewOf(new Object() {
+            @SuppressWarnings("unused") final String other = "x";
+            @SuppressWarnings("unused") final View seen = view;
+        }));
+        assertSame(activity, FeedDownloadButton.activityOf(view));
+    }
+
+    @Test
+    public void theDownloadGlyphIsFoundByItsResourceNameAndMissingMeansNoIcon() {
+        assertEquals("a resource this app lacks", 0, originalLitho.drawable(activity));
     }
 }

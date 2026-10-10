@@ -6,7 +6,9 @@ package app.morphe.patches.instagram.download.video
 
 import app.morphe.ExtensionDex
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.share.REPOSTS_FEED_RESTORE
 import app.morphe.patches.instagram.share.REPOSTS_FEED_UFI
@@ -140,11 +142,226 @@ class FeedDownloadButtonHookTest {
         assertEquals("$what: its four arguments", listOf(4, 0, 1, 2, 3), listOf(call.registerCount, call.registerC, call.registerD, call.registerE, call.registerF))
     }
 
+    /**
+     * The rows Home draws as components: Save's icon spec is found in the one method that loads
+     * Save's id and the row's, the hook goes right after the spec's constructor with the list, the
+     * spec and the row state in three free low registers, and the three bridges are written.
+     */
+    @Test
+    fun theComponentRowIsFoundAndHookedRightAfterSavesIconSpec() {
+        val context = PatchContexts.of(lithoClasses())
+        val button = context.findFeedButtonSite(PAGE)
+        val site = context.findLithoSaveSite(button, PAGE)
+        assertEquals(BUILDER, site.type)
+        assertEquals("Lfixture/Icon;", site.specType)
+        assertEquals("Lfixture/Modifier;", site.modifierType)
+        assertEquals("Lfixture/Icon;->modifier:Lfixture/Modifier;", site.modifier.toString())
+        assertEquals("Lfixture/Icon;->scale:Landroid/widget/ImageView\$ScaleType;", site.scale.toString())
+        assertEquals("Lfixture/Icon;->color:I", site.color.toString())
+        assertEquals("Lfixture/Icon;->flag:Z", site.flag.toString())
+        assertEquals("Lfixture/Style;->id(Lfixture/Modifier;I)Lfixture/Modifier;", site.id.toString())
+        assertEquals("Lfixture/Style;->tap(Lfixture/Modifier;Lkotlin/jvm/functions/Function1;)Lfixture/Modifier;", site.click.toString())
+        assertEquals("Lfixture/Style;->hold(Lfixture/Modifier;Lkotlin/jvm/functions/Function1;)Lfixture/Modifier;", site.longClick.toString())
+        assertEquals("Lfixture/Style;->desc(Lfixture/Modifier;Ljava/lang/CharSequence;)Lfixture/Modifier;", site.description.toString())
+        assertEquals("$STATE->post:$MEDIA", site.media.toString())
+        assertEquals("$STATE->item:$ITEM", site.item.toString())
+        assertEquals(LIST_REGISTER, site.list)
+        assertEquals(SPEC_REGISTER, site.spec)
+        assertEquals(STATE_REGISTER, site.state)
+
+        context.addLithoDownloadButton(site)
+        val code = context.mutableClassDefBy(BUILDER).methods.single { it.name == "A0o" }.implementation!!.instructions.toList()
+        assertEquals("one component hook", 1, code.count { it.names(LITHO_BUTTON) })
+        assertEquals("right after the spec's constructor", site.at + 3, code.indexOfFirst { it.names(LITHO_BUTTON) })
+        assertEquals("Lfixture/Icon;-><init>(Landroid/widget/ImageView\$ScaleType;Lfixture/Modifier;Ljava/lang/Integer;IIZ)V", code[site.at - 1].reference())
+        val moves = (0..2).map { code[site.at + it] as TwoRegisterInstruction }
+        assertTrue(moves.all { it.opcode == Opcode.MOVE_OBJECT_FROM16 })
+        assertEquals(listOf(LIST_REGISTER, SPEC_REGISTER, STATE_REGISTER), moves.map { it.registerB })
+        val call = code[site.at + 3] as Instruction35c
+        assertEquals(listOf(3, moves[0].registerA, moves[1].registerA, moves[2].registerA),
+            listOf(call.registerCount, call.registerC, call.registerD, call.registerE))
+        assertTrue("three low registers of their own", moves.map { it.registerA }.toSet().let { it.size == 3 && it.all { r -> r < 16 } })
+        assertTrue("none of the three is a register the hook reads",
+            moves.none { it.registerA in listOf(LIST_REGISTER, SPEC_REGISTER, STATE_REGISTER) })
+        assertTrue("the list is added to right after", code[site.at + 4].opcode == Opcode.INVOKE_VIRTUAL && code[site.at + 4].reference().endsWith("->add(Ljava/lang/Object;)Z"))
+
+        val bridges = context.mutableClassDefBy(FEED_BUTTON_TYPE).methods.associateBy { it.name }
+        val post = bridges.getValue("lithoPost").implementation!!.instructions.toList()
+        assertEquals(Opcode.CHECK_CAST, post[0].opcode)
+        assertEquals("$STATE->post:$MEDIA", post[1].reference())
+        val item = bridges.getValue("lithoItem").implementation!!.instructions.toList()
+        assertEquals("$STATE->item:$ITEM", item[1].reference())
+        val icon = bridges.getValue("lithoIcon").implementation!!.instructions.toList().map { (it as? ReferenceInstruction)?.reference?.toString() }
+        for (needed in listOf(
+            site.modifier.toString(), site.id.toString(), site.click.toString(), site.longClick.toString(),
+            site.description.toString(), site.scale.toString(), site.color.toString(), site.flag.toString(), site.specConstructor.toString(),
+        )) assertEquals("the icon bridge uses $needed once", 1, icon.count { it == needed })
+        assertEquals("Save's spec cast once, a new one made once", 2, icon.count { it == "Lfixture/Icon;" })
+    }
+
+    @Test
+    fun theComponentHookAndTheBinderHookLandTogetherAndTheHookGoesInOnce() {
+        val context = PatchContexts.of(lithoClasses())
+        val button = context.findFeedButtonSite(PAGE)
+        val site = context.findLithoSaveSite(button, PAGE)
+        context.addFeedDownloadButton(button)
+        context.addLithoDownloadButton(site)
+        val binder = context.mutableClassDefBy(BINDER).methods.single { it.name == "bind" }.implementation!!.instructions.toList()
+        assertEquals(1, binder.count { it.names(FEED_BUTTON) })
+        assertEquals("the binder hook is not the component hook", 0, binder.count { it.names(LITHO_BUTTON) })
+        val builder = context.mutableClassDefBy(BUILDER).methods.single { it.name == "A0o" }.implementation!!.instructions.toList()
+        assertEquals(0, builder.count { it.names(FEED_BUTTON) })
+        assertEquals(1, builder.count { it.names(LITHO_BUTTON) })
+    }
+
+    @Test
+    fun aBuildWhoseComponentRowIsNotWhatTheHookReadsFailsThePatch() {
+        for ((case, classes) in mapOf(
+            "no builder" to lithoClasses(rowId = 0x7f0b0001),
+            "two builders" to lithoClasses(twoBuilders = true),
+            "Save's id loaded twice" to lithoClasses(saveTwice = true),
+            "no description style" to lithoClasses(description = false),
+            "one function style" to lithoClasses(functionStyles = 1),
+            "three function styles" to lithoClasses(functionStyles = 3),
+            "no list add" to lithoClasses(add = false),
+            "the list rewritten before the add" to lithoClasses(rewriteList = true),
+            "the row state rewritten before the spec" to lithoClasses(rewriteState = true),
+            "a spec that keeps no modifier" to lithoClasses(specKeepsModifier = false),
+            "no feed state field" to lithoClasses(items = 0),
+            "two feed state fields" to lithoClasses(items = 2),
+        )) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(case, PatchException::class.java) {
+                context.findLithoSaveSite(context.findFeedButtonSite(PAGE), PAGE)
+            }
+            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Download any video: "))
+        }
+    }
+
+    @Test
+    fun aComponentBuilderWithNoFreeLowRegistersFailsBeforeAnyChange() {
+        val context = PatchContexts.of(lithoClasses(busy = true))
+        val site = context.findLithoSaveSite(context.findFeedButtonSite(PAGE), PAGE)
+        assertThrows(PatchException::class.java) { context.addLithoDownloadButton(site) }
+        val code = context.mutableClassDefBy(BUILDER).methods.single { it.name == "A0o" }.implementation!!.instructions.toList()
+        assertEquals("nothing was hooked", 0, code.count { it.names(LITHO_BUTTON) })
+    }
+
     private fun Instruction.names(reference: String) = (this as? ReferenceInstruction)?.reference?.toString() == reference
 
     private fun Instruction.reference() = (this as ReferenceInstruction).reference.toString()
 
     private companion object {
+        const val BUILDER = "Lfixture/RowBuilder;"
+        const val FEED_BUTTON_TYPE = "Lapp/hushgram/extension/instagram/download/FeedDownloadButton;"
+        const val SCALE = "Landroid/widget/ImageView\$ScaleType;"
+        const val LIST_REGISTER = 5
+        const val SPEC_REGISTER = 6
+        const val STATE_REGISTER = 3
+
+        /** A method whose body is [smali], assembled the way the patches assemble what they add. */
+        fun assembled(owner: String, name: String, parameters: List<String>, returns: String, flags: Int, registers: Int, smali: String): ImmutableMethod =
+            ImmutableMethod.of(
+                ImmutableMethod(
+                    owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                    ImmutableMethodImplementation(registers, emptyList(), null, null),
+                ).toMutable().apply { addInstructions(0, smali) },
+            )
+
+        /**
+         * The component builder as 450 has it, in the parts the hook reads: the row state narrowed
+         * to, the list, Save's modifier given a description, an id, a tap and a long press, the
+         * icon spec built from it, and the spec added to the list. The spec keeps the modifier,
+         * the scale type, the drawable, the color and the flag. Every option breaks one thing.
+         */
+        fun lithoClasses(
+            rowId: Int = 0x7f0b374c,
+            twoBuilders: Boolean = false,
+            saveTwice: Boolean = false,
+            description: Boolean = true,
+            functionStyles: Int = 2,
+            add: Boolean = true,
+            rewriteList: Boolean = false,
+            rewriteState: Boolean = false,
+            specKeepsModifier: Boolean = true,
+            items: Int = 1,
+            busy: Boolean = false,
+        ): List<ClassDef> {
+            val modifier = "Lfixture/Modifier;"
+            val function = "Lkotlin/jvm/functions/Function1;"
+            val builderBody = buildString {
+                appendLine("check-cast v$STATE_REGISTER, $STATE")
+                if (rewriteState) appendLine("const/4 v$STATE_REGISTER, 0x0")
+                appendLine("new-instance v$LIST_REGISTER, Ljava/util/ArrayList;")
+                appendLine("invoke-direct { v$LIST_REGISTER }, Ljava/util/ArrayList;-><init>()V")
+                appendLine("const v1, $rowId")
+                appendLine("sget-object v2, $modifier->NONE:$modifier")
+                if (description) {
+                    appendLine("const-string v4, \"Save\"")
+                    appendLine("invoke-static { v2, v4 }, Lfixture/Style;->desc(${modifier}Ljava/lang/CharSequence;)$modifier")
+                    appendLine("move-result-object v2")
+                }
+                appendLine("const v1, 0x7f0b370e")
+                appendLine("invoke-static { v2, v1 }, Lfixture/Style;->id(${modifier}I)$modifier")
+                appendLine("move-result-object v2")
+                if (saveTwice) appendLine("const v0, 0x7f0b370e")
+                appendLine("const/4 v9, 0x0")
+                for (style in listOf("tap", "hold", "extra").take(functionStyles)) {
+                    appendLine("invoke-static { v2, v9 }, Lfixture/Style;->$style($modifier$function)$modifier")
+                    appendLine("move-result-object v2")
+                }
+                appendLine("new-instance v$SPEC_REGISTER, Lfixture/Icon;")
+                appendLine("sget-object v7, $SCALE->CENTER:$SCALE")
+                appendLine("move-object v8, v2")
+                appendLine("const/4 v10, 0x0")
+                appendLine("const/4 v11, 0x0")
+                appendLine("const/4 v12, 0x0")
+                appendLine("invoke-direct/range { v$SPEC_REGISTER .. v12 }, Lfixture/Icon;-><init>($SCALE${modifier}Ljava/lang/Integer;IIZ)V")
+                if (rewriteList) appendLine("new-instance v$LIST_REGISTER, Ljava/util/ArrayList;")
+                if (add) appendLine("invoke-virtual { v$LIST_REGISTER, v$SPEC_REGISTER }, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z")
+                if (busy) appendLine("invoke-static/range { v0 .. v13 }, Lfixture/Sink;->all()V")
+                appendLine("return-object v$SPEC_REGISTER")
+            }
+            fun builder(type: String) = classOf(
+                type, emptyList(),
+                listOf(assembled(type, "A0o", listOf("Lfixture/Composer;"), "Lfixture/Node;", AccessFlags.PUBLIC.value, 16, builderBody)),
+            )
+            val iconConstructor = { _: Boolean ->
+                assembled(
+                    "Lfixture/Icon;", "<init>",
+                    listOf(SCALE, modifier, "Ljava/lang/Integer;", "I", "I", "Z"), "V",
+                    AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, 7,
+                    buildString {
+                        appendLine("invoke-direct { p0 }, Ljava/lang/Object;-><init>()V")
+                        appendLine("iput-object p1, p0, Lfixture/Icon;->scale:$SCALE")
+                        if (specKeepsModifier) appendLine("iput-object p2, p0, Lfixture/Icon;->modifier:$modifier")
+                        appendLine("iput-object p3, p0, Lfixture/Icon;->tint:Ljava/lang/Integer;")
+                        appendLine("iput p4, p0, Lfixture/Icon;->drawable:I")
+                        appendLine("iput p5, p0, Lfixture/Icon;->color:I")
+                        appendLine("iput-boolean p6, p0, Lfixture/Icon;->flag:Z")
+                        appendLine("return-void")
+                    },
+                )
+            }
+            val icon = classOf(
+                "Lfixture/Icon;",
+                listOf(
+                    field("Lfixture/Icon;", "scale", SCALE), field("Lfixture/Icon;", "modifier", modifier),
+                    field("Lfixture/Icon;", "tint", "Ljava/lang/Integer;"), field("Lfixture/Icon;", "drawable", "I"),
+                    field("Lfixture/Icon;", "color", "I"), field("Lfixture/Icon;", "flag", "Z"),
+                ),
+                listOf(iconConstructor(false)),
+            )
+            val state = classOf(
+                STATE,
+                listOf(field(STATE, "post", MEDIA)) + List(items) { field(STATE, if (it == 0) "item" else "item$it", ITEM) },
+                emptyList(),
+            )
+            val base = classes().filter { it.type != STATE }
+            return base + state + icon + builder(BUILDER) + (if (twoBuilders) listOf(builder("Lfixture/OtherBuilder;")) else emptyList()) +
+                ExtensionDex.classDef(FEED_BUTTON_TYPE)
+        }
+
         const val BINDER = "Lfixture/UfiRow;"
         const val HOLDER = "Lfixture/UfiHolder;"
         const val STATE = "Lfixture/RowState;"

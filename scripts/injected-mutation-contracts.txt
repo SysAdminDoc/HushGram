@@ -945,8 +945,13 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # right before their write, with Hide the Repost button's hooks in the same constructor.
 # The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
 # view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
-# the reason above: the binder is picked by resource IDs. FeedDownloadButtonHookTest checks on every
+# the reason above: the binder is picked by resource IDs. DownloadVideoHookTest checks on every
 # 450 build that it lands once at the start and reads the Save button, post, state and activity.
+# Rows Home draws as components never reach that binder, so FeedDownloadButton.litho is called right
+# after Save's icon spec is constructed in the one method that loads Save's id and the row's
+# (06yM.A0o on 385611438). No rule, for the same reason: that method is picked by resource IDs, and
+# the spec by the shape of its constructor. DownloadVideoHookTest checks on every 450 build that the
+# hook lands once, directly after the constructor, with the list, spec and row state still intact.
 # Hide the Share button passes the same state's Share button flag and share count flag through
 # ShareButton.feedState the same way, with no rule for the same reason. Its Reels guard is first in
 # the check that decides whether a reel shows the Share button, and in no other method.

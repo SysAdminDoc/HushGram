@@ -161,7 +161,10 @@ val downloadVideoPatch = bytecodePatch(
     execute {
         requireStatusMethod("videoDownload")
         val page = offerDownloadOnEveryVideo()
-        addFeedDownloadButton(findFeedButtonSite(page))
+        val button = findFeedButtonSite(page)
+        val litho = findLithoSaveSite(button, page)
+        addFeedDownloadButton(button)
+        addLithoDownloadButton(litho)
         enableStatus("videoDownload")
     }
 }

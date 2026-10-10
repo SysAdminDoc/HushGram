@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Canvas;
@@ -30,7 +31,11 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.List;
+
+import kotlin.jvm.functions.Function1;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -58,6 +63,15 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * asks first: Download saves the page on screen, as its menu row does, and Save all saves every
  * page, as its other row does.
  *
+ * <p>Most of Home draws the same row as components instead: a Litho host that only Instagram's
+ * own mounting may add children to (addView on it throws), whose Save button is a component spec
+ * built each time the row is composed. There the patch calls {@link #litho} right after Save's
+ * spec is made, with the list of buttons Save is about to join, the spec and the row's state. A
+ * spec for the Download icon is made from Save's, its modifier carrying Save's size and padding
+ * with a new id, description and tap, and put in the list ahead of Save, so Instagram lays it out,
+ * mounts it and recycles it like its own buttons. The first hook above stays for the rows still
+ * bound the old way (#97).
+ *
  * <p>Every part fails open. With the switch off, or while paused, the icon is hidden, and a row
  * that can't take it is left as it was.
  */
@@ -65,12 +79,18 @@ public final class FeedDownloadButton {
     private static final String SOURCE = "FeedDownloadButton";
     private static final String COUNT_PLACED = "feed button placed";
     private static final String COUNT_REFUSED = "feed button not placed";
+    private static final String COUNT_LITHO_PLACED = "feed button placed (litho row)";
+    private static final String COUNT_LITHO_REFUSED = "feed button not placed (litho row)";
+    /** Instagram's download glyphs, by resource name since the numbers change; the first one found is used. */
+    private static final String[] ICON_NAMES = {"instagram_download_outline_24", "instagram_download_pano_outline_24"};
     /** The theme attribute Instagram colors its action-row icons with; looked up by name since the numbers change. */
     private static final String ICON_COLOR_ATTR = "igds_color_primary_icon";
     private static final int ICON_DP = 24;
     private static final int GAP_DP = 4;
 
     private static volatile boolean logged;
+    private static volatile boolean lithoLogged;
+    private static volatile int lithoId;
 
     /** What a tap saves, and what shows the carousel choice. Replaced by tests. */
     interface Actions {
@@ -113,6 +133,167 @@ public final class FeedDownloadButton {
             Feedback.show(context.getApplicationContext(), L10n.t(context, "Nothing to download on this post"), false);
         }
     };
+
+    /**
+     * What the component-backed row needs from Instagram's own classes, which the patch writes in
+     * as bridges. Replaced by tests.
+     */
+    interface Litho {
+        Object post(Object state);
+
+        Object item(Object state);
+
+        int drawable(Context context);
+
+        Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume, int id,
+                    CharSequence description, int drawable);
+    }
+
+    static Litho litho = new Litho() {
+        @Override public Object post(Object state) {
+            return lithoPost(state);
+        }
+
+        @Override public Object item(Object state) {
+            return lithoItem(state);
+        }
+
+        @Override public int drawable(Context context) {
+            Resources resources = context.getResources();
+            for (String name : ICON_NAMES) {
+                int found = resources.getIdentifier(name, "drawable", context.getPackageName());
+                if (found != 0) return found;
+            }
+            return 0;
+        }
+
+        @Override public Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume,
+                                     int id, CharSequence description, int drawable) {
+            return lithoIcon(save, click, consume, id, description, drawable);
+        }
+    };
+
+    /** The post a row's state keeps. The patch replaces this body. */
+    public static Object lithoPost(Object state) {
+        return null;
+    }
+
+    /** The feed state a row's state keeps, which knows the carousel page on screen. The patch replaces this body. */
+    public static Object lithoItem(Object state) {
+        return null;
+    }
+
+    /**
+     * A spec for the Download icon made from [save], Instagram's spec for Save: its modifier with
+     * the id [id], the tap [click], a long press that does nothing, the description and [drawable].
+     * The patch replaces this body.
+     */
+    public static Object lithoIcon(Object save, Object click, Object consume, int id, CharSequence description, int drawable) {
+        return null;
+    }
+
+    /**
+     * Called right after Instagram makes the component spec for Save, before it joins [row], the
+     * list of the right-hand buttons: [save] is that spec and [state] the row's state. Puts the
+     * Download icon's spec in [row] ahead of it. Never throws.
+     */
+    public static void litho(@Nullable List<Object> row, @Nullable Object save, @Nullable Object state) {
+        try {
+            if (row == null || save == null || state == null) return;
+            if (!enabled()) return;
+            HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
+            Object icon = lithoSpec(save, state);
+            if (icon == null) {
+                HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_LITHO_REFUSED);
+                return;
+            }
+            row.add(icon);
+            HookStatus.counted(FamilyNames.VIDEO_DOWNLOAD, COUNT_LITHO_PLACED);
+            if (!lithoLogged) {
+                lithoLogged = true;
+                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed download button added to a component row");
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed download button (litho row)", failure);
+        }
+    }
+
+    @Nullable
+    private static Object lithoSpec(Object save, Object state) {
+        Context context = Utils.getContext();
+        if (context == null) return null;
+        int drawable = litho.drawable(context);
+        if (drawable == 0) return null;
+        Click click = new Click(litho.post(state), litho.item(state));
+        if (lithoId == 0) lithoId = View.generateViewId();
+        return litho.icon(save, click, Consume.INSTANCE, lithoId, L10n.t(context, "Download"), drawable);
+    }
+
+    /** A tap on the component icon: what the bound icon's tap does, with the view the tap came from as the anchor. */
+    static final class Click implements Function1<Object, Object> {
+        final Object post;
+        final Object itemState;
+
+        Click(Object post, Object itemState) {
+            this.post = post;
+            this.itemState = itemState;
+        }
+
+        @Override public Object invoke(Object event) {
+            try {
+                View anchor = viewOf(event);
+                Activity activity = activityOf(anchor);
+                if (anchor == null && activity != null) anchor = activity.getWindow().getDecorView();
+                if (anchor == null) return null;
+                tap(anchor, post, itemState, activity);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "feed download button tap (litho row)", failure);
+            }
+            return null;
+        }
+    }
+
+    /** The long press on the icon: taken, so Save's own menu doesn't open from it. */
+    static final class Consume implements Function1<Object, Object> {
+        static final Consume INSTANCE = new Consume();
+
+        @Override public Object invoke(Object event) {
+            return Boolean.TRUE;
+        }
+    }
+
+    /** The view a click event came from: the event itself, or the first view one of its fields holds. */
+    @Nullable
+    static View viewOf(@Nullable Object event) {
+        if (event == null) return null;
+        if (event instanceof View) return (View) event;
+        for (Class<?> type = event.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+            for (Field field : type.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()) || !View.class.isAssignableFrom(field.getType())) continue;
+                try {
+                    field.setAccessible(true);
+                    Object value = field.get(event);
+                    if (value instanceof View) return (View) value;
+                } catch (ReflectiveOperationException | RuntimeException unreadable) {
+                    // The next field.
+                }
+            }
+        }
+        return null;
+    }
+
+    /** The activity [view] belongs to, else the one HushGram last saw. */
+    @Nullable
+    static Activity activityOf(@Nullable View view) {
+        if (view != null) {
+            Context context = view.getContext();
+            while (context instanceof ContextWrapper) {
+                if (context instanceof Activity) return (Activity) context;
+                context = ((ContextWrapper) context).getBaseContext();
+            }
+        }
+        return Utils.getActivity();
+    }
 
     private FeedDownloadButton() {
     }

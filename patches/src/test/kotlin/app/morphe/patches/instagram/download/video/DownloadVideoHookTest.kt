@@ -593,7 +593,7 @@ class DownloadVideoHookTest {
 
     private fun offersDownloadOnEveryVideo(bundle: File, label: String) {
         val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, MEDIA_EXT, OPTION)
-        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA))
+        val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA), ExtensionDex.classDef(FEED_BUTTON.substringBefore("->")))
         FixtureDex.forEach(bundle) { dex ->
             val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) == ELIGIBLE_MARKER }
             val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
@@ -635,10 +635,22 @@ class DownloadVideoHookTest {
         }
         val feed = binders.flatMap { listOf(it.definingClass) + it.parameterTypes.map(Any::toString) }.filter { type -> classes.none { it.type == type } }.toSet()
         if (feed.isNotEmpty()) classes += FixtureDex.classes(bundle, feed).values
+        // The component row's builder, which composes Save's button, and the icon spec it builds.
+        val rowBuilders = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            val loads = method.implementation?.instructions?.filter { it is NarrowLiteralInstruction && it.opcode == Opcode.CONST }
+                ?.map { (it as NarrowLiteralInstruction).narrowLiteral }.orEmpty()
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && SAVE_BUTTON_ID in loads && ROW_BUTTONS_ID in loads
+        }
+        val specs = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.name == "<init>" && it.parameterTypes.size == 6 && it.parameterTypes[0] == "Landroid/widget/ImageView${'$'}ScaleType;" }
+            .map { it.definingClass }
+        val lithoTypes = (rowBuilders.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
+        if (lithoTypes.isNotEmpty()) classes += FixtureDex.classes(bundle, lithoTypes).values
         val context = PatchContexts.of(classes)
 
         val page = context.offerDownloadOnEveryVideo()
         assertFeedDownloadButton(context, page, label)
+        assertLithoDownloadButton(context, page, label)
 
         // Copy caption reads Media's caption, then the comment's text through its interface,
         // by the name the tree-backed class that holds the text's hash gives the getter.
@@ -739,6 +751,38 @@ class DownloadVideoHookTest {
         assertEquals("$label: the button hook stays once", 1, both.count { it.referenceText() == FEED_BUTTON })
     }
 
+    /**
+     * In each build the component row's builder is found by Save's id and the row's, Save's icon spec
+     * by its constructor, and the hook lands once right after it with three free low registers
+     * carrying the list, the spec and the state, each still holding what the hook reads. The bridges
+     * go through the build's own post and feed state fields and its own modifier styles.
+     */
+    private fun assertLithoDownloadButton(context: BytecodePatchContext, page: PageIndex, label: String) {
+        val button = context.findFeedButtonSite(page)
+        val site = context.findLithoSaveSite(button, page)
+        context.addLithoDownloadButton(site)
+        val code = context.method(site.type, site.name, site.parameters).code()
+        val hook = code.indexOfFirst { it.referenceText() == LITHO_BUTTON }
+        assertEquals("$label: one component hook", 1, code.count { it.referenceText() == LITHO_BUTTON })
+        assertEquals("$label: three moves then the call, right after the constructor", site.at + 3, hook)
+        assertEquals("$label: Save's icon spec", site.specConstructor.toString(), code[site.at - 1].referenceText())
+        val moves = (0..2).map { code[site.at + it] as TwoRegisterInstruction }
+        assertEquals("$label: the list, the spec and the state", listOf(site.list, site.spec, site.state), moves.map { it.registerB })
+        assertTrue("$label: low registers of their own", moves.map { it.registerA }.let { it.toSet().size == 3 && it.all { r -> r < 16 } })
+        val list = code.drop(hook + 1).firstOrNull { it.referenceText()?.endsWith("->add(Ljava/lang/Object;)Z") == true }
+        assertEquals("$label: Save's button is added to the same list after", site.list, (list as Instruction35c).registerC)
+        assertEquals("$label: the row state is the one the binder reads", button.media.definingClass, site.stateType)
+        assertEquals("$label: the post is read from the same field", button.media.toString(), site.media.toString())
+        assertEquals("$label: the feed state is the carousel page's", page.index.definingClass, site.item.type)
+        assertTrue("$label: tap and long press differ", site.click.toString() != site.longClick.toString())
+        val bridges = context.classDefBy(FEED_BUTTON.substringBefore("->")).methods.associateBy { it.name }
+        assertEquals("$label: the post bridge", site.media.toString(), bridges.getValue("lithoPost").code()[1].referenceText())
+        assertEquals("$label: the feed state bridge", site.item.toString(), bridges.getValue("lithoItem").code()[1].referenceText())
+        val icon = bridges.getValue("lithoIcon").code().map { it.referenceText() }
+        for (used in listOf(site.id, site.click, site.longClick, site.description, site.specConstructor)) {
+            assertEquals("$label: the icon bridge calls $used", 1, icon.count { it == used.toString() })
+        }
+    }
     private val videoBridges = setOf(
         "videoVersions", "dashManifest", "mediaId", "owner", "takenAt", "username", "versionUrl", "versionWidth", "versionHeight",
         "imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight", "caption", "captionText",
