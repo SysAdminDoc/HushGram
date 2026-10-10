@@ -764,6 +764,13 @@ once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->saveCover(L
 # taking a flag and answering a list that reads "Why you're seeing this" and Report. It returns
 # once on 449, and allow() goes in before the return, so it's one call and not the first.
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->allow(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
+# Hide posts from this account (Hide suggested posts) puts its own hooks in the same three places Download any video
+# uses, so it works with Download left out: offer() where anyone else's rows start, the option and the tap in the
+# handler of a tapped option, and allow() before the return of the short menu's list of kept options.
+once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
+once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->option()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
+once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->hide(Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
+once-call Lapp/hushgram/extension/instagram/feed/HideAccountRow;->allow(Ljava/util/List;)Ljava/util/List; in static (Z)Ljava/util/List; holding Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->WHY_AM_I_SEEING_THIS:Lcom/instagram/feed/media/mediaoption/MediaOption$Option; Lcom/instagram/feed/media/mediaoption/MediaOption$Option;->REPORT:Lcom/instagram/feed/media/mediaoption/MediaOption$Option;
 #
 # Tap to play: IgGrootPlayer's play asks allowDirectStart() first, its prepare tells rebound()
 # first, and the autoplay check hands its answer to autoplayAllowed() where it returns, once on

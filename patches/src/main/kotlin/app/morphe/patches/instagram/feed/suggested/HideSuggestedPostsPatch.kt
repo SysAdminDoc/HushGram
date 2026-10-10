@@ -84,10 +84,13 @@ val hideSuggestedPostsPatch = bytecodePatch(
         // The post type switches are found whole before their part changes anything, so a build
         // where Home's reads or a post's type moved gets the rest of the patch alone.
         homeFeedTypesOrWarn()?.let {
+            // Found with the rest, before anything is written: the menu row reads the author stub it fills.
+            val menuRow = hideAccountRowOrWarn()
             it.write()
             // Hidden accounts tells signed-in accounts apart when Home's cache source is found too.
             // Without it, one list counts for every account.
             homeAccountOrWarn()?.write()
+            menuRow?.write()
             enableStatus(FEED_TYPES_STATUS)
         }
         enableStatus("feedSuggestions")
@@ -122,11 +125,13 @@ internal class HomeFeedTypes(
     private val owner: Method,
     private val username: Method,
     private val authorStub: MutableMethod,
+    private val postAuthorStub: MutableMethod,
 ) {
     fun write(): Int {
         fillIntStub(stub, mediaType, "Ljava/lang/Integer;->intValue()I")
         fillIntStub(likedStub, hasLiked, "Ljava/lang/Boolean;->booleanValue()Z")
         fillAuthorStub()
+        fillPostAuthorStub()
         val filtered = reads.filterWith(HOME_TYPES_FILTER)
         reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED)
         return filtered
@@ -156,6 +161,29 @@ internal class HomeFeedTypes(
                 invoke-virtual { p0 }, $unbox
                 move-result p0
                 return p0
+            """,
+        )
+    }
+
+    /**
+     * Fills HiddenAccounts.authorOfPost, a static (Object)String stub, to read a Media's user and that
+     * user's username, or null when the post has no user. Hide posts from this account reads the
+     * post a menu is open on with it. Each way out returns on its own.
+     */
+    private fun fillPostAuthorStub() {
+        postAuthorStub.addInstructionsWithLabels(
+            0,
+            """
+                check-cast p0, $MEDIA
+                invoke-virtual { p0 }, $MEDIA->${owner.name}()${owner.returnType}
+                move-result-object p0
+                if-nez p0, :user
+                const/4 p0, 0x0
+                return-object p0
+                :user
+                invoke-virtual { p0 }, $USER->${username.name}()${username.returnType}
+                move-result-object p0
+                return-object p0
             """,
         )
     }
@@ -200,12 +228,13 @@ internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
     val stub = staticStub(FEED_SUGGESTIONS, "mediaType", "I")
     val likedStub = staticStub(FEED_SUGGESTIONS, "liked", "I")
     val authorStub = staticStub(FEED_SUGGESTIONS, "author", STRING)
+    val postAuthorStub = staticStub(HIDDEN_ACCOUNTS, "authorOfPost", STRING)
     val post = itemPost(reads.itemType)
     val mediaType = publicGetter(MEDIA, "media_type", "Ljava/lang/Integer;")
     val hasLiked = publicGetter(MEDIA, "has_liked", "Ljava/lang/Boolean;")
     val owner = publicGetter(MEDIA, "user", USER)
     val username = publicGetter(USER, "username", STRING)
-    HomeFeedTypes(reads, post, mediaType, stub, hasLiked, likedStub, owner, username, authorStub)
+    HomeFeedTypes(reads, post, mediaType, stub, hasLiked, likedStub, owner, username, authorStub, postAuthorStub)
 } catch (moved: PatchException) {
     patchLog.warning(
         "${moved.message}. Hide suggested posts goes in without Hide videos, Hide photos, Hide carousels, " +

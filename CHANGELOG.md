@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Hidden accounts is quicker to fill now. A post's menu in Home and Following has a new row, Hide posts from this account, and tapping it adds the poster to your list for the account you're signed in to and says so. Their posts leave Home the next time you pull to refresh. It's part of Hide suggested posts, so it needs that patch in your build, and it stays out of the menu while HushGram is paused. It doesn't need Download any video, and the Download rows work as they did. Diagnostics counts the rows added and the accounts hidden this way.
+
 * **Instagram:** Tab bar has a new row, Start tab, under Hide the Profile tab. Pick Search, Messages, Reels or Profile and Instagram opens on that tab when you start it from its icon. It starts at Home, which leaves Instagram's own start alone. A notification, a link or a shortcut still opens what it was meant for, so a message notification lands on its chat. If the tab you picked is hidden, or isn't on your bar (Messages is only on some accounts), Instagram opens on Home. Restart Instagram after changing it.
 
 * **Instagram:** Tab bar has three new switches, Hide the Search tab, Hide the Create tab and Hide the Profile tab. They all start off. Turn one on and restart Instagram, and that tab is gone from the bar, which closes up with no gap and no swipe to it. Tapping a link that would've opened a hidden Search or Profile takes you to Home. Home stays, so the bar never ends up empty. They ride on Hide the Reels tab's patch, and Hide the Reels tab and Show the Reels tab work as before.

@@ -658,6 +658,9 @@ Hide their posts	Beiträge ausblenden
 Posts from @%1$s are hidden	Beiträge von @%1$s sind ausgeblendet
 Posts from @%1$s show again	Beiträge von @%1$s werden wieder angezeigt
 A username is up to 30 letters, numbers, dots and underscores	Ein Benutzername hat bis zu 30 Buchstaben, Ziffern, Punkte und Unterstriche
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	Beiträge dieses Kontos ausblenden
+Couldn't hide this account	Dieses Konto konnte nicht ausgeblendet werden
 %1$d mentions	%1$d Erwähnungen
 %1$s, see who this story mentions	%1$s, sieh dir an, wen diese Story erwähnt
 1 mention	1 Erwähnung

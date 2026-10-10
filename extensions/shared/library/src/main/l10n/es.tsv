@@ -658,6 +658,9 @@ Hide their posts	Ocultar sus publicaciones
 Posts from @%1$s are hidden	Las publicaciones de @%1$s están ocultas
 Posts from @%1$s show again	Las publicaciones de @%1$s vuelven a mostrarse
 A username is up to 30 letters, numbers, dots and underscores	Un nombre de usuario tiene hasta 30 letras, números, puntos y guiones bajos
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	Ocultar publicaciones de esta cuenta
+Couldn't hide this account	No se pudo ocultar esta cuenta
 %1$d mentions	%1$d menciones
 %1$s, see who this story mentions	%1$s, mira a quién menciona esta historia
 1 mention	1 mención

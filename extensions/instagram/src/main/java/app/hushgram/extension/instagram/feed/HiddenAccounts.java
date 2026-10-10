@@ -100,6 +100,14 @@ public final class HiddenAccounts {
         return null;
     }
 
+    /**
+     * The username of whoever posted [media], a Media, or null when it doesn't say. The patch writes
+     * the body, which reads the post's user and that user's username. Null as built.
+     */
+    public static String authorOfPost(Object media) {
+        return null;
+    }
+
     /** The signed-in account: Home's this run, else the one saved last, else "" when none has been seen. */
     static String current() {
         String id = account;

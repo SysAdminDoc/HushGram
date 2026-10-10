@@ -167,6 +167,7 @@ class HomeFeedTypesHookTest {
             media(),
             user(),
             ExtensionDex.classDef(FEED_SUGGESTIONS),
+            ExtensionDex.classDef(HIDDEN_ACCOUNTS),
         )
 
     @Test
@@ -359,6 +360,31 @@ class HomeFeedTypesHookTest {
         assertEquals("$USER->A89()Ljava/lang/String;", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
         val p0 = (code[0] as OneRegisterInstruction).registerA
         assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+    }
+
+    /**
+     * HiddenAccounts.authorOfPost, which Hide posts from this account reads a menu's post with, takes
+     * the Media itself and reads its user and the user's username, null when there is no user.
+     */
+    @Test
+    fun thePostAuthorStubReadsTheMediasUserAndTheUsername() {
+        val context = PatchContexts.of(classes())
+
+        requireNotNull(context.homeFeedTypesOrWarn()).write()
+
+        val code = context.mutableClassDefBy(HIDDEN_ACCOUNTS).methods.single { it.name == "authorOfPost" }.instructions()
+        assertEquals(
+            listOf(
+                Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4,
+                Opcode.RETURN_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT,
+            ),
+            code.take(9).map { it.opcode },
+        )
+        assertEquals(MEDIA, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("$MEDIA->A3R()$USER", ((code[1] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("$USER->A89()Ljava/lang/String;", ((code[6] as ReferenceInstruction).reference as MethodReference).toString())
+        val p0 = (code[0] as OneRegisterInstruction).registerA
+        assertTrue("the body uses p0 alone", code.take(9).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
     }
 
     /** With Hide the home feed in too, each read goes through both filters once, whichever applied first. */

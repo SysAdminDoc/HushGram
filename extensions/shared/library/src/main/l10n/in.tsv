@@ -658,6 +658,9 @@ Hide their posts	Sembunyikan postingannya
 Posts from @%1$s are hidden	Postingan dari @%1$s disembunyikan
 Posts from @%1$s show again	Postingan dari @%1$s ditampilkan lagi
 A username is up to 30 letters, numbers, dots and underscores	Nama pengguna berisi hingga 30 huruf, angka, titik, dan garis bawah
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	Sembunyikan postingan dari akun ini
+Couldn't hide this account	Tidak bisa menyembunyikan akun ini
 %1$d mentions	%1$d sebutan
 %1$s, see who this story mentions	%1$s, lihat siapa yang disebut cerita ini
 1 mention	1 sebutan

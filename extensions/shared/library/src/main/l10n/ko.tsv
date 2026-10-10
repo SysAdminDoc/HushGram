@@ -657,6 +657,9 @@ Hide their posts	게시물 숨기기
 Posts from @%1$s are hidden	@%1$s 님의 게시물을 숨겼습니다
 Posts from @%1$s show again	@%1$s 님의 게시물을 다시 표시합니다
 A username is up to 30 letters, numbers, dots and underscores	사용자 이름은 영문자, 숫자, 마침표, 밑줄로 30자까지입니다
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	이 계정의 게시물 숨기기
+Couldn't hide this account	이 계정을 숨길 수 없습니다
 %1$d mentions	언급 %1$d개
 %1$s, see who this story mentions	%1$s, 이 스토리에서 언급한 사람 보기
 1 mention	언급 1개

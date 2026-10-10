@@ -23,6 +23,10 @@ import app.morphe.patches.instagram.download.VIDEO_VERSION
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
 import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
 import app.morphe.patches.instagram.download.reel.OPTION
+import app.morphe.patches.instagram.feed.suggested.HideRowAsserts
+import app.morphe.patches.instagram.feed.suggested.ALLOW_HIDE
+import app.morphe.patches.instagram.feed.suggested.OFFER_HIDE
+import app.morphe.patches.instagram.feed.suggested.hideAccountRowOrWarn
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
@@ -591,9 +595,32 @@ class DownloadVideoHookTest {
         for (apk in Fixtures.otherBuilds()) offersDownloadOnEveryVideo(apk, apk.parentFile.name)
     }
 
-    private fun offersDownloadOnEveryVideo(bundle: File, label: String) {
+    /**
+     * Hide posts from this account puts its hooks in the same builder, handler and short list, so a
+     * build that patches both gets both sets, whichever patch runs first, and Download's are as
+     * they were.
+     */
+    @Test
+    fun hidePostsFromThisAccountBeforeDownloadLeavesBothRowsWorking() {
+        for (bundle in declaredBundles()) offersDownloadOnEveryVideo(bundle, bundle.name, HideRow.BEFORE)
+    }
+
+    @Test
+    fun hidePostsFromThisAccountAfterDownloadLeavesBothRowsWorking() {
+        for (bundle in declaredBundles()) offersDownloadOnEveryVideo(bundle, bundle.name, HideRow.AFTER)
+    }
+
+    private enum class HideRow { NONE, BEFORE, AFTER }
+
+    private fun declaredBundles(): List<File> {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        return versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+    }
+
+    private fun offersDownloadOnEveryVideo(bundle: File, label: String, hide: HideRow = HideRow.NONE) {
         val types = setOf(MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, MEDIA_EXT, OPTION)
         val classes = mutableListOf<ClassDef>(ExtensionDex.classDef(INSTAGRAM_MEDIA), ExtensionDex.classDef(FEED_BUTTON.substringBefore("->")))
+        if (hide != HideRow.NONE) classes += ExtensionDex.classDef(app.morphe.patches.instagram.feed.suggested.HIDE_ROW)
         FixtureDex.forEach(bundle) { dex ->
             val marked = dex.stringSection.any { it.startsWith("android_purge_") && PURGE_MARKER.find(it)?.groupValues?.get(1) == ELIGIBLE_MARKER }
             val loads = dex.fieldSection.any { it.toString() == DOWNLOAD }
@@ -665,7 +692,9 @@ class DownloadVideoHookTest {
         load(bundle, classes, innerCalls.filter { it.name == "<init>" && it.parameterTypes.size == 2 }.flatMap { listOf(it.definingClass, it.parameterTypes[0].toString()) })
         val context = PatchContexts.of(classes)
 
+        if (hide == HideRow.BEFORE) requireNotNull(context.hideAccountRowOrWarn()) { "$label: no row found" }.write()
         val page = context.offerDownloadOnEveryVideo()
+        if (hide == HideRow.AFTER) requireNotNull(context.hideAccountRowOrWarn()) { "$label: no row found after Download" }.write()
         assertFeedDownloadButton(context, page, label)
         assertLithoDownloadButton(context, page, label)
 
@@ -684,6 +713,7 @@ class DownloadVideoHookTest {
         }
         assertTrue("$label: a tree-backed caption", tree.superclass != "Ljava/lang/Object;")
 
+        if (hide != HideRow.NONE) HideRowAsserts.assertRowWritten(context, label)
         val menu = classes.single { it.originalName() == FEED_HELPER_NAME }
         val handler = menu.methods.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf(OPTION) && it.returnType == "V" }
         val handled = context.method(menu.type, handler.name, listOf(OPTION)).code()
@@ -726,7 +756,9 @@ class DownloadVideoHookTest {
             classes.any { classDef -> classDef.methods.any { ELIGIBLE_MARKER in it.markers() && code[own - 2].referenceText() == "${classDef.type}->${it.name}(${it.parameterTypes.joinToString("")})Z" } })
         assertEquals("$label: its answer replaces the check's", (code[own - 1] as OneRegisterInstruction).registerA,
             (code[own + 1] as OneRegisterInstruction).registerA)
-        val offer = code.indexOfFirst { it.referenceText() == OFFER_VIDEO }
+        val offered = code.indexOfFirst { it.referenceText() == OFFER_VIDEO }
+        // Hide posts from this account, when it went in after this patch, sits in front of offer() and takes the jump.
+        val offer = if (offered > 0 && code[offered - 1].referenceText() == OFFER_HIDE) offered - 1 else offered
         assertTrue("$label: offer() follows the Download row's jump", code[offer - 1].opcode.name.startsWith("goto"))
         assertTrue("$label: a jump reaches offer()", code.indices.any { it < offer && code[it].opcode == Opcode.IF_EQZ && code.target(it) == offer })
         val row = context.method(INSTAGRAM_MEDIA, "addDownloadRow").code()
@@ -738,8 +770,10 @@ class DownloadVideoHookTest {
         val returns = list.indices.filter { list[it].opcode == Opcode.RETURN_OBJECT }
         assertEquals("$label: allow() calls", returns.size, list.count { it.referenceText() == ALLOW_VIDEO })
         returns.forEach { at ->
-            assertEquals("$label: allow() before the return at $at", ALLOW_VIDEO, list[at - 2].referenceText())
-            assertEquals("$label: Download handed to it", DOWNLOAD, list[at - 3].referenceText())
+            // Hide posts from this account, when it went in too, asks right before the return, after Download's.
+            val from = if (list[at - 2].referenceText() == ALLOW_HIDE) at - 2 else at
+            assertEquals("$label: allow() before the return at $at", ALLOW_VIDEO, list[from - 2].referenceText())
+            assertEquals("$label: Download handed to it", DOWNLOAD, list[from - 3].referenceText())
         }
         val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in videoBridges }
         assertEquals("$label: the video bridges", videoBridges.size, bridges.size)

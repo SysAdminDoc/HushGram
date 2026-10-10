@@ -658,6 +658,9 @@ Hide their posts	Gönderilerini gizle
 Posts from @%1$s are hidden	@%1$s hesabının gönderileri gizlendi
 Posts from @%1$s show again	@%1$s hesabının gönderileri yeniden görünür
 A username is up to 30 letters, numbers, dots and underscores	Kullanıcı adı en fazla 30 harf, rakam, nokta ve alt çizgiden oluşur
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	Bu hesabın gönderilerini gizle
+Couldn't hide this account	Bu hesap gizlenemedi
 %1$d mentions	%1$d bahsetme
 %1$s, see who this story mentions	%1$s, bu hikâyede kimlerden bahsedildiğini gör
 1 mention	1 bahsetme
