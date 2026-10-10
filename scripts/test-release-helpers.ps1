@@ -92,7 +92,8 @@ try {
         "## 0.0.2 (2026-10-01)`n`n* **Instagram:** First patch line.`n`n* **Tooling:** The tooling line.`n`n" +
         "* **Instagram:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n* **Instagram:** The first release.`n"
     Write-Text $changelog $goodChangelog
-    foreach ($piece in @(@('intro.md', 'HushGram 0.0.2 is out.'), @('highlights.md', "* One highlight.`n* Another."),
+    $highlights = "* One highlight.`n* Another.`n* A third.`n* A fourth.`n`n* A fifth."
+    foreach ($piece in @(@('intro.md', 'HushGram 0.0.2 is out.'), @('highlights.md', $highlights),
             @('install.md', "* Add the source.`n* Update."), @('validation.md', 'Every test passed.'))) {
         Write-Text (Join-Path $notesDir $piece[0]) $piece[1]
     }
@@ -109,6 +110,7 @@ try {
     $instagramAt = $notes.IndexOf('## Instagram')
     Assert-True ($instagramAt -gt $notes.IndexOf("## What's new") -and $notes.IndexOf('## Tooling') -gt $instagramAt -and
         $notes.IndexOf('## Install or update') -gt $notes.IndexOf('## Tooling') -and $notes.StartsWith('HushGram 0.0.2 is out.') -and
+        $notes.Contains("## What's new`n`n* One highlight.`n* Another.`n* A third.`n* A fourth.`n* A fifth.`n`n## Instagram") -and
         $notes.Contains("* First patch line.`n* Second patch line, carried on.") -and $notes.Contains('* The tooling line.') -and
         -not $notes.Contains('The first release') -and -not $notes.Contains('A script change')) `
         "The notes don't carry the section's bullets by scope, in order, and nothing else: $notes"
@@ -134,6 +136,20 @@ try {
     Write-Text (Join-Path $notesDir 'intro.md') "HushGram 0.0.2 $([char]0x2013) out now."
     $run = Invoke-Notes $build
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*a dash*in the notes*') "An intro with a dash went into the notes: $($run.Output)"
+    Write-Text (Join-Path $notesDir 'intro.md') 'HushGram 0.0.2 is out.'
+    $five = "* One.`n* Two.`n* Three.`n* Four.`n* Five."
+    foreach ($case in @(
+            @{ Name = 'two highlights'; Text = "* One.`n* Two."; Said = '*has 2 lines, it wants 5 to 8*' },
+            @{ Name = 'nine highlights'; Text = "$five`n* Six.`n* Seven.`n* Eight.`n* Nine."; Said = '*has 9 lines, it wants 5 to 8*' },
+            @{ Name = 'a highlight that isn''t a bullet'; Text = "$five`nAnd a paragraph."; Said = "*isn't a bullet of its own*" },
+            @{ Name = 'a long highlight'; Text = "$five`n* $('word ' * 40)"; Said = '*runs over 160 characters*' })) {
+        Write-Text (Join-Path $notesDir 'highlights.md') $case.Text
+        Remove-Item -LiteralPath $notesOut -ErrorAction SilentlyContinue
+        $run = Invoke-Notes $build
+        Assert-True ($run.Exit -eq 1 -and $run.Output -like $case.Said -and -not (Test-Path -LiteralPath $notesOut)) `
+            "The notes builder went ahead with $($case.Name): $($run.Output)"
+    }
+    Write-Text (Join-Path $notesDir 'highlights.md') $highlights
     Write-Host '[release-helpers] notes builder passed'
 
     # --- count_tests.py --------------------------------------------------------------------------

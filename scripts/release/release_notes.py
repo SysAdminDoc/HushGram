@@ -1,10 +1,10 @@
 """GitHub release notes from one CHANGELOG section, with every bullet in it.
 
-The notes open with an intro and a short list of highlights the maintainer writes, then carry the
-section's bullets whole, grouped by scope (Instagram, then Tooling), then the install steps and the
-validation paragraph. Every bullet of the section lands in the notes exactly once, and the run stops
-on a bullet with no known scope, on a section that isn't there and on dashes the project's writing
-rules keep out of public text.
+The notes open with an intro and a short What's new list the maintainer writes (#86, #106), then
+carry the section's bullets whole, grouped by scope (Instagram, then Tooling), then the install steps
+and the validation paragraph. Every bullet of the section lands in the notes exactly once, and the
+run stops on a bullet with no known scope, on a section that isn't there, on dashes the project's
+writing rules keep out of public text and on a What's new list that isn't 5 to 8 short bullet lines.
 
     py -3.13 -I scripts/release/release_notes.py --version 0.0.8 --intro intro.md
         --highlights highlights.md --install install.md --validation validation.md --out notes.md
@@ -28,6 +28,9 @@ import sys
 SCOPES = ("Instagram", "Tooling")
 # Em and en dashes, and a spaced hyphen standing in for one.
 DASHES = (chr(0x2014), chr(0x2013), " - ")
+# The What's new list is for scanning: a few one-line bullets, the full section under it.
+HIGHLIGHT_LINES = (5, 8)
+HIGHLIGHT_CHARS = 160
 
 
 class NotesError(Exception):
@@ -76,13 +79,28 @@ def check_dashes(text: str, where: str) -> None:
             raise NotesError(f"there's a dash ({dash!r}) in {where}: {line[:80]}")
 
 
+def read_highlights(highlights: str) -> str:
+    """The What's new list: 5 to 8 bullets of one short line each, blank lines dropped."""
+    lines = [line.rstrip() for line in highlights.replace("\r\n", "\n").split("\n") if line.strip()]
+    plain = next((line for line in lines if not line.startswith("* ")), None)
+    if plain is not None:
+        raise NotesError(f"a What's new line isn't a bullet of its own: {plain[:80]}")
+    fewest, most = HIGHLIGHT_LINES
+    if not fewest <= len(lines) <= most:
+        raise NotesError(f"the What's new list has {len(lines)} lines, it wants {fewest} to {most}")
+    long = next((line for line in lines if len(line) > HIGHLIGHT_CHARS), None)
+    if long is not None:
+        raise NotesError(f"a What's new line runs over {HIGHLIGHT_CHARS} characters: {long[:80]}")
+    return "\n".join(lines)
+
+
 def build_notes(section: str, intro: str, highlights: str, install: str, validation: str) -> tuple[str, int]:
     """The notes, and how many CHANGELOG bullets they carry."""
     bullets = read_bullets(section)
     if not bullets:
         raise NotesError("the section has no bullets")
     groups = group_bullets(bullets)
-    parts = [intro.strip(), "## What's new\n\n" + highlights.strip()]
+    parts = [intro.strip(), "## What's new\n\n" + read_highlights(highlights)]
     carried = 0
     for scope in SCOPES:
         if scope in groups:
@@ -102,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", help="a dated release section; Unreleased when left out with --check")
     parser.add_argument("--check", action="store_true", help="check the section's bullets and write nothing")
     parser.add_argument("--intro", help="file with the intro paragraph")
-    parser.add_argument("--highlights", help="file with the What's new list")
+    parser.add_argument("--highlights", help="file with the What's new list, 5 to 8 short bullet lines")
     parser.add_argument("--install", help="file with the install steps")
     parser.add_argument("--validation", help="file with the validation paragraph")
     parser.add_argument("--out", help="where the notes go")
