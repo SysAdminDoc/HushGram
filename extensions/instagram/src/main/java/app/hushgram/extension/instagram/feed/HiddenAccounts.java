@@ -51,6 +51,9 @@ public final class HiddenAccounts {
     @Nullable
     static volatile String account;
 
+    /** Held while the saved list is read, changed and saved back, so two edits never lose one another. */
+    private static final Object EDIT = new Object();
+
     /** The names hidden for the account that last read them, kept until the list or the account changes. */
     private static volatile Snapshot snapshot;
 
@@ -168,11 +171,13 @@ public final class HiddenAccounts {
     public static String add(String typed) {
         String name = username(typed);
         if (name == null || !Utils.settingsReady()) return null;
-        String id = current();
-        String text = Settings.HIDDEN_ACCOUNTS.savedValue();
-        if (namesFor(text, id).contains(name)) return name;
-        String line = id + "\t" + name;
-        Settings.HIDDEN_ACCOUNTS.save(text == null || text.isEmpty() ? line : text + "\n" + line);
+        synchronized (EDIT) {
+            String id = current();
+            String text = Settings.HIDDEN_ACCOUNTS.savedValue();
+            if (namesFor(text, id).contains(name)) return name;
+            String line = id + "\t" + name;
+            Settings.HIDDEN_ACCOUNTS.save(text == null || text.isEmpty() ? line : text + "\n" + line);
+        }
         Logger.printDebug(() -> "Hidden accounts: added a name");
         return name;
     }
@@ -180,16 +185,18 @@ public final class HiddenAccounts {
     /** Shows [name]'s posts again for the signed-in account, and for every account if it was kept for all. */
     public static void remove(String name) {
         if (name == null || !Utils.settingsReady()) return;
-        String id = current();
         String wanted = name.toLowerCase(Locale.ROOT);
-        StringBuilder kept = new StringBuilder();
-        for (String line : lines(Settings.HIDDEN_ACCOUNTS.savedValue())) {
-            String[] entry = entry(line);
-            if (entry != null && entry[1].equals(wanted) && (entry[0].equals(id) || entry[0].isEmpty())) continue;
-            if (kept.length() > 0) kept.append('\n');
-            kept.append(line);
+        synchronized (EDIT) {
+            String id = current();
+            StringBuilder kept = new StringBuilder();
+            for (String line : lines(Settings.HIDDEN_ACCOUNTS.savedValue())) {
+                String[] entry = entry(line);
+                if (entry != null && entry[1].equals(wanted) && (entry[0].equals(id) || entry[0].isEmpty())) continue;
+                if (kept.length() > 0) kept.append('\n');
+                kept.append(line);
+            }
+            Settings.HIDDEN_ACCOUNTS.save(kept.toString());
         }
-        Settings.HIDDEN_ACCOUNTS.save(kept.toString());
         Logger.printDebug(() -> "Hidden accounts: removed a name");
     }
 
