@@ -805,6 +805,27 @@ public class MessagesLockTest {
         assertFalse(MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification(tag(BOB), 2)));
     }
 
+    /**
+     * Locking a chat in the list takes the text off its notifications in the shade right away, and
+     * leaves other chats' alone even with Lock your messages on (the messages may be open). Before,
+     * they kept their text until the next lock (seen on the emulator, 2026-10-10).
+     */
+    @Test
+    public void lockingAChatHidesItsNotificationsInTheShadeNow() {
+        Context context = RuntimeEnvironment.getApplication();
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        manager.notify(tag(ALICE), 1, message("ig_direct", Notification.CATEGORY_MESSAGE));
+        manager.notify(tag(BOB), 2, message("ig_direct", Notification.CATEGORY_MESSAGE));
+
+        ChatLocks.add(ALICE, "Alice");
+        MessagesLock.chatListed();
+
+        Notification alice = Shadows.shadowOf(manager).getNotification(tag(ALICE), 1);
+        assertTrue(MessagesLock.isHidden(alice));
+        assertEquals("New message", alice.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertFalse("another chat's lost its text", MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification(tag(BOB), 2)));
+    }
+
     @Test
     public void theChatIsReadFromInstagramsTagAndNothingElseIs() {
         assertEquals(ALICE, ChatLocks.tagThread(tag(ALICE)));

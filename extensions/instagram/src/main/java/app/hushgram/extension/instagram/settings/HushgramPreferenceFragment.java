@@ -2508,6 +2508,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private void lockChat(AlertDialog dialog, ChatLocks.Chat chat, int position, boolean lock) {
         if (lock) {
             ChatLocks.add(chat.id, chat.name);
+            MessagesLock.chatListed();
             Utils.showToastShort(L10n.f("%1$s is locked", chat.name));
             return;
         }
