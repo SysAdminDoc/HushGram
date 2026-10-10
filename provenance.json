@@ -202,6 +202,8 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/flags/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/notifications/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostMode.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/GhostModeEntry.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/QualityPicker.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/resignedtrust/SameKeyProviders.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/resignedtrust/SameKeyProvidersTest.kt",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/SameKeyProviderCallerTest.java",
