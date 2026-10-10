@@ -91,37 +91,35 @@ try {
 
     $notesDir = Join-Path $scratch 'notes'
     $changelog = Join-Path $notesDir 'CHANGELOG.md'
-    $goodChangelog = "# Changelog`n`n## Unreleased`n`n* **Tooling:** A script change.`n`n* **Instagram:** A patch change.`n`n" +
-        "## 0.0.2 (2026-10-01)`n`n* **Instagram:** First patch line.`n`n* **Tooling:** The tooling line.`n`n" +
-        "* **Instagram:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n* **Instagram:** The first release.`n"
+    $goodChangelog = "# Changelog`n`n## Unreleased`n`n### Improvements`n`n* **Tooling:** A script change.`n`n### Features`n`n* **Instagram:** A patch change.`n`n" +
+        "## 0.0.2 (2026-10-01)`n`n### Improvements`n`n* **Tooling:** The tooling line.`n`n### Features`n`n* **Instagram:** First patch line.`n`n" +
+        "* **Instagram - Hide Meta AI:** Second patch line,`n  carried on.`n`n## 0.0.1 (2026-09-01)`n`n### Features`n`n* **Instagram:** The first release.`n"
     Write-Text $changelog $goodChangelog
-    $highlights = "* One highlight.`n* Another.`n* A third.`n* A fourth.`n`n* A fifth."
-    foreach ($piece in @(@('intro.md', 'HushGram 0.0.2 is out.'), @('highlights.md', $highlights),
-            @('install.md', "* Add the source.`n* Update."), @('validation.md', 'Every test passed.'))) {
-        Write-Text (Join-Path $notesDir $piece[0]) $piece[1]
-    }
+    Write-Text (Join-Path $notesDir 'validation.md') 'Validation: 5 runtime tests passed locally. All 6 patch tests passed too.'
     $notesOut = Join-Path $notesDir 'notes.md'
+    $descriptionOut = Join-Path $notesDir 'description.json'
     $notesTool = Join-Path $releaseDir 'release_notes.py'
     function Invoke-Notes([string[]]$Extra) {
         Invoke-Python $notesTool '--changelog' $changelog @Extra
     }
-    $build = @('--version', '0.0.2', '--intro', (Join-Path $notesDir 'intro.md'), '--highlights', (Join-Path $notesDir 'highlights.md'),
-        '--install', (Join-Path $notesDir 'install.md'), '--validation', (Join-Path $notesDir 'validation.md'), '--out', $notesOut)
+    $build = @('--version', '0.0.2', '--validation', (Join-Path $notesDir 'validation.md'), '--out', $notesOut, '--description-out', $descriptionOut)
     $run = Invoke-Notes $build
     $notes = if (Test-Path -LiteralPath $notesOut) { [IO.File]::ReadAllText($notesOut) } else { '' }
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*3 CHANGELOG bullets*') "The notes builder refused a clean section: $($run.Output)"
-    $instagramAt = $notes.IndexOf('## Instagram')
-    Assert-True ($instagramAt -gt $notes.IndexOf("## What's new") -and $notes.IndexOf('## Tooling') -gt $instagramAt -and
-        $notes.IndexOf('## Install or update') -gt $notes.IndexOf('## Tooling') -and $notes.StartsWith('HushGram 0.0.2 is out.') -and
-        $notes.Contains("## What's new`n`n* One highlight.`n* Another.`n* A third.`n* A fourth.`n* A fifth.`n`n## Instagram") -and
-        $notes.Contains("* First patch line.`n* Second patch line, carried on.") -and $notes.Contains('* The tooling line.') -and
-        -not $notes.Contains('The first release') -and -not $notes.Contains('A script change')) `
-        "The notes don't carry the section's bullets by scope, in order, and nothing else: $notes"
+    $heading = '## [0.0.2](https://github.com/SysAdminDoc/HushGram/compare/v0.0.1...v0.0.2) (2026-10-01)'
+    Assert-True ($notes -ceq ("$heading`n`n### Features`n`n* **Instagram:** First patch line.`n* **Instagram - Hide Meta AI:** Second patch line, carried on.`n`n" +
+            "### Improvements`n`n* **Tooling:** The tooling line.`n`n### Validation`n`nValidation: 5 runtime tests passed locally. All 6 patch tests passed too.`n")) `
+        "The notes aren't the version heading, the typed sections with every bullet once and the validation line: $notes"
+    $description = if (Test-Path -LiteralPath $descriptionOut) { [IO.File]::ReadAllText($descriptionOut) | ConvertFrom-Json } else { '' }
+    Assert-True ($description -ceq $notes.TrimEnd("`n")) "The bundle description isn't the notes as a JSON string: $description"
     $run = Invoke-Notes @('--check')
-    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Unreleased: 2 bullets (1 Instagram, 1 Tooling)*') "The Unreleased check didn't pass: $($run.Output)"
+    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Unreleased: 2 bullets (1 Features, 1 Improvements)*') "The Unreleased check didn't pass: $($run.Output)"
     foreach ($case in @(
             @{ Name = 'an unscoped bullet'; Text = $goodChangelog.Replace('* **Tooling:** The tooling line.', '* The tooling line.'); Said = '*has no scope*' },
             @{ Name = 'an unknown scope'; Text = $goodChangelog.Replace('**Tooling:** The tooling', '**Docs:** The tooling'); Said = '*unknown scope Docs*' },
+            @{ Name = 'a bare patch name as scope'; Text = $goodChangelog.Replace('**Instagram - Hide Meta AI:**', '**Hide Meta AI:**'); Said = '*unknown scope Hide Meta AI*' },
+            @{ Name = 'a bullet outside any type heading'; Text = $goodChangelog.Replace("### Improvements`n`n", ''); Said = '*outside a type sub-heading*' },
+            @{ Name = 'an unknown sub-heading'; Text = $goodChangelog.Replace('### Improvements', '### Changes'); Said = '*unknown sub-heading*' },
             @{ Name = 'an em dash'; Text = $goodChangelog.Replace('First patch line.', "First patch line $([char]0x2014) with a dash."); Said = '*dash*' },
             @{ Name = 'a spaced hyphen'; Text = $goodChangelog.Replace('First patch line.', 'First patch line - with a dash.'); Said = '*dash*' })) {
         Write-Text $changelog $case.Text
@@ -129,30 +127,22 @@ try {
         $run = Invoke-Notes $build
         Assert-True ($run.Exit -eq 1 -and $run.Output -like $case.Said -and -not (Test-Path -LiteralPath $notesOut)) `
             "The notes builder went ahead with $($case.Name): $($run.Output)"
+        $run = Invoke-Notes @('--check', '--version', '0.0.2')
+        Assert-True ($run.Exit -eq 1 -and $run.Output -like $case.Said) "The check let through $($case.Name): $($run.Output)"
     }
     Write-Text $changelog $goodChangelog
     $run = Invoke-Notes @('--check', '--version', '0.0.9')
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*has no dated section for 0.0.9*') "A missing section passed the check: $($run.Output)"
     $run = Invoke-Notes @('--version', '0.0.2', '--out', $notesOut)
-    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*missing --intro, --highlights, --install, --validation*') `
-        "The notes builder went ahead without its pieces: $($run.Output)"
-    Write-Text (Join-Path $notesDir 'intro.md') "HushGram 0.0.2 $([char]0x2013) out now."
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*needs --validation*') "The notes builder went ahead without its pieces: $($run.Output)"
+    Write-Text (Join-Path $notesDir 'validation.md') "Validation: 5 runtime tests passed locally.`nA second paragraph."
     $run = Invoke-Notes $build
-    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*a dash*in the notes*') "An intro with a dash went into the notes: $($run.Output)"
-    Write-Text (Join-Path $notesDir 'intro.md') 'HushGram 0.0.2 is out.'
-    $five = "* One.`n* Two.`n* Three.`n* Four.`n* Five."
-    foreach ($case in @(
-            @{ Name = 'two highlights'; Text = "* One.`n* Two."; Said = '*has 2 lines, it wants 5 to 8*' },
-            @{ Name = 'nine highlights'; Text = "$five`n* Six.`n* Seven.`n* Eight.`n* Nine."; Said = '*has 9 lines, it wants 5 to 8*' },
-            @{ Name = 'a highlight that isn''t a bullet'; Text = "$five`nAnd a paragraph."; Said = "*isn't a bullet of its own*" },
-            @{ Name = 'a long highlight'; Text = "$five`n* $('word ' * 40)"; Said = '*runs over 160 characters*' })) {
-        Write-Text (Join-Path $notesDir 'highlights.md') $case.Text
-        Remove-Item -LiteralPath $notesOut -ErrorAction SilentlyContinue
-        $run = Invoke-Notes $build
-        Assert-True ($run.Exit -eq 1 -and $run.Output -like $case.Said -and -not (Test-Path -LiteralPath $notesOut)) `
-            "The notes builder went ahead with $($case.Name): $($run.Output)"
-    }
-    Write-Text (Join-Path $notesDir 'highlights.md') $highlights
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*wants the one sentence*') "A two-line validation went into the notes: $($run.Output)"
+    Write-Text (Join-Path $notesDir 'validation.md') "Validation: 5 runtime tests passed locally $([char]0x2013) all of them."
+    $run = Invoke-Notes $build
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*a dash*in the notes*') "A validation line with a dash went into the notes: $($run.Output)"
+    $run = Invoke-Python (Join-Path $Root 'scripts/test-release-notes.py')
+    Assert-True ($run.Exit -eq 0) "The release notes tests against Manager's parser failed: $($run.Output)"
     Write-Host '[release-helpers] notes builder passed'
 
     # --- count_tests.py --------------------------------------------------------------------------

@@ -312,7 +312,7 @@ if (@($changed | Where-Object {
     $suites += , @('scripts/test-build-jobs.ps1', 'the build queue wiring changed, checking its stand-ins')
 }
 if (@($changed | Where-Object {
-    $_ -like 'scripts/release/*' -or $_ -in @('scripts/test-release-helpers.ps1', 'scripts/common.ps1', 'scripts/patch-target.ps1',
+    $_ -like 'scripts/release/*' -or $_ -in @('scripts/test-release-helpers.ps1', 'scripts/test-release-notes.py', 'scripts/common.ps1', 'scripts/patch-target.ps1',
         'scripts/patch-report.ps1', 'scripts/apk-facts.ps1', 'scripts/build-jobs.ps1', 'scripts/gate-evidence.ps1',
         'scripts/Resolve-Java.ps1', 'scripts/pre-push.ps1', 'scripts/script-wiring.ps1')
 }).Count -gt 0) {
