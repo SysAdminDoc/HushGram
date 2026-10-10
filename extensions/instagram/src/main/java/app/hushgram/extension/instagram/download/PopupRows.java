@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Adds a plain text row to Instagram's newer pop-up list, the one next to a profile's three dots.
@@ -44,7 +46,21 @@ final class PopupRows {
     static final int COLOR = 9;
     static final int HIGHLIGHT = 10;
 
+    /** Each item class's constructor and its fields in constructor order, read once; NONE when it isn't shaped as expected. */
+    private static final Map<Class<?>, Shape> SHAPES = new ConcurrentHashMap<>();
+    private static final Shape NONE = new Shape(null, null);
+
     private PopupRows() {
+    }
+
+    private static final class Shape {
+        final Constructor<?> constructor;
+        final Field[] fields;
+
+        Shape(Constructor<?> constructor, Field[] fields) {
+            this.constructor = constructor;
+            this.fields = fields;
+        }
     }
 
     /**
@@ -56,6 +72,8 @@ final class PopupRows {
     static boolean add(List items, View.OnClickListener listener, String label) {
         try {
             if (items == null || listener == null || label == null) return false;
+            // Instagram can hand the same list over again when it re-shows the pop-up, and the row is already there.
+            if (owns(items, label)) return true;
             Object template = template(items);
             if (template == null) return false;
             Object row = make(template, listener, label);
@@ -78,8 +96,36 @@ final class PopupRows {
         return null;
     }
 
+    /** Whether [items] already holds a row of ours labeled [label]: one whose callback is a proxy. */
+    private static boolean owns(List<?> items, String label) throws ReflectiveOperationException {
+        for (Object item : items) {
+            if (item == null) continue;
+            Object[] values = values(item);
+            if (values != null && label.equals(values[LABEL]) && values[CLICK] != null
+                    && Proxy.isProxyClass(values[CLICK].getClass())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** [type]'s constructor and ordered fields, read on first use and kept. */
+    private static Shape shape(Class<?> type) {
+        Shape shape = SHAPES.get(type);
+        if (shape != null) return shape;
+        Constructor<?> constructor = readConstructor(type);
+        Field[] ordered = constructor == null ? null : orderedFields(type, constructor);
+        shape = ordered == null ? NONE : new Shape(constructor, ordered);
+        SHAPES.put(type, shape);
+        return shape;
+    }
+
     /** [template]'s class's one constructor, or null when the class isn't shaped as expected. */
     static Constructor<?> constructor(Class<?> type) {
+        return shape(type).constructor;
+    }
+
+    private static Constructor<?> readConstructor(Class<?> type) {
         Constructor<?>[] constructors = type.getDeclaredConstructors();
         if (constructors.length != 1 || constructors[0].getParameterTypes().length != ARGUMENTS) return null;
         Class<?>[] parameters = constructors[0].getParameterTypes();
@@ -90,12 +136,10 @@ final class PopupRows {
         return constructors[0];
     }
 
-    /** The values of [item]'s instance fields in the order Instagram names them, which is its constructor's, or null. */
-    static Object[] values(Object item) throws ReflectiveOperationException {
-        Constructor<?> constructor = constructor(item.getClass());
-        if (constructor == null) return null;
+    /** [type]'s instance fields in the order Instagram names them, which is its constructor's, or null when they don't line up. */
+    private static Field[] orderedFields(Class<?> type, Constructor<?> constructor) {
         List<Field> fields = new ArrayList<>();
-        for (Field field : item.getClass().getDeclaredFields()) {
+        for (Field field : type.getDeclaredFields()) {
             if (!Modifier.isStatic(field.getModifiers())) fields.add(field);
         }
         if (fields.size() != ARGUMENTS) return null;
@@ -105,13 +149,19 @@ final class PopupRows {
             }
         });
         Class<?>[] parameters = constructor.getParameterTypes();
-        Object[] values = new Object[ARGUMENTS];
         for (int at = 0; at < ARGUMENTS; at++) {
-            Field field = fields.get(at);
-            if (field.getType() != parameters[at]) return null;
-            field.setAccessible(true);
-            values[at] = field.get(item);
+            if (fields.get(at).getType() != parameters[at]) return null;
+            fields.get(at).setAccessible(true);
         }
+        return fields.toArray(new Field[0]);
+    }
+
+    /** The values of [item]'s instance fields in constructor order, or null when its class isn't shaped as expected. */
+    static Object[] values(Object item) throws ReflectiveOperationException {
+        Field[] fields = shape(item.getClass()).fields;
+        if (fields == null) return null;
+        Object[] values = new Object[ARGUMENTS];
+        for (int at = 0; at < ARGUMENTS; at++) values[at] = fields[at].get(item);
         return values;
     }
 

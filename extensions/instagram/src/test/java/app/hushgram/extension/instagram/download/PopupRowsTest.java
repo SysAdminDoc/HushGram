@@ -79,6 +79,22 @@ public class PopupRowsTest {
         assertEquals(1, taps[0]);
     }
 
+    @Test public void aListHandedOverAgainKeepsOneRowPerLabel() {
+        List<Object> items = new ArrayList<>();
+        items.add(row("Mute", -1, null));
+        assertTrue(PopupRows.add(items, view -> { }, "Copy username"));
+        assertTrue(PopupRows.add(items, view -> { }, "Copy username"));
+        assertTrue(PopupRows.add(items, view -> { }, "Copy bio"));
+        assertEquals(Arrays.asList("Mute", "Copy username", "Copy bio"), labels(items));
+    }
+
+    @Test public void anInstagramRowWithTheSameLabelIsNotMistakenForOurs() {
+        List<Object> items = new ArrayList<>();
+        items.add(row("Copy username", -1, null));
+        assertTrue(PopupRows.add(items, view -> { }, "Copy username"));
+        assertEquals(Arrays.asList("Copy username", "Copy username"), labels(items));
+    }
+
     @Test public void theTemplateIsThePlainRowNotAHighlightedOne() {
         List<Object> items = new ArrayList<>();
         items.add(row("Report", 7, 7));
