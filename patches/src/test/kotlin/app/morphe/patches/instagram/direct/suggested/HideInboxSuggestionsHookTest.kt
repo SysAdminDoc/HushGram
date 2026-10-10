@@ -83,6 +83,9 @@ class HideInboxSuggestionsHookTest {
             classes(declared = false) to "isn't declared in $sections",
             classes(static = true) to "isn't an instance method with code",
             classes(code = false) to "isn't an instance method with code",
+            classes(readsName = false) to "doesn't read a unit's name through getName()",
+            classes(callsRequests = true) to "reads $FOLLOW_REQUESTS itself",
+            classes(holdsRequests = true) to "reads $FOLLOW_REQUESTS itself",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -151,7 +154,9 @@ class HideInboxSuggestionsHookTest {
 
     /**
      * The inbox's loader, which logs [PREFETCHED] and hands the units it fetched to the method
-     * building the section, and the class of that method, which reads follow requests by name.
+     * building the section, and the class of that method, which reads follow requests by name in
+     * another method. Like Instagram's, the method building the section reads the first unit's name
+     * and passes the units through a static helper of its class.
      */
     private fun classes(
         loaders: Int = 1,
@@ -162,6 +167,9 @@ class HideInboxSuggestionsHookTest {
         declared: Boolean = true,
         static: Boolean = false,
         code: Boolean = true,
+        readsName: Boolean = true,
+        callsRequests: Boolean = false,
+        holdsRequests: Boolean = false,
     ): List<ClassDef> {
         val call = { name: String ->
             if (range) "invoke-virtual/range { v0 .. v2 }, $sections->$name(Ljava/util/List;Ljava/lang/String;)V"
@@ -194,6 +202,13 @@ class HideInboxSuggestionsHookTest {
                     const/4 v0, 0x0
                     invoke-interface { p1, v0 }, Ljava/util/List;->get(I)Ljava/lang/Object;
                     move-result-object v1
+                    check-cast v1, Lfixture/InboxUnit;
+                    invoke-interface { v1 }, Lfixture/InboxUnit;->${if (readsName) "getName" else "getTitle"}()Ljava/lang/String;
+                    move-result-object v1
+                    invoke-static { p0, p1 }, $sections->trim(${sections}Ljava/util/List;)Ljava/util/List;
+                    move-result-object v1
+                    ${if (callsRequests) "invoke-virtual { p0, p1 }, $sections->requests(Ljava/util/List;)V" else ""}
+                    ${if (holdsRequests) "const-string v1, \"$FOLLOW_REQUESTS\"" else ""}
                     :none
                     return-void
                 """)
@@ -203,7 +218,10 @@ class HideInboxSuggestionsHookTest {
             const-string v0, "${if (readsRequests) FOLLOW_REQUESTS else "message_suggestions"}"
             return-void
         """)
-        val sectionsClass = classDef(sections, buildMethods + requests)
+        val trim = method(sections, "trim", listOf(sections, "Ljava/util/List;"), "Ljava/util/List;", 0, static = true, body = """
+            return-object p1
+        """)
+        val sectionsClass = classDef(sections, buildMethods + requests + trim)
         return if (sectionsInBuild) listOf(loaderClass, sectionsClass) else listOf(loaderClass)
     }
 

@@ -67,7 +67,10 @@ internal class UnitsSite(val type: String, val name: String, val parameters: Lis
  * Finds the method building your messages' section of accounts, failing before anything changes
  * when an update moved it, since that's a build this patch hasn't seen: the one instance method
  * taking [UNITS_SET] and answering nothing that the one method holding [PREFETCHED] calls, in a
- * class that holds [FOLLOW_REQUESTS], with code of its own.
+ * class that holds [FOLLOW_REQUESTS], with code of its own. It has to read a unit's name through
+ * getName(), which InboxSuggestions asks too, and leave follow requests to another method: it
+ * mustn't hold [FOLLOW_REQUESTS] or call a method of its class that does, since the hook empties
+ * every unit it's given.
  */
 internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
     val found = mutableListOf<Pair<String, Method>>()
@@ -88,13 +91,25 @@ internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
     val owner = set.substringBefore("->")
     val name = set.substringAfter("->").substringBefore("(")
     val ownerClass = classDefByOrNull(owner) ?: refuse("$owner isn't in this build")
-    if (classesHolding(FOLLOW_REQUESTS).none { it.type == owner }) refuse("$owner doesn't read $FOLLOW_REQUESTS")
+    val requests = ownerClass.methods.filter { FOLLOW_REQUESTS in it.strings() }
+    if (requests.isEmpty()) refuse("$owner doesn't read $FOLLOW_REQUESTS")
     val method = ownerClass.methods.singleOrNull {
         it.name == name && it.parameterTypes.map(CharSequence::toString) == UNITS_SET && it.returnType == "V"
     } ?: refuse("$set isn't declared in $owner")
     if (AccessFlags.STATIC.isSet(method.accessFlags) || method.implementation == null) {
         refuse("$set isn't an instance method with code")
     }
+    val calls = method.implementation!!.instructions.mapNotNull { it.methodReference() }
+    if (calls.none { it.name == "getName" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" }) {
+        refuse("$set doesn't read a unit's name through getName()")
+    }
+    val readsRequests = method in requests || calls.any { call ->
+        call.definingClass == owner && requests.any {
+            it.name == call.name && it.returnType == call.returnType &&
+                it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString)
+        }
+    }
+    if (readsRequests) refuse("$set reads $FOLLOW_REQUESTS itself, so emptying its units would hide follow requests too")
     return UnitsSite(owner, name, UNITS_SET)
 }
 
@@ -104,7 +119,7 @@ internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
  */
 internal fun BytecodePatchContext.hookInboxUnits(site: UnitsSite) {
     val method = mutableClassDefBy(site.type).methods.single {
-        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters && it.returnType == "V"
     }
     // The units are p1: after this and before the string, the last of the method's registers.
     val units = method.implementation!!.registerCount - 2

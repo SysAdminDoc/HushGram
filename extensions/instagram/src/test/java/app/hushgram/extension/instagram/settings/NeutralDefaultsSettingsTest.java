@@ -21,6 +21,7 @@ import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
+import app.hushgram.extension.instagram.direct.InboxSuggestions;
 import app.hushgram.extension.instagram.direct.Instants;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.NotesRow;
@@ -56,6 +57,11 @@ public class NeutralDefaultsSettingsTest {
 
     /** Stands in for where the reel viewer was opened from. */
     enum StockSource { REPOSTS_GRID }
+
+    /** Stands in for the unit leading your messages' Accounts to follow section. */
+    public static final class StockUnit {
+        public String getName() { return "suggested_accounts_to_follow"; }
+    }
 
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
@@ -206,6 +212,8 @@ public class NeutralDefaultsSettingsTest {
         assertEquals(1, ProfileHighlights.keepTray());
         Object[] sections = {StockSection.SEARCH_BAR, StockSection.TRAY};
         assertSame(sections, NotesRow.sections(sections));
+        java.util.List<Object> units = java.util.Arrays.asList(new StockUnit(), new StockUnit());
+        assertSame(units, InboxSuggestions.units(units));
         assertFalse(Instants.hide());
         assertTrue(app.hushgram.extension.instagram.feed.CommentsButton.feedState(1));
         assertTrue(app.hushgram.extension.instagram.share.ShareButton.feedState(1));
