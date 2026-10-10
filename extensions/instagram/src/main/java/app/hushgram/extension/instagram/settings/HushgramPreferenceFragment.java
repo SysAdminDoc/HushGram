@@ -431,7 +431,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Hides the cards between posts that ask you to rate what you saw.")));
             feed.addPreference(toggle(context, Settings.HIDE_FEED_SHOPPING, L10n.t("Hide shopping"),
                     L10n.t("Hides the rows of products to shop and live shopping that Instagram puts between posts, "
-                            + "and the shop tiles in Explore.")));
+                            + "and the shop tiles in Explore. Posts with tagged products don't show the shopping "
+                            + "bag.")));
             if (PatchFamily.feedTypesInBuild()) {
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_VIDEOS, L10n.t("Hide videos"),
                         L10n.t("Removes every single-video post and reel from Home, even from accounts you follow. "

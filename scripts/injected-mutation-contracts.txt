@@ -605,6 +605,12 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->loadMoreRow(Lj
 # parser is the one method holding "DiscoverySection", so no other read of Explore's JSON passes it.
 once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->section(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; holding DiscoverySection layout_content
 #
+# It also asks ProductTags once in the method picking a post's corner indicator, between the static
+# check of the post's products and the branch to the PRODUCTS constant, the only place in the app
+# that answers it. That method is the one instance method taking a session and two posts that holds
+# both schema names.
+once-call Lapp/hushgram/extension/instagram/feed/ProductTags;->indicator(I)I in instance (Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;Lcom/instagram/feed/media/Media;)LX/*; holding itas-android ig4a-instagram-schema
+#
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through
 # saved() once. The getter is the one instance method taking nothing and answering a String in the

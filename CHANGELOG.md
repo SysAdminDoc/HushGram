@@ -60,6 +60,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** Hide suggested posts' Hide shopping switch now also takes shop tiles out of Explore. A shop's tile is the one with the shop's name over a few of its posts, and the block of the grid holding it goes with it, since Instagram doesn't draw a block with a gap in it. The rest of Explore stays, and with the switch off shop tiles come back on Explore's next load.
 
+* **Instagram:** Hide suggested posts' Hide shopping switch also takes the shopping bag off posts with products tagged in them, wherever Instagram shows the post. If people are tagged too, you get the people icon in its place, the way a post without products shows it. Turn the switch off and the bag is back the next time the post is drawn.
+
 * **Tooling:** The patched APK check now holds Hide the comment bar on all reels' guard where it belongs, first thing in the render of the Reels tab's comment bar. The Clean up Reels tests also check every part in all seven builds of Instagram 450, not just one.
 
 * **Tooling:** The patch tests no longer need Instagram 449 or 439 in the fixture folder. The story retry queue's mutation tests, the settings entry's native proof and the version checks in five more tests now read 450's declared build, so a folder with only 450 in it runs the whole suite.
