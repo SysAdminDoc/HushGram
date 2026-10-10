@@ -96,6 +96,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram - Show if a profile follows you:** The chip under a profile's counts has a color for each answer now. Follows you is blue, Following each other is green and Doesn't follow you is red, with darker shades on a light profile so the words stay easy to read. Thanks to @talhaeenss for #124.
+
 * **Instagram - Download any video:** Download all now waits its turn. Tap it on one post, scroll on and tap it on another, and the second post starts once every page of the first is saved, so the two never mix in your gallery. A toast says it's queued, up to ten posts can wait, and the Downloads list in HushGram settings still cancels the one saving now. Download all on reels works the same way. Asked for in #115.
 * **Instagram - Download any reel:** Download cover now looks for a bigger picture than the one size Instagram lists first. Besides its usual sizes, a post can carry a first frame, an IGTV first frame and a smart frame, and Download cover saves the largest of them all as long as it has the cover's proportions and is a picture of the same file, so a reel with a custom cover never saves its first frame instead. A cover with a single size saves as it did. Diagnostics says how many sizes the cover had and which one was the largest. The same goes for Download cover on a video in Home and on a profile.
 

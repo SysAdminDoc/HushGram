@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.profile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
@@ -111,7 +112,7 @@ public class FriendshipChipTest {
     }
 
     /**
-     * Under the counts, in the pronouns line's color, with room made so the bio moves down. The
+     * Under the counts, in the relation's color, with room made so the bio moves down. The
      * pronouns stay as Instagram set them, and binding again changes the words, not the room.
      */
     @Test
@@ -119,6 +120,7 @@ public class FriendshipChipTest {
         int bioTop = layOut();
         int ownBottom = counts.getPaddingBottom();
         pronouns.setText("she/her");
+        pronouns.setTextColor(0xFFA8A8A8);
 
         FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
 
@@ -126,7 +128,7 @@ public class FriendshipChipTest {
         FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
         assertNotNull(chip);
         assertEquals("Following each other", chip.pill.text);
-        assertEquals(FriendshipChip.color(Relation.FOLLOWING_EACH_OTHER), chip.pill.color());
+        assertEquals(FriendshipChip.color(Relation.FOLLOWING_EACH_OTHER, false), chip.pill.color());
         assertEquals(ownBottom + chip.room, counts.getPaddingBottom());
         assertEquals("the bio moves down by the chip's room", bioTop + chip.room, layOut());
         assertEquals("the chip sits in the room, at the counts' start", counts.getHeight() - ownBottom, chip.pill.getBounds().bottom);
@@ -137,10 +139,31 @@ public class FriendshipChipTest {
         FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
         assertSame(chip, FriendshipChip.shownUnder(counts));
         assertEquals("Follows you", chip.pill.text);
-        assertEquals(FriendshipChip.color(Relation.FOLLOWS_YOU), chip.pill.color());
+        assertEquals(FriendshipChip.color(Relation.FOLLOWS_YOU, false), chip.pill.color());
         FriendshipStatus.besidePronouns(pronouns, new Profile(false, true));
         assertEquals("Doesn't follow you", chip.pill.text);
+        assertEquals(FriendshipChip.color(Relation.DOESNT_FOLLOW_YOU, false), chip.pill.color());
         assertEquals("the room is made once", ownBottom + chip.room, counts.getPaddingBottom());
+    }
+
+    /**
+     * Each relation has its own color, and a light profile (dark gray pronouns, as Instagram's
+     * light theme draws them) gets the darker shade of it so the words stay readable on white.
+     */
+    @Test
+    public void aLightProfileGetsTheDarkerShades() {
+        pronouns.setTextColor(0xFF737373);
+        FriendshipStatus.besidePronouns(pronouns, new Profile(true, true));
+        FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
+        assertEquals(FriendshipChip.color(Relation.FOLLOWING_EACH_OTHER, true), chip.pill.color());
+        FriendshipStatus.besidePronouns(pronouns, new Profile(false, true));
+        assertEquals(FriendshipChip.color(Relation.DOESNT_FOLLOW_YOU, true), chip.pill.color());
+        for (Relation relation : Relation.values()) {
+            assertNotEquals(relation.name(), FriendshipChip.color(relation, true), FriendshipChip.color(relation, false));
+            for (Relation other : Relation.values()) {
+                if (other != relation) assertNotEquals(FriendshipChip.color(relation, true), FriendshipChip.color(other, true));
+            }
+        }
     }
 
     /** An account with no pronouns: the slot Instagram just hid stays hidden while the chip shows. */
