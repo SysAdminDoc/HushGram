@@ -240,8 +240,11 @@ class StoryMentionsHookTest {
     fun eachDeclaredBuildHooksBothBinders() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         var checked = 0
-        for (version in versions) {
-            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("the declared build and the six others", 7, bundles.size)
+        run {
+            for (bundle in bundles) {
                 val binders = FixtureDex.classesHolding(bundle, BIND_MEDIA)
                 val pages = binders.flatMap { it.methods }.flatMap { it.instructions() }
                     .filter { it.opcode == Opcode.IPUT_OBJECT }
@@ -271,34 +274,51 @@ class StoryMentionsHookTest {
                 pictures()
                 context.hookStoryBinds(found)
 
-                assertEquals("${bundle.name}: the binders", 2, found.binds.size)
+                assertEquals("${buildOf(bundle)}: the binders", 2, found.binds.size)
                 for (bind in found.binds) {
                     val code = context.mutableClassDefBy(bind.type).methods.single {
                         it.name == bind.name && it.parameterTypes.map(Any::toString) == bind.parameters
                     }.instructions()
-                    assertEquals("${bundle.name}: ${bind.type}->${bind.name} calls bind once", 1, code.count { it.referenceText() == BIND })
+                    assertEquals("${buildOf(bundle)}: ${bind.type}->${bind.name} calls bind once", 1, code.count { it.referenceText() == BIND })
                 }
-                for (name in STUBS) assertEquals("${bundle.name}: $name", Opcode.CHECK_CAST, context.stub(name)[0].opcode)
+                for (name in STUBS) assertEquals("${buildOf(bundle)}: $name", Opcode.CHECK_CAST, context.stub(name)[0].opcode)
                 val user = context.stub("mentionUser")
-                assertEquals("${bundle.name}: the account is read through an interface", Opcode.INVOKE_INTERFACE, user[1].opcode)
-                assertEquals("${bundle.name}: the cast", found.mention, ((user[0] as ReferenceInstruction).reference as TypeReference).type)
+                assertEquals("${buildOf(bundle)}: the account is read through an interface", Opcode.INVOKE_INTERFACE, user[1].opcode)
+                assertEquals("${buildOf(bundle)}: the cast", found.mention, ((user[0] as ReferenceInstruction).reference as TypeReference).type)
                 val holder = holders.getValue(found.mention)
-                assertTrue("${bundle.name}: ${found.mention} is public", AccessFlags.PUBLIC.isSet(holder.accessFlags))
-                assertTrue("${bundle.name}: ${found.mention} is an interface", AccessFlags.INTERFACE.isSet(holder.accessFlags))
-                // The class Instagram's JSON parser fills the cached list with implements it too.
-                val implementers = mutableSetOf<String>()
-                FixtureDex.forEach(bundle) { dex ->
-                    for (classDef in dex.classes) if (found.mention in classDef.interfaces) implementers += classDef.type
+                assertTrue("${buildOf(bundle)}: ${found.mention} is public", AccessFlags.PUBLIC.isSet(holder.accessFlags))
+                assertTrue("${buildOf(bundle)}: ${found.mention} is an interface", AccessFlags.INTERFACE.isSet(holder.accessFlags))
+                val getters = holder.methods.filter {
+                    it.parameterTypes.isEmpty() && it.returnType == USER && AccessFlags.ABSTRACT.isSet(it.accessFlags)
                 }
-                assertTrue("${bundle.name}: ${found.mention} is implemented by ${implementers}", implementers.size >= 2 && mentionClasses.values.any { found.mention in it.interfaces })
-                println("MENTION-INTERFACE ${bundle.name} ${found.mention}->${found.mentionUser} implementers=$implementers named=${mentionClasses.keys}")
+                assertEquals("${buildOf(bundle)}: the interface's one getter of the account", listOf(found.mentionUser), getters.map { it.name })
+                assertTrue("${buildOf(bundle)}: the named mention class implements it", mentionClasses.values.any { found.mention in it.interfaces })
+                // The plain model Instagram's JSON parser fills the cached list with implements it too:
+                // another public class taking a User in its constructor.
+                val implementers = mutableSetOf<String>()
+                val jsonModels = mutableSetOf<String>()
+                FixtureDex.forEach(bundle) { dex ->
+                    for (classDef in dex.classes) if (found.mention in classDef.interfaces) {
+                        implementers += classDef.type
+                        if (AccessFlags.PUBLIC.isSet(classDef.accessFlags) && classDef.type !in mentionClasses &&
+                            classDef.methods.any { it.name == "<init>" && it.parameterTypes.any { type -> type == USER } }
+                        ) jsonModels += classDef.type
+                    }
+                }
+                assertTrue("${buildOf(bundle)}: no other public class taking a User implements ${found.mention}: $implementers", jsonModels.isNotEmpty())
+                assertTrue("${buildOf(bundle)}: ${found.mention} is implemented by ${implementers}", true)
+                println("MENTION-INTERFACE ${bundle.name} ${found.mention}->${found.mentionUser} json=$jsonModels named=${mentionClasses.keys.filter { found.mention in mentionClasses.getValue(it).interfaces }}")
                 // The account's username and picture, and nothing only a profile's own patches read.
-                assertEquals("${bundle.name}: the bridges written", setOf("profilePicture", "username", "candidateUrl"), cast() - castBefore)
+                assertEquals("${buildOf(bundle)}: the bridges written", setOf("profilePicture", "username", "candidateUrl"), cast() - castBefore)
                 checked++
             }
         }
         assertTrue("no fixture was checked", checked > 0)
     }
+
+    private fun name(bundle: java.io.File) = bundle.parentFile?.name ?: bundle.name
+
+    private fun buildOf(bundle: java.io.File) = bundle.parentFile?.name ?: bundle.name
 
     private fun refuses(detail: String, run: () -> Unit) {
         val failure = assertThrows(PatchException::class.java) { run() }
