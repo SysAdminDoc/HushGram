@@ -72,8 +72,8 @@ public final class KeepInChat {
     /**
      * Each media this class rewrote to "permanent" and the mode it came with, until Instagram drops
      * the media or it turns out to be one you sent. Weak keys, so the cache can still ask for the
-     * mode however long Instagram keeps the message. The media class has no equals of its own, so
-     * this is a lookup by the object itself.
+     * mode however long Instagram keeps the message. The patch refuses a media class with its own
+     * equals or hashCode, so this is a lookup by the object itself.
      */
     private static final Map<Object, String> rewritten = Collections.synchronizedMap(new WeakHashMap<>());
 

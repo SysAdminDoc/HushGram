@@ -206,8 +206,9 @@ internal class SentMessage(
  * parser builds, the first boolean store after "is_sent_by_viewer" and the first text store after
  * "user_id". All four go into the one message the parser builds and returns, kept in a register
  * nothing else writes. The reader is the parser's parameter, cast to the reader class it reads the
- * account (a UserSession) from, in a register nothing but that cast writes. [mediaParse] and
- * [viewModeStore] are the media parser and its view mode store from [findViewModeStore].
+ * account (a UserSession) from, in a register nothing but that cast writes. The media class and its
+ * superclasses keep Object's equals and hashCode, since the extension remembers media by identity.
+ * [mediaParse] and [viewModeStore] are the media parser and its view mode store from [findViewModeStore].
  *
  * Instagram tells a message you sent by its user_id matching the signed-in account's userId. The
  * live copy of one you've just sent doesn't say is_sent_by_viewer, so the flag alone isn't enough (#114).
@@ -250,6 +251,20 @@ internal fun BytecodePatchContext.findSentMessage(mediaParse: MutableMethod, vie
     val messageAncestors = ancestors(messageClass)
     for (owner in listOf(visual.definingClass, item.definingClass, sent.definingClass, sender.definingClass)) {
         if (owner !in messageAncestors) refuse("a message field is in $owner, which the message $messageClass isn't")
+    }
+    // The extension remembers each media it rewrote in a WeakHashMap, which finds a key by its
+    // equals and hashCode. Object's compare by identity, so one media never answers for another,
+    // but a media class or superclass with its own could hand one media another's view mode.
+    for (type in ancestors(mediaClass).takeWhile { it != OBJECT }) {
+        val classDef = classDefByOrNull(type) ?: refuse("can't read $type, so can't tell whether the media $mediaClass compares by identity")
+        val own = classDef.methods.filter { method ->
+            val parameters = method.parameterTypes.map(Any::toString)
+            (method.name == "equals" && method.returnType == "Z" && parameters == listOf(OBJECT)) ||
+                (method.name == "hashCode" && method.returnType == "I" && parameters.isEmpty())
+        }.map { it.name }.sorted()
+        if (own.isNotEmpty()) {
+            refuse("the media $mediaClass has its own ${own.joinToString(" and ")} in $type, so the extension can't remember it by identity")
+        }
     }
     // The register holds the message for the whole parse: only the new-instance writes it, a
     // wide result in the register before it would overwrite it too.

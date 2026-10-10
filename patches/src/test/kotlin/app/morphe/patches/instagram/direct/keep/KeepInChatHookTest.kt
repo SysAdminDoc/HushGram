@@ -15,6 +15,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -104,6 +105,28 @@ class KeepInChatHookTest {
         refusesSent("has no userId", standIns(userId = false))
     }
 
+    /**
+     * The extension remembers each media it changed by the object itself, in a WeakHashMap, so a
+     * media class or superclass with its own equals or hashCode fails the patch, and so does one it
+     * can't read. Overloads that aren't Object's are fine.
+     */
+    @Test
+    fun aMediaThatComparesByMoreThanIdentityFailsThePatch() {
+        val ownEquals = method("equals", listOf("Ljava/lang/Object;"), "Z")
+        val ownHashCode = method("hashCode", emptyList(), "I")
+        refusesSent("the media $MEDIA has its own hashCode in $MEDIA", standIns(media = listOf(media(MEDIA, methods = listOf(ownHashCode)))))
+        refusesSent("has its own equals and hashCode in $MEDIA", standIns(media = listOf(media(MEDIA, methods = listOf(ownHashCode, ownEquals)))))
+        refusesSent("has its own equals in Lfixture/MediaBase;", standIns(media = listOf(media(MEDIA, "Lfixture/MediaBase;"),
+            media("Lfixture/MediaBase;", methods = listOf(ownEquals)))))
+        refusesSent("can't read $MEDIA", standIns(media = emptyList()))
+        refusesSent("can't read Lfixture/MediaBase;", standIns(media = listOf(media(MEDIA, "Lfixture/MediaBase;"))))
+
+        val overloads = listOf(method("equals", listOf(MEDIA), "Z"), method("hashCode", listOf("I"), "I"))
+        val context = PatchContexts.of(standIns(media = listOf(media(MEDIA, methods = overloads))))
+        val (parse, store) = context.findViewModeStore()
+        assertEquals("overloads aren't Object's", MEDIA, context.findSentMessage(parse, store).mediaClass)
+    }
+
     @Test
     fun theViewModePassesThroughTheExtension() {
         val context = PatchContexts.of(listOf(parser()))
@@ -182,16 +205,26 @@ class KeepInChatHookTest {
             for (bundle in bundles) {
                 val kept = (FixtureDex.classesHolding(bundle, "url_expire_at_secs") + FixtureDex.classesHolding(bundle, "is_sent_by_viewer") +
                     FixtureDex.classes(bundle, setOf(USER_SESSION)).values).toMutableList()
-                // The message class and its superclasses: the sent flag and the sender live in one of them.
-                var next: String? = kept.flatMap { it.methods }
-                    .filter { m -> m.name == "unsafeParseFromJson" && m.implementation?.instructions?.any { i -> (i as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == "is_sent_by_viewer" } } == true }
+                fun holds(m: Method, key: String) =
+                    m.implementation?.instructions?.any { i -> (i as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == key } } == true
+                fun builtBy(parser: (Method) -> Boolean): String? = kept.flatMap { it.methods }.filter(parser)
                     .flatMap { it.implementation?.instructions?.toList().orEmpty() }
                     .firstOrNull { it.opcode == Opcode.NEW_INSTANCE }
                     ?.let { ((it as ReferenceInstruction).reference as TypeReference).type }
-                while (next != null && next != "Ljava/lang/Object;") {
-                    val found = FixtureDex.classes(bundle, setOf(next)).values.single()
-                    kept += found
-                    next = found.superclass
+                // The message class and its superclasses: the sent flag and the sender live in one of them.
+                // And the media class and its superclasses, which must keep Object's equals and hashCode.
+                val message = builtBy { m -> m.name == "unsafeParseFromJson" && holds(m, "is_sent_by_viewer") }
+                val media = builtBy { m ->
+                    m.returnType == "Ljava/lang/Object;" && m.parameterTypes.size == 1 && VISUAL_MEDIA_KEYS.all { holds(m, it) }
+                }
+                assertTrue("${bundle.name}: the media class", media != null)
+                for (built in listOf(message, media)) {
+                    var next: String? = built
+                    while (next != null && next != "Ljava/lang/Object;") {
+                        val found = FixtureDex.classes(bundle, setOf(next)).values.single()
+                        kept += found
+                        next = found.superclass
+                    }
                 }
                 val context = PatchContexts.of(kept.distinctBy { it.type } + ExtensionDex.classDef(KEEP_IN_CHAT))
                 val (parse, store) = context.findViewModeStore()
@@ -205,6 +238,7 @@ class KeepInChatHookTest {
                 assertSaved(bundle.name, context, parse.definingClass)
                 assertEquals("${bundle.name}: the sender field", "Ljava/lang/String;", sent.sender.type)
                 assertEquals("${bundle.name}: the account field", USER_SESSION, sent.session.type)
+                assertEquals("${bundle.name}: the media class read", media, sent.mediaClass)
                 checked++
             }
         }
@@ -352,12 +386,27 @@ class KeepInChatHookTest {
         else -> "${instruction.opcode.name} $reference"
     }
 
-    private fun standIns(messages: List<ClassDef> = listOf(messageParser()), userId: Boolean = true): List<ClassDef> =
+    private fun standIns(
+        messages: List<ClassDef> = listOf(messageParser()),
+        userId: Boolean = true,
+        media: List<ClassDef> = listOf(media(MEDIA)),
+    ): List<ClassDef> =
         listOf(parser(), messageClass("Lfixture/Message;", "Lfixture/MessageBase;"), messageClass("Lfixture/MessageBase;", "Ljava/lang/Object;"),
-            userSession(userId), ExtensionDex.classDef(KEEP_IN_CHAT)) + messages
+            userSession(userId), ExtensionDex.classDef(KEEP_IN_CHAT)) + messages + media
 
     private fun messageClass(type: String, superclass: String): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value, superclass, null, null, null, null, emptyList())
+
+    /** The media the media parser builds, or a superclass of it, with the methods given. */
+    private fun media(type: String, superclass: String = "Ljava/lang/Object;", methods: List<ImmutableMethod> = emptyList()): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value, superclass, null, null, null, null,
+            methods.map { ImmutableMethod(type, it.name, it.parameters, it.returnType, it.accessFlags, null, null, null) })
+
+    /** A public abstract method, its class filled in by [media]. */
+    private fun method(name: String, parameters: List<String>, returns: String): ImmutableMethod = ImmutableMethod(
+        "Lfixture/Unset;", name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
+        AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null,
+    )
 
     /** Instagram's account class, with its userId or without. */
     private fun userSession(userId: Boolean): ClassDef = ImmutableClassDef(
