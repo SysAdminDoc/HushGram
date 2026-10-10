@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Hide your active status. Turn on its switch under Messages and restart Instagram, and Instagram tells its presence service you're idle while you use it, so the people you chat with don't see Active now for you. You still see when they're active. Ghost mode turns it on with the others. It's in the default selection with its switch off.
+
+* **Instagram:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. Turn it off and the button is back the next time your profile loads.
+
 * **Instagram:** The Lock your messages cover shows its whole title again, with the blue Unlock link under it. On a phone screen the title was cut down to its first word and the link had no room at all, so after cancelling the ask the only way back in was to leave and come back.
 
 * **Instagram:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. A change shows after you restart Instagram.

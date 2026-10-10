@@ -58,6 +58,9 @@ public class NeutralDefaultsSettingsTest {
     /** Stands in for where the reel viewer was opened from. */
     enum StockSource { REPOSTS_GRID }
 
+    /** Stands in for the presence status enum. */
+    enum StockPresence { OFFLINE, ACTIVE, IDLE }
+
     /** Stands in for the unit leading your messages' Accounts to follow section. */
     public static final class StockUnit {
         public String getName() { return "suggested_accounts_to_follow"; }
@@ -77,7 +80,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.VIEW_LIVE_ANONYMOUSLY, Settings.NOTO_EMOJI,
                 Settings.DONT_SEND_REEL_WATCH_HISTORY, Settings.BLOCK_STORY_AUTO_ADVANCE, Settings.SHOW_STORY_TIME,
                 Settings.SHOW_STORY_MENTIONS, Settings.SHOW_POST_TIME, Settings.LOOP_STORIES, Settings.VIEW_STORIES_ANONYMOUSLY,
-                Settings.SPOOF_LOCATION, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING,
+                Settings.SPOOF_LOCATION, Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.HIDE_TYPING, Settings.HIDE_ACTIVE_STATUS,
                 Settings.HIDE_FEED_REELS, Settings.START_ON_FOLLOWING, Settings.HIDE_EXPLORE_GRID,
                 Settings.HIDE_SHARE_SHEET_GROUP, Settings.HIDE_REPOST_BUTTON, Settings.REMOVE_BOTTOM_SPACE,
                 Settings.HIDE_PROFILE_SUGGESTIONS, Settings.HIDE_REELS_SUGGESTIONS, Settings.HIDE_REEL_FOLLOW_BUTTON,
@@ -96,7 +99,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.EMOJI_STYLE,
                 PatchFamily.REEL_WATCH_HISTORY, PatchFamily.STORY_AUTO_ADVANCE, PatchFamily.STORY_TIME, PatchFamily.STORY_MENTIONS,
                 PatchFamily.POST_TIME, PatchFamily.STORY_LOOP, PatchFamily.STORY_SEEN, PatchFamily.SPOOF_LOCATION,
-                PatchFamily.THREAD_SEEN, PatchFamily.TYPING, PatchFamily.FEED_REELS, PatchFamily.FOLLOWING_FEED,
+                PatchFamily.THREAD_SEEN, PatchFamily.TYPING, PatchFamily.ACTIVE_STATUS, PatchFamily.FEED_REELS, PatchFamily.FOLLOWING_FEED,
                 PatchFamily.EXPLORE_GRID, PatchFamily.SHARE_SHEET, PatchFamily.REPOST_BUTTON, PatchFamily.BOTTOM_SPACE,
                 PatchFamily.PROFILE_SUGGESTIONS, PatchFamily.REELS_SUGGESTIONS, PatchFamily.DOUBLE_TAP_LIKE,
                 PatchFamily.REELS_TAB, PatchFamily.REEL_SEEK_BAR, PatchFamily.REEL_AUTO_SCROLL,
@@ -220,6 +223,7 @@ public class NeutralDefaultsSettingsTest {
         assertTrue(app.hushgram.extension.instagram.feed.CommentsButton.feedState(1));
         assertTrue(app.hushgram.extension.instagram.share.ShareButton.feedState(1));
         assertFalse(app.hushgram.extension.instagram.direct.CallConfirm.hold(new Object(), null, null, null, 0));
+        assertSame(StockPresence.ACTIVE, app.hushgram.extension.instagram.direct.ActiveStatus.status(StockPresence.ACTIVE));
         assertFalse(app.hushgram.extension.instagram.share.ShareButton.hideInReels());
         Object heart = new Object();
         assertSame(heart, app.hushgram.extension.instagram.feed.LikeAnimation.pick(heart));

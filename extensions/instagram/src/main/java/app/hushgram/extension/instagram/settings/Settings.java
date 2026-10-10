@@ -220,6 +220,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_TYPING = new BooleanSetting("hushgram_hide_typing", FALSE);
 
     /**
+     * The Active status Instagram's presence service is sent while the app is in front
+     * ({@link app.hushgram.extension.instagram.direct.ActiveStatus}). Read each time Instagram
+     * writes your presence, which it does as the app opens and as it comes back to the front, so a
+     * change shows from the next one. Off to start.
+     */
+    public static final BooleanSetting HIDE_ACTIVE_STATUS = new BooleanSetting("hushgram_hide_active_status", FALSE);
+
+    /**
      * Your inbox and chats stay covered until the phone's lock says it's you, and message
      * notifications say only that a message came
      * ({@link app.hushgram.extension.instagram.direct.MessagesLock}). Off to start.

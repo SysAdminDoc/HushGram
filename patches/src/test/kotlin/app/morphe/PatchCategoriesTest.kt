@@ -22,7 +22,7 @@ import org.junit.Test
 class PatchCategoriesTest {
     /**
      * One name per group, mostly the HushGram settings section the patch's switch sits in, and
-     * Hushfeed's names where they fit. Ghost mode is the settings card that turns those six
+     * Hushfeed's names where they fit. Ghost mode is the settings card that turns those seven
      * switches on together.
      */
     private val taxonomy = setOf(

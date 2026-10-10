@@ -34,6 +34,7 @@ public final class FamilyNames {
     public static final String SPOOF_LOCATION = "Spoof location";
     public static final String THREAD_SEEN = "Read messages without the seen receipt";
     public static final String TYPING = "Hide that you're typing";
+    public static final String ACTIVE_STATUS = "Hide your active status";
     public static final String MESSAGES_LOCK = "Lock your messages";
     public static final String STORIES_TRAY = "Hide suggested stories";
     public static final String STORY_RING = "Story ring size";

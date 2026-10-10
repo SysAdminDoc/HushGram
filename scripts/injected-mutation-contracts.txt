@@ -104,6 +104,13 @@ once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->markReadTogether
 # guard the patch wrote. NativeTypingTest checks on the 450 fixture where it lands.
 start-call Lapp/hushgram/extension/instagram/direct/TypingStatus;->hold(I)Z in instance (Z)V holding IGDirectTypingStatusService is_typing_indicator_enabled
 once-call Lapp/hushgram/extension/instagram/direct/TypingStatus;->hold(I)Z in instance (Z)V holding IGDirectTypingStatusService is_typing_indicator_enabled
+# Hide your active status hands ActiveStatus.status the status first in the presence write request's
+# constructor, the six parameter one that stores it in the request's status field (A02 on 450).
+# Kotlin's serializer constructor stores it too but takes a seventh, its bit mask, so the shape
+# leaves it out. Left out, the other person sees Active now with the switch on; twice or elsewhere,
+# it isn't the hook the patch wrote. NativeActiveStatusTest checks on all seven 450 builds where it lands.
+start-call Lapp/hushgram/extension/instagram/direct/ActiveStatus;->status(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/facebook/presence/model/upi/AppState;Lcom/facebook/presence/model/upi/PresencePollingMode;Lcom/facebook/presence/model/upi/PresenceStatus;Lcom/facebook/presence/model/upi/PresenceWriteRequestType;Ljava/lang/Long;Ljava/lang/String;)V holding Lcom/facebook/presence/model/upi/PresenceWriteRequest;->A02:Lcom/facebook/presence/model/upi/PresenceStatus;
+once-call Lapp/hushgram/extension/instagram/direct/ActiveStatus;->status(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/facebook/presence/model/upi/AppState;Lcom/facebook/presence/model/upi/PresencePollingMode;Lcom/facebook/presence/model/upi/PresenceStatus;Lcom/facebook/presence/model/upi/PresenceWriteRequestType;Ljava/lang/Long;Ljava/lang/String;)V holding Lcom/facebook/presence/model/upi/PresenceWriteRequest;->A02:Lcom/facebook/presence/model/upi/PresenceStatus;
 # Lock your messages hands every notification to MessagesLock.notification first, in androidx's
 # NotificationManagerCompat.notify(tag, id, notification) (00Ji.A01 on 450), the one method holding
 # android.support.useSideChannel. Each post Instagram makes straight to NotificationManager.notify

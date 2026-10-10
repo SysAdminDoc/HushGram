@@ -318,6 +318,20 @@ tasks.register("verifyAndroidBoundaries") {
                 "pausedAndUnreadySendTheIndicator[28]", "pausedAndUnreadySendTheIndicator[37]",
                 "aThrowingSwitchSendsTheIndicatorAndIsReported[28]", "aThrowingSwitchSendsTheIndicatorAndIsReported[37]",
                 "theSeenReceiptSwitchIsAnIndependentChoice[28]", "theSeenReceiptSwitchIsAnIndependentChoice[37]"),
+            "app.hushgram.extension.instagram.direct.ActiveStatusTest" to listOf(
+                "withTheSwitchOnActiveIsSentAsIdle[28]", "withTheSwitchOnActiveIsSentAsIdle[37]",
+                "everyOtherStatusIsSentAsItIs[28]", "everyOtherStatusIsSentAsItIs[37]",
+                "offToStartAndOffSendActive[28]", "offToStartAndOffSendActive[37]",
+                "pausedAndUnreadySendActive[28]", "pausedAndUnreadySendActive[37]",
+                "aThrowingSwitchSendsActiveAndIsReported[28]", "aThrowingSwitchSendsActiveAndIsReported[37]",
+                "anEnumWithoutIdleSendsActiveAndIsReported[28]", "anEnumWithoutIdleSendsActiveAndIsReported[37]",
+                "theTypingSwitchIsAnIndependentChoice[28]", "theTypingSwitchIsAnIndependentChoice[37]"),
+            "app.hushgram.extension.instagram.settings.ActiveStatusSettingsTest" to listOf(
+                "missingPatchHasNoActiveStatusSwitch[28]", "missingPatchHasNoActiveStatusSwitch[37]",
+                "activeStatusAloneStillGetsMessages[28]", "activeStatusAloneStillGetsMessages[37]",
+                "activeStatusSwitchStartsOffAfterTypingPersistsAndHonorsPause[28]",
+                "activeStatusSwitchStartsOffAfterTypingPersistsAndHonorsPause[37]",
+                "ghostModeTurnsItAfterTyping[28]", "ghostModeTurnsItAfterTyping[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

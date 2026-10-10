@@ -30,6 +30,7 @@ final class GhostMode {
         if (build.contains(PatchFamily.THREAD_SEEN)) switches.add(Settings.READ_WITHOUT_SEEN_RECEIPT);
         if (build.contains(PatchFamily.DM_MEDIA_SEEN)) switches.add(Settings.VIEW_DM_MEDIA_ANONYMOUSLY);
         if (build.contains(PatchFamily.TYPING)) switches.add(Settings.HIDE_TYPING);
+        if (build.contains(PatchFamily.ACTIVE_STATUS)) switches.add(Settings.HIDE_ACTIVE_STATUS);
         if (build.contains(PatchFamily.SCREENSHOT_REPORTS)) switches.add(Settings.HIDE_SCREENSHOTS);
         return switches;
     }

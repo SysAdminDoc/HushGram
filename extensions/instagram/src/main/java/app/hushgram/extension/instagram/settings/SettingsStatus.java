@@ -100,6 +100,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean activeStatus() {
+        return false;
+    }
+
     public static boolean messagesLock() {
         return false;
     }
