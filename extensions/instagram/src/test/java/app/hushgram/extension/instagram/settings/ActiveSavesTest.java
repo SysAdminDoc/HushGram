@@ -66,6 +66,9 @@ public class ActiveSavesTest {
         SavesForTests.resetInterruption();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
         PauseForTests.resume();
+        // With the sign-in notice and the view button both above the list, Downloads sits under
+        // the fold of this small screen. The notice has nothing to do with saves.
+        Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
     }
 
     private void show() {
@@ -82,6 +85,7 @@ public class ActiveSavesTest {
         if (controller != null) controller.close();
         PatchFamily.inBuildForTests = null;
         PauseForTests.resume();
+        Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
     private static NotificationManager notifications() {

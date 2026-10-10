@@ -352,8 +352,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return true;
         });
         screen.addPreference(statusCard(context));
-        screen.addPreference(viewToggle);
+        // The sign-in notice stays right under the status card, so the view button goes after it.
         if (!Settings.SIGN_IN_NOTICE_HIDDEN.savedValue()) screen.addPreference(signInNotice(context, screen));
+        screen.addPreference(viewToggle);
         search = new SearchRow(context);
         search.setKey("hushgram_settings_search");
         search.setTitle(L10n.t("Search settings"));
@@ -1620,7 +1621,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             boolean filled = group.getPreferenceCount() > 0;
             boolean asRow = listing && openCategory == null && group != recovery;
             // Pause and diagnostics lives in the list of categories only, not on each category's page.
-                        boolean elsewhere = listing && openCategory != null && group != openCategory;
+            boolean elsewhere = listing && openCategory != null && group != openCategory;
             if (filled && !asRow && !elsewhere) {
                 if (group.getParent() != screen) screen.addPreference(group);
             } else if (group.getParent() == screen) screen.removePreference(group);

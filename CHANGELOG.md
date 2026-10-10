@@ -96,6 +96,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** HushGram settings open as a list of categories now, and a tap opens one on its own page with just its settings. The button under the status card switches to one long list and back, and Pause and diagnostics sits at the bottom of the list of categories. Thanks to @talhaeenss for #123. Asked for in #80 and #100.
+
 * **Instagram - Show if a profile follows you:** The chip under a profile's counts has a color for each answer now. Follows you is blue, Following each other is green and Doesn't follow you is red, with darker shades on a light profile so the words stay easy to read. Thanks to @talhaeenss for #124.
 
 * **Instagram - Download any video:** Download all now waits its turn. Tap it on one post, scroll on and tap it on another, and the second post starts once every page of the first is saved, so the two never mix in your gallery. A toast says it's queued, up to ten posts can wait, and the Downloads list in HushGram settings still cancels the one saving now. Download all on reels works the same way. Asked for in #115.

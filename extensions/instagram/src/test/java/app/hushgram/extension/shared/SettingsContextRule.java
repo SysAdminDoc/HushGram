@@ -71,6 +71,11 @@ public final class SettingsContextRule extends ExternalResource {
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Could not clear the running values", exception);
         }
+        // HushGram's settings open as a list of categories (#80, #100), which keeps every
+        // category's rows off the screen until one is tapped. The settings tests find their rows
+        // on the one long list, so that's where they start. CategoryPagesSettingsTest resets it
+        // to test the default.
+        app.hushgram.extension.instagram.settings.Settings.CATEGORY_PAGES.save(false);
     }
 
     /**
@@ -128,5 +133,6 @@ public final class SettingsContextRule extends ExternalResource {
         // The sandbox is shared with whatever runs next, and a test is free to swap the context
         // for one of its own.
         Utils.setContext(RuntimeEnvironment.getApplication());
+        app.hushgram.extension.instagram.settings.Settings.CATEGORY_PAGES.resetToDefault();
     }
 }

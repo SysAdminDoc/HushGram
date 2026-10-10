@@ -62,8 +62,9 @@ public class Settings extends BaseSettings {
 
     /**
      * HushGram's settings list their categories, and a tap opens one as its own page. Search still
-     * looks through every category. Off to start, so the page stays one long list. A choice about
-     * the page itself, so it's read saved, not through Pause.
+     * looks through every category. On to start (#80, #100). The button under the status card, or
+     * this switch, makes the page one long list. A choice about the page itself, so it's read
+     * saved, not through Pause.
      */
     public static final BooleanSetting CATEGORY_PAGES =
             new BooleanSetting("hushgram_category_pages", TRUE);
