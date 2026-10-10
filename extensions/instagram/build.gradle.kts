@@ -323,7 +323,11 @@ tasks.register("verifyAndroidBoundaries") {
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
             "app.hushgram.extension.instagram.direct.KeepInChatTest" to listOf(
                 "withTheSwitchOnViewOnceAndReplayableStayInChat[28]", "withTheSwitchOnViewOnceAndReplayableStayInChat[37]",
-                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
+                "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]",
+                "aViewOncePhotoYouSentKeepsItsModeWhicheverKeyComesFirst[28]", "aViewOncePhotoYouSentKeepsItsModeWhicheverKeyComesFirst[37]",
+                "mediaYouReceiveAndMessagesWithNoFlagStayKept[28]", "mediaYouReceiveAndMessagesWithNoFlagStayKept[37]",
+                "withTheSwitchOffNothingIsRememberedOrRestored[28]", "withTheSwitchOffNothingIsRememberedOrRestored[37]",
+                "aMessageThatCantBeReadIsReportedAndLeftKept[28]", "aMessageThatCantBeReadIsReportedAndLeftKept[37]"),
             "app.hushgram.extension.instagram.direct.ScreenshotBlockTest" to listOf(
                 "withTheSwitchOnWindowsStayCapturable[28]", "withTheSwitchOnWindowsStayCapturable[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]",

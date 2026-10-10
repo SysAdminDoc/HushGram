@@ -123,11 +123,17 @@ once-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z 
 # list shows you; twice or elsewhere, it isn't the hook.
 once-call Lapp/hushgram/extension/instagram/stories/LiveSeen;->hold()Z in static (L*;Lcom/instagram/video/live/mvvm/model/repository/core/IgLiveHeartbeatManager;L*;)Ljava/lang/Object; calling instance LX/036w;->A00(LX/0aFd;Ljava/lang/Integer;Ljava/lang/String;LX/0haL;)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine
 # Keep in chat hands the view mode the parser of a photo or video message's media reads ("once",
-# "replayable" or "permanent") to KeepInChat.viewMode() right before it stores it (06Oo's
-# unsafeParseFromJson on 450, storing 04h5.A0A). The voice message parser (04q2 on 450) reads the
-# first four keys too, so seen_user_ids picks the photo and video one. Left out, view once media
-# still vanishes after it's opened; twice or elsewhere, it isn't the hook.
-once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->viewMode(Ljava/lang/String;)Ljava/lang/String; in (L*;)Ljava/lang/Object; holding view_mode seen_count url_expire_at_secs expiring_media_action_summary seen_user_ids
+# "replayable" or "permanent") and the media that will hold it to KeepInChat.viewMode() right before
+# it stores it (06Oo's unsafeParseFromJson on 450, storing 04h5.A0A). The voice message parser (04q2
+# on 450) reads the first four keys too, so seen_user_ids picks the photo and video one. Left out,
+# view once media still vanishes after it's opened; twice or elsewhere, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->viewMode(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String; in (L*;)Ljava/lang/Object; holding view_mode seen_count url_expire_at_secs expiring_media_action_summary seen_user_ids
+# It also calls KeepInChat.messageRead() with the message after each of the three stores that tell it
+# whether to leave a media you sent alone: the message's visual_media, its message_item_dict and its
+# is_sent_by_viewer (003F's unsafeParseFromJson on 450, into 0038 and its superclass 037A). The
+# reply preview's parser (04Xj) holds the media keys but not is_sent_by_viewer. Left out, a view once
+# photo you sent shows as an empty bubble; elsewhere or not three times, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->messageRead(Ljava/lang/Object;)V in (L*;)Ljava/lang/Object; sites 3 holding visual_media message_item_dict is_sent_by_viewer raven_media
 # Allow screenshots hands every Window.setFlags and Window.addFlags call outside the extension to
 # ScreenshotBlock's stand-ins, which leave FLAG_SECURE off while the switch is on, and asks
 # ScreenshotBlock.lift() first in the secure window helper's (window, reason) mark (04Bs.A01 on 450),

@@ -230,7 +230,7 @@ public class NeutralDefaultsSettingsTest {
                 new android.view.View(RuntimeEnvironment.getApplication()), refreshListener, null));
         assertEquals(lockOn, MessagesLock.holdBanner());
         assertFalse(app.hushgram.extension.instagram.stories.LiveSeen.hold());
-        assertEquals("once", app.hushgram.extension.instagram.direct.KeepInChat.viewMode("once"));
+        assertEquals("once", app.hushgram.extension.instagram.direct.KeepInChat.viewMode("once", new Object()));
         assertFalse(app.hushgram.extension.instagram.direct.ScreenshotBlock.lift());
         assertFalse(app.hushgram.extension.instagram.direct.ScreenshotReports.hold());
         assertEquals(0, SwipeToCreate.enabled());
