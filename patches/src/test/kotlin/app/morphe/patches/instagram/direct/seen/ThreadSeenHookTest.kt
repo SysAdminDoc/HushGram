@@ -31,15 +31,15 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import app.morphe.patches.instagram.direct.seen.ChatSeenFixture as F
 
 class ThreadSeenHookTest {
-    @Test fun theOptInPatchIsExcludedFromDefaultBuilds() {
-        assertFalse(readWithoutSeenReceiptPatch.default)
+    // Its switch starts off, so simple mode picks it (DefaultSelectionPolicyTest).
+    @Test fun simpleModePicksThePatchSinceItsSwitchStartsOff() {
+        assertTrue(readWithoutSeenReceiptPatch.default)
     }
 
     @Test fun aHeldChatReceiptCompletesOnceAndNothingElseChanges() {

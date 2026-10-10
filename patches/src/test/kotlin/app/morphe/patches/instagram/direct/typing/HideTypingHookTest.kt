@@ -30,14 +30,14 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class HideTypingHookTest {
-    @Test fun theOptInPatchIsExcludedFromDefaultBuilds() {
-        assertFalse(hideTypingPatch.default)
+    // Its switch starts off, so simple mode picks it (DefaultSelectionPolicyTest).
+    @Test fun simpleModePicksThePatchSinceItsSwitchStartsOff() {
+        assertTrue(hideTypingPatch.default)
     }
 
     @Test fun aStartIsHeldBeforeAnythingIsSentAndNothingElseChanges() {
