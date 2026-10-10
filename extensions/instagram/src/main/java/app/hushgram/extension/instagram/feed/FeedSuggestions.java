@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.feed;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -157,6 +158,36 @@ public final class FeedSuggestions {
 
     /** Set once the report has counted {@link #OLDER_ENDED} for that page. Tests clear it. */
     static volatile boolean olderEndCounted;
+
+    /** Counts the pages of Home's response that held items, so a feed can tell a page parsed after it opened. */
+    static volatile long pageSeq;
+
+    /** The most contextual feeds {@link #olderPageLoading} remembers the page count of at once. */
+    private static final int OLDER_FEEDS_MAX = 8;
+
+    /** One contextual feed's load more policy, and how many pages had been parsed when it first asked. */
+    private static final class OlderFeed {
+        final WeakReference<Object> policy;
+        final long seqAtOpen;
+
+        OlderFeed(Object policy, long seqAtOpen) {
+            this.policy = new WeakReference<>(policy);
+            this.seqAtOpen = seqAtOpen;
+        }
+    }
+
+    /** The contextual feeds that have asked, oldest first. Guarded by itself. */
+    private static final ArrayList<OlderFeed> OLDER_FEEDS = new ArrayList<>();
+
+    /** The load more policy the contextual builder on this thread is about to ask, from {@link #olderPolicyAsked}. */
+    private static final ThreadLocal<Object> OLDER_POLICY = new ThreadLocal<>();
+
+    /** Forgets every contextual feed. Tests call it. */
+    static void forgetOlderFeeds() {
+        synchronized (OLDER_FEEDS) {
+            OLDER_FEEDS.clear();
+        }
+    }
 
     /** The time {@link #olderPageLoading} measures a page's age by. Tests stand in. */
     static volatile LongSupplier clock = System::nanoTime;
@@ -315,6 +346,7 @@ public final class FeedSuggestions {
             if (page == null || page[0] == 0) return;
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
+            pageSeq++;
             pageLostEverything = page[1] >= page[0];
             pageLostEverythingAt = clock.getAsLong();
             olderEndCounted = false;
@@ -357,20 +389,41 @@ public final class FeedSuggestions {
     }
 
     /**
+     * Injected right before the contextual feed's model builder asks its load more policy whether the
+     * feed is loading, with that policy: one object per contextual feed, which {@link #olderPageLoading}
+     * keys what it knows of the feed by. Never throws.
+     */
+    public static void olderPolicyAsked(Object policy) {
+        try {
+            OLDER_POLICY.set(policy);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "older posts policy", failure);
+        }
+    }
+
+    /**
      * Injected right after the contextual feed's model builder asks whether its feed is loading, in
      * the builder that draws a full-screen loading row while the feed is loading and empty. The
      * Older Posts page, opened from the "Older posts" link under Home's end card, is a contextual
      * feed. Its first page comes back through the same parser as Home's, and when the post switches
      * or Hide suggested posts take every post out of it, the builder runs once with the page empty
      * and the fetch still marked as loading, and nothing runs it again, so the row stayed for good.
-     * Answers 0 (not loading) while the latest page of Home's response lost every item, parsed in
-     * the last {@link #OLDER_WINDOW_NANOS}, with a switch for it on, and [loading] otherwise. The
-     * builder still asks whether the feed is empty, so a feed with posts keeps what it draws. It
-     * asks for no page, so it can't loop. Never throws.
+     *
+     * <p>Answers 0 (not loading) only for a feed whose own page has lost every item: the latest page
+     * of Home's response lost all of them, with a switch for it on, within the last
+     * {@link #OLDER_WINDOW_NANOS}, and that page was parsed after this feed first asked. A feed's
+     * first ask is when its fetch starts, so Home's own emptied page, which usually comes just before
+     * Older Posts opens, never drops the row of a fetch still running. A feed that can't be told
+     * apart (no policy handed over) keeps Instagram's answer. The builder still asks whether the feed
+     * is empty, so a feed with posts keeps what it draws. It asks for no page, so it can't loop. Never throws.
      */
     public static int olderPageLoading(int loading) {
-        if (loading == 0 || !pageLostEverything) return loading;
+        Object policy = OLDER_POLICY.get();
+        OLDER_POLICY.remove();
+        if (loading == 0 || policy == null) return loading;
         try {
+            long seqAtOpen = seqAtOpen(policy);
+            if (!pageLostEverything || pageSeq <= seqAtOpen) return loading;
             if (!Utils.settingsReady()) return loading;
             boolean suggestions = tookOut && suggestionSwitchOn();
             boolean posts = typesTookOut && postSwitchOn();
@@ -386,6 +439,21 @@ public final class FeedSuggestions {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "older posts", failure);
             return loading;
+        }
+    }
+
+    /** The page count when [policy]'s feed first asked, noted now if it hasn't before. */
+    private static long seqAtOpen(Object policy) {
+        synchronized (OLDER_FEEDS) {
+            for (int i = OLDER_FEEDS.size() - 1; i >= 0; i--) {
+                Object known = OLDER_FEEDS.get(i).policy.get();
+                if (known == null) OLDER_FEEDS.remove(i);
+                else if (known == policy) return OLDER_FEEDS.get(i).seqAtOpen;
+            }
+            if (OLDER_FEEDS.size() >= OLDER_FEEDS_MAX) OLDER_FEEDS.remove(0);
+            long now = pageSeq;
+            OLDER_FEEDS.add(new OlderFeed(policy, now));
+            return now;
         }
     }
 

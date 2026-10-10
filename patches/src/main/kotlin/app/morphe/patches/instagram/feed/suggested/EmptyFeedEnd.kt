@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -232,6 +233,9 @@ internal fun BytecodePatchContext.findLoadMoreRow(): Pair<ClassDef, Method> {
         ?: refuse("expected one instance boolean method holding $FOLLOWING_FEED, found ${found.size}")
 }
 
+/** Handed the contextual feed's load more policy right before its builder asks it whether the feed is loading. */
+internal const val OLDER_POLICY_ASKED = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->olderPolicyAsked(Ljava/lang/Object;)V"
+
 /** The extension's answer to "is the feed loading" in the contextual feed's model builder. */
 internal const val OLDER_PAGE_LOADING = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->olderPageLoading(I)I"
 
@@ -240,7 +244,7 @@ internal const val OLDER_PAGE_LOADING = "$EXTENSION_PACKAGE/feed/FeedSuggestions
  * asks the adapter whether it's empty before it adds the full-screen loading row. [at] is the index
  * of the move-result that takes the answer.
  */
-internal class LoadingRow(val type: String, val name: String, val parameters: List<String>, val at: Int)
+internal class LoadingRow(val type: String, val name: String, val parameters: List<String>, val at: Int, val policyRegister: Int)
 
 /**
  * The Older Posts page is a contextual feed (the fragment Instagram opens a profile's posts in,
@@ -269,7 +273,12 @@ internal fun BytecodePatchContext.findLoadingRows(): List<LoadingRow> {
                         code[call + 3].opcode == Opcode.INVOKE_VIRTUAL && empty?.name == "isEmpty" &&
                         empty.returnType == "Z" && empty.parameterTypes.isEmpty()
                     ) {
-                        rows += LoadingRow(classDef.type, method.name, method.parameterTypes.map { it.toString() }, call + 1)
+                        val policyRegister = when (val asking = code[call]) {
+                            is FiveRegisterInstruction -> asking.registerC
+                            is RegisterRangeInstruction -> asking.startRegister
+                            else -> return@forEach
+                        }
+                        rows += LoadingRow(classDef.type, method.name, method.parameterTypes.map { it.toString() }, call + 1, policyRegister)
                     }
                 }
             }
@@ -298,6 +307,11 @@ internal fun BytecodePatchContext.endOlderPostsSpinner(rows: List<LoadingRow>) {
                 invoke-static/range { v$answer .. v$answer }, $OLDER_PAGE_LOADING
                 move-result v$answer
             """,
+        )
+        // Before the question, so the extension keys the answer by the feed's own policy object.
+        method.addInstructionsAtControlFlowLabel(
+            row.at - 1,
+            "invoke-static/range { v${row.policyRegister} .. v${row.policyRegister} }, $OLDER_POLICY_ASKED",
         )
     }
 }

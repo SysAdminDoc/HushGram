@@ -67,6 +67,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.pageLostEverything = false;
         FeedSuggestions.pageLostEverythingAt = 0;
         FeedSuggestions.olderEndCounted = false;
+        FeedSuggestions.forgetOlderFeeds();
         FeedSuggestions.clock = System::nanoTime;
     }
 
@@ -83,6 +84,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.pageLostEverything = false;
         FeedSuggestions.pageLostEverythingAt = 0;
         FeedSuggestions.olderEndCounted = false;
+        FeedSuggestions.forgetOlderFeeds();
         FeedSuggestions.clock = System::nanoTime;
         for (BooleanSetting setting : suggestionSwitches()) setting.resetToDefault();
     }
@@ -581,6 +583,12 @@ public class FeedSuggestionsTest {
         return report.contains(FeedSuggestions.OLDER_ENDED + " 1") ? "once" : report.contains(FeedSuggestions.OLDER_ENDED) ? "more" : "none";
     }
 
+    /** One build of a contextual feed's model: the builder hands over [policy], then Instagram says it's loading. */
+    private static int older(Object policy) {
+        FeedSuggestions.olderPolicyAsked(policy);
+        return FeedSuggestions.olderPageLoading(1);
+    }
+
     /** A page of Home's response holding [count] videos, parsed on this thread. */
     private static void videoPage(int count) {
         FeedSuggestions.homePageStarts();
@@ -599,18 +607,72 @@ public class FeedSuggestionsTest {
         withHomeReads();
         FeedSuggestions.clock = () -> 1_000L;
         Settings.HIDE_FEED_VIDEOS.save(true);
+        Object feed = new Object();
         try {
             HookStatus.clear();
+            assertEquals("the fetch starts: Instagram's row", 1, older(feed));
             videoPage(6);
             assertTrue(FeedSuggestions.pageLostEverything);
-            assertEquals("the loading row is dropped", 0, FeedSuggestions.olderPageLoading(1));
-            assertEquals("again on a later build of the model", 0, FeedSuggestions.olderPageLoading(1));
+            assertEquals("the loading row is dropped", 0, older(feed));
+            assertEquals("again on a later build of the model", 0, older(feed));
+            FeedSuggestions.olderPolicyAsked(feed);
             assertEquals("a fetch that isn't loading stays that way", 0, FeedSuggestions.olderPageLoading(0));
             assertEquals("counted once for the page", "once", olderCounted());
         } finally {
             Settings.HIDE_FEED_VIDEOS.resetToDefault();
             FeedSuggestions.typesTookOut = false;
             HookStatus.clear();
+        }
+    }
+
+    /**
+     * Home's end card usually shows right after Home's last page lost every item, so Older Posts
+     * opens inside the window with its first fetch still running. Its loading row stays until its own
+     * page arrives; Home's emptied page is not its page. A second feed that opens later, with the
+     * first one's page behind it, is told apart the same way.
+     */
+    @Test
+    public void anOlderPostsFetchStillRunningKeepsItsLoadingRow() {
+        withHomeReads();
+        FeedSuggestions.clock = () -> 1_000L;
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        Object older = new Object();
+        Object other = new Object();
+        try {
+            HookStatus.clear();
+            videoPage(6);
+            assertTrue("Home's last page lost everything", FeedSuggestions.pageLostEverything);
+            assertEquals("opened inside the window", 1, older(older));
+            assertEquals("the model builds again, the fetch still running", 1, older(older));
+            assertEquals("and again", 1, older(older));
+            assertEquals("nothing counted", "none", olderCounted());
+
+            videoPage(3);
+            assertEquals("its own page lost everything", 0, older(older));
+            assertEquals("another feed opening now keeps its row", 1, older(other));
+            assertEquals("until its own page comes", 1, older(other));
+            videoPage(2);
+            assertEquals("then drops it", 0, older(other));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
+            HookStatus.clear();
+        }
+    }
+
+    /** A builder that handed over no policy can't be told apart from Home's page, so it keeps Instagram's answer. */
+    @Test
+    public void aFeedWithNoPolicyKeepsInstagramsRow() {
+        withHomeReads();
+        FeedSuggestions.clock = () -> 1_000L;
+        Settings.HIDE_FEED_VIDEOS.save(true);
+        try {
+            videoPage(6);
+            videoPage(6);
+            assertEquals(1, FeedSuggestions.olderPageLoading(1));
+        } finally {
+            Settings.HIDE_FEED_VIDEOS.resetToDefault();
+            FeedSuggestions.typesTookOut = false;
         }
     }
 
@@ -643,8 +705,9 @@ public class FeedSuggestionsTest {
         long[] now = {1_000L};
         FeedSuggestions.clock = () -> now[0];
         Settings.HIDE_FEED_VIDEOS.save(true);
+        Object feed = new Object();
         try {
-            assertEquals("no page yet", 1, FeedSuggestions.olderPageLoading(1));
+            assertEquals("no page yet", 1, older(feed));
 
             // A page that kept a post.
             FeedSuggestions.homePageStarts();
@@ -652,24 +715,24 @@ public class FeedSuggestionsTest {
             assertTrue(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.PHOTO) != null);
             FeedSuggestions.homePageParsed();
             assertFalse(FeedSuggestions.pageLostEverything);
-            assertEquals("a page that kept a post", 1, FeedSuggestions.olderPageLoading(1));
+            assertEquals("a page that kept a post", 1, older(feed));
 
             // A page that lost everything, then too long ago, or before the clock, or with the switches off.
             videoPage(3);
             now[0] = 1_000L + FeedSuggestions.OLDER_WINDOW_NANOS + 1;
-            assertEquals("too long ago", 1, FeedSuggestions.olderPageLoading(1));
+            assertEquals("too long ago", 1, older(feed));
             now[0] = 500L;
-            assertEquals("a clock that went back", 1, FeedSuggestions.olderPageLoading(1));
+            assertEquals("a clock that went back", 1, older(feed));
             now[0] = 2_000L;
             Settings.HIDE_FEED_VIDEOS.save(false);
-            assertEquals("switch off", 1, FeedSuggestions.olderPageLoading(1));
+            assertEquals("switch off", 1, older(feed));
             Settings.HIDE_FEED_VIDEOS.save(true);
-            assertEquals("the switch back on", 0, FeedSuggestions.olderPageLoading(1));
+            assertEquals("the switch back on", 0, older(feed));
 
             // An empty page, a parser that read nothing, leaves the verdict of the page before.
             FeedSuggestions.homePageStarts();
             FeedSuggestions.homePageParsed();
-            assertEquals("a page with no items changes nothing", 0, FeedSuggestions.olderPageLoading(1));
+            assertEquals("a page with no items changes nothing", 0, older(feed));
         } finally {
             Settings.HIDE_FEED_VIDEOS.resetToDefault();
             FeedSuggestions.typesTookOut = false;
@@ -681,14 +744,16 @@ public class FeedSuggestionsTest {
     public void anOlderPostsPageEmptiedBySuggestionSwitchesStopsLoading() {
         withHomeReads();
         FeedSuggestions.clock = () -> 1_000L;
+        Object feed = new Object();
+        assertEquals(1, older(feed));
         homePage(new Item(Kind.EXPLORE_STORY), new Item(Kind.SUGGESTED_USERS));
         assertTrue(FeedSuggestions.tookOut);
-        assertEquals(0, FeedSuggestions.olderPageLoading(1));
+        assertEquals(0, older(feed));
         Settings.HIDE_SUGGESTED_POSTS.save(false);
         Settings.HIDE_SUGGESTED_ACCOUNTS.save(false);
         Settings.HIDE_THREADS_POSTS.save(false);
         Settings.HIDE_FEED_SURVEYS.save(false);
         Settings.HIDE_FEED_SHOPPING.save(false);
-        assertEquals("every switch off is Instagram's row", 1, FeedSuggestions.olderPageLoading(1));
+        assertEquals("every switch off is Instagram's row", 1, older(feed));
     }
 }

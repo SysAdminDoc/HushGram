@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -297,6 +298,10 @@ class EmptyFeedEndTest {
             assertEquals(Opcode.MOVE_RESULT, code[hook + 1].opcode)
             assertEquals("$type: back in the same register", answer, (code[hook + 1] as OneRegisterInstruction).registerA)
             assertEquals("$type: still branches on it", Opcode.IF_EQZ, code[hook + 2].opcode)
+            val ask = code[hook - 2] as FiveRegisterInstruction
+            val policyHook = code.indexOfFirst { it.calls(OLDER_POLICY_ASKED) }
+            assertEquals("$type: the policy is handed over once, right before the question", hook - 3, policyHook)
+            assertEquals("$type: the feed's own policy", ask.registerC, (code[policyHook] as RegisterRangeInstruction).startRegister)
         }
         val other = context.classDefBy("Lfixture/OtherAsker;").methods.single { it.name == "check" }.implementation!!.instructions
         assertTrue("the other asker is left", other.none { it.calls(OLDER_PAGE_LOADING) })
@@ -380,6 +385,14 @@ class EmptyFeedEndTest {
                 assertEquals("$where: the answer", answer, (code[hook] as RegisterRangeInstruction).startRegister)
                 assertEquals("$where: back in the register", answer, (code[hook + 1] as OneRegisterInstruction).registerA)
                 assertEquals("$where: still branches on it", Opcode.IF_EQZ, code[hook + 2].opcode)
+                val policyHooks = code.indices.filter { code[it].calls(OLDER_POLICY_ASKED) }
+                assertEquals("$where: ${row.type}->${row.name} hands the policy over once", 1, policyHooks.size)
+                assertEquals("$where: right before the question", hook - 2, policyHooks.single() + 1)
+                val ask = code[hook - 2] as ReferenceInstruction
+                val askedOn = (ask as? FiveRegisterInstruction)?.registerC ?: (ask as RegisterRangeInstruction).startRegister
+                val handed = (code[policyHooks.single()] as RegisterRangeInstruction).startRegister
+                assertEquals("$where: the policy it asks", askedOn, handed)
+                assertTrue("$where: a register invoke-static/range can reach", handed <= 255)
                 assertEquals("$where: then asks isEmpty", "isEmpty", ((code[hook + 3] as ReferenceInstruction).reference as MethodReference).name)
             }
             checked++
