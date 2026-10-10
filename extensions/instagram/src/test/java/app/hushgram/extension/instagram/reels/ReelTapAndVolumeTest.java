@@ -114,7 +114,7 @@ public class ReelTapAndVolumeTest {
     @Test
     public void keepingMutedStartsOff() {
         assertFalse(Settings.KEEP_REELS_MUTED.get());
-        assertFalse(ReelTapAndVolume.keepMuted(1));
+        assertFalse(ReelTapAndVolume.keepMuted(1, 0));
         String report = report();
         assertTrue(report, report.contains(FamilyNames.REEL_TAP_AND_VOLUME + ": invoked 1"));
         assertFalse(report, report.contains(ReelTapAndVolume.VOLUME_KEPT_MUTED));
@@ -124,13 +124,27 @@ public class ReelTapAndVolumeTest {
     @Test
     public void onItSkipsTheUnmuteOnlyForVolumeUp() {
         Settings.KEEP_REELS_MUTED.save(true);
-        assertTrue(ReelTapAndVolume.keepMuted(1));
-        assertTrue(ReelTapAndVolume.keepMuted(1));
-        assertFalse("volume down", ReelTapAndVolume.keepMuted(-1));
-        assertFalse("same level", ReelTapAndVolume.keepMuted(0));
-        assertFalse("toggle mute", ReelTapAndVolume.keepMuted(101));
+        assertTrue(ReelTapAndVolume.keepMuted(1, 0));
+        assertTrue(ReelTapAndVolume.keepMuted(1, 0));
+        assertFalse("volume down", ReelTapAndVolume.keepMuted(-1, 0));
+        assertFalse("same level", ReelTapAndVolume.keepMuted(0, 0));
+        assertFalse("toggle mute", ReelTapAndVolume.keepMuted(101, 0));
         String report = report();
         assertTrue(report, report.contains(ReelTapAndVolume.VOLUME_KEPT_MUTED + " 2"));
+    }
+
+    /**
+     * A reel whose sound is already on keeps Instagram's unmute (a running fade-in finishes), and nothing is
+     * counted. So does a build that couldn't read the state (-1).
+     */
+    @Test
+    public void aReelWithItsSoundOnKeepsTheUnmute() {
+        Settings.KEEP_REELS_MUTED.save(true);
+        assertFalse("sound on", ReelTapAndVolume.keepMuted(1, 1));
+        assertFalse("state unknown", ReelTapAndVolume.keepMuted(1, -1));
+        assertFalse(report(), report().contains(ReelTapAndVolume.VOLUME_KEPT_MUTED));
+        assertTrue("sound off", ReelTapAndVolume.keepMuted(1, 0));
+        assertTrue(report(), report().contains(ReelTapAndVolume.VOLUME_KEPT_MUTED + " 1"));
     }
 
     /** Paused, a saved switch answers Instagram's own and counts nothing. */
@@ -139,18 +153,18 @@ public class ReelTapAndVolumeTest {
         Settings.KEEP_REELS_MUTED.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse(ReelTapAndVolume.keepMuted(1));
+        assertFalse(ReelTapAndVolume.keepMuted(1, 0));
         assertTrue("the saved choice is kept", Settings.KEEP_REELS_MUTED.savedValue());
         assertFalse(report(), report().contains(ReelTapAndVolume.VOLUME_KEPT_MUTED));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        assertTrue(ReelTapAndVolume.keepMuted(1));
+        assertTrue(ReelTapAndVolume.keepMuted(1, 0));
     }
 
     /** Before the settings are ready the hook cannot read the switch and takes Instagram's own unmute. */
     @Test
     public void beforeTheSettingsAreReadyTheUnmuteHappens() {
         Settings.KEEP_REELS_MUTED.save(true);
-        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepMuted(1)));
+        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepMuted(1, 0)));
     }
 }

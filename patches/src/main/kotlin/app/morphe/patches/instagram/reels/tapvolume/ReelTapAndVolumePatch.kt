@@ -29,7 +29,11 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -40,7 +44,7 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Control taps and volume on Reels"
 internal const val REEL_TAP_AND_VOLUME = "$EXTENSION_PACKAGE/reels/ReelTapAndVolume;"
 internal const val MUTE_INSTEAD_OF_PAUSE = "$REEL_TAP_AND_VOLUME->muteInsteadOfPause()Z"
-internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(I)Z"
+internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(II)Z"
 
 /** The purge marker, less its release, of the Reels controller's volume runnable: where it unmutes after a key press. */
 internal const val VOLUME_ADJUSTED = "ClipsVideoPlayerController_onVolumeAdjustedByUser"
@@ -112,8 +116,24 @@ internal class VolumeSite(
     val run: Method,
     val index: Int,
     val direction: FieldReference,
-    val scratch: Int,
+    val scratch: List<Int>,
+    val audio: AudioState,
 )
+
+/**
+ * How Instagram's own audio button reads whether Reels sound is on. [controllerField] is the runnable's
+ * field holding the controller, [sessionField] the controller's field holding the user session,
+ * [state] the static that hands that session's audio state over, and [isOn] the question the audio
+ * toggle asks it before flipping it.
+ */
+internal class AudioState(
+    val controllerField: FieldReference,
+    val sessionField: FieldReference,
+    val state: MethodReference,
+    val isOn: MethodReference,
+)
+
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /**
  * The tap is the one method marked [TOGGLE_PAUSE], and the audio toggle the one marked [TOGGLE_AUDIO],
@@ -224,7 +244,7 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
     val code = run.code()
     val adjusts = code.indices.filter { code[it].methodReference()?.let { call -> call.name == "adjustStreamVolume" && call.definingClass == AUDIO_MANAGER } == true }
     val adjust = adjusts.singleOrNull() ?: refuse("$where doesn't call AudioManager.adjustStreamVolume once")
-    val call = code[adjust] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+    val call = code[adjust] as FiveRegisterInstruction
     if (call.registerCount != 4) refuse("$where gives adjustStreamVolume an unexpected number of registers")
     val directionRegister = call.registerE
     // The direction register is loaded by the nearest write before the call, which must be an iget of this class's int.
@@ -245,24 +265,108 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
     if (index in run.jumpTargets()) refuse("something in $where jumps to just past the $VOLUME_ADJUSTED marker")
     if (run.localRegisterCount() > 15) refuse("$where keeps this past v15")
     run.requireThisIntact(PATCH, listOf(index))
-    val scratch = run.freeLocalsAt(PATCH, index, 1).single()
-    return VolumeSite(run, index, direction, scratch)
+    val scratch = run.freeLocalsAt(PATCH, index, 2)
+    val audio = findAudioState(run, code)
+    return VolumeSite(run, index, direction, scratch, audio)
 }
 
 /**
- * Past the volume runnable's adjustment: ask [KEEP_MUTED] with the direction it used, and on a yes
- * return before the unmute.
+ * The audio toggle ([TOGGLE_AUDIO]) flips the reels' sound by taking the user session's audio state
+ * object, asking it whether sound is on, and setting its opposite: a static taking the session and
+ * returning the state, a no-argument boolean on the state, an xor with 1, then a boolean setter on the
+ * state. The volume runnable's unmute sets that same state to on. The controller reaches the session
+ * through one field of its own, and the runnable reaches the controller through one field of its own.
+ * Found once, and reachable from the runnable, or the patch stops.
+ */
+private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instruction>): AudioState {
+    val where = "${run.definingClass}->${run.name}"
+    val toggles = mutableListOf<Method>()
+    val marked = typesMarked(TOGGLE_AUDIO)
+    classDefForEach { classDef ->
+        if (classDef.type !in marked) return@classDefForEach
+        classDef.methods.forEach { method -> if (TOGGLE_AUDIO in method.markers()) toggles += method }
+    }
+    val toggle = toggles.singleOrNull() ?: refuse("the Reels audio toggle: expected one method marked $TOGGLE_AUDIO, found ${toggles.size}")
+    val controller = toggle.definingClass
+    val code = toggle.code()
+    val found = mutableListOf<AudioState>()
+    for (at in code.indices) {
+        val factory = code[at].methodReference() ?: continue
+        if (code[at].opcode != Opcode.INVOKE_STATIC || factory.parameterTypes.map(Any::toString) != listOf(USER_SESSION)) continue
+        val stateType = factory.returnType
+        val asks = code.getOrNull(at + 2)?.methodReference()
+        val answer = code.getOrNull(at + 3) as? OneRegisterInstruction
+        val flip = code.getOrNull(at + 4)
+        val sets = code.getOrNull(at + 5)?.methodReference()
+        if (code.getOrNull(at + 1)?.opcode != Opcode.MOVE_RESULT_OBJECT || code[at + 2].opcode != Opcode.INVOKE_VIRTUAL ||
+            asks?.definingClass != stateType || asks.returnType != "Z" || asks.parameterTypes.isNotEmpty() ||
+            answer == null || code[at + 3].opcode != Opcode.MOVE_RESULT ||
+            flip?.opcode != Opcode.XOR_INT_LIT8 || (flip as NarrowLiteralInstruction).narrowLiteral != 1 ||
+            (flip as TwoRegisterInstruction).registerB != answer.registerA ||
+            code[at + 5].opcode != Opcode.INVOKE_VIRTUAL || sets?.definingClass != stateType || sets.returnType != "V" ||
+            sets.parameterTypes.map(Any::toString) != listOf("Z")
+        ) continue
+        // The session register the static takes was loaded by the nearest write before it: an iget-object of the controller's.
+        val sessionRegister = (code[at] as? FiveRegisterInstruction)?.registerC ?: continue
+        val load = (at - 1 downTo 0).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == sessionRegister } ?: continue
+        val session = code[load].fieldReference() ?: continue
+        if (code[load].opcode != Opcode.IGET_OBJECT || session.definingClass != controller || session.type != USER_SESSION) continue
+        val controllerFields = runCode.mapNotNull { instruction ->
+            instruction.fieldReference()?.takeIf { instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == run.definingClass && it.type == controller }
+        }.distinctBy { it.toString() }
+        found += AudioState(controllerFields.singleOrNull() ?: continue, session, factory, asks)
+    }
+    val audio = found.distinctBy { "${it.sessionField}${it.state}${it.isOn}" }.singleOrNull()
+        ?: refuse("$where: expected the audio toggle to read Reels sound state once, found ${found.size}")
+    // The runnable reaches all of it from its own class, so each piece must be public or share its package.
+    val package0 = run.definingClass.substringBeforeLast('/')
+    fun shares(type: String) = type.substringBeforeLast('/') == package0
+    fun open(type: String, flags: Int) = shares(type) || (AccessFlags.PUBLIC.isSet(flags) && AccessFlags.PUBLIC.isSet(classDefBy(type).accessFlags))
+    val sessionField = classDefBy(controller).fields.singleOrNull { it.name == audio.sessionField.name }
+        ?: refuse("$where: ${audio.sessionField} isn't a field of $controller")
+    val stateClass = classDefBy(audio.state.returnType)
+    val factory = stateClass.methods.singleOrNull {
+        it.name == audio.state.name && it.parameterTypes.map(Any::toString) == listOf(USER_SESSION) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$where: ${audio.state} isn't a static of ${stateClass.type}")
+    val ask = stateClass.methods.singleOrNull {
+        it.name == audio.isOn.name && it.parameterTypes.isEmpty() && it.returnType == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("$where: ${audio.isOn} isn't an instance method of ${stateClass.type}")
+    if (!open(controller, AccessFlags.PUBLIC.value) || !open(controller, sessionField.accessFlags) ||
+        !open(stateClass.type, factory.accessFlags) || !open(stateClass.type, ask.accessFlags)
+    ) {
+        refuse("$where can't reach the audio state from its own class")
+    }
+    return audio
+}
+
+/**
+ * Past the volume runnable's adjustment: ask [KEEP_MUTED] with the direction it used and whether Reels
+ * sound is on (1, 0, or -1 where the controller or session isn't there to ask), and on a yes return
+ * before the unmute. A reel whose sound is already on keeps the unmute, so a fade-in still finishes.
  */
 internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
-    val scratch = site.scratch
+    val (direction, state) = site.scratch
+    val audio = site.audio
     mutable(site.run).apply {
         addInstructionsWithLabels(
             site.index,
             """
-                iget v$scratch, p0, ${site.direction}
-                invoke-static { v$scratch }, $KEEP_MUTED
-                move-result v$scratch
-                if-eqz v$scratch, :stock
+                iget v$direction, p0, ${site.direction}
+                iget-object v$state, p0, ${audio.controllerField}
+                if-eqz v$state, :unknown
+                iget-object v$state, v$state, ${audio.sessionField}
+                if-eqz v$state, :unknown
+                invoke-static { v$state }, ${audio.state}
+                move-result-object v$state
+                invoke-virtual { v$state }, ${audio.isOn}
+                move-result v$state
+                goto :ask
+                :unknown
+                const/4 v$state, -1
+                :ask
+                invoke-static { v$direction, v$state }, $KEEP_MUTED
+                move-result v$direction
+                if-eqz v$direction, :stock
                 return-void
             """,
             ExternalLabel("stock", getInstruction(site.index)),

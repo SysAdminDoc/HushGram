@@ -67,13 +67,17 @@ public final class ReelTapAndVolume {
     /**
      * Asked by the Reels controller's volume runnable after it has adjusted the phone's stream
      * volume, so the key is never swallowed, and before it unmutes the reel. {@code direction} is the
-     * value it just gave AudioManager: 1 for volume up. True means skip the rest, which is
-     * Instagram's unmute. Never throws.
+     * value it just gave AudioManager: 1 for volume up. {@code audioOn} is Instagram's own Reels sound
+     * state, read the way its audio button reads it: 1 when sound is on, 0 when it's off, -1 when the
+     * patch couldn't ask. True means skip the rest, which is Instagram's unmute, and only a volume up
+     * on muted sound gets that: with sound already on the unmute runs, so a fade-in still finishes.
+     * Never throws.
      */
-    public static boolean keepMuted(int direction) {
+    public static boolean keepMuted(int direction, int audioOn) {
         try {
             HookStatus.invoked(FamilyNames.REEL_TAP_AND_VOLUME);
             if (!Utils.settingsReady() || !Settings.KEEP_REELS_MUTED.get() || direction != ADJUST_RAISE) return false;
+            if (audioOn != 0) return false;
             HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, VOLUME_KEPT_MUTED);
             Logger.printDebug(() -> "Reel volume key: unmute skipped");
             return true;

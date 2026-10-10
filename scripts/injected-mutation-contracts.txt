@@ -1343,5 +1343,6 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInstead
 # The volume half asks ReelTapAndVolume.keepMuted in the Reels controller's volume runnable (the run()V that traces
 # ClipsVideoPlayerController_onVolumeAdjustedByUser), right after the marker call and past the stream adjustment, so
 # the key still does its work. Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
-# ReelTapAndVolumeHookTest checks on all seven 450 builds that it lands once, there.
-once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(I)Z in instance ()V holding android_purge_26_q3_ClipsVideoPlayerController_onVolumeAdjustedByUser
+# ReelTapAndVolumeHookTest checks on all seven 450 builds that it lands once, there. It also hands over whether Reels sound is on,
+# read the way the audio toggle reads it, so a volume up on a reel that already has sound keeps Instagram's unmute.
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(II)Z in instance ()V holding android_purge_26_q3_ClipsVideoPlayerController_onVolumeAdjustedByUser
