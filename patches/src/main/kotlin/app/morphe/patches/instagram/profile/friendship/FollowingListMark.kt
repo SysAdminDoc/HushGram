@@ -375,6 +375,7 @@ internal class FollowingStubs(
                 """,
             )
         }
+        // Answers an Object too, so its ways out may meet at one return.
         fetchViewerId.addInstructionsWithLabels(
             0,
             """

@@ -151,9 +151,11 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
         check-cast p0, $summaryType
         $invoke { p0 }, ${getter.signature()}
         move-result-object p0
-        if-eqz p0, :none
+        if-nez p0, :key
+        const/4 p0, 0x0
+        return-object p0
+        :key
         iget-object p0, p0, ${idField.signature()}
-        :none
         return-object p0
     """.trimIndent()
     requireFilter()
@@ -320,9 +322,11 @@ internal fun BytecodePatchContext.findSearchTargets(): SearchTargets {
         check-cast p0, $SHARE_TARGET
         invoke-virtual { p0 }, ${getter.signature()}
         move-result-object p0
-        if-eqz p0, :none
+        if-nez p0, :key
+        const/4 p0, 0x0
+        return-object p0
+        :key
         iget-object p0, p0, ${idField.signature()}
-        :none
         return-object p0
     """.trimIndent()
     requireSearchFilters()

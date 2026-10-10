@@ -210,6 +210,7 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/DmMediaSeenSettingsTest.java",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/analytics/AlternateSetupScreensTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/ComposerButtonsHookTest.kt",
+        "patches/src/test/kotlin/app/morphe/MergedReturnSourceTest.kt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/metaai/InboxRowHookTest.kt",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/developeroptions/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/theme/**",

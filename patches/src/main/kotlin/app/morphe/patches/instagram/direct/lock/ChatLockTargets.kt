@@ -145,9 +145,11 @@ internal fun BytecodePatchContext.findChatLockTargets(): ChatLockTargets {
         iget-object p0, p0, ${controller.signature()}
         invoke-virtual { p0 }, ${getter.signature()}
         move-result-object p0
-        if-eqz p0, :none
+        if-nez p0, :key
+        const/4 p0, 0x0
+        return-object p0
+        :key
         iget-object p0, p0, ${idField.signature()}
-        :none
         return-object p0
     """.trimIndent()
     requireHooks()

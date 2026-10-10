@@ -213,6 +213,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
         }
     }
 
+    // Answers an Object, so its ways out may meet at one return.
     storyMedia.addInstructionsWithLabels(
         0,
         """

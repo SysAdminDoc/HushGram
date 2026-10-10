@@ -436,6 +436,7 @@ internal class FriendshipStubs(
     private val setSlotVisibility: MutableMethod,
 ) {
     fun fill(found: ProfileName) {
+        // Answers an Object, so its ways out may meet at one return.
         profileUser.addInstructionsWithLabels(
             0,
             """

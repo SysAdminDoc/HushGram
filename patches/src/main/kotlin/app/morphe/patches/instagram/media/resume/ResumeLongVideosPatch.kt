@@ -356,6 +356,7 @@ private class ResumeStubs(
                 """,
             )
         }
+        // Answers an Object, so its ways out may meet at one return.
         videoSource.addInstructionsWithLabels(
             0,
             """
