@@ -778,3 +778,7 @@ Keep reels muted on the volume keys	Mantener los reels silenciados con las tecla
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Subir el volumen sigue subiendo el volumen del teléfono, pero un reel silenciado sigue silenciado hasta que lo actives.
 Start stories with sound	Iniciar las historias con sonido
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Las historias se abren con el sonido activado, igual que al tocar el altavoz de Instagram. El timbre y el volumen del teléfono siguen contando, así que en silencio o con el volumen bajado las historias se quedan mudas.
+# context: toast when Download all is tapped while another post is still saving; it waits its turn
+Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto se guarde la publicación anterior.
+# context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
+Not saved: %1$d posts are already waiting	No se guardó: ya hay %1$d publicaciones esperando

@@ -854,7 +854,8 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.download.CarouselSaveTest" to listOf(
                 "aMixedBatchPreservesOrderSnapshotsAndQuality[30]", "failedAndDisabledPagesHaveExactCountsAndNoRetry[30]",
                 "tooManyPagesAreRejectedAndTheExactLimitIsAccepted[30]", "oneCancelStopsTheTransferAndAllRemainingPages[30]",
-                "cancelBeforeCommitRemovesThePendingRowAndKeepsEarlierFiles[30]", "aBatchUsesOneSlotAndNeverQueuesPastTheExistingLimit[30]",
+                "cancelBeforeCommitRemovesThePendingRowAndKeepsEarlierFiles[30]", "aBatchUsesOneSlotAndASecondWaitsItsTurn[30]",
+                "aSecondDownloadAllWaitsForTheFirstAndKeepsItsOrder[30]", "aFullLineSaysSoAndTheWaitingOnesStillRun[30]",
                 "currentPageDownloadAndSaveAllReadDifferentSnapshots[30]", "theSeparateMenuActionUsesItsLabelAndKeepsNativeOptionsIntact[30]",
                 "exhaustedPreferenceRetirementDoesNotTurnTheBatchIntoAnInterruption[30]", "cancellationSurvivesExhaustedPreferenceRetirementToo[30]",
                 "completeCountsArePublishedBeforeTheRowEndsAndRefusedStartsKeepThem[30]",

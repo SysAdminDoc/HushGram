@@ -10,12 +10,14 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -70,9 +72,33 @@ public final class MediaSave {
 
     private static final AtomicInteger IN_FLIGHT = new AtomicInteger();
 
-    /** Saves still running. A test waits on this for the ones it started. */
+    /** Saves still running, and Download all requests waiting their turn. A test waits on this for the ones it started. */
     static int savesInFlight() {
-        return IN_FLIGHT.get();
+        synchronized (WAITING) {
+            return IN_FLIGHT.get() + WAITING.size() + handingOver;
+        }
+    }
+
+    /**
+     * Download all requests waiting for the one saving now, in the order they were asked for
+     * (#115). Each post's pages are all saved before the next post's first, instead of two posts
+     * running side by side and mixing in the gallery. At most this many wait.
+     */
+    static final int MAX_WAITING = 10;
+
+    private static final ArrayDeque<BooleanSupplier> WAITING = new ArrayDeque<>();
+
+    /** Whether a Download all holds the turn: it's saving, or the next one is being started. */
+    private static boolean batchTurn;
+
+    /** Requests taken off the line whose save isn't counted in flight yet, so a test never sees none. */
+    private static int handingOver;
+
+    /** Download all requests waiting their turn. */
+    static int batchesWaiting() {
+        synchronized (WAITING) {
+            return WAITING.size();
+        }
     }
 
     /** A batch is one in-flight save, with this many ordered pages at most. */
@@ -136,8 +162,11 @@ public final class MediaSave {
 
     /**
      * Saves a bounded snapshot in order, with one worker, Cancel and durable logical-job marker.
-     * Null entries are skipped. Quality and compatibility choices are frozen for the whole batch.
-     * The optional completion runs after cleanup, including the terminal marker and in-flight slot.
+     * Null entries are skipped. Quality and compatibility choices are frozen for the whole batch
+     * when it starts. The optional completion runs after cleanup, including the terminal marker and
+     * in-flight slot. While another batch is saving, this one waits its turn and starts when that
+     * one ends. Answers true when it started, is waiting, or said why it can't wait (a full line),
+     * and false when it couldn't start.
      */
     public static boolean saveBatch(Context context, List<Item> pages, Consumer<BatchResult> completion) {
         try {
@@ -157,10 +186,72 @@ public final class MediaSave {
             if (snapshot.isEmpty()) return false;
             Context application = ready(context);
             if (application == null) return false;
+            synchronized (WAITING) {
+                if (batchTurn) {
+                    if (WAITING.size() >= MAX_WAITING) {
+                        info(() -> "carousel not queued: " + MAX_WAITING + " already waiting");
+                        Feedback.show(application, L10n.f(application, "Not saved: %1$d posts are already waiting", MAX_WAITING), true);
+                        return true;
+                    }
+                    WAITING.add(() -> {
+                        // Whoever asked has moved on, so a waiting save that can't start says so itself.
+                        boolean started = startBatch(application, snapshot, completion);
+                        if (!started) Feedback.show(application, L10n.t(application, "Download failed"), true);
+                        return started;
+                    });
+                    final int ahead = WAITING.size();
+                    info(() -> "carousel queued, " + ahead + " waiting");
+                    Feedback.show(application, L10n.t(application, "Queued. It starts once the post before it is saved."), true);
+                    return true;
+                }
+                batchTurn = true;
+            }
+            if (startBatch(application, snapshot, completion)) return true;
+            nextBatch();
+            return false;
+        } catch (Throwable failure) {
+            failure(() -> "the carousel save could not start", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Starts the next waiting Download all, or gives up the turn when none waits. One that can't
+     * start says so and the one after it gets the turn.
+     */
+    private static void nextBatch() {
+        while (true) {
+            BooleanSupplier next;
+            synchronized (WAITING) {
+                next = WAITING.poll();
+                if (next == null) {
+                    batchTurn = false;
+                    return;
+                }
+                handingOver++;
+            }
+            boolean started;
+            try {
+                started = next.getAsBoolean();
+            } catch (Throwable failure) {
+                failure(() -> "a waiting carousel could not start", failure);
+                started = false;
+            } finally {
+                synchronized (WAITING) {
+                    handingOver--;
+                }
+            }
+            if (started) return;
+        }
+    }
+
+    /** Starts saving [snapshot] now and answers whether it started. */
+    private static boolean startBatch(Context application, List<Item> snapshot, Consumer<BatchResult> completion) {
+        try {
             DownloadQuality quality = quality();
             boolean compatible = compatibleSaves();
             BatchResult[] outcome = new BatchResult[1];
-            return launch(application, false, snapshot.size(), save -> {
+            boolean started = launch(application, false, snapshot.size(), save -> {
                 int saved = 0, failed = 0, skipped = 0, lower = 0;
                 boolean cancelled = false;
                 for (int index = 0; index < snapshot.size(); index++) {
@@ -216,8 +307,13 @@ public final class MediaSave {
                         + ", skipped " + result.skipped + (result.cancelled ? ", cancelled" : ""));
                 Feedback.show(application, result.message(application), true);
             }, () -> {
-                if (completion != null) completion.accept(outcome[0]);
+                try {
+                    if (completion != null) completion.accept(outcome[0]);
+                } finally {
+                    nextBatch();
+                }
             }) != null;
+            return started;
         } catch (Throwable failure) {
             failure(() -> "the carousel save could not start", failure);
             return false;

@@ -287,7 +287,11 @@ public class CarouselSaveTest {
         assertClean();
     }
 
-    @Test public void aBatchUsesOneSlotAndNeverQueuesPastTheExistingLimit() throws Exception {
+    /**
+     * A batch uses one slot. A second Download all while it saves waits its turn instead of being
+     * refused, and starts once the first ends (#115). A single save past the limit is still refused.
+     */
+    @Test public void aBatchUsesOneSlotAndASecondWaitsItsTurn() throws Exception {
         CountDownLatch singles = new CountDownLatch(2);
         List<Thread> workers = new ArrayList<>();
         for (int i = 0; i < 2; i++) workers.add(MediaSave.start(context, true, (writer, progress) -> {
@@ -300,13 +304,69 @@ public class CarouselSaveTest {
         CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();
         assertTrue(MediaSave.saveBatch(context, Arrays.asList(held, held), ended::complete));
         assertEquals(3, MediaSave.savesInFlight());
-        assertFalse(MediaSave.saveBatch(context, Arrays.asList(held, held), null));
+        CompletableFuture<MediaSave.BatchResult> second = new CompletableFuture<>();
+        assertTrue("the second waits its turn", MediaSave.saveBatch(context, Arrays.asList(held, held), second::complete));
+        assertEquals(1, MediaSave.batchesWaiting());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Queued. It starts once the post before it is saved.", ShadowToast.getTextOfLatestToast());
         assertFalse(MediaSave.saveVideo(context, SavesForTests.renditions(server.origin() + "/held.mp4"), null, null));
         release.countDown();
         ended.get(20, TimeUnit.SECONDS);
+        second.get(20, TimeUnit.SECONDS);
         for (Thread worker : workers) worker.join(10_000);
         waitForSaves();
-        assertEquals("a refused batch was queued", 2, server.hits("/held.mp4"));
+        assertEquals("each batch fetched both its pages once", 4, server.hits("/held.mp4"));
+        assertEquals(0, MediaSave.batchesWaiting());
+        assertClean();
+    }
+
+    /** Two Download all requests save one post's pages, then the other's, in the order they were asked (#115). */
+    @Test public void aSecondDownloadAllWaitsForTheFirstAndKeepsItsOrder() throws Exception {
+        List<String> order = Collections.synchronizedList(new ArrayList<>());
+        CountDownLatch entered = new CountDownLatch(1);
+        MediaSave.detailsForTests = details -> {
+            order.add(details.videoId);
+            if (order.size() == 1) { entered.countDown(); await(release); }
+        };
+        CompletableFuture<MediaSave.BatchResult> first = new CompletableFuture<>();
+        CompletableFuture<MediaSave.BatchResult> second = new CompletableFuture<>();
+        assertTrue(MediaSave.saveBatch(context, Arrays.asList(page(false, "/a1.jpg", "a1"), page(false, "/a2.jpg", "a2")), first::complete));
+        assertTrue(entered.await(10, TimeUnit.SECONDS));
+        assertTrue(MediaSave.saveBatch(context, Arrays.asList(page(false, "/b1.jpg", "b1"), page(false, "/b2.jpg", "b2")), second::complete));
+        assertEquals(1, MediaSave.batchesWaiting());
+        assertEquals("one saving, one waiting", 2, MediaSave.savesInFlight());
+        assertEquals("only the first has a Cancel", 1, SaveControl.running().size());
+        release.countDown();
+        assertEquals(2, first.get(20, TimeUnit.SECONDS).saved);
+        assertEquals(2, second.get(20, TimeUnit.SECONDS).saved);
+        waitForSaves();
+        assertEquals(Arrays.asList("a1", "a2", "b1", "b2"), order);
+        assertEquals(0, MediaSave.batchesWaiting());
+        assertClean();
+    }
+
+    /** With the line full, one more Download all says so and saves nothing, and the ones waiting still run. */
+    @Test public void aFullLineSaysSoAndTheWaitingOnesStillRun() throws Exception {
+        CountDownLatch entered = new CountDownLatch(1);
+        MediaSave.detailsForTests = details -> { entered.countDown(); await(release); };
+        assertTrue(MediaSave.saveBatch(context, Collections.singletonList(page(false, "/first.jpg", "1")), null));
+        assertTrue(entered.await(10, TimeUnit.SECONDS));
+        List<CompletableFuture<MediaSave.BatchResult>> waiting = new ArrayList<>();
+        for (int i = 0; i < MediaSave.MAX_WAITING; i++) {
+            CompletableFuture<MediaSave.BatchResult> ended = new CompletableFuture<>();
+            waiting.add(ended);
+            assertTrue(MediaSave.saveBatch(context, Collections.singletonList((MediaSave.Item) null), ended::complete));
+        }
+        assertEquals(MediaSave.MAX_WAITING, MediaSave.batchesWaiting());
+        assertTrue("refused with its own message", MediaSave.saveBatch(context, Collections.singletonList(page(false, "/late.jpg", "2")), null));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Not saved: 10 posts are already waiting", ShadowToast.getTextOfLatestToast());
+        assertEquals(MediaSave.MAX_WAITING, MediaSave.batchesWaiting());
+        release.countDown();
+        for (CompletableFuture<MediaSave.BatchResult> ended : waiting) assertEquals(1, ended.get(20, TimeUnit.SECONDS).skipped);
+        waitForSaves();
+        assertEquals(1, server.hits("/first.jpg"));
+        assertEquals(0, server.hits("/late.jpg"));
         assertClean();
     }
 

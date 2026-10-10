@@ -778,3 +778,7 @@ Keep reels muted on the volume keys	Ses tuşlarında reel'leri sessiz tut
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Sesi artırmak telefonun sesini yine yükseltir, ancak sessize alınmış bir reel siz açana kadar sessiz kalır.
 Start stories with sound	Hikayeleri sesli başlat
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Hikayeler, Instagram'ın hoparlörüne dokunmuş gibi sesi açık olarak açılır. Telefonunuzun zil modu ve ses düzeyi yine geçerlidir, bu yüzden sessizde veya ses kapalıyken hikayeler sessiz kalır.
+# context: toast when Download all is tapped while another post is still saving; it waits its turn
+Queued. It starts once the post before it is saved.	Sırada. Önceki gönderi kaydedilince başlayacak.
+# context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
+Not saved: %1$d posts are already waiting	Kaydedilmedi: zaten %1$d gönderi bekliyor

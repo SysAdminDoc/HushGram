@@ -778,3 +778,7 @@ Keep reels muted on the volume keys	Tetap bisukan reel dengan tombol volume
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Tombol volume naik tetap menaikkan volume ponsel, tetapi reel yang dibisukan tetap bisu sampai kamu menyalakannya.
 Start stories with sound	Mulai cerita dengan suara
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Cerita terbuka dengan suara menyala, sama seperti mengetuk speaker Instagram. Mode dering dan volume ponsel tetap berlaku, jadi saat senyap atau volume dimatikan, cerita tetap tanpa suara.
+# context: toast when Download all is tapped while another post is still saving; it waits its turn
+Queued. It starts once the post before it is saved.	Dalam antrean. Dimulai setelah postingan sebelumnya tersimpan.
+# context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
+Not saved: %1$d posts are already waiting	Tidak disimpan: sudah ada %1$d postingan yang menunggu
