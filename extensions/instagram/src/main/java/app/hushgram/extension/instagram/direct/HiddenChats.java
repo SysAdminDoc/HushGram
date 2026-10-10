@@ -19,7 +19,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * The chats "Lock your messages" hides, one at a time.
  *
  * <p>A hidden chat is left out of the thread summaries Instagram's inbox reads ({@link #filter}),
- * and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
+ * out of the inbox search's results and message matches ({@link #searchResults},
+ * {@link #searchHits}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
  * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): a
  * chat's thread id and the name it had when it was hidden. The ids never leave the phone. HushGram
  * settings add the chat you opened last and take a chat off the list.
@@ -34,11 +35,18 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class HiddenChats {
     /** What is counted in the diagnostic report. */
     static final String LEFT_OUT = "hidden chats left out of the inbox";
+    static final String LEFT_OUT_SEARCH = "hidden chats left out of search";
     static final String SILENCED = "hidden chat notifications dropped";
 
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
     static final String FILTER = "inbox filter";
+    static final String SEARCH = "inbox search filter";
+
+    /** Instagram's own names for a chat as the inbox search lists it, and for a chat whose messages matched. */
+    private static final String SHARE_TARGET = "com.instagram.model.direct.DirectShareTarget";
+    private static final String HIT_THREAD = "com.instagram.model.direct.DirectMessageSearchThread";
+    private static final String HIT_MESSAGE = "com.instagram.model.direct.DirectMessageSearchMessage";
 
     /** Reads the thread id of one of the inbox's thread summaries. Tests put a fake in. */
     interface Reader {
@@ -46,6 +54,9 @@ public final class HiddenChats {
     }
 
     static volatile Reader reader = HiddenChats::threadId;
+
+    /** Reads the thread id of a chat in the inbox search's results. Tests put a fake in. */
+    static volatile Reader searchReader = HiddenChats::targetThreadId;
 
     private HiddenChats() {
     }
@@ -93,6 +104,94 @@ public final class HiddenChats {
             // One summary that can't be read stays in the inbox; the rest are still filtered.
             return null;
         }
+    }
+
+    // ---------------------------------------------------------------- search
+
+    /**
+     * The thread id of a chat in the inbox search's results, or null when it has none. The patch
+     * writes the body at patch time, from Instagram's own result type, and a build without it
+     * answers null, so no result is hidden. A result that is only a person has no thread, and stays.
+     */
+    public static String targetThreadId(Object result) {
+        return null;
+    }
+
+    /**
+     * Asked with the results Instagram's inbox search is about to turn into rows. A list with no
+     * hidden chat in it comes back as it is, and otherwise a copy without the hidden ones does.
+     * People who aren't a chat yet stay, so a hidden chat doesn't stop you finding its person.
+     */
+    public static List<Object> searchResults(List<Object> results) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (results == null || results.isEmpty()) return results;
+            Set<String> hidden = ids();
+            if (hidden.isEmpty()) return results;
+            List<Object> shown = new ArrayList<>(results.size());
+            for (Object result : results) {
+                if (!inHiddenChat(result, hidden)) shown.add(result);
+            }
+            if (shown.size() == results.size()) return results;
+            HookStatus.counted(FamilyNames.MESSAGES_LOCK, LEFT_OUT_SEARCH);
+            return shown;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SEARCH, t);
+            return results;
+        }
+    }
+
+    /** The same for the messages the server found: the ones said in a hidden chat are left out. */
+    public static ArrayList<Object> searchHits(ArrayList<Object> hits) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (hits == null || hits.isEmpty()) return hits;
+            Set<String> hidden = ids();
+            if (hidden.isEmpty()) return hits;
+            ArrayList<Object> shown = new ArrayList<>(hits.size());
+            for (Object hit : hits) {
+                if (!inHiddenChat(hit, hidden)) shown.add(hit);
+            }
+            if (shown.size() == hits.size()) return hits;
+            HookStatus.counted(FamilyNames.MESSAGES_LOCK, LEFT_OUT_SEARCH);
+            return shown;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SEARCH, t);
+            return hits;
+        }
+    }
+
+    /** The result is a chat on the list, or a message said in one. A result that can't be read isn't. */
+    private static boolean inHiddenChat(Object result, Set<String> hidden) {
+        try {
+            if (result == null) return false;
+            for (Class<?> type = result.getClass(); type != null; type = type.getSuperclass()) {
+                String name = type.getName();
+                if (SHARE_TARGET.equals(name)) {
+                    String id = searchReader.threadId(result);
+                    return id != null && hidden.contains(id.trim());
+                }
+                if (HIT_THREAD.equals(name) || HIT_MESSAGE.equals(name)) return carriesAny(result, type, hidden);
+            }
+        } catch (Throwable t) {
+            // One result that can't be read stays in the search; the rest are still filtered.
+        }
+        return false;
+    }
+
+    /**
+     * A message match keeps its chat's thread id in one of its text fields, under a name that
+     * changes with each Instagram build. A thread id is a long number nothing else in the match
+     * looks like, so any text field holding a hidden chat's is the chat.
+     */
+    private static boolean carriesAny(Object hit, Class<?> type, Set<String> hidden) throws IllegalAccessException {
+        for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+            if (field.getType() != String.class || java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+            field.setAccessible(true);
+            Object value = field.get(hit);
+            if (value instanceof String && hidden.contains(((String) value).trim())) return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- notifications
@@ -177,5 +276,6 @@ public final class HiddenChats {
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         reader = HiddenChats::threadId;
+        searchReader = HiddenChats::targetThreadId;
     }
 }

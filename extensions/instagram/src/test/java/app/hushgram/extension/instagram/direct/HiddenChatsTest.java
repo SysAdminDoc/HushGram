@@ -26,6 +26,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.instagram.model.direct.DirectMessageSearchMessage;
+import com.instagram.model.direct.DirectMessageSearchThread;
+import com.instagram.model.direct.DirectShareTarget;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -128,6 +132,86 @@ public class HiddenChatsTest {
         HiddenChats.resetForTests();
         ArrayList<Object> inbox = list(ALICE);
         assertEquals(1, HiddenChats.filter(inbox).size());
+    }
+
+    @Test
+    public void aHiddenChatLeavesTheInboxSearchAndPeopleAndOtherChatsStay() {
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        HiddenChats.add(ALICE, "Alice");
+        DirectShareTarget alice = new DirectShareTarget(ALICE);
+        DirectShareTarget bob = new DirectShareTarget(BOB);
+        DirectShareTarget person = new DirectShareTarget(null);
+        List<Object> results = new ArrayList<>(Arrays.asList(bob, alice, person, "something else"));
+
+        List<Object> shown = HiddenChats.searchResults(results);
+
+        assertEquals(Arrays.asList(bob, person, "something else"), shown);
+        assertEquals("Instagram's own list is untouched", 4, results.size());
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of search 1"));
+    }
+
+    @Test
+    public void searchResultsWithNothingHiddenComeBackAsTheyAre() {
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        List<Object> results = new ArrayList<>(Arrays.asList(new DirectShareTarget(ALICE), new DirectShareTarget(BOB)));
+
+        assertSame("no hidden chat", results, HiddenChats.searchResults(results));
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> other = new ArrayList<>(Arrays.asList(new DirectShareTarget(BOB)));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.searchResults(other));
+        assertNull(HiddenChats.searchResults(null));
+        List<Object> empty = new ArrayList<>();
+        assertSame(empty, HiddenChats.searchResults(empty));
+        HiddenChats.remove(ALICE);
+        assertSame("shown again", results, HiddenChats.searchResults(results));
+    }
+
+    @Test
+    public void messagesSaidInAHiddenChatAreLeftOutOfSearchHits() {
+        HiddenChats.add(ALICE, "Alice");
+        DirectMessageSearchThread inAlice = new DirectMessageSearchThread(ALICE);
+        DirectMessageSearchMessage saidToAlice = new DirectMessageSearchMessage(ALICE);
+        DirectMessageSearchThread inBob = new DirectMessageSearchThread(BOB);
+        DirectMessageSearchMessage saidToBob = new DirectMessageSearchMessage(BOB);
+        ArrayList<Object> hits = new ArrayList<>(Arrays.asList(inAlice, saidToBob, saidToAlice, inBob));
+
+        ArrayList<Object> shown = HiddenChats.searchHits(hits);
+
+        assertEquals(Arrays.asList(saidToBob, inBob), shown);
+        assertEquals("Instagram's own list is untouched", 4, hits.size());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of search 1"));
+        ArrayList<Object> clean = new ArrayList<>(Arrays.asList(saidToBob));
+        assertSame(clean, HiddenChats.searchHits(clean));
+        assertNull(HiddenChats.searchHits(null));
+    }
+
+    @Test
+    public void aSearchResultThatCantBeReadStaysAndPausedShowsEverything() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.searchReader = result -> {
+            throw new IllegalStateException("no key");
+        };
+        List<Object> results = new ArrayList<>(Arrays.asList(new DirectShareTarget(ALICE), new DirectShareTarget(BOB)));
+        assertSame("nothing could be read", results, HiddenChats.searchResults(results));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+
+        // The unpatched bridge answers null for everything, so nothing is hidden.
+        HiddenChats.resetForTests();
+        assertSame(results, HiddenChats.searchResults(results));
+
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        ArrayList<Object> hits = new ArrayList<>(Arrays.asList(new DirectMessageSearchMessage(ALICE)));
+        for (HushgramPause.Reason reason : new HushgramPause.Reason[]{HushgramPause.Reason.SWITCH, HushgramPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+
+            assertSame(reason.name(), results, HiddenChats.searchResults(results));
+            assertSame(reason.name(), hits, HiddenChats.searchHits(hits));
+
+            PauseForTests.resume();
+            assertEquals(reason.name(), 1, HiddenChats.searchResults(results).size());
+            assertTrue(reason.name(), HiddenChats.searchHits(hits).isEmpty());
+        }
     }
 
     @Test
