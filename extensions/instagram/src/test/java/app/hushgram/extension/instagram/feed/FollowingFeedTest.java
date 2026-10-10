@@ -9,6 +9,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.view.View;
+import android.widget.FrameLayout;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,8 +24,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
+import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+import instagram.features.feed.mainfeed.actionbar.MainFeedActionBar;
+import org.robolectric.RuntimeEnvironment;
 
 /** When Start Home on Following turns on the remembered feed, and what it answers for the saved pick. */
 @RunWith(RobolectricTestRunner.class)
@@ -36,6 +47,83 @@ public class FollowingFeedTest {
     @After
     public void switchBack() {
         Settings.START_ON_FOLLOWING.resetToDefault();
+        Settings.LOGO_ON_FOLLOWING.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+    }
+
+    private static View titleInHomeHeader() {
+        Context context = RuntimeEnvironment.getApplication();
+        MainFeedActionBar bar = new MainFeedActionBar(context);
+        FrameLayout row = new FrameLayout(context);
+        View title = new View(context);
+        row.addView(title);
+        bar.addView(row);
+        return title;
+    }
+
+    @Test
+    public void theLogoSwitchStartsOffAndNeedsStartOnFollowing() {
+        org.junit.Assert.assertEquals(Boolean.FALSE, Settings.LOGO_ON_FOLLOWING.defaultValue);
+        assertTrue(Settings.LOGO_ON_FOLLOWING.rebootApp);
+        Settings.LOGO_ON_FOLLOWING.save(true);
+        assertTrue(Settings.LOGO_ON_FOLLOWING.isAvailable());
+        Settings.START_ON_FOLLOWING.save(false);
+        assertFalse(Settings.LOGO_ON_FOLLOWING.isAvailable());
+    }
+
+    @Test
+    public void theLogoStandsInForTheNameOnlyInHomesHeaderWithBothSwitchesOn() {
+        View title = titleInHomeHeader();
+        assertEquals("off to start", 0, FollowingFeed.keepLogo(title));
+        Settings.LOGO_ON_FOLLOWING.save(true);
+        HookStatus.clear();
+        assertEquals(1, FollowingFeed.keepLogo(title));
+        assertEquals(
+                java.util.Arrays.asList(FamilyNames.FOLLOWING_FEED + ": invoked 1, 0 found, 0 missing. Counted: "
+                        + FollowingFeed.LOGO_KEPT + " 1"),
+                HookStatus.report());
+
+        assertEquals("a title view outside Home's header", 0,
+                FollowingFeed.keepLogo(new View(RuntimeEnvironment.getApplication())));
+        assertEquals(0, FollowingFeed.keepLogo(null));
+        assertEquals(0, FollowingFeed.keepLogo("not a view"));
+        Settings.START_ON_FOLLOWING.save(false);
+        assertEquals("Start Home on Following off", 0, FollowingFeed.keepLogo(title));
+    }
+
+    @Test
+    public void pausedAndUnreadyShowTheName() {
+        Settings.LOGO_ON_FOLLOWING.save(true);
+        View title = titleInHomeHeader();
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, FollowingFeed.keepLogo(title));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertEquals(1, FollowingFeed.keepLogo(title));
+        SettingsContextRule.withoutContext(() -> assertEquals(0, FollowingFeed.keepLogo(title)));
+    }
+
+    @Test
+    public void theHeaderIsFoundOnlyWithinAFewParents() {
+        Context context = RuntimeEnvironment.getApplication();
+        MainFeedActionBar bar = new MainFeedActionBar(context);
+        FrameLayout top = bar;
+        for (int level = 0; level < 8; level++) {
+            FrameLayout inner = new FrameLayout(context);
+            top.addView(inner);
+            top = inner;
+        }
+        View deep = new View(context);
+        top.addView(deep);
+        assertFalse(FollowingFeed.underBar(deep, FollowingFeed.HOME_BAR));
+        assertTrue(FollowingFeed.underBar(titleInHomeHeader(), FollowingFeed.HOME_BAR));
+    }
+
+    @Test
+    public void homesHeaderKeepsTheNameInstagramsLayoutsGiveIt() {
+        assertEquals(MainFeedActionBar.class.getName(), FollowingFeed.HOME_BAR);
     }
 
     @Test

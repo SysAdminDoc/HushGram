@@ -4,13 +4,19 @@
  */
 package app.morphe.patches.instagram.feed.following
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
+import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.flags.answerFlagReads
 import app.morphe.patches.instagram.misc.flags.findFlagReads
@@ -22,6 +28,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
@@ -32,6 +39,12 @@ private const val PATCH = "Start Home on Following"
 internal const val FEED_FLAG = "$EXTENSION_PACKAGE/feed/FollowingFeed;->flag(I)Z"
 internal const val SAVED_FEED = "$EXTENSION_PACKAGE/feed/FollowingFeed;->saved(Ljava/lang/String;)Ljava/lang/String;"
 internal const val LIMIT_PICKER = "$EXTENSION_PACKAGE/feed/FollowingFeed;->limitPicker(Ljava/util/List;)V"
+internal const val KEEP_LOGO = "$EXTENSION_PACKAGE/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I"
+
+/** Home's title view: a view Instagram's layouts name, so its class keeps its name across builds. */
+internal const val TITLE_SWITCHER = "Lcom/instagram/actionbar/ActionBarTitleViewSwitcher;"
+private const val VIEW_ANIMATOR = "Landroid/widget/ViewAnimator;"
+private const val STRING = "Ljava/lang/String;"
 
 /** The trace name of the code that builds Home's feed picker. */
 internal const val FEED_PICKER = "FeedPickerStateManager"
@@ -63,7 +76,8 @@ internal val FEED_PICKER_FLAGS = listOf(REMEMBERED_FEED_FLAG, FOR_YOU_PICKER_FLA
 val startOnFollowingPatch = bytecodePatch(
     name = "Start Home on Following",
     description = "Opens Home on posts from accounts you follow instead of For you. A second switch removes For " +
-        "you from Home. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Feed.",
+        "you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. Restart " +
+        "Instagram to see the change. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -73,12 +87,14 @@ val startOnFollowingPatch = bytecodePatch(
         requireStatusMethod("followingFeed")
         val reads = findFlagReads(PATCH, FEED_PICKER_FLAGS)
         val saved = findSavedFeedReturn()
+        val title = findTitleLabel()
         // The getter reads its flag before it returns, so its return is hooked first, while the
         // reads' indexes still hold.
         defaultSavedFeed(saved)
         answerFlagReads(reads, FEED_FLAG)
         // Found after the flags are answered, since the picker reads them in the same method.
         limitPicker(findPickerFreeze(saved))
+        keepLogoInTitle(title)
         enableStatus("followingFeed")
     }
 }
@@ -187,6 +203,82 @@ internal fun BytecodePatchContext.limitPicker(freeze: PickerFreeze) {
         freeze.at,
         "invoke-static/range { v${freeze.register} .. v${freeze.register} }, $LIMIT_PICKER",
     )
+}
+
+/**
+ * Where Home's title view shows the picked feed's name: the class, the method that shows a name
+ * (it takes the arrow's visibility and the name), the sibling that shows the logo instead (it takes
+ * a title, a second label, a delay flag and the arrow's visibility), and a free local register.
+ */
+internal class TitleLabel(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val logo: String,
+    val free: Int,
+)
+
+/**
+ * Finds the two ways [TITLE_SWITCHER], a ViewAnimator, shows its title: its one method taking a
+ * boolean and a String that switches to its second child (the feed's name and arrow), and its one
+ * taking two Strings and two booleans that switches to its first (Instagram's logo). Fails when
+ * either isn't there exactly once, when the name method has no free local register to hold the
+ * hook's answer, when its registers pass v15 or when something jumps to its start.
+ */
+internal fun BytecodePatchContext.findTitleLabel(): TitleLabel {
+    val switcher = classDefByOrNull(TITLE_SWITCHER) ?: refuse("this Instagram build has no $TITLE_SWITCHER")
+    if (switcher.superclass != VIEW_ANIMATOR) refuse("$TITLE_SWITCHER extends ${switcher.superclass}, not a ViewAnimator")
+    val labels = switcher.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf("Z", STRING) && method.showsChild(1)
+    }
+    val label = labels.singleOrNull() ?: refuse("expected one method in $TITLE_SWITCHER showing the feed's name, found ${labels.size}")
+    val logos = switcher.methods.filter { method ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf(STRING, STRING, "Z", "Z") && method.showsChild(0)
+    }
+    val logo = logos.singleOrNull() ?: refuse("expected one method in $TITLE_SWITCHER showing the logo, found ${logos.size}")
+    // The call to the logo method names this, the arrow's flag and the free local, all within v15.
+    if (label.localRegisterCount() + 1 > 15) refuse("${label.name} in $TITLE_SWITCHER keeps its parameters past v15")
+    if (label.jumpTargets().contains(0)) refuse("something jumps to the start of ${label.name} in $TITLE_SWITCHER")
+    val free = label.freeLocalsAt("Home title logo", 0, 1).single()
+    return TitleLabel(switcher.type, label.name, label.parameterTypes.map(CharSequence::toString), logo.name, free)
+}
+
+/**
+ * First thing in the name method, asks [KEEP_LOGO]. A yes shows the logo, with the arrow the caller
+ * asked for, and returns before the name is set. Only called once [findTitleLabel] found it.
+ */
+internal fun BytecodePatchContext.keepLogoInTitle(title: TitleLabel) {
+    val method = mutableClassDefBy(title.type).methods.single {
+        it.name == title.name && it.parameterTypes.map(CharSequence::toString) == title.parameters
+    }
+    val free = "v${title.free}"
+    method.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p0 }, $KEEP_LOGO
+            move-result $free
+            if-eqz $free, :name
+            const/4 $free, 0x0
+            invoke-virtual { p0, $free, $free, $free, p1 }, ${title.type}->${title.logo}(${STRING}${STRING}ZZ)V
+            return-void
+        """,
+        ExternalLabel("name", method.getInstruction(0)),
+    )
+}
+
+/** Whether this calls setDisplayedChild with [child], set by the constant right before the call. */
+private fun Method.showsChild(child: Int): Boolean {
+    val code = implementation?.instructions?.toList() ?: return false
+    return code.indices.any { at ->
+        val call = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+        if (call.name != "setDisplayedChild" || call.parameterTypes.map(CharSequence::toString) != listOf("I")) return@any false
+        val arguments = code[at] as? FiveRegisterInstruction ?: return@any false
+        val set = code.getOrNull(at - 1)
+        set is NarrowLiteralInstruction && set is OneRegisterInstruction && set.registerA == arguments.registerD &&
+            set.narrowLiteral == child
+    }
 }
 
 private fun Instruction.calledSignature(): String? {

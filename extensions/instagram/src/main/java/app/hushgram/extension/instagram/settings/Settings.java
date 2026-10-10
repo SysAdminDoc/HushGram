@@ -477,6 +477,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_only_following", FALSE, true, parent(START_ON_FOLLOWING));
 
     /**
+     * With {@link #START_ON_FOLLOWING} on, Instagram's logo stays at the top of Home where the picked
+     * feed's name (Following) would show. Its arrow still opens the feed picker. Off to start, so the
+     * name shows until you choose this.
+     */
+    public static final BooleanSetting LOGO_ON_FOLLOWING =
+            new BooleanSetting("hushgram_logo_on_following", FALSE, true, parent(START_ON_FOLLOWING));
+
+    /**
      * Meta AI in the search bars: the Search tab's ("Search with Meta AI") and the one at the top of
      * your messages ("Search or ask Meta AI"), and the "Ask a follow-up…" bar under search results.
      */

@@ -4,6 +4,9 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.view.View;
+import android.view.ViewParent;
+
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,6 +32,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A second switch keeps Home to accounts you follow: {@link #saved} answers Following in place
  * of a remembered For you, and {@link #limitPicker} takes For you out of the picker's list before
  * Instagram freezes it.
+ *
+ * <p>A third switch keeps Instagram's logo at the top of Home where the picked feed's name would
+ * be: {@link #keepLogo} is asked as the header's title view is about to show that name, and a yes
+ * has it show the logo with its arrow instead. The arrow still opens the picker.
  */
 public final class FollowingFeed {
     /** The name Instagram 449 saves for the Following feed, its feed type constant's. */
@@ -44,6 +51,16 @@ public final class FollowingFeed {
     private static volatile boolean loggedDefault;
     private static volatile boolean loggedLimit;
     private static volatile boolean loggedPicker;
+    private static volatile boolean loggedLogo;
+
+    /** The name of Home's header, whose title view shows the picked feed's name. Instagram's layouts name it, so it keeps its name. */
+    static final String HOME_BAR = "instagram.features.feed.mainfeed.actionbar.MainFeedActionBar";
+
+    /** What's counted each time the logo stands in for the feed's name. */
+    static final String LOGO_KEPT = "Home header logo kept in place of the feed name";
+
+    /** How many parents up from the title view the header is looked for. */
+    private static final int BAR_REACH = 6;
 
     /** The feed type field of a picker item's class, looked up once. */
     private static volatile Field feedField;
@@ -70,6 +87,42 @@ public final class FollowingFeed {
             HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed flag", failure);
             return enabled != 0;
         }
+    }
+
+    /**
+     * Injected first thing as Home's title view is about to show the picked feed's name. Answers 1
+     * to have it show Instagram's logo with its arrow instead, which happens while Start Home on
+     * Following and its logo switch are both on and [titleView] sits in Home's header. Answers 0
+     * for any other title view, a switch off, HushGram paused, the settings not read yet or
+     * anything thrown, and the name is shown as Instagram has it. Never throws, and never waits for
+     * the settings.
+     */
+    public static int keepLogo(Object titleView) {
+        try {
+            HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
+            if (!(titleView instanceof View) || !Utils.settingsReady()) return 0;
+            if (!Settings.START_ON_FOLLOWING.get() || !Settings.LOGO_ON_FOLLOWING.get()) return 0;
+            if (!underBar((View) titleView, HOME_BAR)) return 0;
+            HookStatus.counted(FamilyNames.FOLLOWING_FEED, LOGO_KEPT);
+            if (!loggedLogo) {
+                loggedLogo = true;
+                Logger.printDebug(() -> "Following feed: Home's title shows Instagram's logo in place of the feed name");
+            }
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed title logo", failure);
+            return 0;
+        }
+    }
+
+    /** Whether [view] has a parent, within a few levels, whose class is named [barName]. */
+    static boolean underBar(View view, String barName) {
+        ViewParent parent = view.getParent();
+        for (int level = 0; parent != null && level < BAR_REACH; level++) {
+            if (barName.equals(parent.getClass().getName())) return true;
+            parent = parent.getParent();
+        }
+        return false;
     }
 
     /**

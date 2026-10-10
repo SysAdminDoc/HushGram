@@ -2712,7 +2712,7 @@
     },
     {
       "name": "Start Home on Following",
-      "description": "Opens Home on posts from accounts you follow instead of For you. A second switch removes For you from Home. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Opens Home on posts from accounts you follow instead of For you. A second switch removes For you from Home, and a third keeps Instagram's logo at the top of Home in place of the feed's name. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [

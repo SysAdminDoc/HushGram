@@ -651,6 +651,13 @@ shared-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->flag(I)Z in (
 # Its second switch hands the picker's list of feeds to limitPicker just before the same list build
 # freezes it, once. Left out, For you stays in the picker; twice or elsewhere, it isn't that list.
 once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->limitPicker(Ljava/util/List;)V in (L*;I)Ljava/lang/Object; holding FeedPickerStateManager feedPickerStateManager
+# Its third switch asks keepLogo first thing in the title view's method that shows the picked feed's
+# name: the one (boolean, String) method of ActionBarTitleViewSwitcher, the class Instagram's layouts
+# name, that switches to its second child, holding "secondLabel" and "secondLabelChevron". A yes
+# shows the logo and returns before the name is set. Left out, the name shows; twice or elsewhere, it
+# isn't the hook the patch wrote. TitleLogoHookTest checks all seven 450 builds.
+start-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I in instance (ZLjava/lang/String;)V holding secondLabel secondLabelChevron
+once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I in instance (ZLjava/lang/String;)V holding secondLabel secondLabelChevron
 # Stop swipe to create hands every move of Home's sliding container to SwipeToCreate.hold right
 # before the move's animate flag is read, in the container's setInternalPosition. It loads no string,
 # and setPosition has the same shape and reads the same flag, so the rule picks it as the one also
