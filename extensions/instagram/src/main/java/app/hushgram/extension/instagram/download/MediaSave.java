@@ -84,8 +84,23 @@ public final class MediaSave {
         final List<Rendition> renditions;
         final String manifest;
         final PostDetails details;
+        /** A photo page built into a video with the post's music, else null. */
+        final MusicVideo.Music music;
+        final Rendition picture;
 
         public Item(boolean video, List<Rendition> renditions, String manifest, PostDetails details) {
+            this(video, renditions, manifest, details, null, null);
+        }
+
+        /** A photo page saved as a video: [picture] held for [music]'s part of the track (#78). */
+        static Item musicVideo(Rendition picture, MusicVideo.Music music, PostDetails details) {
+            return new Item(true, Collections.emptyList(), null, details, music, picture);
+        }
+
+        private Item(boolean video, List<Rendition> renditions, String manifest, PostDetails details,
+                MusicVideo.Music music, Rendition picture) {
+            this.music = music;
+            this.picture = picture;
             this.video = video;
             this.renditions = Collections.unmodifiableList(usable(renditions));
             this.manifest = video ? manifest : null;
@@ -166,7 +181,10 @@ public final class MediaSave {
                     try {
                         observeDetails(page.details);
                         MediaStoreWriter writer = new MediaStoreWriter(application, page.video, page.details);
-                        Job job = page.manifest == null
+                        Job job = page.music != null
+                                ? (into, progress) -> MusicVideo.save(application, page.picture, page.music, into,
+                                        policyFor(application), cap(), progress)
+                                : page.manifest == null
                                 ? singleJob(application, page.renditions, page.video, !page.video, quality)
                                 : (into, progress) -> saveDash(application, "the carousel page", page.manifest,
                                         page.renditions, into, progress, quality, compatible);

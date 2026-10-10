@@ -88,6 +88,13 @@ public final class ReelDownload {
     static final String SAVED_AS_VIDEO = "saved as video";
 
     /**
+     * What Download as video found on each page of a music carousel (#78): a video of its own, which
+     * saves as it is, or a photo built into a video with the music, both counted under this one
+     * label (the family keeps few). A page with neither saves its photo, counted as {@link #SAVED_AS_PHOTO}.
+     */
+    static final String CAROUSEL_PAGE_AS_VIDEO = "music carousel pages saved as video";
+
+    /**
      * The names of the two options a photo with music gets in Download's place. They're made like
      * Download, with its icon and ordinal, so the menu draws them and hands a tap on them to its
      * handler the way it does Download.
@@ -464,11 +471,72 @@ public final class ReelDownload {
     }
 
     /**
+     * Download as video on a music carousel, [pages] of [media]: every page in order through the
+     * batch Save all uses (#78). A page with a video of its own saves that file. A photo page is
+     * built into a video with its own music, else the post's, the way a single photo with music is.
+     * A page with no music to fetch saves its picture, so the set stays whole.
+     */
+    static boolean saveCarouselAsVideo(Context context, Object media, List<?> pages) {
+        final int count = pages.size();
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel download as video tapped: a carousel of " + count + " pages");
+        HookStatus.counted(FamilyNames.REEL_DOWNLOAD, CAROUSEL);
+        if (count > MediaSave.MAX_BATCH_PAGES) {
+            Feedback.show(context, L10n.f(context, "Not saved: a carousel can have at most %1$d pages", MediaSave.MAX_BATCH_PAGES), true);
+            return true;
+        }
+        return MediaSave.saveBatch(context, musicSnapshot(pages, media), null);
+    }
+
+    /**
+     * Plain values from each of [pages], [post]'s carousel pages in order, for Download as video.
+     * A page that can't be read fails once on the worker rather than disappearing.
+     */
+    static List<MediaSave.Item> musicSnapshot(List<?> pages, Object post) {
+        MusicVideo.Music shared = null;
+        try {
+            shared = MusicVideo.music(post);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "carousel music", failure);
+        }
+        List<MediaSave.Item> snapshot = new ArrayList<>(pages.size());
+        for (Object page : pages) {
+            try {
+                if (page == null) { snapshot.add(null); continue; }
+                PostDetails details = VideoDownload.details(page, post);
+                List<MediaSave.Rendition> renditions = renditions(page);
+                String manifest = InstagramMedia.dashManifest(page);
+                if (!renditions.isEmpty() || manifest != null) {
+                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, CAROUSEL_PAGE_AS_VIDEO);
+                    snapshot.add(new MediaSave.Item(true, renditions, manifest, details));
+                    continue;
+                }
+                List<MediaSave.Rendition> pictures = StoryDownload.pictures(page);
+                MediaSave.Rendition picture = MusicVideo.picture(pictures);
+                MusicVideo.Music own = MusicVideo.music(page);
+                MusicVideo.Music music = own != null && own.url != null ? own : shared;
+                if (picture != null && music != null && music.url != null) {
+                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, CAROUSEL_PAGE_AS_VIDEO);
+                    snapshot.add(MediaSave.Item.musicVideo(picture, music, details));
+                } else {
+                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_AS_PHOTO);
+                    snapshot.add(new MediaSave.Item(false, pictures, null, details));
+                }
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "carousel page as video", failure);
+                snapshot.add(new MediaSave.Item(true, null, null, null));
+            }
+        }
+        return snapshot;
+    }
+
+    /**
      * Starts building and saving a video of [media], a photo with music: its largest picture held
      * for the part of the track the post plays, with that part as its sound. Answers whether it
      * started.
      */
     static boolean saveAsVideo(Context context, Object media) {
+        List<?> pages = carousel(media);
+        if (pages != null) return saveCarouselAsVideo(context, media, pages);
         MediaSave.Rendition picture = MusicVideo.picture(StoryDownload.pictures(media));
         MusicVideo.Music music = MusicVideo.music(media);
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel download as video tapped: "
