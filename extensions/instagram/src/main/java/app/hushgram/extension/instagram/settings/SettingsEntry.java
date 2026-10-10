@@ -82,6 +82,10 @@ public final class SettingsEntry {
 
     private static volatile boolean openPending;
     private static volatile long requestedAt;
+    /** Whether a look at a screen whose theme can't draw text is already scheduled. Main thread only. */
+    private static boolean themeRetryPending;
+    /** The request whose wait for a theme was logged, so a wait is logged once, not every look. */
+    private static volatile long themeWaitLoggedFor;
     private static volatile boolean callbacksRegistered;
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
@@ -401,10 +405,13 @@ public final class SettingsEntry {
                 }
                 if (open(activity)) {
                     openPending = false;
-                } else if (!activity.isFinishing() && !activity.isDestroyed() && !drawsText.test(activity)) {
-                    // The theme can arrive without another resume, so look again shortly.
+                } else if (!themeRetryPending && !activity.isFinishing() && !activity.isDestroyed() && !drawsText.test(activity)) {
+                    // The theme can arrive without another resume, so look again shortly. One look
+                    // at a time: a resume during the wait would otherwise start a second chain.
+                    themeRetryPending = true;
                     WeakReference<Activity> later = new WeakReference<>(activity);
                     Utils.runOnMainThreadDelayed(() -> {
+                        themeRetryPending = false;
                         Activity waiting = later.get();
                         if (waiting != null) openWhenSettled(waiting);
                     }, THEME_RETRY_MS);
@@ -458,7 +465,10 @@ public final class SettingsEntry {
                 return false;
             }
             if (!drawsText.test(activity)) {
-                Logger.printInfo(() -> "Settings wait: " + name + "'s theme can't draw text yet");
+                if (themeWaitLoggedFor != requestedAt) {
+                    themeWaitLoggedFor = requestedAt;
+                    Logger.printInfo(() -> "Settings wait: " + name + "'s theme can't draw text yet");
+                }
                 return false;
             }
             // While Instagram is locked, the screen that could turn the lock off waits for the phone's lock.
@@ -500,6 +510,8 @@ public final class SettingsEntry {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
             requestedAt = SystemClock.elapsedRealtime();
             openPending = true;
+            // A new request looks for itself; a look an old one left scheduled may never run.
+            themeRetryPending = false;
             Logger.printInfo(() -> "Settings requested by the launcher shortcut");
         }
     }

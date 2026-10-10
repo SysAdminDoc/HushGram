@@ -25,6 +25,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -75,6 +76,28 @@ public class SettingsThemeWaitTest {
     public void aScreenPutBackOverAnUnthemedHostClosesAndComesBack() {
         ActivityController<Activity> controller = resume(new Intent().putExtra(SettingsEntry.EXTRA_OPEN_SETTINGS, true));
         assertNotNull("the shortcut's request did not open the settings", shown(controller.get()));
+
+        SettingsEntry.drawsText = context -> false;
+        Activity recreated = controller.recreate().get();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        assertNull("the settings stayed over a theme that can't draw them", shown(recreated));
+
+        SettingsEntry.drawsText = context -> true;
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300));
+
+        assertNotNull("the settings didn't come back once the theme could draw them", shown(recreated));
+    }
+
+    /** A screen showing its failure page saves that, and put back over an unthemed host it must not build the page. */
+    @Test
+    public void aFailedScreenPutBackOverAnUnthemedHostClosesAndComesBack() throws Exception {
+        ActivityController<Activity> controller = resume(new Intent().putExtra(SettingsEntry.EXTRA_OPEN_SETTINGS, true));
+        Fragment dialog = shown(controller.get());
+        assertNotNull("the shortcut's request did not open the settings", dialog);
+        Field failed = SettingsDialog.class.getDeclaredField("failed");
+        failed.setAccessible(true);
+        failed.setBoolean(dialog, true);
 
         SettingsEntry.drawsText = context -> false;
         Activity recreated = controller.recreate().get();

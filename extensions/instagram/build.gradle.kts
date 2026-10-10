@@ -570,7 +570,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "staysClosedOnceThePersonClosedIt[28]", "staysClosedOnceThePersonClosedIt[37]"),
             "app.hushgram.extension.instagram.settings.SettingsThemeWaitTest" to listOf(
                 "waitsForAThemeThatCanDrawText[28]", "waitsForAThemeThatCanDrawText[37]",
-                "aScreenPutBackOverAnUnthemedHostClosesAndComesBack[28]", "aScreenPutBackOverAnUnthemedHostClosesAndComesBack[37]"),
+                "aScreenPutBackOverAnUnthemedHostClosesAndComesBack[28]", "aScreenPutBackOverAnUnthemedHostClosesAndComesBack[37]",
+                "aFailedScreenPutBackOverAnUnthemedHostClosesAndComesBack[28]", "aFailedScreenPutBackOverAnUnthemedHostClosesAndComesBack[37]"),
             "app.hushgram.extension.instagram.settings.SettingsScreenRowLayoutTest" to listOf(
                 "theTitleWrapsAtTwiceTheTextSize[28]", "theTitleWrapsAtTwiceTheTextSize[37]",
                 "rightToLeftPutsTheMarkOnTheRight[28]", "rightToLeftPutsTheMarkOnTheRight[37]"),

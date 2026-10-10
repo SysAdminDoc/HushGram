@@ -48,6 +48,8 @@ public final class SettingsDialog extends DialogFragment {
     private static final String PAGE_FAILED = "hushgram.page_failed";
     private boolean failed;
     private boolean loading;
+    /** Put back over a screen that can't draw text yet, so closing without building anything. */
+    private boolean closing;
     private Button retry;
     private TextView heading;
 
@@ -94,11 +96,11 @@ public final class SettingsDialog extends DialogFragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
         // Put back over a screen that still has Instagram's launcher theme (a relaunch), the
-        // first TextView would throw. Close, and open again once a screen can draw it.
+        // first TextView would throw. Build nothing, close in onActivityCreated, and open again
+        // once a screen can draw it.
         if (!SettingsEntry.drawsText.test(getContext())) {
             Logger.printInfo(() -> "Settings closed over a screen whose theme can't draw text yet");
-            dismissAllowingStateLoss();
-            SettingsEntry.reopenOnceThemed(getActivity());
+            closing = true;
             return new FrameLayout(getContext());
         }
         ScreenColors palette = ScreenColors.DEFAULT;
@@ -199,7 +201,19 @@ public final class SettingsDialog extends DialogFragment {
         FragmentManager manager = getChildFragmentManager();
         Fragment restored = manager.findFragmentById(CONTAINER_ID);
         if (restored != null && !restored.isDetached()) manager.beginTransaction().detach(restored).commitNow();
-        if (failed) showFailure(view);
+        // Closing over an unthemed screen: the failure page's text would throw the same way.
+        if (failed && !closing) showFailure(view);
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        // Closing drops the dialog, and DialogFragment hands it the view only here, so closing
+        // any sooner left it a null dialog to set up.
+        if (closing) {
+            dismissAllowingStateLoss();
+            SettingsEntry.reopenOnceThemed(getActivity());
+        }
     }
 
     @Override
@@ -234,7 +248,7 @@ public final class SettingsDialog extends DialogFragment {
     }
 
     private boolean canOpenPage(View owner) {
-        return owner != null && owner == getView() && isAdded() && isResumed()
+        return owner != null && owner == getView() && !closing && isAdded() && isResumed()
                 && !isRemoving() && !isDetached() && getActivity() != null
                 && !getActivity().isFinishing() && !getActivity().isDestroyed()
                 && getDialog() != null && getDialog().isShowing()
