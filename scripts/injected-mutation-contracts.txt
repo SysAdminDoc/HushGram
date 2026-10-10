@@ -1148,6 +1148,13 @@ once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->buttons(Ljav
 # 450 builds.
 start-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;IZZZ)V holding LX/03iJ;->A01:Ljava/util/List;
 once-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;IZZZ)V holding LX/03iJ;->A01:Ljava/util/List;
+# Its Ghost mode button switch hands the header to GhostHeaderButton.drew first thing in the method
+# that draws the header from a state (MainFeedActionBar.A08 on 450): the one instance method of the
+# header taking the session and the state, holding the casts to ToastingBadge and ImageView. The
+# hook posts the button's placement behind the draw. Left out, no button; twice or elsewhere, it
+# isn't the hook the patch wrote. HomeHeaderHookTest checks all seven 450 builds.
+start-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
+once-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
 # onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
 # method of the class calling an onResume). The class is the only one holding both strings. Left

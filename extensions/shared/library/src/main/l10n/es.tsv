@@ -504,6 +504,8 @@ Don't report screenshots	No avisar de capturas de pantalla
 Ghost mode	Modo fantasma
 Ghost mode is off, and so is each of its switches.	El modo fantasma está desactivado, y también cada uno de sus interruptores.
 Ghost mode is on, and so is each of its switches.	El modo fantasma está activado, y también cada uno de sus interruptores.
+Ghost mode is on. Tap to turn it off.	El modo fantasma está activado. Tócalo para desactivarlo.
+Ghost mode is off. Tap to turn it on.	El modo fantasma está desactivado. Tócalo para activarlo.
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram no detecta cuando haces una captura de pantalla, así que quien te envió una foto o un video temporal no recibe aviso. Tus capturas se guardan como siempre.
 Keep in chat	Conservar en el chat
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Los directos que ves no te ponen en la lista de espectadores del anfitrión, así que no sabe que estás ahí. Si comentas o reaccionas, igual te ve. El número de espectadores que ves deja de actualizarse, y un directo que termina puede seguir pareciendo en vivo hasta que salgas.
@@ -751,6 +753,8 @@ Hide Create on Home's header	Ocultar Crear en el encabezado de Inicio
 Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	Quita el botón de más de la parte superior de Inicio y cierra el hueco. La pestaña de Crear y deslizar para crear son aparte. Reinicia Instagram para ver el cambio.
 Hide notifications on Home's header	Ocultar notificaciones en el encabezado de Inicio
 Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	Quita el corazón de la parte superior de Inicio y cierra el hueco. Los avisos siguen llegando. Reinicia Instagram para ver el cambio.
+Ghost mode button on Home's header	Botón del modo fantasma en el encabezado de Inicio
+Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Añade un botón de fantasma junto a Mensajes en la parte superior de Inicio. Tócalo para activar o desactivar el modo fantasma. Reinicia Instagram para ver el cambio.
 Start tab	Pestaña de inicio
 Instagram opens the way it always has.	Instagram se abre como siempre.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram se abre en %1$s cuando lo inicias desde su icono. Una notificación o un enlace sigue abriendo lo que le corresponde. Si esa pestaña no está en tu barra, se abre Inicio. Reinicia Instagram para ver el cambio.

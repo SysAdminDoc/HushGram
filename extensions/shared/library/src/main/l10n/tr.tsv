@@ -504,6 +504,8 @@ Don't report screenshots	Ekran görüntülerini bildirme
 Ghost mode	Hayalet modu
 Ghost mode is off, and so is each of its switches.	Hayalet modu kapalı, anahtarlarının her biri de kapalı.
 Ghost mode is on, and so is each of its switches.	Hayalet modu açık, anahtarlarının her biri de açık.
+Ghost mode is on. Tap to turn it off.	Hayalet modu açık. Kapatmak için dokun.
+Ghost mode is off. Tap to turn it on.	Hayalet modu kapalı. Açmak için dokun.
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Ekran görüntüsü aldığında Instagram bunu fark etmez, böylece sana kaybolan bir fotoğraf veya video gönderen kişiye haber verilmez. Ekran görüntülerin her zamanki gibi kaydedilir.
 Keep in chat	Sohbette tut
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	İzlediğin canlı yayınlar seni yayıncının izleyici listesine eklemez, böylece orada olduğun ona söylenmez. Yorum yapmak veya tepki vermek seni yine gösterir. Gördüğün izleyici sayısı güncellenmeyi bırakır ve biten bir canlı yayın, sen çıkana kadar canlı görünmeye devam edebilir.
@@ -751,6 +753,8 @@ Hide Create on Home's header	Ana sayfa üstündeki Oluştur'u gizle
 Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	Ana sayfanın üstündeki artı düğmesini kaldırır ve boşluğu kapatır. Oluştur sekmesi ve kaydırarak oluşturma ayrıdır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide notifications on Home's header	Ana sayfa üstündeki bildirimleri gizle
 Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	Ana sayfanın üstündeki kalbi kaldırır ve boşluğu kapatır. Uyarılar gelmeye devam eder. Değişikliği görmek için Instagram'ı yeniden başlat.
+Ghost mode button on Home's header	Ana sayfa üstünde Hayalet modu düğmesi
+Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Ana sayfanın üstünde Mesajlar'ın yanına bir hayalet düğmesi ekler. Hayalet modunu açıp kapatmak için dokun. Değişikliği görmek için Instagram'ı yeniden başlat.
 Start tab	Başlangıç sekmesi
 Instagram opens the way it always has.	Instagram her zamanki gibi açılır.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram'ı simgesinden başlattığında %1$s sekmesinde açılır. Bir bildirim veya bağlantı yine kendi hedefini açar. Bu sekme çubuğunda yoksa Ana Sayfa açılır. Değişikliği görmek için Instagram'ı yeniden başlat.

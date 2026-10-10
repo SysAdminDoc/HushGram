@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -44,6 +45,10 @@ class HomeHeaderHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$HEADER_BUTTONS is not in the extension: $declared", HEADER_BUTTONS.substringAfter("->") in declared)
+        val ghost = ExtensionDex.classDef(GHOST_BUTTON.substringBefore("->")).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$GHOST_BUTTON is not in the extension: $ghost", GHOST_BUTTON.substringAfter("->") in ghost)
         assertTrue("the $HEADER_ICON_STUB stub is not in the extension: $declared", "$HEADER_ICON_STUB(Ljava/lang/Object;)I" in declared)
         assertTrue("the $HEADER_HEART_STUB stub is not in the extension: $declared", "$HEADER_HEART_STUB(Ljava/lang/Object;)I" in declared)
     }
@@ -81,10 +86,12 @@ class HomeHeaderHookTest {
             val related = bar.methods.flatMap { method -> method.parameterTypes.map { it.toString() } }.filter { it.startsWith("L") && !it.startsWith("Landroid/") } +
                 bar.methods.flatMap { it.code() }.filter { it.opcode == Opcode.INSTANCE_OF }.map { (it.reference() as TypeReference).type }
             val classes = FixtureDex.classes(bundle, related.toSet()).values
-            val context = PatchContexts.of((listOf(bar) + classes + ExtensionDex.classDef(extensionType)).distinctBy { it.type })
+            val context = PatchContexts.of((listOf(bar) + classes + ExtensionDex.classDef(extensionType) + ExtensionDex.classDef(GHOST_BUTTON.substringBefore("->"))).distinctBy { it.type })
 
             val hook = context.findHomeHeader()
             val before = hook.state.code().map { it.describe() }
+            val drawBefore = hook.draw.code().map { it.describe() }
+            val drawThis = hook.draw.localRegisterCount()
 
             context.hideHomeHeaderButtons(hook)
 
@@ -97,6 +104,16 @@ class HomeHeaderHookTest {
             assertEquals("$name: the answer's register", hook.list, (code[1] as OneRegisterInstruction).registerA)
             assertTrue("$name: the list's register is reachable by move-result", hook.list <= 255)
             assertEquals("$name: the constructor's own code", before, code.drop(2).map { it.describe() })
+
+            // The Ghost mode button's hook comes first in the method that draws the header, handed the header
+            // itself (p0, past the locals) and nothing else, so it needs no register of its own.
+            val draw = context.mutableClassDefBy(MAIN_FEED_ACTION_BAR).methods.single {
+                it.name == hook.draw.name && it.parameterTypes.map(CharSequence::toString) == hook.draw.parameterTypes.map(CharSequence::toString)
+            }.code()
+            assertEquals("$name: the ghost button's hook", GHOST_BUTTON, draw[0].referenceText())
+            assertEquals("$name: the ghost button's call", Opcode.INVOKE_STATIC_RANGE, draw[0].opcode)
+            assertEquals("$name: the header is handed over", listOf(drawThis, 1), (draw[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+            assertEquals("$name: the draw method's own code", drawBefore, draw.drop(1).map { it.describe() })
 
             val iconMethod = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_ICON_STUB }
             val icon = iconMethod.code()

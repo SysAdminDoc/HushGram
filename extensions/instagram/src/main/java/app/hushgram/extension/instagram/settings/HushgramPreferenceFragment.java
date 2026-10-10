@@ -959,6 +959,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, L10n.t("Hide notifications on Home's header"),
                         L10n.t("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. "
                                 + "Restart Instagram to see the change.")));
+                if (!GhostMode.switches(build).isEmpty()) {
+                    glass.addPreference(toggle(context, Settings.GHOST_BUTTON_ON_HOME, L10n.t("Ghost mode button on Home's header"),
+                            L10n.t("Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode "
+                                    + "on or off. Restart Instagram to see the change.")));
+                }
                 glass.addPreference(startTabRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {

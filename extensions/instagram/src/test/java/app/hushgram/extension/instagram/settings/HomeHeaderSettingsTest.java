@@ -78,6 +78,23 @@ public class HomeHeaderSettingsTest {
         }
     }
 
+    @Test public void theGhostButtonSwitchShowsUnderTabBarOnlyWithAGhostPatchInTheBuild() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        assertNull(row(Settings.GHOST_BUTTON_ON_HOME.key));
+        controller.close();
+        controller = null;
+
+        open(PatchFamily.REELS_TAB, PatchFamily.THREAD_SEEN);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.GHOST_BUTTON_ON_HOME.key);
+        assertNotNull(toggle);
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+        assertEquals("Ghost mode button on Home's header", String.valueOf(toggle.getTitle()));
+        assertFalse(toggle.isChecked());
+        assertTrue(Settings.GHOST_BUTTON_ON_HOME.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.GHOST_BUTTON_ON_HOME));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GHOST_BUTTON_ON_HOME.key));
+    }
+
     @Test public void eachHeaderButtonHasASwitchUnderTabBarThatStartsOffAndAsksForARestart() throws Exception {
         open(PatchFamily.REELS_TAB);
         for (BooleanSetting setting : switches()) {

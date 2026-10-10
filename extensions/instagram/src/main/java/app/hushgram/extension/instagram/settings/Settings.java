@@ -977,6 +977,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_home_notifications_button", FALSE, true);
 
     /**
+     * A ghost button on Home's header, beside the Messages button, that turns Ghost mode on or off. The
+     * header builds it as it draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting GHOST_BUTTON_ON_HOME =
+            new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
+
+    /**
      * The tab Instagram opens on when it's started from its icon ({@link app.hushgram.extension.instagram.reels.TabStart}).
      * Home leaves Instagram's own start alone. A tab that's hidden or isn't on the bar opens Home.
      * Read once, as Instagram starts, so a change takes a restart.

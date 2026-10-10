@@ -31,6 +31,9 @@ internal const val HEADER_BUTTONS = "$HOME_HEADER->buttons(Ljava/util/List;)Ljav
 internal const val HEADER_ICON_STUB = "icon"
 internal const val HEADER_HEART_STUB = "heart"
 
+/** Called as the header starts drawing from its state, with the header, to put the Ghost mode button in beside Messages. */
+internal const val GHOST_BUTTON = "$EXTENSION_PACKAGE/settings/GhostHeaderButton;->drew(Landroid/view/View;)V"
+
 private const val OBJECT = "Ljava/lang/Object;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
@@ -38,9 +41,11 @@ private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
 /**
  * Home's header: the constructor of the state class the header draws from, and the register its list
  * of buttons arrives in, the type of an image button (Create, Messages and the others) with the int
- * field holding its icon's resource id, and the type of the notifications heart.
+ * field holding its icon's resource id, and the type of the notifications heart, and the method that
+ * draws the header from a state.
  */
 internal class HomeHeaderHook(
+    val draw: Method,
     val state: Method,
     val list: Int,
     val image: String,
@@ -87,6 +92,7 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
             it.definingClass == stateType && it.type == LIST }
     } ?: refuse("$stateType's constructor doesn't keep its list of buttons")
     if (constructor.jumpTargets().contains(0)) refuse("something jumps to the start of $stateType's constructor")
+    if (draw.jumpTargets().contains(0)) refuse("something jumps to the start of ${draw.name} in $MAIN_FEED_ACTION_BAR")
     val reads = draw.code().count { instruction ->
         instruction.opcode == Opcode.IGET_OBJECT && instruction.fieldReference()?.let {
             it.definingClass == stateType && it.name == kept.name && it.type == LIST
@@ -133,16 +139,21 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
     for (stub in listOf(HEADER_ICON_STUB, HEADER_HEART_STUB)) {
         if (extension.methods.none { it.isStub(stub) }) refuse("$HOME_HEADER has no public static I $stub($OBJECT)")
     }
+    val ghost = classDefByOrNull(GHOST_BUTTON.substringBefore("->")) ?: refuse("the extension has no ${GHOST_BUTTON.substringBefore("->")}")
+    if (ghost.methods.none { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == GHOST_BUTTON.substringAfter("->") && it.isPublicStatic() }) {
+        refuse("the extension has no public static $GHOST_BUTTON")
+    }
     if (extension.methods.none { it.name == "buttons" && it.parameterTypes.map(CharSequence::toString) == listOf(LIST) && it.returnType == LIST && it.isPublicStatic() }) {
         refuse("the extension has no public static $HEADER_BUTTONS")
     }
-    return HomeHeaderHook(constructor, list, image, "$image->${icon.name}:I", badge)
+    return HomeHeaderHook(draw, constructor, list, image, "$image->${icon.name}:I", badge)
 }
 
 /**
  * Writes the two stubs, then hands the header state's list of buttons to [HEADER_BUTTONS] as its
- * constructor starts, keeping the answer in the same register. Only called once [findHomeHeader]
- * found everything.
+ * constructor starts, keeping the answer in the same register, and hands the header to
+ * [GHOST_BUTTON] as the method that draws it starts. Only called once [findHomeHeader] found
+ * everything.
  */
 internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
     // Two registers, so v0 is a local and p0 is v1: the icon stub casts p0 after instance-of wrote
@@ -168,6 +179,12 @@ internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
             invoke-static/range { v${hook.list} .. v${hook.list} }, $HEADER_BUTTONS
             move-result-object v${hook.list}
         """,
+    )
+    // The draw method's first instruction is nothing a jump lands on (checked when it was found),
+    // and p0, the header, is untouched there. The hook returns nothing and takes no register.
+    mutableClassDefBy(hook.draw.definingClass).methods.single { it.sameShape(hook.draw) }.addInstructions(
+        0,
+        "invoke-static/range { p0 .. p0 }, $GHOST_BUTTON",
     )
 }
 

@@ -504,6 +504,8 @@ Don't report screenshots	Screenshots nicht melden
 Ghost mode	Ghost-Modus
 Ghost mode is off, and so is each of its switches.	Der Ghost-Modus ist aus, und jeder seiner Schalter auch.
 Ghost mode is on, and so is each of its switches.	Der Ghost-Modus ist an, und jeder seiner Schalter auch.
+Ghost mode is on. Tap to turn it off.	Der Ghost-Modus ist an. Tippe, um ihn auszuschalten.
+Ghost mode is off. Tap to turn it on.	Der Ghost-Modus ist aus. Tippe, um ihn einzuschalten.
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram bemerkt nicht, wenn du einen Screenshot machst, also erfährt niemand davon, der dir ein verschwindendes Foto oder Video geschickt hat. Deine Screenshots werden wie gewohnt gespeichert.
 Keep in chat	Im Chat behalten
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	Lives, die du ansiehst, setzen dich nicht auf die Zuschauerliste des Hosts, also erfährt er nicht, dass du da bist. Kommentare und Reaktionen zeigen dich weiterhin. Die Zuschauerzahl, die du siehst, wird nicht mehr aktualisiert, und ein beendetes Live kann weiter live aussehen, bis du es verlässt.
@@ -751,6 +753,8 @@ Hide Create on Home's header	Erstellen oben auf der Startseite ausblenden
 Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	Entfernt die Plus-Taste oben auf der Startseite und schließt die Lücke. Der Erstellen-Tab und das Wischen zum Erstellen sind davon getrennt. Starte Instagram neu, um die Änderung zu sehen.
 Hide notifications on Home's header	Benachrichtigungen oben auf der Startseite ausblenden
 Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	Entfernt das Herz oben auf der Startseite und schließt die Lücke. Hinweise kommen weiterhin an. Starte Instagram neu, um die Änderung zu sehen.
+Ghost mode button on Home's header	Ghost-Modus-Taste oben auf der Startseite
+Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Fügt oben auf der Startseite neben Nachrichten eine Geist-Taste hinzu. Ein Tipp schaltet den Ghost-Modus an oder aus. Starte Instagram neu, um die Änderung zu sehen.
 Start tab	Starttab
 Instagram opens the way it always has.	Instagram öffnet sich wie immer.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram öffnet sich auf „%1$s“, wenn du es über sein Symbol startest. Eine Benachrichtigung oder ein Link öffnet weiterhin das, wofür er gedacht ist. Ist dieser Tab nicht in deiner Leiste, öffnet sich die Startseite. Starte Instagram neu, um die Änderung zu sehen.

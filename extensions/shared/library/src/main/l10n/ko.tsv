@@ -503,6 +503,8 @@ Don't report screenshots	스크린샷 알리지 않기
 Ghost mode	고스트 모드
 Ghost mode is off, and so is each of its switches.	고스트 모드가 꺼졌고 각 스위치도 모두 꺼졌습니다.
 Ghost mode is on, and so is each of its switches.	고스트 모드가 켜졌고 각 스위치도 모두 켜졌습니다.
+Ghost mode is on. Tap to turn it off.	고스트 모드가 켜져 있습니다. 탭하면 끕니다.
+Ghost mode is off. Tap to turn it on.	고스트 모드가 꺼져 있습니다. 탭하면 켭니다.
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	스크린샷을 찍어도 Instagram이 알아채지 못하므로 사라지는 사진이나 동영상을 보낸 사람에게 알림이 가지 않습니다. 스크린샷은 평소처럼 저장됩니다.
 Keep in chat	채팅에 보관
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	시청하는 라이브에서 호스트의 시청자 목록에 표시되지 않으므로 호스트는 내가 있다는 것을 모릅니다. 댓글을 달거나 반응하면 여전히 표시됩니다. 보이는 시청자 수는 더 이상 업데이트되지 않으며, 끝난 라이브가 나갈 때까지 계속 라이브처럼 보일 수 있습니다.
@@ -750,6 +752,8 @@ Hide Create on Home's header	홈 상단의 만들기 숨기기
 Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	홈 상단의 더하기 버튼을 제거하고 빈 자리를 채웁니다. 만들기 탭과 스와이프로 만들기는 별개입니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Hide notifications on Home's header	홈 상단의 알림 숨기기
 Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	홈 상단의 하트를 제거하고 빈 자리를 채웁니다. 알림은 계속 옵니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Ghost mode button on Home's header	홈 상단의 고스트 모드 버튼
+Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	홈 상단의 메시지 버튼 옆에 고스트 버튼을 추가합니다. 탭하면 고스트 모드를 켜거나 끌 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Start tab	시작 탭
 Instagram opens the way it always has.	Instagram이 지금까지처럼 열립니다.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	아이콘으로 Instagram을 시작하면 %1$s에서 열립니다. 알림이나 링크는 원래 가려던 곳을 그대로 엽니다. 하단바에 그 탭이 없으면 홈이 열립니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.

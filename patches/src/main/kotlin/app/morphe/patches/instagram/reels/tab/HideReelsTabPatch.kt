@@ -63,7 +63,7 @@ val hideReelsTabPatch = bytecodePatch(
     name = "Hide the Reels tab",
     description = "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. " +
         "Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
-        "Under Tab bar, switches do the same for Search, Create and Profile, switches take the Create and notifications buttons off Home's header, and a list picks the tab Instagram opens on.",
+        "Under Tab bar, switches do the same for Search, Create and Profile, switches take the Create and notifications buttons off Home's header, one adds a Ghost mode button to it, and a list picks the tab Instagram opens on.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
