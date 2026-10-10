@@ -20,6 +20,7 @@ import org.robolectric.RobolectricTestRunner;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 
 /** What Hide suggested stories takes out of Home's stories tray, and when it hides the tray. */
 @RunWith(RobolectricTestRunner.class)
@@ -123,6 +124,33 @@ public class StoriesTrayTest {
             Settings.STOP_LOADING_STORIES.save(false);
         }
         assertSame(story, StoriesTray.filter(story));
+    }
+
+    /** Some other enum a tray item also carries. */
+    enum Shape { CIRCLE, CARD }
+
+    static final class TwoEnums {
+        final Shape shape = Shape.CARD;
+        final ReelType reelType;
+
+        TwoEnums(ReelType reelType) {
+            this.reelType = reelType;
+        }
+    }
+
+    /** Every item read is counted by its reel type, one no switch covers too, and never by the other enum. */
+    @Test
+    public void everyReelTypeReadIsCounted() {
+        FeedFilterCounters.snapshotAndClear();
+        StoriesTray.filter(new TwoEnums(ReelType.PROMPT_STICKER_REEL));
+        StoriesTray.filter(new TwoEnums(ReelType.PROMPT_STICKER_REEL));
+        StoriesTray.filter(new TrayItem(ReelType.USER_REEL));
+
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(StoriesTray.KINDS_ROUTE));
+        assertTrue(report, report.contains("PROMPT_STICKER_REEL 2"));
+        assertTrue(report, report.contains("USER_REEL 1"));
+        assertFalse(report, report.contains("CARD"));
     }
 
     /** The whole tray stays until its own switch, off to start, is turned on. */

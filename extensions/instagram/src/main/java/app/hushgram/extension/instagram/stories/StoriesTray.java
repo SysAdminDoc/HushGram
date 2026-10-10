@@ -70,6 +70,15 @@ public final class StoriesTray {
     static final String RECAP_ROUTE = "Memories and recaps";
     static final String STOP_ROUTE = "Stop loading stories";
 
+    /**
+     * Every reel type the tray's parser reads, counted by name, so a report from an account that's
+     * shown a card no switch covers yet (#111's Music for you) says which type it is.
+     */
+    static final String KINDS_ROUTE = "Stories tray reel types";
+
+    /** A constant only the reel type enum has among the tray item's enum fields. */
+    private static final String REEL_TYPE_MARKER = "USER_REEL";
+
     private static volatile boolean loggedTray;
 
     private StoriesTray() {
@@ -105,6 +114,7 @@ public final class StoriesTray {
         if (item == null) return null;
         try {
             HookStatus.invoked(FamilyNames.STORIES_TRAY);
+            FeedFilterCounters.sawKind(KINDS_ROUTE, FeedItemKinds.kindOf(item, REEL_TYPE_MARKER, FamilyNames.STORIES_TRAY));
             if (stopLoading()) {
                 FeedFilterCounters.removed(STOP_ROUTE, 1, "any");
                 return null;

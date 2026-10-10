@@ -8,6 +8,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,9 @@ public final class FeedItemKinds {
     /** The enum fields of each item class seen. Feed items all come from one class, tray items from another. */
     private static final Map<Class<?>, EnumFields> known = new ConcurrentHashMap<>();
 
+    /** The constant names of each kind enum seen, so a field's type is listed once. */
+    private static final Map<Class<?>, Set<String>> constantNames = new ConcurrentHashMap<>();
+
     private FeedItemKinds() {
     }
 
@@ -44,6 +48,32 @@ public final class FeedItemKinds {
             }
         }
         return null;
+    }
+
+    /**
+     * The name of [item]'s kind, whatever it is, read from the enum field whose type has a constant
+     * named [marker], or null. For a report that counts every kind a list carries, where a switch
+     * for a kind nobody has named yet needs that name first.
+     */
+    public static String kindOf(Object item, String marker, String family) throws IllegalAccessException {
+        for (Field field : enumFields(item.getClass(), family)) {
+            Object value = field.get(item);
+            if (value instanceof Enum && constants(((Enum<?>) value).getDeclaringClass()).contains(marker)) {
+                return ((Enum<?>) value).name();
+            }
+        }
+        return null;
+    }
+
+    private static Set<String> constants(Class<?> type) {
+        Set<String> names = constantNames.get(type);
+        if (names == null) {
+            Set<String> found = new HashSet<>();
+            for (Object constant : type.getEnumConstants()) found.add(((Enum<?>) constant).name());
+            names = Collections.unmodifiableSet(found);
+            constantNames.put(type, names);
+        }
+        return names;
     }
 
     private static List<Field> enumFields(Class<?> owner, String family) {
