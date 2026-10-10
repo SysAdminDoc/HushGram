@@ -1122,6 +1122,14 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileHighlights;->keepTray
 # Threads button stays; twice or elsewhere, it isn't the hook the patch wrote.
 # HideThreadsButtonHookTest checks on the 450 fixture that it lands right after the read.
 once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
+# Hide the Reels tab's Home header switches hand the list of buttons Home's header draws from to
+# HomeHeader.buttons first thing in the constructor of the header's state (03iJ on 450), the one
+# (List, int, boolean, boolean, boolean) constructor keeping that list in A01, which
+# MainFeedActionBar.A08 reads to draw the header. Left out, the Create and notifications buttons
+# stay; twice or elsewhere, it isn't the hook the patch wrote. HomeHeaderHookTest checks all seven
+# 450 builds.
+start-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;IZZZ)V holding LX/03iJ;->A01:Ljava/util/List;
+once-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;IZZZ)V holding LX/03iJ;->A01:Ljava/util/List;
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
 # onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
 # method of the class calling an onResume). The class is the only one holding both strings. Left

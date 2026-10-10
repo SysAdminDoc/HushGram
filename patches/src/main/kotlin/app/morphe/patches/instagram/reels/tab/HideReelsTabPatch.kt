@@ -63,7 +63,7 @@ val hideReelsTabPatch = bytecodePatch(
     name = "Hide the Reels tab",
     description = "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. " +
         "Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
-        "Under Tab bar, switches do the same for Search, Create and Profile, and a list picks the tab Instagram opens on.",
+        "Under Tab bar, switches do the same for Search, Create and Profile, switches take the Create and notifications buttons off Home's header, and a list picks the tab Instagram opens on.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -73,7 +73,10 @@ val hideReelsTabPatch = bytecodePatch(
         // Every anchor is found and checked, and SettingsStatus is confirmed to carry the switch's
         // method, before any hook changes an instruction.
         requireStatusMethod("reelsTab")
+        // Home's header is found first too, so a build that lacks it is left as it was.
+        val header = findHomeHeader()
         hideReelsTab()
+        hideHomeHeaderButtons(header)
         enableStatus("reelsTab")
     }
 }

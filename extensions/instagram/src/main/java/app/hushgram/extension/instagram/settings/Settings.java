@@ -955,6 +955,20 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_tab", FALSE, true);
 
     /**
+     * The Create (plus) button is off Home's header. The header is built without it, so no gap is left.
+     * Instagram's own Create tab and the swipe to create are not touched. A change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_HOME_CREATE_BUTTON =
+            new BooleanSetting("hushgram_hide_home_create_button", FALSE, true);
+
+    /**
+     * The notifications heart is off Home's header. The header is built without it, so no gap is left.
+     * Notifications still arrive and can be opened from their alerts. A change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_HOME_NOTIFICATIONS_BUTTON =
+            new BooleanSetting("hushgram_hide_home_notifications_button", FALSE, true);
+
+    /**
      * The tab Instagram opens on when it's started from its icon ({@link app.hushgram.extension.instagram.reels.TabStart}).
      * Home leaves Instagram's own start alone. A tab that's hidden or isn't on the bar opens Home.
      * Read once, as Instagram starts, so a change takes a restart.

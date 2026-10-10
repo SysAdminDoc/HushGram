@@ -741,6 +741,10 @@ Hide the Create tab	만들기 탭 숨기기
 Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.	하단바에서 만들기 탭을 제거하고 빈 자리를 메웁니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Hide the Profile tab	프로필 탭 숨기기
 Takes Profile off the tab bar. Your profile still opens from other places in the app. Restart Instagram to see the change.	하단바에서 프로필 탭을 제거합니다. 앱의 다른 곳에서는 프로필을 계속 열 수 있습니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Hide Create on Home's header	홈 상단의 만들기 숨기기
+Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	홈 상단의 더하기 버튼을 제거하고 빈 자리를 채웁니다. 만들기 탭과 스와이프로 만들기는 별개입니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Hide notifications on Home's header	홈 상단의 알림 숨기기
+Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.	홈 상단의 하트를 제거하고 빈 자리를 채웁니다. 알림은 계속 오며, 알림을 누르면 알림 화면이 열립니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Start tab	시작 탭
 Instagram opens the way it always has.	Instagram이 지금까지처럼 열립니다.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	아이콘으로 Instagram을 시작하면 %1$s에서 열립니다. 알림이나 링크는 원래 가려던 곳을 그대로 엽니다. 하단바에 그 탭이 없으면 홈이 열립니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
