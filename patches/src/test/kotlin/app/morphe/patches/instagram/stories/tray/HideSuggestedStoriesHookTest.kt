@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -203,15 +204,19 @@ class HideSuggestedStoriesHookTest {
                 val floating = context.findFloatingTrayShow()
                 val parse = context.findTrayItemParse()
                 val remaining = context.findTrayRemaining(parse.site)
+                val guarded = { site: MethodSite ->
+                    context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+                }
+                val stock = listOf(rows, floating).map { NeutralNativePath(guarded(it)) }
                 context.guardTray(rows)
                 context.guardTray(floating)
                 context.hookTrayParser(parse, remaining)
 
-                for (site in listOf(rows, floating)) {
-                    assertGuardedFirst(
-                        "${bundle.name} ${site.type}",
-                        context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters },
-                    )
+                for ((site, original) in listOf(rows, floating).zip(stock)) {
+                    val what = "${bundle.name} ${site.type}->${site.name}"
+                    assertGuardedFirst(what, guarded(site))
+                    // The guard's call, answer, test, return and the nop its label lands on.
+                    original.assertPreserved(what, guarded(site), (0..4).toSet())
                 }
                 val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
                 assertFilteredBeforeTheTest("${bundle.name} ${parse.site.type}", parser)
