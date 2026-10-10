@@ -66,7 +66,7 @@ public class Settings extends BaseSettings {
      * the page itself, so it's read saved, not through Pause.
      */
     public static final BooleanSetting CATEGORY_PAGES =
-            new BooleanSetting("hushgram_category_pages", FALSE);
+            new BooleanSetting("hushgram_category_pages", TRUE);
 
     /** Sponsored posts, reels and stories: the ad injector is told no ad went in. */
     public static final BooleanSetting HIDE_ADS =
