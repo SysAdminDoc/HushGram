@@ -15,7 +15,10 @@ import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesAccessing
+import app.morphe.patches.instagram.misc.extension.classesCreating
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -26,13 +29,28 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val HIDDEN_CHATS = "$EXTENSION_PACKAGE/direct/HiddenChats;"
+
+/** The filter for the chats the inbox screen turns into rows. */
+internal const val HIDDEN_INBOX = "$HIDDEN_CHATS->inbox(Ljava/util/List;)Ljava/util/List;"
+
+/** The filter for one folder tab's chats, which Instagram counts the tab's unread chats from. */
+internal const val HIDDEN_FOLDER = "$HIDDEN_CHATS->folder(Ljava/util/List;)Ljava/util/List;"
+
+/** The filter for the chats Instagram's unread badge snapshot reads. */
 internal const val HIDDEN_FILTER = "$HIDDEN_CHATS->filter(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
 private const val HIDDEN_THREAD_ID = "threadId"
+
+/**
+ * What the inbox's row factory logs while it turns the inbox's list of chats into the rows the
+ * screen draws (a runnable posted by the list's holder each time the list changes).
+ */
+internal const val INBOX_ROWS = "DirectThreadRowViewModelFactory.createList"
 
 /**
  * What Instagram's thread store logs around both methods that hand out its thread summaries: the
@@ -49,6 +67,7 @@ private const val ARRAY_LIST = "Ljava/util/ArrayList;"
 private const val STRING = "Ljava/lang/String;"
 private const val COMPARATOR = "Ljava/util/Comparator;"
 private const val LINKED_HASH_SET = "Ljava/util/LinkedHashSet;"
+private const val SET = "Ljava/util/Set;"
 private const val UNMODIFIABLE_LIST = "Ljava/util/Collections;->unmodifiableList(Ljava/util/List;)Ljava/util/List;"
 
 /** The store's readers of the sorted thread summaries: each logs [THREAD_SUMMARIES] and answers a new list. */
@@ -59,20 +78,22 @@ internal object ThreadSummariesFingerprint : Fingerprint(
 )
 
 /**
- * The inbox screen's view model: the one instance call that reads the store's sorted summaries
- * (the reader that takes a filter, a sort, a comparator, a list and a flag), wraps them in an
- * unmodifiable list, and goes on to collect the chats' keys in a linked set. Nothing else that
- * reads the store does all three. The store is checked against its readers afterwards.
+ * Instagram's unread badge snapshot (00b3.A03 on 450): the one instance call that reads the store's
+ * sorted summaries (the reader that takes a filter, a sort, a comparator, a list and a flag), wraps
+ * them in an unmodifiable list, and goes on to collect the unread chats' keys in a linked set.
+ * Nothing else that reads the store does all three. The store is checked against its readers
+ * afterwards. Its snapshot feeds the unread badge and, through a method of its own, the unread
+ * counts on the inbox's folder tabs. It is not the list the inbox draws its rows from.
  */
-internal object InboxViewModelFingerprint : Fingerprint(
+internal object InboxBadgeFingerprint : Fingerprint(
     returnType = "L",
     custom = { method, _ ->
-        !AccessFlags.STATIC.isSet(method.accessFlags) && method.inboxReadAt() != null
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.badgeReadAt() != null
     },
 )
 
-/** The index of the call that reads the store's sorted summaries and wraps the answer, for a method shaped like the inbox view model. */
-internal fun Method.inboxReadAt(): Int? {
+/** The index of the call that reads the store's sorted summaries and wraps the answer, for a method shaped like the unread badge snapshot. */
+internal fun Method.badgeReadAt(): Int? {
     val code = implementation?.instructions?.toList() ?: return null
     if (code.none { (it.visualReference() as? TypeReference)?.type == LINKED_HASH_SET }) return null
     if (code.none { (it.visualReference() as? MethodReference)?.returnType == THREAD_KEY }) return null
@@ -91,25 +112,29 @@ internal fun Method.inboxReadAt(): Int? {
 /** A static call that lists chats and where it returns: the method, the return, and the register its one return hands back. */
 internal class SummaryList(val method: MutableMethod, val returnAt: Int, val register: Int)
 
-/** The inbox screen's read of the summaries: the method, the instruction the filter goes in front of, and the register holding the list. */
-internal class InboxRead(val method: MutableMethod, val resultAt: Int, val register: Int)
+/** A list on its way somewhere: the method, the instruction the filter goes in front of, and the register holding the list. */
+internal class ListSite(val method: MutableMethod, val at: Int, val register: Int)
 
 /**
- * What hiding chats from the inbox needs from Instagram, proved before anything changes: the inbox
- * view model and where its read of the store's summaries answers, and the body of the extension's
- * bridge from a summary to its chat's thread id.
+ * What hiding chats from the inbox needs from Instagram, proved before anything changes: the write
+ * of the list the inbox draws its rows from, the unread badge snapshot's read of the store's
+ * summaries, its read of each folder tab's chats for the tabs' unread counts, and the body of the
+ * extension's bridge from a summary to its chat's thread id.
  */
 internal class HiddenChatTargets(
-    val inbox: InboxRead,
+    val rows: ListSite,
+    val badge: ListSite,
+    val folders: ListSite,
     val bridge: MutableMethod,
     val bridgeBody: String,
 )
 
 /**
  * The store's two readers by what they log, the summary type by what they read (the one type whose
- * fields they load that answers the chat's key, with the chat key's own thread id), and the inbox
- * screen's view model by what it does with the reader's answer. The filter goes on that answer and
- * nowhere in the store, so the disk save and the per-user updates still see every chat.
+ * fields they load that answers the chat's key, with the chat key's own thread id), the inbox's
+ * list of chats by the row factory that reads it ([findInboxRows]), and the unread badge snapshot by
+ * what it does with the reader's answer. The filters go on those lists and nowhere in the store, so
+ * the disk save and the per-user updates still see every chat.
  */
 internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     val readers = ThreadSummariesFingerprint.matchAllOrNull().orEmpty().map { it.method }
@@ -132,17 +157,19 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     requirePublic(summaryType, getter)
     requirePublic(THREAD_KEY, idField)
 
-    val view = uniqueMethod(LOCK_PATCH, "inbox view model", InboxViewModelFingerprint)
+    val view = uniqueMethod(LOCK_PATCH, "inbox unread badge", InboxBadgeFingerprint)
     val code = view.visualCode()
-    val read = view.inboxReadAt() ?: refuse("the inbox view model lost its shape")
+    val read = view.badgeReadAt() ?: refuse("the inbox unread badge lost its shape")
     val call = code[read].visualReference() as MethodReference
     if (call.definingClass != store || readers.none { it.name == call.name && it.parameterTypes == call.parameterTypes }) {
-        refuse("the inbox view model reads summaries from ${call.definingClass}->${call.name}, not from the thread store's own reader")
+        refuse("the inbox unread badge reads summaries from ${call.definingClass}->${call.name}, not from the thread store's own reader")
     }
     val after = read + 2
-    if (after in view.jumpTargets()) refuse("something jumps into the inbox view model right after it reads the store's summaries")
+    if (after in view.jumpTargets()) refuse("something jumps into the inbox unread badge right after it reads the store's summaries")
     val register = (code[read + 1] as OneRegisterInstruction).registerA
-    if (register > 255) refuse("the inbox view model keeps the summaries in v$register, past v255")
+    if (register > 255) refuse("the inbox unread badge keeps the summaries in v$register, past v255")
+    val folders = findFolderCounts(view, call, store)
+    val rows = findInboxRows()
 
     val bridge = mutableClassDefBy(HIDDEN_CHATS).methods.filter {
         it.name == HIDDEN_THREAD_ID && it.parameters() == listOf("Ljava/lang/Object;") && it.returnType == STRING &&
@@ -161,7 +188,7 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
         return-object p0
     """.trimIndent()
     requireFilter()
-    return HiddenChatTargets(InboxRead(view, after, register), bridge, bridgeBody)
+    return HiddenChatTargets(rows, ListSite(view, after, register), folders, bridge, bridgeBody)
 }
 
 /** The no-argument, non-static calls of [type] that answer a chat key. */
@@ -170,31 +197,130 @@ private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
 }
 
 /**
- * Writes the thread summary bridge and puts the filter in: the list the inbox view model has just
- * read goes through the extension and comes back in the same register, before it is wrapped.
+ * The inbox's one list of chats, by what reads it. Every list Instagram hands the inbox screen (the
+ * one read from the phone at start, a fresh page from the server, a pull to refresh, a switch of
+ * folder tab) ends up in one field of one holder (07HZ.A03 on 450), and the holder's only use of it
+ * is to start the row factory on it, a runnable logging [INBOX_ROWS] that turns each chat into a
+ * row. Reading back from the factory: the one method making it (07HZ.A01) loads the list from its
+ * own class's one List field, and that field has one write in the whole app, the holder's
+ * subscriber to the inbox's state (a case of 09kY.accept). The filter goes right in front of that
+ * write, so the field, the rows and the counts read from the field all leave a hidden chat out,
+ * while the inbox's state, its pagination and Instagram's save to the phone keep every chat. The
+ * write's value must be read nowhere after it, so handing the field the filter's answer changes
+ * nothing else the method does.
+ */
+internal fun BytecodePatchContext.findInboxRows(): ListSite {
+    val factory = uniqueMethod(LOCK_PATCH, "inbox row factory", InboxRowsFingerprint)
+    val factoryType = factory.definingClass
+    val starters = classesCreating(factoryType).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            method.visualCode().any { it.opcode == Opcode.NEW_INSTANCE && (it.visualReference() as? TypeReference)?.type == factoryType }
+        }
+    }
+    val starter = starters.one("method starting the inbox row factory $factoryType")
+    val list = starter.visualCode().filter { it.opcode == Opcode.IGET_OBJECT }
+        .mapNotNull { it.visualReference() as? FieldReference }.filter { it.type == LIST }
+        .distinctBy { it.signature() }.one("list of chats the inbox row factory is started on")
+    if (list.definingClass != starter.definingClass) {
+        refuse("the inbox row factory is started on ${list.signature()}, which isn't its starter's own list")
+    }
+
+    val writes = classesAccessing(list.definingClass, list.name, Opcode.IPUT_OBJECT).flatMap { classDef ->
+        classDef.methods.flatMap { method ->
+            val code = method.visualCode()
+            code.indices.filter { at ->
+                code[at].opcode == Opcode.IPUT_OBJECT && (code[at].visualReference() as? FieldReference)?.signature() == list.signature()
+            }.map { method to it }
+        }
+    }
+    val (native, at) = writes.one("write of the inbox's list of chats ${list.signature()}")
+    val writer = mutableClassDefBy(native.definingClass).methods.single {
+        it.name == native.name && it.parameters() == native.parameters() && it.returnType == native.returnType
+    }
+    val put = writer.visualCode()[at] as TwoRegisterInstruction
+    val value = put.registerA
+    if (value == put.registerB) refuse("the write of the inbox's list of chats stores v$value into itself")
+    if (at in writer.jumpTargets()) refuse("something jumps straight to the write of the inbox's list of chats")
+    if (value in writer.liveAcrossInjection(at + 1)) {
+        refuse("${writer.definingClass}->${writer.name} reads the inbox's list of chats again after it writes it")
+    }
+    return ListSite(writer, at, value)
+}
+
+/** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
+internal object InboxRowsFingerprint : Fingerprint(
+    returnType = "V",
+    strings = listOf(INBOX_ROWS),
+    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() },
+)
+
+/**
+ * The unread counts on the inbox's folder tabs. The badge snapshot counts them in a method of its
+ * own class it calls with the folders to count (00b3.A01 on 450, taking the account, the store and
+ * a set of folders): for each folder it asks a part of the store (00CN, a field of the store) for
+ * that folder's chats with the same filter type the store's sorted reader takes, and counts the
+ * unread ones. The folder pills say "1 unread message" from those counts, and All is the chats of
+ * the others put together. The folder's chats go through the extension right after they're read,
+ * in that method only. The store's part and its other callers aren't touched.
+ */
+private fun BytecodePatchContext.findFolderCounts(badge: Method, storeRead: MethodReference, store: String): ListSite {
+    val counters = badge.visualCode().filter { it.opcode == Opcode.INVOKE_DIRECT || it.opcode == Opcode.INVOKE_DIRECT_RANGE }
+        .mapNotNull { it.visualReference() as? MethodReference }
+        .filter { it.definingClass == badge.definingClass && it.returnType.startsWith("L") && it.parameterTypes.lastOrNull()?.toString() == SET }
+        .distinctBy { it.signature() }
+    val counted = counters.one("method of the inbox unread badge counting its folders")
+    val counter = mutableClassDefBy(badge.definingClass).methods.single {
+        it.name == counted.name && it.parameters() == counted.parameterTypes.map(CharSequence::toString) && it.returnType == counted.returnType
+    }
+    val parts = (classDefByOrNull(store) ?: refuse("$store is missing")).fields.mapTo(HashSet()) { it.type }
+    val filterType = storeRead.parameterTypes[1].toString()
+    val code = counter.visualCode()
+    val read = code.indices.filter { index ->
+        val call = code[index].visualReference() as? MethodReference
+        (code[index].opcode == Opcode.INVOKE_VIRTUAL || code[index].opcode == Opcode.INVOKE_VIRTUAL_RANGE) && call != null &&
+            call.returnType == LIST && call.parameterTypes.size == 2 && call.parameterTypes[1].toString() == filterType &&
+            call.definingClass in parts && index + 2 < code.size && code[index + 1].opcode == Opcode.MOVE_RESULT_OBJECT
+    }.one("read of a folder's chats in the inbox unread badge's folder count")
+    val after = read + 2
+    if (after in counter.jumpTargets()) refuse("something jumps into the folder count right after it reads a folder's chats")
+    val register = (code[read + 1] as OneRegisterInstruction).registerA
+    if (register > 255) refuse("the folder count keeps a folder's chats in v$register, past v255")
+    return ListSite(counter, after, register)
+}
+
+/**
+ * Writes the thread summary bridge and puts the filters in. The inbox's list of chats goes through
+ * the extension right before it's written to its holder, the list the badge snapshot has just read
+ * goes through it before it is wrapped, and each folder's chats go through it right after the
+ * folder count reads them. Each answer comes back in the register the list was in, a List where a
+ * List was, an ArrayList where an ArrayList was.
  */
 internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     targets.bridge.addInstructionsWithLabels(0, targets.bridgeBody)
-    val register = "v${targets.inbox.register}"
-    targets.inbox.method.addInstructions(
-        targets.inbox.resultAt,
-        """
-            invoke-static/range { $register .. $register }, $HIDDEN_FILTER
-            move-result-object $register
-        """,
-    )
+    for ((site, filter) in listOf(targets.rows to HIDDEN_INBOX, targets.badge to HIDDEN_FILTER, targets.folders to HIDDEN_FOLDER)) {
+        val register = "v${site.register}"
+        site.method.addInstructions(
+            site.at,
+            """
+                invoke-static/range { $register .. $register }, $filter
+                move-result-object $register
+            """,
+        )
+    }
 }
 
-/** Throws unless the extension has the public static filter. */
+/** Throws unless the extension has the public static filters. */
 private fun BytecodePatchContext.requireFilter() {
     val extension = classDefByOrNull(HIDDEN_CHATS) ?: refuse("the extension has no $HIDDEN_CHATS")
-    val name = HIDDEN_FILTER.substringAfter("->").substringBefore("(")
-    val parameters = HIDDEN_FILTER.substringAfter("(").substringBefore(")")
-    if (extension.methods.none {
-            it.name == name && it.parameterTypes.joinToString("") == parameters && it.returnType == ARRAY_LIST &&
-                AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
-        }
-    ) refuse("the extension has no public static $HIDDEN_FILTER")
+    for ((signature, returns) in listOf(HIDDEN_FILTER to ARRAY_LIST, HIDDEN_INBOX to LIST, HIDDEN_FOLDER to LIST)) {
+        val name = signature.substringAfter("->").substringBefore("(")
+        val parameters = signature.substringAfter("(").substringBefore(")")
+        if (extension.methods.none {
+                it.name == name && it.parameterTypes.joinToString("") == parameters && it.returnType == returns &&
+                    AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+            }
+        ) refuse("the extension has no public static $signature")
+    }
 }
 
 // ------------------------------------------------------------------ the inbox search

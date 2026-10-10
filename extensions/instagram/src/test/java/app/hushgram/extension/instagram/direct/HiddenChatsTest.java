@@ -24,6 +24,7 @@ import org.robolectric.annotation.Config;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.instagram.model.direct.DirectMessageSearchMessage;
@@ -86,7 +87,109 @@ public class HiddenChatsTest {
         assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(inbox));
         assertNotSame(inbox, shown);
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
-        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the inbox 1"));
+        // filter is the unread badge's read; the inbox's rows have their own count (below).
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the unread badge 1"));
+    }
+
+    @Test
+    public void aHiddenChatLeavesTheListTheInboxDrawsItsRowsFrom() {
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> inbox = Collections.unmodifiableList(list(ALICE, BOB, "7"));
+
+        List<Object> shown = HiddenChats.inbox(inbox);
+
+        assertEquals(Arrays.asList(BOB, "7"), ids(shown));
+        assertEquals("Instagram's own list is untouched", Arrays.asList(ALICE, BOB, "7"), ids(inbox));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("hidden chats left out of the inbox 1"));
+        assertFalse("the badge wasn't asked", report.contains("hidden chats left out of the unread badge"));
+        assertEquals("the next list Instagram hands over is filtered too", Arrays.asList("7"), ids(HiddenChats.inbox(list("7", ALICE))));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of the inbox 2"));
+    }
+
+    @Test
+    public void aHiddenChatsUnreadMessagesDontCountOnAFolderTab() {
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> primary = list(BOB, ALICE);
+
+        List<Object> counted = HiddenChats.folder(primary);
+
+        assertEquals(Arrays.asList(BOB), ids(counted));
+        assertEquals("Instagram's own list is untouched", Arrays.asList(BOB, ALICE), ids(primary));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of folder unread counts 1"));
+    }
+
+    @Test
+    public void inboxAndFolderListsWithNothingHiddenComeBackAsTheyAre() {
+        List<Object> inbox = list(ALICE, BOB);
+        assertSame("no hidden chat", inbox, HiddenChats.inbox(inbox));
+        assertSame("no hidden chat", inbox, HiddenChats.folder(inbox));
+
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> other = list(BOB, "7");
+        assertSame("a list with no hidden chat in it", other, HiddenChats.inbox(other));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.folder(other));
+        assertNull(HiddenChats.inbox(null));
+        assertNull(HiddenChats.folder(null));
+        List<Object> empty = new ArrayList<>();
+        assertSame(empty, HiddenChats.inbox(empty));
+        assertSame(empty, HiddenChats.folder(empty));
+
+        HiddenChats.remove(ALICE);
+        assertSame("shown again", inbox, HiddenChats.inbox(inbox));
+        assertSame("counted again", inbox, HiddenChats.folder(inbox));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("left out of the inbox"));
+    }
+
+    @Test
+    public void aSummaryThatCantBeReadStaysInTheInboxAndPausedShowsEverything() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.reader = summary -> {
+            String id = ((Summary) summary).id;
+            if (id.equals("bad")) throw new IllegalStateException("no key");
+            return id.equals("none") ? null : id;
+        };
+
+        assertEquals(Arrays.asList("bad", "none", BOB), ids(HiddenChats.inbox(list("bad", ALICE, "none", BOB))));
+        assertEquals(Arrays.asList("bad", BOB), ids(HiddenChats.folder(list("bad", ALICE, BOB))));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+
+        // The unpatched bridge answers null for everything, so nothing is hidden.
+        HiddenChats.resetForTests();
+        List<Object> inbox = list(ALICE, BOB);
+        assertSame(inbox, HiddenChats.inbox(inbox));
+        assertSame(inbox, HiddenChats.folder(inbox));
+
+        HiddenChats.reader = summary -> ((Summary) summary).id;
+        for (HushgramPause.Reason reason : new HushgramPause.Reason[]{HushgramPause.Reason.SWITCH, HushgramPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+            assertSame(reason.name(), inbox, HiddenChats.inbox(inbox));
+            assertSame(reason.name(), inbox, HiddenChats.folder(inbox));
+
+            PauseForTests.resume();
+            assertEquals(reason.name(), Arrays.asList(BOB), ids(HiddenChats.inbox(inbox)));
+            assertEquals(reason.name(), Arrays.asList(BOB), ids(HiddenChats.folder(inbox)));
+        }
+    }
+
+    @Test
+    public void aListThatThrowsIsHandedBackAndReported() {
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> broken = new ArrayList<Object>(list(ALICE, BOB)) {
+            @Override
+            public java.util.Iterator<Object> iterator() {
+                throw new IllegalStateException("broken");
+            }
+        };
+
+        assertSame(broken, HiddenChats.inbox(broken));
+        assertSame(broken, HiddenChats.folder(broken));
+
+        String missing = HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString();
+        assertTrue(missing, missing.contains("'inbox filter'"));
+        assertTrue(missing, missing.contains("'folder count filter'"));
     }
 
     @Test

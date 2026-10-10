@@ -123,10 +123,16 @@ start-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->notification(
 shared-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->notification(Landroid/app/Notification;)Landroid/app/Notification; in instance (Ljava/lang/String;ILandroid/app/Notification;)V holding android.support.useSideChannel
 start-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z in static (Landroid/content/Context;L*;L*;)V holding no\sforeground\sactivity\sto\srender\sin-app\snotification
 once-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z in static (Landroid/content/Context;L*;L*;)V holding no\sforeground\sactivity\sto\srender\sin-app\snotification
-# Hidden chats (under Lock your messages) also filter the Messages search in three places: the row
-# builder, the See all reader and the message match builder. No rule here, like the inbox filter's
-# (the inbox view model): HiddenChatHookTest proves each hook on every Instagram 450 fixture, the declared bundles
-# and the other 450 folders, and DexDiff needs a built APK.
+# Hidden chats (under Lock your messages) keep a hidden chat out of the inbox in three places: right
+# before the inbox's list of chats is written to the holder the row factory reads it from (a case
+# of the merged lambda 09kY.accept writing 07HZ.A03 on 450), in the unread badge snapshot after it
+# reads the thread store (00b3.A03), and in that snapshot's folder count after it reads each folder
+# tab's chats (00b3.A01). No rule for them: the lambda case and the folder count hold no string of
+# their own to anchor a rule on, and the snapshot's anchor is a shape, not a string.
+# HiddenChatHookTest proves each hook, and that each anchor is one method, on every Instagram 450
+# fixture, the declared bundles and the other 450 folders, and DexDiff needs a built APK.
+# They also filter the Messages search in three places: the row builder, the See all reader and the
+# message match builder. No rule here either: HiddenChatHookTest proves those hooks the same way.
 # The recent searches the search lists before you type go through the same filter in the recent
 # searches store's counted reader, after it sorts them and before it trims them to the count. The
 # store's plain reader is left alone, since opening a chat writes entries back by their place in it.

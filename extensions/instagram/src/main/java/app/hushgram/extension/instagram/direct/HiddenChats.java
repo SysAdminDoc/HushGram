@@ -18,8 +18,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * The chats "Lock your messages" hides, one at a time.
  *
- * <p>A hidden chat is left out of the thread summaries Instagram's inbox reads ({@link #filter}),
- * out of the inbox search's results and message matches ({@link #searchResults},
+ * <p>A hidden chat is left out of the list of chats the inbox draws its rows from ({@link #inbox}),
+ * out of the chats each folder tab counts its unread ones from ({@link #folder}) and the ones the
+ * unread badge reads ({@link #filter}), out of the inbox search's results and message matches ({@link #searchResults},
  * {@link #searchHits}), out of the recent searches it lists before you type ({@link #recents}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
  * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): a
  * chat's thread id and the name it had when it was hidden. The ids never leave the phone. HushGram
@@ -35,6 +36,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class HiddenChats {
     /** What is counted in the diagnostic report. */
     static final String LEFT_OUT = "hidden chats left out of the inbox";
+    static final String LEFT_OUT_FOLDERS = "hidden chats left out of folder unread counts";
+    static final String LEFT_OUT_BADGE = "hidden chats left out of the unread badge";
     static final String LEFT_OUT_SEARCH = "hidden chats left out of search";
     static final String LEFT_OUT_RECENTS = "hidden chats left out of recent searches";
     static final String SILENCED = "hidden chat notifications dropped";
@@ -42,6 +45,8 @@ public final class HiddenChats {
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
     static final String FILTER = "inbox filter";
+    static final String FOLDER_FILTER = "folder count filter";
+    static final String BADGE_FILTER = "unread badge filter";
     static final String SEARCH = "inbox search filter";
     static final String RECENTS = "recent searches filter";
 
@@ -75,9 +80,45 @@ public final class HiddenChats {
     // ---------------------------------------------------------------- the inbox
 
     /**
-     * Asked with the list of thread summaries Instagram's inbox is about to read. A list with no
-     * hidden chat in it comes back as it is. Otherwise a copy without the hidden ones does, and
-     * Instagram's own list is left as it was.
+     * Asked with the list of chats the inbox screen is about to keep and turn into rows, each time
+     * Instagram hands it one: the one read from the phone at start, a fresh page from the server, a
+     * pull to refresh, a switch of folder tab. A list with no hidden chat in it comes back as it is,
+     * and otherwise a copy without the hidden ones does. Instagram's own list is left as it was, so
+     * the inbox's state, its next page and what it saves to the phone still have every chat.
+     */
+    public static List<Object> inbox(List<Object> summaries) {
+        return leaveOut(summaries, LEFT_OUT, FILTER);
+    }
+
+    /**
+     * Asked with one folder tab's chats, which Instagram counts the tab's unread chats from (the
+     * "1 unread message" on a folder pill). The same as {@link #inbox}, so a hidden chat's unread
+     * messages don't count on any tab.
+     */
+    public static List<Object> folder(List<Object> summaries) {
+        return leaveOut(summaries, LEFT_OUT_FOLDERS, FOLDER_FILTER);
+    }
+
+    private static List<Object> leaveOut(List<Object> summaries, String counted, String step) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (summaries == null || summaries.isEmpty()) return summaries;
+            Set<String> hidden = ids();
+            if (hidden.isEmpty()) return summaries;
+            ArrayList<Object> shown = shown(summaries, hidden);
+            if (shown.size() == summaries.size()) return summaries;
+            HookStatus.counted(FamilyNames.MESSAGES_LOCK, counted);
+            return shown;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, step, t);
+            return summaries;
+        }
+    }
+
+    /**
+     * Asked with the thread summaries Instagram's unread badge snapshot is about to read. A list
+     * with no hidden chat in it comes back as it is. Otherwise a copy without the hidden ones does,
+     * and Instagram's own list is left as it was.
      */
     public static ArrayList<Object> filter(ArrayList<Object> summaries) {
         try {
@@ -85,17 +126,23 @@ public final class HiddenChats {
             if (summaries == null || summaries.isEmpty()) return summaries;
             Set<String> hidden = ids();
             if (hidden.isEmpty()) return summaries;
-            ArrayList<Object> shown = new ArrayList<>(summaries.size());
-            for (Object summary : summaries) {
-                String id = idOf(summary);
-                if (id == null || !hidden.contains(id)) shown.add(summary);
-            }
-            if (shown.size() != summaries.size()) HookStatus.counted(FamilyNames.MESSAGES_LOCK, LEFT_OUT);
+            ArrayList<Object> shown = shown(summaries, hidden);
+            if (shown.size() != summaries.size()) HookStatus.counted(FamilyNames.MESSAGES_LOCK, LEFT_OUT_BADGE);
             return shown;
         } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, BADGE_FILTER, t);
             return summaries;
         }
+    }
+
+    /** A new list of the summaries whose chats aren't hidden, in their order. */
+    private static ArrayList<Object> shown(List<Object> summaries, Set<String> hidden) {
+        ArrayList<Object> shown = new ArrayList<>(summaries.size());
+        for (Object summary : summaries) {
+            String id = idOf(summary);
+            if (id == null || !hidden.contains(id)) shown.add(summary);
+        }
+        return shown;
     }
 
     private static String idOf(Object summary) {
