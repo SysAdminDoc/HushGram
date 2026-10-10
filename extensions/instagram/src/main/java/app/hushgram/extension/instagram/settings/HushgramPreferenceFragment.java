@@ -802,6 +802,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.REEL_TAP_AND_VOLUME)) {
                 playback.addPreference(reelTapChoiceRow(context));
+                playback.addPreference(toggle(context, Settings.KEEP_REELS_MUTED, L10n.t("Keep reels muted on the volume keys"),
+                        L10n.t("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

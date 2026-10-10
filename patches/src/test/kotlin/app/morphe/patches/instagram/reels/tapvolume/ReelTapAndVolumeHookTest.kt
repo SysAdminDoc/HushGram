@@ -167,6 +167,113 @@ class ReelTapAndVolumeHookTest {
         }
     }
 
+    /** The volume hook is in the extension, public and static, and takes the direction as an int. */
+    @Test
+    fun theVolumeHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(REEL_TAP_AND_VOLUME).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$KEEP_MUTED is not in the extension: $declared", KEEP_MUTED.substringAfter("->") in declared)
+    }
+
+    /** The runnable asks after its stream adjustment and its marker call, with the direction it used, and a yes returns. */
+    @Test
+    fun theVolumeRunnableAsksAfterItAdjustsTheVolume() {
+        val context = PatchContexts.of(volumeClasses())
+        val original = context.volumeRun().code().map { it.describe() }
+
+        context.apply { applyKeepMuted(findVolumeSite()) }
+
+        val code = context.volumeRun().code()
+        val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
+        assertEquals("the direction is read from this", "$runnable->A00:I", code[ask - 1].referenceText())
+        assertEquals(
+            listOf(Opcode.IGET, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID),
+            code.subList(ask - 1, ask + 4).map { it.opcode },
+        )
+        assertTrue("after the adjustment", code.indexOfFirst { it.referenceText()?.contains("adjustStreamVolume") == true } < ask)
+        assertEquals("the marker's call comes just before the hook", trace, code[ask - 2].referenceText())
+        val added = (ask - 1 until ask + 4).toSet()
+        assertEquals("only the hook is new", original, code.map { it.describe() }.filterIndexed { at, _ -> at !in added })
+    }
+
+    /** A runnable the patch cannot read fails at patch time, saying what it found, and nothing is changed. */
+    @Test
+    fun aVolumeRunnableThePatchCantReadFailsBeforeAnythingChanges() {
+        val cases = listOf(
+            volumeClasses(runs = 0) to "the volume runnable: expected one method marked $VOLUME_ADJUSTED, found 0",
+            volumeClasses(runs = 2) to "the volume runnable: expected one method marked $VOLUME_ADJUSTED, found 2",
+            volumeClasses(adjusts = 0) to "doesn't call AudioManager.adjustStreamVolume once",
+            volumeClasses(adjusts = 2) to "doesn't call AudioManager.adjustStreamVolume once",
+            volumeClasses(directionIsConstant = true) to "doesn't take the direction from an int field of its own",
+            volumeClasses(adjustsAfterMarker = true) to "adjusts the volume after the $VOLUME_ADJUSTED marker",
+            volumeClasses(jumpsIntoThePath = true) to "jumps to just past the $VOLUME_ADJUSTED marker",
+            volumeClasses(thisOverwritten = true) to "writes over this",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.apply { applyKeepMuted(findVolumeSite()) } }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            for (original in classes) {
+                val now = context.mutableClassDefBy(original.type).methods.associateBy { it.key() }
+                for (method in original.methods) {
+                    assertEquals(
+                        "$expected: ${original.type}->${method.name} changed",
+                        method.code().map { it.describe() }, now.getValue(method.key()).code().map { it.describe() },
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * In each of the version's seven builds the volume runnable is found once and the hook goes in once, right
+     * after the marker's call, with one borrowed local and every other instruction in place. Read as the patcher
+     * reads an APK, and copied.
+     */
+    @Test
+    fun eachDeclaredBuildHoldsItsVolumeRunnable() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("seven builds of the version", 7, bundles.size)
+        for (bundle in bundles) {
+            val name = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            val holders = FixtureDex.classesHolding(bundle, volumeMarker).map { it.type }.toSet()
+            for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
+                val what = "$name ($read)"
+                val classes = classesOf(bundle, holders).values
+                assertEquals("$what: the runnable's class", holders, classes.map { it.type }.toSet())
+                val context = PatchContexts.of(classes)
+                val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                    .filter { it.implementation != null }.associateWith(::NeutralNativePath)
+
+                val site = context.findVolumeSite()
+                assertTrue("$what: the borrowed local fits an invoke", site.scratch in 0..15)
+                context.apply { applyKeepMuted(site) }
+
+                val asking = holders.flatMap { type ->
+                    context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == KEEP_MUTED } }
+                }
+                assertEquals("$what: methods asking", listOf("run"), asking.map { it.name })
+                val run = asking.single()
+                val code = run.code()
+                val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
+                assertEquals("$what: the direction, read from this", site.direction.toString(), code[ask - 1].referenceText())
+                assertEquals("$what: the hook's last instruction", Opcode.RETURN_VOID, code[ask + 3].opcode)
+                assertEquals("$what: the marker's call comes just before", Opcode.INVOKE_STATIC, code[ask - 2].opcode)
+                val added = (ask - 1 until ask + 4).toSet()
+                for ((method, original) in originals) {
+                    val mine = method.code().indices.filter { method.name == run.name && method.definingClass == run.definingClass && it in added }.toSet()
+                    original.assertPreserved("$what ${method.name}", method, mine)
+                }
+            }
+        }
+    }
+
+    private fun BytecodePatchContext.volumeRun(): MutableMethod =
+        mutableClassDefBy(runnable).methods.single { it.name == "run" }
+
     private fun BytecodePatchContext.tap(): MutableMethod =
         mutableClassDefBy(navigator).methods.single { it.name == "togglePause" }
 
@@ -230,6 +337,52 @@ class ReelTapAndVolumeHookTest {
             classes += classDef(controllerType, listOf(method(controllerType, "other", emptyList(), "V", 0, body = "return-void")), public = controllerPublic)
         }
         return classes
+    }
+
+    // ---- the volume runnable ------------------------------------------------------------------
+
+    private val runnable = "Lfixture/VolumeRunnable;"
+    private val audio = "Landroid/media/AudioManager;"
+    private val volumeMarker = "android_purge_26_q3_$VOLUME_ADJUSTED"
+
+    /**
+     * The runnable: it traces its own marker, adjusts the stream volume with an int it reads from its own field, and
+     * then traces the volume marker, after which its unmute would follow. v0 is rewritten right after the marker.
+     */
+    private fun volumeClasses(
+        runs: Int = 1,
+        adjusts: Int = 1,
+        directionIsConstant: Boolean = false,
+        adjustsAfterMarker: Boolean = false,
+        jumpsIntoThePath: Boolean = false,
+        thisOverwritten: Boolean = false,
+    ): List<ClassDef> {
+        val adjust = """
+            ${if (directionIsConstant) "const/4 v1, 0x1" else "iget v1, p0, $runnable->A00:I"}
+            const/4 v2, 0x3
+            const/4 v0, 0x1
+            iget-object v3, p0, $runnable->audio:$audio
+            invoke-virtual { v3, v2, v1, v0 }, $audio->adjustStreamVolume(III)V
+        """
+        val run = { name: String ->
+            method(runnable, name, emptyList(), "V", 6, body = """
+                const-string v0, "android_purge_26_q3_ClipsVideoPlayerController_run"
+                invoke-static { v0 }, $trace
+                ${if (thisOverwritten) "const/4 p0, 0x0" else ""}
+                ${if (adjustsAfterMarker) "" else (0 until adjusts).joinToString("\n") { adjust }}
+                ${if (jumpsIntoThePath) "if-eqz v1, :inpath" else ""}
+                const-string v0, "$volumeMarker"
+                invoke-static { v0 }, $trace
+                :inpath
+                ${if (adjustsAfterMarker) adjust else ""}
+                const-string v0, "next"
+                invoke-static { v0 }, $trace
+                return-void
+            """)
+        }
+        val methods = (0 until runs).map { run(if (it == 0) "run" else "runAgain") }
+        val kept = if (runs == 0) listOf(method(runnable, "run", emptyList(), "V", 0, body = "return-void")) else methods
+        return listOf(classDef(runnable, kept, fields = listOf("A00" to "I", "audio" to audio)))
     }
 
     private fun method(

@@ -1115,6 +1115,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_reel_tap_choice", app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT);
 
     /**
+     * A press of a volume key doesn't turn a muted reel's sound back on
+     * ({@link app.hushgram.extension.instagram.reels.ReelTapAndVolume#keepMuted}). The key isn't
+     * swallowed: the phone's volume still goes up, and only Instagram's unmute of the reel is
+     * skipped. Volume down and every other path are Instagram's own. Off to start.
+     */
+    public static final BooleanSetting KEEP_REELS_MUTED =
+            new BooleanSetting("hushgram_keep_reels_muted", FALSE);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.

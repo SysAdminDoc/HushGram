@@ -40,6 +40,10 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 private const val PATCH = "Control taps and volume on Reels"
 internal const val REEL_TAP_AND_VOLUME = "$EXTENSION_PACKAGE/reels/ReelTapAndVolume;"
 internal const val MUTE_INSTEAD_OF_PAUSE = "$REEL_TAP_AND_VOLUME->muteInsteadOfPause()Z"
+internal const val KEEP_MUTED = "$REEL_TAP_AND_VOLUME->keepMuted(I)Z"
+
+/** The purge marker, less its release, of the Reels controller's volume runnable: where it unmutes after a key press. */
+internal const val VOLUME_ADJUSTED = "ClipsVideoPlayerController_onVolumeAdjustedByUser"
 
 /** The purge marker, less its release, of the Reels controller's audio toggle: the method the audio button calls. */
 internal const val TOGGLE_AUDIO = "ClipsVideoPlayerController_toggleAudio"
@@ -68,7 +72,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 val reelTapAndVolumePatch = bytecodePatch(
     name = "Control taps and volume on Reels",
     description = "Lets you choose what a single tap on a reel does: Instagram's default, pause, or mute. " +
-        "Starts at Instagram's default. Choose it in HushGram settings > Playback.",
+        "Can also keep a reel muted when you press volume up. Both start at Instagram's behavior. " +
+        "Choose them in HushGram settings > Playback.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -76,7 +81,11 @@ val reelTapAndVolumePatch = bytecodePatch(
 
     execute {
         requireStatusMethod("reelTapAndVolume")
-        applyReelTap(findReelTapSite())
+        // Both sites are found before anything changes, so a build missing one changes nothing.
+        val tapSite = findReelTapSite()
+        val volumeSite = findVolumeSite()
+        applyReelTap(tapSite)
+        applyKeepMuted(volumeSite)
         enableStatus("reelTapAndVolume")
     }
 }
@@ -93,6 +102,17 @@ internal class ReelTapSite(
     val controller: String,
     val toggle: Method,
     val scratch: List<Int>,
+)
+
+/**
+ * The volume runnable, the index right after its [VOLUME_ADJUSTED] marker call, the field holding the
+ * direction it gave AudioManager, and the local the hook may borrow there.
+ */
+internal class VolumeSite(
+    val run: Method,
+    val index: Int,
+    val direction: FieldReference,
+    val scratch: Int,
 )
 
 /**
@@ -182,6 +202,78 @@ internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
         )
     }
 }
+
+/**
+ * The volume runnable is the one `run()V` marked [VOLUME_ADJUSTED]. It adjusts the stream volume first,
+ * giving AudioManager an int it reads from one field of its own class, then runs the controller's
+ * unmute under the marker. The hook goes right after the marker's call, past the adjustment, where
+ * nothing jumps, so the key still does its work and only the unmute can be skipped.
+ */
+internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
+    val runs = mutableListOf<Method>()
+    val marked = typesMarked(VOLUME_ADJUSTED)
+    classDefForEach { classDef ->
+        if (classDef.type !in marked) return@classDefForEach
+        classDef.methods.forEach { method -> if (VOLUME_ADJUSTED in method.markers()) runs += method }
+    }
+    val run = runs.singleOrNull() ?: refuse("the volume runnable: expected one method marked $VOLUME_ADJUSTED, found ${runs.size}")
+    val where = "${run.definingClass}->${run.name}"
+    if (run.name != "run" || run.returnType != "V" || run.parameterTypes.isNotEmpty() || AccessFlags.STATIC.isSet(run.accessFlags)) {
+        refuse("$where isn't an instance run()V")
+    }
+    val code = run.code()
+    val adjusts = code.indices.filter { code[it].methodReference()?.let { call -> call.name == "adjustStreamVolume" && call.definingClass == AUDIO_MANAGER } == true }
+    val adjust = adjusts.singleOrNull() ?: refuse("$where doesn't call AudioManager.adjustStreamVolume once")
+    val call = code[adjust] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+    if (call.registerCount != 4) refuse("$where gives adjustStreamVolume an unexpected number of registers")
+    val directionRegister = call.registerE
+    // The direction register is loaded by the nearest write before the call, which must be an iget of this class's int.
+    val load = (adjust - 1 downTo 0).firstOrNull { at ->
+        (code[at] as? com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction)?.registerA == directionRegister
+    } ?: refuse("$where never loads the direction it gives adjustStreamVolume")
+    val direction = code[load].fieldReference()
+    if (code[load].opcode != Opcode.IGET || direction == null || direction.definingClass != run.definingClass || direction.type != "I") {
+        refuse("$where doesn't take the direction from an int field of its own")
+    }
+    val markerAt = code.indices.filter { code[it].stringLoaded() == markerString(VOLUME_ADJUSTED) }.singleOrNull()
+        ?: refuse("$where doesn't load the $VOLUME_ADJUSTED marker once")
+    if (adjust > markerAt) refuse("$where adjusts the volume after the $VOLUME_ADJUSTED marker")
+    val index = markerAt + 2
+    if (code.getOrNull(markerAt + 1)?.opcode != Opcode.INVOKE_STATIC || index !in code.indices) {
+        refuse("$where doesn't report the $VOLUME_ADJUSTED marker with a static call")
+    }
+    if (index in run.jumpTargets()) refuse("something in $where jumps to just past the $VOLUME_ADJUSTED marker")
+    if (run.localRegisterCount() > 15) refuse("$where keeps this past v15")
+    run.requireThisIntact(PATCH, listOf(index))
+    val scratch = run.freeLocalsAt(PATCH, index, 1).single()
+    return VolumeSite(run, index, direction, scratch)
+}
+
+/**
+ * Past the volume runnable's adjustment: ask [KEEP_MUTED] with the direction it used, and on a yes
+ * return before the unmute.
+ */
+internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
+    val scratch = site.scratch
+    mutable(site.run).apply {
+        addInstructionsWithLabels(
+            site.index,
+            """
+                iget v$scratch, p0, ${site.direction}
+                invoke-static { v$scratch }, $KEEP_MUTED
+                move-result v$scratch
+                if-eqz v$scratch, :stock
+                return-void
+            """,
+            ExternalLabel("stock", getInstruction(site.index)),
+        )
+    }
+}
+
+private const val AUDIO_MANAGER = "Landroid/media/AudioManager;"
+
+/** The const-string a purge marker loads: the release prefix and the marker. */
+private fun markerString(marker: String) = "android_purge_26_q3_$marker"
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.single {

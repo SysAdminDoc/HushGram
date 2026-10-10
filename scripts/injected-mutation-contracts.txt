@@ -1315,3 +1315,8 @@ sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Land
 # nothing; twice or elsewhere, it isn't the hook the patch wrote. ReelTapAndVolumeHookTest checks on all seven 450
 # builds that it lands once, there.
 once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInsteadOfPause()Z in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_PauseAndMuteNavigator_togglePause
+# The volume half asks ReelTapAndVolume.keepMuted in the Reels controller's volume runnable (the run()V that traces
+# ClipsVideoPlayerController_onVolumeAdjustedByUser), right after the marker call and past the stream adjustment, so
+# the key still does its work. Left out, the switch does nothing; twice or elsewhere, it isn't the hook the patch wrote.
+# ReelTapAndVolumeHookTest checks on all seven 450 builds that it lands once, there.
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(I)Z in instance ()V holding android_purge_26_q3_ClipsVideoPlayerController_onVolumeAdjustedByUser

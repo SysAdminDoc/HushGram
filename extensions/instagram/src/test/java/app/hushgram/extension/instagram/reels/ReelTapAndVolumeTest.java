@@ -35,6 +35,7 @@ public class ReelTapAndVolumeTest {
     @Before
     public void clean() {
         Settings.REEL_TAP_CHOICE.resetToDefault();
+        Settings.KEEP_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -43,6 +44,7 @@ public class ReelTapAndVolumeTest {
     @After
     public void restore() {
         Settings.REEL_TAP_CHOICE.resetToDefault();
+        Settings.KEEP_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -106,5 +108,49 @@ public class ReelTapAndVolumeTest {
     public void beforeTheSettingsAreReadyItIsInstagramsOwnTap() {
         Settings.REEL_TAP_CHOICE.save(ReelTapChoice.MUTE);
         SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.muteInsteadOfPause()));
+    }
+
+    /** The volume key starts at Instagram's own: no unmute is skipped, and nothing is counted. */
+    @Test
+    public void keepingMutedStartsOff() {
+        assertFalse(Settings.KEEP_REELS_MUTED.get());
+        assertFalse(ReelTapAndVolume.keepMuted(1));
+        String report = report();
+        assertTrue(report, report.contains(FamilyNames.REEL_TAP_AND_VOLUME + ": invoked 1"));
+        assertFalse(report, report.contains(ReelTapAndVolume.VOLUME_KEPT_MUTED));
+    }
+
+    /** On, a volume up skips the unmute and counts it, and a volume down or any other direction is Instagram's own. */
+    @Test
+    public void onItSkipsTheUnmuteOnlyForVolumeUp() {
+        Settings.KEEP_REELS_MUTED.save(true);
+        assertTrue(ReelTapAndVolume.keepMuted(1));
+        assertTrue(ReelTapAndVolume.keepMuted(1));
+        assertFalse("volume down", ReelTapAndVolume.keepMuted(-1));
+        assertFalse("same level", ReelTapAndVolume.keepMuted(0));
+        assertFalse("toggle mute", ReelTapAndVolume.keepMuted(101));
+        String report = report();
+        assertTrue(report, report.contains(ReelTapAndVolume.VOLUME_KEPT_MUTED + " 2"));
+    }
+
+    /** Paused, a saved switch answers Instagram's own and counts nothing. */
+    @Test
+    public void pausedHushGramLeavesTheUnmuteAlone() {
+        Settings.KEEP_REELS_MUTED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelTapAndVolume.keepMuted(1));
+        assertTrue("the saved choice is kept", Settings.KEEP_REELS_MUTED.savedValue());
+        assertFalse(report(), report().contains(ReelTapAndVolume.VOLUME_KEPT_MUTED));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(ReelTapAndVolume.keepMuted(1));
+    }
+
+    /** Before the settings are ready the hook cannot read the switch and takes Instagram's own unmute. */
+    @Test
+    public void beforeTheSettingsAreReadyTheUnmuteHappens() {
+        Settings.KEEP_REELS_MUTED.save(true);
+        SettingsContextRule.withoutContext(() -> assertFalse(ReelTapAndVolume.keepMuted(1)));
     }
 }

@@ -39,6 +39,7 @@ public class ReelTapAndVolumeSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.REEL_TAP_CHOICE.resetToDefault();
+        Settings.KEEP_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +50,7 @@ public class ReelTapAndVolumeSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.REEL_TAP_CHOICE.resetToDefault();
+        Settings.KEEP_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -107,5 +109,27 @@ public class ReelTapAndVolumeSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertEquals(ReelTapChoice.MUTE, Settings.REEL_TAP_CHOICE.get());
+    }
+    /** The volume switch sits right after the tap choice, starts off, is kept in a backup and answers off while paused. */
+    @Test public void keepMutedSwitchFollowsTheTapChoiceAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.TAP_TO_PLAY, PatchFamily.REEL_TAP_AND_VOLUME));
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.KEEP_REELS_MUTED.key);
+        assertNotNull(row);
+        assertEquals("Keep reels muted on the volume keys", row.getTitle().toString());
+        assertFalse(Settings.KEEP_REELS_MUTED.get());
+        PreferenceGroup playback = row.getParent();
+        String[] keys = new String[playback.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = playback.getPreference(i).getKey();
+        assertEquals(Arrays.toString(keys), Settings.REEL_TAP_CHOICE.key, keys[Arrays.asList(keys).indexOf(Settings.KEEP_REELS_MUTED.key) - 1]);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_REELS_MUTED.key));
+        Settings.KEEP_REELS_MUTED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.KEEP_REELS_MUTED.get());
+        assertTrue(Settings.KEEP_REELS_MUTED.savedValue());
+    }
+    @Test public void missingPatchHasNoKeepMutedSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.TAP_TO_PLAY));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REELS_MUTED.key));
     }
 }

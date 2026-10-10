@@ -11,7 +11,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
- * What the Control taps and volume on Reels patch asks.
+ * What the Control taps and volume on Reels patch asks. Its volume half is {@link #keepMuted}.
  *
  * <p>Instagram 450's Reels viewer sends a single tap on a reel to its pause and mute navigator,
  * whose tap method either resumes a reel you paused or pauses the one that is playing. The patch
@@ -29,8 +29,15 @@ public final class ReelTapAndVolume {
     static final String TAP_MUTED = "taps that muted";
     static final String TAP_PAUSED = "taps that paused";
 
-    /** The hook's name in a failure report. */
+    /** What {@link HookStatus} counts for the volume keys: a volume up whose unmute was skipped. */
+    static final String VOLUME_KEPT_MUTED = "volume ups kept muted";
+
+    /** The hook's names in a failure report. */
     static final String TAP = "reel tap";
+    static final String VOLUME = "reel volume key";
+
+    /** {@link android.media.AudioManager#ADJUST_RAISE}, the direction a press of volume up hands the Reels runnable. */
+    private static final int ADJUST_RAISE = 1;
 
     private ReelTapAndVolume() {
     }
@@ -53,6 +60,25 @@ public final class ReelTapAndVolume {
             return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, TAP, failure);
+            return false;
+        }
+    }
+
+    /**
+     * Asked by the Reels controller's volume runnable after it has adjusted the phone's stream
+     * volume, so the key is never swallowed, and before it unmutes the reel. {@code direction} is the
+     * value it just gave AudioManager: 1 for volume up. True means skip the rest, which is
+     * Instagram's unmute. Never throws.
+     */
+    public static boolean keepMuted(int direction) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_TAP_AND_VOLUME);
+            if (!Utils.settingsReady() || !Settings.KEEP_REELS_MUTED.get() || direction != ADJUST_RAISE) return false;
+            HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, VOLUME_KEPT_MUTED);
+            Logger.printDebug(() -> "Reel volume key: unmute skipped");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, VOLUME, failure);
             return false;
         }
     }

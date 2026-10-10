@@ -135,7 +135,7 @@ public enum PatchFamily {
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
     REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR),
     REEL_BLUR_BARS(FamilyNames.REEL_BLUR_BARS, "reelBlurBars", null, Settings.BLUR_REEL_BARS),
-    REEL_TAP_AND_VOLUME(FamilyNames.REEL_TAP_AND_VOLUME, "reelTapAndVolume", null),
+    REEL_TAP_AND_VOLUME(FamilyNames.REEL_TAP_AND_VOLUME, "reelTapAndVolume", null, Settings.KEEP_REELS_MUTED),
     REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,
             Settings.REEL_CAP),
@@ -432,6 +432,9 @@ public enum PatchFamily {
         for (BooleanSetting setting : switches) {
             anyOn |= setting.savedValue() && setting.isAvailable() && !parents.contains(setting);
         }
+        // What a tap on a reel does is a choice beside the switch, and a saved Pause or Mute counts as on.
+        anyOn |= this == REEL_TAP_AND_VOLUME
+                && Settings.REEL_TAP_CHOICE.savedValue() != app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT;
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
             if (i > 0) line.append(", ");

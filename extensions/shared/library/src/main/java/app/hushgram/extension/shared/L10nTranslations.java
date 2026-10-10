@@ -48,7 +48,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -850,6 +850,8 @@ public final class L10nTranslations {
                 "Automatisches Scrollen anlassen");
         table.put("Keep in chat",
                 "Im Chat behalten");
+        table.put("Keep reels muted on the volume keys",
+                "Reels bei den Lautst\u00e4rketasten stumm lassen");
         table.put("Keep the reel speed",
                 "Reel-Geschwindigkeit beibehalten");
         table.put("Larger",
@@ -922,11 +924,11 @@ public final class L10nTranslations {
                 "Der Medienlink ist die Datei mit %1$d \u00d7 %2$d");
         table.put("Mentioned in this story",
                 "In dieser Story erw\u00e4hnt");
-        table.put("Messages",
-                "Nachrichten");
     }
 
     private static void fillDe7(Map<String, String> table) {
+        table.put("Messages",
+                "Nachrichten");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -1045,11 +1047,11 @@ public final class L10nTranslations {
                 "Pause und Diagnose");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "Andere sehen nicht, dass du gerade aktiv bist, w\u00e4hrend du Instagram nutzt, und du siehst weiterhin, wann sie aktiv sind. Starte Instagram neu, um die \u00c4nderung zu sehen.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "Deine Chatpartner sehen beim Schreiben keine Tipp-Punkte, und du siehst ihre weiterhin.");
     }
 
     private static void fillDe8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "Deine Chatpartner sehen beim Schreiben keine Tipp-Punkte, und du siehst ihre weiterhin.");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Fotos und Videos, die einmal ansehbar oder wiederholbar gesendet wurden, bleiben im Chat, damit du sie erneut \u00f6ffnen kannst. \u00d6ffne den Chat erneut, um schon geladene zu aktualisieren.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -1168,11 +1170,11 @@ public final class L10nTranslations {
                 "Lange Videos fortsetzen");
         table.put("Retry",
                 "Erneut versuchen");
-        table.put("Right away",
-                "Sofort");
     }
 
     private static void fillDe9(Map<String, String> table) {
+        table.put("Right away",
+                "Sofort");
         table.put("Ring size",
                 "Ringgr\u00f6\u00dfe");
         table.put("Sanitize sharing links",
@@ -1291,11 +1293,11 @@ public final class L10nTranslations {
                 "Zeigt alle Emojis im Stil von Google statt im Stil deines Handys. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "Zeigt, wie viele Likes ein Beitrag oder Reel hat, wenn der Inhaber die Zahl verborgen hat, aber nur, wenn Instagram die Zahl noch sendet. Wenn nicht, \u00e4ndert sich nichts. Beitr\u00e4ge, die du nach einer \u00c4nderung l\u00e4dst, zeigen es.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "Zeigt die Zeilen \u201eImport\u201c und \u201eWiederherstellen\u201c. Ein Import \u00e4ndert Instagrams versteckte Einstellungen f\u00fcr dieses angemeldete Konto.");
     }
 
     private static void fillDe10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "Zeigt die Zeilen \u201eImport\u201c und \u201eWiederherstellen\u201c. Ein Import \u00e4ndert Instagrams versteckte Einstellungen f\u00fcr dieses angemeldete Konto.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Zeigt, wann ein Beitrag und seine Kommentare ver\u00f6ffentlicht wurden, z. B. 2. Okt., 15:45, statt wie lange es her ist. Beitr\u00e4ge, die du nach einer \u00c4nderung l\u00e4dst, zeigen es.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -1414,11 +1416,11 @@ public final class L10nTranslations {
                 "Das sind %1$d Reels. Wischen in Reels ist aus, bis Instagram %2$d Minuten im Hintergrund war.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "Das ist eine \u00dcberschreibungsdatei, keine Einstellungsdatei. Schalte unter Entwickler \u201eImport von \u00dcberschreibungen erlauben\u201c ein und nutze dann \u201e\u00dcberschreibungen importieren\u201c. Deine Einstellungen wurden nicht ge\u00e4ndert.");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "Die Leiste Kommentar hinzuf\u00fcgen unter jedem Reel, auch in den Reels im Reels-Tab. Der Kommentar-Button \u00f6ffnet weiterhin die Kommentare.");
     }
 
     private static void fillDe11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "Die Leiste Kommentar hinzuf\u00fcgen unter jedem Reel, auch in den Reels im Reels-Tab. Der Kommentar-Button \u00f6ffnet weiterhin die Kommentare.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "Die Leiste Kommentar hinzuf\u00fcgen unter einem Reel, das du aus den erneut geteilten Beitr\u00e4gen eines Profils \u00f6ffnest. Der Kommentar-Button \u00f6ffnet die Kommentare weiterhin.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -1537,11 +1539,11 @@ public final class L10nTranslations {
                 "Version");
         table.put("Version %1$s for Instagram %2$s",
                 "Version %1$s f\u00fcr Instagram %2$s");
-        table.put("Version code raised",
-                "Versionscode erh\u00f6ht");
     }
 
     private static void fillDe12(Map<String, String> table) {
+        table.put("Version code raised",
+                "Versionscode erh\u00f6ht");
         table.put("Video file name",
                 "Dateiname f\u00fcr Videos");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -1568,6 +1570,8 @@ public final class L10nTranslations {
                 "Profilbild ansehen");
         table.put("View stories anonymously",
                 "Stories anonym ansehen");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "Lauter erh\u00f6ht weiterhin die Lautst\u00e4rke des Telefons, aber ein stummes Reel bleibt stumm, bis du es selbst einschaltest.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Weblinks, auf die du tippst, \u00f6ffnen sich in deinem \u00fcblichen Browser, ohne Instagrams Klick-Tracker. Instagram-Seiten und Werbung \u00f6ffnen sich weiter in der App.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
@@ -1605,7 +1609,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -2407,6 +2411,8 @@ public final class L10nTranslations {
                 "Mantener el desplazamiento autom\u00e1tico");
         table.put("Keep in chat",
                 "Conservar en el chat");
+        table.put("Keep reels muted on the volume keys",
+                "Mantener los reels silenciados con las teclas de volumen");
         table.put("Keep the reel speed",
                 "Mantener la velocidad del reel");
         table.put("Larger",
@@ -2479,11 +2485,11 @@ public final class L10nTranslations {
                 "El enlace del contenido es el archivo de %1$d \u00d7 %2$d");
         table.put("Mentioned in this story",
                 "Mencionados en esta historia");
-        table.put("Messages",
-                "Mensajes");
     }
 
     private static void fillEs7(Map<String, String> table) {
+        table.put("Messages",
+                "Mensajes");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -2602,11 +2608,11 @@ public final class L10nTranslations {
                 "Pausa y diagn\u00f3stico");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "Los dem\u00e1s no ven que est\u00e1s activo ahora mientras usas Instagram, y t\u00fa sigues viendo cu\u00e1ndo est\u00e1n activos. Reinicia Instagram para ver el cambio.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "Las personas con las que chateas no ven los puntos de escritura mientras escribes, y t\u00fa sigues viendo los suyos.");
     }
 
     private static void fillEs8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "Las personas con las que chateas no ven los puntos de escritura mientras escribes, y t\u00fa sigues viendo los suyos.");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Las fotos y videos enviados para ver una vez o reproducibles se quedan en el chat para que puedas abrirlos otra vez. Abre el chat de nuevo para actualizar los ya cargados.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -2725,11 +2731,11 @@ public final class L10nTranslations {
                 "Reanudar videos largos");
         table.put("Retry",
                 "Reintentar");
-        table.put("Right away",
-                "De inmediato");
     }
 
     private static void fillEs9(Map<String, String> table) {
+        table.put("Right away",
+                "De inmediato");
         table.put("Ring size",
                 "Tama\u00f1o de los anillos");
         table.put("Sanitize sharing links",
@@ -2848,11 +2854,11 @@ public final class L10nTranslations {
                 "Muestra todos los emojis con el estilo de Google en lugar del de tu tel\u00e9fono. Reinicia Instagram para ver el cambio.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "Muestra cu\u00e1ntos Me gusta tiene una publicaci\u00f3n o un reel cuando su due\u00f1o ocult\u00f3 el n\u00famero, pero solo si Instagram todav\u00eda lo env\u00eda. Si no, nada cambia. Las publicaciones que cargues tras un cambio lo muestran.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "Muestra las filas Importar y Restaurar. Una importaci\u00f3n cambia los ajustes ocultos de Instagram para esta cuenta con sesi\u00f3n iniciada.");
     }
 
     private static void fillEs10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "Muestra las filas Importar y Restaurar. Una importaci\u00f3n cambia los ajustes ocultos de Instagram para esta cuenta con sesi\u00f3n iniciada.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Muestra cu\u00e1ndo se public\u00f3 una publicaci\u00f3n y sus comentarios, como 2 oct, 15:45, en lugar de hace cu\u00e1nto. Las publicaciones que cargues tras un cambio lo muestran.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -2971,11 +2977,11 @@ public final class L10nTranslations {
                 "Ya van %1$d reels. Deslizar en Reels est\u00e1 desactivado hasta que Instagram haya estado %2$d minutos en segundo plano.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "Ese es un archivo de valores personalizados, no de ajustes. Activa Permitir importar valores personalizados en Desarrollador y luego usa Importar valores personalizados. Tus ajustes no han cambiado.");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "La barra A\u00f1adir un comentario bajo cada reel, incluidos los de la pesta\u00f1a Reels. El bot\u00f3n de comentarios sigue abriendo los comentarios.");
     }
 
     private static void fillEs11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "La barra A\u00f1adir un comentario bajo cada reel, incluidos los de la pesta\u00f1a Reels. El bot\u00f3n de comentarios sigue abriendo los comentarios.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "La barra A\u00f1adir comentario bajo un reel que abres desde las publicaciones compartidas de nuevo de un perfil. El bot\u00f3n de comentarios sigue abriendo los comentarios.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -3094,11 +3100,11 @@ public final class L10nTranslations {
                 "Versi\u00f3n");
         table.put("Version %1$s for Instagram %2$s",
                 "Versi\u00f3n %1$s para Instagram %2$s");
-        table.put("Version code raised",
-                "C\u00f3digo de versi\u00f3n aumentado");
     }
 
     private static void fillEs12(Map<String, String> table) {
+        table.put("Version code raised",
+                "C\u00f3digo de versi\u00f3n aumentado");
         table.put("Video file name",
                 "Nombre de archivo de los videos");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -3125,6 +3131,8 @@ public final class L10nTranslations {
                 "Ver foto del perfil");
         table.put("View stories anonymously",
                 "Ver historias de forma an\u00f3nima");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "Subir el volumen sigue subiendo el volumen del tel\u00e9fono, pero un reel silenciado sigue silenciado hasta que lo actives.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Los enlaces web que tocas se abren en tu navegador habitual, sin el rastreador de clics de Instagram. Las p\u00e1ginas de Instagram y los anuncios se siguen abriendo en la app.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
@@ -3162,7 +3170,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -3964,6 +3972,8 @@ public final class L10nTranslations {
                 "Tetap aktifkan gulir otomatis");
         table.put("Keep in chat",
                 "Simpan di chat");
+        table.put("Keep reels muted on the volume keys",
+                "Tetap bisukan reel dengan tombol volume");
         table.put("Keep the reel speed",
                 "Pertahankan kecepatan reel");
         table.put("Larger",
@@ -4036,11 +4046,11 @@ public final class L10nTranslations {
                 "Tautan media adalah file %1$d \u00d7 %2$d");
         table.put("Mentioned in this story",
                 "Disebut di cerita ini");
-        table.put("Messages",
-                "Pesan");
     }
 
     private static void fillIn7(Map<String, String> table) {
+        table.put("Messages",
+                "Pesan");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -4159,11 +4169,11 @@ public final class L10nTranslations {
                 "Jeda dan diagnostik");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "Orang lain tidak melihat bahwa Anda sedang aktif saat Anda memakai Instagram, dan Anda tetap melihat kapan mereka aktif. Mulai ulang Instagram untuk melihat perubahannya.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "Orang yang Anda ajak chat tidak melihat titik-titik mengetik saat Anda menulis, dan Anda tetap melihat milik mereka.");
     }
 
     private static void fillIn8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "Orang yang Anda ajak chat tidak melihat titik-titik mengetik saat Anda menulis, dan Anda tetap melihat milik mereka.");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Foto dan video yang dikirim sekali lihat atau bisa diputar ulang tetap ada di chat sehingga bisa kamu buka lagi. Buka chat lagi untuk memperbarui yang sudah dimuat.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -4282,11 +4292,11 @@ public final class L10nTranslations {
                 "Lanjutkan video panjang");
         table.put("Retry",
                 "Coba lagi");
-        table.put("Right away",
-                "Langsung");
     }
 
     private static void fillIn9(Map<String, String> table) {
+        table.put("Right away",
+                "Langsung");
         table.put("Ring size",
                 "Ukuran lingkaran");
         table.put("Sanitize sharing links",
@@ -4405,11 +4415,11 @@ public final class L10nTranslations {
                 "Menampilkan semua emoji dengan gaya Google, bukan gaya bawaan ponselmu. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "Menampilkan berapa banyak suka pada postingan atau reel saat pemiliknya menyembunyikan jumlahnya, tetapi hanya jika Instagram masih mengirim angkanya. Jika tidak, tidak ada yang berubah. Postingan yang dimuat setelah perubahan akan menampilkannya.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "Menampilkan baris Impor dan Pulihkan. Impor mengubah pengaturan tersembunyi Instagram untuk akun yang sedang masuk ini.");
     }
 
     private static void fillIn10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "Menampilkan baris Impor dan Pulihkan. Impor mengubah pengaturan tersembunyi Instagram untuk akun yang sedang masuk ini.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Menampilkan kapan postingan dan komentarnya diunggah, seperti 2 Okt, 15.45, bukan berapa lama yang lalu. Postingan yang dimuat setelah perubahan akan menampilkannya.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -4528,11 +4538,11 @@ public final class L10nTranslations {
                 "Sudah %1$d reel. Menggeser di Reels nonaktif sampai Instagram berada di latar belakang selama %2$d menit.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "Itu file nilai pengganti, bukan file pengaturan. Aktifkan Izinkan impor nilai pengganti di Pengembang, lalu gunakan Impor nilai pengganti. Pengaturan Anda tidak berubah.");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "Bilah Tambahkan komentar di bawah setiap reel, termasuk yang ada di tab Reels. Tombol komentar tetap membuka komentar.");
     }
 
     private static void fillIn11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "Bilah Tambahkan komentar di bawah setiap reel, termasuk yang ada di tab Reels. Tombol komentar tetap membuka komentar.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "Bilah Tambahkan komentar di bawah reel yang Anda buka dari postingan ulang di profil. Tombol komentar tetap membuka komentar.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -4651,11 +4661,11 @@ public final class L10nTranslations {
                 "Versi");
         table.put("Version %1$s for Instagram %2$s",
                 "Versi %1$s untuk Instagram %2$s");
-        table.put("Version code raised",
-                "Kode versi dinaikkan");
     }
 
     private static void fillIn12(Map<String, String> table) {
+        table.put("Version code raised",
+                "Kode versi dinaikkan");
         table.put("Video file name",
                 "Nama file video");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -4682,6 +4692,8 @@ public final class L10nTranslations {
                 "Lihat foto profil");
         table.put("View stories anonymously",
                 "Lihat cerita secara anonim");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "Tombol volume naik tetap menaikkan volume ponsel, tetapi reel yang dibisukan tetap bisu sampai kamu menyalakannya.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Tautan web yang kamu ketuk dibuka di browser biasa kamu, tanpa pelacak klik Instagram. Halaman Instagram dan iklan tetap dibuka di aplikasi.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
@@ -4719,7 +4731,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -5521,6 +5533,8 @@ public final class L10nTranslations {
                 "\uc790\ub3d9 \uc2a4\ud06c\ub864 \uc720\uc9c0");
         table.put("Keep in chat",
                 "\ucc44\ud305\uc5d0 \ubcf4\uad00");
+        table.put("Keep reels muted on the volume keys",
+                "\ubcfc\ub968 \ud0a4\ub97c \ub20c\ub7ec\ub3c4 \ub9b4\uc2a4 \uc74c\uc18c\uac70 \uc720\uc9c0");
         table.put("Keep the reel speed",
                 "\ub9b4\uc2a4 \uc18d\ub3c4 \uc720\uc9c0");
         table.put("Larger",
@@ -5593,11 +5607,11 @@ public final class L10nTranslations {
                 "\ubbf8\ub514\uc5b4 \ub9c1\ud06c\ub294 %1$d \u00d7 %2$d \ud30c\uc77c\uc785\ub2c8\ub2e4");
         table.put("Mentioned in this story",
                 "\uc774 \uc2a4\ud1a0\ub9ac\uc5d0\uc11c \uc5b8\uae09\ud55c \uc0ac\ub78c");
-        table.put("Messages",
-                "\uba54\uc2dc\uc9c0");
     }
 
     private static void fillKo7(Map<String, String> table) {
+        table.put("Messages",
+                "\uba54\uc2dc\uc9c0");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -5716,11 +5730,11 @@ public final class L10nTranslations {
                 "\uc77c\uc2dc \uc815\uc9c0 \ubc0f \uc9c4\ub2e8");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "Instagram\uc744 \uc0ac\uc6a9\ud558\ub294 \ub3d9\uc548 \ub2e4\ub978 \uc0ac\ub78c\uc5d0\uac8c \ud604\uc7ac \ud65c\ub3d9 \uc911\uc73c\ub85c \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc73c\uba70, \ub2e4\ub978 \uc0ac\ub78c\uc758 \ud65c\ub3d9 \uc0c1\ud0dc\ub294 \uacc4\uc18d \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "\uba54\uc2dc\uc9c0\ub97c \uc4f0\ub294 \ub3d9\uc548 \uc0c1\ub300\ubc29\uc5d0\uac8c \uc785\ub825 \uc911 \ud45c\uc2dc\uac00 \ubcf4\uc774\uc9c0 \uc54a\uc73c\uba70, \uc0c1\ub300\ubc29\uc758 \uc785\ub825 \uc911 \ud45c\uc2dc\ub294 \uacc4\uc18d \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4");
     }
 
     private static void fillKo8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "\uba54\uc2dc\uc9c0\ub97c \uc4f0\ub294 \ub3d9\uc548 \uc0c1\ub300\ubc29\uc5d0\uac8c \uc785\ub825 \uc911 \ud45c\uc2dc\uac00 \ubcf4\uc774\uc9c0 \uc54a\uc73c\uba70, \uc0c1\ub300\ubc29\uc758 \uc785\ub825 \uc911 \ud45c\uc2dc\ub294 \uacc4\uc18d \ubcfc \uc218 \uc788\uc2b5\ub2c8\ub2e4");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "\ud55c \ubc88 \ubcf4\uae30\ub098 \ub2e4\uc2dc \ubcf4\uae30\ub85c \ubcf4\ub0b8 \uc0ac\uc9c4\uacfc \ub3d9\uc601\uc0c1\uc774 \ucc44\ud305\uc5d0 \ub0a8\uc544 \ub2e4\uc2dc \uc5f4 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uc774\ubbf8 \ubd88\ub7ec\uc628 \ud56d\ubaa9\uc744 \uac31\uc2e0\ud558\ub824\uba74 \ucc44\ud305\uc744 \ub2e4\uc2dc \uc5ec\uc138\uc694.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -5839,11 +5853,11 @@ public final class L10nTranslations {
                 "\uae34 \ub3d9\uc601\uc0c1 \uc774\uc5b4\ubcf4\uae30");
         table.put("Retry",
                 "\ub2e4\uc2dc \uc2dc\ub3c4");
-        table.put("Right away",
-                "\ubc14\ub85c");
     }
 
     private static void fillKo9(Map<String, String> table) {
+        table.put("Right away",
+                "\ubc14\ub85c");
         table.put("Ring size",
                 "\ub9c1 \uc0ac\uc774\uc988");
         table.put("Sanitize sharing links",
@@ -5962,11 +5976,11 @@ public final class L10nTranslations {
                 "\ubaa8\ub4e0 \uc774\ubaa8\uc9c0\ub97c \ud734\ub300\ud3f0 \uae30\ubcf8 \uc2a4\ud0c0\uc77c \ub300\uc2e0 Google \uc2a4\ud0c0\uc77c\ub85c \ud45c\uc2dc\ud569\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "\uac8c\uc2dc\uc790\uac00 \uc88b\uc544\uc694 \uc218\ub97c \uc228\uae34 \uac8c\uc2dc\ubb3c\uc774\ub098 \ub9b4\uc2a4\uc758 \uc88b\uc544\uc694 \uc218\ub97c \ubcf4\uc5ec\uc90d\ub2c8\ub2e4. \ub2e8, Instagram\uc774 \uadf8 \uc22b\uc790\ub97c \uacc4\uc18d \ubcf4\ub0b4\ub294 \uacbd\uc6b0\uc5d0\ub9cc \ud574\ub2f9\ud569\ub2c8\ub2e4. \ubcf4\ub0b4\uc9c0 \uc54a\uc73c\uba74 \uc544\ubb34\uac83\ub3c4 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \ud6c4\uc5d0 \ubd88\ub7ec\uc624\ub294 \uac8c\uc2dc\ubb3c\ubd80\ud130 \uc801\uc6a9\ub429\ub2c8\ub2e4.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "\uac00\uc838\uc624\uae30\uc640 \ubcf5\uc6d0 \ud56d\ubaa9\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4. \uac00\uc838\uc624\uae30\ub294 \ub85c\uadf8\uc778\ub41c \uc774 \uacc4\uc815\uc758 Instagram \uc228\uaca8\uc9c4 \uc124\uc815\uc744 \ubc14\uafc9\ub2c8\ub2e4.");
     }
 
     private static void fillKo10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "\uac00\uc838\uc624\uae30\uc640 \ubcf5\uc6d0 \ud56d\ubaa9\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4. \uac00\uc838\uc624\uae30\ub294 \ub85c\uadf8\uc778\ub41c \uc774 \uacc4\uc815\uc758 Instagram \uc228\uaca8\uc9c4 \uc124\uc815\uc744 \ubc14\uafc9\ub2c8\ub2e4.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "\uac8c\uc2dc\ubb3c\uacfc \ub313\uae00\uc774 \uc62c\ub77c\uc628 \uc2dc\uc810\uc744 \uc5bc\ub9c8 \uc804\uc778\uc9c0 \ub300\uc2e0 10\uc6d4 2\uc77c \uc624\ud6c4 3:45\ucc98\ub7fc \ubcf4\uc5ec\uc90d\ub2c8\ub2e4. \ubcc0\uacbd \ud6c4\uc5d0 \ubd88\ub7ec\uc624\ub294 \uac8c\uc2dc\ubb3c\ubd80\ud130 \uc801\uc6a9\ub429\ub2c8\ub2e4.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -6085,11 +6099,11 @@ public final class L10nTranslations {
                 "\ub9b4\uc2a4 %1$d\uac1c\ub97c \ubd24\uc2b5\ub2c8\ub2e4. Instagram\uc774 %2$d\ubd84 \ub3d9\uc548 \ubc31\uadf8\ub77c\uc6b4\ub4dc\uc5d0 \uc788\uc744 \ub54c\uae4c\uc9c0 \ub9b4\uc2a4 \uc2a4\uc640\uc774\ud504\uac00 \uaebc\uc9d1\ub2c8\ub2e4.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "\uc124\uc815 \ud30c\uc77c\uc774 \uc544\ub2c8\ub77c \uc7ac\uc815\uc758 \ud30c\uc77c\uc785\ub2c8\ub2e4. \uac1c\ubc1c\uc790\uc5d0\uc11c \uc7ac\uc815\uc758 \uac00\uc838\uc624\uae30 \ud5c8\uc6a9\uc744 \ucf20 \ub2e4\uc74c \uc7ac\uc815\uc758 \uac00\uc838\uc624\uae30\ub97c \uc0ac\uc6a9\ud558\uc138\uc694. \uc124\uc815\uc740 \ubcc0\uacbd\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "\ub9b4\uc2a4 \ud0ed\uc744 \ud3ec\ud568\ud55c \ubaa8\ub4e0 \ub9b4\uc2a4 \uc544\ub798\uc758 \ub313\uae00 \ub2ec\uae30 \ucc3d\uc785\ub2c8\ub2e4. \ub313\uae00 \ubc84\ud2bc\uc740 \uacc4\uc18d \ub313\uae00\uc744 \uc5fd\ub2c8\ub2e4.");
     }
 
     private static void fillKo11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "\ub9b4\uc2a4 \ud0ed\uc744 \ud3ec\ud568\ud55c \ubaa8\ub4e0 \ub9b4\uc2a4 \uc544\ub798\uc758 \ub313\uae00 \ub2ec\uae30 \ucc3d\uc785\ub2c8\ub2e4. \ub313\uae00 \ubc84\ud2bc\uc740 \uacc4\uc18d \ub313\uae00\uc744 \uc5fd\ub2c8\ub2e4.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "\ud504\ub85c\ud544\uc758 \ub2e4\uc2dc \uac8c\uc2dc\ud55c \ud56d\ubaa9\uc5d0\uc11c \uc5f0 \ub9b4\uc2a4 \uc544\ub798\uc758 \ub313\uae00 \ub2ec\uae30 \ucc3d\uc785\ub2c8\ub2e4. \ub313\uae00 \ubc84\ud2bc\uc740 \uacc4\uc18d \ub313\uae00\uc744 \uc5fd\ub2c8\ub2e4.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -6208,11 +6222,11 @@ public final class L10nTranslations {
                 "\ubc84\uc804");
         table.put("Version %1$s for Instagram %2$s",
                 "Version %1$s for Instagram %2$s");
-        table.put("Version code raised",
-                "\ubc84\uc804 \ucf54\ub4dc \ub192\uc784");
     }
 
     private static void fillKo12(Map<String, String> table) {
+        table.put("Version code raised",
+                "\ubc84\uc804 \ucf54\ub4dc \ub192\uc784");
         table.put("Video file name",
                 "\ub3d9\uc601\uc0c1 \ud30c\uc77c \uc774\ub984");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -6239,6 +6253,8 @@ public final class L10nTranslations {
                 "\ud504\ub85c\ud544 \uc0ac\uc9c4 \ubcf4\uae30");
         table.put("View stories anonymously",
                 "\uc2a4\ud1a0\ub9ac \ubab0\ub798\ubcf4\uae30");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "\ubcfc\ub968 \uc62c\ub9ac\uae30\ub294 \ud734\ub300\ud3f0 \ubcfc\ub968\uc744 \uadf8\ub300\ub85c \uc62c\ub9ac\uc9c0\ub9cc, \uc74c\uc18c\uac70\ub41c \ub9b4\uc2a4\ub294 \uc9c1\uc811 \ucf24 \ub54c\uae4c\uc9c0 \uc74c\uc18c\uac70\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "\ud0ed\ud55c \uc6f9 \ub9c1\ud06c\uac00 Instagram\uc758 \ud074\ub9ad \ucd94\uc801 \uc5c6\uc774 \ud3c9\uc18c \uc4f0\ub294 \ube0c\ub77c\uc6b0\uc800\uc5d0\uc11c \uc5f4\ub9bd\ub2c8\ub2e4. Instagram \ud398\uc774\uc9c0\uc640 \uad11\uace0\ub294 \uacc4\uc18d \uc571\uc5d0\uc11c \uc5f4\ub9bd\ub2c8\ub2e4.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
@@ -6276,7 +6292,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -7078,6 +7094,8 @@ public final class L10nTranslations {
                 "Manter a rolagem autom\u00e1tica ativada");
         table.put("Keep in chat",
                 "Manter na conversa");
+        table.put("Keep reels muted on the volume keys",
+                "Manter reels silenciados com as teclas de volume");
         table.put("Keep the reel speed",
                 "Manter a velocidade do reel");
         table.put("Larger",
@@ -7150,11 +7168,11 @@ public final class L10nTranslations {
                 "O link da m\u00eddia \u00e9 o arquivo de %1$d \u00d7 %2$d");
         table.put("Mentioned in this story",
                 "Mencionados neste story");
-        table.put("Messages",
-                "Mensagens");
     }
 
     private static void fillPt_rBR7(Map<String, String> table) {
+        table.put("Messages",
+                "Mensagens");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -7273,11 +7291,11 @@ public final class L10nTranslations {
                 "Pausa e diagn\u00f3stico");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "As pessoas n\u00e3o veem que voc\u00ea est\u00e1 ativo agora enquanto usa o Instagram, e voc\u00ea continua vendo quando elas est\u00e3o ativas. Reinicie o Instagram para ver a mudan\u00e7a.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "As pessoas com quem voc\u00ea conversa n\u00e3o veem os pontinhos de digita\u00e7\u00e3o enquanto voc\u00ea escreve, e voc\u00ea continua vendo os delas.");
     }
 
     private static void fillPt_rBR8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "As pessoas com quem voc\u00ea conversa n\u00e3o veem os pontinhos de digita\u00e7\u00e3o enquanto voc\u00ea escreve, e voc\u00ea continua vendo os delas.");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Fotos e v\u00eddeos enviados como visualiza\u00e7\u00e3o \u00fanica ou reproduz\u00edveis ficam na conversa para voc\u00ea abrir de novo. Abra a conversa outra vez para atualizar os que j\u00e1 carregaram.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -7396,11 +7414,11 @@ public final class L10nTranslations {
                 "Retomar v\u00eddeos longos");
         table.put("Retry",
                 "Tentar novamente");
-        table.put("Right away",
-                "Na hora");
     }
 
     private static void fillPt_rBR9(Map<String, String> table) {
+        table.put("Right away",
+                "Na hora");
         table.put("Ring size",
                 "Tamanho dos an\u00e9is");
         table.put("Sanitize sharing links",
@@ -7519,11 +7537,11 @@ public final class L10nTranslations {
                 "Mostra todos os emojis no estilo do Google em vez do estilo do seu celular. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "Mostra quantas curtidas um post ou reel tem quando o dono ocultou o n\u00famero, mas s\u00f3 quando o Instagram ainda envia esse n\u00famero. Se n\u00e3o enviar, nada muda. Posts carregados depois de uma mudan\u00e7a mostram isso.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "Mostra as linhas Importar e Restaurar. Uma importa\u00e7\u00e3o muda as configura\u00e7\u00f5es ocultas do Instagram para esta conta conectada.");
     }
 
     private static void fillPt_rBR10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "Mostra as linhas Importar e Restaurar. Uma importa\u00e7\u00e3o muda as configura\u00e7\u00f5es ocultas do Instagram para esta conta conectada.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Mostra quando um post e os coment\u00e1rios dele foram publicados, como 2 de out., 15:45, em vez de h\u00e1 quanto tempo. Posts carregados depois de uma mudan\u00e7a mostram isso.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -7642,11 +7660,11 @@ public final class L10nTranslations {
                 "J\u00e1 s\u00e3o %1$d reels. Deslizar no Reels est\u00e1 desativado at\u00e9 o Instagram ficar %2$d minutos em segundo plano.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "Esse \u00e9 um arquivo de valores personalizados, n\u00e3o de configura\u00e7\u00f5es. Ative Permitir importar valores personalizados em Desenvolvedor e use Importar valores personalizados. Suas configura\u00e7\u00f5es n\u00e3o mudaram.");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "A barra Adicionar um coment\u00e1rio abaixo de cada reel, inclusive os da aba Reels. O bot\u00e3o de coment\u00e1rios continua abrindo os coment\u00e1rios.");
     }
 
     private static void fillPt_rBR11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "A barra Adicionar um coment\u00e1rio abaixo de cada reel, inclusive os da aba Reels. O bot\u00e3o de coment\u00e1rios continua abrindo os coment\u00e1rios.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "A barra Adicionar coment\u00e1rio abaixo de um reel que voc\u00ea abre a partir dos reposts de um perfil. O bot\u00e3o de coment\u00e1rios continua abrindo os coment\u00e1rios.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -7765,11 +7783,11 @@ public final class L10nTranslations {
                 "Vers\u00e3o");
         table.put("Version %1$s for Instagram %2$s",
                 "Vers\u00e3o %1$s para o Instagram %2$s");
-        table.put("Version code raised",
-                "C\u00f3digo de vers\u00e3o aumentado");
     }
 
     private static void fillPt_rBR12(Map<String, String> table) {
+        table.put("Version code raised",
+                "C\u00f3digo de vers\u00e3o aumentado");
         table.put("Video file name",
                 "Nome do arquivo de v\u00eddeo");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -7796,6 +7814,8 @@ public final class L10nTranslations {
                 "Ver foto do perfil");
         table.put("View stories anonymously",
                 "Ver Stories anonimamente");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "Aumentar o volume ainda sobe o volume do celular, mas um reel silenciado continua silenciado at\u00e9 voc\u00ea ativar o som.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Os links da web em que voc\u00ea toca abrem no seu navegador de costume, sem o rastreador de cliques do Instagram. P\u00e1ginas do Instagram e an\u00fancios continuam abrindo no app.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
@@ -7833,7 +7853,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(1500);
+        Map<String, String> table = new HashMap<>(1504);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -8635,6 +8655,8 @@ public final class L10nTranslations {
                 "Otomatik kayd\u0131rma a\u00e7\u0131k kals\u0131n");
         table.put("Keep in chat",
                 "Sohbette tut");
+        table.put("Keep reels muted on the volume keys",
+                "Ses tu\u015flar\u0131nda reel'leri sessiz tut");
         table.put("Keep the reel speed",
                 "Reel h\u0131z\u0131n\u0131 koru");
         table.put("Larger",
@@ -8707,11 +8729,11 @@ public final class L10nTranslations {
                 "Medya ba\u011flant\u0131s\u0131 %1$d \u00d7 %2$d dosyas\u0131d\u0131r");
         table.put("Mentioned in this story",
                 "Bu hik\u00e2yede bahsedilenler");
-        table.put("Messages",
-                "Mesajlar");
     }
 
     private static void fillTr7(Map<String, String> table) {
+        table.put("Messages",
+                "Mesajlar");
         table.put("Meta AI",
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
@@ -8830,11 +8852,11 @@ public final class L10nTranslations {
                 "Duraklatma ve tan\u0131lama");
         table.put("People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.",
                 "Instagram'\u0131 kullan\u0131rken ba\u015fkalar\u0131 senin \u015fu anda aktif oldu\u011funu g\u00f6rmez, sen ise onlar\u0131n ne zaman aktif oldu\u011funu g\u00f6rmeye devam edersin. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
-        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
-                "Sohbet etti\u011fin ki\u015filer sen yazarken yaz\u0131yor noktalar\u0131n\u0131 g\u00f6rmez, sen ise onlar\u0131nkini g\u00f6rmeye devam edersin.");
     }
 
     private static void fillTr8(Map<String, String> table) {
+        table.put("People you're chatting with don't see the typing dots while you write, and you still see theirs.",
+                "Sohbet etti\u011fin ki\u015filer sen yazarken yaz\u0131yor noktalar\u0131n\u0131 g\u00f6rmez, sen ise onlar\u0131nkini g\u00f6rmeye devam edersin.");
         table.put("Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.",
                 "Tek seferlik veya tekrar oynat\u0131labilir g\u00f6nderilen foto\u011fraflar ve videolar sohbette kal\u0131r, b\u00f6ylece tekrar a\u00e7abilirsin. \u00d6nceden y\u00fcklenenleri g\u00fcncellemek i\u00e7in sohbeti yeniden a\u00e7.");
         table.put("Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.",
@@ -8953,11 +8975,11 @@ public final class L10nTranslations {
                 "Uzun videolara kald\u0131\u011f\u0131n yerden devam et");
         table.put("Retry",
                 "Yeniden dene");
-        table.put("Right away",
-                "Hemen");
     }
 
     private static void fillTr9(Map<String, String> table) {
+        table.put("Right away",
+                "Hemen");
         table.put("Ring size",
                 "Halka boyutu");
         table.put("Sanitize sharing links",
@@ -9076,11 +9098,11 @@ public final class L10nTranslations {
                 "T\u00fcm emojileri telefonunun kendi stili yerine Google stilinde g\u00f6sterir. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.",
                 "Sahibi be\u011feni say\u0131s\u0131n\u0131 gizlemi\u015f bir g\u00f6nderinin veya reels videosunun ka\u00e7 be\u011fenisi oldu\u011funu g\u00f6sterir, ama yaln\u0131zca Instagram bu say\u0131y\u0131 h\u00e2l\u00e2 g\u00f6nderiyorsa. G\u00f6ndermiyorsa hi\u00e7bir \u015fey de\u011fi\u015fmez. De\u011fi\u015fiklikten sonra y\u00fcklenen g\u00f6nderilerde g\u00f6r\u00fcn\u00fcr.");
-        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
-                "\u0130\u00e7e Aktar ve Geri Y\u00fckle sat\u0131rlar\u0131n\u0131 g\u00f6sterir. \u0130\u00e7e aktarma, oturum a\u00e7\u0131k olan bu hesap i\u00e7in Instagram'\u0131n gizli ayarlar\u0131n\u0131 de\u011fi\u015ftirir.");
     }
 
     private static void fillTr10(Map<String, String> table) {
+        table.put("Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.",
+                "\u0130\u00e7e Aktar ve Geri Y\u00fckle sat\u0131rlar\u0131n\u0131 g\u00f6sterir. \u0130\u00e7e aktarma, oturum a\u00e7\u0131k olan bu hesap i\u00e7in Instagram'\u0131n gizli ayarlar\u0131n\u0131 de\u011fi\u015ftirir.");
         table.put("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.",
                 "Bir g\u00f6nderinin ve yorumlar\u0131n\u0131n ne zaman payla\u015f\u0131ld\u0131\u011f\u0131n\u0131, ne kadar \u00f6nce oldu\u011fu yerine 2 Eki, 15:45 gibi g\u00f6sterir. De\u011fi\u015fiklikten sonra y\u00fcklenen g\u00f6nderilerde g\u00f6r\u00fcn\u00fcr.");
         table.put("Size %1$d \u00d7 %2$d",
@@ -9199,11 +9221,11 @@ public final class L10nTranslations {
                 "%1$d reel oldu. Instagram %2$d dakika arka planda kalana kadar Reels'te kayd\u0131rma kapal\u0131.");
         table.put("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.",
                 "Bu bir ayar dosyas\u0131 de\u011fil, ge\u00e7ersiz k\u0131lma dosyas\u0131. Geli\u015ftirici alt\u0131nda Ge\u00e7ersiz k\u0131lmalar\u0131 i\u00e7e aktarmaya izin ver se\u00e7ene\u011fini a\u00e7\u0131n, ard\u0131ndan Ge\u00e7ersiz k\u0131lmalar\u0131 i\u00e7e aktar'\u0131 kullan\u0131n. Ayarlar\u0131n\u0131z de\u011fi\u015fmedi.");
-        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
-                "Reels sekmesindekiler dahil her reels'in alt\u0131ndaki Yorum ekle \u00e7ubu\u011fu. Yorum d\u00fc\u011fmesi yorumlar\u0131 a\u00e7maya devam eder.");
     }
 
     private static void fillTr11(Map<String, String> table) {
+        table.put("The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.",
+                "Reels sekmesindekiler dahil her reels'in alt\u0131ndaki Yorum ekle \u00e7ubu\u011fu. Yorum d\u00fc\u011fmesi yorumlar\u0131 a\u00e7maya devam eder.");
         table.put("The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.",
                 "Bir profilin yeniden payla\u015f\u0131mlar\u0131ndan a\u00e7t\u0131\u011f\u0131n reels'in alt\u0131ndaki Yorum ekle \u00e7ubu\u011fu. Yorum d\u00fc\u011fmesi yorumlar\u0131 a\u00e7maya devam eder.");
         table.put("The Follow button beside a reel's author. Their profile still has one.",
@@ -9322,11 +9344,11 @@ public final class L10nTranslations {
                 "S\u00fcr\u00fcm");
         table.put("Version %1$s for Instagram %2$s",
                 "Instagram %2$s i\u00e7in %1$s s\u00fcr\u00fcm\u00fc");
-        table.put("Version code raised",
-                "S\u00fcr\u00fcm kodu y\u00fckseltildi");
     }
 
     private static void fillTr12(Map<String, String> table) {
+        table.put("Version code raised",
+                "S\u00fcr\u00fcm kodu y\u00fckseltildi");
         table.put("Video file name",
                 "Video dosya ad\u0131");
         table.put("Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.",
@@ -9353,6 +9375,8 @@ public final class L10nTranslations {
                 "Profil foto\u011fraf\u0131n\u0131 g\u00f6r\u00fcnt\u00fcle");
         table.put("View stories anonymously",
                 "Hikayeleri anonim olarak izle");
+        table.put("Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.",
+                "Sesi art\u0131rmak telefonun sesini yine y\u00fckseltir, ancak sessize al\u0131nm\u0131\u015f bir reel siz a\u00e7ana kadar sessiz kal\u0131r.");
         table.put("Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.",
                 "Dokundu\u011fun web ba\u011flant\u0131lar\u0131, Instagram'\u0131n t\u0131klama izleyicisi olmadan her zamanki taray\u0131c\u0131nda a\u00e7\u0131l\u0131r. Instagram sayfalar\u0131 ve reklamlar uygulamada a\u00e7\u0131lmaya devam eder.");
         table.put("What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.",
