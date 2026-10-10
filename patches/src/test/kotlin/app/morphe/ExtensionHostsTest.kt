@@ -107,9 +107,10 @@ class ExtensionHostsTest {
          * The hosts the README's Privacy section names: the source code link, the loopback address
          * Disable analytics sends Instagram's events to, which never leaves the phone, and Instagram's
          * own site, for the link Send downloads to another app builds and the profile link See who a
-         * story mentions opens inside Instagram.
+         * story mentions opens inside Instagram, and the Ko-fi page the Support HushGram row opens
+         * in a browser.
          */
-        val ALLOWED_HOSTS = setOf("github.com", "127.0.0.1", "www.instagram.com")
+        val ALLOWED_HOSTS = setOf("github.com", "127.0.0.1", "www.instagram.com", "ko-fi.com")
 
         /**
          * The files that may open a connection. The save pipeline's Downloader fetches what the

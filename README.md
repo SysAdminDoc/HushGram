@@ -400,9 +400,10 @@ Questions, setup help and general chat with other HushGram users go in [Discussi
 
 ## Privacy
 
-HushGram doesn't collect anything and has no server. The one connection it opens itself is a download you ask for. Tap Download on a reel, a story or a feed video and HushGram fetches that video or photo over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and every address is checked before anything is fetched. View profile picture fetches the picture you open the same way, and See who a story mentions fetches the small profile pictures in its list. An address anywhere else is refused. Apart from that, its code names just three addresses:
+HushGram doesn't collect anything and has no server. The one connection it opens itself is a download you ask for. Tap Download on a reel, a story or a feed video and HushGram fetches that video or photo over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and every address is checked before anything is fetched. View profile picture fetches the picture you open the same way, and See who a story mentions fetches the small profile pictures in its list. An address anywhere else is refused. Apart from that, its code names just four addresses:
 
 - `github.com`, for the link to this page in settings. It opens in your browser, and only when you tap it.
+- `ko-fi.com`, for the Support HushGram row at the end of settings. It opens my Ko-fi page in your browser, again only when you tap it.
 - `www.instagram.com`, in the link Send downloads to another app hands to the app you pick, and in the profile link a row of See who a story mentions opens. HushGram only builds the first one. The second goes to Instagram itself, which opens the profile the way it opens any link to one.
 - `127.0.0.1`, your phone's own loopback address. Disable analytics hands it to Instagram in place of its logging servers. Nothing sent there leaves the phone, and nothing on the phone answers.
 
