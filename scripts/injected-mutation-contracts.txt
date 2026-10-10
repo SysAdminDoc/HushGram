@@ -1071,6 +1071,13 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileHighlights;->keepTray
 # Threads button stays; twice or elsewhere, it isn't the hook the patch wrote.
 # HideThreadsButtonHookTest checks on the 450 fixture that it lands right after the read.
 once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->buttons(Ljava/util/List;)Ljava/util/List; in instance (Lcom/instagram/common/session/UserSession;Landroid/app/Activity;LX/*;LX/*;Landroid/content/Context;Lkotlin/jvm/functions/Function1;)V holding userSession activity Lcom/instagram/profile/actionbar/ProfileActionBar;->A06:Lcom/instagram/common/ui/base/IgLinearLayout;
+# Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's
+# onResume (ProfileMediaTabFragment keeps its name and onResume in 450, and onResume is the one ()V
+# method of the class calling an onResume). The class is the only one holding both strings. Left
+# out, profiles open on the grid as before. Twice or elsewhere, it isn't the hook the patch wrote.
+# NativeProfilePostsListTest checks on all seven 450 builds where it lands.
+start-call Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/lang/Object;)V in instance ()V calling instance L*;->onResume()V class-holding tabIdentifier ProfileMediaTabFragment.profile_tab_identifier
+once-call Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/lang/Object;)V in instance ()V calling instance L*;->onResume()V class-holding tabIdentifier ProfileMediaTabFragment.profile_tab_identifier
 
 # Hide suggested accounts in Reels hands the item Instagram's Reels converter makes from a netego
 # unit, with the unit's type, to ReelsSuggestions.netego before it's returned (03TH.A02 on 449,

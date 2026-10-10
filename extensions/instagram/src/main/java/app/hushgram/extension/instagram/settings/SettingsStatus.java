@@ -202,6 +202,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean profilePostsList() {
+        return false;
+    }
+
     public static boolean homeFeed() {
         return false;
     }

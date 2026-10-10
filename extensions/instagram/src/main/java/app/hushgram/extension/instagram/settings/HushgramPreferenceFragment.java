@@ -844,7 +844,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
                 || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
-                || build.contains(PatchFamily.SAVED_ON_PROFILE)) {
+                || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"));
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
                 profiles.addPreference(toggle(context, Settings.SHOW_FRIENDSHIP_STATUS, L10n.t("Show if a profile follows you"),
@@ -881,6 +881,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),
                         L10n.t("Takes the Threads button off the top of profiles, yours included. The menu and "
                                 + "the other buttons stay where they were.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
+                profiles.addPreference(toggle(context, Settings.PROFILE_POSTS_LIST, L10n.t("Show profile posts as a list"),
+                        L10n.t("Opening someone's profile takes you on to their posts as a scrolling list of full "
+                                + "posts. Go Back for the grid. Your own profile keeps its grid.")));
             }
         }
 

@@ -718,6 +718,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_threads_button", FALSE);
 
     /**
+     * Opening someone's profile goes on to their posts as a scrolling list, the one Instagram opens for a
+     * tapped post, with the grid one Back away ({@link app.hushgram.extension.instagram.profile.PostsList}).
+     * Read each time a posts tab comes up, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting PROFILE_POSTS_LIST =
+            new BooleanSetting("hushgram_profile_posts_list", FALSE);
+
+    /**
      * A sideways swipe on Home that would open the camera
      * ({@link app.hushgram.extension.instagram.feed.SwipeToCreate}). Read at each step of a swipe,
      * so a change shows on the next one. Off to start.

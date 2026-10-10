@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Profile posts as a list. Turn on its switch under Profiles, and opening someone's profile takes you on to their posts as a scrolling list of full posts, the one Instagram opens when you tap a post. Back takes you to the grid. Your own profile, tagged posts and the other tabs keep their grid. It's in the default selection with its switch off.
+
 * **Instagram:** New patch, Hide your active status. Turn on its switch under Messages and restart Instagram, and Instagram tells its presence service you're idle while you use it, so the people you chat with don't see Active now for you. You still see when they're active. Ghost mode turns it on with the others. It's in the default selection with its switch off.
 
 * **Instagram:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. Turn it off and the button is back the next time your profile loads.

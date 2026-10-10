@@ -332,6 +332,21 @@ tasks.register("verifyAndroidBoundaries") {
                 "activeStatusSwitchStartsOffAfterTypingPersistsAndHonorsPause[28]",
                 "activeStatusSwitchStartsOffAfterTypingPersistsAndHonorsPause[37]",
                 "ghostModeTurnsItAfterTyping[28]", "ghostModeTurnsItAfterTyping[37]"),
+            "app.hushgram.extension.instagram.profile.PostsListTest" to listOf(
+                "withTheSwitchOnTheFirstPostIsOpenedOnce[28]", "withTheSwitchOnTheFirstPostIsOpenedOnce[37]",
+                "theTapGoesToWhicheverViewTakesItAndSubclassesCount[28]", "theTapGoesToWhicheverViewTakesItAndSubclassesCount[37]",
+                "waitsForThePostsToShow[28]", "waitsForThePostsToShow[37]",
+                "givesUpWhenNoPostShows[28]", "givesUpWhenNoPostShows[37]",
+                "aHiddenFirstCellIsWaitedForNotSkipped[28]", "aHiddenFirstCellIsWaitedForNotSkipped[37]",
+                "leavingTheTabFirstOpensNothing[28]", "leavingTheTabFirstOpensNothing[37]",
+                "onlyThePostsTabOfSomeoneElsesProfile[28]", "onlyThePostsTabOfSomeoneElsesProfile[37]",
+                "offToStartOffPausedAndUnreadyLeaveTheGrid[28]", "offToStartOffPausedAndUnreadyLeaveTheGrid[37]",
+                "failuresOpenNothingAndAreReported[28]", "failuresOpenNothingAndAreReported[37]"),
+            "app.hushgram.extension.instagram.settings.PostsListSettingsTest" to listOf(
+                "missingPatchHasNoPostsListSwitch[28]", "missingPatchHasNoPostsListSwitch[37]",
+                "postsListAloneStillGetsProfiles[28]", "postsListAloneStillGetsProfiles[37]",
+                "postsListSwitchStartsOffLastUnderProfilesAndHonorsPause[28]",
+                "postsListSwitchStartsOffLastUnderProfilesAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
