@@ -24,7 +24,7 @@ HushGram is a Morphe patch bundle for Instagram on Android. It blocks sponsored-
 
 It's the Instagram member of a small family. [Hushfacebook](https://github.com/SysAdminDoc/Hushfacebook) does the same job for Facebook, and HushGram is built on its foundation: the same settings screen, pause switch, diagnostics and checks.
 
-The latest release is [v0.0.7](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.7), with 78 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
+The latest release is [v0.0.8](https://github.com/SysAdminDoc/HushGram/releases/tag/v0.0.8), with 79 patches. Add it to Morphe Manager with [this link](https://morphe.software/add-source?github=SysAdminDoc%2FHushGram).
 
 This project has no connection to Meta or to the Morphe project. Neither endorses it, and neither wrote it.
 

@@ -18,7 +18,7 @@ body:
     attributes:
       label: HushGram and Instagram versions
       description: Long-press Instagram's icon and tap HushGram settings. Copy what the Version row under About says.
-      placeholder: HushGram 0.0.7 on Instagram 450.0.0.50.77
+      placeholder: HushGram 0.0.8 on Instagram 450.0.0.50.77
     validations:
       required: true
   - type: input
@@ -68,7 +68,7 @@ body:
     attributes:
       label: Which patch sources were enabled for Instagram?
       description: List every selected source and its bundle version, including HushGram. Morphe Manager shows them under Sources. On desktop, include each selected bundle's name and version. If you ran the local source preflight, attach its source-diagnostic.json too. Don't include account details or sign-in tokens.
-      placeholder: HushGram 0.0.7 only, or HushGram 0.0.7 with another named bundle and its version.
+      placeholder: HushGram 0.0.8 only, or HushGram 0.0.8 with another named bundle and its version.
     validations:
       required: true
   - type: textarea
