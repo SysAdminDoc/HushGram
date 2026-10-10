@@ -487,7 +487,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[28]", "aThrowingSwitchOrMemoryKeepsInstagramsAnswerAndIsReported[37]"),
             "app.hushgram.extension.instagram.settings.ReelAutoScrollSettingsTest" to listOf(
                 "missingPatchHasNoAutoScrollSwitch[28]", "missingPatchHasNoAutoScrollSwitch[37]",
-                "autoScrollSwitchStartsOnPersistsAndHonorsPause[28]", "autoScrollSwitchStartsOnPersistsAndHonorsPause[37]"),
+                "autoScrollSwitchStartsOffPersistsAndHonorsPause[28]", "autoScrollSwitchStartsOffPersistsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.media.TapToPlayTest" to listOf(
                 "autoScrollStartsTheReelItMovesToAndArmsIt[28]", "autoScrollStartsTheReelItMovesToAndArmsIt[37]",
                 "aMoveStartsOnePlayerOnly[28]", "aMoveStartsOnePlayerOnly[37]",
@@ -516,7 +516,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "everyModeKeepsInstagramsLabelOffPausedAndUnready[28]", "everyModeKeepsInstagramsLabelOffPausedAndUnready[37]"),
             "app.hushgram.extension.instagram.settings.StoryTimeSettingsTest" to listOf(
                 "missingPatchHasNoStoryTimeSwitch[28]", "missingPatchHasNoStoryTimeSwitch[37]",
-                "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[28]", "storyTimeSwitchStartsOnUnderStoriesPersistsAndHonorsPause[37]",
+                "storyTimeSwitchStartsOffUnderStoriesPersistsAndHonorsPause[28]", "storyTimeSwitchStartsOffUnderStoriesPersistsAndHonorsPause[37]",
                 "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[28]",
                 "theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows[37]"),
             "app.hushgram.extension.instagram.stories.StoryLoopTest" to listOf(
@@ -530,7 +530,7 @@ tasks.register("verifyAndroidBoundaries") {
                 "withoutTheLoopPatchStopHoldsAsBefore[28]", "withoutTheLoopPatchStopHoldsAsBefore[37]"),
             "app.hushgram.extension.instagram.settings.StoryLoopSettingsTest" to listOf(
                 "missingPatchHasNoStoryLoopSwitch[28]", "missingPatchHasNoStoryLoopSwitch[37]",
-                "storyLoopSwitchStartsOnUnderStoriesPersistsAndHonorsPause[28]", "storyLoopSwitchStartsOnUnderStoriesPersistsAndHonorsPause[37]"),
+                "storyLoopSwitchStartsOffUnderStoriesPersistsAndHonorsPause[28]", "storyLoopSwitchStartsOffUnderStoriesPersistsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.settings.OverrideNavigationTest" to listOf(
                 "missingPatchHasNoNativeAction[28]", "missingPatchHasNoNativeAction[37]",
                 "unavailableSessionOrNavigationKeepsTheDialogAndShowsRecovery[28]", "unavailableSessionOrNavigationKeepsTheDialogAndShowsRecovery[37]",
