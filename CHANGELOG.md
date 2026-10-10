@@ -62,6 +62,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - See who a story mentions:** The label now shows on stories Instagram loaded from its older format. Those stories hold their mentions in a different kind of object than the one the patch expected, so the patch failed on every story that mentioned someone and the label never appeared. It reads the account the way both kinds allow now.
+
 * **Instagram - Download any reel:** Download as video on a carousel with music in Reels saves every page now, in order, instead of just the first one. A page that has a video of its own saves that file, and a photo page becomes a video with the post's music, the way a single photo with music does. A page with no music to fetch saves its photo, so you still get the whole set. Reported in #78.
 * **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts no longer cut Home short. While Instagram was still loading the posts it had saved from last time, a hidden post could tell Home there was nothing more to load, and you'd see the empty feed card for a few seconds. Now Home only ends when a page that just loaded came back with every post hidden and nothing is left on screen.
 

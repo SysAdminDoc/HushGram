@@ -98,8 +98,8 @@ internal class StoryBind(
 
 /**
  * What the patch found: the binders, the page's type and its field holding its [REEL_VIEW_GROUP],
- * the story item's field holding its Media, Media's getter of [REEL_MENTIONS], the type of each
- * mention and its getter of the account, and the account's getter of [FULL_NAME]. All of them
+ * the story item's field holding its Media, Media's getter of [REEL_MENTIONS], the public interface
+ * every mention implements and its getter of the account, and the account's getter of [FULL_NAME]. All of them
  * public, since the stubs reach them from the extension's package.
  */
 internal class StoryMentionSites(
@@ -117,8 +117,8 @@ internal class StoryMentionSites(
  * Finds every method that loads [BIND_MEDIA] and, after it, puts a story item into a field of
  * exactly one type, the viewer's page. The page keeps its media view in one public field, and the
  * binders read the story's Media out of one public field of the story item. Media's getter of
- * [REEL_MENTIONS] names the type of each mention with a const-class, and that type has one getter
- * answering the account. Fails before anything changes when any of it isn't there exactly once,
+ * [REEL_MENTIONS] names the type of each mention with a const-class, and that type implements one public
+ * interface with one abstract getter answering the account. Fails before anything changes when any of it isn't there exactly once,
  * since that's an Instagram this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
@@ -164,12 +164,21 @@ internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
     val mention = types.singleOrNull()
         ?: refuse("expected $MEDIA->${mentions.name} to name one type of mention, found ${types.size}")
     val mentionClass = classDefBy(mention)
-    val users = mentionClass.methods.filter {
-        it.parameterTypes.isEmpty() && it.returnType == USER && !AccessFlags.STATIC.isSet(it.accessFlags) &&
-            AccessFlags.PUBLIC.isSet(it.accessFlags)
+    // Media's getter answers its cached list when one is set, and a story Instagram parsed from JSON
+    // fills that list with a different class than the one named here. Both implement the same public
+    // interface, whose one abstract getter answers the account, so the stubs read it through that.
+    val holders = mentionClass.interfaces.mapNotNull { name ->
+        val declared = classDefByOrNull(name) ?: return@mapNotNull null
+        if (!AccessFlags.INTERFACE.isSet(declared.accessFlags)) return@mapNotNull null
+        val getters = declared.methods.filter {
+            it.parameterTypes.isEmpty() && it.returnType == USER && AccessFlags.ABSTRACT.isSet(it.accessFlags) &&
+                !AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+        getters.singleOrNull()?.let { declared to it }
     }
-    val mentionUser = users.singleOrNull()
-        ?: refuse("expected one getter of the account on $mention, found ${users.size}")
+    val (shared, mentionUser) = holders.singleOrNull()
+        ?: refuse("expected one interface of $mention with one getter of the account, found ${holders.size}: ${holders.joinToString { it.first.type }}")
+    val mentionInterface = shared.type
     val fullName = pandoGetter(PATCH, USER, FULL_NAME, STRING)
 
     // The stubs cast to these and call these from the extension's package, so a private one would
@@ -178,14 +187,15 @@ internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
         STORY_ITEM.takeUnless { AccessFlags.PUBLIC.isSet(classDefBy(STORY_ITEM).accessFlags) },
         MEDIA.takeUnless { AccessFlags.PUBLIC.isSet(classDefBy(MEDIA).accessFlags) },
         "$MEDIA->${mentions.name}".takeUnless { AccessFlags.PUBLIC.isSet(mentions.accessFlags) },
-        mention.takeUnless { AccessFlags.PUBLIC.isSet(mentionClass.accessFlags) },
+        mentionInterface.takeUnless { AccessFlags.PUBLIC.isSet(shared.accessFlags) },
+        "$mentionInterface->${mentionUser.name}".takeUnless { AccessFlags.PUBLIC.isSet(mentionUser.accessFlags) },
         USER.takeUnless { AccessFlags.PUBLIC.isSet(classDefBy(USER).accessFlags) },
         "$USER->${fullName.name}".takeUnless { AccessFlags.PUBLIC.isSet(fullName.accessFlags) },
     )
     if (closed.isNotEmpty()) refuse("${closed.joinToString()} isn't public, so the extension can't reach it")
 
     return StoryMentionSites(
-        binds.map { it.first }, page, view.name, media, mentions.name, mention, mentionUser.name, fullName.name,
+        binds.map { it.first }, page, view.name, media, mentions.name, mentionInterface, mentionUser.name, fullName.name,
     )
 }
 
@@ -195,7 +205,7 @@ internal class StoryMentionStubs(private val stubs: Map<String, MutableMethod>) 
         write("itemView", "check-cast p0, ${found.page}", "iget-object p0, p0, ${found.page}->${found.view}:$REEL_VIEW_GROUP")
         write("media", "check-cast p0, $STORY_ITEM", "iget-object p0, p0, $STORY_ITEM->${found.media}:$MEDIA")
         write("mentions", "check-cast p0, $MEDIA", "invoke-virtual { p0 }, $MEDIA->${found.mentions}()$LIST", "move-result-object p0")
-        write("mentionUser", "check-cast p0, ${found.mention}", "invoke-virtual { p0 }, ${found.mention}->${found.mentionUser}()$USER", "move-result-object p0")
+        write("mentionUser", "check-cast p0, ${found.mention}", "invoke-interface { p0 }, ${found.mention}->${found.mentionUser}()$USER", "move-result-object p0")
         write("fullName", "check-cast p0, $USER", "invoke-virtual { p0 }, $USER->${found.fullName}()$STRING", "move-result-object p0")
     }
 
