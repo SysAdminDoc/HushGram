@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.direct.lock
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
@@ -18,6 +19,7 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -127,8 +129,31 @@ class HiddenChatHookTest {
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(HIDDEN_CHATS))
         val found = context.findRecentTargets()
         hideChatsFromRecents(found)
-        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.entries.method.visualCode()[found.entries.returnAt].opcode)
-        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.chats.method.visualCode()[found.chats.returnAt].opcode)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.method.visualCode()[found.trimAt].opcode)
+    }
+
+    /**
+     * Opening a chat walks the plain reader's list by position and writes each entry back to the
+     * store at that position, so that reader has to answer the store's list exactly as it is.
+     */
+    @Test
+    fun thePlainRecentChatsReaderStaysAsInstagramWroteItOnEveryBuild() {
+        fixtures { bundle -> checkPlainReader(bundle.name, recentClasses(bundle)) }
+        for (bundle in Fixtures.otherBuilds()) checkPlainReader(bundle.parentFile.name, recentClasses(bundle))
+    }
+
+    @Test
+    fun aRecentSearchesReaderThatNoLongerTrimsToItsCountFailsThePatch() = fixtures { bundle ->
+        val classes = recentClasses(bundle)
+        val native = classes.values.flatMap { it.methods }.single { it.parameterTypes.map(Any::toString) == listOf("I") && it.readsRecentSearches() }
+        val context = PatchContexts.of(classes.values)
+        val reader = context.mutableClassDefBy(native.definingClass).methods.single { it.name == native.name && it.parameterTypes.map(Any::toString) == listOf("I") }
+        val code = reader.visualCode()
+        val trim = code.indices.single { code[it].visualReference().toString().endsWith("(Ljava/lang/Iterable;I)Ljava/util/List;") }
+        // The trim now reads another register than the count the reader was asked for.
+        reader.replaceInstruction(trim, "invoke-static { v0, v0 }, ${code[trim].visualReference()}")
+        val refusal = assertThrows(PatchException::class.java) { context.findRecentTargets() }
+        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("lost its trim"))
     }
 
     @Test
@@ -159,52 +184,66 @@ class HiddenChatHookTest {
         classDef.methods.none { method -> method.visualCode().any { it.visualString() == THREAD_SUMMARIES } }
     }
 
-    /** The hooks that keep a hidden chat out of the recent searches, on one build: where each lands and that nothing else moved. */
+    /**
+     * The hook that keeps a hidden chat out of the recent searches, on one build: the counted
+     * reader's sorted entries go through the filter right before the trim to the count, so the
+     * list still fills up to the count, and nothing else moved.
+     */
     private fun checkRecents(name: String, classes: Map<String, ClassDef>) {
         val context = PatchContexts.of(classes.values)
         val found = context.findRecentTargets()
         val before = classes.mapValues { (_, classDef) -> classDef.methods.map { method -> method.visualCode().map(::text) } }
-        val hooked = listOf(found.entries.method, found.chats.method).map { "${it.definingClass}->${it.name}" }
-        assertEquals("$name: both readers are in one store", found.entries.method.definingClass, found.chats.method.definingClass)
-        assertTrue("$name: two different readers", found.entries.method.name != found.chats.method.name)
-        val entriesBefore = found.entries.method.visualCode().map(::text)
-        val chatsBefore = found.chats.method.visualCode().map(::text)
+        val hooked = "${found.method.definingClass}->${found.method.name}"
+        val readerBefore = found.method.visualCode().map(::text)
+        val native = found.method.visualCode()
+        val at = found.trimAt
+        val sort = native[at - 2].visualReference() as MethodReference
+        assertEquals("$name: the entries are sorted first", listOf("Ljava/lang/Iterable;", "Ljava/util/Comparator;"), sort.parameterTypes.map(Any::toString))
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, native[at - 1].opcode)
+        assertEquals("$name: the trim reads the sorted entries", (native[at - 1] as OneRegisterInstruction).registerA, found.register)
+        assertEquals("$name: and the count the reader was asked for", found.method.parameterRegisterNumber(0), (native[at] as FiveRegisterInstruction).registerD)
 
         hideChatsFromRecents(found)
 
-        val entries = found.entries.method.visualCode()
-        val at = found.entries.returnAt
-        val call = entries[at]
-        assertEquals("$name: the recents leave through the filter", HIDDEN_RECENTS, (call as ReferenceInstruction).reference.toString())
-        assertEquals((call as RegisterRangeInstruction).startRegister, found.entries.register)
-        assertEquals(Opcode.MOVE_RESULT_OBJECT, entries[at + 1].opcode)
-        assertEquals(found.entries.register, (entries[at + 1] as OneRegisterInstruction).registerA)
-        assertEquals(Opcode.RETURN_OBJECT, entries[at + 2].opcode)
-        assertEquals("$name: nothing else in the recents reader moved", entriesBefore.size + 2, entries.size)
-        assertEquals(entriesBefore.take(at), entries.take(at).map(::text))
-
-        val chats = found.chats.method.visualCode()
-        val chatsAt = found.chats.returnAt
-        assertEquals("$name: the recent chats leave through the filter", HIDDEN_RECENTS, (chats[chatsAt] as ReferenceInstruction).reference.toString())
-        assertEquals(Opcode.MOVE_RESULT_OBJECT, chats[chatsAt + 1].opcode)
-        assertEquals("$name: and are copied back into an immutable list",
-            "Lcom/google/common/collect/ImmutableList;->copyOf(Ljava/util/Collection;)Lcom/google/common/collect/ImmutableList;",
-            chats[chatsAt + 2].visualReference().toString())
-        assertEquals(Opcode.MOVE_RESULT_OBJECT, chats[chatsAt + 3].opcode)
-        assertEquals(Opcode.RETURN_OBJECT, chats[chatsAt + 4].opcode)
-        assertEquals("$name: nothing else in the plain reader moved", chatsBefore.size + 4, chats.size)
-        assertEquals(chatsBefore.take(chatsAt), chats.take(chatsAt).map(::text))
+        val reader = found.method.visualCode()
+        val call = reader[at]
+        assertEquals("$name: the sorted entries go through the filter", HIDDEN_RECENTS, (call as ReferenceInstruction).reference.toString())
+        assertEquals((call as RegisterRangeInstruction).startRegister, found.register)
+        assertEquals(1, call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, reader[at + 1].opcode)
+        assertEquals(found.register, (reader[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: then the trim to the count", readerBefore[at], text(reader[at + 2]))
+        assertEquals("$name: nothing else in the recents reader moved", readerBefore.size + 2, reader.size)
+        assertEquals(readerBefore.take(at), reader.take(at).map(::text))
+        assertEquals(readerBefore.drop(at), reader.drop(at + 2).map(::text))
+        assertEquals("$name: the filter is called once", 1, reader.count { it.visualReference().toString() == HIDDEN_RECENTS })
 
         for ((type, original) in before) {
             if (type == HIDDEN_CHATS) continue
             val methods = context.mutableClassDefBy(type).methods.toList()
             assertEquals("$name: $type lost or gained a method", original.size, methods.size)
             methods.forEachIndexed { index, method ->
-                if (hooked.none { it == "${method.definingClass}->${method.name}" }) {
+                if ("${method.definingClass}->${method.name}" != hooked) {
                     assertEquals("$name: native $type changed", original[index], method.visualCode().map(::text))
                 }
             }
         }
+    }
+
+    /** The store's plain reader answers the store's list as Instagram wrote it, after the recents hook went in. */
+    private fun checkPlainReader(name: String, classes: Map<String, ClassDef>) {
+        val context = PatchContexts.of(classes.values)
+        val found = context.findRecentTargets()
+        val store = context.mutableClassDefBy(found.method.definingClass)
+        val plain = store.methods.filter { it.readsRecentChats() }
+        assertEquals("$name: one plain reader in ${store.type}", 1, plain.size)
+        val before = plain.single().visualCode().map(::text)
+
+        hideChatsFromRecents(found)
+
+        val after = plain.single().visualCode()
+        assertEquals("$name: the plain reader is untouched", before, after.map(::text))
+        assertTrue("$name: the plain reader never calls the filter", after.none { it.visualReference().toString() == HIDDEN_RECENTS })
     }
     /** The patch refuses for the reason given on the first declared build with these classes left out, before anything changes. */
     private fun refuses(reason: String, keep: (ClassDef) -> Boolean) = fixtures { bundle ->

@@ -17,11 +17,13 @@ import app.morphe.patches.instagram.direct.seen.visualReference
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegister
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -416,7 +418,12 @@ internal fun Method.readsRecentSearches(): Boolean {
         code.any { it.opcode == Opcode.INVOKE_STATIC && it.visualReference().toString() == IMMUTABLE_COPY }
 }
 
-/** The same store's plain reader: nothing to pass, an immutable list of the recent chats back, from one copy. */
+/**
+ * The same store's plain reader: nothing to pass, an immutable copy of the store's own list of
+ * recent chats back. It is never hooked. Opening a chat walks this list by position and writes
+ * each entry back to the store at that position, so a list with a hidden chat left out would put
+ * entries in the wrong places. Tests use it to prove it stays as Instagram wrote it.
+ */
 internal fun Method.readsRecentChats(): Boolean {
     if (AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.isNotEmpty() || returnType != IMMUTABLE_LIST) return false
     val code = implementation?.instructions?.toList() ?: return false
@@ -424,58 +431,49 @@ internal fun Method.readsRecentChats(): Boolean {
         code.any { it.opcode == Opcode.INVOKE_STATIC && it.visualReference().toString() == IMMUTABLE_COPY }
 }
 
-/** What hiding chats from the recent searches needs: the two readers of the store, and where each returns. */
-internal class RecentTargets(val entries: SummaryList, val chats: SummaryList)
+/**
+ * The counted reader's trim: the one static call that takes the sorted entries and the count it
+ * was asked for and answers a list. Null unless there is exactly one.
+ */
+internal fun Method.recentsTrimAt(): Int? {
+    if (parameterTypes.map { it.toString() } != listOf("I")) return null
+    val count = parameterRegisterNumber(0)
+    val code = visualCode()
+    return code.indices.filter { index ->
+        val call = code[index].visualReference() as? MethodReference
+        code[index].opcode == Opcode.INVOKE_STATIC && call != null && call.returnType == LIST &&
+            call.parameterTypes.map { it.toString() } == listOf("Ljava/lang/Iterable;", "I") &&
+            (code[index] as FiveRegisterInstruction).registerD == count
+    }.singleOrNull()
+}
+
+/** Where the recent searches are filtered: the counted reader, the trim to the count, and the register holding the sorted entries. */
+internal class RecentTargets(val method: MutableMethod, val trimAt: Int, val register: Int)
 
 /**
- * The store of recent searches by its reader that takes a count, and its plain reader by being the
- * only one in the same class that answers an immutable list from one copy. Both leave through a
- * single return, so each answer goes through the extension where it is returned, which covers the
- * screen before you type, the search history screen and the row builder's own reads.
+ * The store of recent searches by its reader that takes a count. That reader builds a fresh list,
+ * sorts it and trims it to the count, and the screen before you type, the search history screen and
+ * the row builder's recent section read it. Its sorted entries go through the extension just before
+ * the trim, so a hidden chat leaves room for the next entry and the list still fills up to the
+ * count. The store's plain reader isn't touched (see [readsRecentChats]).
  */
 internal fun BytecodePatchContext.findRecentTargets(): RecentTargets {
     val counted = uniqueMethod(LOCK_PATCH, "recent searches reader", RecentSearchesFingerprint)
-    val store = mutableClassDefBy(counted.definingClass)
-    val plain = store.methods.filter { it.readsRecentChats() }.one("plain recent chats reader in ${counted.definingClass}")
+    val trimAt = counted.recentsTrimAt() ?: refuse("the recent searches reader lost its trim to the count it is asked for")
+    if (trimAt in counted.jumpTargets()) refuse("something jumps straight to the recent searches reader's trim")
+    val register = (counted.visualCode()[trimAt] as FiveRegisterInstruction).registerC
     requireRecentsFilter()
-    return RecentTargets(returnSite(counted, "recent searches reader"), returnSite(plain, "plain recent chats reader"))
+    return RecentTargets(counted, trimAt, register)
 }
 
-private fun returnSite(method: MutableMethod, what: String): SummaryList {
-    val code = method.visualCode()
-    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
-    if (returns.size != 1) refuse("the $what returns its list in ${returns.size} places, expected one")
-    val register = (code[returns.single()] as OneRegisterInstruction).registerA
-    if (register > 255) refuse("the $what returns its list from v$register, past v255")
-    return SummaryList(method, returns.single(), register)
-}
-
-/**
- * Sends both readers' answers through the extension at their return. The return itself is
- * replaced, so the jumps that land on it land on the filter. The plain reader answers an
- * immutable list, so its filtered answer is copied back into one.
- */
+/** Sends the counted reader's sorted entries through the extension right before it trims them to the count. */
 internal fun hideChatsFromRecents(targets: RecentTargets) {
-    val entries = targets.entries
-    val entriesRegister = "v${entries.register}"
-    entries.method.replaceInstruction(entries.returnAt, "invoke-static/range { $entriesRegister .. $entriesRegister }, $HIDDEN_RECENTS")
-    entries.method.addInstructions(
-        entries.returnAt + 1,
+    val register = "v${targets.register}"
+    targets.method.addInstructions(
+        targets.trimAt,
         """
-            move-result-object $entriesRegister
-            return-object $entriesRegister
-        """,
-    )
-    val chats = targets.chats
-    val register = "v${chats.register}"
-    chats.method.replaceInstruction(chats.returnAt, "invoke-static/range { $register .. $register }, $HIDDEN_RECENTS")
-    chats.method.addInstructions(
-        chats.returnAt + 1,
-        """
+            invoke-static/range { $register .. $register }, $HIDDEN_RECENTS
             move-result-object $register
-            invoke-static/range { $register .. $register }, $IMMUTABLE_COPY
-            move-result-object $register
-            return-object $register
         """,
     )
 }
