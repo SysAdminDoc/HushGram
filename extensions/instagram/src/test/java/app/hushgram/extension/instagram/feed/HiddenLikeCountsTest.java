@@ -20,11 +20,9 @@ import org.robolectric.annotation.Config;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -57,12 +55,11 @@ public class HiddenLikeCountsTest {
     private static final Function<Object, Object> NO_LIKES_SENT = tree -> null;
     private static final Function<Object, Object> NOTHING_ABOVE_ZERO = tree -> 0;
     private static final Function<Object, Object> COUNTS_BY_POST = tree -> tree == POST ? 12 : null;
+    private static final Function<Object, Object> COUNTS_BY_POST_OTHER = tree -> tree == OTHER_POST ? 7 : null;
     private static final BooleanSupplier ON = HiddenLikeCounts::switchedOn;
     private static final BooleanSupplier THROWS = () -> {
         throw new IllegalStateException("settings went away");
     };
-    private final AtomicLong clock = new AtomicLong(1_000_000L);
-    private final LongSupplier now = clock::get;
 
     @Before
     public void enable() {
@@ -83,16 +80,16 @@ public class HiddenLikeCountsTest {
     }
 
     private void sawCount(Object tree, Object count) {
-        HiddenLikeCounts.sawCount(tree, count, ON, HID_ITS_LIKES, POSTER_OF, now);
+        HiddenLikeCounts.sawCount(tree, count, ON, HID_ITS_LIKES, POSTER_OF);
     }
 
     private void rowRead(Object tree, Object flag, Function<Object, Object> likeCount) {
-        HiddenLikeCounts.rowRead(tree, flag, ON, likeCount, POSTER_OF, now);
+        HiddenLikeCounts.rowRead(tree, flag, ON, likeCount, POSTER_OF);
     }
 
     /** The decider asked about a hidden post of this poster, and what it answers (true: hidden). */
     private boolean asked(String poster) {
-        return HiddenLikeCounts.hidden(poster, true, ON, now);
+        return HiddenLikeCounts.hidden(poster, true, ON);
     }
 
     @Test
@@ -157,19 +154,40 @@ public class HiddenLikeCountsTest {
         assertTrue(report, report.contains(HiddenLikeCounts.LEFT_HIDDEN + " 2"));
     }
 
-    /** One of a poster's hidden posts coming without a count holds the rest of theirs hidden for a while. */
+    /**
+     * One poster with a counted hidden post and an uncounted one: the uncounted mark is permanent, so
+     * neither post is let through, whichever came first and whatever comes later.
+     */
     @Test
-    public void aPostersHiddenPostWithoutACountHoldsTheirOthersHiddenForAWhile() {
+    public void aPosterWithBothKindsOfHiddenPostsIsNeverLetThrough() {
         sawCount(POST, 12);
-        assertFalse(asked("alice"));
+        assertFalse("only the counted post is known", asked("alice"));
         sawCount(SECOND_POST, null);
         assertTrue("the post without a count stays hidden", asked("alice"));
-        clock.addAndGet(HiddenLikeCounts.HOLD_MILLIS - 1);
-        assertTrue("still within the hold", asked("alice"));
-        clock.addAndGet(1);
-        assertFalse("the hold ran out and the poster's counted post shows again", asked("alice"));
+        sawCount(POST, 12);
+        rowRead(POST, true, TWELVE_LIKES);
+        assertTrue("a later counted post doesn't undo it", asked("alice"));
+
+        HiddenLikeCounts.reset();
         sawCount(SECOND_POST, null);
-        assertTrue("another post without a count holds it again", asked("alice"));
+        sawCount(POST, 12);
+        assertTrue("the order doesn't matter", asked("alice"));
+        assertTrue(asked("alice"));
+    }
+
+    /**
+     * A row that decides before the count is read notes its own post first, so the poster is held
+     * before the decider is asked; a decider asked before any note leaves the post as Instagram drew it.
+     */
+    @Test
+    public void aDeciderAskedBeforeTheNoteIsStockAndAfterItFollowsIt() {
+        sawCount(POST, 12);
+        rowRead(SECOND_POST, true, NO_LIKES_SENT);
+        assertTrue("the row noted its no-count post before it asked", asked("alice"));
+
+        assertTrue("nothing is known about this poster yet", asked("bob"));
+        rowRead(OTHER_POST, true, COUNTS_BY_POST_OTHER);
+        assertFalse("and once its post is noted with a count it shows", asked("bob"));
     }
 
     @Test
@@ -177,8 +195,6 @@ public class HiddenLikeCountsTest {
         sawCount(OTHER_POST, null);
         rowRead(OTHER_POST, true, NO_LIKES_SENT);
         assertTrue(asked("bob"));
-        clock.addAndGet(HiddenLikeCounts.HOLD_MILLIS * 3);
-        assertTrue("an expired hold alone shows nothing", asked("bob"));
     }
 
     /** A post that shows its likes, or one the row found no flag for, is never noted as hidden. */
@@ -198,11 +214,11 @@ public class HiddenLikeCountsTest {
     public void aPostWithoutAPosterIsNeverNoted() {
         sawCount(ORPHAN_POST, 12);
         rowRead(ORPHAN_POST, true, TWELVE_LIKES);
-        HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> "", now);
+        HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> "");
         assertEquals(0, HiddenLikeCounts.remembered());
         assertTrue(asked("alice"));
         assertTrue(asked(""));
-        assertTrue(HiddenLikeCounts.hidden(null, true, ON, now));
+        assertTrue(HiddenLikeCounts.hidden(null, true, ON));
     }
 
     /** With no count sent, or none above zero, there's no number to show, so the count stays hidden. */
@@ -222,9 +238,9 @@ public class HiddenLikeCountsTest {
     /** A count that comes with a post showing its likes says nothing about hidden ones. */
     @Test
     public void postsThatDidntHideTheirLikesProveNothing() {
-        HiddenLikeCounts.sawCount(POST, 40, ON, SHOWS_ITS_LIKES, POSTER_OF, now);
-        HiddenLikeCounts.sawCount(POST, 40, ON, NOT_READ, POSTER_OF, now);
-        HiddenLikeCounts.sawCount(null, 40, ON, HID_ITS_LIKES, POSTER_OF, now);
+        HiddenLikeCounts.sawCount(POST, 40, ON, SHOWS_ITS_LIKES, POSTER_OF);
+        HiddenLikeCounts.sawCount(POST, 40, ON, NOT_READ, POSTER_OF);
+        HiddenLikeCounts.sawCount(null, 40, ON, HID_ITS_LIKES, POSTER_OF);
         assertTrue(asked("alice"));
         assertEquals(0, HiddenLikeCounts.remembered());
         String report = HookStatus.report().toString();
@@ -257,7 +273,7 @@ public class HiddenLikeCountsTest {
         int total = HiddenLikeCounts.MAX_POSTERS + 40;
         for (int i = 0; i < total; i++) {
             String poster = "poster" + i;
-            HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> poster, now);
+            HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> poster);
         }
         assertEquals(HiddenLikeCounts.MAX_POSTERS, HiddenLikeCounts.remembered());
         assertTrue("the oldest was forgotten", asked("poster0"));
@@ -271,28 +287,36 @@ public class HiddenLikeCountsTest {
     public void aPosterAskedAboutRecentlyOutlivesOlderOnes() {
         for (int i = 0; i < HiddenLikeCounts.MAX_POSTERS; i++) {
             String poster = "poster" + i;
-            HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> poster, now);
+            HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> poster);
         }
         assertFalse(asked("poster0"));
-        HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> "late", now);
+        HiddenLikeCounts.sawCount(POST, 12, ON, HID_ITS_LIKES, tree -> "late");
         assertFalse("asked about lately, so kept", asked("poster0"));
         assertTrue("the next oldest went", asked("poster1"));
     }
 
+    /**
+     * Notes from several threads at once lose nothing: each thread's own posters show right after it
+     * noted them, and a poster that one thread noted with a count and another without ends hidden
+     * whichever got there first.
+     */
     @Test
-    public void notesFromSeveralThreadsAreSafe() throws Exception {
+    public void notesFromSeveralThreadsLoseNothing() throws Exception {
         CountDownLatch go = new CountDownLatch(1);
         AtomicReference<Throwable> failed = new AtomicReference<>();
         List<Thread> workers = new ArrayList<>();
-        for (int t = 0; t < 4; t++) {
+        int threads = 4;
+        int each = 200;
+        for (int t = 0; t < threads; t++) {
             int id = t;
             Thread worker = new Thread(() -> {
                 try {
                     go.await();
-                    for (int i = 0; i < 500; i++) {
+                    for (int i = 0; i < each; i++) {
                         String poster = "p" + id + "-" + i;
-                        HiddenLikeCounts.sawCount(POST, 12, () -> true, HID_ITS_LIKES, tree -> poster, now);
-                        HiddenLikeCounts.hidden(poster, true, () -> true, now);
+                        HiddenLikeCounts.sawCount(POST, 12, () -> true, HID_ITS_LIKES, tree -> poster);
+                        if (HiddenLikeCounts.hidden(poster, true, () -> true)) throw new AssertionError(poster + " was lost");
+                        HiddenLikeCounts.sawCount(POST, id == 0 ? null : 12, () -> true, HID_ITS_LIKES, tree -> "shared");
                     }
                 } catch (Throwable e) {
                     failed.set(e);
@@ -303,8 +327,10 @@ public class HiddenLikeCountsTest {
         }
         go.countDown();
         for (Thread worker : workers) worker.join();
-        assertNull(failed.get());
-        assertEquals(HiddenLikeCounts.MAX_POSTERS, HiddenLikeCounts.remembered());
+        assertNull(String.valueOf(failed.get()), failed.get());
+        assertEquals(threads * each + 1, HiddenLikeCounts.remembered());
+        assertTrue("one uncounted post holds the shared poster", asked("shared"));
+        for (int t = 0; t < threads; t++) assertFalse(asked("p" + t + "-" + (each - 1)));
     }
 
     @Test
@@ -335,10 +361,10 @@ public class HiddenLikeCountsTest {
         Settings.SHOW_HIDDEN_LIKE_COUNTS.save(false);
         HiddenLikeCounts.sawCount(POST, 12, ON, tree -> {
             throw new AssertionError("read the flag with the switch off");
-        }, POSTER_OF, now);
+        }, POSTER_OF);
         HiddenLikeCounts.rowRead(POST, true, ON, tree -> {
             throw new AssertionError("read the count with the switch off");
-        }, POSTER_OF, now);
+        }, POSTER_OF);
         Settings.SHOW_HIDDEN_LIKE_COUNTS.save(true);
         assertTrue(HiddenLikeCounts.hidden("alice", 1));
         assertEquals(0, HiddenLikeCounts.remembered());
@@ -349,21 +375,18 @@ public class HiddenLikeCountsTest {
     @Test
     public void throwingKeepsItHiddenAndIsReported() {
         sawCount(POST, 12);
-        assertTrue(HiddenLikeCounts.hidden("alice", true, THROWS, now));
-        assertTrue(HiddenLikeCounts.hidden("alice", true, ON, () -> {
-            throw new IllegalStateException("clock went away");
-        }));
-        HiddenLikeCounts.rowRead(POST, true, THROWS, TWELVE_LIKES, POSTER_OF, now);
+        assertTrue(HiddenLikeCounts.hidden("alice", true, THROWS));
+        HiddenLikeCounts.rowRead(POST, true, THROWS, TWELVE_LIKES, POSTER_OF);
         HiddenLikeCounts.rowRead(POST, true, ON, tree -> {
             throw new IllegalStateException("count went away");
-        }, POSTER_OF, now);
+        }, POSTER_OF);
         HiddenLikeCounts.rowRead(POST, true, ON, TWELVE_LIKES, tree -> {
             throw new IllegalStateException("poster went away");
-        }, now);
-        HiddenLikeCounts.sawCount(POST, 12, THROWS, HID_ITS_LIKES, POSTER_OF, now);
+        });
+        HiddenLikeCounts.sawCount(POST, 12, THROWS, HID_ITS_LIKES, POSTER_OF);
         HiddenLikeCounts.sawCount(POST, 12, ON, tree -> {
             throw new IllegalStateException("tree went away");
-        }, POSTER_OF, now);
+        }, POSTER_OF);
 
         String missing = HookStatus.missing(FamilyNames.HIDDEN_LIKE_COUNTS).toString();
         assertTrue(missing, missing.contains("'" + HiddenLikeCounts.DECISION + "'"));

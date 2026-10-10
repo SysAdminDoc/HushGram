@@ -256,7 +256,7 @@ private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Me
 private fun Method.deciderAsked(): List<Pair<Int, String>> {
     val code = code()
     return code.indices.mapNotNull { read ->
-        if (!code.readsKey(read, LIKES_HIDDEN_KEY, BOOLEAN)) return@mapNotNull null
+        if (!code.readsFlag(read)) return@mapNotNull null
         (read + 2 until minOf(code.size, read + READER_REACH)).firstNotNullOfOrNull { at ->
             val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
             called?.takeIf { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == DECIDER_PARAMETERS }
@@ -309,22 +309,45 @@ private fun List<Instruction>.readsKey(at: Int, key: Int, answer: String): Boole
 }
 
 /**
+ * Whether instruction [at] reads a post's hidden-count flag: an interface call taking only an int
+ * and answering a Boolean, whose argument is the key of the flag, and whose answer is kept by the
+ * instruction after it. The key may be loaded just before the call, or once at the top of the method
+ * and kept in its register, as the facepile's reader does.
+ */
+private fun List<Instruction>.readsFlag(at: Int): Boolean {
+    val called = (this[at] as? ReferenceInstruction)?.reference as? MethodReference ?: return false
+    return keyedRead(at)?.let { (key, _) -> key == LIKES_HIDDEN_KEY && called.returnType == BOOLEAN } == true &&
+        getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+}
+
+/**
  * The key and the call when instruction [at] is an interface call taking only an int, whose
- * argument is a constant loaded within the four instructions before it, straight or through moves.
+ * argument is a constant: loaded within the four instructions before it, straight or through moves,
+ * or else the one constant the whole method ever writes to that register.
  */
 private fun List<Instruction>.keyedRead(at: Int): Pair<Int, MethodReference>? {
     val call = this[at]
     val called = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return null
     if (call.opcode != Opcode.INVOKE_INTERFACE || called.parameterTypes.map(CharSequence::toString) != listOf("I")) return null
-    var register = (call as FiveRegisterInstruction).registerD
-    for (earlier in at - 1 downTo maxOf(0, at - 4)) {
-        val instruction = this[earlier]
-        if ((instruction as? OneRegisterInstruction)?.registerA != register) continue
-        if (instruction is NarrowLiteralInstruction) return instruction.narrowLiteral to called
-        if (instruction.opcode != Opcode.MOVE && instruction.opcode != Opcode.MOVE_FROM16 && instruction.opcode != Opcode.MOVE_16) return null
-        register = (instruction as TwoRegisterInstruction).registerB
+    return constantIn((call as FiveRegisterInstruction).registerD, at, 3)?.let { it to called }
+}
+
+/** The constant register [register] holds before instruction [before], following up to [moves] moves. */
+private fun List<Instruction>.constantIn(register: Int, before: Int, moves: Int): Int? {
+    val nearest = (before - 1 downTo maxOf(0, before - 4)).firstOrNull { writes(it, register) }
+    val written = nearest ?: indices.filter { it < before && writes(it, register) }.singleOrNull() ?: return null
+    val instruction = this[written]
+    if (instruction is NarrowLiteralInstruction) return instruction.narrowLiteral
+    if (moves == 0 || (instruction.opcode != Opcode.MOVE && instruction.opcode != Opcode.MOVE_FROM16 && instruction.opcode != Opcode.MOVE_16)) {
+        return null
     }
-    return null
+    return constantIn((instruction as TwoRegisterInstruction).registerB, written, moves - 1)
+}
+
+/** Whether instruction [at] might write [register]: anything naming it first, or a wide write ending in it. */
+private fun List<Instruction>.writes(at: Int, register: Int): Boolean {
+    val instruction = this[at] as? OneRegisterInstruction ?: return false
+    return instruction.registerA == register || (instruction.opcode.name.contains("wide") && instruction.registerA == register - 1)
 }
 
 /** The index of the instruction the branch at [at] goes to. */

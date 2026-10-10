@@ -10,7 +10,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
-import java.util.function.LongSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -36,10 +35,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * own data, and for a post that hid its likes note whether its {@code like_count} came above zero.
  * Instagram asks the method for a reel, or anywhere else no row ran first, with the same poster id,
  * so those get the answer the notes give. A poster is let through once one of their hidden posts
- * came with a count, and not while a hidden post of theirs that came without one is fresh (ten
- * minutes), so a hidden post the server sent no count for stays as Instagram drew it. Nothing is
- * kept for a post that shows its likes, and the notes are a bounded, least recently used table, so
- * they don't grow over a long session.
+ * came with a count, and never again, while they stay in the table, once one of their hidden posts
+ * came without one, so a hidden post the server sent no count for stays as Instagram drew it. The
+ * rows that decide before the count is read (the feed's, the facepile's) note their own post first.
+ * Some callers (a reel's accessibility text, the Reels item config) read the flag from data the
+ * patch can't read a count from, so they follow the poster's other posts. A poster seen only once a
+ * no-count post is already being decided, or forgotten from the table, can't be told apart.
+ * Nothing is kept for a post that shows its likes, and the notes are a bounded, least recently used
+ * table, so they don't grow over a long session.
  *
  * <p>The owner's own menus and the request that changes the setting read the flag elsewhere, so
  * they never see the switch. Every hook fails open: with the switch off, HushGram paused, the
@@ -73,17 +76,14 @@ public final class HiddenLikeCounts {
     static final int ID_KEY = 3355;
 
     /** How many posters are remembered. The least recently used goes first. */
-    static final int MAX_POSTERS = 256;
-    /** How long a hidden post that came without a count holds its poster's other posts hidden. */
-    static final long HOLD_MILLIS = 10 * 60 * 1000L;
+    static final int MAX_POSTERS = 1024;
 
     /** What the hidden posts of one poster have come with. */
     private static final class Noted {
         /** One of their hidden posts came with a count above zero. */
         boolean withCount;
-        /** One of their hidden posts came without one, at {@link #withoutAt}. */
+        /** One of their hidden posts came without one. */
         boolean without;
-        long withoutAt;
     }
 
     private static final Map<String, Noted> noted = new LinkedHashMap<String, Noted>(64, 0.75f, true) {
@@ -104,13 +104,13 @@ public final class HiddenLikeCounts {
      * hidden posts came with a count. Never throws.
      */
     public static boolean hidden(@Nullable String poster, int hidden) {
-        return hidden(poster, hidden != 0, HiddenLikeCounts::switchedOn, HiddenLikeCounts::nowMillis);
+        return hidden(poster, hidden != 0, HiddenLikeCounts::switchedOn);
     }
 
-    static boolean hidden(@Nullable String poster, boolean hidden, BooleanSupplier on, LongSupplier now) {
+    static boolean hidden(@Nullable String poster, boolean hidden, BooleanSupplier on) {
         HookStatus.invoked(FamilyNames.HIDDEN_LIKE_COUNTS);
         try {
-            if (!hidden || poster == null || !on.getAsBoolean() || !countedFor(poster, now.getAsLong())) return hidden;
+            if (!hidden || poster == null || !on.getAsBoolean() || !countedFor(poster)) return hidden;
             HookStatus.counted(FamilyNames.HIDDEN_LIKE_COUNTS, SHOWN);
             if (!logged) {
                 logged = true;
@@ -129,18 +129,17 @@ public final class HiddenLikeCounts {
      * notes under its poster whether its own count came above zero. Never throws.
      */
     public static void rowRead(@Nullable Object tree, @Nullable Object flag) {
-        rowRead(tree, flag, HiddenLikeCounts::switchedOn, HiddenLikeCounts::likeCount, HiddenLikeCounts::posterOf,
-                HiddenLikeCounts::nowMillis);
+        rowRead(tree, flag, HiddenLikeCounts::switchedOn, HiddenLikeCounts::likeCount, HiddenLikeCounts::posterOf);
     }
 
     static void rowRead(@Nullable Object tree, @Nullable Object flag, BooleanSupplier on, Function<Object, Object> likeCount,
-                        Function<Object, String> posterOf, LongSupplier now) {
+                        Function<Object, String> posterOf) {
         try {
             if (tree == null || !Boolean.TRUE.equals(flag) || !on.getAsBoolean()) return;
             Object count = likeCount.apply(tree);
             boolean came = count instanceof Integer && (Integer) count > 0;
             if (!came) HookStatus.counted(FamilyNames.HIDDEN_LIKE_COUNTS, LEFT_HIDDEN);
-            note(posterOf.apply(tree), came, now.getAsLong());
+            note(posterOf.apply(tree), came);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.HIDDEN_LIKE_COUNTS, ROW_READ, t);
         }
@@ -153,24 +152,23 @@ public final class HiddenLikeCounts {
      * notes it under the post's poster. Never throws.
      */
     public static void sawCount(@Nullable Object tree, @Nullable Object count) {
-        sawCount(tree, count, HiddenLikeCounts::switchedOn, HiddenLikeCounts::likesHidden, HiddenLikeCounts::posterOf,
-                HiddenLikeCounts::nowMillis);
+        sawCount(tree, count, HiddenLikeCounts::switchedOn, HiddenLikeCounts::likesHidden, HiddenLikeCounts::posterOf);
     }
 
     static void sawCount(@Nullable Object tree, @Nullable Object count, BooleanSupplier on,
-                         Function<Object, Boolean> likesHidden, Function<Object, String> posterOf, LongSupplier now) {
+                         Function<Object, Boolean> likesHidden, Function<Object, String> posterOf) {
         try {
             if (tree == null || !on.getAsBoolean() || !Boolean.TRUE.equals(likesHidden.apply(tree))) return;
             boolean came = count instanceof Integer && (Integer) count > 0;
             HookStatus.counted(FamilyNames.HIDDEN_LIKE_COUNTS, came ? CAME_WITH_COUNT : NO_COUNT);
-            note(posterOf.apply(tree), came, now.getAsLong());
+            note(posterOf.apply(tree), came);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.HIDDEN_LIKE_COUNTS, COUNT_READ, t);
         }
     }
 
     /** Notes under the poster that one of their hidden posts came with a count, or without. */
-    private static void note(@Nullable String poster, boolean came, long now) {
+    private static void note(@Nullable String poster, boolean came) {
         if (poster == null || poster.isEmpty()) return;
         synchronized (noted) {
             Noted entry = noted.get(poster);
@@ -182,16 +180,15 @@ public final class HiddenLikeCounts {
                 entry.withCount = true;
             } else {
                 entry.without = true;
-                entry.withoutAt = now;
             }
         }
     }
 
-    /** Whether the poster's hidden posts came with a count, and none came without one lately. */
-    private static boolean countedFor(String poster, long now) {
+    /** Whether the poster's hidden posts came with a count, and none came without one. */
+    private static boolean countedFor(String poster) {
         synchronized (noted) {
             Noted entry = noted.get(poster);
-            return entry != null && entry.withCount && !(entry.without && now - entry.withoutAt < HOLD_MILLIS);
+            return entry != null && entry.withCount && !entry.without;
         }
     }
 
@@ -261,10 +258,6 @@ public final class HiddenLikeCounts {
             noted.clear();
         }
         logged = false;
-    }
-
-    static long nowMillis() {
-        return System.nanoTime() / 1_000_000L;
     }
 
     static boolean switchedOn() {

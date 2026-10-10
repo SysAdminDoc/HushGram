@@ -80,6 +80,25 @@ class ShowHiddenLikeCountsHookTest {
         assertEquals("${LikeFixture.TREE}->CtN(I)Ljava/lang/Integer;", anchors.countRead.toString())
     }
 
+    /** The facepile's way: the key loaded once at the top of the method, and the flag read much later. */
+    @Test fun aFlagReadWithItsKeyLoadedEarlierIsAHookedRowToo() {
+        val input = LikeFixture.classes() + LikeFixture.facepile()
+        val context = PatchContexts.of(input)
+        val anchors = context.findHiddenLikeCounts()
+        assertEquals(4, anchors.rows.size)
+        val row = anchors.rows.single { it.method.definingClass == LikeFixture.FACEPILE }
+        val original = LikeFixture.facepile().methods.single().code()
+        assertEquals(listOf(7, 3, 1), listOf(row.at, row.tree, row.flag))
+        context.applyHiddenLikeCounts(anchors)
+        assertRowHook(context.mutableClassDefBy(LikeFixture.FACEPILE).methods.single(), original, row.at, row.tree, row.flag)
+    }
+
+    /** A key register written twice is no proof of which key the read uses, so the read is not a row. */
+    @Test fun aKeyRegisterWrittenAgainIsNotAFlagRead() {
+        val anchors = PatchContexts.of(LikeFixture.classes() + LikeFixture.facepile(rewritten = true)).findHiddenLikeCounts()
+        assertEquals(3, anchors.rows.size)
+    }
+
     @Test fun thePosterIsReadWithTheRowsOwnCallsAndTheDeciderTakesItsId() {
         val anchors = PatchContexts.of(LikeFixture.classes()).findHiddenLikeCounts()
         assertEquals("${LikeFixture.TREE}->CtQ(I)${LikeFixture.TREE}", anchors.childRead.toString())
@@ -206,6 +225,7 @@ internal object LikeFixture {
     const val DECIDER = "Lfixture/LikeDecider;"
     const val COUNTER = "Lfixture/LikeCounter;"
     const val POSTERS = "Lfixture/LikePosters;"
+    const val FACEPILE = "Lfixture/LikeFacepile;"
     private const val HOLDER = "Lfixture/Holder;"
     private const val SELF = "Lfixture/Self;"
     private const val OBJECT = "Ljava/lang/Object;"
@@ -288,6 +308,30 @@ internal object LikeFixture {
             ImmutableInstruction11x(Opcode.RETURN, 0),
         ), AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
     })
+
+    /**
+     * A like row that loads the flag's key once at the top and reads the flag after other work, as
+     * the facepile's reader does. [rewritten] loads another value into the key's register in between.
+     */
+    fun facepile(rewritten: Boolean = false): ClassDef {
+        val code = listOf<Instruction>(
+            ImmutableInstruction31i(Opcode.CONST, 0, LIKES_HIDDEN_KEY),
+            ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+            ImmutableInstruction11n(Opcode.CONST_4, 2, 1),
+            ImmutableInstruction11n(Opcode.CONST_4, 1, 2),
+            ImmutableInstruction11n(Opcode.CONST_4, 2, 3),
+            if (rewritten) ImmutableInstruction31i(Opcode.CONST, 0, 77) else ImmutableInstruction11n(Opcode.CONST_4, 1, 4),
+            ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 3, 0, 0, 0, 0, flagRead),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(BOOLEAN, "booleanValue", emptyList(), "Z")),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 1),
+            ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 4, 2, 4, 5, 1, 0, ImmutableMethodReference(DECIDER, "A06", DECIDE, "Z")),
+            ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+            ImmutableInstruction11x(Opcode.RETURN, 0),
+        )
+        return clazz(FACEPILE, listOf(method(FACEPILE, "facepile", listOf(TREE, SESSION, STRING), "Z", 6, code,
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)))
+    }
 
     /**
      * 450's decider: hidden at once when the flag ([tested]) is set, shown when the post is yours,
