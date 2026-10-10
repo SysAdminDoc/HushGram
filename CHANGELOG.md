@@ -56,8 +56,6 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
-* **Instagram - Hide suggested posts:** Hidden accounts now follows you when you switch accounts and switch back. Before, going from one account to another and back again could leave the first account looking at the second one's list until you restarted Instagram. A name you add before Instagram has shown which account you're on waits and goes to the first account it sees, instead of hiding that person for every account.
-
 * **Instagram - Hide suggested posts:** Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts no longer cut Home short. While Instagram was still loading the posts it had saved from last time, a hidden post could tell Home there was nothing more to load, and you'd see the empty feed card for a few seconds. Now Home only ends when a page that just loaded came back with every post hidden and nothing is left on screen.
 
 * **Instagram - Lock your messages:** The Lock your messages cover shows its whole title again, with the blue Unlock link under it. On a phone screen the title was cut down to its first word and the link had no room at all, so after cancelling the ask the only way back in was to leave and come back.
