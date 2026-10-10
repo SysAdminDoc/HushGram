@@ -169,7 +169,9 @@ if (-not $Fixture -or $Fixture.Count -eq 0) {
             "The receipt needs a run of $($expectedTarget.PackageName) $(Format-DeclaredBuilds -Target $expectedTarget).")
     }
     $Fixture = @(foreach ($version in @($expectedTarget.PackageVersions)) {
-        Find-DeclaredFixture -Target $expectedTarget -Version $version -Folder $fixtureDir | ForEach-Object { $_.FullName }
+        # A version with no fixture answers $null, which a pipeline would pass on as one.
+        Find-DeclaredFixture -Target $expectedTarget -Version $version -Folder $fixtureDir |
+            Where-Object { $_ } | ForEach-Object { $_.FullName }
     })
     if ($Fixture.Count -eq 0) {
         throw ("HUSHGRAM_FIXTURE_DIR ($fixtureDir) holds no fixture of " +

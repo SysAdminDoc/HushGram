@@ -2877,7 +2877,9 @@ try {
     # patches under -f to see what still applies on it.
     foreach ($build in @($declaredBuild, $newerBuild)) {
         $versionCode = if ($build -eq $newerBuild) { 399000001 } else { [long]$declaredCode }
-        $apkm = Join-Path $fixtures "instagram-$build-arm64-v8a.apkm"
+        # Named instagram-<version>-<code> like the real fixtures, since a folder search takes a
+        # pinned version's file by its code.
+        $apkm = Join-Path $fixtures "instagram-$build-$versionCode-arm64-v8a.apkm"
         New-TestBundleArchive -Path $apkm -Entries ([ordered]@{
             'info.json' = "{`"versioncode`":`"$versionCode`"}"
             'base.apk' = Get-FixtureManifest -Build $build -Code "$versionCode"
@@ -2900,7 +2902,8 @@ try {
     # Instagram release: the declared name at a code the catalog doesn't pin. Only its base
     # manifest, since the builder has to refuse it before anything is merged or patched.
     $variantCode = [long]$declaredCode - 61
-    $variantApkm = Join-Path $fixtures "instagram-$declaredBuild-variant-arm64-v8a.apkm"
+    # Its lower code sorts it ahead of the declared build's file.
+    $variantApkm = Join-Path $fixtures "instagram-$declaredBuild-$variantCode-arm64-v8a.apkm"
     New-TestBundleArchive -Path $variantApkm -Entries ([ordered]@{
         'info.json' = "{`"versioncode`":`"$variantCode`"}"
         'base.apk' = Get-FixtureManifest -Build $declaredBuild -Code "$variantCode" })
