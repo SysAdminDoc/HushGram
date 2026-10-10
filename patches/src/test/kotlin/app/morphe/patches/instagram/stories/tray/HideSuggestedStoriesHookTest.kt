@@ -55,9 +55,46 @@ class HideSuggestedStoriesHookTest {
     fun theTrayRowIsGuarded() {
         val context = PatchContexts.of(listOf(trayRows()))
 
-        context.guardTrayRow(context.findTrayRowBuild())
+        context.guardTray(context.findTrayRowBuild())
 
         assertGuardedFirst("stand-in", context.mutableClassDefBy(ROWS).methods.single { it.name == "buildRowViewTypes" })
+    }
+
+    /** The floating tray's show asks the extension first, and on a yes returns before moving the tray over the feed (#88). */
+    @Test
+    fun theFloatingTrayIsGuarded() {
+        val context = PatchContexts.of(listOf(floatingTray()))
+
+        context.guardTray(context.findFloatingTrayShow())
+
+        assertGuardedFirst("stand-in", context.mutableClassDefBy(FLOATING).methods.single { it.name == "A0V" })
+    }
+
+    @Test
+    fun twoFloatingTrayShowsFailThePatch() {
+        val context = PatchContexts.of(listOf(floatingTray(), floatingTray(type = "Lfixture/OtherFloatingTray;")))
+        assertThrows(PatchException::class.java) { context.findFloatingTrayShow() }
+    }
+
+    /** A show that's static, takes something else or answers something is an update the patch hasn't seen. */
+    @Test
+    fun aFloatingTrayShowOfAnotherShapeFailsThePatch() {
+        val shapes = mapOf(
+            "static" to floatingTray(static = true),
+            "parameters" to floatingTray(parameters = listOf("Landroid/view/View;", "Ljava/lang/String;", "I")),
+            "answer" to floatingTray(returns = "Z"),
+        )
+        for ((what, shape) in shapes) {
+            val context = PatchContexts.of(listOf(shape))
+            assertThrows(what, PatchException::class.java) { context.findFloatingTrayShow() }
+        }
+    }
+
+    @Test
+    fun aFloatingTrayShowWithoutARegisterFailsThePatch() {
+        val context = PatchContexts.of(listOf(floatingTray(registers = 5)))
+        val failure = assertThrows(PatchException::class.java) { context.findFloatingTrayShow() }
+        assertTrue(failure.message, failure.message!!.contains("no register of its own"))
     }
 
     @Test
@@ -140,8 +177,9 @@ class HideSuggestedStoriesHookTest {
     }
 
     /**
-     * In each declared build the tray's row build and its item read are found, and after the patch
-     * both go through the extension. On 449 that's LX/01gX and LX/03vx.
+     * In each declared build the tray's row build, its floating show and its item read are found,
+     * and after the patch all three go through the extension. On 449 that's LX/01gX, LX/01wK and
+     * LX/03vx.
      */
     @Test
     fun eachDeclaredBuildGuardsTheTrayAndFiltersItsItems() {
@@ -153,22 +191,28 @@ class HideSuggestedStoriesHookTest {
                 FixtureDex.forEach(bundle) { dex ->
                     for (classDef in dex.classes) {
                         val keep = classDef.superclass == "Ljava/lang/Enum;" || TRAY_ITEM_INTF in classDef.interfaces ||
-                            classDef.methods.any { it.name == "parseFromJsonParser" || it.holds(TRAY_ROWS) || it.holds(TRAY_REMAINING) }
+                            classDef.methods.any {
+                                it.name == "parseFromJsonParser" || it.holds(TRAY_ROWS) || it.holds(TRAY_REMAINING) || it.holds(FLOATING_TRAY)
+                            }
                         if (keep) holders += ImmutableClassDef.of(classDef)
                     }
                 }
                 val context = PatchContexts.of(holders)
 
                 val rows = context.findTrayRowBuild()
+                val floating = context.findFloatingTrayShow()
                 val parse = context.findTrayItemParse()
                 val remaining = context.findTrayRemaining(parse.site)
-                context.guardTrayRow(rows)
+                context.guardTray(rows)
+                context.guardTray(floating)
                 context.hookTrayParser(parse, remaining)
 
-                assertGuardedFirst(
-                    "${bundle.name} ${rows.type}",
-                    context.mutableClassDefBy(rows.type).methods.single { it.name == rows.name && it.parameterTypes.map(CharSequence::toString) == rows.parameters },
-                )
+                for (site in listOf(rows, floating)) {
+                    assertGuardedFirst(
+                        "${bundle.name} ${site.type}",
+                        context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters },
+                    )
+                }
                 val parser = context.mutableClassDefBy(parse.site.type).methods.single { it.name == "unsafeParseFromJson" && it.parameterTypes.size == 1 }
                 assertFilteredBeforeTheTest("${bundle.name} ${parse.site.type}", parser)
                 assertTrimmedAfterTheRead("${bundle.name} ${parse.site.type}", parser)
@@ -225,6 +269,7 @@ class HideSuggestedStoriesHookTest {
 
     private companion object {
         const val ROWS = "Lfixture/StoryTrayRows;"
+        const val FLOATING = "Lfixture/FloatingTray;"
         const val BUILDER = "Lfixture/RowBuilder;"
         const val TRAY = "Lfixture/TrayResponseParser;"
         const val PARSER = "Lfixture/ReelItemParser;"
@@ -257,6 +302,32 @@ class HideSuggestedStoriesHookTest {
                 type,
                 listOf(ImmutableMethod(type, "buildRowViewTypes", parameters, "V", INSTANCE, null, null, ImmutableMethodImplementation(6, code, null, null))),
             )
+        }
+
+        /**
+         * Shaped like 450's floating tray show: why it's shown, the overlay's tag and the reason it
+         * logs when there's no overlay, in an instance method taking the screen, the tray, a reason
+         * and a number.
+         */
+        fun floatingTray(
+            type: String = FLOATING,
+            static: Boolean = false,
+            parameters: List<String> = listOf("Landroid/view/View;", "Landroid/view/View;", "Ljava/lang/String;", "I"),
+            returns: String = "V",
+            registers: Int = 9,
+        ): ClassDef {
+            val code = listOf<Instruction>(
+                string(0, "dropdown"),
+                string(0, FLOATING_TRAY),
+                string(0, FLOATING_TRAY_FAILED),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )
+            val flags = if (static) INSTANCE or AccessFlags.STATIC.value else INSTANCE
+            val show = ImmutableMethod(
+                type, "A0V", parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                ImmutableMethodImplementation(registers, code, null, null),
+            )
+            return classOf(type, listOf(show))
         }
 
         /**

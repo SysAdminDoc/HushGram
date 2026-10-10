@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -35,6 +36,16 @@ private const val ARRAY_LIST = "Ljava/util/ArrayList;"
 
 /** The trace name only the method adding Home's story tray row holds. */
 internal const val TRAY_ROWS = "MainFeedStoryTrayBinderGroup.buildRowViewTypes"
+
+/**
+ * The tag of the overlay the floating tray helper moves the tray into, and the reason it logs when
+ * that overlay is missing. Only its show method holds both.
+ */
+internal const val FLOATING_TRAY = "floating_tray_overlay_container"
+internal const val FLOATING_TRAY_FAILED = "show_tray_fail_reason"
+
+/** The floating tray show's parameters: the screen, the tray, why it's shown and a number. */
+private val FLOATING_TRAY_SHOW = listOf("Landroid/view/View;", "Landroid/view/View;", "Ljava/lang/String;", "I")
 
 /** Keys only the stories tray response's parser holds together; [TRAY_ITEMS] is the list of tray items. */
 internal const val TRAY_ITEMS = "tray"
@@ -67,7 +78,8 @@ val hideSuggestedStoriesPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storiesTray")
-        guardTrayRow(findTrayRowBuild())
+        guardTray(findTrayRowBuild())
+        guardTray(findFloatingTrayShow())
         val parse = findTrayItemParse()
         hookTrayParser(parse, findTrayRemaining(parse.site))
         enableStatus("storiesTray")
@@ -104,8 +116,36 @@ internal fun BytecodePatchContext.findTrayRowBuild(): MethodSite {
     return MethodSite(type, method.name, method.parameterTypes.map(CharSequence::toString))
 }
 
-/** Asks [HIDE_TRAY] first thing in the row build, and on a yes returns before any row is added. */
-internal fun BytecodePatchContext.guardTrayRow(site: MethodSite) {
+/**
+ * Finds the one method holding [FLOATING_TRAY] and [FLOATING_TRAY_FAILED]: the floating tray
+ * helper's show. Coming back to Home mid-feed (from a story opened in DMs, say) or scrolling up
+ * quickly, Instagram moves the tray into an overlay above the feed until it scrolls away, without
+ * building its row again (#88). Fails when there isn't exactly one, it isn't an instance method
+ * taking two views, a reason and a number, or it has no register of its own.
+ */
+internal fun BytecodePatchContext.findFloatingTrayShow(): MethodSite {
+    val found = mutableListOf<Pair<String, Method>>()
+    val holders = classesHolding(FLOATING_TRAY, FLOATING_TRAY_FAILED).mapTo(HashSet()) { it.type }
+    classDefForEach { classDef ->
+        if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        classDef.methods.forEach { method ->
+            val strings = method.strings()
+            if (FLOATING_TRAY in strings && FLOATING_TRAY_FAILED in strings) found += classDef.type to method
+        }
+    }
+    val (type, method) = found.singleOrNull()
+        ?: refuse("expected one method holding $FLOATING_TRAY and $FLOATING_TRAY_FAILED, found ${found.size}")
+    val where = "$type->${method.name}"
+    val parameters = method.parameterTypes.map(CharSequence::toString)
+    if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "V" || parameters != FLOATING_TRAY_SHOW) {
+        refuse("$where isn't a floating tray show taking two views, a reason and a number")
+    }
+    if (method.implementation!!.registerCount <= parameters.size + 1) refuse("$where has no register of its own")
+    return MethodSite(type, method.name, parameters)
+}
+
+/** Asks [HIDE_TRAY] first thing in the method at [site], and on a yes returns before it shows the tray. */
+internal fun BytecodePatchContext.guardTray(site: MethodSite) {
     mutableMethod(site).addInstructions(
         0,
         """

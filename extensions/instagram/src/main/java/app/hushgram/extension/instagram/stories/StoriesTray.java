@@ -24,7 +24,9 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *
  * <p>The row of stories at the top of Home is one row of Home's list, added by its story tray
  * binder group. The patch asks {@link #hideTray} as that group adds its row, and while Hide the
- * Stories tray is on the group adds none.
+ * Stories tray is on the group adds none. Coming back to Home mid-feed, from a story opened in DMs
+ * say, Instagram can also move the tray into an overlay above the feed without building the row
+ * again (#88), so the patch asks {@link #hideTray} there too and the overlay stays empty.
  *
  * <p>The tray's items come from its own request, each marked with a reel type, and a story from an
  * account you don't follow is a suggested one. The patch passes each item the tray's parser reads
@@ -74,9 +76,10 @@ public final class StoriesTray {
     }
 
     /**
-     * Injected first thing where Home's story tray adds its row. Answers true, and the tray adds
-     * nothing, while Hide the Stories tray is on, and false otherwise, or when anything goes wrong.
-     * Never throws, and never waits for the settings: before they're ready the tray stays.
+     * Injected first thing where Home's story tray adds its row and where Instagram floats the tray
+     * over the feed. Answers true, and the tray stays out, while Hide the Stories tray is on, and
+     * false otherwise, or when anything goes wrong. Never throws, and never waits for the settings:
+     * before they're ready the tray stays.
      */
     public static boolean hideTray() {
         try {

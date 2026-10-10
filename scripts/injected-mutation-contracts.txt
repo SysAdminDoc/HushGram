@@ -569,13 +569,17 @@ once-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->screen([Ljava/la
 once-call Lapp/hushgram/extension/instagram/feed/FullResolution;->photo(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Lcom/instagram/feed/media/Media;)L*; holding instagram.features.feed.ui.rows.image.FeedImageUseCase#getImageSource()\sCould\snot\sgenerate\simageUrl\sfor\smediaId=\s
 #
 # Hide suggested stories asks hideTray() first thing in Home's story tray row build, the one method
-# holding "MainFeedStoryTrayBinderGroup.buildRowViewTypes", and nowhere else. It passes each item
-# the stories tray response's parser reads through filter() once, in the one unsafeParseFromJson
-# holding "tray", "story_ranking_token" and "remaining_reel_ids_to_fetch", and the ids of the reels
-# that parser reads under "remaining_reel_ids_to_fetch" through remaining() once, so Stop loading
-# stories empties both.
+# holding "MainFeedStoryTrayBinderGroup.buildRowViewTypes", and in the floating tray helper's show,
+# the one method holding "floating_tray_overlay_container" and "show_tray_fail_reason", which moves
+# the tray over the feed on a return to Home without building its row (#88). Two methods share the
+# guard, so shared-call. It passes each item the stories tray response's parser reads through
+# filter() once, in the one unsafeParseFromJson holding "tray", "story_ranking_token" and
+# "remaining_reel_ids_to_fetch", and the ids of the reels that parser reads under
+# "remaining_reel_ids_to_fetch" through remaining() once, so Stop loading stories empties both.
 start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
-once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
+shared-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (L*;Ljava/lang/Object;Ljava/lang/Object;)V holding MainFeedStoryTrayBinderGroup.buildRowViewTypes
+start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V holding floating_tray_overlay_container show_tray_fail_reason
+shared-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V holding floating_tray_overlay_container show_tray_fail_reason
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 #

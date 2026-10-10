@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** With Hide the Stories tray on, the tray could still show up at the top of Home for a few seconds after you watched a story you opened in DMs. When you come back to Home partway down the feed, Instagram floats a copy of the tray over it, and that copy now stays hidden too. Reported in #88.
+
 * **Instagram:** Disable analytics is stricter about which saved address it treats as the crash reporter's. It only follows the address when it's saved right after it's built, so a later Instagram build that saves something else there won't have that value changed. Both places Instagram 450 saves it still qualify.
 
 * **Tooling:** Hide ads has tests of its own. One checks that only an on switch with HushGram ready and not paused hides an ad. The other checks that each supported Instagram build has exactly one place where ads go into a feed, and that HushGram's check is the first thing that runs there.
