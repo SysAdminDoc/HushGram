@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Pure black dark mode now reaches the comments sheet, which stayed gray because Instagram paints every bottom sheet's background itself. With the patch on and Instagram in dark mode, the comments sheet is black behind the comments and keeps its rounded top edge. Other sheets, menus and light mode are as they were. Refs #108.
+
 * **Instagram:** Hide the Reels tab has a second switch, Show the Reels tab, that starts off. With it on, if Instagram built your tab bar without Reels, the tab is put back right after Home and opens Reels. If Hide the Reels tab is on too, Hide wins. Restart Instagram to see the change. Asked for in #120.
 
 * **Instagram:** Clean up Reels has a fifth switch, Hide the comment bar on all reels, that starts off. With it on, the Add a comment bar is gone from every reel, including the ones in the Reels tab, and the comment button still opens the comments. Asked for in #119.

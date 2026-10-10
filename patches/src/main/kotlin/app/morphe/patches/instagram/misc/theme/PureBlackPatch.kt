@@ -176,6 +176,8 @@ val pureBlackPatch = bytecodePatch(
         if (missing.isNotEmpty()) {
             throw PatchException("$PATCH: ${missing.joinToString()} no longer load #%08x".format(PRISM_BLACK))
         }
+        // The comments sheet's gray is its host's own background, not a theme color (#108).
+        blackenCommentsSheet(findBottomSheetHooks())
         enableStatus("pureBlack")
     }
 }
