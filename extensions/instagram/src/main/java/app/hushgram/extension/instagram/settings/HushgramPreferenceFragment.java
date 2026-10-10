@@ -443,6 +443,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_CAROUSELS, L10n.t("Hide carousels"),
                         L10n.t("Removes every post with more than one photo or video from Home, even from accounts "
                                 + "you follow. Pull down on Home to refresh after changing it.")));
+                feed.addPreference(toggle(context, Settings.HIDE_FEED_LIKED, L10n.t("Hide posts you've liked"),
+                        L10n.t("Removes posts you've already liked from Home and Following. A post you like now "
+                                + "stays until you pull down on Home to refresh.")));
             }
         }
         if (homeFeed) {

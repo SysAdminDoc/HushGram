@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Hide suggested posts has a new switch under Feed, Hide posts you've liked, right after Hide carousels. It starts off. Turn it on and every post you've already liked leaves Home and its Following feed, going by what Instagram says about each post as it loads. A post you like while you scroll stays put until you pull down to refresh. Diagnostics counts how many it took out, and Hide videos, Hide photos and Hide carousels now get their own counts there too.
+
 * **Instagram:** New patch, Show hidden like counts. When someone hides the like count on a post or reel, Instagram can still get the number with it and just doesn't draw it. Turn on the switch, Show like counts the poster hid, under Feed, and the like row shows the number whenever Instagram's server sent it. If it didn't, nothing changes, so no count is ever made up. Diagnostics says how many of those posts came with their count and how many came without. It's in the default selection with its switch off.
 
 * **Instagram:** HushGram settings end with a new row, Support HushGram. Tap it and my Ko-fi page opens in your browser. It also turns up if you search for coffee or Ko-fi.

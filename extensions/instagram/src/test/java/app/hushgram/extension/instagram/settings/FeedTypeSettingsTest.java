@@ -26,15 +26,15 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Hide videos, Hide photos and Hide carousels: in Feed with Hide suggested posts, off to start, and off while paused. */
+/** Hide videos, Hide photos, Hide carousels and Hide posts you've liked: in Feed with Hide suggested posts, off to start, and off while paused. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
 public class FeedTypeSettingsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
     private static final BooleanSetting[] SWITCHES =
-            {Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS};
-    private static final String[] TITLES = {"Hide videos", "Hide photos", "Hide carousels"};
+            {Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED};
+    private static final String[] TITLES = {"Hide videos", "Hide photos", "Hide carousels", "Hide posts you've liked"};
     private ActivityController<Activity> controller;
     private HushgramPreferenceFragment page;
 
@@ -96,7 +96,8 @@ public class FeedTypeSettingsTest {
         for (BooleanSetting setting : SWITCHES) assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false);
         assertTrue(report.toString(), report.contains(
-                "  Hide videos, Hide photos and Hide carousels: not in this build (Home's feed or a post's type didn't match)"));
+                "  Hide videos, Hide photos, Hide carousels and Hide posts you've liked: not in this build "
+                        + "(Home's feed or a post's type didn't match)"));
     }
     @Test public void aBuildFilteringByTypeReportsNothingMissing() throws Exception {
         open(true);

@@ -389,6 +389,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_CAROUSELS =
             new BooleanSetting("hushgram_hide_feed_carousels", FALSE);
 
+    /** Posts in Home you've already liked, by the post's has_liked. Off until enabled. */
+    public static final BooleanSetting HIDE_FEED_LIKED =
+            new BooleanSetting("hushgram_hide_feed_liked", FALSE);
+
     /**
      * Every post in Home's feed, on purpose, leaving the stories row
      * ({@link app.hushgram.extension.instagram.feed.HomeFeed}). Read as each page arrives, so a

@@ -365,6 +365,16 @@ tasks.register("verifyAndroidBoundaries") {
                 "hiddenLikesAloneStillGetsFeed[28]", "hiddenLikesAloneStillGetsFeed[37]",
                 "hiddenLikesSwitchStartsOffLastUnderFeedAndHonorsPause[28]",
                 "hiddenLikesSwitchStartsOffLastUnderFeedAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.feed.HomeLikedPostsTest" to listOf(
+                "theSwitchStartsOffAndOffReadsNothing[28]", "theSwitchStartsOffAndOffReadsNothing[37]",
+                "onTakesOutOnlyLikedPosts[28]", "onTakesOutOnlyLikedPosts[37]",
+                "besideATypeSwitchEachTakesOutItsOwn[28]", "besideATypeSwitchEachTakesOutItsOwn[37]",
+                "pausedAndUnreadyKeepEveryPost[28]", "pausedAndUnreadyKeepEveryPost[37]",
+                "aThrowingReadKeepsThePostAndIsReported[28]", "aThrowingReadKeepsThePostAndIsReported[37]",
+                "asBuiltNoPostIsLiked[28]", "asBuiltNoPostIsLiked[37]",
+                "aHomeEmptiedOfLikedPostsEndsUntilTheSwitchGoesOff[28]",
+                "aHomeEmptiedOfLikedPostsEndsUntilTheSwitchGoesOff[37]",
+                "theReportCountsEachFilter[28]", "theReportCountsEachFilter[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

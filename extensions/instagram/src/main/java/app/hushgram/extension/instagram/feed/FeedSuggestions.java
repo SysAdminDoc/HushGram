@@ -38,9 +38,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *
  * <p>Explore's grid doesn't go through that helper (S22, Instagram 449), so it keeps its posts.
  *
- * <p>Hide videos, Hide photos and Hide carousels filter by the post an item carries, whoever posted
- * it, so they sit on Home's own reads ({@link #homeItem}) rather than that helper, which Explore's
- * chain of posts and the shop and ad feeds read through too.
+ * <p>Hide videos, Hide photos, Hide carousels and Hide posts you've liked filter by the post an item
+ * carries, whoever posted it, so they sit on Home's own reads ({@link #homeItem}) rather than that
+ * helper, which Explore's chain of posts and the shop and ad feeds read through too. Following is a
+ * feed of Home's, paged through the same response parser, so it loses the same posts.
  */
 public final class FeedSuggestions {
     /**
@@ -95,6 +96,12 @@ public final class FeedSuggestions {
 
     /** The counted kind of a post whose type isn't one of the three, or an item with no post. */
     static final String OTHER_TYPE = "other type";
+
+    /** Why a post you've liked was taken out, on {@link #TYPES_ROUTE}. */
+    static final String LIKED = "liked";
+
+    /** The report's count of posts Hide posts you've liked took out of Home. */
+    static final String LIKED_REMOVED = "liked posts removed";
 
     /** Set once {@link #filter} has taken an item out of the home feed in this run. Tests clear it. */
     static volatile boolean tookOut;
@@ -180,12 +187,17 @@ public final class FeedSuggestions {
         try {
             if (!Utils.settingsReady()) return noMorePages;
             if (tookOut && suggestionSwitchOn() && suggestionsEmptiedHome(feed)) return 1;
-            return typesTookOut && (Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
-                    || Settings.HIDE_FEED_CAROUSELS.get()) ? 1 : noMorePages;
+            return typesTookOut && postSwitchOn() ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
         }
+    }
+
+    /** Whether any switch {@link #homeItem} takes posts out for is on. */
+    private static boolean postSwitchOn() {
+        return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
+                || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -358,16 +370,21 @@ public final class FeedSuggestions {
     /**
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
-     * of one video, one photo or a carousel while that type's switch is on, and [item] itself
-     * otherwise, or when anything goes wrong. An item with no post, a row of suggested accounts for
-     * one, stays. Inside a page of Home's feed response it also counts the item toward that page,
-     * and whether it was lost to {@link #filter}, for {@link #homePageParsed}. Never throws.
+     * of one video, one photo or a carousel while that type's switch is on, or a post you've liked
+     * while Hide posts you've liked is on, and [item] itself otherwise, or when anything goes wrong.
+     * An item with no post, a row of suggested accounts for one, stays. Inside a page of Home's feed
+     * response it also counts the item toward that page, and whether it was lost to
+     * {@link #filter}, for {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
-        return homeItem(item, FeedSuggestions::mediaType);
+        return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
+        return homeItem(item, typeOf, FeedSuggestions::liked);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -376,7 +393,8 @@ public final class FeedSuggestions {
             if (lost) page[1]++;
         }
         if (item == null) return null;
-        return byType(item, typeOf);
+        if (byType(item, typeOf) == null) return null;
+        return byLiked(item, likedOf);
     }
 
     /** [item], or null while the switch for its post's type is on. */
@@ -393,6 +411,7 @@ public final class FeedSuggestions {
             boolean hide = type == VIDEO ? videos : type == PHOTO ? photos : type == CAROUSEL && carousels;
             if (!hide) return item;
             FeedFilterCounters.removed(TYPES_ROUTE, 1, kind);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, kind + " posts removed");
             typesTookOut = true;
             Logger.printDebug(() -> "Feed suggestions: took a " + kind + " out of Home");
             return null;
@@ -403,11 +422,39 @@ public final class FeedSuggestions {
     }
 
     /**
+     * [item], or null while Hide posts you've liked is on and its post says you've liked it. A post
+     * that doesn't say, or an item with no post, stays.
+     */
+    private static Object byLiked(Object item, ToIntFunction<Object> likedOf) {
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_FEED_LIKED.get()) return item;
+            if (likedOf.applyAsInt(item) != 1) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, LIKED);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, LIKED_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post you've liked out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "liked post", failure);
+            return item;
+        }
+    }
+
+    /**
      * The media_type of the post a feed item carries: 1 for one photo, 2 for one video, 8 for a
      * carousel, and 0 when it carries none or the post doesn't say. The patch writes the body, which
      * reads the item's post field and the post's media_type.
      */
     public static int mediaType(Object item) {
+        return 0;
+    }
+
+    /**
+     * Whether you've liked the post a feed item carries: 1 when its has_liked says so, and 0 when it
+     * says not, doesn't say or the item carries no post. The patch writes the body, which reads the
+     * item's post field and the post's has_liked.
+     */
+    public static int liked(Object item) {
         return 0;
     }
 

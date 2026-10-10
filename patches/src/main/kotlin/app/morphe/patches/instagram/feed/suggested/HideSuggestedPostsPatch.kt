@@ -62,8 +62,8 @@ val hideSuggestedPostsPatch = bytecodePatch(
     name = "Hide suggested posts",
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
-        "Posts from accounts you follow stay. Extra switches can also hide all videos, photos or carousels. On by " +
-        "default. Turn it off in HushGram settings > Feed.",
+        "Posts from accounts you follow stay. Extra switches can also hide all videos, photos, carousels or posts " +
+        "you've liked. On by default. Turn it off in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)
@@ -101,21 +101,35 @@ internal const val HOME_PAGE_STARTS = "$FEED_SUGGESTIONS->homePageStarts()V"
 internal const val HOME_PAGE_PARSED = "$FEED_SUGGESTIONS->homePageParsed()V"
 
 /**
- * Hide videos, Hide photos and Hide carousels, found: Home's reads, the feed item's post field, the
- * post's media_type getter and the extension's stub reading them. [write] passes each item Home
- * reads through FeedSuggestions.homeItem and fills the stub. It also marks each page of Home's feed
- * response, so FeedSuggestions can tell a page of Home's own that the suggestion switches emptied
- * from Home's store and other feeds (#105, #28).
+ * Hide videos, Hide photos, Hide carousels and Hide posts you've liked, found: Home's reads, the
+ * feed item's post field, the post's media_type and has_liked getters and the extension's stubs
+ * reading them. [write] passes each item Home reads through FeedSuggestions.homeItem and fills the
+ * stubs. It also marks each page of Home's feed response, so FeedSuggestions can tell a page of
+ * Home's own that the suggestion switches emptied from Home's store and other feeds (#105, #28).
  */
 internal class HomeFeedTypes(
     private val reads: HomeFeedReads,
     private val post: FieldReference,
     private val mediaType: Method,
     private val stub: MutableMethod,
+    private val hasLiked: Method,
+    private val likedStub: MutableMethod,
 ) {
     fun write(): Int {
-        // Each way out returns on its own, so p0 never merges an object and an int at one return.
-        stub.addInstructionsWithLabels(
+        fillIntStub(stub, mediaType, "Ljava/lang/Integer;->intValue()I")
+        fillIntStub(likedStub, hasLiked, "Ljava/lang/Boolean;->booleanValue()Z")
+        val filtered = reads.filterWith(HOME_TYPES_FILTER)
+        reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED)
+        return filtered
+    }
+
+    /**
+     * Fills [target], a static (Object)I stub, to read the item's post and answer [getter]'s boxed
+     * value through [unbox], or 0 when the item has no post or the post doesn't say. Each way out
+     * returns on its own, so p0 never merges an object and an int at one return.
+     */
+    private fun fillIntStub(target: MutableMethod, getter: Method, unbox: String) {
+        target.addInstructionsWithLabels(
             0,
             """
                 check-cast p0, ${reads.itemType}
@@ -124,20 +138,17 @@ internal class HomeFeedTypes(
                 const/4 p0, 0x0
                 return p0
                 :post
-                invoke-virtual { p0 }, $MEDIA->${mediaType.name}()${mediaType.returnType}
+                invoke-virtual { p0 }, $MEDIA->${getter.name}()${getter.returnType}
                 move-result-object p0
-                if-nez p0, :typed
+                if-nez p0, :boxed
                 const/4 p0, 0x0
                 return p0
-                :typed
-                invoke-virtual { p0 }, Ljava/lang/Integer;->intValue()I
+                :boxed
+                invoke-virtual { p0 }, $unbox
                 move-result p0
                 return p0
             """,
         )
-        val filtered = reads.filterWith(HOME_TYPES_FILTER)
-        reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED)
-        return filtered
     }
 }
 
@@ -149,19 +160,34 @@ internal class HomeFeedTypes(
 internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
     val reads = findHomeFeedReads(PATCH)
     if (reads.pageReturns() == 0) throw PatchException("$PATCH: Home's feed response parser never returns")
-    val stub = mutableClassDefBy(FEED_SUGGESTIONS).methods.singleOrNull {
-        it.name == "mediaType" && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "I" &&
-            it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
-    } ?: throw PatchException("$PATCH: $FEED_SUGGESTIONS has no static mediaType(Object)I")
+    val stub = intStub("mediaType")
+    val likedStub = intStub("liked")
     val post = itemPost(reads.itemType)
-    val mediaType = pandoGetter(PATCH, MEDIA, "media_type", "Ljava/lang/Integer;")
-    if (!AccessFlags.PUBLIC.isSet(classDefBy(MEDIA).accessFlags) || !AccessFlags.PUBLIC.isSet(mediaType.accessFlags)) {
-        throw PatchException("$PATCH: $MEDIA->${mediaType.name} isn't public, so the extension can't reach it")
-    }
-    HomeFeedTypes(reads, post, mediaType, stub)
+    val mediaType = publicMediaGetter("media_type", "Ljava/lang/Integer;")
+    val hasLiked = publicMediaGetter("has_liked", "Ljava/lang/Boolean;")
+    HomeFeedTypes(reads, post, mediaType, stub, hasLiked, likedStub)
 } catch (moved: PatchException) {
-    patchLog.warning("${moved.message}. Hide suggested posts goes in without Hide videos, Hide photos and Hide carousels.")
+    patchLog.warning(
+        "${moved.message}. Hide suggested posts goes in without Hide videos, Hide photos, Hide carousels and " +
+            "Hide posts you've liked.",
+    )
     null
+}
+
+/** FeedSuggestions' static (Object)I stub [name], which the patch fills. */
+private fun BytecodePatchContext.intStub(name: String): MutableMethod =
+    mutableClassDefBy(FEED_SUGGESTIONS).methods.singleOrNull {
+        it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "I" &&
+            it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
+    } ?: throw PatchException("$PATCH: $FEED_SUGGESTIONS has no static $name(Object)I")
+
+/** Media's getter for [field], which the extension calls, so it and Media have to be public. */
+private fun BytecodePatchContext.publicMediaGetter(field: String, returns: String): Method {
+    val getter = pandoGetter(PATCH, MEDIA, field, returns)
+    if (!AccessFlags.PUBLIC.isSet(classDefBy(MEDIA).accessFlags) || !AccessFlags.PUBLIC.isSet(getter.accessFlags)) {
+        throw PatchException("$PATCH: $MEDIA->${getter.name} isn't public, so the extension can't reach it")
+    }
+    return getter
 }
 
 /**

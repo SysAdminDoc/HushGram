@@ -64,6 +64,7 @@ class HomeFeedTypesHookTest {
     private val chain = "Lfixture/ExploreChainResponse;"
     private val helper = ImmutableMethodReference(FeedItemStandIns.ITEM, "A02", listOf(json), FeedItemStandIns.ITEM)
     private val mediaType = "$FEED_SUGGESTIONS->mediaType(Ljava/lang/Object;)I"
+    private val liked = "$FEED_SUGGESTIONS->liked(Ljava/lang/Object;)I"
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, vararg code: Instruction) =
         ImmutableMethod(
@@ -89,12 +90,22 @@ class HomeFeedTypesHookTest {
         )
 
     /** A getter of Media answering an Integer and holding the hash of [field]. */
-    private fun integerGetter(name: String, field: String) =
-        method(
-            MEDIA, name, emptyList(), "Ljava/lang/Integer;", 1,
-            ImmutableInstruction31i(Opcode.CONST, 0, field.hashCode()),
-            ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+    private fun integerGetter(name: String, field: String) = mediaGetter(name, field, "Ljava/lang/Integer;")
+
+    /** A getter of Media answering [returns] and holding the hash of [field]. */
+    private fun mediaGetter(name: String, field: String, returns: String, flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
+        ImmutableMethod(
+            MEDIA, name, emptyList(), returns, flags, null, null,
+            ImmutableMethodImplementation(
+                1,
+                listOf(ImmutableInstruction31i(Opcode.CONST, 0, field.hashCode()), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)),
+                null, null,
+            ),
         )
+
+    /** Media's has_liked getter, as 438 names it. */
+    private fun likedGetter(flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
+        mediaGetter("A41", "has_liked", "Ljava/lang/Boolean;", flags)
 
     /**
      * Home's response with a second return, for a response it can't read, that a branch lands on
@@ -132,7 +143,7 @@ class HomeFeedTypesHookTest {
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(store)),
                 ImmutableInstruction10x(Opcode.RETURN_VOID))),
             reader(chain, "unsafeParseFromJson", json, "Ljava/lang/Object;", "chain_pagination_token", "more_available"),
-            type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type")),
+            type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), likedGetter()),
             ExtensionDex.classDef(FEED_SUGGESTIONS),
         )
 
@@ -141,7 +152,7 @@ class HomeFeedTypesHookTest {
         val declared = ExtensionDex.classDef(FEED_SUGGESTIONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$FEED_SUGGESTIONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(HOME_TYPES_FILTER, mediaType, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(HOME_TYPES_FILTER, mediaType, liked, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     /**
@@ -270,6 +281,36 @@ class HomeFeedTypesHookTest {
         assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
     }
 
+    /**
+     * Hide posts you've liked's stub reads the same post field and answers the post's has_liked,
+     * unboxed, through the Boolean getter holding its hash, returning 0 on each path with nothing to
+     * read, so a post that doesn't say stays.
+     */
+    @Test
+    fun theLikedStubReadsThePostFieldAndHasLiked() {
+        val context = PatchContexts.of(classes())
+
+        requireNotNull(context.homeFeedTypesOrWarn()).write()
+
+        val code = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "liked" }.instructions()
+        assertEquals(
+            listOf(
+                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
+                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
+                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.RETURN,
+            ),
+            code.take(13).map { it.opcode },
+        )
+        assertEquals(FeedItemStandIns.ITEM, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("A0u", ((code[1] as ReferenceInstruction).reference as FieldReference).name)
+        assertEquals("$MEDIA->A41()Ljava/lang/Boolean;", ((code[5] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("Ljava/lang/Boolean;->booleanValue()Z", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
+        val p0 = (code[0] as OneRegisterInstruction).registerA
+        assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+        val type = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "mediaType" }.instructions()
+        assertEquals("$MEDIA->A6M()Ljava/lang/Integer;", ((type[5] as ReferenceInstruction).reference as MethodReference).toString())
+    }
+
     /** With Hide the home feed in too, each read goes through both filters once, whichever applied first. */
     @Test
     fun besideHideTheHomeFeedEachReadPassesBothFiltersOnce() {
@@ -302,7 +343,10 @@ class HomeFeedTypesHookTest {
         }
     }
 
-    /** A feed item class or a media_type getter the extension can't reach leaves the switches out and every class as it was. */
+    /**
+     * A feed item class, a media_type getter or a has_liked getter the extension can't reach, or a
+     * has_liked getter that can't be told, leaves the switches out and every class as it was.
+     */
     @Test
     fun whatTheExtensionCantReachLeavesEverythingUnchanged() {
         val hiddenGetter = ImmutableMethod(
@@ -313,14 +357,28 @@ class HomeFeedTypesHookTest {
                 null, null,
             ),
         )
-        val privateGetter = classes().map { if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), hiddenGetter) else it }
+        val privateGetter = classes().map { if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), hiddenGetter, likedGetter()) else it }
         val privateItem = classes().map { classDef ->
             if (classDef.type != FeedItemStandIns.ITEM) classDef else ImmutableClassDef(
                 classDef.type, AccessFlags.FINAL.value, classDef.superclass, classDef.interfaces, classDef.sourceFile,
                 classDef.annotations, classDef.fields, classDef.methods,
             )
         }
-        for ((case, built) in listOf("private getter" to privateGetter, "private item" to privateItem)) {
+        val privateLiked = classes().map {
+            if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"),
+                likedGetter(AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)) else it
+        }
+        val noLiked = classes().map {
+            if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type")) else it
+        }
+        val twoLiked = classes().map {
+            if (it.type == MEDIA) type(MEDIA, integerGetter("A6M", "media_type"), likedGetter(),
+                mediaGetter("A42", "has_liked", "Ljava/lang/Boolean;")) else it
+        }
+        for ((case, built) in listOf(
+            "private getter" to privateGetter, "private item" to privateItem, "private has_liked getter" to privateLiked,
+            "no has_liked getter" to noLiked, "two has_liked getters" to twoLiked,
+        )) {
             val context = PatchContexts.of(built)
             val before = built.associate { it.type to it.methods.sumOf { m -> m.instructions().size } }
 
@@ -357,6 +415,33 @@ class HomeFeedTypesHookTest {
                 .map { it.name }
             assertTrue("$name: the parser fills ${post.name} among $filled", post.name in filled)
         }
+    }
+
+    /**
+     * On every build of the declared version, the declared bundle and each other build alike, Media
+     * is public and has exactly one public getter answering media_type as an Integer and one
+     * answering has_liked as a Boolean, the two the stubs call.
+     */
+    @Test
+    fun everyBuildHasThePostGettersTheStubsCall() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        val others = Fixtures.otherBuilds()
+        assertTrue("no fixture of a declared build", bundles.isNotEmpty())
+        assertTrue("other builds of the declared version were not read", others.isNotEmpty())
+        var checked = 0
+        for (bundle in bundles + others) {
+            val where = "${bundle.parentFile.name}/${bundle.name}"
+            val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(MEDIA)).values)
+            assertTrue("$where: Media is public", AccessFlags.PUBLIC.isSet(context.classDefBy(MEDIA).accessFlags))
+            for ((field, returns) in listOf("media_type" to "Ljava/lang/Integer;", "has_liked" to "Ljava/lang/Boolean;")) {
+                val getter = context.pandoGetter("test", MEDIA, field, returns)
+                assertTrue("$where: ${getter.name} for $field is public", AccessFlags.PUBLIC.isSet(getter.accessFlags))
+                assertFalse("$where: ${getter.name} for $field is static", AccessFlags.STATIC.isSet(getter.accessFlags))
+            }
+            checked++
+        }
+        assertEquals("every build was checked", bundles.size + others.size, checked)
     }
 
     /** The extension filters right after each read of the helper in [code], in order. */
