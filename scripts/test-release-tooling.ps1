@@ -2414,10 +2414,9 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
     $patchQuoted = 7
     $indexDocument = [ordered]@{
         created_at = '2026-09-30T12:00:00'
-        description = ("HushGram v$versionHere`: $countHere patches for Instagram $buildHere (com.instagram.android).`n`n" +
-            "Validation: $runtimeQuoted runtime tests passed locally. All $patchQuoted patch tests passed too.`n`n" +
-            "Needs Morphe Manager $floorHere or newer. Patch the arm64-v8a bundle of Instagram $buildHere, build $codeHere. " +
-            "Every one of the $countHere patches applied to it.")
+        description = ("## [$versionHere](https://github.com/$slugHere/compare/v0.0.1...v$versionHere) (2026-09-30)`n`n" +
+            "### Features`n`n* **Instagram:** Every change, one line each.`n`n" +
+            "### Validation`n`nValidation: $runtimeQuoted runtime tests passed locally. All $patchQuoted patch tests passed too.")
         download_url = "https://github.com/$slugHere/releases/download/v$versionHere/patches-$versionHere.mpp"
         signature_download_url = ''
         version = $versionHere
@@ -2444,19 +2443,21 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         @{ File = 'patches-bundle.json'; Case = 'an index publishing another version'; Pattern = "*patches-bundle.json version does not match v$versionHere*"
             Edit = { param($text) $text -replace '"version":\s*"[^"]+"', '"version": "0.0.1"' } },
         @{ File = 'patches-bundle.json'; Case = 'a description counting other patches'; Pattern = '*bundle description patch count*'
-            Edit = { param($text) $text -replace '(?<!\d)\d+ patches\b', '3 patches' } },
-        @{ File = 'patches-bundle.json'; Case = 'a description counting two ways'; Pattern = "*names 3 and $countHere patches, and it has to name one count*"
-            Edit = { param($text) ([regex]'(?<!\d)\d+ patches\b').Replace($text, '3 patches', 1) } },
+            Edit = { param($text) $text.Replace('Validation: ', "It has $($countHere + 1) patches. Validation: ") } },
+        @{ File = 'patches-bundle.json'; Case = 'a description counting two ways'; Pattern = "*names $($countHere + 1) and $($countHere + 2) patches, and it has to name one count*"
+            Edit = { param($text) $text.Replace('Validation: ', "It has $($countHere + 1) patches and $($countHere + 2) patches. Validation: ") } },
         @{ File = 'patches-bundle.json'; Case = 'a description naming another build'; Pattern = '*bundle description target version*'
-            Edit = { param($text) $text.Replace("Instagram $buildHere", 'Instagram 448.0.0.1.1') } },
+            Edit = { param($text) $text.Replace('Validation: ', 'Built for Instagram 448.0.0.1.1. Validation: ') } },
         @{ File = 'patches-bundle.json'; Case = 'an address that is not the release asset'; Pattern = '*patches-bundle.json download URL does not match*'
             Edit = { param($text) $text -replace 'https://github\.com/SysAdminDoc/HushGram/releases/download/[^"]+', 'http://127.0.0.1:1/patches.mpp' } },
         @{ File = 'patches-bundle.json'; Case = 'an address over plain HTTP'; Pattern = '*must use HTTPS*'
             Edit = { param($text) $text.Replace('"https://github.com/', '"http://github.com/') } },
         @{ File = 'patches-bundle.json'; Case = 'an address on another host'; Pattern = '*must be on github.com*'
             Edit = { param($text) $text.Replace('"https://github.com/', '"https://example.com/') } },
-        @{ File = 'patches-bundle.json'; Case = 'a description naming no Manager'; Pattern = '*does not say which Morphe Manager it needs*'
-            Edit = { param($text) $text -replace 'Needs Morphe Manager \S+ or newer\. ', '' } },
+        @{ File = 'patches-bundle.json'; Case = 'a description opening on another version'; Pattern = '*bundle description version heading*'
+            Edit = { param($text) $text -replace '## \[[^\]]+\]', '## [0.0.1]' } },
+        @{ File = 'patches-bundle.json'; Case = 'a description with no version heading'; Pattern = '*bundle description version heading*'
+            Edit = { param($text) $text -replace '## \[[^\]]+\]\([^)]*\) \([^)]*\)', 'HushGram' } },
         @{ File = 'README.md'; Case = 'a README still saying there''s no release'; Pattern = "*README still says there's no release yet*"
             Edit = { param($text) $text + "`nThere's no release yet.`n" } },
         @{ File = 'README.md'; Case = 'a README naming no latest release'; Pattern = '*does not say which release is the latest*'
@@ -3365,9 +3366,9 @@ try {
     $releaseFloor = $releaseToolchain.ManagerFloor
     [System.IO.File]::WriteAllText((Join-Path $releaseRepo 'patches-bundle.json'), ([ordered]@{
             created_at = '2026-09-30T12:00:00'
-            description = ("HushGram v$releaseVersionHere`: $($releaseNames.Count) patches for Instagram $declaredBuild.`n`n" +
-                "Validation: 5 runtime tests passed locally. All 7 patch tests passed too.`n`n" +
-                "Needs Morphe Manager $releaseFloor or newer.")
+            description = ("## [$releaseVersionHere](https://github.com/$slugHere/compare/v0.0.1...v$releaseVersionHere) (2026-09-30)`n`n" +
+                "### Features`n`n* **Instagram:** Every change, one line each.`n`n" +
+                "### Validation`n`nValidation: 5 runtime tests passed locally. All 7 patch tests passed too.")
             download_url = "https://github.com/$slugHere/releases/download/v$releaseVersionHere/patches-$releaseVersionHere.mpp"
             signature_download_url = ''
             version = $releaseVersionHere } | ConvertTo-Json -Depth 4), (New-Object System.Text.UTF8Encoding($false)))
@@ -3495,7 +3496,7 @@ try {
             "*the hosted patches-$releaseVersionHere.mpp matches the bundle built here byte for byte*",
             "*published bundle is pinned to v$releaseVersionHere ($releaseCommit)*",
             "*the published bundle carries $($releaseNames.Count) patches, as described*",
-            "*the index asks for Morphe Manager $releaseFloor or newer, as tag v$releaseVersionHere pins*",
+            "*the index description names no Morphe Manager floor, the README carries it*",
             "*Morphe Manager can read the $releaseVersionHere entry*",
             "*the hosted release-receipt-$releaseVersionHere.json is the receipt checked here, as SHA256SUMS.txt lists it*",
             "*the hosted patches-$releaseVersionHere.cdx.json is the SBOM the receipt names and SHA256SUMS.txt lists*",

@@ -338,19 +338,21 @@ if ($SkipUrlCheck) {
         -FailureHint 'The README sends Android users through that page, so it must be available before release.'
 }
 Require-Match -Text $readme -Pattern "\b$patchCount patches\b" -Description 'README patch count'
+# Manager draws the description as the release's notes, so it opens on the version heading
+# release_notes.py writes: "## [X.Y.Z](compare link) (date)", or "## X.Y.Z (date)" for a first release.
+# The patch count and the Instagram build live in the GitHub description and the README, and a
+# description that names them anyway has to name them right.
+Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
+    -Description 'published bundle description version heading'
 if ($indexLagsSource) {
-    if ($null -eq $publishedFacts.PatchCount -or $null -eq $publishedFacts.TargetVersion) {
-        throw 'The published bundle description does not name its patch count and Instagram target.'
-    }
-    Require-Match -Text ([string]$bundle.description) -Pattern "\bv$([regex]::Escape($publishedVersion))\b" -Description 'published bundle description version'
     $descriptionVersion = "v$publishedVersion"
-    $descriptionPatchCount = $publishedFacts.PatchCount
-    $descriptionTargetVersion = $publishedFacts.TargetVersion
+    if ($null -ne $publishedFacts.PatchCount) { $descriptionPatchCount = $publishedFacts.PatchCount }
+    if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
 } else {
-    if ($publishedFacts.PatchCount -ne $patchCount) {
+    if ($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) {
         throw 'bundle description patch count does not match the generated release facts.'
     }
-    if ($publishedFacts.TargetVersion -ne $targetVersion) {
+    if ($null -ne $publishedFacts.TargetVersion -and $publishedFacts.TargetVersion -ne $targetVersion) {
         throw 'bundle description target version does not match the generated release facts.'
     }
 }
@@ -913,13 +915,15 @@ Require-Match -Text $readme -Pattern "(?m)^\d+\.\s+Install \[Morphe Manager\]\([
 Write-Host "[release] README requires Morphe Manager $managerFloor or newer for patcher $pinnedPatcher"
 
 if ($hasIndex) {
-# The index description names a floor too, and it's what Manager users read before they install.
+# An index description that names a floor is what Manager users read before they install.
 # It describes the published release, which needs the floor that release's own commit pinned, not
 # the one pinned since, so it's held to the catalog at the release tag. Nothing read it before.
 $descriptionFloorMatch = [regex]::Match([string]$bundle.description, '\bMorphe Manager\s+(\d+(?:\.\d+)+)\s+or newer\b')
 if (-not $descriptionFloorMatch.Success) {
-    throw 'The bundle description does not say which Morphe Manager it needs ("Morphe Manager X or newer").'
-}
+    # The notes Manager draws carry no requirements, the README's install steps and badge do (held to
+    # the catalog above). A description that does name a floor is still held to the release's own.
+    Write-Host '[release] the index description names no Morphe Manager floor, the README carries it'
+} else {
 $descriptionFloor = $descriptionFloorMatch.Groups[1].Value
 # The release is found through its tag, and the push that writes a new description usually comes
 # from a clone that doesn't have it yet: `gh release create` makes the tag on GitHub only. The
@@ -942,6 +946,7 @@ if ($null -eq $indexFloor.Floor) {
         "pins $($indexFloor.Floor), so Manager users would be told the wrong version.")
 } else {
     Write-Host "[release] the index asks for Morphe Manager $descriptionFloor or newer, as $($indexFloor.Source) pins"
+}
 }
 }
 
