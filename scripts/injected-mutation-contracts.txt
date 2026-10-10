@@ -441,6 +441,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryTime;->relativeHeader(I
 # no story gets its mentions pill.
 shared-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->bind(Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindMedia
 shared-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->bind(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;L*;)V holding ReelViewerItemBinder.bindMedia
+# The story viewer takes every touch on a story before the header sees it, so a tap on the pill is
+# caught in IgFragmentActivity.dispatchTouchEvent, first or right after Tap to play's TapClock. Left
+# out, the pill shows but tapping it does nothing (#125).
+once-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 # Show a post's exact time puts PostTime.time() in place of Instagram's relative formatter call,
 # on the same registers, wherever a post's or a comment's time is written: twice in the feed post
 # footer's builder (04vZ.A02 on 450), once in the Compose comment header, and twice in the older

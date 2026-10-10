@@ -17,6 +17,8 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Looper;
+import android.os.SystemClock;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -268,6 +270,63 @@ public class StoryMentionsTest {
         assertFalse("the list closes", dialog.isShowing());
     }
 
+    /**
+     * Instagram's story viewer takes every touch on a story before the header sees it (#125), so a
+     * tap on the pill is caught where the activity dispatches it: each of its events is answered as
+     * handled, Instagram never sees them, and the list opens.
+     */
+    @Test
+    public void aTapOnThePillOpensTheListBeforeInstagramSeesIt() {
+        bind(ANA, BO);
+        float[] center = layOut(pill());
+        assertTrue("the finger going down", StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
+        assertTrue("a wobble inside the slop", StoryMentions.touch(activity, event(MotionEvent.ACTION_MOVE, center[0] + 1, center[1])));
+        assertNull("nothing opens before the finger comes up", ShadowDialog.getLatestDialog());
+        assertTrue("the finger coming up", StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0] + 1, center[1])));
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        assertTrue(dialog.isShowing());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(StoryMentions.PILL_TAPPED + " 1"));
+        assertTrue(report, report.contains(StoryMentions.LIST_SHOWN + " 1"));
+        assertTrue(report, report.contains(StoryMentions.PILL_SHOWN + " "));
+        assertFalse("the next touch elsewhere is Instagram's", StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, 1, 1)));
+    }
+
+    /** A touch that doesn't go down on the pill is Instagram's, every event of it. */
+    @Test
+    public void aTouchBesideThePillIsInstagrams() {
+        bind(ANA);
+        float[] center = layOut(pill());
+        float below = center[1] + pill().getHeight() * 2;
+        assertFalse(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], below)));
+        assertFalse("it ends on the pill, but didn't start there", StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
+        assertNull(ShadowDialog.getLatestDialog());
+    }
+
+    /** A finger that goes down on the pill and drags off is no tap: the touch stays HushGram's and nothing opens. */
+    @Test
+    public void aDragFromThePillOpensNothing() {
+        bind(ANA);
+        float[] center = layOut(pill());
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_MOVE, center[0], center[1] + 200)));
+        assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
+        assertNull(ShadowDialog.getLatestDialog());
+    }
+
+    /** A hidden pill, on a story with no mentions, takes no touch. */
+    @Test
+    public void aHiddenPillTakesNoTouch() {
+        bind(ANA);
+        float[] center = layOut(pill());
+        bind();
+        assertEquals(View.GONE, pill().getVisibility());
+        assertFalse(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
+        assertFalse(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
+        assertNull(ShadowDialog.getLatestDialog());
+    }
+
     @Test
     public void aRowShowsTheAccountsPicture() throws Exception {
         List<String> asked = new ArrayList<>();
@@ -311,6 +370,23 @@ public class StoryMentionsTest {
 
     private StoryMentions.Pill pill() {
         return StoryMentions.pillIn(header);
+    }
+
+    /** Lays the screen out at a phone's size and answers [view]'s center in the window. */
+    private float[] layOut(View view) {
+        View decor = activity.getWindow().getDecorView();
+        decor.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(2400, View.MeasureSpec.EXACTLY));
+        decor.layout(0, 0, 1080, 2400);
+        assertTrue("the pill has a size", view.getWidth() > 0 && view.getHeight() > 0);
+        int[] at = new int[2];
+        view.getLocationInWindow(at);
+        return new float[] {at[0] + view.getWidth() / 2f, at[1] + view.getHeight() / 2f};
+    }
+
+    private static MotionEvent event(int action, float x, float y) {
+        long now = SystemClock.uptimeMillis();
+        return MotionEvent.obtain(now, now, action, x, y, 0);
     }
 
     private static View find(View at, Predicate<View> wanted) {

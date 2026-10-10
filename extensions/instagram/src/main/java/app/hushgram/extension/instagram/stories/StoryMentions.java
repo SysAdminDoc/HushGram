@@ -21,7 +21,9 @@ import android.text.TextUtils;
 import android.util.LruCache;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
@@ -58,7 +60,9 @@ import app.hushgram.extension.shared.ui.Dim;
  * many accounts the story mentions, from the story's own list of mentions, so a mention sticker
  * that's hidden, shrunk or dragged off screen still counts. A story with none gets no pill.
  * Tapping the pill lists the accounts with their pictures, names and usernames, and tapping one
- * opens that profile through Instagram's own handling of a link to it.
+ * opens that profile through Instagram's own handling of a link to it. The story viewer takes every
+ * touch on a story for its own taps and swipes before the header's views see it, so the patch also
+ * hands each touch on the screen to {@link #touch} first, which catches a tap on the pill.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not ready or anything
  * thrown, the header is Instagram's own.
@@ -90,6 +94,22 @@ public final class StoryMentions {
 
     /** Whether any pill was made, so a bind with nothing to show skips the header until one was. */
     private static boolean anyPill;
+
+    /** Every pill made, so a touch can find the one under it. Weak, so a closed story lets its pills go. */
+    private static final Set<Pill> PILLS = Collections.newSetFromMap(new WeakHashMap<>());
+
+    /** The pill a finger went down on and hasn't come up from yet, where it went down, and whether it moved since. */
+    @Nullable private static Pill pressed;
+    private static float downX;
+    private static float downY;
+    private static boolean moved;
+
+    /** What the diagnostics report counts, so a pill that shows but never opens its list can be told apart. */
+    static final String PILL_SHOWN = "pill shown";
+    static final String HEADER_NOT_FOUND = "header not found";
+    static final String PILL_TAPPED = "pill tapped";
+    static final String LIST_SHOWN = "list shown";
+    static final String LIST_NO_ACTIVITY = "list not shown, no activity";
 
     private StoryMentions() {
     }
@@ -208,7 +228,11 @@ public final class StoryMentions {
     private static void place(View view, List<Mention> people, Object token, int attempt) {
         Runnable look = () -> {
             if (LATEST.get(view) != token) return;
-            if (show(view, people) || attempt + 1 >= TRIES.length) return;
+            if (show(view, people)) return;
+            if (attempt + 1 >= TRIES.length) {
+                HookStatus.counted(FamilyNames.STORY_MENTIONS, HEADER_NOT_FOUND);
+                return;
+            }
             place(view, people, token, attempt + 1);
         };
         if (attempt == 0) view.post(look);
@@ -256,6 +280,7 @@ public final class StoryMentions {
             pill.setText(text);
             pill.setContentDescription(L10n.f(context, "%1$s, see who this story mentions", text));
             pill.setVisibility(View.VISIBLE);
+            HookStatus.counted(FamilyNames.STORY_MENTIONS, PILL_SHOWN);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_MENTIONS, "story header", failure);
@@ -325,6 +350,7 @@ public final class StoryMentions {
             place.gravity = Gravity.START;
         }
         pill.setLayoutParams(place);
+        PILLS.add(pill);
         pill.setOnClickListener(view -> {
             try {
                 list(view.getContext(), ((Pill) view).people);
@@ -339,7 +365,11 @@ public final class StoryMentions {
     @Nullable
     static AlertDialog list(Context context, List<Mention> people) {
         Activity activity = activity(context);
-        if (activity == null || people.isEmpty()) return null;
+        if (activity == null) {
+            HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_NO_ACTIVITY);
+            return null;
+        }
+        if (people.isEmpty()) return null;
         AlertDialog.Builder builder = new AlertDialog.Builder(activity)
                 .setTitle(L10n.t(activity, "Mentioned in this story"))
                 .setNegativeButton(L10n.t(activity, "Close"), null);
@@ -358,6 +388,7 @@ public final class StoryMentions {
         scroll.addView(rows);
         dialog.setView(scroll);
         dialog.show();
+        HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_SHOWN);
         return dialog;
     }
 
@@ -453,6 +484,76 @@ public final class StoryMentions {
         });
     }
 
+    /**
+     * Injected first thing in IgFragmentActivity.dispatchTouchEvent, which every touch on an
+     * Instagram screen passes through before any of its views. A finger going down on a pill that's
+     * showing, and coming up again without moving further than the touch slop, taps the pill.
+     * Answers true for each event of a touch that went down on a pill, which Instagram then never
+     * sees, so the story neither pauses nor skips. Answers false for every other touch, which
+     * Instagram gets as it was. Never throws.
+     */
+    public static boolean touch(Activity activity, MotionEvent event) {
+        try {
+            if (event == null) return false;
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) {
+                pressed = PILLS.isEmpty() ? null : pillAt(activity, event.getX(), event.getY());
+                if (pressed == null) return false;
+                downX = event.getX();
+                downY = event.getY();
+                moved = false;
+                return true;
+            }
+            Pill pill = pressed;
+            if (pill == null) return false;
+            switch (action) {
+                case MotionEvent.ACTION_MOVE:
+                    if (beyondSlop(pill, event.getX(), event.getY())) moved = true;
+                    break;
+                case MotionEvent.ACTION_POINTER_DOWN:
+                    // A second finger makes a pinch, not a tap.
+                    moved = true;
+                    break;
+                case MotionEvent.ACTION_UP:
+                    pressed = null;
+                    if (!moved && !beyondSlop(pill, event.getX(), event.getY()) && pill.isShown()) {
+                        HookStatus.counted(FamilyNames.STORY_MENTIONS, PILL_TAPPED);
+                        pill.performClick();
+                    }
+                    break;
+                case MotionEvent.ACTION_CANCEL:
+                    pressed = null;
+                    break;
+                default:
+                    break;
+            }
+            return true;
+        } catch (Throwable failure) {
+            pressed = null;
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions tap", failure);
+            return false;
+        }
+    }
+
+    /** The pill showing in [activity] whose box holds the point [x], [y] in the window, or null. */
+    @Nullable
+    static Pill pillAt(Activity activity, float x, float y) {
+        int[] at = new int[2];
+        for (Pill pill : PILLS) {
+            if (!pill.isShown() || pill.getWidth() == 0 || activity(pill.getContext()) != activity) continue;
+            pill.getLocationInWindow(at);
+            if (x >= at[0] && x < at[0] + pill.getWidth() && y >= at[1] && y < at[1] + pill.getHeight()) return pill;
+        }
+        return null;
+    }
+
+    private static boolean beyondSlop(Pill pill, float x, float y) {
+        int slop = ViewConfiguration.get(pill.getContext()).getScaledTouchSlop();
+        float dx = x - downX;
+        float dy = y - downY;
+        return dx * dx + dy * dy > (float) slop * slop;
+    }
+
     /** Opens [username]'s profile the way a link to it opens inside Instagram. */
     static void openProfile(Activity activity, String username) {
         Intent open = new Intent(Intent.ACTION_VIEW, profileLink(username));
@@ -488,6 +589,8 @@ public final class StoryMentions {
     static void resetForTests() {
         LATEST.clear();
         PICTURES.evictAll();
+        PILLS.clear();
+        pressed = null;
         anyPill = false;
     }
 

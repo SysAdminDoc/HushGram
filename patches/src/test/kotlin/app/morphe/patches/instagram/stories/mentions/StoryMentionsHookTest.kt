@@ -15,16 +15,21 @@ import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.PROFILE_PICTURE_INFO
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.accountBridges
+import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
+import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.stories.time.STORY_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
@@ -35,11 +40,14 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
@@ -150,6 +158,7 @@ class StoryMentionsHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})" }
         assertTrue("bind is not in the extension: $declared", BIND.substringAfter("->").substringBefore(")") + ")" in declared)
+        assertTrue("touch is not in the extension: $declared", PILL_TOUCH.substringAfter("->").substringBefore(")") + ")" in declared)
         for (stub in STUBS) assertTrue("$stub is not in the extension: $declared", "$stub(Ljava/lang/Object;)" in declared)
     }
 
@@ -186,6 +195,75 @@ class StoryMentionsHookTest {
             assertEquals("$name casts first", Opcode.CHECK_CAST, code[0].opcode)
             assertTrue("$name returns what it read", code.take(4).any { it.opcode == Opcode.RETURN_OBJECT })
         }
+    }
+
+    /**
+     * IgFragmentActivity with its own dispatchTouchEvent: [locals] locals, then the activity and the
+     * event. It loads its trace name and answers false, after Tap to play's call when [tapClock].
+     */
+    private fun activity(locals: Int = 7, tapClock: Boolean = false): ClassDef {
+        val self = locals
+        val answer = if (locals > 0) 0 else self
+        val code = listOfNotNull(
+            ImmutableInstruction3rc(
+                Opcode.INVOKE_STATIC_RANGE, self, 2,
+                ImmutableMethodReference(TAP_CLOCK.substringBefore("->"), "touch", listOf("Landroid/app/Activity;", "Landroid/view/MotionEvent;"), "V"),
+            ).takeIf { tapClock },
+            ImmutableInstruction21c(Opcode.CONST_STRING, answer, ImmutableStringReference("dispatchTouchEvent")),
+            ImmutableInstruction11n(Opcode.CONST_4, answer, 0),
+            ImmutableInstruction11x(Opcode.RETURN, answer),
+        )
+        return ImmutableClassDef(
+            FRAGMENT_ACTIVITY, AccessFlags.PUBLIC.value, "Landroidx/appcompat/app/AppCompatActivity;", null, null, null, null,
+            listOf(method(FRAGMENT_ACTIVITY, "dispatchTouchEvent", listOf("Landroid/view/MotionEvent;"), "Z", AccessFlags.PUBLIC.value, locals + 2, *code.toTypedArray())),
+        )
+    }
+
+    /**
+     * The activity hands each touch to the pill's hook first thing, answers true when it says so,
+     * and otherwise runs on from its own first instruction, with the answer in its first local.
+     */
+    @Test
+    fun aTapOnThePillIsCaughtFirstThingInTheActivity() {
+        val context = PatchContexts.of(standIns() + activity())
+        val touch = context.findPillTouch()
+        hookPillTouch(touch)
+
+        val code = touch.implementation!!.instructions.toList()
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
+        assertEquals(PILL_TOUCH, code[0].referenceText())
+        assertEquals("this and the event", listOf(7, 2), (code[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals(Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals(0, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("the branch goes to Instagram's own first instruction", 4, (code[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals(Opcode.RETURN, code[3].opcode)
+        assertEquals(0, (code[3] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.CONST_STRING, code[4].opcode)
+    }
+
+    /** Tap to play's call stays first, since its contract holds it there, and the pill's comes right after. */
+    @Test
+    fun withTapToPlaysHookInThePillsGoesRightAfterIt() {
+        val context = PatchContexts.of(standIns() + activity(tapClock = true))
+        val touch = context.findPillTouch()
+        hookPillTouch(touch)
+
+        val code = touch.implementation!!.instructions.toList()
+        assertEquals(TAP_CLOCK, code[0].referenceText())
+        assertEquals(PILL_TOUCH, code[1].referenceText())
+        assertEquals("the branch goes past both hooks", 5, (code[3] as BuilderOffsetInstruction).target.location.index)
+        assertEquals(Opcode.CONST_STRING, code[5].opcode)
+    }
+
+    @Test
+    fun anActivityWithNoLocalFailsThePatch() = refuses("no local register") {
+        PatchContexts.of(standIns() + activity(locals = 0)).findPillTouch()
+    }
+
+    @Test
+    fun noActivityFailsThePatch() = refuses("this build has no") {
+        PatchContexts.of(standIns()).findPillTouch()
     }
 
     @Test
@@ -234,7 +312,8 @@ class StoryMentionsHookTest {
 
     /**
      * In each declared build, the two binders holding the trace name are found and hooked once
-     * each, the stubs are filled and the account's picture bridges are written.
+     * each, the stubs are filled, the account's picture bridges are written and the activity hands
+     * each touch to the pill's hook first thing.
      */
     @Test
     fun eachDeclaredBuildHooksBothBinders() {
@@ -250,7 +329,7 @@ class StoryMentionsHookTest {
                     .filter { it.opcode == Opcode.IPUT_OBJECT }
                     .mapNotNull { ((it as ReferenceInstruction).reference as FieldReference).takeIf { f -> f.type == STORY_ITEM }?.definingClass }
                     .toSet()
-                val models = FixtureDex.classes(bundle, pages + setOf(STORY_ITEM, MEDIA, USER, PROFILE_PICTURE_INFO, IMAGE_URL))
+                val models = FixtureDex.classes(bundle, pages + setOf(STORY_ITEM, MEDIA, USER, PROFILE_PICTURE_INFO, IMAGE_URL, FRAGMENT_ACTIVITY))
                 val key = REEL_MENTIONS.hashCode()
                 val mentionTypes = models.getValue(MEDIA).methods
                     .filter { method -> method.instructions().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == key } }
@@ -265,6 +344,7 @@ class StoryMentionsHookTest {
                 val context = PatchContexts.of(classes)
 
                 val found = context.findStoryMentions()
+                val touch = context.findPillTouch()
                 val stubs = context.storyMentionStubs()
                 val pictures = context.accountBridges(PATCH)
                 val cast = { context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
@@ -273,8 +353,12 @@ class StoryMentionsHookTest {
                 stubs.fill(found)
                 pictures()
                 context.hookStoryBinds(found)
+                hookPillTouch(touch)
 
                 assertEquals("${buildOf(bundle)}: the binders", 2, found.binds.size)
+                val touched = touch.implementation!!.instructions.toList()
+                assertEquals("${buildOf(bundle)}: the pill's hook first in dispatchTouchEvent", PILL_TOUCH, touched[0].referenceText())
+                assertEquals("${buildOf(bundle)}: Instagram's own code after it", 4, (touched[2] as BuilderOffsetInstruction).target.location.index)
                 for (bind in found.binds) {
                     val code = context.mutableClassDefBy(bind.type).methods.single {
                         it.name == bind.name && it.parameterTypes.map(Any::toString) == bind.parameters
