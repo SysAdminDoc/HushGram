@@ -351,8 +351,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
             privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),
-                    L10n.t("Removes tracking tags from links you copy or share, and opens bio links without "
-                            + "Instagram's click tracker. The link still opens the same post, reel or profile.")));
+                    withCoverage(L10n.t("Removes tracking tags from links you copy or share, and opens bio links without "
+                            + "Instagram's click tracker. The link still opens the same post, reel or profile."),
+                            SettingsStatus.sanitizeSharingLinksCoverage())));
             privacy.add(sharingDomainRow(context));
         }
         if (build.contains(PatchFamily.EXTERNAL_BROWSER)) {
@@ -362,8 +363,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (build.contains(PatchFamily.DISABLE_ANALYTICS)) {
             privacy.add(toggle(context, Settings.DISABLE_ANALYTICS, L10n.t("Disable analytics"),
-                    L10n.t("Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. "
-                            + "Restart Instagram to see the change.")));
+                    withCoverage(L10n.t("Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. "
+                            + "Restart Instagram to see the change."), SettingsStatus.disableAnalyticsCoverage())));
         }
         if (build.contains(PatchFamily.DM_MEDIA_SEEN)) {
             privacy.add(toggle(context, Settings.VIEW_DM_MEDIA_ANONYMOUSLY,
@@ -2388,6 +2389,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (at instanceof Activity) return (Activity) at;
         }
         return null;
+    }
+
+    /** A privacy row's summary, plus how much of the patch this build has when it's only part. */
+    static String withCoverage(String summary, String encodedCoverage) {
+        String note = PatchFamily.partialCoverageNote(encodedCoverage);
+        return note.isEmpty() ? summary : summary + " " + note;
     }
 
     static SwitchPreference toggle(Context context, BooleanSetting setting, String title, String summary) {

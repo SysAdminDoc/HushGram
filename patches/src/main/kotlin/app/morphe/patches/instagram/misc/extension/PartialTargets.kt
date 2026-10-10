@@ -36,6 +36,11 @@ internal data class TargetCoverage(val targets: List<String>, val missing: List<
  * A build with none of them stops the patch, naming every one: applying then would claim a
  * protection the app doesn't get.
  *
+ * [supporting] names the targets, last in the list, that only work alongside the others, such as
+ * Disable analytics' setup screens, which are skipped because the events saying they were seen are
+ * refused. A build with none of the targets before them stops the patch before they're touched, so
+ * they can't stand in for the protection on their own.
+ *
  * @param what the targets' kind in the plural, as the messages say it ("ad prefetch schedulers")
  * @return how many targets were dealt with
  */
@@ -45,15 +50,31 @@ internal fun <T> handleTargets(
     targets: List<T>,
     label: (T) -> String = { it.toString() },
     coverage: (TargetCoverage) -> Unit = {},
+    supporting: Set<String> = emptySet(),
     handle: (T) -> String?,
 ): Int {
     require(targets.isNotEmpty()) { "$patch has no $what to look for" }
     val labels = targets.map(label)
     require(labels.size <= 256 && labels.distinct().size == labels.size &&
         labels.all { it.matches(Regex("[a-z][a-z0-9 -]{0,63}")) }) { "$patch has invalid coverage labels" }
+    val firstSupporting = labels.size - supporting.size
+    require(firstSupporting > 0 && labels.drop(firstSupporting).toSet() == supporting) {
+        "$patch's supporting targets have to be some of its labels, listed last"
+    }
     val missing = mutableListOf<String>()
-    val reasons = targets.mapIndexedNotNull { index, target ->
-        handle(target)?.also { missing += labels[index] }
+    val reasons = mutableListOf<String>()
+    targets.forEachIndexed { index, target ->
+        if (index == firstSupporting && reasons.size == index) {
+            throw PatchException(
+                "$patch: this Instagram build has none of the $index $what that work on their own, and " +
+                    "${supporting.joinToString(" and ")} only works alongside them. " +
+                    reasons.joinToString("; ", postfix = "."),
+            )
+        }
+        handle(target)?.let { reason ->
+            reasons += reason
+            missing += labels[index]
+        }
     }
     if (reasons.size == targets.size) {
         throw PatchException(

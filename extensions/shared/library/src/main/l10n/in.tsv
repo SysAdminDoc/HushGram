@@ -650,3 +650,4 @@ Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati kar
 That file has no setting names in it. Nothing changed.	File itu tidak berisi nama pengaturan. Tidak ada yang berubah.
 Couldn't remove the setting names. Try again.	Tidak bisa menghapus nama pengaturan. Coba lagi.
 Couldn't save the setting names. Nothing changed.	Tidak bisa menyimpan nama pengaturan. Tidak ada yang berubah.
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Pada build Instagram ini, fitur ini mencakup %1$d dari %2$d jalur. Laporan diagnostik mencantumkan sisanya.

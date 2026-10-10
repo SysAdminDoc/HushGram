@@ -650,3 +650,4 @@ Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya u
 That file has no setting names in it. Nothing changed.	Bu dosyada ayar adı yok. Hiçbir şey değişmedi.
 Couldn't remove the setting names. Try again.	Ayar adları kaldırılamadı. Tekrar dene.
 Couldn't save the setting names. Nothing changed.	Ayar adları kaydedilemedi. Hiçbir şey değişmedi.
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.

@@ -650,3 +650,4 @@ Entries left out because they repeat or don't fit: %1$d.	Entradas deixadas de fo
 That file has no setting names in it. Nothing changed.	Esse arquivo não tem nomes de configurações. Nada mudou.
 Couldn't remove the setting names. Try again.	Não foi possível remover os nomes de configurações. Tente de novo.
 Couldn't save the setting names. Nothing changed.	Não foi possível salvar os nomes de configurações. Nada mudou.
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Nesta versão do Instagram, cobre %1$d de %2$d caminhos. O relatório de diagnóstico lista o restante.

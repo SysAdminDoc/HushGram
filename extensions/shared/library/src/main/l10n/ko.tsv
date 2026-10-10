@@ -649,3 +649,4 @@ Entries left out because they repeat or don't fit: %1$d.	중복되거나 맞지 
 That file has no setting names in it. Nothing changed.	그 파일에는 설정 이름이 없습니다. 바뀐 것은 없습니다.
 Couldn't remove the setting names. Try again.	설정 이름을 제거하지 못했습니다. 다시 시도하세요.
 Couldn't save the setting names. Nothing changed.	설정 이름을 저장하지 못했습니다. 바뀐 것은 없습니다.
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	이 Instagram 빌드에서는 경로 %2$d개 중 %1$d개를 다룹니다. 나머지는 진단 보고서에 나와 있습니다.

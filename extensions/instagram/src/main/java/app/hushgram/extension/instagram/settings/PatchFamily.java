@@ -320,14 +320,25 @@ public enum PatchFamily {
         return lines;
     }
 
-    /** The same fixed-label metadata the fixture tools read from this APK's DEX. */
-    static String coverageLine(String encoded) {
-        if (encoded == null || encoded.isEmpty() || encoded.length() > 32768) {
-            return "patch target coverage unavailable";
+    /** Coverage metadata that read back whole: how many targets the patch found, and which it didn't. */
+    static final class Coverage {
+        final int matched;
+        final int expected;
+        final List<String> missing;
+
+        private Coverage(int matched, int expected, List<String> missing) {
+            this.matched = matched;
+            this.expected = expected;
+            this.missing = missing;
         }
+    }
+
+    /** The same fixed-label metadata the fixture tools read from this APK's DEX, or null if it's malformed. */
+    static Coverage coverage(String encoded) {
+        if (encoded == null || encoded.isEmpty() || encoded.length() > 32768) return null;
         try {
             String[] parts = encoded.split("\\|", -1);
-            if (parts.length != 5 || !parts[0].equals("1")) throw new IllegalArgumentException();
+            if (parts.length != 5 || !parts[0].equals("1")) return null;
             int matched = Integer.parseInt(parts[1]);
             int expected = Integer.parseInt(parts[2]);
             List<String> targets = Arrays.asList(parts[3].split(",", -1));
@@ -335,17 +346,35 @@ public enum PatchFamily {
             if (matched < 1 || expected < matched || expected > 256 || targets.size() != expected
                     || missing.size() != expected - matched || new HashSet<>(targets).size() != expected
                     || new HashSet<>(missing).size() != missing.size() || !targets.containsAll(missing)) {
-                throw new IllegalArgumentException();
+                return null;
             }
             for (String label : targets) {
-                if (!label.matches("[a-z][a-z0-9 -]{0,63}")) throw new IllegalArgumentException();
+                if (!label.matches("[a-z][a-z0-9 -]{0,63}")) return null;
             }
-            return "patch targets matched " + matched + "/" + expected
-                    + (missing.isEmpty() ? " (complete)" : " (partial); missing: " + String.join(", ", missing))
-                    + ". Patch-time matches do not prove live endpoint suppression.";
+            return new Coverage(matched, expected, missing);
         } catch (IllegalArgumentException failure) {
-            return "patch target coverage unavailable";
+            return null;
         }
+    }
+
+    static String coverageLine(String encoded) {
+        Coverage found = coverage(encoded);
+        if (found == null) return "patch target coverage unavailable";
+        return "patch targets matched " + found.matched + "/" + found.expected
+                + (found.missing.isEmpty() ? " (complete)" : " (partial); missing: " + String.join(", ", found.missing))
+                + ". Patch-time matches do not prove live endpoint suppression.";
+    }
+
+    /**
+     * The sentence a privacy switch's row adds when this build has only part of what the patch works
+     * on, so an on switch can't read as full protection (audit A03). Empty when it has all of it or
+     * the metadata can't be read.
+     */
+    static String partialCoverageNote(String encoded) {
+        Coverage found = coverage(encoded);
+        if (found == null || found.missing.isEmpty()) return "";
+        return L10n.f("On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.",
+                found.matched, found.expected);
     }
 
     /** "on", "disabled by its switch" or "disabled while paused", then the saved switches. */

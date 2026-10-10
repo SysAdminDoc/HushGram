@@ -29,6 +29,15 @@ internal const val STREAM_EVENTS = "$EXTENSION_PACKAGE/misc/Analytics;->streamEv
 /** Whether to skip a Bloks screen, by its app id: the "Set up on new device" screens. */
 internal const val SETUP_SCREEN = "$EXTENSION_PACKAGE/misc/Analytics;->setupScreen(Ljava/lang/String;)I"
 
+/** The routes the patch works on, in order. Each before "setup" stops events leaving the phone. */
+internal val ANALYTICS_TARGETS = listOf("builder", "graph", "mqtt", "reports", "pings", "stream", "setup")
+
+/**
+ * Skipping the setup screens only matters while their seen events are refused, so a build where
+ * none of the other routes was found mustn't pass on the setup screens alone.
+ */
+internal val ANALYTICS_SUPPORTING = setOf("setup")
+
 @Suppress("unused")
 val disableAnalyticsPatch = bytecodePatch(
     name = "Disable analytics",
@@ -45,7 +54,7 @@ val disableAnalyticsPatch = bytecodePatch(
     execute {
         requireStatusMethod("disableAnalytics")
 
-        handleTargets(PATCH, "event upload addresses", listOf("builder", "graph", "mqtt", "reports", "pings", "stream", "setup"),
+        handleTargets(PATCH, "event upload addresses", ANALYTICS_TARGETS, supporting = ANALYTICS_SUPPORTING,
             coverage = { writeTargetCoverage("disableAnalytics", it) }) { target ->
             when (target) {
                 // Instagram's own logging_client_events and pigeon_nest addresses, built from a host.

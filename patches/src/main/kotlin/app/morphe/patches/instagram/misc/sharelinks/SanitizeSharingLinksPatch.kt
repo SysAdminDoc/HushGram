@@ -101,6 +101,12 @@ internal val DIRECT_SHARE_EXITS = listOf(
     ),
 )
 
+/** The ways a link leaves Instagram. Each one cleaned is a real protection on its own. */
+internal val SHARE_LINK_TARGETS = listOf(
+    "permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares",
+    "in-app browser menu",
+)
+
 @Suppress("unused")
 val sanitizeSharingLinksPatch = bytecodePatch(
     name = "Sanitize sharing links",
@@ -117,11 +123,7 @@ val sanitizeSharingLinksPatch = bytecodePatch(
     execute {
         requireStatusMethod("sanitizeSharingLinks")
 
-        val targets = listOf(
-            "permalink parser", "story link parser", "clipboard copies", "share sheets", "direct shares",
-            "in-app browser menu",
-        )
-        handleTargets(PATCH, "ways a link leaves Instagram", targets,
+        handleTargets(PATCH, "ways a link leaves Instagram", SHARE_LINK_TARGETS,
             coverage = { writeTargetCoverage("sanitizeSharingLinks", it) }) { target ->
             when (target) {
                 "permalink parser" -> cleanPermalink()

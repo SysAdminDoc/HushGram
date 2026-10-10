@@ -650,3 +650,4 @@ Entries left out because they repeat or don't fit: %1$d.	Ausgelassene Einträge,
 That file has no setting names in it. Nothing changed.	Diese Datei enthält keine Einstellungsnamen. Nichts wurde geändert.
 Couldn't remove the setting names. Try again.	Die Einstellungsnamen konnten nicht entfernt werden. Versuch es noch einmal.
 Couldn't save the setting names. Nothing changed.	Die Einstellungsnamen konnten nicht gespeichert werden. Nichts wurde geändert.
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bei diesem Instagram-Build deckt es %1$d von %2$d Wegen ab. Der Diagnosebericht nennt die übrigen.
