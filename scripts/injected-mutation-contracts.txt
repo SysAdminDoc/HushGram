@@ -515,8 +515,12 @@ shared-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->searchFlag(I)Z in 
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->homeButton(Ljava/lang/String;)Ljava/lang/String; in instance (L*;)V holding MainFeedActionBarDelegate:configureActionBar meta_ai
 # It also passes the search results page's check for its "Ask a follow-up…" bar's stub through
 # followUpBar(), once, in the bar setup taking a Function1, the one method holding
-# "keyboardHeightChangeDetector" and "bottomSearchSuggestionPillsHelper".
+# "keyboardHeightChangeDetector" and "bottomSearchSuggestionPillsHelper". On 450 that check is of
+# the bar itself, before its topic pills' stub is looked up in it, so the same setup also passes the
+# bar's stub, found in the page before a static helper inflates it, through followUpStub(), once.
+# Left out, the bar with its + button stays under search results with the search switch on.
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->followUpBar(Landroid/view/View;)Landroid/view/View; in instance (Lkotlin/jvm/functions/Function1;)V holding keyboardHeightChangeDetector bottomSearchSuggestionPillsHelper
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->followUpStub(Landroid/view/View;)Landroid/view/View; in instance (Lkotlin/jvm/functions/Function1;)V holding keyboardHeightChangeDetector bottomSearchSuggestionPillsHelper
 # About this reel (#42): the Reels viewer's More menu asks the summary factory in two places and
 # passes each answer through aboutThisReel() once, in its AI discovery menu check (the method
 # holding the hasAiDiscoveryMenu marker) and in its header items (the getBottomSheetHeaderItems

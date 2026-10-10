@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** With Hide Meta AI in search and Home's bar on, a keyword search's results no longer end in an Ask a follow-up bar with a + button. Before, only its topic pills went and the bar stayed at the bottom of the page. The header at the top of the results, with Back and your search, stays as it was, and turning the switch off brings the bar back on your next search.
+
 * **Instagram:** Default playback quality has a new row under Playback, Pick the playback quality with a tab long press. Choose a tab, Reels for example, and a long press on it opens a short list of Auto, Data saver, Up to 480p, Up to 720p and Highest. The pick is the same Playback quality you set in settings, and the next video you open uses it. It starts off, and a tab that already opens HushGram keeps doing that. Asked for in [#93](https://github.com/SysAdminDoc/HushGram/issues/93).
 
 * **Instagram:** With Hide suggested posts on, Home no longer stays on its gray loading boxes for an account whose feed is all suggestions, like a new account that follows nobody. Home still kept an item or two that isn't a post, and those counted as posts, so it never decided it was empty. Now only items that carry a post count, and Instagram's own empty feed shows once everything else is gone. Your diagnostic report says when it happened (home page ended with every post removed). Asked about in #105 and #104.

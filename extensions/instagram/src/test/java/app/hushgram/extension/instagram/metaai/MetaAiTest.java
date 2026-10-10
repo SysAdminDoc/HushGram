@@ -154,6 +154,32 @@ public class MetaAiTest {
         }
     }
 
+    /** The bar's own stub is left uninflated with the search switch too, only that switch, and never while paused. */
+    @Test
+    public void theFollowUpBarsStubFollowsTheSearchSwitch() {
+        View stub = new View(RuntimeEnvironment.getApplication());
+        assertNull(MetaAi.followUpStub(stub));
+        assertNull(MetaAi.followUpStub(null));
+        Settings.HIDE_META_AI_POSTS.save(false);
+        try {
+            assertNull(MetaAi.followUpStub(stub));
+        } finally {
+            Settings.HIDE_META_AI_POSTS.save(true);
+        }
+        Settings.HIDE_META_AI_SEARCH.save(false);
+        try {
+            assertSame(stub, MetaAi.followUpStub(stub));
+        } finally {
+            Settings.HIDE_META_AI_SEARCH.save(true);
+        }
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            assertSame("paused, Instagram decides", stub, MetaAi.followUpStub(stub));
+        } finally {
+            PauseForTests.resume();
+        }
+    }
+
     /** Home's Meta AI button is left out with the search switch; every other name comes back as it was. */
     @Test
     public void onlyHomesMetaAiButtonIsLeftOut() {
