@@ -83,7 +83,8 @@ class HideInboxSuggestionsHookTest {
             classes(declared = false) to "isn't declared in $sections",
             classes(static = true) to "isn't an instance method with code",
             classes(code = false) to "isn't an instance method with code",
-            classes(readsName = false) to "doesn't read a unit's name through getName()",
+            classes(nameRead = "Lfixture/InboxUnit;->getTitle()Ljava/lang/String;") to "doesn't read a unit's name through getName()",
+            classes(nameRead = "Ljava/lang/Class;->getName()Ljava/lang/String;") to "doesn't read a unit's name through getName()",
             classes(callsRequests = true) to "reads $FOLLOW_REQUESTS itself",
             classes(holdsRequests = true) to "reads $FOLLOW_REQUESTS itself",
         )
@@ -167,7 +168,7 @@ class HideInboxSuggestionsHookTest {
         declared: Boolean = true,
         static: Boolean = false,
         code: Boolean = true,
-        readsName: Boolean = true,
+        nameRead: String = "Lfixture/InboxUnit;->getName()Ljava/lang/String;",
         callsRequests: Boolean = false,
         holdsRequests: Boolean = false,
     ): List<ClassDef> {
@@ -203,7 +204,7 @@ class HideInboxSuggestionsHookTest {
                     invoke-interface { p1, v0 }, Ljava/util/List;->get(I)Ljava/lang/Object;
                     move-result-object v1
                     check-cast v1, Lfixture/InboxUnit;
-                    invoke-interface { v1 }, Lfixture/InboxUnit;->${if (readsName) "getName" else "getTitle"}()Ljava/lang/String;
+                    invoke-virtual { v1 }, $nameRead
                     move-result-object v1
                     invoke-static { p0, p1 }, $sections->trim(${sections}Ljava/util/List;)Ljava/util/List;
                     move-result-object v1

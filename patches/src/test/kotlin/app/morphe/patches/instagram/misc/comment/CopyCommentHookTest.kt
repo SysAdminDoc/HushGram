@@ -300,7 +300,11 @@ class CopyCommentHookTest {
         val renderer = patch.findCommentMenu().surface.renderer
         val warnings = PatchLogCapture.warnings { copyCommentPatch.execute(patch) }
 
-        assertTrue(warnings.toString(), warnings.any { it.endsWith("Copy comment goes in without Copy username.") })
+        // The stand-ins' own author boundaries can't be told either, so the warning has to name the
+        // row this build leaves out, or the case would pass without it.
+        assertTrue(warnings.toString(), warnings.any {
+            it.contains("missing extension boundary $AUTHOR_ROW") && it.endsWith("Copy comment goes in without Copy username.")
+        })
         assertEquals(1, status(patch, "commentCopy"))
         assertEquals(0, status(patch, COMMENT_AUTHOR_STATUS))
         assertEquals("no label read goes through Copy username", 0, patch.mutableClassDefBy(renderer.definingClass).methods

@@ -68,9 +68,11 @@ internal class UnitsSite(val type: String, val name: String, val parameters: Lis
  * when an update moved it, since that's a build this patch hasn't seen: the one instance method
  * taking [UNITS_SET] and answering nothing that the one method holding [PREFETCHED] calls, in a
  * class that holds [FOLLOW_REQUESTS], with code of its own. It has to read a unit's name through
- * getName(), which InboxSuggestions asks too, and leave follow requests to another method: it
- * mustn't hold [FOLLOW_REQUESTS] or call a method of its class that does, since the hook empties
- * every unit it's given.
+ * an app class's getName(), which InboxSuggestions asks too, and leave follow requests to another
+ * method: it mustn't hold [FOLLOW_REQUESTS] or call a method of its class that does, since the
+ * hook empties every unit it's given. Only its own class's methods are looked at, so a helper
+ * elsewhere reading follow requests for it would get through; on every 450 build follow requests
+ * come from the loader's call to that class's own reader (A0D, A0E on 449).
  */
 internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
     val found = mutableListOf<Pair<String, Method>>()
@@ -100,7 +102,12 @@ internal fun BytecodePatchContext.findInboxUnitsSet(): UnitsSite {
         refuse("$set isn't an instance method with code")
     }
     val calls = method.implementation!!.instructions.mapNotNull { it.methodReference() }
-    if (calls.none { it.name == "getName" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" }) {
+    // Instagram's own unit model, not Class.getName or Thread.getName.
+    val readsName = calls.any {
+        it.name == "getName" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" &&
+            !it.definingClass.startsWith("Ljava/") && !it.definingClass.startsWith("Landroid/")
+    }
+    if (!readsName) {
         refuse("$set doesn't read a unit's name through getName()")
     }
     val readsRequests = method in requests || calls.any { call ->
