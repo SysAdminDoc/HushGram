@@ -263,6 +263,66 @@ public class PostsListTest {
         assertTrue(report, report.contains(PostsList.LEFT + " 1"));
     }
 
+    /**
+     * Tagged before the posts show, then back to Posts: Instagram builds the posts tab again on the
+     * same page, and since nothing was opened it looks again and opens the list, once.
+     */
+    @Test
+    public void leftFirstThePostsTabOnThatPageLooksAgain() {
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        PostsList.resumed(tab, ON);
+        tab.resumed = false;
+        idleSeconds(1);
+        assertTrue(taps.isEmpty());
+        assertFalse("the page's mark is off", page.getArguments().getBoolean(PostsList.OPENED_KEY));
+        assertFalse("the tab's mark is off", tab.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        addRow("first", "second");
+        layout();
+        Tab rebuilt = tab(PostsList.POSTS_TAB, false);
+        rebuilt.page = page;
+        PostsList.resumed(rebuilt, ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of("first"), taps);
+        assertTrue("marked again", page.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        // Back from the list, or the first tab resumed again on the page: the list isn't opened twice.
+        PostsList.resumed(rebuilt, ON);
+        tab.resumed = true;
+        PostsList.resumed(tab, ON);
+        idleSeconds(6);
+        assertEquals(List.of("first"), taps);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(PostsList.LEFT + " 1"));
+        assertTrue(report, report.contains(PostsList.OPENED + " 1"));
+    }
+
+    /** No post within a few seconds keeps the page marked, so a posts tab built again on it doesn't look again. */
+    @Test
+    public void nothingToOpenKeepsThePageMarked() {
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        PostsList.resumed(tab, ON);
+        idleSeconds(6);
+        assertTrue(page.getArguments().getBoolean(PostsList.OPENED_KEY));
+        assertTrue(tab.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        addRow("first");
+        layout();
+        Tab rebuilt = tab(PostsList.POSTS_TAB, false);
+        rebuilt.page = page;
+        PostsList.resumed(rebuilt, ON);
+        PostsList.resumed(tab, ON);
+        idleSeconds(6);
+        assertTrue(taps.isEmpty());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(PostsList.NOTHING + " 1"));
+        assertFalse(report, report.contains(PostsList.LEFT));
+    }
+
     /** Tagged posts, the other tabs and your own profile keep their grid, and aren't marked. */
     @Test
     public void onlyThePostsTabOfSomeoneElsesProfile() {

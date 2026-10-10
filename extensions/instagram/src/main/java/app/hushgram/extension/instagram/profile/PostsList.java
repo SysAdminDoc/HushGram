@@ -39,9 +39,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * arguments of the profile page around it, which Instagram saves and restores with them, so coming
  * Back to the grid, switching tabs or Instagram rebuilding the screen doesn't open the list again.
  * The page's mark is the one that counts after Tagged: switching to it and back makes Instagram
- * build the posts tab again with fresh arguments, while the page stays. Tagged posts, the other tabs and your own
- * profile are left as they are. If the tab is left, or the posts don't show within a few seconds (a
- * private profile, or none posted), nothing is opened.
+ * build the posts tab again with fresh arguments, while the page stays. Tagged posts, the other
+ * tabs and your own profile are left as they are. If the tab is left before its first post shows,
+ * nothing is opened and both marks come off again, so coming back to the posts tab of that page
+ * looks for it again. If the posts don't show within a few seconds (a private profile, or none
+ * posted), nothing is opened and the marks stay, so it doesn't keep looking.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet, a member
  * missing or anything thrown, the grid stays as Instagram shows it.
@@ -56,7 +58,10 @@ public final class PostsList {
     static final String GRID_FIELD = "recyclerView";
     /** The view each post of the grid is drawn in. */
     static final String CELL = "com.instagram.igds.components.imagebutton.IgMultiImageButton";
-    /** Put in the arguments of the tab and of its profile page once its first post has been looked for. */
+    /**
+     * Put in the arguments of the tab and of its profile page when its first post is looked for, and
+     * taken back off if the tab is left before it shows.
+     */
     static final String OPENED_KEY = "hushgram_posts_list_opened";
 
     /** The steps a failure is reported under. */
@@ -97,31 +102,42 @@ public final class PostsList {
             if (page != null && page.getBoolean(OPENED_KEY)) return;
             bundle.putBoolean(OPENED_KEY, true);
             if (page != null) page.putBoolean(OPENED_KEY, true);
-            main().post(new Look(tab, SystemClock.uptimeMillis() + GIVE_UP_MS));
+            main().post(new Look(tab, bundle, page, SystemClock.uptimeMillis() + GIVE_UP_MS));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_POSTS_LIST, RESUME, failure);
         }
     }
 
-    /** Looks for the first post until it shows, the tab is left, or time runs out. */
+    /**
+     * Looks for the first post until it shows, the tab is left, or time runs out. Left first, it
+     * takes the marks back off the tab's and the page's arguments, so the page's posts tab looks
+     * again the next time it's resumed.
+     */
     private static final class Look implements Runnable {
         private final WeakReference<Object> tab;
+        private final WeakReference<Bundle> tabMark;
+        private final WeakReference<Bundle> pageMark;
         private final long until;
         private final Rect area = new Rect();
 
-        Look(Object tab, long until) {
+        Look(Object tab, Bundle tabArguments, Bundle pageArguments, long until) {
             this.tab = new WeakReference<>(tab);
+            this.tabMark = new WeakReference<>(tabArguments);
+            this.pageMark = new WeakReference<>(pageArguments);
             this.until = until;
         }
 
         @Override public void run() {
             try {
                 Object tab = this.tab.get();
-                if (tab == null) return;
+                if (tab == null) {
+                    left();
+                    return;
+                }
                 Method isResumed = method(tab, "isResumed");
                 if (isResumed == null) return;
                 if (!Boolean.TRUE.equals(isResumed.invoke(tab))) {
-                    HookStatus.counted(FamilyNames.PROFILE_POSTS_LIST, LEFT);
+                    left();
                     return;
                 }
                 Field field = field(tab);
@@ -145,6 +161,15 @@ public final class PostsList {
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.PROFILE_POSTS_LIST, LOOK, failure);
             }
+        }
+
+        /** The tab went before its first post showed: nothing opened, and the marks come off. */
+        private void left() {
+            HookStatus.counted(FamilyNames.PROFILE_POSTS_LIST, LEFT);
+            Bundle tabArguments = tabMark.get();
+            if (tabArguments != null) tabArguments.remove(OPENED_KEY);
+            Bundle pageArguments = pageMark.get();
+            if (pageArguments != null) pageArguments.remove(OPENED_KEY);
         }
     }
 
