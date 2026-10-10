@@ -145,6 +145,18 @@ final class FriendshipChip {
         return context.getResources().getIdentifier(FOLLOWERS_COUNT, "id", context.getPackageName());
     }
 
+    /** Blue for Follows you, green for Following each other and red for Doesn't follow you. */
+    static int color(Relation relation) {
+        switch (relation) {
+            case FOLLOWING_EACH_OTHER:
+                return Color.rgb(0x2E, 0xCC, 0x71);
+            case DOESNT_FOLLOW_YOU:
+                return Color.rgb(0xED, 0x49, 0x56);
+            default:
+                return Color.rgb(0x37, 0x97, 0xEF);
+        }
+    }
+
     /** The chip's words for [relation]. */
     static String text(Relation relation) {
         switch (relation) {
@@ -184,7 +196,7 @@ final class FriendshipChip {
             Context context = block.getContext();
             boolean follows = relation != Relation.DOESNT_FOLLOW_YOU;
             Drawable icon = icon(context, follows ? FOLLOWING_ICON : NOT_FOLLOWING_ICON);
-            int color = style != null ? style.getCurrentTextColor() : Color.GRAY;
+            int color = color(relation);
             pill.set(text(relation), icon, color, style != null ? style.getTypeface() : null);
             // Instagram may have set the block's padding again since; that becomes its own.
             int bottom = block.getPaddingBottom();
