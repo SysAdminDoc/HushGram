@@ -62,7 +62,8 @@ internal const val SESSION = "Lcom/instagram/common/session/UserSession;"
 val hideReelsTabPatch = bytecodePatch(
     name = "Hide the Reels tab",
     description = "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. " +
-        "Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels.",
+        "Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
+        "Under Tab bar, switches do the same for Search, Create and Profile.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)

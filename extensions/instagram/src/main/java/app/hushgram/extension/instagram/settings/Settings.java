@@ -935,6 +935,26 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_reels_tab", FALSE, true);
 
     /**
+     * Search is off the tab bar, and a switch meant for it lands on Home. Built into the same tab
+     * list as {@link #HIDE_REELS_TAB}, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_SEARCH_TAB =
+            new BooleanSetting("hushgram_hide_search_tab", FALSE, true);
+
+    /**
+     * Create is off the tab bar, and the bar closes up around it. A change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_CREATE_TAB =
+            new BooleanSetting("hushgram_hide_create_tab", FALSE, true);
+
+    /**
+     * Profile is off the tab bar, and a switch meant for it lands on Home. Your profile still opens from
+     * your picture elsewhere in the app. A change takes a restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_TAB =
+            new BooleanSetting("hushgram_hide_profile_tab", FALSE, true);
+
+    /**
      * The speed locked with Instagram's own 2x lock on a reel stays for the next reels, until the
      * lock is slid off, a hold at the edge is let go of, or Instagram restarts.
      */

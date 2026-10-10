@@ -928,20 +928,31 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
 
-        if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+        if (build.contains(PatchFamily.GLASS_TAB_BAR) || build.contains(PatchFamily.REELS_TAB)) {
             PreferenceCategory glass = category(screen, L10n.t("Tab bar"));
-            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
-                    L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
-                            + "you're on. Restart Instagram after changing it.")));
-            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
-                    L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
-            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
-                    L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
-                            + "or swipe between screens.")));
-            glass.addPreference(hapticStyleRow(context));
-            glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
-                    L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
-                            + "Reels still stops above it.")));
+            if (build.contains(PatchFamily.REELS_TAB)) {
+                glass.addPreference(toggle(context, Settings.HIDE_SEARCH_TAB, L10n.t("Hide the Search tab"),
+                        L10n.t("Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HIDE_CREATE_TAB, L10n.t("Hide the Create tab"),
+                        L10n.t("Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.")));
+                glass.addPreference(toggle(context, Settings.HIDE_PROFILE_TAB, L10n.t("Hide the Profile tab"),
+                        L10n.t("Takes Profile off the tab bar. Your profile still opens from other places in the app. "
+                                + "Restart Instagram to see the change.")));
+            }
+            if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
+                        L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
+                                + "you're on. Restart Instagram after changing it.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
+                        L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
+                        L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
+                                + "or swipe between screens.")));
+                glass.addPreference(hapticStyleRow(context));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
+                        L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
+                                + "Reels still stops above it.")));
+            }
         }
 
         if (build.contains(PatchFamily.NOTIFICATION_GROUPS)) {

@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Tab bar has three new switches, Hide the Search tab, Hide the Create tab and Hide the Profile tab. They all start off. Turn one on and restart Instagram, and that tab is gone from the bar, which closes up with no gap and no swipe to it. Tapping a link that would've opened a hidden Search or Profile takes you to Home. Home stays, so the bar never ends up empty. They ride on Hide the Reels tab's patch, and Hide the Reels tab and Show the Reels tab work as before.
+
 * **Instagram:** Hide suggested posts has a new row under Feed, Hidden accounts, right after Hide posts you've liked. Its list starts empty. Tap it, then Add a username, and that account's posts leave Home and its Following feed. Tap a name on the list to bring their posts back, and tap it again to hide them once more. Each account you sign in to keeps its own list, nothing is hidden while HushGram is paused, and Diagnostics counts the posts it took out.
 
 * **Instagram:** Hide suggested posts has a new switch under Feed, Hide posts you've liked, right after Hide carousels. It starts off. Turn it on and every post you've already liked leaves Home and its Following feed, going by what Instagram says about each post as it loads. A post you like while you scroll stays put until you pull down to refresh. Diagnostics counts how many it took out, and Hide videos, Hide photos and Hide carousels now get their own counts there too.

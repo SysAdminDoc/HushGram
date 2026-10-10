@@ -27,6 +27,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * through {@link #tab} too, so a start, a notification or a link meant for the Reels tab lands on
  * Home instead.
  *
+ * <p>The same list hook takes Search, Create and Profile off the bar when their switches are on. It
+ * hands back a copy, so the list Instagram shares isn't changed, and the bar and the swipe between
+ * tabs are built from the copy, which is why the bar closes up with no gap. Home is never hidden,
+ * and a list the switches would empty comes back as built. A switch meant for a hidden Search or
+ * Profile lands on Home, like one meant for Reels.
+ *
  * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
  * Home, from the same enum, and Hide the Reels tab wins when both are on.
  *
@@ -42,7 +48,12 @@ public final class ReelsTab {
     /** The name of the tab a start or a switch meant for Reels goes to instead. */
     static final String HOME = "FEED";
 
-    /** The diagnostic counter route: each tab list Instagram builds, and the Reels tabs taken out of it. */
+    /** The Search, Create and Profile tabs' names in the same enum. Home stays: every redirect lands on it. */
+    static final String SEARCH = "SEARCH";
+    static final String CREATE = "CREATION";
+    static final String PROFILE = "PROFILE";
+
+    /** The diagnostic counter route: each tab list Instagram builds, and the tabs taken out of it. */
     static final String ROUTE = "Reels tab";
 
     /** What a tab taken off the bar is counted under. */
@@ -52,8 +63,8 @@ public final class ReelsTab {
     }
 
     /**
-     * Handed each tab list Instagram builds, as it's returned. A copy without Reels while the switch
-     * hides it, otherwise the list as it came. Never throws, and never answers with an empty list.
+     * Handed each tab list Instagram builds, as it's returned. A copy without the tabs the switches
+     * hide, otherwise the list as it came. Never throws, and never answers with an empty list.
      */
     @Nullable
     public static List<?> tabs(@Nullable List<?> tabs) {
@@ -61,20 +72,68 @@ public final class ReelsTab {
             HookStatus.invoked(FamilyNames.REELS_TAB);
             if (tabs == null) return null;
             FeedFilterCounters.sawList(ROUTE, tabs.size());
-            if (!hiding()) return showing() ? withReels(tabs) : tabs;
-            List<Object> shown = new ArrayList<>(tabs.size());
-            for (Object tab : tabs) {
-                if (!isReels(tab)) shown.add(tab);
-            }
-            int hidden = tabs.size() - shown.size();
-            if (hidden == 0 || shown.isEmpty()) return tabs;
-            FeedFilterCounters.removed(ROUTE, hidden, HIDDEN);
-            Logger.printDebug(() -> "Reels tab: took Reels off a list of " + tabs.size() + " tabs");
+            List<?> shown = withoutHidden(tabs);
+            if (!hiddenByName(REELS) && showing()) shown = withReels(shown);
             return shown;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "tab list", failure);
             return tabs;
         }
+    }
+
+    /**
+     * A copy of [tabs] without the tabs whose switch is on, in the same order, or [tabs] itself when
+     * none is on, none is in the list, or taking them would leave it empty. The built list is never
+     * changed: Instagram shares it.
+     */
+    static List<?> withoutHidden(List<?> tabs) {
+        if (!hidingAny()) return tabs;
+        List<Object> shown = new ArrayList<>(tabs.size());
+        List<String> taken = new ArrayList<>(4);
+        for (Object tab : tabs) {
+            String name = hiddenName(tab);
+            if (name == null) shown.add(tab);
+            else taken.add(name);
+        }
+        if (taken.isEmpty() || shown.isEmpty()) return tabs;
+        FeedFilterCounters.removed(ROUTE, taken.size(), HIDDEN);
+        for (String name : taken) HookStatus.counted(FamilyNames.REELS_TAB, countLabel(name));
+        Logger.printDebug(() -> "Reels tab: took " + taken + " off a list of " + tabs.size() + " tabs");
+        return shown;
+    }
+
+    /** The label a hidden tab is counted under in the report: fixed text, never read from Instagram. */
+    private static String countLabel(String name) {
+        switch (name) {
+            case SEARCH: return "Search tab hidden";
+            case CREATE: return "Create tab hidden";
+            case PROFILE: return "Profile tab hidden";
+            default: return "Reels tab hidden";
+        }
+    }
+
+    /** The switch-off tab's name when [tab] is one the switches hide, else null. */
+    @Nullable
+    private static String hiddenName(@Nullable Object tab) {
+        if (!(tab instanceof Enum)) return null;
+        String name = ((Enum<?>) tab).name();
+        return hiddenByName(name) ? name : null;
+    }
+
+    /** Whether the switch for the tab called [name] is on. Off while paused or before settings are ready. */
+    static boolean hiddenByName(String name) {
+        if (!Utils.settingsReady()) return false;
+        switch (name) {
+            case REELS: return Settings.HIDE_REELS_TAB.get();
+            case SEARCH: return Settings.HIDE_SEARCH_TAB.get();
+            case CREATE: return Settings.HIDE_CREATE_TAB.get();
+            case PROFILE: return Settings.HIDE_PROFILE_TAB.get();
+            default: return false;
+        }
+    }
+
+    private static boolean hidingAny() {
+        return hiddenByName(REELS) || hiddenByName(SEARCH) || hiddenByName(CREATE) || hiddenByName(PROFILE);
     }
 
     /**
@@ -109,16 +168,20 @@ public final class ReelsTab {
     }
 
     /**
-     * Handed a tab Instagram is about to open, or the one it treats as home. Home in place of Reels
-     * while the switch hides it, otherwise the tab as it came. Never throws.
+     * Handed a tab Instagram is about to open, or the one it treats as home. Home in place of Reels,
+     * Search or Profile while its switch hides it, otherwise the tab as it came. Create is left
+     * alone: Instagram opens its camera from other places too. Never throws.
      */
     @Nullable
     public static Object tab(@Nullable Object tab) {
         try {
             HookStatus.invoked(FamilyNames.REELS_TAB);
-            if (!isReels(tab) || !hiding()) return tab;
+            if (!(tab instanceof Enum)) return tab;
+            String name = ((Enum<?>) tab).name();
+            if (!REELS.equals(name) && !SEARCH.equals(name) && !PROFILE.equals(name)) return tab;
+            if (!hiddenByName(name)) return tab;
             Object home = home((Enum<?>) tab);
-            Logger.printDebug(() -> "Reels tab: sent Home in place of Reels");
+            Logger.printDebug(() -> "Reels tab: sent Home in place of " + name);
             return home;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "tab switch", failure);
@@ -142,9 +205,5 @@ public final class ReelsTab {
 
     private static boolean showing() {
         return Utils.settingsReady() && Settings.SHOW_REELS_TAB.get();
-    }
-
-    private static boolean hiding() {
-        return Utils.settingsReady() && Settings.HIDE_REELS_TAB.get();
     }
 }
