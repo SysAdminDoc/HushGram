@@ -75,3 +75,6 @@ Roadmap_Blocked.md
 !CHANGELOG.md
 !CONTRIBUTING.md
 !docs/**/*.md
+
+# One-off helper scripts never belong at the root
+/*.py
