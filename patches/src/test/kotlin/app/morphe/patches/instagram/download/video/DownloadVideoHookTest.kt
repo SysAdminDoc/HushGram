@@ -646,6 +646,23 @@ class DownloadVideoHookTest {
             .map { it.definingClass }
         val lithoTypes = (rowBuilders.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
         if (lithoTypes.isNotEmpty()) classes += FixtureDex.classes(bundle, lithoTypes).values
+        // Save's modifier and the styles the builder gives it, then what the modifier is made of: its
+        // part, its empty one, and the parts and kinds the styles (and the calls they make) build.
+        val modifiers = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.name == "<init>" && it.parameterTypes.size == 6 && it.parameterTypes[0] == "Landroid/widget/ImageView${'$'}ScaleType;" }
+            .map { it.parameterTypes[1].toString() }.toSet()
+        val styleTypes = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.returnType in modifiers }.map { it.definingClass }
+        load(bundle, classes, modifiers + styleTypes)
+        val styleCalls = classes.filter { it.type in styleTypes }.flatMap { it.methods }.filter { it.returnType in modifiers }
+            .flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        val partTypes = classes.filter { it.type in modifiers }.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }
+        load(bundle, classes, partTypes + styleCalls.filter { it.returnType in modifiers }.map { it.definingClass } +
+            styleCalls.filter { it.name == "<init>" && it.parameterTypes.size == 2 }.flatMap { listOf(it.definingClass, it.parameterTypes[0].toString()) })
+        val callTypes = styleCalls.map { it.definingClass }.toSet()
+        val innerCalls = classes.filter { it.type in callTypes }.flatMap { it.methods }
+            .filter { it.returnType in modifiers }.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+        load(bundle, classes, innerCalls.filter { it.name == "<init>" && it.parameterTypes.size == 2 }.flatMap { listOf(it.definingClass, it.parameterTypes[0].toString()) })
         val context = PatchContexts.of(classes)
 
         val page = context.offerDownloadOnEveryVideo()
@@ -782,6 +799,61 @@ class DownloadVideoHookTest {
         for (used in listOf(site.id, site.click, site.longClick, site.description, site.specConstructor)) {
             assertEquals("$label: the icon bridge calls $used", 1, icon.count { it == used.toString() })
         }
+        assertEquals("$label: the icon never takes Save's modifier whole", 0, icon.count { it == site.modifier.toString() })
+        assertDownloadModifierHasNoneOfSavesOwnParts(context, site, code, label)
+    }
+
+    /**
+     * The Download icon's modifier is Save's with every part of Save's two kinds left out, and on
+     * each build those kinds cover what must not reach the icon: the binder Save's mount gets right
+     * after its id (the view-interaction tracker's Save element) and Save's selected state. Save's
+     * description and size styles make parts of other kinds, so the icon keeps those.
+     */
+    private fun assertDownloadModifierHasNoneOfSavesOwnParts(context: BytecodePatchContext, site: LithoSaveSite, code: List<Instruction>, label: String) {
+        val parts = site.parts
+        val bridges = context.classDefBy(FEED_BUTTON.substringBefore("->")).methods.associateBy { it.name }
+        assertEquals("$label: the modifier bridge reads Save's spec", site.modifier.toString(), bridges.getValue("lithoModifier").code()[1].referenceText())
+        assertEquals("$label: the walk", parts.walk.toString(), bridges.getValue("lithoParts").code()[2].referenceText())
+        assertEquals("$label: the empty modifier", parts.empty.toString(), bridges.getValue("lithoEmpty").code()[0].referenceText())
+        assertEquals("$label: the join", parts.join.toString(), bridges.getValue("lithoJoin").code()[2].referenceText())
+        val saveOnly = bridges.getValue("lithoSaveOnly").code()
+        assertEquals("$label: the kind", parts.kind.toString(), saveOnly[1].referenceText())
+        assertEquals("$label: Save's two kinds", parts.saveKinds, saveOnly.filter { it.opcode == Opcode.INSTANCE_OF }.map { it.referenceText() })
+
+        fun style(call: MethodReference): Method = context.method(call.definingClass, call.name, call.parameterTypes.map(Any::toString))
+        fun kindsMadeBy(method: Method, depth: Int = 1): Set<String> {
+            val calls = method.code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            val own = calls.filter {
+                it.name == "<init>" && it.parameterTypes.size == 2 && it.parameterTypes[1] == "Ljava/lang/Object;" &&
+                    context.classDefByOrNull(it.definingClass)?.interfaces?.contains(parts.part) == true
+            }.map { it.parameterTypes[0].toString() }.toSet()
+            if (depth == 0) return own
+            return own + calls.filter { it.name != "<init>" && it.returnType == site.modifierType }.flatMap { kindsMadeBy(style(it), depth - 1) }
+        }
+        val idAt = code.indexOfFirst { (it as? NarrowLiteralInstruction)?.narrowLiteral == SAVE_BUTTON_ID }
+        val calls = code.mapIndexedNotNull { index, instruction -> ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.let { index to it } }
+            .filter { (_, call) -> call.name != "<init>" && call.returnType == site.modifierType }
+        val selected = calls.last { (index, call) -> index < idAt && call.parameterTypes.map(Any::toString) == listOf(site.modifierType, "Z") }.second
+        val binder = calls.first { (index, call) ->
+            index > idAt && call != site.id && site.modifierType in call.parameterTypes.map(Any::toString) && call.parameterTypes.size > 2
+        }.second
+        val saveKinds = parts.saveKinds.toSet()
+        val binderKinds = kindsMadeBy(style(binder))
+        assertTrue("$label: the binder $binder makes its part of a kind left out ($binderKinds)", binderKinds.isNotEmpty() && binderKinds.all { it in saveKinds })
+        val selectedKinds = kindsMadeBy(style(selected))
+        assertTrue("$label: the selected state $selected is left out ($selectedKinds)", selectedKinds.isNotEmpty() && selectedKinds.all { it in saveKinds })
+        val descriptionKinds = kindsMadeBy(style(site.description))
+        assertTrue("$label: the description stays ($descriptionKinds)", descriptionKinds.isNotEmpty() && descriptionKinds.none { it in saveKinds })
+        val size = calls.first { (_, call) -> call.parameterTypes.map(Any::toString) == listOf(site.modifierType, "J") }.second
+        val sizeKinds = style(size).code().mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
+            .filter { it.name == "<init>" && it.parameterTypes.size == 2 && it.parameterTypes[1] == "J" }.map { it.parameterTypes[0].toString() }
+        assertTrue("$label: the size $size stays ($sizeKinds)", sizeKinds.isNotEmpty() && sizeKinds.none { it in saveKinds })
+    }
+
+    /** Adds the classes of [types] the fixture holds and [classes] doesn't have yet. */
+    private fun load(bundle: File, classes: MutableList<ClassDef>, types: Collection<String>) {
+        val missing = types.filter { type -> type.startsWith("L") && classes.none { it.type == type } }.toSet()
+        if (missing.isNotEmpty()) classes += FixtureDex.classes(bundle, missing).values
     }
     private val videoBridges = setOf(
         "videoVersions", "dashManifest", "mediaId", "owner", "takenAt", "username", "versionUrl", "versionWidth", "versionHeight",

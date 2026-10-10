@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
@@ -20,6 +21,7 @@ import app.morphe.patches.instagram.share.findFeedUfiSite
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -33,6 +35,7 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 private const val PATCH = "Download any video"
 
@@ -177,6 +180,24 @@ private const val FUNCTION1 = "Lkotlin/jvm/functions/Function1;"
 private val LISTS = setOf("Ljava/util/AbstractCollection;", "Ljava/util/ArrayList;", "Ljava/util/List;", "Ljava/util/Collection;")
 
 /**
+ * How a component modifier is taken apart and put back together. A modifier is a chain of parts
+ * ([part], an interface): [walk] hands each part to a function in the order they apply, [join]
+ * answers the modifier with one more part at the end, and [empty] is the modifier with none. Each
+ * part answers its kind through [kind], and [saveKinds] are the two kinds Save's id style makes its
+ * part of, by a server flag: the binder kind (what mounts the view with Instagram's own logic, such
+ * as the view-interaction tracker's Save element) and the common prop kind (id, tap, long press,
+ * selected state). Parts of either kind belong to Save alone.
+ */
+internal class ModifierParts(
+    val walk: MethodReference,
+    val join: MethodReference,
+    val empty: FieldReference,
+    val part: String,
+    val kind: MethodReference,
+    val saveKinds: List<String>,
+)
+
+/**
  * Where the component-backed Feed row builds its Save button, and what the hook there needs. [at]
  * is the instruction right after the constructor of Save's icon spec ([specType], built with
  * [specConstructor]), where [spec] holds that spec, [list] the list of the right-hand buttons the
@@ -184,7 +205,8 @@ private val LISTS = setOf("Ljava/util/AbstractCollection;", "Ljava/util/ArrayLis
  *
  * The spec keeps its modifier ([modifier], of [modifierType]), scale type, default color and flag.
  * The styles [id], [click], [longClick] and [description] are the calls Save's own modifier is
- * built with, found by where they sit around Save's id.
+ * built with, found by where they sit around Save's id. [parts] takes Save's modifier apart so the
+ * Download icon keeps only its size, padding and placement.
  */
 internal class LithoSaveSite(
     val type: String,
@@ -208,6 +230,7 @@ internal class LithoSaveSite(
     val stateType: String,
     val media: FieldReference,
     val item: FieldReference,
+    val parts: ModifierParts,
 )
 
 private fun Instruction.calls(): MethodReference? =
@@ -345,13 +368,77 @@ internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page
         specType, constructor, modifierType, modifier, scale, color, flag,
         idStyle, functionStyles[0], functionStyles[1], description,
         stateType, button.media, ImmutableFieldReference(item.definingClass, item.name, item.type),
+        findModifierParts(modifierType, idStyle),
+    )
+}
+
+private fun MethodReference.parameters() = parameterTypes.map(CharSequence::toString)
+
+/**
+ * The parts of [modifierType] by shape: its one instance field of an interface type is the part,
+ * its one call taking a Function1 the walk, its one call taking a part and answering a modifier the
+ * join, and its one static field of its own type or a subclass the empty modifier. Save's id style
+ * [idStyle] makes its part in one of two kinds, the constructor's first parameter, and the part's
+ * one call that takes nothing and answers a type both kinds implement is the kind. Fails naming
+ * what it didn't find exactly once.
+ */
+internal fun BytecodePatchContext.findModifierParts(modifierType: String, idStyle: MethodReference): ModifierParts {
+    val modifier = classDefByOrNull(modifierType) ?: refuse("$modifierType is missing")
+    fun instance(flags: Int) = !AccessFlags.STATIC.isSet(flags)
+    val partTypes = modifier.fields.filter { instance(it.accessFlags) && it.type != modifierType && it.type.startsWith("L") }.map { it.type }.distinct()
+    val part = partTypes.singleOrNull() ?: refuse("expected one part field in $modifierType, found ${partTypes.size}")
+    val partClass = classDefByOrNull(part) ?: refuse("$part is missing")
+    if (!AccessFlags.INTERFACE.isSet(partClass.accessFlags)) refuse("$modifierType's part $part is not an interface")
+    fun one(what: String, found: List<Method>) =
+        found.singleOrNull() ?: refuse("expected one $what in $modifierType, found ${found.size}")
+    val walk = one("walk over its parts", modifier.methods.filter {
+        instance(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf(FUNCTION1)
+    })
+    val join = one("call adding a part", modifier.methods.filter {
+        instance(it.accessFlags) && it.returnType == modifierType && it.parameterTypes.map(CharSequence::toString) == listOf(part)
+    })
+    val empties = modifier.fields.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && (it.type == modifierType || classDefByOrNull(it.type)?.superclass == modifierType)
+    }
+    val empty = empties.singleOrNull() ?: refuse("expected one empty $modifierType, found ${empties.size}")
+
+    val styles = classDefByOrNull(idStyle.definingClass)?.methods?.filter {
+        it.name == idStyle.name && it.returnType == idStyle.returnType && it.parameterTypes.map(CharSequence::toString) == idStyle.parameters()
+    }.orEmpty()
+    val style = styles.singleOrNull() ?: refuse("expected one id style $idStyle, found ${styles.size}")
+    val made = style.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        instruction.calls()?.takeIf {
+            (instruction.opcode == Opcode.INVOKE_DIRECT || instruction.opcode == Opcode.INVOKE_DIRECT_RANGE) && it.name == "<init>" &&
+                it.parameterTypes.size == 2 && it.parameterTypes[1].toString() == OBJECT &&
+                classDefByOrNull(it.definingClass)?.interfaces?.contains(part) == true
+        }
+    }
+    val kinds = made.map { it.parameterTypes[0].toString() }.distinct()
+    if (kinds.size != 2) refuse("expected Save's id style to make its part in two kinds, found ${kinds.size}")
+    val kindClasses = kinds.map { classDefByOrNull(it) ?: refuse("$it is missing") }
+    val getters = partClass.methods.filter { getter ->
+        instance(getter.accessFlags) && getter.parameterTypes.isEmpty() && kindClasses.all { getter.returnType in it.interfaces }
+    }
+    val kind = getters.singleOrNull() ?: refuse("expected one call on $part answering its kind, found ${getters.size}")
+
+    fun reference(method: Method) =
+        ImmutableMethodReference(method.definingClass, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType)
+    return ModifierParts(
+        reference(walk), reference(join), ImmutableFieldReference(empty.definingClass, empty.name, empty.type),
+        part, reference(kind), kinds,
     )
 }
 
 /**
  * Right after Save's icon spec is made, hands [LITHO_BUTTON] the button list, the spec and the row
- * state, and writes the three bridges it asks Instagram's classes through. Three locals nothing
- * reads afterwards carry the arguments.
+ * state, and writes the bridges it asks Instagram's classes through. Three locals nothing reads
+ * afterwards carry the arguments.
+ *
+ * The icon's modifier isn't Save's: Save's carries the binder that registers the view with
+ * Instagram's view-interaction tracker as the post's Save element, and its selected state, which
+ * TalkBack reads out. The extension walks Save's modifier through the part bridges, drops every part
+ * of Save's two kinds and joins the rest (its size, padding and placement) into a new one, and the
+ * icon bridge gives that its own id, tap, long press and description.
  */
 internal fun BytecodePatchContext.addLithoDownloadButton(site: LithoSaveSite) {
     val method = mutableClassDefBy(site.type).methods.single {
@@ -364,8 +451,25 @@ internal fun BytecodePatchContext.addLithoDownloadButton(site: LithoSaveSite) {
     } ?: refuse("$FEED_BUTTON_CLASS has no static $returns $name(${parameters.joinToString()})")
     val postOf = stub("lithoPost", OBJECT, returns = OBJECT)
     val itemOf = stub("lithoItem", OBJECT, returns = OBJECT)
-    val iconOf = stub("lithoIcon", OBJECT, OBJECT, OBJECT, "I", CHAR_SEQUENCE_TYPE, "I", returns = OBJECT)
+    val iconOf = stub("lithoIcon", OBJECT, OBJECT, OBJECT, OBJECT, "I", CHAR_SEQUENCE_TYPE, "I", returns = OBJECT)
+    val modifierOf = stub("lithoModifier", OBJECT, returns = OBJECT)
+    val partsOf = stub("lithoParts", OBJECT, OBJECT, returns = "V")
+    val emptyOf = stub("lithoEmpty", returns = OBJECT)
+    val joinOf = stub("lithoJoin", OBJECT, OBJECT, returns = OBJECT)
+    val saveOnlyOf = stub("lithoSaveOnly", OBJECT, returns = "I")
     val (list, spec, state) = method.freeLocalsAt(PATCH, site.at, 3, except = listOf(site.list, site.spec, site.state))
+
+    /** Swaps [stub] for the same method with [locals] locals and [body], every parameter one register wide. */
+    fun rewrite(stub: MutableMethod, locals: Int, body: String) {
+        bridges.methods.remove(stub)
+        bridges.methods.add(
+            ImmutableMethod(
+                stub.definingClass, stub.name, stub.parameters, stub.returnType, stub.accessFlags, stub.annotations,
+                stub.hiddenApiRestrictions, ImmutableMethodImplementation(locals + stub.parameters.size, emptyList(), null, null),
+            ).toMutable().apply { addInstructions(0, body) },
+        )
+    }
+    val parts = site.parts
 
     method.addInstructions(
         site.at,
@@ -392,38 +496,78 @@ internal fun BytecodePatchContext.addLithoDownloadButton(site: LithoSaveSite) {
             return-object p0
         """,
     )
-    bridges.methods.remove(iconOf)
-    bridges.methods.add(
-        ImmutableMethod(
-            iconOf.definingClass, iconOf.name, iconOf.parameters, iconOf.returnType, iconOf.accessFlags, iconOf.annotations,
-            iconOf.hiddenApiRestrictions, ImmutableMethodImplementation(8 + 6, emptyList(), null, null),
-        ).toMutable().apply {
-            addInstructions(
-                0,
-                """
-                    check-cast p0, ${site.specType}
-                    iget-object v0, p0, ${site.modifier}
-                    invoke-static { v0, p3 }, ${site.id}
-                    move-result-object v0
-                    check-cast p1, $FUNCTION1
-                    invoke-static { v0, p1 }, ${site.click}
-                    move-result-object v0
-                    check-cast p2, $FUNCTION1
-                    invoke-static { v0, p2 }, ${site.longClick}
-                    move-result-object v0
-                    invoke-static { v0, p4 }, ${site.description}
-                    move-result-object v0
-                    new-instance v1, ${site.specType}
-                    iget-object v2, p0, ${site.scale}
-                    move-object v3, v0
-                    const/4 v4, 0x0
-                    move v5, p5
-                    iget v6, p0, ${site.color}
-                    iget-boolean v7, p0, ${site.flag}
-                    invoke-direct/range { v1 .. v7 }, ${site.specConstructor}
-                    return-object v1
-                """,
-            )
-        },
+    rewrite(
+        modifierOf, 0,
+        """
+            check-cast p0, ${site.specType}
+            iget-object p0, p0, ${site.modifier}
+            return-object p0
+        """,
+    )
+    rewrite(
+        partsOf, 0,
+        """
+            check-cast p0, ${site.modifierType}
+            check-cast p1, $FUNCTION1
+            invoke-virtual { p0, p1 }, ${parts.walk}
+            return-void
+        """,
+    )
+    rewrite(
+        emptyOf, 1,
+        """
+            sget-object v0, ${parts.empty}
+            return-object v0
+        """,
+    )
+    rewrite(
+        joinOf, 0,
+        """
+            check-cast p0, ${site.modifierType}
+            check-cast p1, ${parts.part}
+            invoke-virtual { p0, p1 }, ${parts.join}
+            move-result-object p0
+            return-object p0
+        """,
+    )
+    rewrite(
+        saveOnlyOf, 2,
+        """
+            check-cast p0, ${parts.part}
+            invoke-interface { p0 }, ${parts.kind}
+            move-result-object p0
+            instance-of v0, p0, ${parts.saveKinds[0]}
+            instance-of v1, p0, ${parts.saveKinds[1]}
+            or-int/2addr v0, v1
+            return v0
+        """,
+    )
+    // p0 Save's spec, p1 the icon's own modifier, p2 the tap, p3 the long press, p4 the id,
+    // p5 the description, p6 the drawable.
+    rewrite(
+        iconOf, 8,
+        """
+            check-cast p0, ${site.specType}
+            check-cast p1, ${site.modifierType}
+            invoke-static { p1, p4 }, ${site.id}
+            move-result-object v0
+            check-cast p2, $FUNCTION1
+            invoke-static { v0, p2 }, ${site.click}
+            move-result-object v0
+            check-cast p3, $FUNCTION1
+            invoke-static { v0, p3 }, ${site.longClick}
+            move-result-object v0
+            invoke-static { v0, p5 }, ${site.description}
+            move-result-object v0
+            new-instance v1, ${site.specType}
+            iget-object v2, p0, ${site.scale}
+            move-object v3, v0
+            const/4 v4, 0x0
+            move v5, p6
+            iget v6, p0, ${site.color}
+            iget-boolean v7, p0, ${site.flag}
+            invoke-direct/range { v1 .. v7 }, ${site.specConstructor}
+            return-object v1
+        """,
     )
 }

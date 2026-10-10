@@ -193,10 +193,43 @@ class FeedDownloadButtonHookTest {
         assertEquals("$STATE->item:$ITEM", item[1].reference())
         val icon = bridges.getValue("lithoIcon").implementation!!.instructions.toList().map { (it as? ReferenceInstruction)?.reference?.toString() }
         for (needed in listOf(
-            site.modifier.toString(), site.id.toString(), site.click.toString(), site.longClick.toString(),
+            site.id.toString(), site.click.toString(), site.longClick.toString(),
             site.description.toString(), site.scale.toString(), site.color.toString(), site.flag.toString(), site.specConstructor.toString(),
         )) assertEquals("the icon bridge uses $needed once", 1, icon.count { it == needed })
         assertEquals("Save's spec cast once, a new one made once", 2, icon.count { it == "Lfixture/Icon;" })
+        assertEquals("the icon never reads Save's modifier itself", 0, icon.count { it == site.modifier.toString() })
+        val modifierType = "Lfixture/Modifier;"
+        val idCall = bridges.getValue("lithoIcon").implementation!!.instructions.toList().first { (it as? ReferenceInstruction)?.reference?.toString() == site.id.toString() }
+        assertEquals("the id goes on the modifier it was handed", 8 + 1, (idCall as Instruction35c).registerC)
+
+        fun body(name: String) = bridges.getValue(name).implementation!!.instructions.toList()
+        assertEquals(listOf("Lfixture/Icon;", site.modifier.toString(), null), body("lithoModifier").map { (it as? ReferenceInstruction)?.reference?.toString() })
+        assertEquals("$modifierType->walk(Lkotlin/jvm/functions/Function1;)V", body("lithoParts")[2].reference())
+        assertEquals("$modifierType->NONE:$modifierType", body("lithoEmpty")[0].reference())
+        assertEquals("$modifierType->plus(Lfixture/Part;)$modifierType", body("lithoJoin")[2].reference())
+        val saveOnly = body("lithoSaveOnly")
+        assertEquals("Lfixture/Part;->kind()Lfixture/Kind;", saveOnly[1].reference())
+        assertEquals("both of Save's kinds are told apart", listOf("Lfixture/BinderKind;", "Lfixture/PropKind;"),
+            saveOnly.filter { it.opcode == Opcode.INSTANCE_OF }.map { it.reference() })
+        assertEquals(listOf("Lfixture/BinderKind;", "Lfixture/PropKind;"), site.parts.saveKinds)
+    }
+
+    @Test
+    fun aModifierThatCannotBeTakenApartFailsThePatch() {
+        for ((case, classes) in mapOf(
+            "an id style of one kind" to lithoClasses(idKinds = 1),
+            "an id style of three kinds" to lithoClasses(idKinds = 3),
+            "no walk over the parts" to lithoClasses(walk = false),
+            "a part that is no interface" to lithoClasses(partInterface = false),
+            "no empty modifier" to lithoClasses(empty = false),
+            "no kind on the part" to lithoClasses(kindGetter = false),
+        )) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(case, PatchException::class.java) {
+                context.findLithoSaveSite(context.findFeedButtonSite(PAGE), PAGE)
+            }
+            assertTrue("$case: ${failure.message}", failure.message!!.startsWith("Download any video: "))
+        }
     }
 
     @Test
@@ -286,6 +319,11 @@ class FeedDownloadButtonHookTest {
             specKeepsModifier: Boolean = true,
             items: Int = 1,
             busy: Boolean = false,
+            idKinds: Int = 2,
+            walk: Boolean = true,
+            partInterface: Boolean = true,
+            empty: Boolean = true,
+            kindGetter: Boolean = true,
         ): List<ClassDef> {
             val modifier = "Lfixture/Modifier;"
             val function = "Lkotlin/jvm/functions/Function1;"
@@ -359,7 +397,57 @@ class FeedDownloadButtonHookTest {
             )
             val base = classes().filter { it.type != STATE }
             return base + state + icon + builder(BUILDER) + (if (twoBuilders) listOf(builder("Lfixture/OtherBuilder;")) else emptyList()) +
-                ExtensionDex.classDef(FEED_BUTTON_TYPE)
+                modifierClasses(idKinds, walk, partInterface, empty, kindGetter) + ExtensionDex.classDef(FEED_BUTTON_TYPE)
+        }
+
+        /**
+         * The modifier as 450 has it, in the parts the bridges use: a chain of parts with a walk, a
+         * join and an empty one; the part interface with its kind; an item made in a binder kind and
+         * a common prop kind; and the id style, which makes its part in both (by a server flag).
+         */
+        fun modifierClasses(idKinds: Int, walk: Boolean, partInterface: Boolean, empty: Boolean, kindGetter: Boolean): List<ClassDef> {
+            val modifier = "Lfixture/Modifier;"
+            val part = "Lfixture/Part;"
+            val kinds = listOf("Lfixture/BinderKind;", "Lfixture/PropKind;", "Lfixture/OtherKind;")
+            val modifierClass = classOf(
+                modifier,
+                listOf(field(modifier, "prev", modifier), field(modifier, "part", part)) +
+                    if (empty) listOf(ImmutableField(modifier, "NONE", modifier, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null, null)) else emptyList(),
+                listOfNotNull(
+                    if (walk) assembled(modifier, "walk", listOf("Lkotlin/jvm/functions/Function1;"), "V", AccessFlags.PUBLIC.value, 2, "return-void") else null,
+                    assembled(modifier, "plus", listOf(part), modifier, AccessFlags.PUBLIC.value, 2, "return-object p0"),
+                    assembled(modifier, "then", listOf(modifier), modifier, AccessFlags.PUBLIC.value, 2, "return-object p0"),
+                ),
+            )
+            val partFlags = AccessFlags.PUBLIC.value or (if (partInterface) AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value else 0)
+            val partClass = ImmutableClassDef(
+                part, partFlags, "Ljava/lang/Object;", null, null, null, emptyList(),
+                listOfNotNull(
+                    if (kindGetter) ImmutableMethod(part, "kind", emptyList(), "Lfixture/Kind;", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null) else null,
+                    ImmutableMethod(part, "value", emptyList(), "Ljava/lang/Object;", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null),
+                ),
+            )
+            val kindClasses = kinds.map { kind ->
+                ImmutableClassDef(kind, AccessFlags.PUBLIC.value, "Ljava/lang/Enum;", listOf("Lfixture/Kind;"), null, null, emptyList(), emptyList())
+            }
+            val item = ImmutableClassDef("Lfixture/Item;", AccessFlags.PUBLIC.value, "Ljava/lang/Object;", listOf(part), null, null, emptyList(), emptyList())
+            val style = classOf(
+                "Lfixture/Style;", emptyList(),
+                listOf(
+                    assembled(
+                        "Lfixture/Style;", "id", listOf(modifier, "I"), modifier, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, 4,
+                        buildString {
+                            for (kind in kinds.take(idKinds)) {
+                                appendLine("new-instance v0, Lfixture/Item;")
+                                appendLine("sget-object v1, $kind->ID:$kind")
+                                appendLine("invoke-direct { v0, v1, v1 }, Lfixture/Item;-><init>(${kind}Ljava/lang/Object;)V")
+                            }
+                            appendLine("return-object p0")
+                        },
+                    ),
+                ),
+            )
+            return listOf(modifierClass, partClass, item, style) + kindClasses
         }
 
         const val BINDER = "Lfixture/UfiRow;"

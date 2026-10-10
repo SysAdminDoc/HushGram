@@ -33,6 +33,7 @@ import androidx.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.List;
 
 import kotlin.jvm.functions.Function1;
@@ -67,10 +68,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * own mounting may add children to (addView on it throws), whose Save button is a component spec
  * built each time the row is composed. There the patch calls {@link #litho} right after Save's
  * spec is made, with the list of buttons Save is about to join, the spec and the row's state. A
- * spec for the Download icon is made from Save's, its modifier carrying Save's size and padding
- * with a new id, description and tap, and put in the list ahead of Save, so Instagram lays it out,
- * mounts it and recycles it like its own buttons. The first hook above stays for the rows still
- * bound the old way (#97).
+ * spec for the Download icon is made from Save's, its modifier keeping Save's size, padding and
+ * placement but none of Save's binders or common props ({@link #iconModifier}), with a new id,
+ * description and tap, and put in the list ahead of Save, so Instagram lays it out, mounts it and
+ * recycles it like its own buttons. The first hook above stays for the rows still bound the old
+ * way (#97).
  *
  * <p>Every part fails open. With the switch off, or while paused, the icon is hidden, and a row
  * that can't take it is left as it was.
@@ -145,7 +147,18 @@ public final class FeedDownloadButton {
 
         int drawable(Context context);
 
-        Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume, int id,
+        /** The parts of Save's modifier in the order they apply, or null when they can't be read. */
+        @Nullable
+        List<Object> parts(Object save);
+
+        /** Whether a part belongs to Save alone: a binder, or a common prop such as its id, tap or selected state. */
+        boolean saveOnly(Object part);
+
+        /** A modifier made of [parts], in order. */
+        @Nullable
+        Object modifier(List<Object> parts);
+
+        Object icon(Object save, Object modifier, Function1<Object, Object> click, Function1<Object, Object> consume, int id,
                     CharSequence description, int drawable);
     }
 
@@ -167,9 +180,28 @@ public final class FeedDownloadButton {
             return 0;
         }
 
-        @Override public Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume,
+        @Override public List<Object> parts(Object save) {
+            Object modifier = lithoModifier(save);
+            if (modifier == null) return null;
+            List<Object> parts = new ArrayList<>();
+            lithoParts(modifier, new Collect(parts));
+            return parts;
+        }
+
+        @Override public boolean saveOnly(Object part) {
+            return lithoSaveOnly(part) != 0;
+        }
+
+        @Override public Object modifier(List<Object> parts) {
+            Object modifier = lithoEmpty();
+            if (modifier == null) return null;
+            for (Object part : parts) modifier = lithoJoin(modifier, part);
+            return modifier;
+        }
+
+        @Override public Object icon(Object save, Object modifier, Function1<Object, Object> click, Function1<Object, Object> consume,
                                      int id, CharSequence description, int drawable) {
-            return lithoIcon(save, click, consume, id, description, drawable);
+            return lithoIcon(save, modifier, click, consume, id, description, drawable);
         }
     };
 
@@ -183,12 +215,37 @@ public final class FeedDownloadButton {
         return null;
     }
 
+    /** The modifier Instagram's spec for Save keeps. The patch replaces this body. */
+    public static Object lithoModifier(Object save) {
+        return null;
+    }
+
+    /** Hands each part of [modifier] to [visit] in the order they apply. The patch replaces this body. */
+    public static void lithoParts(Object modifier, Object visit) {
+    }
+
+    /** The modifier with no parts. The patch replaces this body. */
+    public static Object lithoEmpty() {
+        return null;
+    }
+
+    /** [modifier] with [part] added at its end. The patch replaces this body. */
+    public static Object lithoJoin(Object modifier, Object part) {
+        return null;
+    }
+
+    /** 1 when [part] is of one of the two kinds Save's id is made in (binders and common props), else 0. The patch replaces this body. */
+    public static int lithoSaveOnly(Object part) {
+        return 0;
+    }
+
     /**
-     * A spec for the Download icon made from [save], Instagram's spec for Save: its modifier with
-     * the id [id], the tap [click], a long press that does nothing, the description and [drawable].
-     * The patch replaces this body.
+     * A spec for the Download icon made from [save], Instagram's spec for Save: its scale type,
+     * color and flag, with [modifier] given the id [id], the tap [click], a long press that does
+     * nothing and the description, and [drawable]. The patch replaces this body.
      */
-    public static Object lithoIcon(Object save, Object click, Object consume, int id, CharSequence description, int drawable) {
+    public static Object lithoIcon(Object save, Object modifier, Object click, Object consume, int id,
+                                   CharSequence description, int drawable) {
         return null;
     }
 
@@ -224,9 +281,45 @@ public final class FeedDownloadButton {
         if (context == null) return null;
         int drawable = litho.drawable(context);
         if (drawable == 0) return null;
+        Object modifier = iconModifier(save);
+        if (modifier == null) return null;
         Click click = new Click(litho.post(state), litho.item(state));
         if (lithoId == 0) lithoId = View.generateViewId();
-        return litho.icon(save, click, Consume.INSTANCE, lithoId, L10n.t(context, "Download"), drawable);
+        return litho.icon(save, modifier, click, Consume.INSTANCE, lithoId, L10n.t(context, "Download"), drawable);
+    }
+
+    /**
+     * Save's modifier without what belongs to Save alone, so the icon keeps Save's size, padding and
+     * placement and nothing else: not its binders (one registers the view with Instagram's
+     * view-interaction tracker as the post's Save, so taps and impressions on Download would be
+     * reported as Save), and not its id, tap, long press or selected state (TalkBack would call
+     * Download selected on a saved post). Null when Save's parts can't be read, or when none of them
+     * reads as Save's own, since then a binder can't be told apart and the row is better left as it is.
+     */
+    @Nullable
+    static Object iconModifier(Object save) {
+        List<Object> parts = litho.parts(save);
+        if (parts == null) return null;
+        List<Object> kept = new ArrayList<>(parts.size());
+        for (Object part : parts) {
+            if (!litho.saveOnly(part)) kept.add(part);
+        }
+        if (kept.size() == parts.size()) return null;
+        return litho.modifier(kept);
+    }
+
+    /** Collects the parts a modifier walk hands out, in order. */
+    static final class Collect implements Function1<Object, Object> {
+        final List<Object> into;
+
+        Collect(List<Object> into) {
+            this.into = into;
+        }
+
+        @Override public Object invoke(Object part) {
+            into.add(part);
+            return null;
+        }
     }
 
     /** A tap on the component icon: what the bound icon's tap does, with the view the tap came from as the anchor. */

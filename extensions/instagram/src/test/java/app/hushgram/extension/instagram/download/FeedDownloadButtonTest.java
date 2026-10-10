@@ -371,6 +371,11 @@ public class FeedDownloadButtonTest {
         CharSequence description;
         int usedDrawable;
         Object savedSpec;
+        Object usedModifier;
+        /** Save's modifier as Instagram builds it: its placement and size, its own binders and props, its padding. */
+        List<Object> parts = new ArrayList<>(Arrays.asList(
+                "align", "size", "description", "selected binder", "id prop", "tracker binder", "padding", "tap prop"));
+        boolean partsReadable = true;
 
         @Override public Object post(Object state) {
             return "post of " + state;
@@ -384,10 +389,24 @@ public class FeedDownloadButtonTest {
             return drawable;
         }
 
-        @Override public Object icon(Object save, Function1<Object, Object> click, Function1<Object, Object> consume, int id,
-                                     CharSequence description, int drawable) {
+        @Override public List<Object> parts(Object save) {
+            return partsReadable ? new ArrayList<>(parts) : null;
+        }
+
+        @Override public boolean saveOnly(Object part) {
+            String name = part.toString();
+            return name.endsWith(" binder") || name.endsWith(" prop");
+        }
+
+        @Override public Object modifier(List<Object> parts) {
+            return "modifier " + parts;
+        }
+
+        @Override public Object icon(Object save, Object modifier, Function1<Object, Object> click, Function1<Object, Object> consume,
+                                     int id, CharSequence description, int drawable) {
             if (throwing) throw new IllegalStateException("Instagram changed");
             this.savedSpec = save;
+            this.usedModifier = modifier;
             this.click = click;
             this.consume = consume;
             this.id = id;
@@ -418,6 +437,58 @@ public class FeedDownloadButtonTest {
         } finally {
             FeedDownloadButton.litho = originalLitho;
         }
+    }
+
+    /**
+     * Save's binders (the view-interaction tracker's Save element, the selected state) and its
+     * common props never reach the Download icon: its modifier is made of Save's other parts, in
+     * their order.
+     */
+    @Test
+    public void theComponentIconTakesSavesSizeAndPaddingButNoneOfSavesOwnParts() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            FeedDownloadButton.litho(new ArrayList<>(), "save spec", "state");
+            assertEquals("modifier [align, size, description, padding]", fake.usedModifier);
+            assertFalse(fake.usedModifier.toString().contains("binder"));
+            assertFalse(fake.usedModifier.toString().contains("prop"));
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    /** A modifier whose parts can't be read, or where nothing reads as Save's own, gets no icon: a binder could hide in it. */
+    @Test
+    public void aSaveModifierThatCannotBeToldApartGetsNoIcon() {
+        FakeLitho fake = new FakeLitho();
+        FeedDownloadButton.litho = fake;
+        try {
+            List<Object> row = new ArrayList<>();
+            fake.partsReadable = false;
+            FeedDownloadButton.litho(row, "save", "state");
+            fake.partsReadable = true;
+            fake.parts = new ArrayList<>(Arrays.asList("size", "padding"));
+            FeedDownloadButton.litho(row, "save", "state");
+            assertTrue(row.isEmpty());
+            assertNull("no icon was made", fake.savedSpec);
+            String report = report();
+            assertTrue(report, report.contains("feed button not placed (litho row)"));
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+        }
+    }
+
+    /** Before the patch writes the bridges, Save's modifier reads as nothing, so the icon is never made from it whole. */
+    @Test
+    public void theUnpatchedBridgesGiveNoModifier() {
+        assertNull(originalLitho.parts("save"));
+        assertNull(FeedDownloadButton.iconModifier("save"));
+        assertNull(originalLitho.modifier(new ArrayList<>(Collections.singletonList("size"))));
+        assertFalse(originalLitho.saveOnly("part"));
+        List<Object> collected = new ArrayList<>();
+        assertNull(new FeedDownloadButton.Collect(collected).invoke("part"));
+        assertEquals(Collections.singletonList("part"), collected);
     }
 
     @Test
