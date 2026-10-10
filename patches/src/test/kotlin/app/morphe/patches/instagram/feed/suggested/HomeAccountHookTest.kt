@@ -21,6 +21,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
@@ -162,6 +164,98 @@ class HomeAccountHookTest {
         }
     }
 
+    private val startTrace = "MainFeedCacheDataSource.start"
+    private val startLoad = "feed_schedule_initial_cache_load"
+    private val sessionField = "A01"
+
+    /** The source's start as 450 has it: 9 registers, the source in p0 (v7), one object parameter, both strings. */
+    private fun start(name: String = "A0C", strings: List<String> = listOf(startTrace, startLoad), registers: Int = 9, static: Boolean = false): Method =
+        ImmutableMethod(
+            MAIN_FEED_CACHE_SOURCE, name, listOf(ImmutableMethodParameter("LX/04nm;", null, null)), "V",
+            AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
+            ImmutableMethodImplementation(
+                registers,
+                strings.mapIndexed { i, text ->
+                    ImmutableInstruction21c(Opcode.CONST_STRING, i, com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference(text))
+                } + ImmutableInstruction10x(Opcode.RETURN_VOID),
+                null, null,
+            ),
+        )
+
+    /** A constructor that, like 450's, stores the session in [field] right away. */
+    private fun storingConstructor(field: String = sessionField): Method {
+        val base = constructor()
+        return ImmutableMethod(
+            MAIN_FEED_CACHE_SOURCE, "<init>", base.parameters, "V", base.accessFlags, null, null,
+            ImmutableMethodImplementation(
+                22,
+                listOf(
+                    ImmutableInstruction22c(Opcode.IPUT_OBJECT, 0, 1, ImmutableFieldReference(MAIN_FEED_CACHE_SOURCE, field, session)),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ),
+                null, null,
+            ),
+        )
+    }
+
+    private fun sourceWith(methods: List<Method>, fields: List<String> = listOf(sessionField)) =
+        ImmutableClassDef(
+            MAIN_FEED_CACHE_SOURCE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
+            fields.map { ImmutableField(MAIN_FEED_CACHE_SOURCE, it, session, AccessFlags.PRIVATE.value, null, null, null) },
+            methods,
+        )
+
+    /**
+     * Instagram makes one source for each session and keeps it, so switching from account A to B and
+     * back to A never runs A's constructor again. The source's start runs each time Home comes up, and
+     * hands over the session the source keeps, so the account follows the switch.
+     */
+    @Test
+    fun theStartHandsTheSessionOverEveryTimeHomeComesUp() {
+        val context = PatchContexts.of(classes(sourceWith(listOf(storingConstructor(), start()))))
+
+        requireNotNull(context.homeAccountOrWarn()).write()
+
+        val code = context.mutableClassDefBy(MAIN_FEED_CACHE_SOURCE).methods.single { it.name == "A0C" }.instructions()
+        assertEquals(listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC), code.take(2).map { it.opcode })
+        val read = code[0] as TwoRegisterInstruction
+        assertEquals("v0 carries the session", 0, read.registerA)
+        assertEquals("from the source in p0", 7, read.registerB)
+        assertEquals("$MAIN_FEED_CACHE_SOURCE->$sessionField:$session", ((code[0] as ReferenceInstruction).reference).toString())
+        assertEquals(HOME_SESSION, ((code[1] as ReferenceInstruction).reference as MethodReference).text())
+        assertEquals(0, (code[1] as com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction).registerC)
+        assertEquals("the rest of the start is as it was", listOf(Opcode.CONST_STRING, Opcode.CONST_STRING, Opcode.RETURN_VOID), code.drop(2).map { it.opcode })
+    }
+
+    /** A source whose start can't be told for sure keeps the constructor hook and leaves every method as it was. */
+    @Test
+    fun aStartThatCantBeFoundIsLeftAlone() {
+        val tooHigh = 18
+        for ((case, built) in listOf(
+            "no start" to sourceWith(listOf(storingConstructor())),
+            "a start missing a string" to sourceWith(listOf(storingConstructor(), start(strings = listOf(startTrace)))),
+            "two starts" to sourceWith(listOf(storingConstructor(), start(), start(name = "A0D"))),
+            "a static start" to sourceWith(listOf(storingConstructor(), start(static = true))),
+            "a source out of plain reach" to sourceWith(listOf(storingConstructor(), start(registers = tooHigh))),
+            "no session field" to sourceWith(listOf(storingConstructor(), start()), fields = emptyList()),
+            "two session fields" to sourceWith(listOf(storingConstructor(), start()), fields = listOf("A01", "A02")),
+            "a field the constructor never writes" to sourceWith(listOf(storingConstructor("A02"), start())),
+        )) {
+            val everything = classes(built)
+            val context = PatchContexts.of(everything)
+            val account = context.homeAccountOrWarn()
+            assertNotNull("$case: the constructor hook still goes in", account)
+            account!!.write()
+
+            val methods = context.mutableClassDefBy(MAIN_FEED_CACHE_SOURCE).methods
+            val starts = methods.filter { it.name.startsWith("A0") }
+            for (method in starts) {
+                val untouched = built.methods.single { it.name == method.name }.instructions().size
+                assertEquals("$case: ${method.name} unchanged", untouched, method.instructions().size)
+            }
+        }
+    }
+
     /**
      * On every build of the declared version, the cache source has its one (boolean, UserSession)
      * constructor with the session in its last register, UserSession has its public getUserId(), the
@@ -191,6 +285,20 @@ class HomeAccountHookTest {
             val registers = constructor.implementation!!.registerCount
             assertEquals("$where: the session is the last of p0, p1 and p2", registers - 1, (code[0] as RegisterRangeInstruction).startRegister)
             assertEquals("$where: the hook once", 1, code.count {
+                ((it as? ReferenceInstruction)?.reference as? MethodReference)?.text() == HOME_SESSION
+            })
+
+            val starts = context.mutableClassDefBy(MAIN_FEED_CACHE_SOURCE).methods.filter { method ->
+                method.instructions().any {
+                    ((it as? ReferenceInstruction)?.reference as? com.android.tools.smali.dexlib2.iface.reference.StringReference)?.string == startTrace
+                }
+            }
+            assertEquals("$where: one start method", 1, starts.size)
+            val startCode = starts.single().instructions()
+            assertEquals("$where: the start reads the session first", Opcode.IGET_OBJECT, startCode[0].opcode)
+            assertEquals("$where: from the source", starts.single().implementation!!.registerCount - 2, (startCode[0] as TwoRegisterInstruction).registerB)
+            assertEquals("$where: the start hands it over", HOME_SESSION, ((startCode[1] as ReferenceInstruction).reference as MethodReference).text())
+            assertEquals("$where: the start hook once", 1, startCode.count {
                 ((it as? ReferenceInstruction)?.reference as? MethodReference)?.text() == HOME_SESSION
             })
 

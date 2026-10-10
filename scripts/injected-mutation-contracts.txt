@@ -529,6 +529,12 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePagePar
 # session, in the class holding the two strings below. Left out, one list counts for every account.
 start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+# Instagram keeps one cache source for each session, so its constructor runs once for an account and a switch back to an
+# account never reaches it. The source's start (the one instance method of the class holding both strings, reading the
+# session out of the source first thing) runs each time Home comes up and hands the same session over again. Left out,
+# the list stays the last new account's after switching back to an earlier one.
+start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (L*;)V holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 #
 # Hide suggested posts answers the home feed adapter's "no next page" flag through feedEnded() at
 # each of its two reads: the model builder, the one method holding both strings below, and the

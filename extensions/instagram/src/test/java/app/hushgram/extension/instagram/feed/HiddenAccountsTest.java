@@ -162,28 +162,71 @@ public class HiddenAccountsTest {
         assertEquals("1", Settings.FEED_ACCOUNT.savedValue());
     }
 
-    /** Each signed-in account keeps its own list; a name kept before any account was seen counts for all. */
+    /** Each signed-in account keeps its own list; a name kept before any account was seen goes to the first account seen. */
     @Test
     public void eachAccountKeepsItsOwnList() {
-        HiddenAccounts.add("everyone");
+        HiddenAccounts.add("first");
+        assertEquals("settings shows it while no account is known", Collections.singletonList("first"), HiddenAccounts.saved());
+        Item before = new Item("first");
+        assertSame("it hides nothing for an account nobody has seen", before, home(before));
+
         signIn("1");
+        assertEquals("the first account seen takes it", Collections.singletonList("first"), HiddenAccounts.saved());
+        assertNull(home(new Item("first")));
         HiddenAccounts.add("nasa");
         signIn("2");
-        assertEquals(Collections.singletonList("everyone"), HiddenAccounts.saved());
+        assertTrue("account 2 has none of them", HiddenAccounts.saved().isEmpty());
         Item nasa = new Item("nasa");
         assertSame("account 2 didn't hide nasa", nasa, home(nasa));
-        assertNull(home(new Item("everyone")));
+        Item first = new Item("first");
+        assertSame("nor the name kept before any account was seen", first, home(first));
         HiddenAccounts.add("esa");
 
         signIn("1");
-        assertEquals(Arrays.asList("everyone", "nasa"), HiddenAccounts.saved());
+        assertEquals(Arrays.asList("first", "nasa"), HiddenAccounts.saved());
         assertNull(home(new Item("nasa")));
         Item esa = new Item("esa");
         assertSame("account 1 didn't hide esa", esa, home(esa));
 
-        HiddenAccounts.remove("everyone");
+        HiddenAccounts.remove("first");
         signIn("2");
-        assertEquals("a name kept for all goes for all", Collections.singletonList("esa"), HiddenAccounts.saved());
+        assertEquals(Collections.singletonList("esa"), HiddenAccounts.saved());
+    }
+
+    /**
+     * Instagram keeps one source for each session, so Home tells us the account every time it starts
+     * and not only the first time for an account. A, then B, then A again has A's list back.
+     */
+    @Test
+    public void switchingBackToAnEarlierAccountBringsItsListBack() {
+        signIn("A");
+        HiddenAccounts.add("nasa");
+        signIn("B");
+        HiddenAccounts.add("esa");
+        Item nasa = new Item("nasa");
+        assertSame("B doesn't hide nasa", nasa, home(nasa));
+        assertNull(home(new Item("esa")));
+
+        signIn("A");
+        assertEquals(Collections.singletonList("nasa"), HiddenAccounts.saved());
+        assertNull(home(new Item("nasa")));
+        Item esa = new Item("esa");
+        assertSame("A doesn't hide esa", esa, home(esa));
+        assertEquals("the saved account follows the switch", "A", Settings.FEED_ACCOUNT.savedValue());
+
+        signIn("A");
+        assertEquals("the same account again changes nothing", Collections.singletonList("nasa"), HiddenAccounts.saved());
+    }
+
+    /** A name kept before any account was seen is never taken by a second account, only the first. */
+    @Test
+    public void aPendingNameIsTakenOnce() {
+        HiddenAccounts.add("pending");
+        signIn("1");
+        signIn("2");
+        assertTrue(HiddenAccounts.saved().isEmpty());
+        signIn("1");
+        assertEquals(Collections.singletonList("pending"), HiddenAccounts.saved());
     }
 
     /** Edits from two threads at once (the settings screen and a rebuild of it) each keep their name. */

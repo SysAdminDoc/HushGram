@@ -31,7 +31,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * hands over that session ({@link #homeSession}). Its account is the one whose names Home leaves
  * out and the one settings shows and edits, and it's saved ({@link Settings#FEED_ACCOUNT}) so a
  * restart that opens settings before Home still edits that account's list. A name added before any
- * account was seen is kept with an empty id and counts for every account.
+ * account was seen is kept with an empty id, hides nothing, and goes to the first account seen.
  *
  * <p>A username is matched the way Instagram writes them, in lower case, trimmed and without a
  * leading @. While HushGram is paused the list reads empty, so every post shows, and settings still
@@ -89,9 +89,32 @@ public final class HiddenAccounts {
             String id = idOf.apply(session);
             if (id == null || id.isEmpty()) return;
             account = id;
-            if (Utils.settingsReady() && !id.equals(Settings.FEED_ACCOUNT.savedValue())) Settings.FEED_ACCOUNT.save(id);
+            if (Utils.settingsReady()) {
+                if (!id.equals(Settings.FEED_ACCOUNT.savedValue())) Settings.FEED_ACCOUNT.save(id);
+                adoptPending(id);
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home account", failure);
+        }
+    }
+
+    /** Gives the names kept before any account was seen to [id], the first account seen. */
+    private static void adoptPending(String id) {
+        synchronized (EDIT) {
+            String text = Settings.HIDDEN_ACCOUNTS.savedValue();
+            if (text == null || text.isEmpty()) return;
+            StringBuilder adopted = new StringBuilder();
+            boolean any = false;
+            for (String line : lines(text)) {
+                String[] entry = entry(line);
+                if (entry != null && entry[0].isEmpty()) {
+                    line = id + "\t" + entry[1];
+                    any = true;
+                }
+                if (adopted.length() > 0) adopted.append('\n');
+                adopted.append(line);
+            }
+            if (any) Settings.HIDDEN_ACCOUNTS.save(adopted.toString());
         }
     }
 
@@ -133,6 +156,7 @@ public final class HiddenAccounts {
             String text = Settings.HIDDEN_ACCOUNTS.get();
             if (text == null || text.isEmpty()) return Collections.emptySet();
             String id = current();
+            if (id.isEmpty()) return Collections.emptySet();
             Snapshot last = snapshot;
             if (last != null && last.text.equals(text) && last.account.equals(id)) return last.names;
             Set<String> names = Collections.unmodifiableSet(new LinkedHashSet<>(namesFor(text, id)));
@@ -182,7 +206,7 @@ public final class HiddenAccounts {
         return name;
     }
 
-    /** Shows [name]'s posts again for the signed-in account, and for every account if it was kept for all. */
+    /** Shows [name]'s posts again for the signed-in account. */
     public static void remove(String name) {
         if (name == null || !Utils.settingsReady()) return;
         String wanted = name.toLowerCase(Locale.ROOT);
@@ -191,7 +215,7 @@ public final class HiddenAccounts {
             StringBuilder kept = new StringBuilder();
             for (String line : lines(Settings.HIDDEN_ACCOUNTS.savedValue())) {
                 String[] entry = entry(line);
-                if (entry != null && entry[1].equals(wanted) && (entry[0].equals(id) || entry[0].isEmpty())) continue;
+                if (entry != null && entry[1].equals(wanted) && entry[0].equals(id)) continue;
                 if (kept.length() > 0) kept.append('\n');
                 kept.append(line);
             }
@@ -218,12 +242,12 @@ public final class HiddenAccounts {
         return name;
     }
 
-    /** The names [text] keeps for [id] and for every account, each once, in the order added. */
+    /** The names [text] keeps for [id] alone, each once, in the order added. */
     static List<String> namesFor(@Nullable String text, String id) {
         LinkedHashSet<String> names = new LinkedHashSet<>();
         for (String line : lines(text)) {
             String[] entry = entry(line);
-            if (entry != null && (entry[0].equals(id) || entry[0].isEmpty())) names.add(entry[1]);
+            if (entry != null && entry[0].equals(id)) names.add(entry[1]);
         }
         return new ArrayList<>(names);
     }
