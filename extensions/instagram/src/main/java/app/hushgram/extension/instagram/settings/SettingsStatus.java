@@ -301,6 +301,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Blur the bars around Reels patch. */
+    public static boolean reelBlurBars() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

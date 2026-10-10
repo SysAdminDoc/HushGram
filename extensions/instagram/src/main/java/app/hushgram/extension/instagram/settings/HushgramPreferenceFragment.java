@@ -697,6 +697,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Makes the seek bar thicker, with a round white handle and the time above it, over a soft "
                             + "dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.")));
         }
+        if (build.contains(PatchFamily.REEL_BLUR_BARS)) {
+            reels.add(toggle(context, Settings.BLUR_REEL_BARS, L10n.t("Blur the bars around a reel"),
+                    L10n.t("A reel that doesn't fill the screen shows a blurred copy of itself above and below it "
+                            + "instead of black bars. Open Reels again after a change.")));
+        }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),
                     L10n.t("Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after "

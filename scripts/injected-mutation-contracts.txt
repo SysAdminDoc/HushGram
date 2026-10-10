@@ -1207,6 +1207,12 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in in
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onInterceptTouchEvent
 start-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
 shared-call Lapp/hushgram/extension/instagram/reels/ReelScrolling;->pull()I in instance (Landroid/view/MotionEvent;)Z holding android_purge_26_q3_ClipsSwipeRefreshLayout_onTouchEvent
+# Blur the bars around Reels hands ReelBlurBars.pager the Reels pager (AndroidX's ViewPager2, whose pages
+# each hold the reel's TextureView) right after the viewer's onViewCreated stores it, the same method
+# Stop Reels scrolling finds by the trace name of the pager's setup. Left out, the switch does nothing;
+# twice or elsewhere, it isn't the hook the patch wrote. BlurReelBarsHookTest checks on all seven 450
+# builds that it lands once, right after the store.
+once-call Lapp/hushgram/extension/instagram/reels/ReelBlurBars;->pager(Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
 # Change version code sends Instagram's reads of its own version code through VersionCode.read. The
 # start-up check of the installed code against the one built into the dex, and the constructor that
 # logs "Error getting app version code.", each read it once, picked by the text they load. Left out,

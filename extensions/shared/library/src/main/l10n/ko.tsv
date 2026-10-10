@@ -451,6 +451,8 @@ Long-press %1$s to open HushGram instead of that tab's usual action. Normal taps
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	탐색 막대에 끌 수 있는 흰색 원형 손잡이를 추가합니다. 광고는 자체 막대를 유지합니다.
 Bigger seek bar on reels	릴스 탐색 바 크게
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	탐색 바를 더 두껍게 만들고, 둥근 흰색 핸들과 위쪽 시간 표시를 넣고, 어떤 영상에서도 보이도록 부드러운 어두운 그라데이션을 깝니다. 드래그해서 이동하세요. 짧은 릴스에서도 바를 유지합니다.
+Blur the bars around a reel	릴스 주변 막대 흐리게 처리
+A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars. Open Reels again after a change.	화면을 가득 채우지 않는 릴스는 검은 막대 대신 위아래에 자신의 흐릿한 복사본을 보여줍니다. 변경 후에는 릴스를 다시 여세요.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	옆으로 스와이프해도 더 이상 홈, 릴스, 다른 기본 탭 사이를 이동하지 않습니다. 대신 탭 바를 누르세요. 카메라는 스와이프하여 만들기 정지가 막아 줍니다.
 Ask for larger photos	더 큰 사진 요청
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	홈을 일부러 비워서 스토리 목록만 보이고 그 아래에는 아무것도 없습니다. 프로필, 탐색, 릴스에는 계속 게시물이 표시됩니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
