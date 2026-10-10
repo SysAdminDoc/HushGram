@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Hide Meta AI has an eighth switch, Hide the Muse button on your profile, that starts off. With it on, the blue Muse button is gone from the top bar of your own profile, and your username, the menu and the other buttons there stay. Turn it off and the button is back the next time your profile loads.
+
 * **Instagram:** With Hide Meta AI in search and Home's bar on, a keyword search's results no longer end in an Ask a follow-up bar with a + button. Before, only its topic pills went and the bar stayed at the bottom of the page. The header at the top of the results, with Back and your search, stays as it was, and turning the switch off brings the bar back on your next search.
 
 * **Instagram:** Default playback quality has a new row under Playback, Pick the playback quality with a tab long press. Choose a tab, Reels for example, and a long press on it opens a short list of Auto, Data saver, Up to 480p, Up to 720p and Highest. The pick is the same Playback quality you set in settings, and the next video you open uses it. It starts off, and a tab that already opens HushGram keeps doing that. Asked for in [#93](https://github.com/SysAdminDoc/HushGram/issues/93).

@@ -478,6 +478,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_meta_ai_profile_banner", FALSE);
 
     /**
+     * The Muse button (the blue m) in your own profile's top bar, left out each time the bar is
+     * built. Your username, the menu and the bar's other buttons stay. Off to start, like every part
+     * added to Hide Meta AI after its first two.
+     */
+    public static final BooleanSetting HIDE_META_AI_PROFILE_BUTTON =
+            new BooleanSetting("hushgram_hide_meta_ai_profile_button", FALSE);
+
+    /**
      * The Blend invite button on a reel, in the Reels viewer and the clips viewer. Everything else
      * on the reel stays. Off to start, since Blend isn't Meta AI and the other switches here don't
      * ask for it.

@@ -52,6 +52,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>A reel's Blend invite button comes from one static check that the Reels viewer's reel binder
  * and the clips viewer both read. {@link #blendButton} makes it answer "no Blend" first.
+ *
+ * <p>Your profile's top bar is filled from a list of items, one view each. Where the loop reaches
+ * the Muse button's item, {@link #museButton} decides whether it skips to the next one.
  */
 public final class MetaAi {
     /**
@@ -258,6 +261,24 @@ public final class MetaAi {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.META_AI, "Muse banner", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injected where the method that fills your profile's top bar reaches the Muse button's item.
+     * Answers true to have it go on to the bar's next item without adding the button, while Hide
+     * the Muse button on your profile is on. Answers false otherwise, or when anything goes wrong.
+     * Never throws.
+     */
+    public static boolean museButton() {
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_PROFILE_BUTTON.get()) return false;
+            Logger.printDebug(() -> "Meta AI: left the Muse button out of the profile's top bar");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "Muse button", failure);
             return false;
         }
     }

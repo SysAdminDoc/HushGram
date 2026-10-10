@@ -115,6 +115,30 @@ public class MetaAiTest {
         }
     }
 
+    /** The profile's Muse button is left out only with its own switch, which starts off, and never while paused. */
+    @Test
+    public void theMuseButtonFollowsItsOwnSwitch() {
+        assertFalse("off to start", Settings.HIDE_META_AI_PROFILE_BUTTON.get());
+        assertFalse(MetaAi.museButton());
+        try {
+            Settings.HIDE_META_AI_PROFILE_BANNER.save(true);
+            assertFalse("the Muse card's switch doesn't reach the button", MetaAi.museButton());
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
+            Settings.HIDE_META_AI_PROFILE_BUTTON.save(true);
+            assertTrue(MetaAi.museButton());
+            assertFalse("and the button's doesn't reach the card", MetaAi.museBanner());
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            assertTrue("the search switch doesn't matter", MetaAi.museButton());
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram decides", MetaAi.museButton());
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
+            Settings.HIDE_META_AI_PROFILE_BUTTON.resetToDefault();
+        }
+    }
+
     /** The Blend button is left off a reel only with its own switch, which starts off, and never while paused. */
     @Test
     public void theBlendButtonFollowsItsOwnSwitch() {

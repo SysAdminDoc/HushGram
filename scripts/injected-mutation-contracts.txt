@@ -541,6 +541,10 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in s
 # android_purge_26_q2_BlendButtonVisibilityUtils_computeBlendInviteButtonVisibility (0362.A00 on 450).
 # No rule here, like the Muse card's: BlendButtonHookTest proves the hook on every Instagram 450
 # fixture, the declared bundles and the other 450 folders.
+# Hide the Muse button on your profile asks MetaAi.museButton() just inside the Muse item's branch
+# of the static method ProfileActionBar fills its top bar with (09O4.A03 on 385611438), and a yes
+# goes back to the head of its walk of the items. Its only strings are ", " and an empty one,
+# so no rule can pick it. MuseButtonHookTest proves the hook on every Instagram 450 fixture.
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
 # parser, the one method holding "sectional_items" and "session_paging_token". Search results come

@@ -107,7 +107,8 @@ public class AboutThisReelSettingsTest {
         }
         assertEquals(Arrays.asList(Settings.HIDE_META_AI_SEARCH.key, Settings.HIDE_META_AI_POSTS.key,
                 Settings.HIDE_ABOUT_THIS_REEL.key, Settings.HIDE_ASK_META_AI.key, Settings.HIDE_META_AI_SHARE_TARGET.key,
-                Settings.HIDE_META_AI_PROFILE_BANNER.key, Settings.HIDE_META_AI_BLEND.key),
+                Settings.HIDE_META_AI_PROFILE_BANNER.key, Settings.HIDE_META_AI_PROFILE_BUTTON.key,
+                Settings.HIDE_META_AI_BLEND.key),
                 Arrays.asList(keys));
         SwitchPreference share = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_SHARE_TARGET.key);
         assertEquals("Hide Meta AI in the share sheet", String.valueOf(share.getTitle()));
@@ -119,6 +120,11 @@ public class AboutThisReelSettingsTest {
         assertEquals("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile cards stay.",
                 String.valueOf(banner.getSummary()));
         assertFalse("the Muse card switch starts off", banner.isChecked());
+        SwitchPreference button = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_PROFILE_BUTTON.key);
+        assertEquals("Hide the Muse button on your profile", String.valueOf(button.getTitle()));
+        assertEquals("Removes the Muse button from the top bar of your profile. Your username and the menu stay.",
+                String.valueOf(button.getSummary()));
+        assertFalse("the Muse button switch starts off", button.isChecked());
         SwitchPreference blend = (SwitchPreference) page.findPreference(Settings.HIDE_META_AI_BLEND.key);
         assertEquals("Hide Blend on reels", String.valueOf(blend.getTitle()));
         assertEquals("Removes the Blend invite button from reels. Everything else on a reel stays.",
