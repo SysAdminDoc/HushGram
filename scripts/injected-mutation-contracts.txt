@@ -199,7 +199,8 @@ start-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/
 shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V calling static LX/*;->*(Landroid/content/Context;LX/*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;LX/*;LX/*;I)V class-holding CacheTTL\smust\sbe\spositive
 # The direct screen presenter needs a null-data bypass before reading its immutable app id.
 # The existing opener routes share this hook, so one call is required here without forbidding them.
-shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in static (Landroid/content/Context;L*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;L*;L*;I)V holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet cds_bloks cds_bloks_bottomsheet
+# 385611400, 439 and 440 ask a string pool for some of its strings, so pool asks count (pooled).
+shared-call Lapp/hushgram/extension/instagram/misc/Analytics;->setupScreen(Ljava/lang/String;)I in static (Landroid/content/Context;L*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;L*;L*;I)V pooled holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet cds_bloks cds_bloks_bottomsheet
 # Open developer options asks open() first in Home's long press, the one onLongClick holding the
 # two values the server can set the press to. Nothing else calls open().
 start-call Lapp/hushgram/extension/instagram/misc/DeveloperOptions;->open()I in instance (Landroid/view/View;)Z holding click activity
@@ -298,7 +299,8 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentB
 # GraphQL type name, or on 450, where the story's field name is pooled, its two type names. Both
 # call the same filter, so each rule is shared-call.
 shared-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->sanitizeShared(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; holding permalink XDTPermalinkResponse
-shared-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->sanitizeShared(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; holding XDTStoryItemThirdPartySharingUrlResponse StoryItemThirdPartySharingUrlResponseImpl
+# 385611395, 400 and 440 ask a string pool for the story's type name, so its rule is pooled.
+shared-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->sanitizeShared(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; pooled holding XDTStoryItemThirdPartySharingUrlResponse StoryItemThirdPartySharingUrlResponseImpl
 #
 # It also hands the page address the in-app browser's menu sends for Share and for Copy link to
 # LinkCleaner.browserLink in the main app's handler for the browser's messages (0S7R.handleMessage on
@@ -517,7 +519,8 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroi
 # 0nuj.A00), passes the answer of its "hatch" case's name check through shareTarget(), once, between
 # the move-result and the if-eqz. A no there skips the name as an unknown one, so the bottom row has
 # no Meta AI target. Left out, the target stays with Hide Meta AI in the share sheet on.
-once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in static (L*;Ljava/lang/Object;)Ljava/util/ArrayList; holding hatch whatsapp_status add_to_audio_note screenshot_preview
+# 385611400 and 439 ask a string pool for some of these names there, so pool asks count (pooled).
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in static (L*;Ljava/lang/Object;)Ljava/util/ArrayList; pooled holding hatch whatsapp_status add_to_audio_note screenshot_preview
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
 # parser, the one method holding "sectional_items" and "session_paging_token". Search results come

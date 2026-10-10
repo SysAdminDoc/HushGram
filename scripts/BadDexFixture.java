@@ -299,6 +299,16 @@ public class BadDexFixture {
     private static final List<String> POST_LINK = Arrays.asList("permalink", "XDTPermalinkResponse");
     private static final List<String> STORY_LINK =
             Arrays.asList("story_item_to_share_url", "XDTStoryItemThirdPartySharingUrlResponse");
+    /**
+     * Instagram's static (int)String pool of shared strings, a class Redex makes. The story parser
+     * asks it for its type name, as 385611395 and 400 do, so its rule is pooled.
+     */
+    private static final String STRING_POOL = "Lfixture/StringPool;";
+    private static final ImmutableMethodReference POOLED_STRING = method(STRING_POOL, "A00", "Ljava/lang/String;", "I");
+    /** The number the pool's first switch answers with the story parser's type name. */
+    private static final int STORY_TYPE_NUMBER = 1;
+    /** A number the pool's first switch answers with another name, and its second with the type name. */
+    private static final int DRAFT_NUMBER = 0;
 
     /**
      * Instagram's store of stories you've seen (PendingReelSeenStateStore), a class Redex renames:
@@ -455,7 +465,7 @@ public class BadDexFixture {
             "next-call Lapp/hushgram/extension/fixture/settings/SettingsEntry;->setLogoTouchListener(Landroid/view/View;Landroid/view/View$OnTouchListener;)V after Landroid/view/View;->setOnClickListener(Landroid/view/View$OnClickListener;)V in static (Landroid/content/Context;Lcom/facebook/navigation/navbar/legacy/search/WordmarkNavigationBar;)V holding WordmarkNavigationBar#createWordmarkView WordmarkNavigationBar.initContents",
             "sole-call Lapp/hushgram/extension/fixture/reels/ReelWatchHistory;->send(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)V replacing Ljava/util/concurrent/Executor;->execute(Ljava/lang/Runnable;)V in instance ()V holding FbShortsSeenStateMutation video_ids",
             "shared-call Lapp/hushgram/extension/fixture/links/LinkFilter;->clean(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; holding permalink XDTPermalinkResponse",
-            "shared-call Lapp/hushgram/extension/fixture/links/LinkFilter;->clean(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; holding story_item_to_share_url XDTStoryItemThirdPartySharingUrlResponse",
+            "shared-call Lapp/hushgram/extension/fixture/links/LinkFilter;->clean(Ljava/lang/String;)Ljava/lang/String; in instance (*)Ljava/lang/Object; pooled holding story_item_to_share_url XDTStoryItemThirdPartySharingUrlResponse",
             "start-call Lapp/hushgram/extension/fixture/stories/StorySeen;->holdBack()Z in instance (L*;)V class-holding pending_reel_seen_states_ PendingReelSeenStateStore.deserializeFromDisk",
             "once-call Lapp/hushgram/extension/fixture/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in static (Lcom/instagram/common/session/UserSession;)Lfixture/*; calling static L*;->*(Lcom/instagram/common/session/UserSession;)Z holding default",
             "start-call Lapp/hushgram/extension/fixture/direct/VisualSeen;->hold()Z in instance (L*;L*;L*;)V holding direct_v2/visual_threads/%s/item_seen/ raven_media",
@@ -1944,12 +1954,70 @@ public class BadDexFixture {
      * is the parser.
      */
     private static ClassDef linkParsers(int postHooks, int storyHooks, boolean describeSent, boolean secondPost) {
+        return linkParsers(postHooks, storyHooks, describeSent, secondPost, DRAFT_NUMBER);
+    }
+
+    /**
+     * The same, the story parser asking the string pool for its type name. Beside it sits storyDraft,
+     * of its shape, loading its field name too and asking the pool for [draftNumber], which with
+     * [DRAFT_NUMBER] the pool's first switch answers with another name, so only a reader taking the
+     * first switch's answer leaves it out. With [STORY_TYPE_NUMBER] it asks for the type name, and
+     * the story rule can't say which one is the parser.
+     */
+    private static ClassDef linkParsers(int postHooks, int storyHooks, boolean describeSent, boolean secondPost,
+            int draftNumber) {
         List<Method> methods = new ArrayList<>();
         methods.add(parserMethod("post", false, POST_LINK, postHooks));
-        methods.add(parserMethod("story", false, STORY_LINK, storyHooks));
+        methods.add(pooledParserMethod("story", STORY_TYPE_NUMBER, storyHooks));
         methods.add(parserMethod("describePost", true, POST_LINK, describeSent ? 1 : 0));
         if (secondPost) methods.add(parserMethod("postAgain", false, POST_LINK, 0));
+        methods.add(pooledParserMethod("storyDraft", draftNumber, 0));
         return new ImmutableClassDef(LINK_PARSERS, AccessFlags.PUBLIC.getValue(), OBJECT, null, null, null, null, methods);
+    }
+
+    /**
+     * An instance parser taking the JSON reader that loads the story's field name into v0, then puts
+     * [number] in v0 and asks the string pool for the name it answers, and passes it through the
+     * filter [hooks] times.
+     */
+    private static Method pooledParserMethod(String name, int number, int hooks) {
+        List<Instruction> instructions = new ArrayList<>();
+        instructions.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(STORY_LINK.get(0))));
+        instructions.add(new ImmutableInstruction11n(Opcode.CONST_4, 0, number));
+        instructions.add(invoke(POOLED_STRING, 0));
+        instructions.add(op(Opcode.MOVE_RESULT_OBJECT, 0));
+        for (int i = 0; i < hooks; i++) {
+            instructions.add(invoke(LINK_CLEAN, 0));
+            instructions.add(op(Opcode.MOVE_RESULT_OBJECT, 0));
+        }
+        instructions.add(op(Opcode.RETURN_OBJECT, 0));
+        return define(LINK_PARSERS, name, OBJECT, false, new ImmutableMethodImplementation(3, instructions, null, null), OBJECT);
+    }
+
+    /**
+     * The string pool: a packed switch over the number, v1, answering [DRAFT_NUMBER] with another
+     * name and [STORY_TYPE_NUMBER] with the story parser's type name, then a sparse switch answering
+     * [DRAFT_NUMBER] with the type name as well, which the first switch has already decided.
+     */
+    private static ClassDef stringPool() {
+        String type = STORY_LINK.get(1);
+        return new ImmutableClassDef(STRING_POOL, AccessFlags.PUBLIC.getValue() | AccessFlags.FINAL.getValue(), OBJECT,
+                null, null, null, null, Collections.singletonList(define(STRING_POOL, "A00", "Ljava/lang/String;", true, body(2,
+                        new ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 18),                         // 0
+                        new ImmutableInstruction31t(Opcode.SPARSE_SWITCH, 1, 23),                         // 3
+                        new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("")), // 6
+                        op(Opcode.RETURN_OBJECT, 0),                                                      // 8
+                        new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("story_draft")), // 9
+                        op(Opcode.RETURN_OBJECT, 0),                                                      // 11
+                        new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(type)), // 12
+                        op(Opcode.RETURN_OBJECT, 0),                                                      // 14
+                        new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference(type)), // 15
+                        op(Opcode.RETURN_OBJECT, 0),                                                      // 17
+                        new ImmutablePackedSwitchPayload(Arrays.asList(                                   // 18
+                                new ImmutableSwitchElement(DRAFT_NUMBER, 9),
+                                new ImmutableSwitchElement(STORY_TYPE_NUMBER, 12))),
+                        new ImmutableSparseSwitchPayload(Collections.singletonList(                       // 26
+                                new ImmutableSwitchElement(DRAFT_NUMBER, 12)))), "I")));
     }
 
     /** The extension's filter, static, the link in v0: it answers the link as it came. */
@@ -2386,7 +2454,7 @@ public class BadDexFixture {
                 reelLikeHelper(likeHook(), Collections.<Instruction>emptyList()),
                 attachmentTap(tapHook(), Collections.<Instruction>emptyList()), doubleTapLike(),
                 speedToast(toastHook(3), Collections.<Instruction>emptyList()), reelSpeed(),
-                linkParsers(1, 1, false, false), linkFilter(), menuOptions(1, false), videoDownload(),
+                linkParsers(1, 1, false, false), linkFilter(), stringPool(), menuOptions(1, false), videoDownload(),
                 seenStore(seenGuard(), Collections.<Instruction>emptyList(), false),
                 seenCache(Collections.<Instruction>emptyList(), false), storySeen(), storyRetryQueue(1, false, false),
                 tabBuilder(STATIC_CHECK, true, false), reelsTab(), dmReceipts(1, false), visualSeen(),
@@ -2410,7 +2478,7 @@ public class BadDexFixture {
                 reelLikeHelper(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 attachmentTap(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
                 speedToast(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList()),
-                linkParsers(0, 0, false, false), menuOptions(0, false),
+                linkParsers(0, 0, false, false), stringPool(), menuOptions(0, false),
                 seenStore(Collections.<Instruction>emptyList(), Collections.<Instruction>emptyList(), false),
                 seenCache(Collections.<Instruction>emptyList(), false), tabBuilder(STATIC_CHECK, false, false),
                 dmReceipts(0, false), inboxSections(false), familyProviders(0, false, false), trustedProvider(), setupPresenter(false), setupOpeners(false), setupData(), storyRetryQueue(0, false, false), swipeMovement(0), swipeConfig(), storyLoopViewer("", false),
@@ -3081,6 +3149,9 @@ public class BadDexFixture {
         // contract: a second instance method holding the post parser's names, so the rule can't
         // say which one the call belongs in, although the call is where it was.
         dexes.put("bad-shared-two-parsers", replaced(good(), linkParsers(1, 1, false, true)));
+        // contract: storyDraft asking the string pool for the story parser's type name, so the pooled
+        // story rule can't say which one the call belongs in, although the call is where it was.
+        dexes.put("bad-shared-pooled-two-parsers", replaced(good(), linkParsers(1, 1, false, false, STORY_TYPE_NUMBER)));
 
         // contract: the story seen store's send left without its guard, so every story you watch is
         // reported.

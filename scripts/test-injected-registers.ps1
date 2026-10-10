@@ -72,7 +72,11 @@
     two link parsers is left out of the post parser, made twice there, made in a static method
     holding the parser's names as well, and a second parser answers the rule, a build each, each
     failing the post parser's shared-call rule for its own reason while the story parser's call
-    counts against none of them. View stories anonymously's guard in the send of Instagram's store
+    counts against none of them. The story parser asks a string pool for its type name, as Redex
+    leaves it in some builds, so its rule is pooled. A method of its shape beside it asks the pool
+    for a number whose first answer is another name, and a build where that method asks for the
+    type name fails the story rule for two parsers; the contract file may hold no other pooled
+    rule, and HushGram's may use the word only while the fixture's does. View stories anonymously's guard in the send of Instagram's store
     of stories you've seen, a method holding no string that a class-holding rule picks by what the
     store's other methods hold and by its shape, is left out, sent only to a method of the send's
     shape in a cache whose methods hold part of that, or sent to the store's read from disk as
@@ -897,8 +901,9 @@ try {
     $storyParser = 'Lfixture/LinkParsers;->story(Ljava/lang/Object;)Ljava/lang/Object;'
     $postHeld = '"permalink" and "XDTPermalinkResponse" with the shape instance (*)Ljava/lang/Object;'
     $postRule = "shared-call $linkClean in instance (*)Ljava/lang/Object; holding permalink XDTPermalinkResponse"
-    $storyRule = "shared-call $linkClean in instance (*)Ljava/lang/Object; holding " +
+    $storyRule = "shared-call $linkClean in instance (*)Ljava/lang/Object; pooled holding " +
         'story_item_to_share_url XDTStoryItemThirdPartySharingUrlResponse'
+    $storyHeld = '"story_item_to_share_url" and "XDTStoryItemThirdPartySharingUrlResponse" with the shape instance (*)Ljava/lang/Object;'
     $providerHook = 'Lapp/hushgram/extension/fixture/misc/InstagramSignature;->isSameKeyFamilyProviderCaller(Landroid/content/Context;)Z'
     $providerSite = 'Lfixture/FamilyProviders;->inlineGate()V'
     $providerHelper = 'Lfixture/FamilyProviders;->queryHelper()V'
@@ -1015,6 +1020,14 @@ try {
     $calling = { param($Path) @(Get-Content -LiteralPath $Path | Where-Object { $_ -match '^\s*[a-z-]+-call\s.*\scalling\s' }).Count }
     Assert-True ((& $calling $realContracts) -eq 0 -or (& $calling $contracts) -ne 0) `
         "HushGram's contract file picks methods by a call they make, which the fixture doesn't exercise."
+    # Counting a string pool's answers works the same for every kind, and the fixture's one pooled
+    # rule has its own bad build, so HushGram's file may use the word only while that rule is there.
+    $pooled = { param($Path) @(Get-Content -LiteralPath $Path | Where-Object { $_ -match '^\s*[a-z-]+-call\s.*\spooled\s+(class-)?holding\s' }) }
+    $fixturePooled = @(& $pooled $contracts | ForEach-Object { ($_.Trim() -split '\s+') -join ' ' })
+    Assert-True ($fixturePooled.Count -eq 1 -and $fixturePooled[0] -ceq $storyRule) `
+        "The contract file has a pooled rule without exact negative coverage:`n$($fixturePooled -join "`n")"
+    Assert-True ((& $pooled $realContracts).Count -eq 0 -or $fixturePooled.Count -ne 0) `
+        "HushGram's contract file counts string pool answers, which the fixture doesn't exercise."
     $realNoCalls = @(Get-Content -LiteralPath $realContracts | Where-Object { $_ -match '^\s*no-call\s' } |
         ForEach-Object { ($_.Trim() -split '\s+') -join ' ' } | Sort-Object)
     $fixtureNoCalls = @(Get-Content -LiteralPath $contracts | Where-Object { $_ -match '^\s*no-call\s' } |
@@ -1158,6 +1171,7 @@ try {
         'bad-shared-hook-twice' = 'contract'
         'bad-shared-hook-also-elsewhere' = 'contract'
         'bad-shared-two-parsers' = 'contract'
+        'bad-shared-pooled-two-parsers' = 'contract'
         'bad-seen-hook-missing' = 'contract'
         'bad-seen-hook-decoy' = 'contract'
         'bad-seen-hook-also-elsewhere' = 'contract'
@@ -1363,7 +1377,8 @@ try {
     }
     # Each link parser build fails on the post parser's shared-call rule alone, for its own reason:
     # no filter call, two, one in the static method holding the parser's names as well, or a second
-    # parser. The story parser's call counts against none of them.
+    # parser. The story parser's call counts against none of them. The last build fails the pooled
+    # story rule alone, its draft method asking the pool for the type name.
     $postDescribe = 'Lfixture/LinkParsers;->describePost(Ljava/lang/Object;)Ljava/lang/Object;'
     $sharedFails = [ordered]@{
         'bad-shared-hook-missing' = "[diff] FAIL: contract: $linkClean is not called in $postParser, the one method holding " +
@@ -1373,6 +1388,8 @@ try {
             "$postParser, the one method holding $postHeld"
         'bad-shared-two-parsers' = "[diff] FAIL: contract: 2 methods hold $postHeld, and exactly one must, so the rule " +
             "can't say which one calls ${linkClean}: $postParser, Lfixture/LinkParsers;->postAgain(Ljava/lang/Object;)Ljava/lang/Object;"
+        'bad-shared-pooled-two-parsers' = "[diff] FAIL: contract: 2 methods hold or ask a string pool for $storyHeld, and exactly " +
+            "one must, so the rule can't say which one calls ${linkClean}: $storyParser, Lfixture/LinkParsers;->storyDraft(Ljava/lang/Object;)Ljava/lang/Object;"
     }
     foreach ($case in $sharedFails.GetEnumerator()) {
         $fails = @((Get-Findings $badResults[$case.Key]).Fails)

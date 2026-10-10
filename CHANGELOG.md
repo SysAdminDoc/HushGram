@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** Copy the commenter's username only shows up in HushGram settings when Copy username actually went into your build. On an Instagram build where it couldn't, Copy comment still works, the extra switch stays out of the way, and the diagnostic report says why.
 
+* **Tooling:** The patch contract check can count a name Instagram asks its shared string pool for, on the rules marked for it. Some 450 builds (385611395, 400, 439 and 440) ask the pool for a few names that 438 loads itself, so the check turned down the story link parser, the setup screen presenter and the share sheet's target list there even with the patch in the right place. Other rules still count only names a method loads itself, so a pool ask elsewhere can't confuse them.
+
 * **Tooling:** Release notes now have to open with a short What's new list of 5 to 8 one-line bullets, with the full list of changes under it. The notes builder won't write them without one, or with one that's grown too long to scan. Asked for in #86 and #106.
 
 * **Instagram:** With Hide the Stories tray on, the tray could still show up at the top of Home for a few seconds after you watched a story you opened in DMs. When you come back to Home partway down the feed, Instagram floats a copy of the tray over it, and that copy now stays hidden too. Reported in #88.

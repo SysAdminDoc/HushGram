@@ -20,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.MultiDexContainer;
 import com.android.tools.smali.dexlib2.iface.TryBlock;
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction;
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction;
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction;
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction;
@@ -241,6 +242,15 @@ public class DexDiff {
      *       reference exactly n times, 2 or more, rather than once. For a filter the patch puts on
      *       each of several reads in one method, as Hide the home feed does on both helper reads in
      *       the read of Home's store.
+     *   <li>Any of those five with "pooled" right before "holding" or "class-holding": a method
+     *       also loads a string when it asks a static (int)String pool of shared strings for it, the
+     *       number put in the call's one register by the instruction just before the invoke-static.
+     *       The pool's first switch case loading a string for a number decides which string it is,
+     *       as the patches' classesLoadingString reads them. For a rule whose patch finds its method
+     *       that way, since Redex pools a string in some builds of one version and not in others
+     *       (385611395 and 385611400 ask a pool for the story link parser's type name, which 438
+     *       loads itself). A rule without it counts literal loads only, so a pooled ask elsewhere
+     *       can't give it a second method.
      *   <li>Where start-call and shared-call look for the hook in the other methods holding the
      *       strings, a method that another picking rule for the same method reference picks, as
      *       its one method of the rule's shape, isn't one of them. Two rules told apart only by
@@ -299,15 +309,17 @@ public class DexDiff {
         final Boolean callStatic;
         /** once-call and shared-call: how many times its method calls the callee, 1 unless the rule says "sites". */
         final int sites;
+        /** The same rules: whether asking a string pool for one of its strings counts as loading it ("pooled"). */
+        final boolean pooled;
         /** [call] as a regular expression, or null. */
         private final java.util.regex.Pattern callMatch;
 
         Contract(String kind, String callee, String target) {
-            this(kind, callee, target, null, null, List.of(), null, null, false, null, null, 1);
+            this(kind, callee, target, null, null, List.of(), null, null, false, null, null, 1, false);
         }
 
         Contract(String kind, String callee, String target, String after, String replaced, List<String> strings,
-                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic, int sites) {
+                Boolean isStatic, String shape, boolean byClass, String call, Boolean callStatic, int sites, boolean pooled) {
             this.kind = kind;
             this.callee = callee;
             this.target = target;
@@ -320,6 +332,7 @@ public class DexDiff {
             this.call = call;
             this.callStatic = callStatic;
             this.sites = sites;
+            this.pooled = pooled;
             this.callMatch = call == null ? null : java.util.regex.Pattern.compile(callPattern(call));
         }
 
@@ -345,6 +358,7 @@ public class DexDiff {
                 b.append(call);
             }
             if (sites != 1) b.append(" sites ").append(sites);
+            if (pooled) b.append(" pooled");
             List<String> written = new ArrayList<>();
             for (String s : strings) written.add(escape(s));
             return b.append(byClass ? " class-holding " : " holding ").append(String.join(" ", written)).toString();
@@ -441,7 +455,7 @@ public class DexDiff {
      * A start-call, next-call, sole-call, once-call or shared-call line: its method reference, the next-call's
      * "after &lt;method reference&gt;" or the sole-call's "replacing &lt;method reference&gt;", then "[in
      * [static|instance] &lt;shape&gt;] [calling [static|instance] &lt;method reference&gt;] [sites
-     * &lt;n&gt;] holding &lt;string&gt; [&lt;string&gt; ...]", with "class-holding" in place of "holding"
+     * &lt;n&gt;] [pooled] holding &lt;string&gt; [&lt;string&gt; ...]", with "class-holding" in place of "holding"
      * for strings its method's class holds. Only once-call and shared-call take sites, and n is 2 or
      * more. Null when it isn't one.
      */
@@ -487,6 +501,8 @@ public class DexDiff {
             if (at >= parts.length || !parts[at].matches("[2-9]|[1-9][0-9]")) return null;
             sites = Integer.parseInt(parts[at++]);
         }
+        boolean pooled = at < parts.length && parts[at].equals("pooled");
+        if (pooled) at++;
         if (at >= parts.length || !(parts[at].equals("holding") || parts[at].equals("class-holding"))) return null;
         boolean byClass = parts[at].equals("class-holding");
         // The line is split on spaces, so a string holding one writes it as \s, and a backslash as \\.
@@ -494,7 +510,7 @@ public class DexDiff {
         for (String s : Arrays.asList(parts).subList(at + 1, parts.length)) strings.add(unescape(s));
         if (strings.isEmpty() || new TreeSet<>(strings).size() != strings.size()) return null;
         return new Contract(kind, parts[1], String.join(" ", strings), after, replaced, strings, isStatic, shape, byClass,
-                call, callStatic, sites);
+                call, callStatic, sites, pooled);
     }
 
     private static List<Contract> readContracts(File file) throws Exception {
@@ -514,7 +530,7 @@ public class DexDiff {
                     throw new IllegalArgumentException("Invalid contract line " + lineNumber + ": expected " + form
                             + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
                             + (form.startsWith("once-call") || form.startsWith("shared-call") ? " [sites <2 or more>]" : "")
-                            + " holding or class-holding <string> [<string> ...]");
+                            + " [pooled] holding or class-holding <string> [<string> ...]");
                 }
                 contracts.add(picked);
                 continue;
@@ -540,7 +556,7 @@ public class DexDiff {
                         + " sole-call <method reference> replacing <method reference>,"
                         + " once-call <method reference> or shared-call <method reference>, each then"
                         + " [in [static|instance] <(parameters)return>] [calling [static|instance] <method reference>]"
-                        + " [sites <2 or more>, once-call and shared-call only] holding or class-holding <string> [<string> ...]");
+                        + " [sites <2 or more>, once-call and shared-call only] [pooled] holding or class-holding <string> [<string> ...]");
             }
             String kind = firstCallTyped ? TYPED_FIRST_CALL : firstCallOutside ? OUTSIDE_FIRST_CALL : parts[0];
             contracts.add(new Contract(kind, parts[1], parts[3]));
@@ -1425,6 +1441,10 @@ public class DexDiff {
         List<Contract> pickRules = new ArrayList<>();
         Map<Contract, List<Holder>> holders = new LinkedHashMap<>();
         Set<String> pickStrings = new HashSet<>();
+        // A pooled rule's strings, and for each static (int)String pool answering one of them, the
+        // numbers it answers them for.
+        Set<String> pooledStrings = new HashSet<>();
+        Map<String, Map<Integer, String>> pools = new HashMap<>();
         boolean classPicks = false;
         boolean retryPicks = false;
         Set<String> storyStoreMarkers = Set.of("pending_reel_seen_states_", "PendingReelSeenStateStore.deserializeFromDisk");
@@ -1451,6 +1471,7 @@ public class DexDiff {
                 pickRules.add(contract);
                 holders.put(contract, new ArrayList<>());
                 pickStrings.addAll(contract.strings);
+                if (contract.pooled) pooledStrings.addAll(contract.strings);
                 hookCallers.put(contract.callee, new ArrayList<>());
                 classPicks |= contract.byClass;
                 retryPicks |= contract.kind.equals("retry-call");
@@ -1462,6 +1483,17 @@ public class DexDiff {
         }
         MultiDexContainer<? extends DexFile> container =
                 DexFileFactory.loadDexContainer(apk, Opcodes.getDefault());
+        if (!pooledStrings.isEmpty()) {
+            for (String entry : container.getDexEntryNames()) {
+                for (ClassDef cd : container.getEntry(entry).getDexFile().getClasses()) {
+                    if (cd.getType().startsWith(OWN)) continue;
+                    for (Method m : cd.getMethods()) {
+                        Map<Integer, String> answers = poolAnswers(m, pooledStrings);
+                        if (!answers.isEmpty()) pools.put(sig(cd, m), answers);
+                    }
+                }
+            }
+        }
         for (String entry : container.getDexEntryNames()) {
             for (ClassDef cd : container.getEntry(entry).getDexFile().getClasses()) {
                 boolean picksHere = !pickRules.isEmpty() && !cd.getType().startsWith(OWN);
@@ -1480,8 +1512,9 @@ public class DexDiff {
                     if (leaving != null) firstCalls.put(s, firstCallOutside(m, leaving));
                     if (!typeNamedClasses.isEmpty()) recordTypeNamed(cd, m, typeNamedClasses);
                     if (picksHere) {
-                        Set<String> held = recordHolders(s, m, pickRules, pickStrings, holders);
-                        if (classMethods != null) classMethods.add(new ClassMethod(s, m, held));
+                        Set<String> asked = pools.isEmpty() ? null : new HashSet<>();
+                        Set<String> held = recordHolders(s, m, pickRules, pickStrings, pools, asked, holders);
+                        if (classMethods != null) classMethods.add(new ClassMethod(s, m, held, asked));
                     }
                     if ((callSites.isEmpty() && noCallSites.isEmpty() && hookCallers.isEmpty())
                             || m.getImplementation() == null) continue;
@@ -1635,28 +1668,38 @@ public class DexDiff {
         }
     }
 
-    /** One method of a class being read: its signature, the method, and what recordHolders found it loads. */
+    /**
+     * One method of a class being read: its signature, the method, what recordHolders found it loads
+     * itself, and what it asks a string pool for (null when no rule is pooled).
+     */
     private static final class ClassMethod {
         final String sig;
         final Method m;
         final Set<String> held;
+        final Set<String> asked;
 
-        ClassMethod(String sig, Method m, Set<String> held) {
+        ClassMethod(String sig, Method m, Set<String> held, Set<String> asked) {
             this.sig = sig;
             this.m = m;
             this.held = held;
+            this.asked = asked;
         }
     }
 
     /**
      * Adds [m] to each holding rule whose strings it loads, every one of them, a field reference by
-     * reading or writing the field. Answers what it loads of [wanted], or null for none.
+     * reading or writing the field, and for a pooled rule a string it asks one of [pools] for, which
+     * go into [asked]. Answers what it loads of [wanted] itself, or null for none.
      */
     private static Set<String> recordHolders(String s, Method m, List<Contract> rules, Set<String> wanted,
-            Map<Contract, List<Holder>> holders) {
+            Map<String, Map<Integer, String>> pools, Set<String> asked, Map<Contract, List<Holder>> holders) {
         if (m.getImplementation() == null) return null;
         Set<String> held = null;
+        Instruction before = null;
         for (Instruction i : m.getImplementation().getInstructions()) {
+            String pooled = asked == null ? null : pooledString(before, i, pools);
+            before = i;
+            if (pooled != null) asked.add(pooled);
             if (!(i instanceof ReferenceInstruction)) continue;
             Reference r = ((ReferenceInstruction) i).getReference();
             String loaded = r instanceof StringReference ? ((StringReference) r).getString()
@@ -1665,11 +1708,71 @@ public class DexDiff {
             if (held == null) held = new HashSet<>();
             held.add(loaded);
         }
-        if (held == null) return null;
+        if (held == null && (asked == null || asked.isEmpty())) return null;
         for (Contract rule : rules) {
-            if (!rule.byClass && held.containsAll(rule.strings)) holders.get(rule).add(new Holder(s, rule.hasShape(m), m));
+            if (!rule.byClass && loadsAll(rule, held, asked)) holders.get(rule).add(new Holder(s, rule.hasShape(m), m));
         }
         return held;
+    }
+
+    /** Whether [held], or for a pooled rule [held] and [asked] between them, take in every one of [rule]'s strings. */
+    private static boolean loadsAll(Contract rule, Set<String> held, Set<String> asked) {
+        for (String s : rule.strings) {
+            if ((held == null || !held.contains(s)) && (!rule.pooled || asked == null || !asked.contains(s))) return false;
+        }
+        return true;
+    }
+
+    /**
+     * The string [call] asks one of [pools] for, an invoke-static of the pool on one register that
+     * [before] puts a number in, or null when it isn't such an ask or the pool answers that number
+     * with no string a pooled rule names.
+     */
+    private static String pooledString(Instruction before, Instruction call, Map<String, Map<Integer, String>> pools) {
+        if (call.getOpcode() != Opcode.INVOKE_STATIC || !(before instanceof NarrowLiteralInstruction)
+                || !(before instanceof OneRegisterInstruction)) return null;
+        FiveRegisterInstruction invoke = (FiveRegisterInstruction) call;
+        if (invoke.getRegisterCount() != 1 || invoke.getRegisterC() != ((OneRegisterInstruction) before).getRegisterA()) return null;
+        Map<Integer, String> answers = pools.get(((ReferenceInstruction) call).getReference().toString());
+        return answers == null ? null : answers.get(((NarrowLiteralInstruction) before).getNarrowLiteral());
+    }
+
+    /**
+     * The numbers a static (int)String pool answers with one of [wanted], read off its switches: the
+     * first switch whose case for a number loads a string decides it. Empty for any other method.
+     */
+    private static Map<Integer, String> poolAnswers(Method m, Set<String> wanted) {
+        Map<Integer, String> answers = new HashMap<>();
+        if (!AccessFlags.STATIC.isSet(m.getAccessFlags()) || !m.getReturnType().equals("Ljava/lang/String;")
+                || m.getParameterTypes().size() != 1 || !m.getParameterTypes().get(0).toString().equals("I")
+                || m.getImplementation() == null) return answers;
+        List<Instruction> code = new ArrayList<>();
+        for (Instruction i : m.getImplementation().getInstructions()) code.add(i);
+        Map<Integer, Integer> at = new HashMap<>();
+        int[] address = new int[code.size()];
+        int units = 0;
+        for (int i = 0; i < code.size(); i++) {
+            address[i] = units;
+            at.put(units, i);
+            units += code.get(i).getCodeUnits();
+        }
+        Set<Integer> answered = new HashSet<>();
+        for (int i = 0; i < code.size(); i++) {
+            Instruction sw = code.get(i);
+            if (sw.getOpcode() != Opcode.PACKED_SWITCH && sw.getOpcode() != Opcode.SPARSE_SWITCH) continue;
+            Integer payload = at.get(address[i] + ((OffsetInstruction) sw).getCodeOffset());
+            if (payload == null || !(code.get(payload) instanceof SwitchPayload)) continue;
+            for (SwitchElement element : ((SwitchPayload) code.get(payload)).getSwitchElements()) {
+                Integer load = at.get(address[i] + element.getOffset());
+                if (load == null) continue;
+                Instruction loaded = code.get(load);
+                if (loaded.getOpcode() != Opcode.CONST_STRING && loaded.getOpcode() != Opcode.CONST_STRING_JUMBO) continue;
+                if (!answered.add(element.getKey())) continue;
+                String value = ((StringReference) ((ReferenceInstruction) loaded).getReference()).getString();
+                if (wanted.contains(value)) answers.put(element.getKey(), value);
+            }
+        }
+        return answers;
     }
 
     /**
@@ -1681,14 +1784,18 @@ public class DexDiff {
     private static void recordClassHolders(List<ClassMethod> methods, List<Contract> rules,
             Map<Contract, List<Holder>> holders) {
         Set<String> together = new HashSet<>();
-        for (ClassMethod method : methods) if (method.held != null) together.addAll(method.held);
-        if (together.isEmpty()) return;
+        Set<String> askedTogether = new HashSet<>();
+        for (ClassMethod method : methods) {
+            if (method.held != null) together.addAll(method.held);
+            if (method.asked != null) askedTogether.addAll(method.asked);
+        }
+        if (together.isEmpty() && askedTogether.isEmpty()) return;
         for (Contract rule : rules) {
-            if (!rule.byClass || !together.containsAll(rule.strings)) continue;
+            if (!rule.byClass || !loadsAll(rule, together, askedTogether)) continue;
             for (ClassMethod method : methods) {
                 if (method.m.getImplementation() == null) continue;
                 boolean shaped = rule.hasShape(method.m);
-                if (shaped || (method.held != null && method.held.containsAll(rule.strings))) {
+                if (shaped || loadsAll(rule, method.held, method.asked)) {
                     holders.get(rule).add(new Holder(method.sig, shaped, method.m));
                 }
             }
@@ -2013,8 +2120,9 @@ public class DexDiff {
         String call = rule.call == null ? null
                 : (rule.callStatic == null ? "a call to " : rule.callStatic ? "a static call to " : "an instance call to ") + rule.call;
         String how = call == null ? shape : shape == null ? "with " + call : shape + " and " + call;
-        if (rule.byClass) return (how == null ? "" : how + " ") + (many ? "sit in" : "in") + " a class holding " + strings;
-        return (many ? "hold " : "holding ") + strings + (how == null ? "" : " " + how);
+        String holding = rule.pooled ? "holding or asking a string pool for " : "holding ";
+        if (rule.byClass) return (how == null ? "" : how + " ") + (many ? "sit in" : "in") + " a class " + holding + strings;
+        return (many ? rule.pooled ? "hold or ask a string pool for " : "hold " : holding) + strings + (how == null ? "" : " " + how);
     }
 
     /** ": " and the first eight of [methods], or nothing for none. */
