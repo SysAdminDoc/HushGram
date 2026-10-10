@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** Ghost mode now works from inside Instagram. Press and hold New message at the top of your inbox and the Ghost mode switches in your build all turn on or off together, with a toast that says which way it went. A tap still starts a new message. The press does nothing while HushGram is paused.
 
-* **Instagram:** Hide Meta AI has a seventh switch, Hide Blend on reels, that starts off. With it on, the Blend invite button is gone from reels, in the Reels viewer and in the clips viewer, and the rest of the reel stays as it is. Turn the switch off to bring it back. Needs a device check on a reel that shows the button.
+* **Instagram:** Hide Meta AI has a seventh switch, Hide Blend on reels, that starts off. With it on, the Blend invite button is gone from reels, in the Reels viewer and in the clips viewer, and the rest of the reel stays as it is. Turn the switch off to bring it back.
 
 * **Instagram:** Show if a profile follows you has a third switch under Profiles, Put accounts that don't follow you back first, that starts off. With it on, your own Following list shows the accounts that don't follow you back at the top, and everyone else comes after them in Instagram's usual order. It covers every account the list has loaded, so scrolling for more doesn't scramble it, and your Followers and other people's lists stay as they are. For a moment after a page loads the list can shuffle once while the answers come in. Turn the switch off and you get Instagram's list back. Asked for in #40.
 
