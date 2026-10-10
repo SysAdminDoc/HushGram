@@ -33,9 +33,10 @@ import org.junit.Test
 
 /**
  * Hidden chats, on each declared build's own dex and on every other build of the same Instagram
- * version: the thread store's two readers of the sorted thread summaries hand their list to the
- * extension on the way out, and the extension's bridge from a summary to its chat's thread id is
- * written from Instagram's own summary type and chat key.
+ * version: the inbox screen's view model hands the list it has just read from the thread store to
+ * the extension, the store's own two readers stay untouched (Instagram's inbox save reads them too
+ * and would otherwise erase a hidden chat from the phone), and the extension's bridge from a
+ * summary to its chat's thread id is written from Instagram's own summary type and chat key.
  */
 class HiddenChatHookTest {
     @Test
@@ -61,9 +62,7 @@ class HiddenChatHookTest {
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(HIDDEN_CHATS))
         val found = context.findHiddenChatTargets()
         hideChatsFromInbox(found)
-        for (list in found.lists) {
-            assertEquals(Opcode.INVOKE_STATIC_RANGE, list.method.visualCode()[list.returnAt].opcode)
-        }
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.inbox.method.visualCode()[found.inbox.resultAt].opcode)
     }
 
     @Test
@@ -110,6 +109,11 @@ class HiddenChatHookTest {
 
     @Test
     fun aBuildWithoutTheChatKeyFailsThePatch() = refuses("$THREAD_KEY is missing") { it.type != THREAD_KEY }
+
+    @Test
+    fun aBuildWithoutTheInboxViewModelFailsThePatch() = refuses("expected exactly one inbox view model") { classDef ->
+        classDef.methods.none { it.inboxReadAt() != null }
+    }
 
     @Test
     fun aBuildWithoutTheThreadStoreFailsThePatch() = refuses("expected two readers") { classDef ->
@@ -191,28 +195,38 @@ class HiddenChatHookTest {
     private fun check(name: String, classes: Map<String, ClassDef>) {
         val context = PatchContexts.of(classes.values)
         val found = context.findHiddenChatTargets()
-        assertEquals("$name: both readers", 2, found.lists.size)
-        assertEquals("$name: one store", 1, found.lists.map { it.method.definingClass }.distinct().size)
+        val readers = classes.values.flatMap { classDef ->
+            classDef.methods.filter { m -> m.visualCode().any { it.visualString() == THREAD_SUMMARIES } }
+        }
+        assertEquals("$name: both store readers exist", 2, readers.size)
+        val readerIds = readers.map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})" }
+        val view = found.inbox.method
+        assertTrue("$name: the hook is not in a store reader", "${view.definingClass}->${view.name}" !in readerIds.map { it.substringBefore("(") })
         val before = classes.mapValues { (_, classDef) -> classDef.methods.map { method -> method.visualCode().map(::text) } }
-        val hooked = (found.lists.map { it.method } + found.bridge).map { "${it.definingClass}->${it.name}" }
-        val originals = found.lists.map { list -> list.method.visualCode().map(::text) }
+        val hooked = listOf(view, found.bridge).map { "${it.definingClass}->${it.name}" }
+        val readersBefore = readers.map { reader -> reader.visualCode().map(::text) }
+        val viewBefore = view.visualCode().map(::text)
 
         hideChatsFromInbox(found)
 
-        found.lists.forEachIndexed { index, list ->
-            val code = list.method.visualCode()
-            val register = list.register
-            val call = code[list.returnAt]
-            assertEquals("$name: the return is replaced by the filter", HIDDEN_FILTER, (call as ReferenceInstruction).reference.toString())
-            assertEquals("$name: the filter is handed the list", register,
-                (call as com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction).startRegister)
-            assertEquals("$name: the answer goes back in the same register", Opcode.MOVE_RESULT_OBJECT, code[list.returnAt + 1].opcode)
-            assertEquals(register, (code[list.returnAt + 1] as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA)
-            assertEquals("$name: the list is still returned", Opcode.RETURN_OBJECT, code[list.returnAt + 2].opcode)
-            assertEquals(register, (code[list.returnAt + 2] as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA)
-            assertEquals("$name: nothing else in the reader moved", originals[index].size + 2, code.size)
-            assertEquals(originals[index].take(list.returnAt), code.take(list.returnAt).map(::text))
+        val readersAfter = readers.map { reader ->
+            context.mutableClassDefBy(reader.definingClass).methods.single { it.name == reader.name && it.parameterTypes.toList() == reader.parameterTypes.toList() }
         }
+        assertEquals("$name: the store's readers are untouched", readersBefore, readersAfter.map { it.visualCode().map(::text) })
+        assertTrue("$name: no store reader calls the filter",
+            readersAfter.none { reader -> reader.visualCode().any { it.visualReference()?.toString() == HIDDEN_FILTER } })
+
+        val code = view.visualCode()
+        val at = found.inbox.resultAt
+        val call = code[at]
+        assertEquals("$name: the list goes through the filter", HIDDEN_FILTER, (call as ReferenceInstruction).reference.toString())
+        assertEquals("$name: the filter is handed the list", found.inbox.register, (call as RegisterRangeInstruction).startRegister)
+        assertEquals("$name: the answer goes back in the same register", Opcode.MOVE_RESULT_OBJECT, code[at + 1].opcode)
+        assertEquals(found.inbox.register, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$name: the store's read comes right before", Opcode.MOVE_RESULT_OBJECT, code[at - 1].opcode)
+        assertEquals("$name: the list is wrapped next",
+            "Ljava/util/Collections;->unmodifiableList(Ljava/util/List;)Ljava/util/List;", code[at + 2].visualReference().toString())
+        assertEquals("$name: nothing else in the view model moved", viewBefore, code.take(at).map(::text) + code.drop(at + 2).map(::text))
 
         val bridge = found.bridge.visualCode()
         assertEquals("$name: the bridge casts to the summary", Opcode.CHECK_CAST, bridge[0].opcode)
@@ -271,6 +285,8 @@ class HiddenChatHookTest {
                     method.visualCode().mapNotNullTo(named) { (it.visualReference() as? FieldReference)?.type }
                 }
             }
+            val views = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == "Ljava/util/LinkedHashSet;" } }) { it.inboxReadAt() != null }
+            named += views.map { it.definingClass }
             classes += FixtureDex.classes(bundle, named.filter { it.startsWith("L") && it !in classes }.toSet())
             classes[HIDDEN_CHATS] = ExtensionDex.classDef(HIDDEN_CHATS)
             classes

@@ -33,8 +33,11 @@ internal const val HIDDEN_FILTER = "$HIDDEN_CHATS->filter(Ljava/util/ArrayList;)
 private const val HIDDEN_THREAD_ID = "threadId"
 
 /**
- * What Instagram's thread store logs around both methods that hand the inbox its thread summaries:
- * the one that takes a filter and a sort, and the one the others call with a list of thread kinds.
+ * What Instagram's thread store logs around both methods that hand out its thread summaries: the
+ * one that takes a filter and a sort, and the one the others call with a list of thread kinds. They
+ * are found only to learn the store and its summary type. Neither is hooked, because Instagram's own
+ * inbox save reads them too (it deletes the inbox's rows, then writes back only what they return),
+ * so a filter there would erase a hidden chat from the phone's local copy.
  */
 internal const val THREAD_SUMMARIES = "DirectThreadStoreImpl.getSortedCopyOfThreadSummaries"
 
@@ -42,6 +45,9 @@ private fun refuse(why: String): Nothing = throw PatchException("$LOCK_PATCH: $w
 
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
 private const val STRING = "Ljava/lang/String;"
+private const val COMPARATOR = "Ljava/util/Comparator;"
+private const val LINKED_HASH_SET = "Ljava/util/LinkedHashSet;"
+private const val UNMODIFIABLE_LIST = "Ljava/util/Collections;->unmodifiableList(Ljava/util/List;)Ljava/util/List;"
 
 /** The store's readers of the sorted thread summaries: each logs [THREAD_SUMMARIES] and answers a new list. */
 internal object ThreadSummariesFingerprint : Fingerprint(
@@ -50,24 +56,58 @@ internal object ThreadSummariesFingerprint : Fingerprint(
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
-/** A reader of the summaries and the register its one return hands back. */
+/**
+ * The inbox screen's view model: the one instance call that reads the store's sorted summaries
+ * (the reader that takes a filter, a sort, a comparator, a list and a flag), wraps them in an
+ * unmodifiable list, and goes on to collect the chats' keys in a linked set. Nothing else that
+ * reads the store does all three. The store is checked against its readers afterwards.
+ */
+internal object InboxViewModelFingerprint : Fingerprint(
+    returnType = "L",
+    custom = { method, _ ->
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.inboxReadAt() != null
+    },
+)
+
+/** The index of the call that reads the store's sorted summaries and wraps the answer, for a method shaped like the inbox view model. */
+internal fun Method.inboxReadAt(): Int? {
+    val code = implementation?.instructions?.toList() ?: return null
+    if (code.none { (it.visualReference() as? TypeReference)?.type == LINKED_HASH_SET }) return null
+    if (code.none { (it.visualReference() as? MethodReference)?.returnType == THREAD_KEY }) return null
+    val at = code.indices.filter { index ->
+        val call = code[index].visualReference() as? MethodReference
+        index + 2 < code.size && call != null &&
+            (code[index].opcode == Opcode.INVOKE_VIRTUAL || code[index].opcode == Opcode.INVOKE_VIRTUAL_RANGE) &&
+            call.returnType == ARRAY_LIST && call.parameterTypes.size == 5 &&
+            call.parameterTypes[2] == COMPARATOR && call.parameterTypes[3] == "Ljava/util/List;" && call.parameterTypes[4] == "Z" &&
+            code[index + 1].opcode == Opcode.MOVE_RESULT_OBJECT &&
+            code[index + 2].opcode == Opcode.INVOKE_STATIC && code[index + 2].visualReference().toString() == UNMODIFIABLE_LIST
+    }
+    return at.singleOrNull()
+}
+
+/** A static call that lists chats and where it returns: the method, the return, and the register its one return hands back. */
 internal class SummaryList(val method: MutableMethod, val returnAt: Int, val register: Int)
 
+/** The inbox screen's read of the summaries: the method, the instruction the filter goes in front of, and the register holding the list. */
+internal class InboxRead(val method: MutableMethod, val resultAt: Int, val register: Int)
+
 /**
- * What hiding chats from the inbox needs from Instagram, proved before anything changes: the two
- * readers of the store's sorted thread summaries and where each returns its list, and the body of
- * the extension's bridge from a summary to its chat's thread id.
+ * What hiding chats from the inbox needs from Instagram, proved before anything changes: the inbox
+ * view model and where its read of the store's summaries answers, and the body of the extension's
+ * bridge from a summary to its chat's thread id.
  */
 internal class HiddenChatTargets(
-    val lists: List<SummaryList>,
+    val inbox: InboxRead,
     val bridge: MutableMethod,
     val bridgeBody: String,
 )
 
 /**
- * The store's two readers by what they log, and the summary type by what they read: the one type
- * whose fields they load that answers the chat's key, with the chat key's own thread id. Each reader
- * must return in exactly one place, so the filter sits on the only way the list leaves.
+ * The store's two readers by what they log, the summary type by what they read (the one type whose
+ * fields they load that answers the chat's key, with the chat key's own thread id), and the inbox
+ * screen's view model by what it does with the reader's answer. The filter goes on that answer and
+ * nowhere in the store, so the disk save and the per-user updates still see every chat.
  */
 internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     val readers = ThreadSummariesFingerprint.matchAllOrNull().orEmpty().map { it.method }
@@ -77,14 +117,7 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     if (readers.map { it.definingClass }.distinct().size != 1) {
         refuse("the thread store's two summary readers are in different classes")
     }
-    val lists = readers.map { reader ->
-        val code = reader.visualCode()
-        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
-        if (returns.size != 1) refuse("${reader.definingClass}->${reader.name} returns its list in ${returns.size} places, expected one")
-        val register = (code[returns.single()] as OneRegisterInstruction).registerA
-        if (register > 255) refuse("${reader.definingClass}->${reader.name} returns its list from v$register, past v255")
-        SummaryList(reader, returns.single(), register)
-    }
+    val store = readers.first().definingClass
 
     val keyClass = classDefByOrNull(THREAD_KEY) ?: refuse("$THREAD_KEY is missing")
     val idField = threadIdField(keyClass)
@@ -97,14 +130,26 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     requirePublic(summaryType, getter)
     requirePublic(THREAD_KEY, idField)
 
+    val view = uniqueMethod(LOCK_PATCH, "inbox view model", InboxViewModelFingerprint)
+    val code = view.visualCode()
+    val read = view.inboxReadAt() ?: refuse("the inbox view model lost its shape")
+    val call = code[read].visualReference() as MethodReference
+    if (call.definingClass != store || readers.none { it.name == call.name && it.parameterTypes == call.parameterTypes }) {
+        refuse("the inbox view model reads summaries from ${call.definingClass}->${call.name}, not from the thread store's own reader")
+    }
+    val after = read + 2
+    if (after in view.jumpTargets()) refuse("something jumps into the inbox view model right after it reads the store's summaries")
+    val register = (code[read + 1] as OneRegisterInstruction).registerA
+    if (register > 255) refuse("the inbox view model keeps the summaries in v$register, past v255")
+
     val bridge = mutableClassDefBy(HIDDEN_CHATS).methods.filter {
         it.name == HIDDEN_THREAD_ID && it.parameters() == listOf("Ljava/lang/Object;") && it.returnType == STRING &&
             AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
     }.one("extension's thread summary bridge")
-    val call = if (AccessFlags.INTERFACE.isSet(summary.accessFlags)) "invoke-interface" else "invoke-virtual"
+    val invoke = if (AccessFlags.INTERFACE.isSet(summary.accessFlags)) "invoke-interface" else "invoke-virtual"
     val bridgeBody = """
         check-cast p0, $summaryType
-        $call { p0 }, ${getter.signature()}
+        $invoke { p0 }, ${getter.signature()}
         move-result-object p0
         if-eqz p0, :none
         iget-object p0, p0, ${idField.signature()}
@@ -112,7 +157,7 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
         return-object p0
     """.trimIndent()
     requireFilter()
-    return HiddenChatTargets(lists, bridge, bridgeBody)
+    return HiddenChatTargets(InboxRead(view, after, register), bridge, bridgeBody)
 }
 
 /** The no-argument, non-static calls of [type] that answer a chat key. */
@@ -121,23 +166,19 @@ private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
 }
 
 /**
- * Writes the thread summary bridge and puts the filter in. Each reader's return is replaced rather
- * than preceded, because a jump straight to it would skip anything put in front: the list goes
- * through the extension and comes back in the same register.
+ * Writes the thread summary bridge and puts the filter in: the list the inbox view model has just
+ * read goes through the extension and comes back in the same register, before it is wrapped.
  */
 internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     targets.bridge.addInstructionsWithLabels(0, targets.bridgeBody)
-    targets.lists.forEach { list ->
-        val register = "v${list.register}"
-        list.method.replaceInstruction(list.returnAt, "invoke-static/range { $register .. $register }, $HIDDEN_FILTER")
-        list.method.addInstructions(
-            list.returnAt + 1,
-            """
-                move-result-object $register
-                return-object $register
-            """,
-        )
-    }
+    val register = "v${targets.inbox.register}"
+    targets.inbox.method.addInstructions(
+        targets.inbox.resultAt,
+        """
+            invoke-static/range { $register .. $register }, $HIDDEN_FILTER
+            move-result-object $register
+        """,
+    )
 }
 
 /** Throws unless the extension has the public static filter. */
