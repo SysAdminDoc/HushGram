@@ -108,6 +108,45 @@ class HiddenChatHookTest {
     }
 
     @Test
+    fun eachDeclaredBuildFiltersItsRecentSearches() = fixtures { bundle -> checkRecents(bundle.name, recentClasses(bundle)) }
+
+    @Test
+    fun eachOtherBuildFiltersItsRecentSearchesToo() {
+        for (bundle in Fixtures.otherBuilds()) checkRecents(bundle.parentFile.name, recentClasses(bundle))
+    }
+
+    @Test
+    fun eachBuildHasOneRecentSearchesReaderAndOnePlainOne() = fixtures { bundle ->
+        val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SHARE_TARGET } }) { it.readsRecentSearches() }
+        assertEquals("${bundle.name}: ${readers.map { it.definingClass + "->" + it.name }}", 1, readers.size)
+    }
+
+    @Test
+    fun recentSearchHooksResolveTheSameTargetsOnDexBackedReReads() = fixtures { bundle ->
+        val types = recentClasses(bundle).keys - HIDDEN_CHATS
+        val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(HIDDEN_CHATS))
+        val found = context.findRecentTargets()
+        hideChatsFromRecents(found)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.entries.method.visualCode()[found.entries.returnAt].opcode)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, found.chats.method.visualCode()[found.chats.returnAt].opcode)
+    }
+
+    @Test
+    fun theExtensionHasTheRecentSearchesFilter() {
+        val declared = ExtensionDex.classDef(HIDDEN_CHATS).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$HIDDEN_RECENTS is not in the extension: $declared", HIDDEN_RECENTS.substringAfter("->") in declared)
+    }
+
+    @Test
+    fun aBuildWithoutTheRecentSearchesReaderFailsThePatch() = fixtures { bundle ->
+        val context = PatchContexts.of(recentClasses(bundle).values.filter { classDef -> classDef.methods.none { it.readsRecentSearches() } })
+        val refusal = assertThrows(PatchException::class.java) { context.findRecentTargets() }
+        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("expected exactly one recent searches reader"))
+    }
+
+    @Test
     fun aBuildWithoutTheChatKeyFailsThePatch() = refuses("$THREAD_KEY is missing") { it.type != THREAD_KEY }
 
     @Test
@@ -120,6 +159,53 @@ class HiddenChatHookTest {
         classDef.methods.none { method -> method.visualCode().any { it.visualString() == THREAD_SUMMARIES } }
     }
 
+    /** The hooks that keep a hidden chat out of the recent searches, on one build: where each lands and that nothing else moved. */
+    private fun checkRecents(name: String, classes: Map<String, ClassDef>) {
+        val context = PatchContexts.of(classes.values)
+        val found = context.findRecentTargets()
+        val before = classes.mapValues { (_, classDef) -> classDef.methods.map { method -> method.visualCode().map(::text) } }
+        val hooked = listOf(found.entries.method, found.chats.method).map { "${it.definingClass}->${it.name}" }
+        assertEquals("$name: both readers are in one store", found.entries.method.definingClass, found.chats.method.definingClass)
+        assertTrue("$name: two different readers", found.entries.method.name != found.chats.method.name)
+        val entriesBefore = found.entries.method.visualCode().map(::text)
+        val chatsBefore = found.chats.method.visualCode().map(::text)
+
+        hideChatsFromRecents(found)
+
+        val entries = found.entries.method.visualCode()
+        val at = found.entries.returnAt
+        val call = entries[at]
+        assertEquals("$name: the recents leave through the filter", HIDDEN_RECENTS, (call as ReferenceInstruction).reference.toString())
+        assertEquals((call as RegisterRangeInstruction).startRegister, found.entries.register)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, entries[at + 1].opcode)
+        assertEquals(found.entries.register, (entries[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.RETURN_OBJECT, entries[at + 2].opcode)
+        assertEquals("$name: nothing else in the recents reader moved", entriesBefore.size + 2, entries.size)
+        assertEquals(entriesBefore.take(at), entries.take(at).map(::text))
+
+        val chats = found.chats.method.visualCode()
+        val chatsAt = found.chats.returnAt
+        assertEquals("$name: the recent chats leave through the filter", HIDDEN_RECENTS, (chats[chatsAt] as ReferenceInstruction).reference.toString())
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, chats[chatsAt + 1].opcode)
+        assertEquals("$name: and are copied back into an immutable list",
+            "Lcom/google/common/collect/ImmutableList;->copyOf(Ljava/util/Collection;)Lcom/google/common/collect/ImmutableList;",
+            chats[chatsAt + 2].visualReference().toString())
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, chats[chatsAt + 3].opcode)
+        assertEquals(Opcode.RETURN_OBJECT, chats[chatsAt + 4].opcode)
+        assertEquals("$name: nothing else in the plain reader moved", chatsBefore.size + 4, chats.size)
+        assertEquals(chatsBefore.take(chatsAt), chats.take(chatsAt).map(::text))
+
+        for ((type, original) in before) {
+            if (type == HIDDEN_CHATS) continue
+            val methods = context.mutableClassDefBy(type).methods.toList()
+            assertEquals("$name: $type lost or gained a method", original.size, methods.size)
+            methods.forEachIndexed { index, method ->
+                if (hooked.none { it == "${method.definingClass}->${method.name}" }) {
+                    assertEquals("$name: native $type changed", original[index], method.visualCode().map(::text))
+                }
+            }
+        }
+    }
     /** The patch refuses for the reason given on the first declared build with these classes left out, before anything changes. */
     private fun refuses(reason: String, keep: (ClassDef) -> Boolean) = fixtures { bundle ->
         val classes = summaryClasses(bundle).values.filter(keep)
@@ -257,6 +343,17 @@ class HiddenChatHookTest {
     companion object {
         private val cached = mutableMapOf<String, Map<String, ClassDef>>()
         private val searchCached = mutableMapOf<String, Map<String, ClassDef>>()
+
+        private val recentCached = mutableMapOf<String, Map<String, ClassDef>>()
+
+        /** The recent searches store, the chat type and the extension's class. */
+        private fun recentClasses(bundle: File): Map<String, ClassDef> = recentCached.getOrPut(bundle.absolutePath) {
+            val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SHARE_TARGET } }) { it.readsRecentSearches() }
+            val classes = mutableMapOf<String, ClassDef>()
+            classes += FixtureDex.classes(bundle, (readers.map { it.definingClass } + SHARE_TARGET).toSet())
+            classes[HIDDEN_CHATS] = ExtensionDex.classDef(HIDDEN_CHATS)
+            classes
+        }
 
         /**
          * The inbox search's row builder, the See all reader, the builder of message matches, the

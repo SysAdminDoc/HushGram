@@ -385,3 +385,104 @@ private fun BytecodePatchContext.requireSearchFilters() {
         ) refuse("the extension has no public static $signature")
     }
 }
+
+// ------------------------------------------------------------------ the inbox search's recents
+
+internal const val HIDDEN_RECENTS = "$HIDDEN_CHATS->recents(Ljava/util/List;)Ljava/util/List;"
+private const val IMMUTABLE_LIST = "Lcom/google/common/collect/ImmutableList;"
+private const val IMMUTABLE_COPY = "$IMMUTABLE_LIST->copyOf(Ljava/util/Collection;)$IMMUTABLE_LIST"
+
+/**
+ * The reader of the recent searches that takes how many to give: it wraps each recent chat or
+ * person and sorts them, which is the list the search shows before anything is typed. It is the
+ * one instance call that takes an int, answers a list, casts to the chat type, and copies a list
+ * into an immutable one.
+ */
+internal object RecentSearchesFingerprint : Fingerprint(
+    returnType = LIST,
+    parameters = listOf("I"),
+    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.readsRecentSearches() },
+)
+
+/** A method shaped like the recent searches reader: it casts to the chat type and a long, and copies into an immutable list. */
+internal fun Method.readsRecentSearches(): Boolean {
+    val code = implementation?.instructions?.toList() ?: return false
+    val casts = code.filter { it.opcode == Opcode.CHECK_CAST }.mapNotNull { (it.visualReference() as? TypeReference)?.type }
+    return SHARE_TARGET in casts && "Ljava/lang/Long;" in casts &&
+        code.any { it.opcode == Opcode.INVOKE_STATIC && it.visualReference().toString() == IMMUTABLE_COPY }
+}
+
+/** The same store's plain reader: nothing to pass, an immutable list of the recent chats back, from one copy. */
+internal fun Method.readsRecentChats(): Boolean {
+    if (AccessFlags.STATIC.isSet(accessFlags) || parameterTypes.isNotEmpty() || returnType != IMMUTABLE_LIST) return false
+    val code = implementation?.instructions?.toList() ?: return false
+    return code.count { it.opcode == Opcode.RETURN_OBJECT } == 1 &&
+        code.any { it.opcode == Opcode.INVOKE_STATIC && it.visualReference().toString() == IMMUTABLE_COPY }
+}
+
+/** What hiding chats from the recent searches needs: the two readers of the store, and where each returns. */
+internal class RecentTargets(val entries: SummaryList, val chats: SummaryList)
+
+/**
+ * The store of recent searches by its reader that takes a count, and its plain reader by being the
+ * only one in the same class that answers an immutable list from one copy. Both leave through a
+ * single return, so each answer goes through the extension where it is returned, which covers the
+ * screen before you type, the search history screen and the row builder's own reads.
+ */
+internal fun BytecodePatchContext.findRecentTargets(): RecentTargets {
+    val counted = uniqueMethod(LOCK_PATCH, "recent searches reader", RecentSearchesFingerprint)
+    val store = mutableClassDefBy(counted.definingClass)
+    val plain = store.methods.filter { it.readsRecentChats() }.one("plain recent chats reader in ${counted.definingClass}")
+    requireRecentsFilter()
+    return RecentTargets(returnSite(counted, "recent searches reader"), returnSite(plain, "plain recent chats reader"))
+}
+
+private fun returnSite(method: MutableMethod, what: String): SummaryList {
+    val code = method.visualCode()
+    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+    if (returns.size != 1) refuse("the $what returns its list in ${returns.size} places, expected one")
+    val register = (code[returns.single()] as OneRegisterInstruction).registerA
+    if (register > 255) refuse("the $what returns its list from v$register, past v255")
+    return SummaryList(method, returns.single(), register)
+}
+
+/**
+ * Sends both readers' answers through the extension at their return. The return itself is
+ * replaced, so the jumps that land on it land on the filter. The plain reader answers an
+ * immutable list, so its filtered answer is copied back into one.
+ */
+internal fun hideChatsFromRecents(targets: RecentTargets) {
+    val entries = targets.entries
+    val entriesRegister = "v${entries.register}"
+    entries.method.replaceInstruction(entries.returnAt, "invoke-static/range { $entriesRegister .. $entriesRegister }, $HIDDEN_RECENTS")
+    entries.method.addInstructions(
+        entries.returnAt + 1,
+        """
+            move-result-object $entriesRegister
+            return-object $entriesRegister
+        """,
+    )
+    val chats = targets.chats
+    val register = "v${chats.register}"
+    chats.method.replaceInstruction(chats.returnAt, "invoke-static/range { $register .. $register }, $HIDDEN_RECENTS")
+    chats.method.addInstructions(
+        chats.returnAt + 1,
+        """
+            move-result-object $register
+            invoke-static/range { $register .. $register }, $IMMUTABLE_COPY
+            move-result-object $register
+            return-object $register
+        """,
+    )
+}
+
+/** Throws unless the extension has the public static recents filter. */
+private fun BytecodePatchContext.requireRecentsFilter() {
+    val extension = classDefByOrNull(HIDDEN_CHATS) ?: refuse("the extension has no $HIDDEN_CHATS")
+    val name = HIDDEN_RECENTS.substringAfter("->").substringBefore("(")
+    if (extension.methods.none {
+            it.name == name && it.parameterTypes.joinToString("") == LIST && it.returnType == LIST &&
+                AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+    ) refuse("the extension has no public static $HIDDEN_RECENTS")
+}

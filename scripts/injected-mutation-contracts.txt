@@ -120,6 +120,8 @@ once-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z 
 # builder, the See all reader and the message match builder. No rule here, like the inbox filter's
 # (the inbox view model): HiddenChatHookTest proves each hook on every Instagram 450 fixture, the declared bundles
 # and the other 450 folders, and DexDiff needs a built APK.
+# The recent searches the search lists before you type go through the same filter, at the single
+# return of the recent searches store's two readers. No rule here either, for the same reason.
 # View live anonymously asks LiveSeen.hold() first where the live heartbeat manager's tick asks for
 # a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450, the request
 # adding live_with_eligibility), and the tick returns its plain result while the switch is on. The

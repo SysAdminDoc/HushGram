@@ -167,6 +167,77 @@ public class HiddenChatsTest {
         assertSame("shown again", results, HiddenChats.searchResults(results));
     }
 
+    /** Stands in for Instagram's wrapper of a recent search: a chat in a field, or something else. */
+    private static final class RecentEntry {
+        final DirectShareTarget chat;
+        final String other;
+
+        RecentEntry(DirectShareTarget chat, String other) {
+            this.chat = chat;
+            this.other = other;
+        }
+    }
+
+    @Test
+    public void aHiddenChatLeavesTheRecentSearchesAndPeopleAndOtherChatsStay() {
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        HiddenChats.add(ALICE, "Alice");
+        RecentEntry alice = new RecentEntry(new DirectShareTarget(ALICE), null);
+        RecentEntry bob = new RecentEntry(new DirectShareTarget(BOB), null);
+        RecentEntry person = new RecentEntry(null, "a person");
+        DirectShareTarget bareAlice = new DirectShareTarget(ALICE);
+        DirectShareTarget bareBob = new DirectShareTarget(BOB);
+        List<Object> recents = new ArrayList<>(Arrays.asList(bob, alice, person, bareAlice, bareBob, "something else"));
+
+        List<Object> shown = HiddenChats.recents(recents);
+
+        assertEquals(Arrays.asList(bob, person, bareBob, "something else"), shown);
+        assertEquals("Instagram's own list is untouched", 6, recents.size());
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("hidden chats left out of recent searches 1"));
+    }
+
+    @Test
+    public void recentSearchesWithNothingHiddenComeBackAsTheyAre() {
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        List<Object> recents = new ArrayList<>(Arrays.asList(new RecentEntry(new DirectShareTarget(ALICE), null), new DirectShareTarget(BOB)));
+
+        assertSame("no hidden chat", recents, HiddenChats.recents(recents));
+        HiddenChats.add(ALICE, "Alice");
+        List<Object> other = new ArrayList<>(Arrays.asList(new DirectShareTarget(BOB), new RecentEntry(null, "x")));
+        assertSame("a list with no hidden chat in it", other, HiddenChats.recents(other));
+        assertNull(HiddenChats.recents(null));
+        List<Object> empty = new ArrayList<>();
+        assertSame(empty, HiddenChats.recents(empty));
+        assertEquals(1, HiddenChats.recents(recents).size());
+        HiddenChats.remove(ALICE);
+        assertSame("shown again", recents, HiddenChats.recents(recents));
+    }
+
+    @Test
+    public void aRecentSearchThatCantBeReadStaysAndPausedShowsEverything() {
+        HiddenChats.add(ALICE, "Alice");
+        HiddenChats.searchReader = result -> {
+            throw new IllegalStateException("no key");
+        };
+        List<Object> recents = new ArrayList<>(Arrays.asList(new RecentEntry(new DirectShareTarget(ALICE), null), new DirectShareTarget(ALICE)));
+        assertSame("nothing could be read", recents, HiddenChats.recents(recents));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+
+        // The unpatched bridge answers null for everything, so nothing is hidden.
+        HiddenChats.resetForTests();
+        assertSame(recents, HiddenChats.recents(recents));
+
+        HiddenChats.searchReader = result -> ((DirectShareTarget) result).threadId;
+        for (HushgramPause.Reason reason : new HushgramPause.Reason[]{HushgramPause.Reason.SWITCH, HushgramPause.Reason.CRASH_LOOP}) {
+            PauseForTests.pause(reason);
+            assertSame(reason.name(), recents, HiddenChats.recents(recents));
+
+            PauseForTests.resume();
+            assertTrue(reason.name(), HiddenChats.recents(recents).isEmpty());
+        }
+    }
+
     @Test
     public void messagesSaidInAHiddenChatAreLeftOutOfSearchHits() {
         HiddenChats.add(ALICE, "Alice");

@@ -20,7 +20,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>A hidden chat is left out of the thread summaries Instagram's inbox reads ({@link #filter}),
  * out of the inbox search's results and message matches ({@link #searchResults},
- * {@link #searchHits}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
+ * {@link #searchHits}), out of the recent searches it lists before you type ({@link #recents}), and a push for it isn't posted at all ({@link ChatLocks#track} asks {@link #hides}). The list is
  * {@link Settings#HIDDEN_CHATS}, kept in the same lines as the locked chats ({@link ChatList}): a
  * chat's thread id and the name it had when it was hidden. The ids never leave the phone. HushGram
  * settings add the chat you opened last and take a chat off the list.
@@ -36,12 +36,14 @@ public final class HiddenChats {
     /** What is counted in the diagnostic report. */
     static final String LEFT_OUT = "hidden chats left out of the inbox";
     static final String LEFT_OUT_SEARCH = "hidden chats left out of search";
+    static final String LEFT_OUT_RECENTS = "hidden chats left out of recent searches";
     static final String SILENCED = "hidden chat notifications dropped";
 
     /** Steps a failure is reported under. */
     static final String LIST = "hidden chats";
     static final String FILTER = "inbox filter";
     static final String SEARCH = "inbox search filter";
+    static final String RECENTS = "recent searches filter";
 
     /** Instagram's own names for a chat as the inbox search lists it, and for a chat whose messages matched. */
     private static final String SHARE_TARGET = "com.instagram.model.direct.DirectShareTarget";
@@ -159,6 +161,67 @@ public final class HiddenChats {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SEARCH, t);
             return hits;
         }
+    }
+
+    /**
+     * Asked with the recent searches Instagram's inbox search lists before anything is typed. An
+     * entry is either a chat or a wrapper holding one. A person or another kind of search has no
+     * chat and stays. A list with no hidden chat in it comes back as it is, and otherwise a copy
+     * without the hidden ones does.
+     */
+    public static List<Object> recents(List<Object> entries) {
+        try {
+            HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
+            if (entries == null || entries.isEmpty()) return entries;
+            Set<String> hidden = ids();
+            if (hidden.isEmpty()) return entries;
+            List<Object> shown = new ArrayList<>(entries.size());
+            for (Object entry : entries) {
+                if (!recentInHiddenChat(entry, hidden)) shown.add(entry);
+            }
+            if (shown.size() == entries.size()) return entries;
+            HookStatus.counted(FamilyNames.MESSAGES_LOCK, LEFT_OUT_RECENTS);
+            return shown;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, RECENTS, t);
+            return entries;
+        }
+    }
+
+    /**
+     * The entry is a chat on the list, or holds one in a field of Instagram's chat type. The
+     * wrapper's field name changes with each build and its type doesn't. An entry that can't be
+     * read stays.
+     */
+    private static boolean recentInHiddenChat(Object entry, Set<String> hidden) {
+        try {
+            if (entry == null) return false;
+            Object target = isShareTarget(entry.getClass()) ? entry : heldShareTarget(entry);
+            if (target == null) return false;
+            String id = searchReader.threadId(target);
+            return id != null && hidden.contains(id.trim());
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    private static boolean isShareTarget(Class<?> type) {
+        for (; type != null; type = type.getSuperclass()) {
+            if (SHARE_TARGET.equals(type.getName())) return true;
+        }
+        return false;
+    }
+
+    private static Object heldShareTarget(Object entry) throws IllegalAccessException {
+        for (Class<?> type = entry.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || !isShareTarget(field.getType())) continue;
+                field.setAccessible(true);
+                Object value = field.get(entry);
+                if (value != null) return value;
+            }
+        }
+        return null;
     }
 
     /** The result is a chat on the list, or a message said in one. A result that can't be read isn't. */
