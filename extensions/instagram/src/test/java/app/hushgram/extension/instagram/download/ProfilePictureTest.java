@@ -398,6 +398,38 @@ public class ProfilePictureTest {
         return clipboard.hasPrimaryClip() ? String.valueOf(clipboard.getPrimaryClip().getItemAt(0).getText()) : null;
     }
 
+    /** The newer pop-up list gets the same rows under the same switches, appended after Instagram's own. */
+    @Test public void thePopupListGetsTheSameRowsUnderTheSameSwitches() {
+        Settings.VIEW_PROFILE_PICTURES.save(true);
+        Settings.COPY_PROFILE_TEXT.save(true);
+        List<Object> items = new ArrayList<>();
+        items.add(PopupRowsTest.row("Mute", -1, null));
+        ProfilePicture.offer(items, user, context, ProfilePicture.popupReads(reads), save, viewer);
+        assertEquals(Arrays.asList("Mute", "Save profile picture", "View profile picture", "Copy username", "Copy bio"),
+                PopupRowsTest.labels(items));
+        PopupRowsTest.tap(items.get(3));
+        ShadowLooper.idleMainLooper();
+        assertEquals("someone", clipboard());
+    }
+
+    @Test public void offTheSwitchesThePopupListIsInstagrams() {
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        List<Object> items = new ArrayList<>();
+        items.add(PopupRowsTest.row("Mute", -1, null));
+        ProfilePicture.offer(items, user, context, ProfilePicture.popupReads(reads), save, viewer);
+        assertEquals(Collections.singletonList("Mute"), PopupRowsTest.labels(items));
+    }
+
+    @Test public void aPopupListWithNoPlainRowToCopyIsCountedAndLeftAlone() {
+        Settings.COPY_PROFILE_TEXT.save(true);
+        Settings.SAVE_PROFILE_PICTURES.save(false);
+        List<Object> items = new ArrayList<>();
+        items.add(PopupRowsTest.row("Report", 7, 7));
+        ProfilePicture.offer(items, user, context, ProfilePicture.popupReads(reads), save, viewer);
+        assertEquals(Collections.singletonList("Report"), PopupRowsTest.labels(items));
+        assertTrue(counted().get(0).contains(ProfilePicture.COPY_NOT_ADDED + " 2"));
+    }
+
     /** As built, with no patch, the row's adder adds nothing and every read answers nothing. */
     @Test public void unpatchedTheMenuIsInstagrams() {
         ProfilePicture.offer(sheet, user, context);

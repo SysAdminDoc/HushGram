@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** Clean up Reels has a fifth switch, Hide the comment bar on all reels, that starts off. With it on, the Add a comment bar is gone from every reel, including the ones in the Reels tab, and the comment button still opens the comments. Asked for in #119.
 
+* **Instagram:** Save profile picture and its Copy username and Copy bio switch now reach the newer pop-up list that opens from a profile's three dots on some accounts. The rows appear there under the same switches, after Instagram's own, and with the switches off the list is Instagram's. Asked for in #29.
+
 * **Instagram:** New patch, Glass tab bar, from @sherifrahim. It draws the tab bar as a floating, rounded pill of frosted glass, with a lighter capsule on the tab you're on that slides when you change tabs. On Android 12 and newer it blurs what's behind it, and older phones (or the blur switch off) get the same tint without the blur. Under Tab bar in HushGram settings there's also a light tick as the highlight passes a tab, in four styles, and Show content behind the tab bar, which lets Home and the other tabs run down behind the pill. Reels keeps its seek bar and buttons above it. It's in the default selection with its switch off, and a change shows after a restart. Refs #89, #65.
 
 * **Instagram:** New patch, Saved on your profile, from @sherifrahim. Your own profile's tabs get a bookmark next to posts, reels and tagged, and tapping it takes you to Saved. It opens the menu and taps Saved for you, with the screen hidden for a moment so the menu doesn't flash by. If the Saved row doesn't turn up within two seconds, the menu stays open so you can tap it yourself. Turn it on under Profiles in HushGram settings and restart Instagram. Refs #89.

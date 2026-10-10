@@ -52,7 +52,7 @@ class SaveProfilePictureHookTest {
         val declared = ExtensionDex.classDef(PROFILE_PICTURE).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (method in listOf(OFFER_PICTURE.substringAfter("->"), "$ADD_ROW_STUB(${ADD_ROW_PARAMETERS.joinToString("")})Z")) {
+        for (method in listOf(OFFER_PICTURE.substringAfter("->"), OFFER_POPUP.substringAfter("->"), "$ADD_ROW_STUB(${ADD_ROW_PARAMETERS.joinToString("")})Z")) {
             assertTrue("$method is not in the extension: $declared", method in declared)
         }
         val bridges = ExtensionDex.classDef(INSTAGRAM_MEDIA).methods.map { it.name }
@@ -81,6 +81,15 @@ class SaveProfilePictureHookTest {
             assertEquals("$helper: right before the shower is made", Opcode.NEW_INSTANCE, code[at + 1].opcode)
             assertEquals(SHOWER, (code[at + 1].reference() as TypeReference).type)
         }
+
+        val popup = code.indices.single { code[it].referenceText() == OFFER_POPUP }
+        val popupUser = code[popup - 1] as TwoRegisterInstruction
+        val offer = code[popup] as FiveRegisterInstruction
+        assertEquals("the account, off the newer helper", "$NEWER->user:$USER", code[popup - 1].referenceText())
+        assertEquals("the list, the account and the context the popup is built with", listOf(6, popupUser.registerA, 8),
+            listOf(offer.registerC, offer.registerD, offer.registerE))
+        assertEquals("the owner is the newer helper", 0, popupUser.registerB)
+        assertEquals("right before the popup takes its list", "$POPUP->take(Ljava/util/List;)V", code[popup + 1].referenceText())
 
         val stub = context.method(PROFILE_PICTURE, ADD_ROW_STUB).instructions()
         val adds = stub.single { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE } as RegisterRangeInstruction
@@ -122,6 +131,26 @@ class SaveProfilePictureHookTest {
     }
 
     @Test
+    fun aPopupItemOfAnotherSizeFailsThePatch() = refuses("expected one item class built with 24 arguments") {
+        context(popupItemArguments = 23).findProfileMenus()
+    }
+
+    @Test
+    fun twoPopupsFailThePatch() = refuses("expected one PopupWindow") {
+        context(host = host(twoPopups = true)).findProfileMenus()
+    }
+
+    @Test
+    fun aPopupNotHandedItsListRightAwayFailsThePatch() = refuses("isn't handed its list right after it's built") {
+        context(host = host(popupGap = true)).findProfileMenus()
+    }
+
+    @Test
+    fun aPopupWhoseContextIsNotTheHelpersFailsThePatch() = refuses("context isn't read off the newer helper") {
+        context(host = host(popupContextFromElsewhere = true)).findProfileMenus()
+    }
+
+    @Test
     fun aSheetShownTwiceFailsThePatch() = refuses("shown once, found 2") {
         context(host = host(showTwice = true)).findProfileMenus()
     }
@@ -146,7 +175,10 @@ class SaveProfilePictureHookTest {
                 }
                 val made = hosts.flatMap { it.methods }.flatMap { it.instructions() }
                     .filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it.reference() as TypeReference).type }.toSet()
-                kept += hosts + FixtureDex.classes(bundle, made).values
+                val built = FixtureDex.classes(bundle, made).values
+                // The item's click callback is an interface nothing in the host makes.
+                val taken = built.flatMap { it.methods }.filter { it.name == "<init>" }.flatMap { it.parameterTypes.map(Any::toString) }.toSet()
+                kept += hosts + built + FixtureDex.classes(bundle, taken - made).values
                 val context = PatchContexts.of(
                     kept.distinctBy { it.type } + ExtensionDex.classDef(PROFILE_PICTURE) + ExtensionDex.classDef(INSTAGRAM_MEDIA),
                 )
@@ -160,6 +192,7 @@ class SaveProfilePictureHookTest {
                     it.name == menus.method.name && it.parameterTypes == menus.method.parameterTypes
                 }
                 assertEquals("${bundle.name}: one offer per menu", 2, host.instructions().count { it.referenceText() == OFFER_PICTURE })
+                assertEquals("${bundle.name}: one offer for the pop-up list", 1, host.instructions().count { it.referenceText() == OFFER_POPUP })
                 val stub = context.method(PROFILE_PICTURE, ADD_ROW_STUB).instructions()
                 val adds = stub.single { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
                 assertEquals("${bundle.name}: the stub's adder", menus.sheetType,
@@ -238,6 +271,9 @@ class SaveProfilePictureHookTest {
         const val BOTTOM = "Lfixture/BottomOptions;"
         const val NEWER = "Lfixture/Options;"
         const val CONTEXT = "Landroid/content/Context;"
+        const val POPUP = "Lfixture/Popup;"
+        const val ITEM = "Lfixture/PopupItem;"
+        const val CALLBACK = "Lfixture/Click;"
         val PICTURE_BRIDGES = listOf(
             "profilePicture", "fullSizeProfilePicture", "username", "biography", "profilePictureUrl", "profilePictureWidth",
             "profilePictureHeight", "candidateUrl", "candidateWidth", "candidateHeight",
@@ -248,7 +284,41 @@ class SaveProfilePictureHookTest {
             host: ClassDef = host(),
             sheet: ClassDef = sheet(),
             newer: ClassDef = helper(NEWER, PROFILE_MENUS[1]),
-        ) = PatchContexts.of(listOf(host, sheet, helper(BOTTOM, PROFILE_MENUS[0]), newer, ExtensionDex.classDef(PROFILE_PICTURE)))
+            popupItemArguments: Int = 24,
+        ) = PatchContexts.of(
+            listOf(host, sheet, helper(BOTTOM, PROFILE_MENUS[0]), newer, ExtensionDex.classDef(PROFILE_PICTURE)) + popup(popupItemArguments),
+        )
+
+        /** Shaped like 450's X.03W6, X.0juk and X.0qhV: the pop-up list, its item and the item's click callback. */
+        fun popup(arguments: Int): List<ClassDef> {
+            val parameters = (0 until arguments).map {
+                when (it) {
+                    4 -> CALLBACK
+                    in 9..15 -> "Ljava/lang/Integer;"
+                    16, 17 -> "Ljava/lang/String;"
+                    in 18..23 -> "Z"
+                    else -> "Ljava/lang/Object;"
+                }
+            }
+            val constructor = AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value
+            val item = ImmutableClassDef(
+                ITEM, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(method(ITEM, "<init>", parameters, parameters.size + 2, "return-void", constructor)),
+            )
+            val callback = ImmutableClassDef(
+                CALLBACK, AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value,
+                "Ljava/lang/Object;", null, null, null, null, null,
+            )
+            val window = ImmutableClassDef(
+                POPUP, AccessFlags.PUBLIC.value, "Landroid/widget/PopupWindow;", null, null, null, null,
+                listOf(
+                    method(POPUP, "<init>", listOf(CONTEXT, SESSION, "Ljava/lang/Integer;", "Z"), 6, "return-void", constructor),
+                    method(POPUP, "take", listOf("Ljava/util/List;"), 3, "const/4 v0, 0x0\ncheck-cast v0, $ITEM\nreturn-void", PUBLIC_FINAL),
+                    method(POPUP, "other", listOf("Ljava/util/List;"), 3, "return-void", PUBLIC_FINAL),
+                ),
+            )
+            return listOf(item, callback, window)
+        }
 
         /** Shaped like 450's X.0NFq and X.0NFr: the kept name, the account and the context the sheet shows with. */
         fun helper(type: String, name: String, users: Int = 1): ClassDef = ImmutableClassDef(
@@ -268,7 +338,19 @@ class SaveProfilePictureHookTest {
         )
 
         /** Shaped like 450's X.09D9.A02: the bottom sheet's menu, or the newer one, each built and shown. */
-        fun host(newerName: String = PROFILE_MENUS[1], readsContext: Boolean = true, jumpToShower: Boolean = false, showTwice: Boolean = false): ClassDef {
+        fun host(
+            newerName: String = PROFILE_MENUS[1],
+            readsContext: Boolean = true,
+            jumpToShower: Boolean = false,
+            showTwice: Boolean = false,
+            twoPopups: Boolean = false,
+            popupGap: Boolean = false,
+            popupContextFromElsewhere: Boolean = false,
+        ): ClassDef {
+            val popupContext = "iget-object v8, v0, " + (if (popupContextFromElsewhere) BOTTOM else NEWER) + "->context:$CONTEXT"
+            val handOver = if (popupGap) "move-object v7, v6\n invoke-virtual { v7, v6 }, $POPUP->take(Ljava/util/List;)V"
+                else "invoke-virtual { v2, v6 }, $POPUP->take(Ljava/util/List;)V"
+            val second = if (twoPopups) "new-instance v9, $POPUP\n invoke-direct { v9, v8, v5, v1, v3 }, $POPUP-><init>($CONTEXT${SESSION}Ljava/lang/Integer;Z)V" else ""
             val adds = "invoke-virtual/range { v20 .. v25 }, $SHEET->add(${ROW_ADDER_PARAMETERS.joinToString("")})V"
             val newerContext = if (readsContext) "iget-object v1, v0, $NEWER->context:$CONTEXT" else "const/4 v1, 0x0"
             val body = """
@@ -299,6 +381,7 @@ class SaveProfilePictureHookTest {
                 invoke-virtual { v1, v0 }, $SHOWER->show($CONTEXT)V
                 return-void
                 :newer
+                if-nez v5, :popup
                 new-instance v0, $NEWER
                 invoke-direct { v0 }, $NEWER-><init>()V
                 const-string v1, "$newerName"
@@ -309,6 +392,19 @@ class SaveProfilePictureHookTest {
                 $newerContext
                 invoke-virtual { v2, v1 }, $SHOWER->show($CONTEXT)V
                 ${if (showTwice) "new-instance v2, $SHOWER\n invoke-direct { v2, v7 }, $SHOWER-><init>($SHEET)V" else ""}
+                return-void
+                :popup
+                new-instance v0, $NEWER
+                invoke-direct { v0 }, $NEWER-><init>()V
+                $popupContext
+                new-instance v6, Ljava/util/ArrayList;
+                invoke-direct { v6 }, Ljava/util/ArrayList;-><init>()V
+                const/4 v3, 0x0
+                const/4 v1, 0x0
+                new-instance v2, $POPUP
+                invoke-direct { v2, v8, v5, v1, v3 }, $POPUP-><init>($CONTEXT${SESSION}Ljava/lang/Integer;Z)V
+                $handOver
+                $second
                 return-void
             """
             return ImmutableClassDef(

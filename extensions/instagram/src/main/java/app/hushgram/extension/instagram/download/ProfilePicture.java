@@ -99,6 +99,34 @@ public final class ProfilePicture {
         offer(sheet, user, context, NATIVE, SAVE, VIEWER);
     }
 
+    /**
+     * The same rows for the newer pop-up list next to the profile's three dots, which the patch hands
+     * its list of items right before the popup takes it. Each row goes in through {@link PopupRows},
+     * as a copy of a plain row the list already has. Never throws.
+     */
+    public static void offerPopup(List<?> items, Object user, Context context) {
+        offer(items, user, context, popupReads(NATIVE), SAVE, VIEWER);
+    }
+
+    /** [reads] with the row adder swapped for one that appends to a pop-up list's items. */
+    static Native popupReads(final Native reads) {
+        return new Native() {
+            public boolean addRow(Object items, Context context, View.OnClickListener listener, String label) {
+                return items instanceof List && PopupRows.add((List<?>) items, listener, label);
+            }
+            public Object fullSize(Object user) { return reads.fullSize(user); }
+            public String fullSizeUrl(Object info) { return reads.fullSizeUrl(info); }
+            public int fullSizeWidth(Object info) { return reads.fullSizeWidth(info); }
+            public int fullSizeHeight(Object info) { return reads.fullSizeHeight(info); }
+            public Object shown(Object user) { return reads.shown(user); }
+            public String shownUrl(Object image) { return reads.shownUrl(image); }
+            public int shownWidth(Object image) { return reads.shownWidth(image); }
+            public int shownHeight(Object image) { return reads.shownHeight(image); }
+            public String username(Object user) { return reads.username(user); }
+            public String biography(Object user) { return reads.biography(user); }
+        };
+    }
+
     static void offer(Object sheet, Object user, Context context, Native reads, Save save) {
         offer(sheet, user, context, reads, save, VIEWER);
     }
