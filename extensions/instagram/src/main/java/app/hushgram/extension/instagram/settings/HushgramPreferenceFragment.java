@@ -89,6 +89,7 @@ import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.HapticStyle;
+import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
@@ -938,6 +939,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(toggle(context, Settings.HIDE_PROFILE_TAB, L10n.t("Hide the Profile tab"),
                         L10n.t("Takes Profile off the tab bar. Your profile still opens from other places in the app. "
                                 + "Restart Instagram to see the change.")));
+                glass.addPreference(startTabRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
@@ -1320,6 +1322,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
+                    belongs |= family == PatchFamily.REELS_TAB && Settings.START_TAB.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
@@ -3034,6 +3037,50 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /** The tab Instagram opens on when it's started from its icon. Its summary says what the choice does. */
+    static StartTabRow startTabRow(Context context) {
+        StartTabRow row = new StartTabRow(context);
+        row.setKey(Settings.START_TAB.key);
+        row.setTitle(L10n.t("Start tab"));
+        row.setDialogTitle(L10n.t("Start tab"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StartTab[] tabs = StartTab.values();
+        CharSequence[] entries = new CharSequence[tabs.length];
+        CharSequence[] values = new CharSequence[tabs.length];
+        for (int i = 0; i < tabs.length; i++) {
+            entries[i] = startTabLabel(tabs[i]);
+            values[i] = tabs[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.START_TAB.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [tab]. */
+    static String startTabLabel(StartTab tab) {
+        switch (tab) {
+            case SEARCH:
+                return L10n.t("Search");
+            case MESSAGES:
+                return L10n.t("Messages");
+            case REELS:
+                return L10n.t("Reels");
+            case PROFILE:
+                return L10n.t("Profile");
+            default:
+                return L10n.t("Home");
+        }
+    }
+
+    /** What the choice of [tab] does, for the row's summary. */
+    static String startTabSummary(StartTab tab) {
+        if (tab == StartTab.HOME) return L10n.t("Instagram opens the way it always has.");
+        return L10n.f("Instagram opens on %1$s when you start it from its icon. A notification or a link still opens "
+                + "what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.",
+                L10n.isolate(startTabLabel(tab)));
+    }
+
     /** What the list calls [style]. */
     static String hapticStyleLabel(HapticStyle style) {
         switch (style) {
@@ -3156,6 +3203,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((TapToPlayScopeRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
+        } else if (preference instanceof StartTabRow) {
+            ((StartTabRow) preference).showSummary();
         } else if (preference instanceof LockDelayRow) {
             ((LockDelayRow) preference).showSummary();
         } else if (preference instanceof StoryRingRow) {
@@ -3178,6 +3227,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((TapToPlayScopeRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) listPreference).showSummary();
+        } else if (listPreference instanceof StartTabRow) {
+            ((StartTabRow) listPreference).showSummary();
         } else if (listPreference instanceof LockDelayRow) {
             ((LockDelayRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryRingRow) {
@@ -4059,6 +4110,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) style = candidate;
             }
             setSummary(hapticStyleLabel(style));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class StartTabRow extends ListPreference {
+        StartTabRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        /** The summary is the sentence for the tab chosen, not the entry. */
+        void showSummary() {
+            StartTab tab = StartTab.HOME;
+            for (StartTab candidate : StartTab.values()) {
+                if (candidate.name().equals(getValue())) tab = candidate;
+            }
+            setSummary(startTabSummary(tab));
         }
 
         @Override

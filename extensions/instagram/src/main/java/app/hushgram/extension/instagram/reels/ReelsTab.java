@@ -33,6 +33,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * and a list the switches would empty comes back as built. A switch meant for a hidden Search or
  * Profile lands on Home, like one meant for Reels.
  *
+ * <p>The first landing tab Instagram asks about can become the Start tab choice, see {@link TabStart}.
+ *
  * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
  * Home, from the same enum, and Hide the Reels tab wins when both are on.
  *
@@ -74,6 +76,7 @@ public final class ReelsTab {
             FeedFilterCounters.sawList(ROUTE, tabs.size());
             List<?> shown = withoutHidden(tabs);
             if (!hiddenByName(REELS) && showing()) shown = withReels(shown);
+            TabStart.remember(shown);
             return shown;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "tab list", failure);
@@ -177,6 +180,8 @@ public final class ReelsTab {
         try {
             HookStatus.invoked(FamilyNames.REELS_TAB);
             if (!(tab instanceof Enum)) return tab;
+            Object landed = TabStart.landing((Enum<?>) tab);
+            if (landed != null) return landed;
             String name = ((Enum<?>) tab).name();
             if (!REELS.equals(name) && !SEARCH.equals(name) && !PROFILE.equals(name)) return tab;
             if (!hiddenByName(name)) return tab;
@@ -196,6 +201,17 @@ public final class ReelsTab {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Object home(Enum<?> reels) {
         return Enum.valueOf((Class) reels.getDeclaringClass(), HOME);
+    }
+
+    /** Home, from [any] tab's enum. */
+    static Object homeOf(Enum<?> any) {
+        return home(any);
+    }
+
+    /** The tab called [name], from [any] tab's enum. Throws if the enum has none. */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static Object named(Enum<?> any, String name) {
+        return Enum.valueOf((Class) any.getDeclaringClass(), name);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

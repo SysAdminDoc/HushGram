@@ -955,6 +955,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_profile_tab", FALSE, true);
 
     /**
+     * The tab Instagram opens on when it's started from its icon ({@link app.hushgram.extension.instagram.reels.TabStart}).
+     * Home leaves Instagram's own start alone. A tab that's hidden or isn't on the bar opens Home.
+     * Read once, as Instagram starts, so a change takes a restart.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.reels.StartTab> START_TAB =
+            new EnumSetting<>("hushgram_start_tab", app.hushgram.extension.instagram.reels.StartTab.HOME, true);
+
+    /**
      * The speed locked with Instagram's own 2x lock on a reel stays for the next reels, until the
      * lock is slid off, a hold at the edge is let go of, or Instagram restarts.
      */
