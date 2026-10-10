@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.originalName
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -17,6 +18,11 @@ internal const val BOTTOM_SHEET_HOST = "Lcom/instagram/igds/components/bottomshe
 
 internal const val PAINT_COMMENTS_SHEET = "$EXTENSION_PACKAGE/misc/CommentsSheet;->paint(Ljava/lang/Object;Ljava/lang/Object;)V"
 internal const val REPAINT_COMMENTS_SHEET = "$EXTENSION_PACKAGE/misc/CommentsSheet;->repaint(Ljava/lang/Object;)V"
+
+internal const val COMMENTS_CONTENT = "$EXTENSION_PACKAGE/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V"
+
+/** Every comments sheet screen keeps a source name starting with this (CommentListBottomsheetFragment and its kin). */
+internal const val COMMENTS_SCREEN_PREFIX = "CommentListBottomsheet"
 
 private const val CONTEXT = "Landroid/content/Context;"
 private const val FRAGMENT = "Landroidx/fragment/app/Fragment;"
@@ -62,4 +68,35 @@ private fun app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.hookReturns
     val returns = implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
     if (returns.isEmpty()) throw PatchException("$PATCH_NAME: $name returns nowhere")
     returns.asReversed().forEach { addInstructions(it, call) }
+}
+
+/**
+ * The comments sheet screens' own onViewCreated(View, Bundle) methods: those of the classes whose
+ * kept source name starts with [COMMENTS_SCREEN_PREFIX] and that declare one. The host's set-up
+ * method wasn't on the path the 450 comments sheet takes (#108), but the screen's own view
+ * creation is reached every time the sheet shows, from Reels, the feed and a post's page alike.
+ * Fails when there are none.
+ */
+internal fun BytecodePatchContext.findCommentsScreens(): List<String> {
+    val screens = mutableListOf<String>()
+    classDefForEach { classDef ->
+        if (classDef.originalName()?.startsWith(COMMENTS_SCREEN_PREFIX) != true) return@classDefForEach
+        if (classDef.methods.any { it.isViewCreated() }) screens += classDef.type
+    }
+    if (screens.isEmpty()) throw PatchException("$PATCH_NAME: no comments sheet screen with an onViewCreated")
+    return screens
+}
+
+private fun Method.isViewCreated() = name == "onViewCreated" && returnType == "V" &&
+    parameters() == listOf("Landroid/view/View;", "Landroid/os/Bundle;") && !AccessFlags.STATIC.isSet(accessFlags)
+
+/**
+ * First thing in each of [screens]' onViewCreated, hands the screen and its view to
+ * [COMMENTS_CONTENT], which walks up to the sheet and paints it.
+ */
+internal fun BytecodePatchContext.blackenCommentsScreens(screens: List<String>) {
+    for (type in screens) {
+        mutableClassDefBy(type).methods.single { it.isViewCreated() }
+            .addInstructions(0, "invoke-static/range { p0 .. p1 }, $COMMENTS_CONTENT")
+    }
 }
