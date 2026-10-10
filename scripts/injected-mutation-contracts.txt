@@ -933,6 +933,10 @@ shared-call Lapp/hushgram/extension/instagram/share/RepostButton;->eligible(Ljav
 # CommentsButton.feedState right before the constructor stores each. No rule, for the same
 # reason: it's called twice there. HideCommentsHookTest checks on the 450 fixture that both land
 # right before their write, with Hide the Repost button's hooks in the same constructor.
+# The download button on feed posts (#97) calls FeedDownloadButton.bind first thing in the Feed
+# view binder Hide the Repost button's view hide is in (0Bfq.A07 on 450's 385611438). No rule, for
+# the reason above: the binder is picked by resource IDs. FeedDownloadButtonHookTest checks on every
+# 450 build that it lands once at the start and reads the Save button, post, state and activity.
 # Hide the Share button passes the same state's Share button flag and share count flag through
 # ShareButton.feedState the same way, with no rule for the same reason. Its Reels guard is first in
 # the check that decides whether a reel shows the Share button, and in no other method.
