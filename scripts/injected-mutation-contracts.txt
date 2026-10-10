@@ -149,12 +149,22 @@ once-call Lapp/hushgram/extension/instagram/stories/LiveSeen;->hold()Z in static
 # on 450) reads the first four keys too, so seen_user_ids picks the photo and video one. Left out,
 # view once media still vanishes after it's opened; twice or elsewhere, it isn't the hook.
 once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->viewMode(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String; in (L*;)Ljava/lang/Object; holding view_mode seen_count url_expire_at_secs expiring_media_action_summary seen_user_ids
-# It also calls KeepInChat.messageRead() with the message after each of the three stores that tell it
-# whether to leave a media you sent alone: the message's visual_media, its message_item_dict and its
-# is_sent_by_viewer (003F's unsafeParseFromJson on 450, into 0038 and its superclass 037A). The
-# reply preview's parser (04Xj) holds the media keys but not is_sent_by_viewer. Left out, a view once
-# photo you sent shows as an empty bubble; elsewhere or not three times, it isn't the hook.
-once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->messageRead(Ljava/lang/Object;)V in (L*;)Ljava/lang/Object; sites 3 holding visual_media message_item_dict is_sent_by_viewer raven_media
+# It also calls KeepInChat.messageRead() with the message and the reader after each of the four
+# stores that tell it whether to leave a media you sent alone: the message's visual_media, its
+# message_item_dict, its is_sent_by_viewer and its user_id (003F's unsafeParseFromJson on 450, into
+# 0038 and its superclass 037A). The reader holds the signed-in account (06AK.A03, a UserSession),
+# and a user_id matching its userId is how Instagram itself tells a message you sent: the live copy
+# of a view once photo you've just sent doesn't say is_sent_by_viewer (#114). The reply preview's
+# parser (04Xj) holds the media keys but not is_sent_by_viewer. Left out, a view once photo you sent
+# shows as an empty bubble; elsewhere or not four times, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->messageRead(Ljava/lang/Object;Ljava/lang/Object;)V in (L*;)Ljava/lang/Object; sites 4 holding visual_media message_item_dict is_sent_by_viewer user_id raven_media
+# And it hands the view mode the media writer reads (06Oo.A00 on 450, the static (writer, media)
+# beside the media parser, which IGDAppModelSerialization's cache write reaches through the message
+# writer) to KeepInChat.storedViewMode() with its media, so the cache gets the mode the server sent
+# rather than the "permanent" Keep in chat put in its place. Left out, a rewritten mode is saved and
+# a message read back from the cache can't be told apart from a real Keep in chat one; twice or
+# elsewhere, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/direct/KeepInChat;->storedViewMode(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String; in static (L*;L*;)V holding view_mode seen_count url_expire_at_secs expiring_media_action_summary seen_user_ids
 # Allow screenshots hands every Window.setFlags and Window.addFlags call outside the extension to
 # ScreenshotBlock's stand-ins, which leave FLAG_SECURE off while the switch is on, and asks
 # ScreenshotBlock.lift() first in the secure window helper's (window, reason) mark (04Bs.A01 on 450),

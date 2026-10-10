@@ -356,7 +356,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "aViewOncePhotoYouSentKeepsItsModeWhicheverKeyComesFirst[28]", "aViewOncePhotoYouSentKeepsItsModeWhicheverKeyComesFirst[37]",
                 "mediaYouReceiveAndMessagesWithNoFlagStayKept[28]", "mediaYouReceiveAndMessagesWithNoFlagStayKept[37]",
                 "withTheSwitchOffNothingIsRememberedOrRestored[28]", "withTheSwitchOffNothingIsRememberedOrRestored[37]",
-                "aMessageThatCantBeReadIsReportedAndLeftKept[28]", "aMessageThatCantBeReadIsReportedAndLeftKept[37]"),
+                "aMessageThatCantBeReadIsReportedAndLeftKept[28]", "aMessageThatCantBeReadIsReportedAndLeftKept[37]",
+                "aViewOncePhotoYouSentWithoutTheFlagIsToldByItsSender[28]", "aViewOncePhotoYouSentWithoutTheFlagIsToldByItsSender[37]",
+                "aViewOncePhotoSomeoneElseSentStaysKept[28]", "aViewOncePhotoSomeoneElseSentStaysKept[37]",
+                "aReaderWithNoAccountGoesByTheLastOneSeen[28]", "aReaderWithNoAccountGoesByTheLastOneSeen[37]",
+                "theCacheGetsTheViewModeTheServerSent[28]", "theCacheGetsTheViewModeTheServerSent[37]",
+                "withTheSwitchOffTheCacheGetsWhatItWasGiven[28]", "withTheSwitchOffTheCacheGetsWhatItWasGiven[37]"),
             "app.hushgram.extension.instagram.direct.ScreenshotBlockTest" to listOf(
                 "withTheSwitchOnWindowsStayCapturable[28]", "withTheSwitchOnWindowsStayCapturable[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]",
