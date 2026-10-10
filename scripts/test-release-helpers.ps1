@@ -237,7 +237,7 @@ try {
             '        assertEquals("a message no source has", "Hide the " + "row", row());',
             '        assertTrue(summary().contains("Verstecke die Zeile"));', '    }', '}') -join "`n")
         Write-Text (Join-Path $At "extensions/instagram/src/main/java/$settingsPackage/Fixture.java") (@(
-            'class Fixture {', '    static final String LIMIT = "Stop after %1$d reels";',
+            'class Fixture {', '    static final String ANY = "%s";', '    static final String LIMIT = "Stop after %1$d reels";',
             '    static final String ROW = "Hide the "', '            + "row";', '}') -join "`n")
         Write-Text (Join-Path $At 'extensions/shared/library/src/main/l10n/de.tsv') "Hide the line`tVerstecke die Zeile`n"
     }
@@ -255,7 +255,12 @@ try {
     $run = Invoke-Python $staleTool '--root' $staleRoot
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*boundary FixtureTest.keepsItsName names no test method*') `
         "A renamed boundary case passed the stale check: $($run.Output)"
+    Write-Text $staleTest $testText.Replace('@Test public void keepsItsName()', 'public void keepsItsName()')
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*boundary FixtureTest.keepsItsName names no test method*') `
+        "A boundary name left on a method JUnit doesn't run passed the stale check: $($run.Output)"
     Write-Text $staleTest $testText
+    # The bare "%s" in the source mustn't stand in for a rewritten text.
     Write-Text $staleSource $sourceText.Replace('Stop after %1$d reels', 'Stop after %1$d videos')
     $run = Invoke-Python $staleTool '--root' $staleRoot
     Assert-True ($run.Exit -eq 1 -and $run.Output -like "*FixtureTest.java:3 expects text no source or table has: 'Stop after 20 reels'*") `
