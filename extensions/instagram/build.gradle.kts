@@ -432,6 +432,17 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoBlurSwitch[28]", "missingPatchHasNoBlurSwitch[37]",
                 "blurAloneStillGetsReels[28]", "blurAloneStillGetsReels[37]",
                 "blurSwitchStartsOffUnderReelsAfterTheSeekBarAndHonorsPause[28]", "blurSwitchStartsOffUnderReelsAfterTheSeekBarAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.reels.ReelTapAndVolumeTest" to listOf(
+                "theChoiceStartsAtInstagramsDefault[28]", "theChoiceStartsAtInstagramsDefault[37]",
+                "muteSendsTheTapToTheAudioToggleAndCountsIt[28]", "muteSendsTheTapToTheAudioToggleAndCountsIt[37]",
+                "pauseLeavesTheTapToInstagramsPauseAndCountsIt[28]", "pauseLeavesTheTapToInstagramsPauseAndCountsIt[37]",
+                "pausedHushGramIsInstagramsOwnTap[28]", "pausedHushGramIsInstagramsOwnTap[37]",
+                "beforeTheSettingsAreReadyItIsInstagramsOwnTap[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnTap[37]"),
+            "app.hushgram.extension.instagram.settings.ReelTapAndVolumeSettingsTest" to listOf(
+                "missingPatchHasNoTapChoice[28]", "missingPatchHasNoTapChoice[37]",
+                "theChoiceAloneStillGetsPlayback[28]", "theChoiceAloneStillGetsPlayback[37]",
+                "choiceStartsAtInstagramsDefaultRightAfterTapToPlay[28]", "choiceStartsAtInstagramsDefaultRightAfterTapToPlay[37]",
+                "choosingMuteChangesTheSummaryAndPauseKeepsTheSavedChoice[28]", "choosingMuteChangesTheSummaryAndPauseKeepsTheSavedChoice[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

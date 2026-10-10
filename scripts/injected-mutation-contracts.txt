@@ -1310,3 +1310,8 @@ sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Land
 # siblings share its shape and the factory it calls, and neither the binder nor its class holds a
 # string. GhostModeEntryHookTest finds both on every 450 build through the tap's log string, the one
 # Function0 lambda whose switch case starts a new message, and the bar's own class name.
+# Control taps and volume on Reels asks ReelTapAndVolume.muteInsteadOfPause at the start of the Reels tap's pause path,
+# the method that traces PauseAndMuteNavigator_togglePause, right after it loads clips_pause. Left out, the choice does
+# nothing; twice or elsewhere, it isn't the hook the patch wrote. ReelTapAndVolumeHookTest checks on all seven 450
+# builds that it lands once, there.
+once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInsteadOfPause()Z in instance (Landroid/view/View;L*;L*;)V holding android_purge_26_q3_PauseAndMuteNavigator_togglePause

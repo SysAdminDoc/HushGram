@@ -89,6 +89,7 @@ import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.HapticStyle;
+import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveControl;
@@ -790,7 +791,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.TAP_TO_PLAY)
-                || build.contains(PatchFamily.RESUME_LONG_VIDEOS)
+                || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"));
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
@@ -798,6 +799,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Videos wait for your tap where the choice below says. Feed videos show a play button, "
                                 + "as they do when you use less mobile data.")));
                 playback.addPreference(tapToPlayScopeRow(context));
+            }
+            if (build.contains(PatchFamily.REEL_TAP_AND_VOLUME)) {
+                playback.addPreference(reelTapChoiceRow(context));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),
@@ -1328,6 +1332,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 for (PatchFamily family : build) {
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && Settings.STORY_RING_SCALE.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
@@ -1358,6 +1363,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || family == PatchFamily.REEL_WATCH_HISTORY || family == PatchFamily.REELS_TAB
                             || family == PatchFamily.KEEP_REEL_SPEED || family == PatchFamily.TAP_TO_PLAY
                             || family == PatchFamily.PLAYBACK_QUALITY || family == PatchFamily.RESUME_LONG_VIDEOS
+                            || family == PatchFamily.REEL_TAP_AND_VOLUME
                             || Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS.key.equals(key)) aliases.append(" reels");
                 }
                 searchAliases.put(row, aliases.toString());
@@ -3028,6 +3034,51 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** What a single tap on a reel does. Its summary says what the choice does. */
+    static ReelTapChoiceRow reelTapChoiceRow(Context context) {
+        ReelTapChoiceRow row = new ReelTapChoiceRow(context);
+        row.setKey(Settings.REEL_TAP_CHOICE.key);
+        row.setTitle(L10n.t("A tap on a reel"));
+        row.setDialogTitle(L10n.t("A tap on a reel"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        ReelTapChoice[] choices = ReelTapChoice.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = reelTapChoiceLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.REEL_TAP_CHOICE.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [choice]. */
+    static String reelTapChoiceLabel(ReelTapChoice choice) {
+        switch (choice) {
+            case PAUSE:
+                return L10n.t("Pause");
+            case MUTE:
+                return L10n.t("Mute");
+            default:
+                return L10n.t("Instagram's default");
+        }
+    }
+
+    /** What a tap does with [choice], for the row's summary. */
+    static String reelTapChoiceSummary(ReelTapChoice choice) {
+        switch (choice) {
+            case PAUSE:
+                return L10n.t("A tap on a reel pauses it, and another tap plays it again.");
+            case MUTE:
+                return L10n.t("A tap on a playing reel turns its sound off or on and keeps it playing. "
+                        + "A reel that's paused still plays on a tap.");
+            default:
+                return L10n.t("A tap on a reel does what Instagram does.");
+        }
+    }
+
     /** The tick the glass tab bar plays. Its summary is the entry chosen, so there are no sentences to keep in step. */
     static HapticStyleRow hapticStyleRow(Context context) {
         HapticStyleRow row = new HapticStyleRow(context);
@@ -3212,6 +3263,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((PlaybackQualityRow) preference).showSummary();
         } else if (preference instanceof TapToPlayScopeRow) {
             ((TapToPlayScopeRow) preference).showSummary();
+        } else if (preference instanceof ReelTapChoiceRow) {
+            ((ReelTapChoiceRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof StartTabRow) {
@@ -3236,6 +3289,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((PlaybackQualityRow) listPreference).showSummary();
         } else if (listPreference instanceof TapToPlayScopeRow) {
             ((TapToPlayScopeRow) listPreference).showSummary();
+        } else if (listPreference instanceof ReelTapChoiceRow) {
+            ((ReelTapChoiceRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) listPreference).showSummary();
         } else if (listPreference instanceof StartTabRow) {
@@ -4042,6 +4097,42 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(Settings.TAP_TO_PLAY_SCOPE.isAvailable()
                     ? tapToPlayScopeSummary(scope)
                     : L10n.t("Turn on Tap to play to use this choice."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    /** The choice of what a tap on a reel does. Its summary follows its value, as Tap to play's choice does. */
+    static final class ReelTapChoiceRow extends ListPreference {
+        ReelTapChoiceRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            ReelTapChoice choice = ReelTapChoice.DEFAULT;
+            for (ReelTapChoice candidate : ReelTapChoice.values()) {
+                if (candidate.name().equals(getValue())) choice = candidate;
+            }
+            setSummary(reelTapChoiceSummary(choice));
         }
 
         @Override

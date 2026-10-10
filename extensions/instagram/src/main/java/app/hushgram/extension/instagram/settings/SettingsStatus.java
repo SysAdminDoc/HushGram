@@ -306,6 +306,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Control taps and volume on Reels patch. */
+    public static boolean reelTapAndVolume() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }

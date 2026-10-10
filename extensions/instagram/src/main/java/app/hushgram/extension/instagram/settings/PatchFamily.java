@@ -30,7 +30,8 @@ import app.hushgram.extension.shared.settings.preference.LogBufferManager;
  * <p>Pause and safe mode work through the switches: while either is on, every feature switch
  * answers off and the hook behind it takes Instagram's own path. The hook's code is still there,
  * only its answer changes, and Debug logging keeps its saved value. A patch with no switch works
- * entirely when you patch, so it stays in until you patch again, and it says what stays.
+ * entirely when you patch, so it stays in until you patch again, and it says what stays. A patch that is only a
+ * choice, such as what a tap on a reel does, has no switch and answers Instagram's own while paused.
  *
  * <p>The settings screen and the diagnostic report read this list, so they can't disagree about
  * it. A family is found in this build by the name of its {@link SettingsStatus} method, the same
@@ -134,6 +135,7 @@ public enum PatchFamily {
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
     REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR),
     REEL_BLUR_BARS(FamilyNames.REEL_BLUR_BARS, "reelBlurBars", null, Settings.BLUR_REEL_BARS),
+    REEL_TAP_AND_VOLUME(FamilyNames.REEL_TAP_AND_VOLUME, "reelTapAndVolume", null),
     REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,
             Settings.REEL_CAP),
@@ -415,6 +417,10 @@ public enum PatchFamily {
     /** "on", "disabled by its switch" or "disabled while paused", then the saved switches. */
     private String reportLine(boolean paused) {
         StringBuilder line = new StringBuilder(patchName).append(": ");
+        if (switches.isEmpty() && staysWhilePaused == null) {
+            // A choice, not a switch: paused, it answers Instagram's own.
+            return line.append(paused ? "disabled while paused" : "a choice, not a switch").toString();
+        }
         if (switches.isEmpty()) {
             return line.append("no switch, stays in while paused: ").append(staysWhilePaused).toString();
         }
@@ -444,7 +450,7 @@ public enum PatchFamily {
     public static void registerDiagnostics() {
         LogBufferManager.registerReportSection(REPORT);
         for (PatchFamily family : values()) {
-            if (family.switches.isEmpty()) HookStatus.runsWhilePaused(family.patchName);
+            if (family.switches.isEmpty() && family.staysWhilePaused != null) HookStatus.runsWhilePaused(family.patchName);
         }
     }
 

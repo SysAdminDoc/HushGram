@@ -1106,6 +1106,15 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_tap_to_play_scope", TapToPlayScope.EVERYWHERE, parent(TAP_TO_PLAY));
 
     /**
+     * What a single tap on a reel does ({@link app.hushgram.extension.instagram.reels.ReelTapAndVolume}):
+     * Instagram's own tap, pause, or mute. It starts as Instagram's own, so nothing changes until a
+     * choice is made. Paused, it answers Instagram's own like every setting. A reel you paused still
+     * resumes on a tap, and a double tap and a long press are untouched.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.reels.ReelTapChoice> REEL_TAP_CHOICE =
+            new EnumSetting<>("hushgram_reel_tap_choice", app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT);
+
+    /**
      * A video or reel over two minutes left partway picks up there the next time a player starts
      * it ({@link app.hushgram.extension.instagram.media.ResumePlayback}). Starts off: it keeps the
      * IDs of the videos you left partway, for 30 days, in the app's own storage.
