@@ -58,6 +58,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** New patch, Stop background wake-ups, from @sherifrahim. Instagram sets two alarms that wake your phone while it's in the background. One fires every minute or two just to note that the app is still running, and the other wakes the phone five minutes later to upload usage events. Each gets a switch under Battery in HushGram settings, and both start off. Notifications still come through Instagram's push service, and the usage events go out the next time you use the app (or nowhere, with Disable analytics on). Refs #89.
 
+* **Instagram:** Hide suggested posts' Hide shopping switch now also takes shop tiles out of Explore. A shop's tile is the one with the shop's name over a few of its posts, and the block of the grid holding it goes with it, since Instagram doesn't draw a block with a gap in it. The rest of Explore stays, and with the switch off shop tiles come back on Explore's next load.
+
 * **Tooling:** The patched APK check now holds Hide the comment bar on all reels' guard where it belongs, first thing in the render of the Reels tab's comment bar. The Clean up Reels tests also check every part in all seven builds of Instagram 450, not just one.
 
 * **Tooling:** The patch tests no longer need Instagram 449 or 439 in the fixture folder. The story retry queue's mutation tests, the settings entry's native proof and the version checks in five more tests now read 450's declared build, so a folder with only 450 in it runs the whole suite.

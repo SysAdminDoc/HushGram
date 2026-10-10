@@ -61,8 +61,8 @@ internal val SHOPPING_UNITS = listOf("SHOPPING_RECOMMENDATION_UNIT", "PRODUCT_PI
 val hideSuggestedPostsPatch = bytecodePatch(
     name = "Hide suggested posts",
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
-        "from Home. Posts from accounts you follow stay. Extra switches can also hide all videos, photos or " +
-        "carousels. On by default. Turn it off in HushGram settings > Feed.",
+        "from Home, and shop tiles from Explore. Posts from accounts you follow stay. Extra switches can also " +
+        "hide all videos, photos or carousels. On by default. Turn it off in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch)
@@ -71,8 +71,12 @@ val hideSuggestedPostsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(FEED_TYPES_STATUS)
+        // Found before anything changes, so a build where Explore's sections moved stops the patch
+        // with Home's filter not yet written.
+        val exploreShops = findExploreShopSections()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
+        exploreShops.write(this)
         // The post type switches are found whole before their part changes anything, so a build
         // where Home's reads or a post's type moved gets the rest of the patch alone.
         homeFeedTypesOrWarn()?.let {

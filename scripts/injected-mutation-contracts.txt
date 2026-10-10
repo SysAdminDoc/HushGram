@@ -600,6 +600,11 @@ once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->hide(Ljava/uti
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->track(Ljava/lang/Object;)V in instance (Landroid/os/Bundle;)V holding ExploreFragment.setupGrid loadMoreInterface
 once-call Lapp/hushgram/extension/instagram/explore/ExploreGrid;->loadMoreRow(Ljava/lang/Object;I)I in instance (L*;L*;)V holding INDEX_NO_ITEMS INDEX_LOAD_MORE
 #
+# Hide suggested posts' Hide shopping asks the extension once, at the return of a section Explore's
+# section parser built (the page parser reads "sectional_items" with it), with that section. The
+# parser is the one method holding "DiscoverySection", so no other read of Explore's JSON passes it.
+once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->section(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; holding DiscoverySection layout_content
+#
 # Start Home on Following passes every read of the two flags behind Instagram's For you and
 # Following picker through flag(), and the saved feed's getter passes the name it read through
 # saved() once. The getter is the one instance method taking nothing and answering a String in the
