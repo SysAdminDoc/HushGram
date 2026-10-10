@@ -287,6 +287,10 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelWatchHistory;->holdBack(
 # the bar is kept, so both are shared-call and only the show's guard is a start-call. It asks once
 # more in unVanish (a lambda on 450), right after the marker's trace call, and takes unVanish's own
 # hidden branch to Instagram's hide when it says so: a third shared-call.
+# Hide the comment bar on all reels asks hideEveryCommentBar() first thing in the render of the
+# in-viewer comment bar component, the bar the Reels tab draws under a reel on 450 (#119). That
+# render is its only caller, so once-call. The switch also answers yes through hideCommentBar(Object),
+# so that hook's rules cover the bar under reels opened from anywhere else.
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_ClipsFollowButtonComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideFollowButton()Z holding android_purge_26_q3_ClipsFollowButtonComponent_render
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q3_ClipsBaselAttributionPillComponent_render
@@ -329,6 +333,8 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBa
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBar(Ljava/lang/Object;)Z holding android_purge_26_q2_ClipsViewerCommentBarController_showCommentBar
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBar(Ljava/lang/Object;)Z holding android_purge_26_q2_ClipsViewerCommentBarController_onViewCreated
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBar(Ljava/lang/Object;)Z holding android_purge_26_q2_ClipsViewerCommentBarController_unVanishCommentBar
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
+once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
 #
 # Sanitize sharing links passes the link each of Instagram's two share link parsers reads through
 # the extension, once, before the parser stores it: the permalink parser for a post or reel and the

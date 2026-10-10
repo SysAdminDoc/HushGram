@@ -44,7 +44,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** Hide the Reels tab has a second switch, Show the Reels tab, that starts off. With it on, if Instagram built your tab bar without Reels, the tab is put back right after Home and opens Reels. If Hide the Reels tab is on too, Hide wins. Restart Instagram to see the change. Asked for in #120.
 
-* **Instagram:** Clean up Reels has a fifth switch, Hide the comment bar on all reels, that starts off. With it on, the Add a comment bar is gone from every reel, including the ones in the Reels tab, and the comment button still opens the comments. Asked for in #119.
+* **Instagram:** Clean up Reels has a fifth switch, Hide the comment bar on all reels, under Reels in HushGram settings. It starts off. With it on, the Add a comment bar is gone from every reel, including the ones in the Reels tab, and the comment button still opens the comments. Clean up Reels' description in Manager mentions the bar now too, instead of only the one on reposts. Asked for in #119.
 
 * **Instagram:** The diagnostic report has a Stories tray reel types line that counts each kind of card the stories row loads, by Instagram's own name for it. A report from an account that gets a card none of the switches cover yet, like the Music for you card in #111, shows which kind it is, so a switch can take out that card and nothing else.
 
@@ -55,6 +55,8 @@ Every HushGram release, newest first.
 * **Instagram:** New patch, Saved on your profile, from @sherifrahim. Your own profile's tabs get a bookmark next to posts, reels and tagged, and tapping it takes you to Saved. It opens the menu and taps Saved for you, with the screen hidden for a moment so the menu doesn't flash by. If the Saved row doesn't turn up within two seconds, the menu stays open so you can tap it yourself. Turn it on under Profiles in HushGram settings and restart Instagram. Refs #89.
 
 * **Instagram:** New patch, Stop background wake-ups, from @sherifrahim. Instagram sets two alarms that wake your phone while it's in the background. One fires every minute or two just to note that the app is still running, and the other wakes the phone five minutes later to upload usage events. Each gets a switch under Battery in HushGram settings, and both start off. Notifications still come through Instagram's push service, and the usage events go out the next time you use the app (or nowhere, with Disable analytics on). Refs #89.
+
+* **Tooling:** The patched APK check now holds Hide the comment bar on all reels' guard where it belongs, first thing in the render of the Reels tab's comment bar. The Clean up Reels tests also check every part in all seven builds of Instagram 450, not just one.
 
 * **Tooling:** The patch tests no longer need Instagram 449 or 439 in the fixture folder. The story retry queue's mutation tests, the settings entry's native proof and the version checks in five more tests now read 450's declared build, so a folder with only 450 in it runs the whole suite.
 

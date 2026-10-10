@@ -36,6 +36,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -166,78 +167,100 @@ class CleanUpReelsHookTest {
     @Test
     fun eachDeclaredBuildHidesEveryPart() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
-        val markers = CLEANUP_MARKERS.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val classes = mutableListOf<ClassDef>()
-                FixtureDex.forEach(bundle) { dex ->
-                    val holds = dex.stringSection.any { string ->
-                        string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
-                    }
-                    if (!holds) return@forEach
-                    for (classDef in dex.classes) {
-                        if (classDef.methods.any { method -> method.markers().any { it in markers } }) {
-                            classes += ImmutableClassDef.of(classDef)
-                        }
-                    }
-                }
-                val check = classes.flatMap { it.methods }.single { SOCIAL_CONTEXT_CHECK in it.markers() }
-                val typeRead = check.instructions().zipWithNext().single { (read, asked) ->
-                    read.opcode == Opcode.IGET_OBJECT &&
-                        ((asked as? ReferenceInstruction)?.reference as? MethodReference)?.name == "ordinal"
-                }.first
-                val typeField = (typeRead as ReferenceInstruction).reference as FieldReference
-                classes += FixtureDex.classes(bundle, setOf(typeField.type)).values.map { ImmutableClassDef.of(it) }
-                val context = PatchContexts.of(classes.distinctBy { it.type })
-
-                context.hideReelParts()
-
-                fun after(before: Method) = context.mutableClassDefBy(before.definingClass).methods.single {
-                    it.name == before.name && it.parameterTypes.map(Any::toString) == before.parameterTypes.map(Any::toString)
-                }
-                REEL_PARTS.forEach { part ->
-                    val before = classes.flatMap { it.methods }.single { part.marker in it.markers() }
-                    val after = after(before)
-                    assertEquals("${bundle.name}: ${part.marker} size", before.instructions().size + 5, after.instructions().size)
-                    assertGuardFirst("${bundle.name}: ${part.marker}", part, after)
-                }
-                val bubbles = classes.flatMap { it.methods }.single { FLOATING_BUBBLES in it.markers() }
-                val none = bubbles.instructions().zipWithNext().first { (read, answer) ->
-                    read.opcode == Opcode.SGET_OBJECT && answer.opcode == Opcode.RETURN_OBJECT
-                }.first
-                assertEquals("${bundle.name}: bubbles size", bubbles.instructions().size + 5, after(bubbles).instructions().size)
-                assertBubblesGuarded("${bundle.name}: bubbles", after(bubbles), (none as ReferenceInstruction).reference.toString())
-                assertEquals("${bundle.name}: line check size", check.instructions().size + 7, after(check).instructions().size)
-                assertLineGuarded("${bundle.name}: line check", after(check), (typeRead as TwoRegisterInstruction).registerB, typeField.toString())
-                // The comment bar: guarded where it's shown and right after onViewCreated keeps it.
-                val show = classes.flatMap { it.methods }.single { COMMENT_BAR_SHOW in it.markers() }
-                val hide = classes.flatMap { it.methods }.single { COMMENT_BAR_HIDE in it.markers() }
-                val created = classes.flatMap { it.methods }.single { COMMENT_BAR_CREATED in it.markers() }
-                val source = classes.single { it.type == show.definingClass }.fields.single { it.type == CLIPS_VIEWER_SOURCE }
-                val bar = hide.instructions().mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference) }
-                    .single { it.type == VIEW }
-                assertEquals("${bundle.name}: show size", show.instructions().size + 6, after(show).instructions().size)
-                assertEquals("${bundle.name}: onViewCreated size", created.instructions().size + 5, after(created).instructions().size)
-                assertCommentBarGuarded("${bundle.name}: comment bar", after(show), after(created),
-                    "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V",
-                    "${bar.definingClass}->${bar.name}:${bar.type}", null)
-                // And in unVanish, right after the marker's trace, on the register the hide is called on.
-                val unVanish = classes.flatMap { it.methods }.single { COMMENT_BAR_UNVANISH in it.markers() }
-                val unVanishCode = unVanish.instructions()
-                val traced = unVanishCode.indexOfFirst {
-                    ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.endsWith(COMMENT_BAR_UNVANISH) == true
-                } + 2
-                val hideCall = unVanishCode.single {
-                    it.opcode == Opcode.INVOKE_VIRTUAL && (it as ReferenceInstruction).reference.toString() == "${hide.definingClass}->${hide.name}()V"
-                } as FiveRegisterInstruction
-                assertEquals("${bundle.name}: unVanish size", unVanishCode.size + 4, after(unVanish).instructions().size)
-                assertUnVanishGuarded("${bundle.name}: unVanish", after(unVanish), traced, hideCall.registerC,
-                    "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V", null)
+                hidesEveryPart(bundle, bundle.name)
                 checked += version
             }
         }
         assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    /**
+     * The same in the other builds of each declared version, which are compiled on their own and
+     * name every class differently. The Reels tab's own comment bar, the in-viewer component's
+     * render, is one method of a render's shape in each of them too (#119).
+     */
+    @Test
+    fun eachOtherBuildHidesEveryPart() {
+        val builds = Fixtures.otherBuilds()
+        for (apk in builds) hidesEveryPart(apk, apk.parentFile.name)
+        assertTrue("no other build was read", builds.isNotEmpty())
+    }
+
+    private fun hidesEveryPart(bundle: File, label: String) {
+        val markers = CLEANUP_MARKERS.toSet()
+        val classes = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            val holds = dex.stringSection.any { string ->
+                string.startsWith("android_purge_") && PURGE_MARKER.find(string)?.groupValues?.get(1) in markers
+            }
+            if (!holds) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.methods.any { method -> method.markers().any { it in markers } }) {
+                    classes += ImmutableClassDef.of(classDef)
+                }
+            }
+        }
+        val check = classes.flatMap { it.methods }.single { SOCIAL_CONTEXT_CHECK in it.markers() }
+        val typeRead = check.instructions().zipWithNext().single { (read, asked) ->
+            read.opcode == Opcode.IGET_OBJECT &&
+                ((asked as? ReferenceInstruction)?.reference as? MethodReference)?.name == "ordinal"
+        }.first
+        val typeField = (typeRead as ReferenceInstruction).reference as FieldReference
+        classes += FixtureDex.classes(bundle, setOf(typeField.type)).values.map { ImmutableClassDef.of(it) }
+        val context = PatchContexts.of(classes.distinctBy { it.type })
+
+        context.hideReelParts()
+
+        fun after(before: Method) = context.mutableClassDefBy(before.definingClass).methods.single {
+            it.name == before.name && it.parameterTypes.map(Any::toString) == before.parameterTypes.map(Any::toString)
+        }
+        REEL_PARTS.forEach { part ->
+            val before = classes.flatMap { it.methods }.single { part.marker in it.markers() }
+            val after = after(before)
+            assertEquals("$label: ${part.marker} size", before.instructions().size + 5, after.instructions().size)
+            assertGuardFirst("$label: ${part.marker}", part, after)
+        }
+        // The in-viewer comment bar's render is guarded by the switch for all reels, nothing else.
+        val inViewer = after(classes.flatMap { it.methods }.single { COMMENT_BAR_PARTS.single().marker in it.markers() })
+        assertEquals("$label: the in-viewer bar's hook", HIDE_EVERY_COMMENT_BAR, (inViewer.instructions()[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$label: the in-viewer bar asks once", 1, inViewer.instructions().count {
+            (it as? ReferenceInstruction)?.reference?.toString()?.startsWith(HIDE_EVERY_COMMENT_BAR.substringBefore("->")) == true
+        })
+        val bubbles = classes.flatMap { it.methods }.single { FLOATING_BUBBLES in it.markers() }
+        val none = bubbles.instructions().zipWithNext().first { (read, answer) ->
+            read.opcode == Opcode.SGET_OBJECT && answer.opcode == Opcode.RETURN_OBJECT
+        }.first
+        assertEquals("$label: bubbles size", bubbles.instructions().size + 5, after(bubbles).instructions().size)
+        assertBubblesGuarded("$label: bubbles", after(bubbles), (none as ReferenceInstruction).reference.toString())
+        assertEquals("$label: line check size", check.instructions().size + 7, after(check).instructions().size)
+        assertLineGuarded("$label: line check", after(check), (typeRead as TwoRegisterInstruction).registerB, typeField.toString())
+        // The comment bar: guarded where it's shown and right after onViewCreated keeps it.
+        val show = classes.flatMap { it.methods }.single { COMMENT_BAR_SHOW in it.markers() }
+        val hide = classes.flatMap { it.methods }.single { COMMENT_BAR_HIDE in it.markers() }
+        val created = classes.flatMap { it.methods }.single { COMMENT_BAR_CREATED in it.markers() }
+        val source = classes.single { it.type == show.definingClass }.fields.single { it.type == CLIPS_VIEWER_SOURCE }
+        val bar = hide.instructions().mapNotNull { ((it as? ReferenceInstruction)?.reference as? FieldReference) }
+            .single { it.type == VIEW }
+        assertEquals("$label: show size", show.instructions().size + 6, after(show).instructions().size)
+        assertEquals("$label: onViewCreated size", created.instructions().size + 5, after(created).instructions().size)
+        assertCommentBarGuarded("$label: comment bar", after(show), after(created),
+            "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V",
+            "${bar.definingClass}->${bar.name}:${bar.type}", null)
+        // And in unVanish, right after the marker's trace, on the register the hide is called on.
+        val unVanish = classes.flatMap { it.methods }.single { COMMENT_BAR_UNVANISH in it.markers() }
+        val unVanishCode = unVanish.instructions()
+        val traced = unVanishCode.indexOfFirst {
+            ((it as? ReferenceInstruction)?.reference as? StringReference)?.string?.endsWith(COMMENT_BAR_UNVANISH) == true
+        } + 2
+        val hideCall = unVanishCode.single {
+            it.opcode == Opcode.INVOKE_VIRTUAL && (it as ReferenceInstruction).reference.toString() == "${hide.definingClass}->${hide.name}()V"
+        } as FiveRegisterInstruction
+        assertEquals("$label: unVanish size", unVanishCode.size + 4, after(unVanish).instructions().size)
+        assertUnVanishGuarded("$label: unVanish", after(unVanish), traced, hideCall.registerC,
+            "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V", null)
     }
 
     /** The no-bubbles state answered first, when the hook says to hide, before the use case's own code. */

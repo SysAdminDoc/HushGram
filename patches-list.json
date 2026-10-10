@@ -228,7 +228,7 @@
     },
     {
       "name": "Clean up Reels",
-      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity and the comment bar on reposts. Each one has its own switch. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity and the Add a comment bar. Each one has its own switch. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
