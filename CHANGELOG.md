@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** View stories anonymously has a new switch, Gray out stories you've watched. It starts off, so a story you watch keeps its colored ring as it does now. Turn it on and a watched story turns gray and moves to the end of the row on your phone, while Instagram still isn't told you watched it. Asked for in #113 and on #92.
+
 * **Instagram:** Sanitize sharing links now also cleans a link that's copied to the clipboard as a link item rather than as text, which kept its share id before. Thanks to @Aholicknight, who spotted it and sent the approach in #107.
 
 * **Instagram:** With Hide suggested posts on, Home no longer sits on gray loading boxes after you switch to an account whose Home is all suggestions, such as a new account that follows nobody. Home used to remember every post it had kept since Instagram started, so the first account's posts kept it from ending. Now only Home's latest load counts. Reported in #104 and #105.

@@ -79,6 +79,11 @@ public class StorySeenSettingsTest {
         List<BooleanSetting> switches = PatchFamily.STORY_SEEN.switches;
         assertEquals(Settings.VIEW_STORIES_ANONYMOUSLY, switches.get(0));
         assertEquals(Settings.MARK_STORIES_SEEN, switches.get(1));
+        assertEquals(Settings.GRAY_OUT_WATCHED_STORIES, switches.get(2));
+        SwitchPreference gray = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.GRAY_OUT_WATCHED_STORIES.key);
+        assertNotNull(gray);
+        assertEquals("Gray out stories you've watched", gray.getTitle().toString());
+        assertFalse("Gray out stories you've watched starts off", gray.isChecked());
         Settings.MARK_STORIES_SEEN.save(true);
         assertTrue(Settings.MARK_STORIES_SEEN.savedValue());
         BaseSettings.PAUSED.save(true);

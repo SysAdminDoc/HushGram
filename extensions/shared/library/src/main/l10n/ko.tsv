@@ -34,6 +34,7 @@ Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
 Full report saved to %1$s	전체 보고서가 %1$s에 저장되었습니다
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0 라이선스를 적용하며, 이 프로그램이 기반으로 사용하는 프로젝트의 고지 사항을 포함합니다
+Gray out stories you've watched	이미 본 스토리 회색으로 표시
 Hide ads	광고 숨기기
 How far a photo or video you're saving has got, with a button to cancel it	저장 중인 사진 또는 동영상의 진행 상황을 보여주며, 취소할 수 있는 버튼을 표시합니다
 HushGram %1$s on Instagram %2$s	HushGram %1$s on Instagram %2$s
@@ -96,6 +97,7 @@ Try again, or go back to Instagram.	다시 시도하거나 Instagram으로 돌�
 Updates	업데이트
 Version	버전
 Version %1$s for Instagram %2$s	Version %1$s for Instagram %2$s
+While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	스토리를 몰래 보는 동안 이미 본 스토리가 회색으로 바뀌고 줄의 맨 끝으로 이동합니다. 이 변화는 이 휴대폰에서만 보이며, Instagram에는 여전히 시청 사실이 전달되지 않습니다
 You paused HushGram.	HushGram이 일시 정지되었습니다
 the re-signed build fix	다시 서명된 빌드 수정
 Don't send reel watch history	릴스 시청 기록 전송하지 않기

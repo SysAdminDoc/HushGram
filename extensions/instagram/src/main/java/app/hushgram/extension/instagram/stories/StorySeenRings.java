@@ -18,6 +18,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -39,6 +40,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * write for it, through Instagram's own method. A story whose mark already went out is written
  * straight away. The writes are kept 24 hours at most, the most recent {@link #MAX_KEPT} of them,
  * and only weakly, in memory.
+ *
+ * <p>Gray out stories you've watched lets the write through while views are held back, for people
+ * who'd rather see what they've watched (#113).
  *
  * <p>The switch off, a pause or settings that aren't ready write the time as Instagram would. So
  * does any failure deciding: a grey ring is what Instagram does anyway, and the view itself is held
@@ -123,7 +127,16 @@ public final class StorySeenRings {
 
     static final StorySeenRings RINGS = new StorySeenRings(SystemClock::elapsedRealtime);
 
-    private static final BooleanSupplier ANONYMOUS = StorySeen::anonymous;
+    private static final BooleanSupplier ANONYMOUS = StorySeenRings::keepsWatchedNew;
+
+    /**
+     * Whether a watched story's write is skipped: views held back, and Gray out stories you've
+     * watched off. With that switch on Instagram writes as it would, so the ring greys on the phone
+     * while {@link StorySeen} still holds the view itself back (#113).
+     */
+    static boolean keepsWatchedNew() {
+        return StorySeen.anonymous() && !Settings.GRAY_OUT_WATCHED_STORIES.get();
+    }
 
     /** A write skipped for a story: the reel and account it was for, the time, and when. */
     private static final class Kept {

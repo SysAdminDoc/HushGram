@@ -33,6 +33,7 @@ Export diagnostic report	Exportar relatório de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	A partir da próxima abertura, todas as opções, menos o Registro de depuração, funcionam como se estivessem desligadas. O que foi definido ao aplicar os patches continua ativo, e suas escolhas ficam salvas.
 Full report saved to %1$s	Relatório completo salvo em %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, com os avisos dos projetos em que o HushGram se baseia
+Gray out stories you've watched	Deixar em cinza os Stories que você já viu
 Hide ads	Ocultar anúncios
 How far a photo or video you're saving has got, with a button to cancel it	Indica o progresso do salvamento de uma foto ou vídeo, com um botão para cancelá-lo
 HushGram %1$s on Instagram %2$s	HushGram %1$s no Instagram %2$s
@@ -95,6 +96,7 @@ Try again, or go back to Instagram.	Tente novamente ou volte para o Instagram.
 Updates	Atualizações
 Version	Versão
 Version %1$s for Instagram %2$s	Versão %1$s para o Instagram %2$s
+While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Enquanto você assiste anonimamente, um Story que você já viu fica cinza e vai para o fim da fila, só neste celular. O Instagram continua sem saber que você viu.
 You paused HushGram.	Você pausou o HushGram.
 the re-signed build fix	a correção para versão reassinada
 Don't send reel watch history	Não enviar o histórico de reels assistidos

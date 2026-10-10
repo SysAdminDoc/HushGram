@@ -33,6 +33,7 @@ Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
 Full report saved to %1$s	Laporan lengkap disimpan ke %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, beserta pemberitahuan dari proyek yang menjadi dasarnya
+Gray out stories you've watched	Abu-abukan cerita yang sudah ditonton
 Hide ads	Sembunyikan iklan
 How far a photo or video you're saving has got, with a button to cancel it	Progres foto atau video yang sedang Anda simpan, dengan tombol untuk membatalkannya
 HushGram %1$s on Instagram %2$s	HushGram %1$s di Instagram %2$s
@@ -95,6 +96,7 @@ Try again, or go back to Instagram.	Coba lagi, atau kembali ke Instagram.
 Updates	Pembaruan
 Version	Versi
 Version %1$s for Instagram %2$s	Versi %1$s untuk Instagram %2$s
+While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Saat kamu melihat secara anonim, cerita yang sudah kamu tonton berubah abu-abu dan pindah ke ujung baris, hanya di ponsel ini. Instagram tetap tidak diberi tahu bahwa kamu menontonnya.
 You paused HushGram.	Anda menjeda HushGram.
 the re-signed build fix	perbaikan build yang ditandatangani ulang
 Don't send reel watch history	Jangan kirim riwayat tontonan reel

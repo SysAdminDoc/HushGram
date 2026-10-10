@@ -283,6 +283,16 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_mark_stories_seen", FALSE);
 
     /**
+     * Stories you watch while views are held back still turn gray on this phone
+     * ({@link app.hushgram.extension.instagram.stories.StorySeenRings}). Off to start, so a watched
+     * story keeps its colored ring and its place (#92). On, Instagram writes the story's seen time
+     * on the phone as it would, and the view itself stays held back (#113). Read each time a story
+     * is watched.
+     */
+    public static final BooleanSetting GRAY_OUT_WATCHED_STORIES =
+            new BooleanSetting("hushgram_gray_out_watched_stories", FALSE);
+
+    /**
      * Lives you watch don't list you as a viewer
      * ({@link app.hushgram.extension.instagram.stories.LiveSeen}). Off to start. Read before each
      * heartbeat a live you watch would send.

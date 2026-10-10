@@ -700,6 +700,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             stories.add(toggle(context, Settings.MARK_STORIES_SEEN, L10n.t("Mark as seen button"),
                     L10n.t("Adds an eye button to the top of each story while you view anonymously. Tap it to show up "
                             + "on that story's viewer list. The other stories stay hidden.")));
+            stories.add(toggle(context, Settings.GRAY_OUT_WATCHED_STORIES, L10n.t("Gray out stories you've watched"),
+                    L10n.t("While you view anonymously, a story you've watched turns gray and moves to the end of the row, "
+                            + "on this phone only. Instagram still isn't told you watched it.")));
         }
         if (build.contains(PatchFamily.LIVE_SEEN)) {
             stories.add(toggle(context, Settings.VIEW_LIVE_ANONYMOUSLY, L10n.t("View live anonymously"),
