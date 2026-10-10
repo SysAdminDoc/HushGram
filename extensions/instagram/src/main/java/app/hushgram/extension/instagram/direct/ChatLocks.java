@@ -43,6 +43,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ChatLocks {
     /** Marks a notification with the ids of the chat it is for, separated by commas. */
     static final String CHAT_EXTRA = "hushgram_lock_chat";
+    /** What comes before the chat's id in the tag Instagram posts a message notification under. */
+    static final String TAG_THREAD = ";thread_id:";
 
     /** Steps a failure is reported under. */
     static final String OPENED = "chat opened";
@@ -259,7 +261,8 @@ public final class ChatLocks {
      * is on the locked list, each notification is marked with them as it goes to Android, so a copy in
      * the shade can be matched to a chat later, when the lock comes back. With no locked chat (the list
      * stays in force while HushGram is paused) nothing is written and every notification goes through
-     * untouched, since the mark is only ever read to match a locked chat.
+     * untouched, since the mark is only ever read to match a locked chat. A message left unmarked that
+     * way is still matched in the shade by Instagram's own tag ({@link #listedIn(Notification, String)}).
      */
     public static boolean track(Notification notification, Notification summary, Map<?, ?> others,
                                 String action, String threadId, String igThreadId) {
@@ -321,6 +324,33 @@ public final class ChatLocks {
             if (listed(id)) return true;
         }
         return false;
+    }
+
+    /**
+     * [notification], in the shade under [tag], is for a chat on the list: by the ids it was marked
+     * with, or by the chat Instagram's own tag names. The tag is how a message that came while no
+     * chat was locked, so went to Android unmarked, is still found once its chat is put on the list.
+     */
+    static boolean listedIn(Notification notification, String tag) {
+        if (listedIn(notification)) return true;
+        String id = tagThread(tag);
+        return id != null && listed(id);
+    }
+
+    /**
+     * The chat id in Instagram's tag for a message notification, or null. Instagram posts a chat's
+     * messages under its kind, a bar, then a key of the account, {@link #TAG_THREAD} and the chat's
+     * id (and {@code ;type:rr} for a reply reminder), the same key it clears them by when the chat
+     * opens: {@code direct|1234;thread_id:340282366841710301244276}.
+     */
+    static String tagThread(String tag) {
+        if (empty(tag)) return null;
+        int at = tag.indexOf(TAG_THREAD);
+        if (at < 0) return null;
+        int start = at + TAG_THREAD.length();
+        int end = tag.indexOf(';', start);
+        String id = (end < 0 ? tag.substring(start) : tag.substring(start, end)).trim();
+        return id.isEmpty() || id.indexOf(',') >= 0 ? null : id;
     }
 
     private static boolean empty(String text) {

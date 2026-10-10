@@ -719,6 +719,74 @@ public class MessagesLockTest {
         assertTrue(MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification("alice", 1)));
     }
 
+    /** Instagram's tag for a chat's message: its kind, a bar, the account and the chat's id. */
+    private static String tag(String chat) {
+        return "direct|1234" + ChatLocks.TAG_THREAD + chat;
+    }
+
+    @Test
+    public void aMessageFromBeforeItsChatWasLockedIsHiddenWhenTheLockComesBack() {
+        Settings.LOCK_MESSAGES.save(false);
+        Context context = RuntimeEnvironment.getApplication();
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        assertFalse(ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null));
+        assertFalse(ChatLocks.track(bob, null, null, "direct_v2?id=" + BOB, null, null));
+        assertNull("no chat was locked when it came", ChatLocks.idsOf(alice));
+        manager.notify(tag(ALICE), 1, alice);
+        manager.notify(tag(BOB) + ";type:rr", 2, bob);
+        ChatLocks.add(ALICE, "Alice");
+        Activity activity = chat("Alice");
+        open(ALICE);
+        MessagesLock.check(activity);
+        asks.get(0)[0].run();
+
+        MessagesLock.left();
+
+        Notification shown = Shadows.shadowOf(manager).getNotification(tag(ALICE), 1);
+        assertTrue("found by Instagram's own tag", MessagesLock.isHidden(shown));
+        assertEquals("New message", shown.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertFalse("another chat's stays as it was", MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification(tag(BOB) + ";type:rr", 2)));
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+    }
+
+    @Test
+    public void aStartedAppHidesAMessageFromBeforeItsChatWasLocked() {
+        Settings.LOCK_MESSAGES.save(false);
+        Context context = RuntimeEnvironment.getApplication();
+        NotificationManager manager = context.getSystemService(NotificationManager.class);
+        Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null);
+        Notification bob = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        manager.notify(tag(ALICE) + ";type:rr", 1, alice);
+        manager.notify(tag(BOB), 2, bob);
+        ChatLocks.add(ALICE, "Alice");
+
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+
+        assertTrue(MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification(tag(ALICE) + ";type:rr", 1)));
+        assertFalse(MessagesLock.isHidden(Shadows.shadowOf(manager).getNotification(tag(BOB), 2)));
+    }
+
+    @Test
+    public void theChatIsReadFromInstagramsTagAndNothingElseIs() {
+        assertEquals(ALICE, ChatLocks.tagThread(tag(ALICE)));
+        assertEquals("a reply reminder's", ALICE, ChatLocks.tagThread(tag(ALICE) + ";type:rr"));
+        assertEquals("with no account before it", ALICE, ChatLocks.tagThread("direct|" + ChatLocks.TAG_THREAD + " " + ALICE + " "));
+        for (String tag : new String[]{null, "", "alice", "direct|1234", "direct|1234" + ChatLocks.TAG_THREAD,
+                "direct|1234" + ChatLocks.TAG_THREAD + ";type:rr", "direct|1234" + ChatLocks.TAG_THREAD + "1,2"}) {
+            assertNull(tag, ChatLocks.tagThread(tag));
+        }
+        ChatLocks.add(ALICE, "Alice");
+        Notification unmarked = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        assertTrue(ChatLocks.listedIn(unmarked, tag(ALICE)));
+        assertFalse(ChatLocks.listedIn(unmarked, tag(BOB)));
+        assertFalse("no tag and no mark", ChatLocks.listedIn(unmarked, null));
+        ChatLocks.track(unmarked, null, null, "direct_v2?id=" + ALICE, null, null);
+        assertTrue("the mark still counts under any tag", ChatLocks.listedIn(unmarked, "other"));
+    }
+
     @Test
     public void theChatsNameIsFoundForTheList() {
         Settings.LOCK_MESSAGES.save(false);

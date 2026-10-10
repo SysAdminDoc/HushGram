@@ -407,8 +407,9 @@ public final class MessagesLock {
             try {
                 Notification shown = posted.getNotification();
                 if (shown == null || !isMessage(shown) || isHidden(shown)) continue;
-                // Only the notifications of listed chats go when just chats are locked.
-                if (!switchedOn() && !ChatLocks.listedIn(shown)) continue;
+                // Only the notifications of listed chats go when just chats are locked, matched by
+                // their mark or, for one that came before any chat was locked, Instagram's tag.
+                if (!switchedOn() && !ChatLocks.listedIn(shown, posted.getTag())) continue;
                 manager.notify(posted.getTag(), posted.getId(), hide(context, shown, true));
                 HookStatus.counted(FamilyNames.MESSAGES_LOCK, HIDDEN);
             } catch (Throwable t) {
