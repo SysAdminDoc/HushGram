@@ -26,6 +26,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -44,6 +45,7 @@ internal const val PROFILE_PICTURE = "$EXTENSION_PACKAGE/download/ProfilePicture
 internal const val OFFER_PICTURE = "$PROFILE_PICTURE->offer(Ljava/lang/Object;Ljava/lang/Object;Landroid/content/Context;)V"
 internal const val OFFER_POPUP = "$PROFILE_PICTURE->offerPopup(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)V"
 internal const val ADD_ROW_STUB = "addRow"
+internal const val POPUP_ITEM_FIELDS = "$PROFILE_PICTURE->popupItemFields()Ljava/lang/String;"
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val STRING = "Ljava/lang/String;"
@@ -115,7 +117,8 @@ internal class ProfileMenuSite(
  * [index], the call that hands the popup its list of items. [list] and [context] are the registers
  * holding that list and the context the popup is built with, [owner] holds the newer helper the
  * context was read off, whose field [user] holds the account, and [free] is a local nothing reads
- * after [index].
+ * after [index]. [item] is the list's item class and [fields] the field its constructor stores each
+ * argument in, in argument order.
  */
 internal class ProfilePopupSite(
     val index: Int,
@@ -124,6 +127,8 @@ internal class ProfilePopupSite(
     val owner: Int,
     val user: FieldReference,
     val free: Int,
+    val item: String,
+    val fields: List<String>,
 )
 
 /** The method that shows the menu, its three ways, the sheet's adder of a plain row and the stub that calls it. */
@@ -220,6 +225,7 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
         refuse("the menu doesn't add its rows with ${adder.name}")
     }
     stub()
+    fieldsStub()
     val popup = findProfilePopup(method, code, targets, sites.single { it.name == PROFILE_MENUS[1] })
     return ProfileMenus(method, sites, popup, sheetType!!, adder)
 }
@@ -273,6 +279,8 @@ private fun BytecodePatchContext.findProfilePopup(
             classDefByOrNull(arguments[4])?.let { AccessFlags.INTERFACE.isSet(it.accessFlags) } == true
     }
     if (items.size != 1) refuse("expected one item class built with $POPUP_ITEM_ARGUMENTS arguments in ${takes.name}, found ${items.size}")
+    val item = classDefByOrNull(items.single())!!
+    val fields = popupItemFields(item)
 
     // The context was read off the newer helper, which holds the account too.
     val read = (init - 1 downTo 0).firstOrNull { at ->
@@ -288,8 +296,77 @@ private fun BytecodePatchContext.findProfilePopup(
     }
     if (overwritten.isNotEmpty()) refuse("the newer helper or the popup's context is overwritten before the pop-up list gets its items")
     val free = method.freeLocalsAt(PROFILE_PICTURE_PATCH, index, 1, except = listOf(context, owner, popup, list)).single()
-    return ProfilePopupSite(index, list, context, owner, newer.user, free)
+    return ProfilePopupSite(index, list, context, owner, newer.user, free, item.type, fields)
 }
+
+/**
+ * The field [item]'s constructor stores each of its arguments in, in argument order. The extension
+ * rebuilds a row through that constructor from a row Instagram made, so it has to read each
+ * argument back from the right field, and the names don't follow the arguments: on 450 the eleventh
+ * argument goes to A0C and the sixteenth to A0A, and the six booleans are stored in reverse. Read
+ * from the constructor's own stores, following each argument through the moves before its store,
+ * in code that doesn't branch, and every argument has to land in a field of its own of its type.
+ */
+private fun popupItemFields(item: ClassDef): List<String> {
+    val constructor = item.methods.single { it.name == "<init>" }
+    val implementation = constructor.implementation ?: refuse("the pop-up item ${item.type} has no constructor code")
+    if (constructor.jumpTargets().isNotEmpty()) refuse("the pop-up item's constructor branches, so where each argument goes can't be read")
+    val parameters = constructor.parameters()
+    val wide = setOf("J", "D")
+    val self = implementation.registerCount - parameters.sumOf { if (it in wide) 2 else 1 } - 1
+    // What each register holds: -1 for the item itself, else the argument's index.
+    val holds = HashMap<Int, Int>()
+    holds[self] = -1
+    var next = self + 1
+    parameters.forEachIndexed { at, type ->
+        holds[next] = at
+        next += if (type in wide) 2 else 1
+    }
+    val stored = arrayOfNulls<String>(parameters.size)
+    for (instruction in implementation.instructions) {
+        val two = instruction as? TwoRegisterInstruction
+        when {
+            instruction.opcode in MOVES && two != null -> {
+                val held = holds[two.registerB]
+                if (held != null) holds[two.registerA] = held else holds.remove(two.registerA)
+            }
+            instruction.opcode in STORES && two != null -> {
+                val field = instruction.field() ?: continue
+                val argument = holds[two.registerA] ?: continue
+                if (field.definingClass != item.type || holds[two.registerB] != -1 || argument < 0) continue
+                if (stored[argument] != null) refuse("the pop-up item's constructor stores argument $argument twice")
+                stored[argument] = field.name
+            }
+            instruction.opcode.setsRegister() -> (instruction as? OneRegisterInstruction)?.registerA?.let {
+                holds.remove(it)
+                if (instruction.opcode.setsWideRegister()) holds.remove(it + 1)
+            }
+        }
+    }
+    val fields = stored.toList()
+    val missing = fields.indices.filter { fields[it] == null }
+    if (missing.isNotEmpty()) refuse("the pop-up item's constructor doesn't store argument(s) ${missing.joinToString()} in a field")
+    if (fields.toSet().size != fields.size) refuse("the pop-up item's constructor stores two arguments in one field")
+    fields.forEachIndexed { at, name ->
+        val field = item.fields.singleOrNull { it.name == name && !AccessFlags.STATIC.isSet(it.accessFlags) }
+        if (field?.type != parameters[at]) refuse("the pop-up item's field $name doesn't have argument $at's type ${parameters[at]}")
+    }
+    return fields.map { it!! }
+}
+
+private val MOVES = setOf(
+    Opcode.MOVE, Opcode.MOVE_FROM16, Opcode.MOVE_16, Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16,
+)
+private val STORES = setOf(
+    Opcode.IPUT, Opcode.IPUT_WIDE, Opcode.IPUT_OBJECT, Opcode.IPUT_BOOLEAN, Opcode.IPUT_BYTE, Opcode.IPUT_CHAR, Opcode.IPUT_SHORT,
+)
+
+/**
+ * The pop-up item's class as the extension sees it, a Java name, then its fields in constructor
+ * argument order: what [POPUP_ITEM_FIELDS] answers once the patch writes it.
+ */
+internal fun ProfilePopupSite.layout(): String =
+    item.removePrefix("L").removeSuffix(";").replace('/', '.') + "|" + fields.joinToString(",")
 
 /** Only called once [findProfileMenus] found everything. */
 internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
@@ -307,6 +384,11 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
         invoke-virtual/range { v0 .. v5 }, $adder
         const/4 v0, 0x1
         return v0
+    """)
+    // No parameters, so v0 is the stub's own.
+    replace(fieldsStub(), 1, """
+        const-string v0, "${menus.popup.layout()}"
+        return-object v0
     """)
     // From the end, so an earlier site's index still holds when a later one's code goes in.
     val popup = menus.popup
@@ -346,6 +428,12 @@ private fun BytecodePatchContext.stub(): MutableMethod {
             AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: refuse("$PROFILE_PICTURE has no static Z $ADD_ROW_STUB(${ADD_ROW_PARAMETERS.joinToString("")})")
 }
+
+private fun BytecodePatchContext.fieldsStub(): MutableMethod =
+    mutableClassDefBy(PROFILE_PICTURE).methods.singleOrNull {
+        "${it.definingClass}->${it.name}(${it.parameters().joinToString("")})${it.returnType}" == POPUP_ITEM_FIELDS &&
+            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("the extension has no public static $POPUP_ITEM_FIELDS")
 
 private fun BytecodePatchContext.replace(method: MutableMethod, registers: Int, body: String) {
     val replacement = ImmutableMethod(method.definingClass, method.name, method.parameters, method.returnType,

@@ -12,11 +12,10 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -26,7 +25,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * seventeenth is the label. The names are Instagram's own and change with every build, so the
  * class is never named here: a row Instagram already built in the same list is the template, and
  * the new one is made with that row's constructor and the same values, bar its icon, its label and
- * its callback.
+ * its callback. Which field holds which argument doesn't follow the field names, so the patch reads
+ * it from the constructor and hands it over through {@link ProfilePicture#popupItemFields()}.
  *
  * <p>Instagram taps a row by calling the callback's void method, then its boolean one, and closes
  * the list when that answers true. The callback is a proxy: the void method runs the listener, the
@@ -50,7 +50,19 @@ final class PopupRows {
     private static final Map<Class<?>, Shape> SHAPES = new ConcurrentHashMap<>();
     private static final Shape NONE = new Shape(null, null);
 
+    /** Where the item's class and field order come from: the patched stub, or a stand-in in tests. */
+    interface Layout {
+        String read();
+    }
+
+    static volatile Layout layout = ProfilePicture::popupItemFields;
+
     private PopupRows() {
+    }
+
+    /** Forgets every item class read, for tests that swap [layout]. */
+    static void reset() {
+        SHAPES.clear();
     }
 
     private static final class Shape {
@@ -114,7 +126,12 @@ final class PopupRows {
         Shape shape = SHAPES.get(type);
         if (shape != null) return shape;
         Constructor<?> constructor = readConstructor(type);
-        Field[] ordered = constructor == null ? null : orderedFields(type, constructor);
+        Field[] ordered;
+        try {
+            ordered = constructor == null ? null : orderedFields(type, constructor);
+        } catch (ReflectiveOperationException | RuntimeException missing) {
+            ordered = null;
+        }
         shape = ordered == null ? NONE : new Shape(constructor, ordered);
         SHAPES.put(type, shape);
         return shape;
@@ -136,24 +153,26 @@ final class PopupRows {
         return constructors[0];
     }
 
-    /** [type]'s instance fields in the order Instagram names them, which is its constructor's, or null when they don't line up. */
-    private static Field[] orderedFields(Class<?> type, Constructor<?> constructor) {
-        List<Field> fields = new ArrayList<>();
-        for (Field field : type.getDeclaredFields()) {
-            if (!Modifier.isStatic(field.getModifiers())) fields.add(field);
-        }
-        if (fields.size() != ARGUMENTS) return null;
-        Collections.sort(fields, new Comparator<Field>() {
-            @Override public int compare(Field a, Field b) {
-                return a.getName().compareTo(b.getName());
-            }
-        });
+    /**
+     * [type]'s instance fields in its constructor's argument order, as the patch read them off the
+     * constructor, or null when there's no such order for this class or the fields don't line up.
+     */
+    private static Field[] orderedFields(Class<?> type, Constructor<?> constructor) throws NoSuchFieldException {
+        String read = layout.read();
+        int bar = read == null ? -1 : read.indexOf('|');
+        if (bar < 0 || !read.substring(0, bar).equals(type.getName())) return null;
+        String[] names = read.substring(bar + 1).split(",", -1);
+        if (names.length != ARGUMENTS) return null;
         Class<?>[] parameters = constructor.getParameterTypes();
+        Set<String> seen = new HashSet<>();
+        Field[] fields = new Field[ARGUMENTS];
         for (int at = 0; at < ARGUMENTS; at++) {
-            if (fields.get(at).getType() != parameters[at]) return null;
-            fields.get(at).setAccessible(true);
+            Field field = type.getDeclaredField(names[at]);
+            if (!seen.add(names[at]) || Modifier.isStatic(field.getModifiers()) || field.getType() != parameters[at]) return null;
+            field.setAccessible(true);
+            fields[at] = field;
         }
-        return fields.toArray(new Field[0]);
+        return fields;
     }
 
     /** The values of [item]'s instance fields in constructor order, or null when its class isn't shaped as expected. */

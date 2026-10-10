@@ -1317,6 +1317,10 @@ once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->pull(Landroid/
 # both helper names. Left out, the menu never gets the row; a third call, or one elsewhere, isn't
 # what the patch wrote. SaveProfilePictureHookTest checks where both land on each declared build.
 once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offer(Ljava/lang/Object;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V sites 2 holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
+# The same method's third way to show the menu, the newer pop-up list (#29), hands
+# ProfilePicture.offerPopup the list of items, the account and the context right before the popup
+# takes the list. Left out, that list never gets the rows; a second call isn't what the patch wrote.
+once-call Lapp/hushgram/extension/instagram/download/ProfilePicture;->offerPopup(Ljava/util/List;Ljava/lang/Object;Landroid/content/Context;)V in instance (Landroid/view/View;)V holding UserOptionsBottomSheetOverflowHelper UserOptionsOverflowHelper
 # Download voice messages (#20) hands VoiceMessage.offer the answer to whether a message's kind can be
 # saved, and the message, right after the menu model's builder asks it (09xN.invoke on 450, the
 # lambda building the long-press menu's model, the one method of this shape loading these strings

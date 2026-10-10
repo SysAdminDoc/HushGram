@@ -74,6 +74,9 @@ public class ProfilePictureTest {
         Settings.SAVE_PROFILE_PICTURES.save(true);
         HookStatus.clear();
         ShadowToast.reset();
+        // What the patch writes for the stand-in pop-up item.
+        PopupRows.reset();
+        PopupRows.layout = () -> PopupRowsTest.ITEM_LAYOUT;
     }
 
     @After public void restore() {
@@ -83,6 +86,8 @@ public class ProfilePictureTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        PopupRows.reset();
+        PopupRows.layout = ProfilePicture::popupItemFields;
     }
 
     private List<String> counted() {

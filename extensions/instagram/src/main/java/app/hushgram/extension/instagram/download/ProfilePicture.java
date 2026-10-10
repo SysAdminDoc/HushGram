@@ -226,6 +226,15 @@ public final class ProfilePicture {
         return false;
     }
 
+    /**
+     * The newer pop-up list's item class, then the field its constructor stores each argument in,
+     * in argument order: {@code X.0juk|A00,A01,...}. The patch writes the body from the constructor
+     * itself. As built it answers null, and {@link PopupRows} adds no row.
+     */
+    public static String popupItemFields() {
+        return null;
+    }
+
     /** The row: the sizes read when the menu opened, and the menu's context, held as long as the sheet is. */
     static final class Row implements View.OnClickListener {
         final Context context;
