@@ -44,6 +44,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -91,6 +92,7 @@ import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.misc.HapticStyle;
 import app.hushgram.extension.instagram.reels.ReelTapChoice;
 import app.hushgram.extension.instagram.reels.StartTab;
+import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
@@ -973,6 +975,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             L10n.t("Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode "
                                     + "on or off. Restart Instagram to see the change.")));
                 }
+                glass.addPreference(tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {
@@ -1357,7 +1360,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
-                    belongs |= family == PatchFamily.REELS_TAB && Settings.START_TAB.key.equals(key);
+                    belongs |= family == PatchFamily.REELS_TAB
+                            && (Settings.START_TAB.key.equals(key) || Settings.TAB_ORDER.key.equals(key));
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
@@ -3116,6 +3120,84 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntryValues(values);
         row.setValue(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.savedValue().name());
         return row;
+    }
+
+    /** The row that opens the tab order list. Its summary names the order chosen. */
+    private Row tabOrderRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(Settings.TAB_ORDER.key);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Tab order"));
+        row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+        row.setOnPreferenceClickListener(tapped -> {
+            showTabOrder(row);
+            return true;
+        });
+        return row;
+    }
+
+    /** What the tab order [saved] does, for its row's summary. */
+    static String tabOrderSummary(String saved) {
+        if (TabOrder.parse(saved).isEmpty()) return L10n.t("The tab bar keeps Instagram's order.");
+        List<String> labels = new ArrayList<>();
+        for (String name : TabOrder.choices(saved)) labels.add(L10n.isolate(tabLabel(name)));
+        String order = String.join(", ", labels);
+        return L10n.f("Tabs go in this order: %1$s. Restart Instagram to see the change.", order);
+    }
+
+    /** What the tab order list calls the tab named [name] in Instagram's tab enum. */
+    static String tabLabel(String name) {
+        switch (name) {
+            case "SEARCH":
+                return L10n.t("Search");
+            case "CLIPS":
+                return L10n.t("Reels");
+            case "DIRECT":
+                return L10n.t("Messages");
+            case "CREATION":
+                return L10n.t("Create");
+            case "PROFILE":
+                return L10n.t("Profile");
+            default:
+                return L10n.t("Home");
+        }
+    }
+
+    /**
+     * The tabs on the bar in the order chosen. A tap on one moves it a place up and saves the order
+     * at once, keeping the list open, so a tab can be walked to the top. Instagram's order clears
+     * the choice. The bar is built as Instagram starts, so it shows after a restart.
+     */
+    void showTabOrder(Row row) {
+        Context context = getActivity();
+        if (context == null) return;
+        List<String> order = new ArrayList<>(TabOrder.choices(Settings.TAB_ORDER.get()));
+        ArrayAdapter<String> labels = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, tabLabels(order));
+        AlertDialog dialog = show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Tap a tab to move it up"))
+                .setAdapter(labels, null)
+                .setNeutralButton(L10n.t("Instagram's order"), (shown, which) -> {
+                    Settings.TAB_ORDER.save("");
+                    row.setSummary(tabOrderSummary(""));
+                })
+                .setPositiveButton(L10n.t("OK"), null));
+        if (dialog == null) return;
+        // A click listener of its own, so a tap moves the tab without closing the list.
+        dialog.getListView().setOnItemClickListener((parent, view, position, id) -> {
+            List<String> moved = TabOrder.movedUp(order, position);
+            order.clear();
+            order.addAll(moved);
+            Settings.TAB_ORDER.save(TabOrder.join(order));
+            labels.clear();
+            labels.addAll(tabLabels(order));
+            row.setSummary(tabOrderSummary(Settings.TAB_ORDER.get()));
+        });
+    }
+
+    private static List<String> tabLabels(List<String> names) {
+        List<String> labels = new ArrayList<>(names.size());
+        for (String name : names) labels.add(tabLabel(name));
+        return labels;
     }
 
     /** The tab Instagram opens on when it's started from its icon. Its summary says what the choice does. */

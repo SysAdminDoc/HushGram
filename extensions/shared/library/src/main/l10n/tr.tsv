@@ -758,6 +758,12 @@ Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mod
 Search button on Home's header	Ana sayfa üstünde Ara düğmesi
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Ana sayfanın üstüne, Ara sekmesi gibi aramayı açan bir büyüteç ekler. Ara sekmesi gizliyken de çalışır, sekmeler arasında kaydırıyorsan çalışmaz. Değişikliği görmek için Instagram'ı yeniden başlat.
 Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.	Ara sekme çubuğunda değil, bu yüzden bu düğme onu burada açamaz. Ara sekmesini gizle açıksa kapat ve Instagram'ı yeniden başlat.
+Tab order	Sekme sırası
+The tab bar keeps Instagram's order.	Sekme çubuğu Instagram'ın sırasını korur.
+Tabs go in this order: %1$s. Restart Instagram to see the change.	Sekmeler bu sırada: %1$s. Değişikliği görmek için Instagram'ı yeniden başlat.
+Tap a tab to move it up	Yukarı taşımak için bir sekmeye dokun
+Instagram's order	Instagram'ın sırası
+Create	Oluştur
 Start tab	Başlangıç sekmesi
 Instagram opens the way it always has.	Instagram her zamanki gibi açılır.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram'ı simgesinden başlattığında %1$s sekmesinde açılır. Bir bildirim veya bağlantı yine kendi hedefini açar. Bu sekme çubuğunda yoksa Ana Sayfa açılır. Değişikliği görmek için Instagram'ı yeniden başlat.

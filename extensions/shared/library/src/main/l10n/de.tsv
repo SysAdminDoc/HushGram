@@ -758,6 +758,12 @@ Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mod
 Search button on Home's header	Suche-Taste oben auf der Startseite
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Fügt oben auf der Startseite eine Lupe hinzu, die die Suche öffnet, wie der Suche-Tab. Das klappt auch bei ausgeblendetem Suche-Tab, außer du wischst zwischen deinen Tabs. Starte Instagram neu, um die Änderung zu sehen.
 Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.	Die Suche ist nicht in deiner Tab-Leiste, deshalb kann diese Taste sie hier nicht öffnen. Wenn „Den Suche-Tab ausblenden“ an ist, schalte es aus und starte Instagram neu.
+Tab order	Tab-Reihenfolge
+The tab bar keeps Instagram's order.	Die Tab-Leiste behält Instagrams Reihenfolge.
+Tabs go in this order: %1$s. Restart Instagram to see the change.	Die Tabs stehen in dieser Reihenfolge: %1$s. Starte Instagram neu, um die Änderung zu sehen.
+Tap a tab to move it up	Tippe auf einen Tab, um ihn nach oben zu schieben
+Instagram's order	Instagrams Reihenfolge
+Create	Erstellen
 Start tab	Starttab
 Instagram opens the way it always has.	Instagram öffnet sich wie immer.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram öffnet sich auf „%1$s“, wenn du es über sein Symbol startest. Eine Benachrichtigung oder ein Link öffnet weiterhin das, wofür er gedacht ist. Ist dieser Tab nicht in deiner Leiste, öffnet sich die Startseite. Starte Instagram neu, um die Änderung zu sehen.

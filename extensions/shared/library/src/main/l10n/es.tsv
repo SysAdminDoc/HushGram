@@ -758,6 +758,12 @@ Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mod
 Search button on Home's header	Botón de Búsqueda en el encabezado de Inicio
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Añade una lupa en la parte superior de Inicio que abre Búsqueda, como la pestaña de Búsqueda. También funciona con la pestaña de Búsqueda oculta, salvo que deslices entre tus pestañas. Reinicia Instagram para ver el cambio.
 Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.	Búsqueda no está en tu barra de pestañas, así que este botón no puede abrirla aquí. Si Ocultar la pestaña de Búsqueda está activado, desactívalo y reinicia Instagram.
+Tab order	Orden de las pestañas
+The tab bar keeps Instagram's order.	La barra de pestañas mantiene el orden de Instagram.
+Tabs go in this order: %1$s. Restart Instagram to see the change.	Las pestañas van en este orden: %1$s. Reinicia Instagram para ver el cambio.
+Tap a tab to move it up	Toca una pestaña para subirla
+Instagram's order	Orden de Instagram
+Create	Crear
 Start tab	Pestaña de inicio
 Instagram opens the way it always has.	Instagram se abre como siempre.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram se abre en %1$s cuando lo inicias desde su icono. Una notificación o un enlace sigue abriendo lo que le corresponde. Si esa pestaña no está en tu barra, se abre Inicio. Reinicia Instagram para ver el cambio.

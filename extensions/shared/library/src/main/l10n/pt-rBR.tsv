@@ -758,6 +758,12 @@ Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mod
 Search button on Home's header	Botão de Pesquisa no cabeçalho da Página inicial
 Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Adiciona uma lupa no topo da Página inicial que abre a Pesquisa, como a aba Pesquisar. Funciona também com a aba Pesquisar oculta, a não ser que você deslize entre as abas. Reinicie o Instagram para ver a mudança.
 Search isn't on your tab bar, so this button can't open it here. If Hide the Search tab is on, turn it off and restart Instagram.	A Pesquisa não está na sua barra de abas, então este botão não consegue abri-la aqui. Se Ocultar a aba Pesquisar estiver ativado, desative e reinicie o Instagram.
+Tab order	Ordem das abas
+The tab bar keeps Instagram's order.	A barra de abas mantém a ordem do Instagram.
+Tabs go in this order: %1$s. Restart Instagram to see the change.	As abas ficam nesta ordem: %1$s. Reinicie o Instagram para ver a mudança.
+Tap a tab to move it up	Toque em uma aba para subi-la
+Instagram's order	Ordem do Instagram
+Create	Criar
 Start tab	Aba inicial
 Instagram opens the way it always has.	O Instagram abre do jeito de sempre.
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	O Instagram abre em %1$s quando você o inicia pelo ícone. Uma notificação ou um link continua abrindo o que foi pedido. Se essa aba não estiver na sua barra, abre o Início. Reinicie o Instagram para ver a mudança.

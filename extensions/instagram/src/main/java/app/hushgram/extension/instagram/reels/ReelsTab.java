@@ -34,6 +34,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Profile lands on Home, like one meant for Reels.
  *
  * <p>The first landing tab Instagram asks about can become the Start tab choice, see {@link TabStart}.
+ * The Tab order choice puts the list in the order picked, as a copy, see {@link TabOrder}.
  *
  * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
  * Home, from the same enum, and Hide the Reels tab wins when both are on.
@@ -88,6 +89,7 @@ public final class ReelsTab {
             FeedFilterCounters.sawList(ROUTE, tabs.size());
             List<?> shown = withoutHidden(tabs);
             if (!hiddenByName(REELS) && showing()) shown = withReels(shown);
+            shown = TabOrder.apply(shown);
             TabStart.remember(shown);
             return shown;
         } catch (Throwable failure) {

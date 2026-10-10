@@ -1000,6 +1000,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_search_button_on_home", FALSE, true);
 
     /**
+     * The order the tab bar shows its tabs in, as the tab enum's names, comma separated, first tab
+     * first ({@link app.hushgram.extension.instagram.reels.TabOrder}). Empty keeps Instagram's order.
+     * The bar is built as Instagram starts, so a change takes a restart.
+     */
+    public static final StringSetting TAB_ORDER = new StringSetting("hushgram_tab_order", "", true);
+
+    /**
      * The tab Instagram opens on when it's started from its icon ({@link app.hushgram.extension.instagram.reels.TabStart}).
      * Home leaves Instagram's own start alone. A tab that's hidden or isn't on the bar opens Home.
      * Read once, as Instagram starts, so a change takes a restart.
