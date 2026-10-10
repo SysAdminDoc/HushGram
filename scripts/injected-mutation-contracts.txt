@@ -1213,3 +1213,10 @@ sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Land
 # rule can single it out. GhostModeEntryHookTest finds it on every declared 450 build through the tap's
 # own log string and the listener's switch case, and checks the stored call, its registers and that
 # nothing else in the builder or the configuration sets a long press.
+# The newer inbox top bar (IgdsActionBar, picked per account by a server flag) gets two more calls:
+# GhostModeEntry.newMessageAction before each return of the method making the New message action
+# model (07Or.A06 on 385611438), and GhostModeEntry.bindAction first in the bar's binder taking an
+# ImageView and a model (IgdsActionBar.A01). No rule for either: the maker loads no string and its
+# siblings share its shape and the factory it calls, and neither the binder nor its class holds a
+# string. GhostModeEntryHookTest finds both on every 450 build through the tap's log string, the one
+# Function0 lambda whose switch case starts a new message, and the bar's own class name.

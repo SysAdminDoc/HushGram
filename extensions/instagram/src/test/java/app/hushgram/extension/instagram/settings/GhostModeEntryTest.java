@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.settings;
 import static org.junit.Assert.*;
 import android.app.Activity;
 import android.view.View;
+import android.widget.FrameLayout;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -115,5 +116,90 @@ public class GhostModeEntryTest {
         PauseForTests.resume();
         assertTrue("the same listener works again once HushGram resumes", button.performLongClick());
         for (BooleanSetting setting : GHOST) assertTrue(setting.key, setting.savedValue());
+    }
+
+    /** A button inside a bar, as the newer top bar holds its buttons, so a press that isn't taken can reach the parent. */
+    private View button() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        View button = new View(activity);
+        new FrameLayout(activity).addView(button);
+        return button;
+    }
+
+    /** The newer top bar: its New message button, bound to the model the maker handed over, gets the long press. */
+    @Test public void theNewerBarsNewMessageButtonGetsTheLongPress() {
+        Object newMessage = new Object();
+        GhostModeEntry.newMessageAction(newMessage);
+        View button = button();
+        int[] taps = {0};
+        button.setOnClickListener(v -> taps[0]++);
+        GhostModeEntry.bindAction(button, newMessage);
+        assertTrue(button.isLongClickable());
+        assertTrue(button.performLongClick());
+        for (BooleanSetting setting : GHOST) assertTrue(setting.key, setting.savedValue());
+        assertEquals("Ghost mode is on, and so is each of its switches.", ShadowToast.getTextOfLatestToast());
+        assertTrue("a tap still starts a new message", button.performClick());
+        assertEquals(1, taps[0]);
+    }
+
+    /** The bar reuses its buttons: one it gave the long press and now binds to another action loses it. */
+    @Test public void aReusedButtonLosesTheLongPressWithItsNewAction() {
+        Object newMessage = new Object();
+        GhostModeEntry.newMessageAction(newMessage);
+        View button = button();
+        GhostModeEntry.bindAction(button, newMessage);
+        assertTrue(button.isLongClickable());
+        GhostModeEntry.bindAction(button, new Object());
+        assertFalse(button.isLongClickable());
+        assertFalse(button.performLongClick());
+        for (BooleanSetting setting : GHOST) assertFalse(setting.key, setting.savedValue());
+    }
+
+    /** Every other button keeps whatever long press Instagram gave it. */
+    @Test public void otherButtonsKeepTheirOwnLongPress() {
+        View button = button();
+        boolean[] instagrams = {false};
+        button.setOnLongClickListener(v -> instagrams[0] = true);
+        GhostModeEntry.bindAction(button, new Object());
+        GhostModeEntry.bindAction(button, null);
+        assertTrue(button.performLongClick());
+        assertTrue("Instagram's own long press ran", instagrams[0]);
+        for (BooleanSetting setting : GHOST) assertFalse(setting.key, setting.savedValue());
+    }
+
+    /** Paused, a long press on the newer bar's button does nothing, and a tap still starts a new message. */
+    @Test public void pausedTheNewerBarsLongPressDoesNothing() {
+        Object newMessage = new Object();
+        GhostModeEntry.newMessageAction(newMessage);
+        View button = button();
+        int[] taps = {0};
+        button.setOnClickListener(v -> taps[0]++);
+        GhostModeEntry.bindAction(button, newMessage);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(button.performLongClick());
+        for (BooleanSetting setting : GHOST) assertFalse(setting.key, setting.savedValue());
+        assertNull("no toast while paused", ShadowToast.getLatestToast());
+        assertTrue(button.performClick());
+        assertEquals(1, taps[0]);
+    }
+
+    /** With no ghost patch in the build, the newer bar's New message button gets nothing. */
+    @Test public void withoutAGhostPatchTheNewerBarsButtonGetsNothing() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
+        Object newMessage = new Object();
+        GhostModeEntry.newMessageAction(newMessage);
+        View button = button();
+        GhostModeEntry.bindAction(button, newMessage);
+        assertFalse(button.isLongClickable());
+    }
+
+    /** Nulls from Instagram, a maker's empty answer or a missing button, are left alone. */
+    @Test public void nullsAreLeftAlone() {
+        GhostModeEntry.newMessageAction(null);
+        GhostModeEntry.bindAction(null, new Object());
+        View button = button();
+        GhostModeEntry.bindAction(button, null);
+        assertFalse(button.isLongClickable());
     }
 }

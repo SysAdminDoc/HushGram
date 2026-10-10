@@ -17,8 +17,10 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.util.ControlFlow
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -38,6 +40,17 @@ private const val PATCH = "Ghost mode entry"
 internal const val GHOST_LONG_PRESS =
     "$EXTENSION_PACKAGE/settings/GhostModeEntry;->longPress()Landroid/view/View\$OnLongClickListener;"
 
+/** Called with each New message action model the inbox's newer top bar is made from. */
+internal const val GHOST_NEW_MESSAGE_ACTION =
+    "$EXTENSION_PACKAGE/settings/GhostModeEntry;->newMessageAction(Ljava/lang/Object;)V"
+
+/** Called first thing as the newer top bar binds one of its buttons to its action model. */
+internal const val GHOST_BIND_ACTION =
+    "$EXTENSION_PACKAGE/settings/GhostModeEntry;->bindAction(Landroid/view/View;Ljava/lang/Object;)V"
+
+/** Instagram's newer top bar, a custom view Instagram's layouts name, so its name stays across builds. */
+internal const val IGDS_ACTION_BAR = "Lcom/instagram/igds/components/actionbar/IgdsActionBar;"
+
 /** What Instagram logs when the New message button in the inbox's top bar is tapped. */
 internal const val NEW_MESSAGE_TAPPED = "direct_new_message_button_tapped"
 
@@ -47,6 +60,8 @@ internal const val INBOX_OPTIONS_TAPPED = "direct_inbox_options_button_click"
 private const val VIEW = "Landroid/view/View;"
 private const val CLICK_LISTENER = "Landroid/view/View\$OnClickListener;"
 private const val LONG_LISTENER = "Landroid/view/View\$OnLongClickListener;"
+private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
+private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 
 /**
  * Gives the New message button in the inbox's top bar a long press that turns Ghost mode on or off
@@ -54,6 +69,10 @@ private const val LONG_LISTENER = "Landroid/view/View\$OnLongClickListener;"
  * it goes in once, and the extension decides at press time whether anything is there to turn and
  * whether HushGram is paused. A build whose header it can't read keeps every Ghost mode switch in
  * HushGram's settings and loses only the shortcut, with a warning in the patch log.
+ *
+ * Instagram 450 has two inbox top bars and a server flag picks one per account. The older one is
+ * built from button configurations, and the newer one (IgdsActionBar) from action models that have
+ * no long press at all, so each gets its own hook and either can be missing alone.
  */
 internal val ghostModeEntryPatch = bytecodePatch {
     dependsOn(instagramExtensionPatch)
@@ -78,15 +97,22 @@ internal class GhostEntry(
     val longPress: String,
 )
 
-/**
- * Puts the extension's listener in each New message button's configuration, which Instagram's action bar binds
- * to the button with setOnLongClickListener when the field isn't null. Returns whether it did.
- */
+/** Gives both inbox top bars the long press on New message. Returns whether either got it. */
 internal fun BytecodePatchContext.addGhostModeEntry(): Boolean {
+    val older = addGhostEntries()
+    val newer = addGhostAction()
+    return older || newer
+}
+
+/**
+ * Puts the extension's listener in each New message button's configuration, which Instagram's older action bar
+ * binds to the button with setOnLongClickListener when the field isn't null. Returns whether it did.
+ */
+internal fun BytecodePatchContext.addGhostEntries(): Boolean {
     val entries = try {
         findGhostEntries()
     } catch (refusal: PatchException) {
-        patchLog.warning("${refusal.message}. Ghost mode is still in HushGram settings, and the long press on New message is left out.")
+        patchLog.warning("${refusal.message}. Ghost mode is still in HushGram settings, and the long press on New message is left out of the older inbox top bar.")
         return false
     }
     // Later instructions first, so an insert doesn't move the index of one still to come in the same method.
@@ -106,6 +132,48 @@ internal fun BytecodePatchContext.addGhostModeEntry(): Boolean {
     return true
 }
 
+/**
+ * Where the newer top bar's New message button comes from: the method making its action model,
+ * the indexes of that method's returns, and the bar's binder that takes a button and its model.
+ */
+internal class GhostAction(
+    val makerType: String,
+    val makerName: String,
+    val makerParameters: List<String>,
+    val returns: List<Int>,
+    val binderName: String,
+    val binderParameters: List<String>,
+)
+
+/**
+ * Marks the New message action model as its maker answers it, and has the newer bar's binder hand
+ * each button and its model to the extension first, which gives the New message one the long
+ * press. The binder sets only a tap listener, so the long press is the extension's alone. Returns
+ * whether it did.
+ */
+internal fun BytecodePatchContext.addGhostAction(): Boolean {
+    val found = try {
+        findGhostAction()
+    } catch (refusal: PatchException) {
+        patchLog.warning("${refusal.message}. Ghost mode is still in HushGram settings, and the long press on New message is left out of the newer inbox top bar.")
+        return false
+    }
+    val maker = mutableClassDefBy(found.makerType).methods.single {
+        it.name == found.makerName && it.parameterTypes.map(CharSequence::toString) == found.makerParameters
+    }
+    // Later returns first, so each insert leaves the indexes still to come where they were.
+    for (at in found.returns.sortedDescending()) {
+        val answer = (maker.implementation!!.instructions.elementAt(at) as OneRegisterInstruction).registerA
+        maker.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$answer .. v$answer }, $GHOST_NEW_MESSAGE_ACTION")
+    }
+    val binder = mutableClassDefBy(IGDS_ACTION_BAR).methods.single {
+        it.name == found.binderName && it.parameterTypes.map(CharSequence::toString) == found.binderParameters
+    }
+    // p1 and p2 are the button and its model, next to each other, so a range call reaches them past v15.
+    binder.addInstructionsAtControlFlowLabel(0, "invoke-static/range { p1 .. p2 }, $GHOST_BIND_ACTION")
+    return true
+}
+
 private fun refuse(why: String): Nothing = throw PatchException("$PATCH: $why")
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
@@ -115,8 +183,8 @@ private fun Instruction.call() = reference() as? MethodReference
 private fun Method.holds(string: String) = code().any { (it.reference() as? StringReference)?.string == string }
 
 /**
- * Finds the New message button's configuration in 450's inbox header without a name that a build
- * renames. The New message tap logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the
+ * Finds the New message button's configuration in 450's older inbox header without a name that a
+ * build renames. The New message tap logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the
  * inbox header's controller (the class holding [INBOX_OPTIONS_TAPPED]) that calls it starts a new
  * message. The only View.OnClickListener class that calls that starts the same way is a switch over
  * its constructor's number, and the one case that reaches the call is the button's. The header
@@ -124,24 +192,9 @@ private fun Method.holds(string: String) = code().any { (it.reference() as? Stri
  * search with a reason, and nothing is changed.
  */
 internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
-    val taps = classesHolding(NEW_MESSAGE_TAPPED).flatMap { owner -> owner.methods.filter { it.holds(NEW_MESSAGE_TAPPED) }.map { owner to it } }
-    val (tapOwner, tap) = taps.singleOrNull() ?: refuse("expected one method that logs $NEW_MESSAGE_TAPPED, found ${taps.size}")
-    if (tap.isStatic() || tap.parameterTypes.isNotEmpty() || tap.returnType != "V") refuse("the New message tap isn't a no-argument instance method")
+    val (controller, start) = findNewMessageStart()
 
-    val controllers = classesHolding(INBOX_OPTIONS_TAPPED)
-    val controller = controllers.singleOrNull() ?: refuse("expected one inbox header controller holding $INBOX_OPTIONS_TAPPED, found ${controllers.size}")
-    val starts = controller.methods.filter { method ->
-        !method.isStatic() && method.parameterTypes.isEmpty() && method.returnType == "V" && method.code().any {
-            val call = it.call()
-            call != null && call.definingClass == tapOwner.type && call.name == tap.name && call.parameterTypes.isEmpty()
-        }
-    }
-    val start = starts.singleOrNull() ?: refuse("expected one inbox header method that starts a new message, found ${starts.size}")
-
-    fun Method.callsStart() = code().indices.filter {
-        val call = code()[it].call()
-        call != null && call.definingClass == controller.type && call.name == start.name && call.parameterTypes.isEmpty()
-    }
+    fun Method.callsStart() = callsOf(controller.type, start.name)
     val listeners = classesCalling(controller.type, start.name).filter { owner ->
         CLICK_LISTENER in owner.interfaces && owner.methods.any { it.name == "onClick" && it.callsStart().isNotEmpty() }
     }
@@ -161,6 +214,78 @@ internal fun BytecodePatchContext.findGhostEntries(): List<GhostEntry> {
     if (entries.isEmpty()) refuse("none of the ${makers.size} places that make the New message listener is the inbox header's button builder")
     if (entries.size > 2) refuse("${entries.size} button builders make the New message listener, expected the phone's and at most one more")
     return entries
+}
+
+/**
+ * Finds the newer top bar's New message button. The bar's binder is the one method of
+ * [IGDS_ACTION_BAR] taking an ImageView and an action model and setting the button's tap
+ * listener. The model's tap is a Kotlin lambda: the one Function0 class whose invoke() starts a new
+ * message the way the older bar's listener does, in one case of its switch. The one method that
+ * makes that lambda with that case's number and answers a model of the binder's type is the New
+ * message model's maker.
+ */
+internal fun BytecodePatchContext.findGhostAction(): GhostAction {
+    val (controller, start) = findNewMessageStart()
+
+    val bar = classDefByOrNull(IGDS_ACTION_BAR) ?: refuse("the build has no $IGDS_ACTION_BAR")
+    val binders = bar.methods.filter { method ->
+        !method.isStatic() && method.returnType == "V" && method.parameterTypes.size == 2 &&
+            method.parameterTypes[0].toString() == IMAGE_VIEW && method.code().any {
+                val call = it.call()
+                call != null && call.name == "setOnClickListener" && call.parameterTypes.map(CharSequence::toString) == listOf(CLICK_LISTENER)
+            }
+    }
+    val binder = binders.singleOrNull() ?: refuse("expected one method of the newer top bar binding a button to its action, found ${binders.size}")
+    val action = binder.parameterTypes[1].toString()
+    if (!action.startsWith("L")) refuse("the newer top bar's action model isn't an object")
+
+    fun Method.callsStart() = callsOf(controller.type, start.name)
+    val lambdas = classesCalling(controller.type, start.name).filter { owner ->
+        FUNCTION0 in owner.interfaces && owner.methods.any { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
+    }
+    val lambda = lambdas.singleOrNull() ?: refuse("expected one lambda class that starts a new message, found ${lambdas.size}")
+    val invoke = lambda.methods.single { it.name == "invoke" && it.parameterTypes.isEmpty() && it.callsStart().isNotEmpty() }
+    val keys = invoke.callsStart().flatMap { caseReaching(invoke, it) }.distinct()
+    if (keys.isEmpty()) refuse("no case of the lambda starts a new message")
+
+    val makers = classesCreating(lambda.type).flatMap { owner ->
+        owner.methods.filter { method -> method.returnType == action && keys.any { listening(method, lambda.type, it) != null } }
+    }
+    val maker = makers.singleOrNull() ?: refuse("expected one method making the New message action of the newer top bar, found ${makers.size}")
+    val returns = maker.code().indices.filter { maker.code()[it].opcode == Opcode.RETURN_OBJECT }
+    if (returns.isEmpty()) refuse("the New message action's maker never returns")
+    return GhostAction(
+        maker.definingClass, maker.name, maker.parameterTypes.map(CharSequence::toString), returns,
+        binder.name, binder.parameterTypes.map(CharSequence::toString),
+    )
+}
+
+/** The indexes in this method of its calls to the no-argument method [name] of [owner]. */
+private fun Method.callsOf(owner: String, name: String) = code().indices.filter {
+    val call = code()[it].call()
+    call != null && call.definingClass == owner && call.name == name && call.parameterTypes.isEmpty()
+}
+
+/**
+ * The inbox header's controller and its method that starts a new message. The New message tap
+ * logs [NEW_MESSAGE_TAPPED] in one method, and the one method of the inbox header's controller
+ * (the class holding [INBOX_OPTIONS_TAPPED]) that calls it starts a new message.
+ */
+private fun BytecodePatchContext.findNewMessageStart(): Pair<ClassDef, Method> {
+    val taps = classesHolding(NEW_MESSAGE_TAPPED).flatMap { owner -> owner.methods.filter { it.holds(NEW_MESSAGE_TAPPED) }.map { owner to it } }
+    val (tapOwner, tap) = taps.singleOrNull() ?: refuse("expected one method that logs $NEW_MESSAGE_TAPPED, found ${taps.size}")
+    if (tap.isStatic() || tap.parameterTypes.isNotEmpty() || tap.returnType != "V") refuse("the New message tap isn't a no-argument instance method")
+
+    val controllers = classesHolding(INBOX_OPTIONS_TAPPED)
+    val controller = controllers.singleOrNull() ?: refuse("expected one inbox header controller holding $INBOX_OPTIONS_TAPPED, found ${controllers.size}")
+    val starts = controller.methods.filter { method ->
+        !method.isStatic() && method.parameterTypes.isEmpty() && method.returnType == "V" && method.code().any {
+            val call = it.call()
+            call != null && call.definingClass == tapOwner.type && call.name == tap.name && call.parameterTypes.isEmpty()
+        }
+    }
+    val start = starts.singleOrNull() ?: refuse("expected one inbox header method that starts a new message, found ${starts.size}")
+    return controller to start
 }
 
 /** The hook's place in the header builder [builder], whose `invoke-direct` at [made] makes the listener, or null when it isn't a button builder. */
@@ -195,19 +320,20 @@ private fun BytecodePatchContext.entryAt(builder: Method, made: Int, controller:
 }
 
 /**
- * The numbers of the cases of the listener's switch whose code reaches the instruction at [call].
- * The cases end in the shared tail, so a case that reaches the call is a case that makes it.
+ * The numbers of the cases of the switch in [onClick] (a tap listener's onClick or a lambda's
+ * invoke) whose code reaches the instruction at [call]. The cases end in the shared tail, so a case
+ * that reaches the call is a case that makes it.
  */
 private fun caseReaching(onClick: Method, call: Int): List<Int> {
     val code = onClick.code()
     val switches = code.indices.filter { code[it].opcode == Opcode.PACKED_SWITCH || code[it].opcode == Opcode.SPARSE_SWITCH }
-    val at = switches.singleOrNull() ?: refuse("the tap listener has ${switches.size} switches, not one")
+    val at = switches.singleOrNull() ?: refuse("${onClick.definingClass}->${onClick.name} has ${switches.size} switches, not one")
     val address = IntArray(code.size + 1)
     code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
     fun indexOf(unit: Int): Int = address.indexOf(unit).also { if (it < 0 || it >= code.size) refuse("a switch arm lands between instructions") }
     val payload = code[indexOf(address[at] + (code[at] as OffsetInstruction).codeOffset)] as? SwitchPayload
-        ?: refuse("the tap listener's switch has no payload")
-    val flow = try { ControlFlow.of(onClick) } catch (failure: IllegalArgumentException) { refuse("the tap listener has unreadable control flow") }
+        ?: refuse("${onClick.definingClass}->${onClick.name}'s switch has no payload")
+    val flow = try { ControlFlow.of(onClick) } catch (failure: IllegalArgumentException) { refuse("${onClick.definingClass}->${onClick.name} has unreadable control flow") }
     return payload.switchElements.filter { arm ->
         val seen = HashSet<Int>()
         val pending = ArrayDeque<Int>().apply { add(indexOf(address[at] + arm.offset)) }
@@ -222,8 +348,9 @@ private fun caseReaching(onClick: Method, call: Int): List<Int> {
 
 
 /**
- * The index of the `invoke-direct` in [method] that makes a [listener] with [number] as the int
- * it is constructed with, set by a constant just before the call, or null when there isn't one.
+ * The index of the `invoke-direct` in [method] that makes a [listener] (a tap listener or a lambda)
+ * with [number] as the int it is constructed with, set by a constant just before the call, or null
+ * when there isn't one.
  */
 private fun listening(method: Method, listener: String, number: Int): Int? {
     val code = method.code()
