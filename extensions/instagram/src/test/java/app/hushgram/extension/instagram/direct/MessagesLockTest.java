@@ -838,6 +838,43 @@ public class MessagesLockTest {
         assertEquals("what was opened last is offered under its name", "Alice Smith", ChatLocks.lastOpened().name);
     }
 
+    /**
+     * On 450 the chat's name sits in a header beside the chat's root, not in it, and the first text
+     * high in a long chat is a message. The list takes the header's name, waits while the header is
+     * still empty, and never takes the message (the emulator's list said "Chat 6194", 2026-10-10).
+     */
+    @Test
+    public void theNameComesFromTheHeaderBesideTheChat() {
+        int headerTitle = 0x7f0b0004;
+        MessagesLock.idsForTests.put(ChatLocks.TITLES[0], headerTitle);
+        Settings.LOCK_MESSAGES.save(false);
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        android.widget.LinearLayout fragment = new android.widget.LinearLayout(activity);
+        fragment.setOrientation(android.widget.LinearLayout.VERTICAL);
+        FrameLayout header = new FrameLayout(activity);
+        TextView title = new TextView(activity);
+        title.setId(headerTitle);
+        header.addView(title, new FrameLayout.LayoutParams(300, 60));
+        fragment.addView(header, new android.widget.LinearLayout.LayoutParams(300, 60));
+        FrameLayout screen = new FrameLayout(activity);
+        screen.setId(CHAT);
+        TextView message = new TextView(activity);
+        message.setText("see you at 5");
+        screen.addView(message, new FrameLayout.LayoutParams(300, 80));
+        fragment.addView(screen, new android.widget.LinearLayout.LayoutParams(300, 500));
+        activity.setContentView(fragment);
+        layout(activity);
+        open(ALICE);
+
+        MessagesLock.check(activity);
+        assertEquals("a message was taken while the header was empty",
+                ChatList.placeholder(ALICE), ChatLocks.lastOpened().name);
+
+        title.setText("Alice Smith");
+        MessagesLock.check(activity);
+        assertEquals("Alice Smith", ChatLocks.lastOpened().name);
+    }
+
     @Test
     public void theListReadsWhatWasSavedAndNothingElse() {
         Settings.LOCKED_CHATS.save("1\tAnn\n\n2\n 3 \t Cy \n\t\nbad,id\tX");

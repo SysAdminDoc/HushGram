@@ -54,8 +54,11 @@ public final class ChatLocks {
     /** How many frames a chat's name is looked for in before the name it was given is kept. */
     static final int NAME_ATTEMPTS = 40;
     private static final int NAME_LENGTH = 40;
-    /** The view Instagram's chat header gives the chat's name, as it names it. */
-    static final String TITLE = "thread_title";
+    /**
+     * The views Instagram's chat header gives the chat's name, as it names them, newest first. 450
+     * calls it header_title and puts the header beside the chat's root rather than in it.
+     */
+    static final String[] TITLES = {"header_title", "thread_title"};
 
     /** A chat on the list. */
     public static final class Chat {
@@ -212,13 +215,20 @@ public final class ChatLocks {
         }
     }
 
-    /** The chat header's title when Instagram names it, else the first text high in the chat. */
+    /**
+     * The chat header's title when Instagram names it, else the first text high in the chat. The
+     * header is looked for from the chat's root up, so the nearest one is the chat's own. A header
+     * that is still empty is waited for, since the first text in the chat may be a message.
+     */
     private static String findName(View root) {
-        int id = MessagesLock.id(root.getContext(), TITLE);
-        if (id != 0) {
-            View title = root.findViewById(id);
-            String text = title instanceof TextView ? text((TextView) title) : null;
-            if (text != null) return text;
+        for (String name : TITLES) {
+            int id = MessagesLock.id(root.getContext(), name);
+            if (id == 0) continue;
+            for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+                View title = at.findViewById(id);
+                if (title == null) continue;
+                return title instanceof TextView ? text((TextView) title) : null;
+            }
         }
         if (!(root instanceof ViewGroup)) return null;
         int[] origin = new int[2];
