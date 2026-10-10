@@ -21,6 +21,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -97,10 +98,18 @@ class HomeHeaderHookTest {
             assertTrue("$name: the list's register is reachable by move-result", hook.list <= 255)
             assertEquals("$name: the constructor's own code", before, code.drop(2).map { it.describe() })
 
-            val icon = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_ICON_STUB }.code()
+            val iconMethod = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_ICON_STUB }
+            val icon = iconMethod.code()
             assertEquals("$name: icon stub", listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST, Opcode.IGET, Opcode.RETURN, Opcode.CONST_4, Opcode.RETURN), icon.map { it.opcode })
             assertEquals("$name: icon stub type", hook.image, (icon[0].reference() as TypeReference).type)
             assertEquals("$name: icon stub field", hook.icon, icon[3].referenceText())
+            // The verifier rejected the whole class on a device when instance-of's int landed on the
+            // button register the cast reads next, so the button keeps a register of its own.
+            val button = iconMethod.implementation!!.registerCount - 1
+            assertNotEquals("$name: instance-of keeps off the button's register", button, (icon[0] as OneRegisterInstruction).registerA)
+            assertEquals("$name: instance-of asks about the button", button, (icon[0] as TwoRegisterInstruction).registerB)
+            assertEquals("$name: the cast is on the button", button, (icon[2] as OneRegisterInstruction).registerA)
+            assertEquals("$name: the read is from the button", button, (icon[3] as TwoRegisterInstruction).registerB)
             val heart = context.mutableClassDefBy(extensionType).methods.single { it.name == HEADER_HEART_STUB }.code()
             assertEquals("$name: heart stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), heart.map { it.opcode })
             assertEquals("$name: heart stub type", hook.badge, (heart[0].reference() as TypeReference).type)

@@ -145,7 +145,9 @@ internal fun BytecodePatchContext.findHomeHeader(): HomeHeaderHook {
  * found everything.
  */
 internal fun BytecodePatchContext.hideHomeHeaderButtons(hook: HomeHeaderHook) {
-    replace(mutableClassDefBy(HOME_HEADER).methods.single { it.isStub(HEADER_ICON_STUB) }, 1, """
+    // Two registers, so v0 is a local and p0 is v1: the icon stub casts p0 after instance-of wrote
+    // v0, and with one register that write would land on p0 and Android's verifier rejects the class.
+    replace(mutableClassDefBy(HOME_HEADER).methods.single { it.isStub(HEADER_ICON_STUB) }, 2, """
         instance-of v0, p0, ${hook.image}
         if-eqz v0, :other
         check-cast p0, ${hook.image}
