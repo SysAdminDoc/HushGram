@@ -1362,8 +1362,8 @@ public final class L10nTranslations {
                 "Entfernt die Threads-Schaltfl\u00e4che oben auf Profilen, auch auf deinem. Das Men\u00fc und die anderen Schaltfl\u00e4chen bleiben, wo sie waren.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "Entfernt die Konten, die Instagram dir vorschl\u00e4gt, unten aus deinen Nachrichten. Deine Chats und Followeranfragen bleiben. Starte Instagram neu, um die \u00c4nderung zu sehen.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "Entfernt das Herz oben auf der Startseite und schlie\u00dft die L\u00fccke. Hinweise kommen weiterhin an, und ein Tipp darauf \u00f6ffnet deine Benachrichtigungen. Starte Instagram neu, um die \u00c4nderung zu sehen.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "Entfernt das Herz oben auf der Startseite und schlie\u00dft die L\u00fccke. Hinweise kommen weiterhin an. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Entfernt Erinnerungen, R\u00fcckblicke, Follow-Jahrestage und Geburtstagskarten, die Instagram erstellt, aus der Stories-Leiste oben auf der Startseite. Stories, die Leute posten, bleiben.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
@@ -2901,8 +2901,8 @@ public final class L10nTranslations {
                 "Quita el bot\u00f3n de Threads de la parte de arriba de los perfiles, incluido el tuyo. El men\u00fa y los dem\u00e1s botones se quedan donde estaban.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "Quita de la parte inferior de tus mensajes las cuentas que Instagram te sugiere. Tus chats y las solicitudes de seguimiento se quedan. Reinicia Instagram para ver el cambio.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "Quita el coraz\u00f3n de la parte superior de Inicio y cierra el hueco. Los avisos siguen llegando, y al tocar uno se abren tus notificaciones. Reinicia Instagram para ver el cambio.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "Quita el coraz\u00f3n de la parte superior de Inicio y cierra el hueco. Los avisos siguen llegando. Reinicia Instagram para ver el cambio.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Quita de la fila de historias de arriba de Inicio los recuerdos, res\u00famenes, aniversarios de seguimiento y tarjetas de cumplea\u00f1os que crea Instagram. Las historias que publica la gente se quedan.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
@@ -4440,8 +4440,8 @@ public final class L10nTranslations {
                 "Menghapus tombol Threads dari bagian atas profil, termasuk profilmu. Menu dan tombol lainnya tetap di tempatnya.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "Menghapus akun yang disarankan Instagram dari bagian bawah pesan kamu. Chat dan permintaan mengikuti tetap ada. Mulai ulang Instagram untuk melihat perubahannya.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "Menghapus ikon hati dari bagian atas Beranda dan menutup celahnya. Pemberitahuan tetap masuk, dan mengetuknya membuka notifikasi kamu. Mulai ulang Instagram untuk melihat perubahannya.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "Menghapus ikon hati dari bagian atas Beranda dan menutup celahnya. Pemberitahuan tetap masuk. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Menghapus kenangan, rangkuman, peringatan mengikuti, dan kartu ulang tahun buatan Instagram dari baris cerita di bagian atas Beranda. Cerita yang diposting orang tetap ada.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
@@ -5979,8 +5979,8 @@ public final class L10nTranslations {
                 "\ubaa8\ub4e0 \ud504\ub85c\ud544 \uc0c1\ub2e8\uc5d0\uc11c Threads \ubc84\ud2bc\uc744 \uc228\uae41\ub2c8\ub2e4. \ub0b4 \ud504\ub85c\ud544\uc5d0\ub3c4 \uc801\uc6a9\ub429\ub2c8\ub2e4. \uba54\ub274\uc640 \ub2e4\ub978 \ubc84\ud2bc\uc740 \uc6d0\ub798 \uc790\ub9ac\uc5d0 \uadf8\ub300\ub85c \uc788\uc2b5\ub2c8\ub2e4.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "\uba54\uc2dc\uc9c0 \ud558\ub2e8\uc5d0\uc11c Instagram\uc774 \ucd94\ucc9c\ud558\ub294 \uacc4\uc815\uc744 \uc228\uae41\ub2c8\ub2e4. \ucc44\ud305\uacfc \ud314\ub85c\uc6b0 \uc694\uccad\uc740 \uadf8\ub300\ub85c \uc720\uc9c0\ub429\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "\ud648 \uc0c1\ub2e8\uc758 \ud558\ud2b8\ub97c \uc81c\uac70\ud558\uace0 \ube48 \uc790\ub9ac\ub97c \ucc44\uc6c1\ub2c8\ub2e4. \uc54c\ub9bc\uc740 \uacc4\uc18d \uc624\uba70, \uc54c\ub9bc\uc744 \ub204\ub974\uba74 \uc54c\ub9bc \ud654\uba74\uc774 \uc5f4\ub9bd\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "\ud648 \uc0c1\ub2e8\uc758 \ud558\ud2b8\ub97c \uc81c\uac70\ud558\uace0 \ube48 \uc790\ub9ac\ub97c \ucc44\uc6c1\ub2c8\ub2e4. \uc54c\ub9bc\uc740 \uacc4\uc18d \uc635\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Instagram\uc774 \ub9cc\ub4dc\ub294 \ucd94\uc5b5, \uc694\uc57d, \ud314\ub85c\uc6b0 \uae30\ub150\uc77c, \uc0dd\uc77c \uce74\ub4dc\ub97c \ud648 \uc0c1\ub2e8\uc758 \uc2a4\ud1a0\ub9ac \uc904\uc5d0\uc11c \uc5c6\uc571\ub2c8\ub2e4. \uc0ac\ub78c\ub4e4\uc774 \uc62c\ub9b0 \uc2a4\ud1a0\ub9ac\ub294 \uadf8\ub300\ub85c \ub0a8\uc2b5\ub2c8\ub2e4.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
@@ -7518,8 +7518,8 @@ public final class L10nTranslations {
                 "Tira o bot\u00e3o do Threads do topo dos perfis, incluindo o seu. O menu e os outros bot\u00f5es continuam onde estavam.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "Tira da parte de baixo das suas mensagens as contas que o Instagram sugere. Suas conversas e as solicita\u00e7\u00f5es para seguir continuam l\u00e1. Reinicie o Instagram para ver a mudan\u00e7a.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "Tira o cora\u00e7\u00e3o do topo da P\u00e1gina inicial e fecha o espa\u00e7o. Os avisos continuam chegando, e tocar em um abre suas notifica\u00e7\u00f5es. Reinicie o Instagram para ver a mudan\u00e7a.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "Tira o cora\u00e7\u00e3o do topo da P\u00e1gina inicial e fecha o espa\u00e7o. Os avisos continuam chegando. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Tira da fileira de stories no topo do In\u00edcio as lembran\u00e7as, retrospectivas, anivers\u00e1rios de seguir e cart\u00f5es de anivers\u00e1rio que o Instagram cria. Os stories que as pessoas postam ficam.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",
@@ -9057,8 +9057,8 @@ public final class L10nTranslations {
                 "Threads d\u00fc\u011fmesini profillerin \u00fcst\u00fcnden, seninki dahil, kald\u0131r\u0131r. Men\u00fc ve di\u011fer d\u00fc\u011fmeler olduklar\u0131 yerde kal\u0131r.");
         table.put("Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.",
                 "Instagram'\u0131n \u00f6nerdi\u011fi hesaplar\u0131 mesajlar\u0131n\u0131n alt\u0131ndan kald\u0131r\u0131r. Sohbetlerin ve takip istekleri kal\u0131r. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
-        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and tapping one opens your notifications. Restart Instagram to see the change.",
-                "Ana sayfan\u0131n \u00fcst\u00fcndeki kalbi kald\u0131r\u0131r ve bo\u015flu\u011fu kapat\u0131r. Uyar\u0131lar gelmeye devam eder, birine dokunmak bildirimlerini a\u00e7ar. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
+        table.put("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.",
+                "Ana sayfan\u0131n \u00fcst\u00fcndeki kalbi kald\u0131r\u0131r ve bo\u015flu\u011fu kapat\u0131r. Uyar\u0131lar gelmeye devam eder. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.",
                 "Instagram'\u0131n olu\u015fturdu\u011fu an\u0131lar\u0131, \u00f6zetleri, takip y\u0131l d\u00f6n\u00fcmlerini ve do\u011fum g\u00fcn\u00fc kartlar\u0131n\u0131 Ana Sayfa'n\u0131n \u00fcst\u00fcndeki hikaye sat\u0131r\u0131ndan kald\u0131r\u0131r. \u0130nsanlar\u0131n payla\u015ft\u0131\u011f\u0131 hikayeler kal\u0131r.");
         table.put("Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.",

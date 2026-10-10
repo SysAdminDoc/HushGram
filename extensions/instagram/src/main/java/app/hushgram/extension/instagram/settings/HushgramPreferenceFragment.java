@@ -943,8 +943,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Takes the plus button off the top of Home and closes up the gap. The Create tab and "
                                 + "swiping to create are separate. Restart Instagram to see the change.")));
                 glass.addPreference(toggle(context, Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, L10n.t("Hide notifications on Home's header"),
-                        L10n.t("Takes the heart off the top of Home and closes up the gap. Alerts still arrive, and "
-                                + "tapping one opens your notifications. Restart Instagram to see the change.")));
+                        L10n.t("Takes the heart off the top of Home and closes up the gap. Alerts still arrive. "
+                                + "Restart Instagram to see the change.")));
                 glass.addPreference(startTabRow(context));
             }
             if (build.contains(PatchFamily.GLASS_TAB_BAR)) {

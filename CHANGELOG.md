@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram - Hide the Reels tab:** Tab bar has two new switches, Hide Create on Home's header and Hide notifications on Home's header. They both start off. Turn one on and restart Instagram, and the plus button or the heart is gone from the top of Home, with no gap left behind. Messages and the stories row stay where they are. Alerts still arrive, and tapping one opens your notifications.
+* **Instagram - Hide the Reels tab:** Tab bar has two new switches, Hide Create on Home's header and Hide notifications on Home's header. They both start off. Turn one on and restart Instagram, and the plus button or the heart is gone from the top of Home, with no gap left behind. Messages and the stories row stay where they are. Alerts still arrive on your phone.
 
 * **Instagram - Hide suggested posts:** Hidden accounts is quicker to fill now. A post's menu in Home and Following has a new row, Hide posts from this account, and tapping it adds the poster to your list for the account you're signed in to and says so. Their posts leave Home the next time you pull to refresh. It's part of Hide suggested posts, so it needs that patch in your build, and it stays out of the menu while HushGram is paused. It doesn't need Download any video, and the Download rows work as they did. Diagnostics counts the rows added and the accounts hidden this way.
 
