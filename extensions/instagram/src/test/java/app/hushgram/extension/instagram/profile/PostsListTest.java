@@ -60,6 +60,7 @@ public class PostsListTest {
     public static final class Tab {
         public ViewGroup recyclerView;
         public boolean resumed = true;
+        public Page page;
         private final Bundle arguments;
 
         Tab(Bundle arguments, ViewGroup grid) {
@@ -73,6 +74,19 @@ public class PostsListTest {
 
         public boolean isResumed() {
             return resumed;
+        }
+
+        public Object getParentFragment() {
+            return page;
+        }
+    }
+
+    /** The profile page a posts tab sits in, which outlives the tab. */
+    public static final class Page {
+        private final Bundle arguments = new Bundle();
+
+        public Bundle getArguments() {
+            return arguments;
         }
     }
 
@@ -143,6 +157,36 @@ public class PostsListTest {
         PostsList.resumed(new Tab(tab.getArguments(), grid), ON);
         idleSeconds(6);
         assertEquals(List.of("first"), taps);
+        assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
+    }
+
+    /**
+     * Tagged and back makes Instagram build the posts tab again with fresh arguments, seen on the
+     * emulator: the profile page's mark keeps that tab on the grid, and another profile still opens.
+     */
+    @Test
+    public void aPostsTabBuiltAgainOnTheSamePageStaysOnTheGrid() {
+        addRow("first", "second");
+        layout();
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        PostsList.resumed(tab, ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of("first"), taps);
+        assertTrue("the page is marked too", page.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        Tab rebuilt = tab(PostsList.POSTS_TAB, false);
+        rebuilt.page = page;
+        PostsList.resumed(rebuilt, ON);
+        idleSeconds(6);
+        assertEquals(List.of("first"), taps);
+
+        Tab other = tab(PostsList.POSTS_TAB, false);
+        other.page = new Page();
+        PostsList.resumed(other, ON);
+        ShadowLooper.idleMainLooper();
+        assertEquals("another profile opens its own list", List.of("first", "first"), taps);
         assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
     }
 

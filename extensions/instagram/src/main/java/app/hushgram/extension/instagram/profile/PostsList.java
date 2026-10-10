@@ -35,9 +35,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * as the posts come in, and once it shows its own click listener runs, the same as a tap. Instagram's
  * code opens the list, so nothing in its grid or its list is changed.
  *
- * <p>It happens once for each posts tab: a mark goes in the tab's own arguments, which Instagram
- * saves and restores with the tab, so coming Back to the grid, switching tabs or Instagram
- * rebuilding the screen doesn't open the list again. Tagged posts, the other tabs and your own
+ * <p>It happens once for each profile page: a mark goes in the tab's own arguments and in the
+ * arguments of the profile page around it, which Instagram saves and restores with them, so coming
+ * Back to the grid, switching tabs or Instagram rebuilding the screen doesn't open the list again.
+ * The page's mark is the one that counts after Tagged: switching to it and back makes Instagram
+ * build the posts tab again with fresh arguments, while the page stays. Tagged posts, the other tabs and your own
  * profile are left as they are. If the tab is left, or the posts don't show within a few seconds (a
  * private profile, or none posted), nothing is opened.
  *
@@ -54,7 +56,7 @@ public final class PostsList {
     static final String GRID_FIELD = "recyclerView";
     /** The view each post of the grid is drawn in. */
     static final String CELL = "com.instagram.igds.components.imagebutton.IgMultiImageButton";
-    /** Put in the tab's arguments once its first post has been looked for. */
+    /** Put in the arguments of the tab and of its profile page once its first post has been looked for. */
     static final String OPENED_KEY = "hushgram_posts_list_opened";
 
     /** The steps a failure is reported under. */
@@ -91,7 +93,10 @@ public final class PostsList {
             if (!POSTS_TAB.equals(bundle.getString(TAB_KEY)) || bundle.getBoolean(SELF_KEY) || bundle.getBoolean(OPENED_KEY)) {
                 return;
             }
+            Bundle page = pageArguments(tab);
+            if (page != null && page.getBoolean(OPENED_KEY)) return;
             bundle.putBoolean(OPENED_KEY, true);
+            if (page != null) page.putBoolean(OPENED_KEY, true);
             main().post(new Look(tab, SystemClock.uptimeMillis() + GIVE_UP_MS));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_POSTS_LIST, RESUME, failure);
@@ -178,6 +183,22 @@ public final class PostsList {
             if (CELL.equals(c.getName())) return true;
         }
         return false;
+    }
+
+    /**
+     * The arguments of the profile page the tab sits in (450's UserDetailFragment, one for each
+     * profile opened), or null. Looked up without reporting anything missing: without the page, the
+     * tab's own mark still keeps Back and recreation from opening the list again.
+     */
+    static Bundle pageArguments(Object tab) {
+        try {
+            Object page = tab.getClass().getMethod("getParentFragment").invoke(tab);
+            if (page == null) return null;
+            Object found = page.getClass().getMethod("getArguments").invoke(page);
+            return found instanceof Bundle ? (Bundle) found : null;
+        } catch (ReflectiveOperationException missing) {
+            return null;
+        }
     }
 
     /** A public method of the tab's, taking nothing, or null after reporting it missing. */
