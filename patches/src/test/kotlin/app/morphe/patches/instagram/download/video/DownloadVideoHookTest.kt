@@ -26,6 +26,10 @@ import app.morphe.patches.instagram.download.reel.OPTION
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.originalName
+import app.morphe.patches.instagram.share.REPOSTS_FEED_UFI
+import app.morphe.patches.instagram.share.REPOSTS_UFI_ICON_ID
+import app.morphe.patches.instagram.share.findFeedUfiSite
+import app.morphe.patches.instagram.share.hideFeedUfi
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -625,9 +629,16 @@ class DownloadVideoHookTest {
                 (it.returnType == "Ljava/lang/String;" && it.parameterTypes.map(Any::toString) == listOf("Landroid/content/res/Resources;", "I")) }
             .map { it.definingClass }.filter { type -> classes.none { it.type == type } }.toSet()
         if (outlined.isNotEmpty()) classes += FixtureDex.classes(bundle, outlined).values
+        // The Feed action-row binder the button hook is in, and the classes it takes (its holder, row state and feed state).
+        val binders = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            method.implementation?.instructions?.any { it is NarrowLiteralInstruction && it.opcode == Opcode.CONST && it.narrowLiteral == REPOSTS_UFI_ICON_ID } == true
+        }
+        val feed = binders.flatMap { listOf(it.definingClass) + it.parameterTypes.map(Any::toString) }.filter { type -> classes.none { it.type == type } }.toSet()
+        if (feed.isNotEmpty()) classes += FixtureDex.classes(bundle, feed).values
         val context = PatchContexts.of(classes)
 
-        context.offerDownloadOnEveryVideo()
+        val page = context.offerDownloadOnEveryVideo()
+        assertFeedDownloadButton(context, page, label)
 
         // Copy caption reads Media's caption, then the comment's text through its interface,
         // by the name the tree-backed class that holds the text's hash gives the getter.
@@ -704,6 +715,28 @@ class DownloadVideoHookTest {
         val bridges = context.classDefBy(INSTAGRAM_MEDIA).methods.filter { it.name in videoBridges }
         assertEquals("$label: the video bridges", videoBridges.size, bridges.size)
         bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
+    }
+
+    /**
+     * In each build the button hook finds the binder, the holder's Save button, the row state's post,
+     * the feed state and the activity, lands first in the binder, and leaves Hide the Repost button's
+     * hook of the same binder in place and found.
+     */
+    private fun assertFeedDownloadButton(context: BytecodePatchContext, page: PageIndex, label: String) {
+        val site = context.findFeedButtonSite(page)
+        context.addFeedDownloadButton(site)
+        val code = context.method(site.type, site.name, site.parameters).code()
+        assertEquals("$label: one button hook", 1, code.count { it.referenceText() == FEED_BUTTON })
+        assertEquals("$label: the hook is first", 7, code.indexOfFirst { it.referenceText() == FEED_BUTTON })
+        assertEquals("$label: the Save button", site.save.toString(), code[1].referenceText())
+        assertTrue("$label: the Save button is a bouncy field of the holder", site.save.toString().startsWith(site.parameters[site.holder] + "->"))
+        assertEquals("$label: the post", site.media.toString(), code[3].referenceText())
+        assertEquals("$label: the activity", site.activity.toString(), code[6].referenceText())
+        assertEquals("$label: the feed state is the carousel page's", page.index.definingClass, site.parameters[site.item])
+        context.hideFeedUfi(context.findFeedUfiSite())
+        val both = context.method(site.type, site.name, site.parameters).code()
+        assertEquals("$label: Hide the Repost button still lands beside it", 1, both.count { it.referenceText() == REPOSTS_FEED_UFI })
+        assertEquals("$label: the button hook stays once", 1, both.count { it.referenceText() == FEED_BUTTON })
     }
 
     private val videoBridges = setOf(

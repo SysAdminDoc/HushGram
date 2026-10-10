@@ -160,7 +160,8 @@ val downloadVideoPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("videoDownload")
-        offerDownloadOnEveryVideo()
+        val page = offerDownloadOnEveryVideo()
+        addFeedDownloadButton(findFeedButtonSite(page))
         enableStatus("videoDownload")
     }
 }
@@ -183,7 +184,7 @@ internal class OthersRow(
     val media: FieldReference,
 )
 
-internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
+internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     val helpers = mutableListOf<ClassDef>()
     val eligibles = mutableListOf<Method>()
     val loaders = mutableListOf<Method>()
@@ -446,6 +447,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo() {
     writeImageBridges()
     writeCarouselBridge()
     writeCaptionBridges?.invoke()
+    return page
 }
 
 /**

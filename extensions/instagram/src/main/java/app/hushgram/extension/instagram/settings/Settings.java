@@ -9,6 +9,7 @@ package app.hushgram.extension.instagram.settings;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
 import static app.hushgram.extension.shared.settings.Setting.parent;
+import static app.hushgram.extension.shared.settings.Setting.parentsAny;
 
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.download.FileNameTemplate;
@@ -931,6 +932,16 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting DOWNLOAD_FEED_COVER =
             new BooleanSetting("hushgram_download_feed_cover", FALSE, parent(DOWNLOAD_VIDEOS));
+
+    /**
+     * A Download icon in the action row of a feed post, just left of Save, so a tap saves the post
+     * without opening its menu (#97). It uses the same save as the menu's Download, and a carousel asks
+     * for this page or all of them ({@link app.hushgram.extension.instagram.download.FeedDownloadButton}).
+     * It waits for the video or the photo switch, since a tap saves only what they allow. Starts off,
+     * so the row stays Instagram's own.
+     */
+    public static final BooleanSetting FEED_DOWNLOAD_BUTTON =
+            new BooleanSetting("hushgram_feed_download_button", FALSE, parentsAny(DOWNLOAD_VIDEOS, DOWNLOAD_PHOTOS));
 
     /**
      * Videos, reels and stories start only after a tap: a player's start goes ahead when a tap has

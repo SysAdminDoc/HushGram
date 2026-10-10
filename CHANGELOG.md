@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Download any video has a switch, Download button on feed posts, that starts off. With it on, a download icon sits in the row under each post in Home, just left of Save, so one tap saves the post without opening its menu. It saves the same way the menu's Download does, with the same file name, folder per account and quality, and on a carousel it asks whether to save this page or all of them. The icon needs Download feed videos or Download feed photos on, matches Save's size, and stays put when Repost or Comments are hidden. Asked for in #97.
+
 * **Instagram:** Keep in chat leaves a view once or replayable photo or video you send as Instagram's own sent bubble. Before, your copy was kept in the chat too, and since it has no photo to show you got an empty bubble with nothing but the reaction and "You replied". Photos and videos you receive are still kept in the chat. Refs #114.
 
 * **Instagram:** Lock your messages can now lock single chats. Open HushGram settings > Messages > Locked chats, tick the chat you want, and that chat asks for your fingerprint, face or screen lock every time you open it, even with the main switch off. The chat you opened last is at the top of the list, so open it in Instagram first and come back. Other chats open as before, cancelling shows nothing, and unticking a chat asks once before it clears the lock. A locked chat's notifications only say a message came, matched by the chat id the push carries. While any chat lock is up, in-app banners wait until you unlock. Needs a device check on a real push.
