@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Tooling:** Hide ads has tests of its own. One checks that only an on switch with HushGram ready and not paused hides an ad. The other checks that each supported Instagram build has exactly one place where ads go into a feed, and that HushGram's check is the first thing that runs there.
+
 * **Instagram:** Disable analytics won't apply to an Instagram build where it finds only the contacts and location setup screens and none of the ways reports are sent, since skipping those screens protects nothing by itself. When a build has only some of what Disable analytics or Sanitize sharing links work on, the switch's description in HushGram settings now says how many it covers.
 
 * **Instagram:** Opening HushGram's settings from the launcher shortcut while Instagram was restarting its screen could crash Instagram, because the screen still had Instagram's startup look and couldn't draw text yet. The settings now wait until the screen is ready and then open.
