@@ -221,6 +221,51 @@ try {
     Remove-Item Env:\HUSHGRAM_GATE_CACHE
     Write-Host '[release-helpers] test counter passed'
 
+    # --- stale_tests.py --------------------------------------------------------------------------
+
+    # A checkout with one boundary class, one settings test and the sources and table it reads: a
+    # format string, two joined literals and a translated row.
+    $settingsPackage = 'app/hushgram/extension/instagram/settings'
+    function Write-StaleFixture([string]$At) {
+        Write-Text (Join-Path $At 'extensions/instagram/build.gradle.kts') (@(
+            'tasks.register("verifyAndroidBoundaries") {', '    doLast {', '        val required = mapOf(',
+            '            "app.hushgram.extension.instagram.settings.FixtureTest" to listOf(',
+            '                "keepsItsName[28]", "keepsItsName[37]"),', '        )', '        val factory = null', '    }', '}') -join "`n")
+        Write-Text (Join-Path $At "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java") (@(
+            'class FixtureTest {', '    @Test public void keepsItsName() {',
+            '        assertEquals("Stop after 20 reels", label(20));',
+            '        assertEquals("a message no source has", "Hide the " + "row", row());',
+            '        assertTrue(summary().contains("Verstecke die Zeile"));', '    }', '}') -join "`n")
+        Write-Text (Join-Path $At "extensions/instagram/src/main/java/$settingsPackage/Fixture.java") (@(
+            'class Fixture {', '    static final String LIMIT = "Stop after %1$d reels";',
+            '    static final String ROW = "Hide the "', '            + "row";', '}') -join "`n")
+        Write-Text (Join-Path $At 'extensions/shared/library/src/main/l10n/de.tsv') "Hide the line`tVerstecke die Zeile`n"
+    }
+    $staleRoot = Join-Path $scratch 'stale'
+    Write-StaleFixture $staleRoot
+    $staleTool = Join-Path $releaseDir 'stale_tests.py'
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*every boundary test and settings text is still in the sources*') `
+        "The stale check refused a checkout whose tests match its sources: $($run.Output)"
+    $staleTest = Join-Path $staleRoot "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java"
+    $staleSource = Join-Path $staleRoot "extensions/instagram/src/main/java/$settingsPackage/Fixture.java"
+    $testText = [IO.File]::ReadAllText($staleTest)
+    $sourceText = [IO.File]::ReadAllText($staleSource)
+    Write-Text $staleTest $testText.Replace('void keepsItsName()', 'void keptItsName()')
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*boundary FixtureTest.keepsItsName names no test method*') `
+        "A renamed boundary case passed the stale check: $($run.Output)"
+    Write-Text $staleTest $testText
+    Write-Text $staleSource $sourceText.Replace('Stop after %1$d reels', 'Stop after %1$d videos')
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like "*FixtureTest.java:3 expects text no source or table has: 'Stop after 20 reels'*") `
+        "A rewritten format string passed the stale check: $($run.Output)"
+    Write-Text $staleSource $sourceText.Replace('+ "row"', '+ "line"')
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like "*FixtureTest.java:4 expects text no source or table has: 'Hide the row'*" -and
+        $run.Output -notlike '*a message no source has*') "A rewritten joined string passed, or an assert message was read as text: $($run.Output)"
+    Write-Host '[release-helpers] stale test check passed'
+
     # --- patch-all-builds.ps1 --------------------------------------------------------------------
 
     # The checkout the run reads: the real catalog, a version, and a git repository so the gate's
@@ -409,9 +454,10 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     foreach ($name in @('common.ps1', 'patch-target.ps1', 'build-jobs.ps1', 'gate-evidence.ps1')) {
         Write-Text (Join-Path $repo "scripts/$name") ([IO.File]::ReadAllText((Join-Path $Root "scripts/$name")))
     }
-    foreach ($name in @('preflight.ps1', 'release_notes.py')) {
+    foreach ($name in @('preflight.ps1', 'release_notes.py', 'stale_tests.py')) {
         Write-Text (Join-Path $repo "scripts/release/$name") ([IO.File]::ReadAllText((Join-Path $releaseDir $name)))
     }
+    Write-StaleFixture $repo
     Write-Text (Join-Path $repo 'scripts/validate-release-facts.ps1') @'
 Add-Content -LiteralPath $env:HUSHGRAM_HELPERS_LOG -Value "facts $($args -join ' ')"
 exit 0
@@ -473,6 +519,14 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
     $run = Invoke-Preflight @('-SkipGradle')
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*has no scope*' -and $run.Output -like '*refused after*the CHANGELOG section for the notes*') `
         "An unscoped CHANGELOG bullet passed the preflight: $($run.Output)"
+    Invoke-RepoGit reset -q --hard $preflightHead | Out-Null
+    $repoTest = Join-Path $repo "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java"
+    Write-Text $repoTest ([IO.File]::ReadAllText($repoTest).Replace('void keepsItsName()', 'void keptItsName()'))
+    Invoke-RepoGit -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -am 'renamed boundary case' | Out-Null
+    $run = Invoke-Preflight
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*keepsItsName names no test method*' -and
+        $run.Output -like '*refused after*the test names and texts the sources still have*' -and
+        @(Read-Log | Where-Object { $_ -like 'gradle *' }).Count -eq 0) "A renamed boundary case passed the preflight: $($run.Output)"
     Invoke-RepoGit reset -q --hard $preflightHead | Out-Null
     Write-Host '[release-helpers] preflight passed'
 

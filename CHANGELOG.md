@@ -16,6 +16,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** New patch, Stop background wake-ups, from @sherifrahim. Instagram sets two alarms that wake your phone while it's in the background. One fires every minute or two just to note that the app is still running, and the other wakes the phone five minutes later to upload usage events. Each gets a switch under Battery in HushGram settings, and both start off. Notifications still come through Instagram's push service, and the usage events go out the next time you use the app (or nowhere, with Disable analytics on). Refs #89.
 
+* **Tooling:** The release preflight now finds tests a code-only commit left stale before any Gradle run does. It checks that every case the Android boundary check requires is still a test method, and that every text the settings tests expect is still in the extension sources or the translation tables (a format string like "Stop after %1$d reels" counts for "Stop after 20 reels"). It reads sources only and takes under a second.
+
 * **Tooling:** The release facts check reads the push gate's kept run again when the pre-push hook starts it in a fresh PowerShell. It took git's first line straight off the pipeline, which stopped git before its exit code was set, so a fresh process saw no HEAD and fell back to the checkout's own build outputs. That's what refused the 0.0.8 index push until the gate's test results were copied in.
 
 * **Tooling:** Patch tests now run by area. Gradle can reuse results for areas whose inputs haven't changed, and release checks count the reports in each area folder.
