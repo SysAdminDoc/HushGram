@@ -131,6 +131,25 @@ internal class AudioState(
     val sessionField: FieldReference,
     val state: MethodReference,
     val isOn: MethodReference,
+    val player: PlayerAudio,
+)
+
+/**
+ * The state the audio toggle reads first, while the current reel has a player: the controller's
+ * [currentList] (a no-argument call on the controller) hands over a list, [indexOf] gives the current
+ * position, [holderAt] the view holder there, the controller's [factoryField] holds what [playerFor]
+ * turns that holder into a player, [stateOf] gives the player's audio state, and [flag] is its sound-on
+ * boolean. [stateOf] is an interface call when [stateOfInterface] is set.
+ */
+internal class PlayerAudio(
+    val currentList: MethodReference,
+    val indexOf: MethodReference,
+    val holderAt: MethodReference,
+    val factoryField: FieldReference,
+    val playerFor: MethodReference,
+    val stateOf: MethodReference,
+    val stateOfInterface: Boolean,
+    val flag: FieldReference,
 )
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
@@ -314,9 +333,10 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
         val controllerFields = runCode.mapNotNull { instruction ->
             instruction.fieldReference()?.takeIf { instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == run.definingClass && it.type == controller }
         }.distinctBy { it.toString() }
-        found += AudioState(controllerFields.singleOrNull() ?: continue, session, factory, asks)
+        val player = findPlayerAudio(code, controller) ?: continue
+        found += AudioState(controllerFields.singleOrNull() ?: continue, session, factory, asks, player)
     }
-    val audio = found.distinctBy { "${it.sessionField}${it.state}${it.isOn}" }.singleOrNull()
+    val audio = found.distinctBy { "${it.sessionField}${it.state}${it.isOn}${it.player.flag}${it.player.playerFor}" }.singleOrNull()
         ?: refuse("$where: expected the audio toggle to read Reels sound state once, found ${found.size}")
     // The runnable reaches all of it from its own class, so each piece must be public or share its package.
     val package0 = run.definingClass.substringBeforeLast('/')
@@ -336,7 +356,82 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
     ) {
         refuse("$where can't reach the audio state from its own class")
     }
+    val p = audio.player
+    fun reaches(method: MethodReference, interfaceCall: Boolean = false): Boolean {
+        val owner = classDefByOrNull(method.definingClass) ?: return false
+        val declared = owner.methods.singleOrNull {
+            it.name == method.name && it.returnType == method.returnType &&
+                it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
+        } ?: return interfaceCall && AccessFlags.INTERFACE.isSet(owner.accessFlags) && open(owner.type, AccessFlags.PUBLIC.value)
+        return open(owner.type, declared.accessFlags)
+    }
+    fun fieldOpen(field: FieldReference): Boolean {
+        val declared = classDefByOrNull(field.definingClass)?.fields?.singleOrNull { it.name == field.name && it.type == field.type } ?: return false
+        return open(field.definingClass, declared.accessFlags)
+    }
+    if (!reaches(p.currentList) || !reaches(p.indexOf) || !reaches(p.holderAt) || !reaches(p.playerFor) ||
+        !reaches(p.stateOf, p.stateOfInterface) || !fieldOpen(p.factoryField) || !fieldOpen(p.flag)
+    ) {
+        refuse("$where can't reach the player's audio state from its own class")
+    }
     return audio
+}
+
+/**
+ * While the current reel has a player, the audio toggle reads the sound flag on the player's own state
+ * object and flips that, then the session's. The player comes from the controller: its current list,
+ * the position in it, the holder at that position, then the controller's factory field turns that
+ * holder into the player, whose state object holds the flag. Found as the one boolean read straight
+ * before an xor with 1 whose object came from a no-argument call on that player, with the controller's
+ * chain in front of it exactly as written above. Null when the toggle doesn't read it that way.
+ */
+private fun findPlayerAudio(code: List<Instruction>, controller: String): PlayerAudio? {
+    val found = mutableListOf<PlayerAudio>()
+    for (x in 2 until code.size) {
+        val flip = code[x]
+        if (flip.opcode != Opcode.XOR_INT_LIT8 || (flip as NarrowLiteralInstruction).narrowLiteral != 1) continue
+        val read = code[x - 1]
+        val flag = read.fieldReference()
+        if (read.opcode != Opcode.IGET_BOOLEAN || flag == null || (flip as TwoRegisterInstruction).registerB != (read as OneRegisterInstruction).registerA) continue
+        val holder = (read as TwoRegisterInstruction).registerB
+        // The state object came from a no-argument call on the player, taken just before.
+        val taken = (x - 2 downTo maxOf(1, x - 30)).firstOrNull { code[it].opcode == Opcode.MOVE_RESULT_OBJECT && (code[it] as OneRegisterInstruction).registerA == holder } ?: continue
+        if (code[taken].opcode != Opcode.MOVE_RESULT_OBJECT) continue
+        val stateOf = code[taken - 1].methodReference() ?: continue
+        val interfaceCall = code[taken - 1].opcode == Opcode.INVOKE_INTERFACE
+        if (!interfaceCall && code[taken - 1].opcode != Opcode.INVOKE_VIRTUAL) continue
+        if (stateOf.parameterTypes.isNotEmpty() || stateOf.returnType != flag.definingClass) continue
+        val playerRegister = (code[taken - 1] as? FiveRegisterInstruction)?.registerC ?: continue
+        // The player is what the controller's factory made of the holder, a few calls up.
+        val j = (taken - 2 downTo 8).firstOrNull { at ->
+            code[at].opcode == Opcode.INVOKE_VIRTUAL && code[at].methodReference()?.returnType == stateOf.definingClass &&
+                (code[at + 1] as? OneRegisterInstruction)?.registerA == playerRegister && code[at + 1].opcode == Opcode.MOVE_RESULT_OBJECT
+        } ?: continue
+        val playerFor = code[j].methodReference() ?: continue
+        val make = code[j] as? FiveRegisterInstruction ?: continue
+        if (make.registerCount != 2 || playerFor.parameterTypes.size != 1) continue
+        val factoryLoad = code[j - 1]
+        val factoryField = factoryLoad.fieldReference()
+        if (factoryLoad.opcode != Opcode.IGET_OBJECT || factoryField == null || factoryField.definingClass != controller ||
+            factoryField.type != playerFor.definingClass || (factoryLoad as OneRegisterInstruction).registerA != make.registerC
+        ) continue
+        if (code[j - 2].opcode != Opcode.IF_EQZ || code[j - 3].opcode != Opcode.MOVE_RESULT_OBJECT) continue
+        if (make.registerD != (code[j - 3] as OneRegisterInstruction).registerA) continue
+        val holderAt = code[j - 4].methodReference() ?: continue
+        val index = code[j - 5] as? OneRegisterInstruction
+        val indexOf = code[j - 6].methodReference() ?: continue
+        val list = code[j - 8].methodReference() ?: continue
+        val at4 = code[j - 4] as? FiveRegisterInstruction ?: continue
+        if (code[j - 4].opcode != Opcode.INVOKE_VIRTUAL || holderAt.parameterTypes.map(Any::toString) != listOf("I") ||
+            code[j - 5].opcode != Opcode.MOVE_RESULT || index == null || at4.registerCount != 2 || at4.registerD != index.registerA ||
+            code[j - 6].opcode != Opcode.INVOKE_VIRTUAL || indexOf.parameterTypes.isNotEmpty() || indexOf.returnType != "I" ||
+            indexOf.definingClass != holderAt.definingClass || code[j - 7].opcode != Opcode.MOVE_RESULT_OBJECT ||
+            code[j - 8].opcode != Opcode.INVOKE_VIRTUAL || list.definingClass != controller || list.parameterTypes.isNotEmpty() ||
+            list.returnType != holderAt.definingClass || playerFor.parameterTypes[0] != holderAt.returnType
+        ) continue
+        found += PlayerAudio(list, indexOf, holderAt, factoryField, playerFor, stateOf, interfaceCall, flag)
+    }
+    return found.distinctBy { "${it.currentList}${it.holderAt}${it.playerFor}${it.stateOf}${it.flag}" }.singleOrNull()
 }
 
 /**
@@ -347,11 +442,33 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
 internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
     val (direction, state) = site.scratch
     val audio = site.audio
+    val player = audio.player
     mutable(site.run).apply {
         addInstructionsWithLabels(
             site.index,
             """
-                iget v$direction, p0, ${site.direction}
+                iget-object v$state, p0, ${audio.controllerField}
+                if-eqz v$state, :unknown
+                invoke-virtual { v$state }, ${player.currentList}
+                move-result-object v$direction
+                if-eqz v$direction, :session
+                invoke-virtual { v$direction }, ${player.indexOf}
+                move-result v$state
+                invoke-virtual { v$direction, v$state }, ${player.holderAt}
+                move-result-object v$direction
+                if-eqz v$direction, :session
+                iget-object v$state, p0, ${audio.controllerField}
+                iget-object v$state, v$state, ${player.factoryField}
+                if-eqz v$state, :session
+                invoke-virtual { v$state, v$direction }, ${player.playerFor}
+                move-result-object v$direction
+                if-eqz v$direction, :session
+                ${if (player.stateOfInterface) "invoke-interface" else "invoke-virtual"} { v$direction }, ${player.stateOf}
+                move-result-object v$direction
+                if-eqz v$direction, :session
+                iget-boolean v$state, v$direction, ${player.flag}
+                goto :ask
+                :session
                 iget-object v$state, p0, ${audio.controllerField}
                 if-eqz v$state, :unknown
                 iget-object v$state, v$state, ${audio.sessionField}
@@ -364,6 +481,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 :unknown
                 const/4 v$state, -1
                 :ask
+                iget v$direction, p0, ${site.direction}
                 invoke-static { v$direction, v$state }, $KEEP_MUTED
                 move-result v$direction
                 if-eqz v$direction, :stock

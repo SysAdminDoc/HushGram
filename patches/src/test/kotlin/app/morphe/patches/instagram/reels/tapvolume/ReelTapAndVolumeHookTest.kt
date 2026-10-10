@@ -183,27 +183,32 @@ class ReelTapAndVolumeHookTest {
         val context = PatchContexts.of(volumeClasses())
         val original = context.volumeRun().code().map { it.describe() }
 
-        context.apply { applyKeepMuted(findVolumeSite()) }
+        var site: VolumeSite? = null
+        context.apply { site = findVolumeSite().also { applyKeepMuted(it) } }
 
         val code = context.volumeRun().code()
         val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
-        assertEquals("the direction is read from this", "$runnable->A00:I", code[ask - 11].referenceText())
+        assertEquals("the direction is read from this, last", "$runnable->A00:I", code[ask - 1].referenceText())
+        assertEquals(listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID), code.subList(ask, ask + 4).map { it.opcode })
+        val start = site!!.index
+        val hook = code.subList(start, ask).mapNotNull { it.referenceText() }
         assertEquals(
+            "the player's state first, then the session's",
             listOf(
-                Opcode.IGET, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_STATIC,
-                Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.GOTO, Opcode.CONST_4,
-                Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.RETURN_VOID,
+                "$runnable->ctl:$volumeController", "$volumeController->list()$vList", "$vList->pos()I", "$vList->at(I)$vHolder",
+                "$runnable->ctl:$volumeController", "$volumeController->factory:$vFactory", "$vFactory->make($vHolder)$vPlayer",
+                "$vPlayer->state()$vPState", "$vPState->flag:Z",
+                "$runnable->ctl:$volumeController", "$volumeController->session:$userSession",
+                "$audioState->of($userSession)$audioState", "$audioState->isOn()Z", "$runnable->A00:I",
             ),
-            code.subList(ask - 11, ask + 4).map { it.opcode },
+            hook,
         )
-        assertEquals("the controller, from this", "$runnable->ctl:$volumeController", code[ask - 10].referenceText())
-        assertEquals("the session, from the controller", "$volumeController->session:$userSession", code[ask - 8].referenceText())
-        assertEquals("the state of that session", "$audioState->of($userSession)$audioState", code[ask - 6].referenceText())
-        assertEquals("asked the way the audio button asks", "$audioState->isOn()Z", code[ask - 4].referenceText())
-        assertEquals("unknown is -1", -1, (code[ask - 1] as NarrowLiteralInstruction).narrowLiteral)
-        assertTrue("after the adjustment", code.indexOfFirst { it.referenceText()?.contains("adjustStreamVolume") == true } < ask)
-        assertEquals("the marker's call comes just before the hook", trace, code[ask - 12].referenceText())
-        val added = (ask - 11 until ask + 4).toSet()
+        val unknown = code.subList(start, ask).single { it.opcode == Opcode.CONST_4 } as NarrowLiteralInstruction
+        assertEquals("unknown is -1", -1, unknown.narrowLiteral)
+        assertEquals("every step that can be null falls back", 8, code.subList(start, ask).count { it.opcode == Opcode.IF_EQZ })
+        assertTrue("after the adjustment", code.indexOfFirst { it.referenceText()?.contains("adjustStreamVolume") == true } < start)
+        assertEquals("the marker's call comes just before the hook", trace, code[start - 1].referenceText())
+        val added = (start until ask + 4).toSet()
         assertEquals("only the hook is new", original, code.map { it.describe() }.filterIndexed { at, _ -> at !in added })
     }
 
@@ -259,13 +264,21 @@ class ReelTapAndVolumeHookTest {
                 (instruction.reference() as? com.android.tools.smali.dexlib2.iface.reference.MethodReference)
                     ?.takeIf { it.parameterTypes.map(Any::toString) == listOf(userSession) }?.returnType
             } } }
-            val wanted = holders + controllers.map { it.type } + states
+            // Every type the toggle names: the player chain and the session's state live in classes of their own.
+            val named = controllers.flatMap { c -> c.methods.flatMap { m -> m.code().flatMap { instruction ->
+                when (val ref = instruction.reference()) {
+                    is com.android.tools.smali.dexlib2.iface.reference.MethodReference -> listOf(ref.definingClass, ref.returnType) + ref.parameterTypes.map(Any::toString)
+                    is com.android.tools.smali.dexlib2.iface.reference.FieldReference -> listOf(ref.definingClass, ref.type)
+                    else -> emptyList()
+                }
+            } } }.filter { it.startsWith("L") }
+            val wanted = holders + controllers.map { it.type } + states + named
             for ((read, classesOf) in listOf("copied" to FixtureDex::classes, "as read" to FixtureDex::classesAsRead)) {
                 val what = "$name ($read)"
                 val classes = classesOf(bundle, wanted).values
                 assertTrue("$what: the runnable's class", classes.map { it.type }.toSet().containsAll(holders + controllers.map { it.type }))
                 val context = PatchContexts.of(classes)
-                val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
+                val originals = classes.filter { it.type in holders }.flatMap { context.mutableClassDefBy(it.type).methods }
                     .filter { it.implementation != null }.associateWith(::NeutralNativePath)
 
                 val site = context.findVolumeSite()
@@ -279,14 +292,21 @@ class ReelTapAndVolumeHookTest {
                 val run = asking.single()
                 val code = run.code()
                 val ask = code.indexOfFirst { it.referenceText() == KEEP_MUTED }
-                assertEquals("$what: the direction, read from this", site.direction.toString(), code[ask - 11].referenceText())
-                assertEquals("$what: the controller, read from this", site.audio.controllerField.toString(), code[ask - 10].referenceText())
-                assertEquals("$what: the session, read from the controller", site.audio.sessionField.toString(), code[ask - 8].referenceText())
-                assertEquals("$what: the audio state of the session", site.audio.state.toString(), code[ask - 6].referenceText())
-                assertEquals("$what: asked whether sound is on", site.audio.isOn.toString(), code[ask - 4].referenceText())
+                val start = site.index
+                val player = site.audio.player
+                assertEquals("$what: the direction, read from this, last", site.direction.toString(), code[ask - 1].referenceText())
+                assertEquals(
+                    "$what: the player's state first, then the session's",
+                    listOf(
+                        site.audio.controllerField, player.currentList, player.indexOf, player.holderAt,
+                        site.audio.controllerField, player.factoryField, player.playerFor, player.stateOf, player.flag,
+                        site.audio.controllerField, site.audio.sessionField, site.audio.state, site.audio.isOn, site.direction,
+                    ).map { it.toString() },
+                    code.subList(start, ask).mapNotNull { it.referenceText() },
+                )
                 assertEquals("$what: the hook's last instruction", Opcode.RETURN_VOID, code[ask + 3].opcode)
-                assertEquals("$what: the marker's call comes just before", Opcode.INVOKE_STATIC, code[ask - 12].opcode)
-                val added = (ask - 11 until ask + 4).toSet()
+                assertEquals("$what: the marker's call comes just before", Opcode.INVOKE_STATIC, code[start - 1].opcode)
+                val added = (start until ask + 4).toSet()
                 for ((method, original) in originals) {
                     val mine = method.code().indices.filter { method.name == run.name && method.definingClass == run.definingClass && it in added }.toSet()
                     original.assertPreserved("$what ${method.name}", method, mine)
@@ -372,6 +392,11 @@ class ReelTapAndVolumeHookTest {
     private val audioState = "Lfixture/AudioState;"
     private val hiddenAudioState = "Lother/pkg/AudioState;"
     private val userSession = "Lcom/instagram/common/session/UserSession;"
+    private val vList = "Lfixture/VList;"
+    private val vHolder = "Lfixture/VHolder;"
+    private val vFactory = "Lfixture/VFactory;"
+    private val vPlayer = "Lfixture/VPlayer;"
+    private val vPState = "Lfixture/VPState;"
 
     /**
      * The runnable: it traces its own marker, adjusts the stream volume with an int it reads from its own field, and
@@ -416,9 +441,26 @@ class ReelTapAndVolumeHookTest {
         val methods = (0 until runs).map { run(if (it == 0) "run" else "runAgain") }
         val kept = if (runs == 0) listOf(method(runnable, "run", emptyList(), "V", 0, body = "return-void")) else methods
         val toggle = { name: String ->
-            method(volumeController, name, listOf("I"), "V", 5, body = """
+            method(volumeController, name, listOf("I"), "V", 9, body = """
                 const-string v0, "$toggleMarker"
                 invoke-static { v0 }, $trace
+                invoke-virtual { p0 }, $volumeController->list()$vList
+                move-result-object v1
+                invoke-virtual { v1 }, $vList->pos()I
+                move-result v0
+                invoke-virtual { v1, v0 }, $vList->at(I)$vHolder
+                move-result-object v5
+                if-eqz v5, :noplayer
+                iget-object v0, p0, $volumeController->factory:$vFactory
+                invoke-virtual { v0, v5 }, $vFactory->make($vHolder)$vPlayer
+                move-result-object v6
+                invoke-virtual { v6 }, $vPlayer->state()$vPState
+                move-result-object v7
+                iget-boolean v3, v7, $vPState->flag:Z
+                xor-int/lit8 v4, v3, 0x1
+                iput-boolean v4, v7, $vPState->flag:Z
+                return-void
+                :noplayer
                 iget-object v1, p0, $volumeController->session:$userSession
                 invoke-static { v1 }, $state->of($userSession)$state
                 move-result-object v2
@@ -436,10 +478,22 @@ class ReelTapAndVolumeHookTest {
             method(state, "isOn", emptyList(), "Z", 1, body = "const/4 v0, 0x1\nreturn v0"),
             method(state, "set", listOf("Z"), "V", 0, body = "return-void"),
         )
+        val pub = { name: String, owner: String, returns: String, params: List<String> ->
+            method(owner, name, params, returns, 1, body = if (returns == "V") "return-void" else if (returns == "I" || returns == "Z") "const/4 v0, 0x0\nreturn v0" else "const/4 v0, 0x0\nreturn-object v0")
+        }
         return listOf(
             classDef(runnable, kept, fields = listOf("A00" to "I", "audio" to audio, "ctl" to volumeController)),
-            classDef(volumeController, controllerMethods, fields = listOf("session" to userSession)),
+            classDef(
+                volumeController,
+                controllerMethods + (if (toggles == 0) emptyList() else listOf(pub("list", volumeController, vList, emptyList()))),
+                fields = listOf("session" to userSession, "factory" to vFactory),
+            ),
             classDef(state, stateMethods, public = stateReachable),
+            classDef(vList, listOf(pub("pos", vList, "I", emptyList()), pub("at", vList, vHolder, listOf("I")))),
+            classDef(vHolder, emptyList()),
+            classDef(vFactory, listOf(pub("make", vFactory, vPlayer, listOf(vHolder)))),
+            classDef(vPlayer, listOf(pub("state", vPlayer, vPState, emptyList()))),
+            classDef(vPState, emptyList(), fields = listOf("flag" to "Z")),
         )
     }
 
