@@ -104,13 +104,17 @@ class TargetCoverageTest {
         }
     }
 
+    /** The event stream and the setup screens, alone or together, don't keep events on the phone. */
     @Test
-    fun analyticsWithOnlyTheSetupScreensDoesNotApply() {
-        assertEquals(setOf("setup"), ANALYTICS_SUPPORTING)
-        assertEquals("setup", ANALYTICS_TARGETS.last())
-        assertThrows(PatchException::class.java) {
-            handleTargets("Disable analytics", "event upload addresses", ANALYTICS_TARGETS,
-                supporting = ANALYTICS_SUPPORTING) { if (it == "setup") null else "$it is absent" }
+    fun analyticsWithOnlyTheStreamOrSetupScreensDoesNotApply() {
+        assertEquals(setOf("stream", "setup"), ANALYTICS_SUPPORTING)
+        assertEquals(listOf("stream", "setup"), ANALYTICS_TARGETS.takeLast(2))
+        for (found in listOf(setOf("stream"), setOf("setup"), setOf("stream", "setup"))) {
+            val failure = assertThrows(found.toString(), PatchException::class.java) {
+                handleTargets("Disable analytics", "event upload addresses", ANALYTICS_TARGETS,
+                    supporting = ANALYTICS_SUPPORTING) { if (it in found) null else "$it is absent" }
+            }
+            assertTrue(failure.message, failure.message!!.contains("stream and setup only work alongside them"))
         }
     }
 

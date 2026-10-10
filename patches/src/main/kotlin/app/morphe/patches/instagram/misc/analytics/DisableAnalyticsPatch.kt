@@ -29,14 +29,16 @@ internal const val STREAM_EVENTS = "$EXTENSION_PACKAGE/misc/Analytics;->streamEv
 /** Whether to skip a Bloks screen, by its app id: the "Set up on new device" screens. */
 internal const val SETUP_SCREEN = "$EXTENSION_PACKAGE/misc/Analytics;->setupScreen(Ljava/lang/String;)I"
 
-/** The routes the patch works on, in order. Each before "setup" stops events leaving the phone. */
+/** The routes the patch works on, in order. Each before "stream" stops events leaving the phone. */
 internal val ANALYTICS_TARGETS = listOf("builder", "graph", "mqtt", "reports", "pings", "stream", "setup")
 
 /**
- * Skipping the setup screens only matters while their seen events are refused, so a build where
- * none of the other routes was found mustn't pass on the setup screens alone.
+ * The routes that only matter alongside the others. Keeping events off Falco's stream sends them
+ * to the batch upload, which only the addresses before it guard, and skipping the setup screens
+ * only matters while their seen events are refused. A build where none of the five was found
+ * mustn't pass on these alone.
  */
-internal val ANALYTICS_SUPPORTING = setOf("setup")
+internal val ANALYTICS_SUPPORTING = setOf("stream", "setup")
 
 @Suppress("unused")
 val disableAnalyticsPatch = bytecodePatch(

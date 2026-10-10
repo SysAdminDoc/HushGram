@@ -38,8 +38,9 @@ internal data class TargetCoverage(val targets: List<String>, val missing: List<
  *
  * [supporting] names the targets, last in the list, that only work alongside the others, such as
  * Disable analytics' setup screens, which are skipped because the events saying they were seen are
- * refused. A build with none of the targets before them stops the patch before they're touched, so
- * they can't stand in for the protection on their own.
+ * refused, and its event stream switch, which sends events to the upload the other targets guard.
+ * A build with none of the targets before them stops the patch before they're touched, so they
+ * can't stand in for the protection on their own.
  *
  * @param what the targets' kind in the plural, as the messages say it ("ad prefetch schedulers")
  * @return how many targets were dealt with
@@ -61,13 +62,14 @@ internal fun <T> handleTargets(
     require(firstSupporting > 0 && labels.drop(firstSupporting).toSet() == supporting) {
         "$patch's supporting targets have to be some of its labels, listed last"
     }
+    val alongside = labels.drop(firstSupporting)
     val missing = mutableListOf<String>()
     val reasons = mutableListOf<String>()
     targets.forEachIndexed { index, target ->
         if (index == firstSupporting && reasons.size == index) {
             throw PatchException(
                 "$patch: this Instagram build has none of the $index $what that work on their own, and " +
-                    "${supporting.joinToString(" and ")} only works alongside them. " +
+                    "${alongside.joinToString(" and ")} only work${if (alongside.size == 1) "s" else ""} alongside them. " +
                     reasons.joinToString("; ", postfix = "."),
             )
         }
