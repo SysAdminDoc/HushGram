@@ -10,6 +10,7 @@ private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
 internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_CHIPS = "$DECLUTTER->hideChips()Z"
 internal const val HIDE_SOCIAL_FOOTER = "$DECLUTTER->hideSocialFooter()Z"
+internal const val HIDE_EVERY_COMMENT_BAR = "$DECLUTTER->hideEveryCommentBar()Z"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
 
 /**
@@ -54,7 +55,14 @@ internal val SOCIAL_PARTS = listOf(
     ReelPart("ClipsFriendlyViewerComponent_render", HIDE_SOCIAL_FOOTER),
 )
 
-internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SOCIAL_PARTS
+/**
+ * The Add a comment bar the Reels tab draws under a reel on 450, a component of its own (the
+ * controller below handles the bar of reels opened from elsewhere). Its render answers nothing when
+ * the switch for all reels is on, and the reel's comment button still opens the comments.
+ */
+internal val COMMENT_BAR_PARTS = listOf(ReelPart("ClipsViewerInViewerCommentBarComponent_render", HIDE_EVERY_COMMENT_BAR))
+
+internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SOCIAL_PARTS + COMMENT_BAR_PARTS
 
 internal const val HIDE_SOCIAL_CONTEXT = "$DECLUTTER->hideSocialContext(Ljava/lang/Object;)Z"
 

@@ -590,6 +590,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_BAR, L10n.t("Hide the comment bar on reposted reels"),
                     L10n.t("The Add comment bar under a reel you open from a profile's reposts. The comment button "
                             + "still opens the comments.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, L10n.t("Hide the comment bar on all reels"),
+                    L10n.t("The Add a comment bar under every reel, including the ones in the Reels tab. The comment "
+                            + "button still opens the comments.")));
         }
         if (build.contains(PatchFamily.REEL_WATCH_HISTORY)) {
             reels.add(toggle(context, Settings.DONT_SEND_REEL_WATCH_HISTORY, L10n.t("Don't send reel watch history"),

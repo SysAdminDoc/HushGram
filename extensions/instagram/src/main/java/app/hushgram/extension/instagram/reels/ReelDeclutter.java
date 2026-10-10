@@ -41,7 +41,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *   <li>{@link #hideCommentBar} first thing whenever the controller of the Add comment bar under a
  *       reel opened outside the Reels tab would show it, once it inflates the bar, and when it
  *       would put the bar back after hiding it for a while, with where the viewer was opened from. It answers yes for a profile's reposts, {@link #REPOSTS}, and
- *       Instagram's own hide then takes the bar off. The reel's comment button stays.
+ *       Instagram's own hide then takes the bar off. The reel's comment button stays. With
+ *       the switch for all reels on, it answers yes for every source.
+ *   <li>{@link #hideEveryCommentBar} first thing in the render of the in-viewer comment bar
+ *       component, the bar Instagram 450 draws under reels in the Reels tab.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
@@ -101,6 +104,7 @@ public final class ReelDeclutter {
      * Never throws.
      */
     public static boolean hideCommentBar(Object source) {
+        if (hide(Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, "comment bar")) return true;
         if (!hide(Settings.HIDE_REEL_COMMENT_BAR, "comment bar")) return false;
         try {
             return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
@@ -108,6 +112,14 @@ public final class ReelDeclutter {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "comment bar source", failure);
             return false;
         }
+    }
+
+    /**
+     * True leaves the in-viewer Add a comment bar out of every reel, the Reels tab's included.
+     * Never throws.
+     */
+    public static boolean hideEveryCommentBar() {
+        return hide(Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, "comment bar on all reels");
     }
 
     /**

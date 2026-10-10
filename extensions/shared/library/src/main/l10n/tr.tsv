@@ -611,6 +611,8 @@ Puts the answer in a chip under the profile's posts, followers and following cou
 Saving a voice message	Sesli mesaj kaydediliyor
 Show it as a chip	Çip olarak göster
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Bir profilin yeniden paylaşımlarından açtığın reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
+Hide the comment bar on all reels	Tüm reels'te yorum çubuğunu gizle
+The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Reels sekmesindekiler dahil her reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	Birinin profilindeki menüye Kullanıcı adını kopyala ve Biyografiyi kopyala seçeneklerini ekler. Her biri metni hesapta olduğu gibi kopyalar.
 Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	Birinin profilindeki menüye Profil fotoğrafını görüntüle seçeneğini ekler. Fotoğrafı Instagram'daki en büyük boyutta tam ekran açar, iki parmakla yakınlaştırılabilir ve bir Kaydet düğmesi vardır.
 Bio	Biyografi

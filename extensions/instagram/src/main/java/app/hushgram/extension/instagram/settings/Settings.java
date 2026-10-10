@@ -754,6 +754,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reel_comment_bar", FALSE);
 
     /**
+     * The Add comment bar under every reel, in the Reels tab too (#119). The reel's comment button
+     * still opens its comments. Off to start.
+     */
+    public static final BooleanSetting HIDE_REEL_COMMENT_BAR_EVERYWHERE =
+            new BooleanSetting("hushgram_hide_reel_comment_bar_everywhere", FALSE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

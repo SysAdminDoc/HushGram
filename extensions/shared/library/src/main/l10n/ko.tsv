@@ -610,6 +610,8 @@ Puts the answer in a chip under the profile's posts, followers and following cou
 Saving a voice message	음성 메시지 저장 중
 Show it as a chip	칩으로 표시
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	프로필의 다시 게시한 항목에서 연 릴스 아래의 댓글 달기 창입니다. 댓글 버튼은 계속 댓글을 엽니다.
+Hide the comment bar on all reels	모든 릴스의 댓글 창 숨기기
+The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	릴스 탭을 포함한 모든 릴스 아래의 댓글 달기 창입니다. 댓글 버튼은 계속 댓글을 엽니다.
 Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	다른 사람 프로필의 메뉴에 사용자 이름 복사와 소개 복사를 추가합니다. 각각 계정에 있는 텍스트를 그대로 복사합니다.
 Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	다른 사람 프로필의 메뉴에 프로필 사진 보기를 추가합니다. Instagram에 있는 가장 큰 크기의 사진을 전체 화면으로 열며, 손가락으로 확대할 수 있고 저장 버튼이 있습니다.
 Bio	소개

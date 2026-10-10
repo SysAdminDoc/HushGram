@@ -120,6 +120,22 @@ public class ReelDeclutterTest {
         }
     }
 
+    /** The switch for all reels takes the bar off every source and the in-viewer bar, and only with itself on. */
+    @Test
+    public void theCommentBarGoesFromEveryReelWithTheAllReelsSwitchOn() {
+        assertFalse("off to start", ReelDeclutter.hideEveryCommentBar());
+        assertFalse(ReelDeclutter.hideCommentBar(Source.CLIPS_TAB));
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        try {
+            assertTrue(ReelDeclutter.hideEveryCommentBar());
+            assertTrue(ReelDeclutter.hideCommentBar(Source.CLIPS_TAB));
+            assertTrue(ReelDeclutter.hideCommentBar(Source.PROFILE_CLIPS));
+        } finally {
+            Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(false);
+        }
+        assertFalse(ReelDeclutter.hideCommentBar(Source.CLIPS_TAB));
+    }
+
     /** Something that isn't a type, or a type's name as a string, is never taken for one. */
     @Test
     public void anythingButTheTypeStays() {
