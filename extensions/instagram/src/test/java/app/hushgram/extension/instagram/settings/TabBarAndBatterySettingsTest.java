@@ -66,6 +66,7 @@ public class TabBarAndBatterySettingsTest {
     private static void reset() {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
+        Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -105,8 +106,8 @@ public class TabBarAndBatterySettingsTest {
         assertFalse(glass.isChecked());
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
-                Settings.GLASS_TAB_BAR_HAPTICS), PatchFamily.GLASS_TAB_BAR.switches);
-        for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key)) {
+                Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL), PatchFamily.GLASS_TAB_BAR.switches);
+        for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key)) {
             assertNotNull(key, row(key));
         }
 

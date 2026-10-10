@@ -1012,6 +1012,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 glass.addPreference(hapticStyleRow(context));
                 glass.addPreference(glassOpacityRow(context));
                 glass.addPreference(glassHeightRow(context));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),
+                        L10n.t("Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, "
+                                + "or changing tab brings it back. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                         L10n.t("Home and the other tabs run down behind the pill, so the glass has real content to blur. "
                                 + "Reels still stops above it.")));

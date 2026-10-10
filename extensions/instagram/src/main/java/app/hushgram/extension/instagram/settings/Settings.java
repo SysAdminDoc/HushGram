@@ -646,6 +646,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar_haptics", TRUE, true, parent(GLASS_TAB_BAR));
 
     /**
+     * Under {@link #GLASS_TAB_BAR}: scrolling a list down slides the pill off the bottom of the screen, and
+     * scrolling up, reaching the top, changing tab or pressing Back brings it back
+     * ({@link app.hushgram.extension.instagram.misc.GlassTabBar}). Off to start.
+     */
+    public static final BooleanSetting GLASS_TAB_BAR_HIDE_ON_SCROLL =
+            new BooleanSetting("hushgram_glass_tab_bar_hide_on_scroll", FALSE, true, parent(GLASS_TAB_BAR));
+
+    /**
      * Under {@link #GLASS_TAB_BAR_HAPTICS}: which tick plays ({@link app.hushgram.extension.instagram.misc.HapticStyle}).
      * Starts on the phone's own click. A choice because only a hand can say which feels right.
      */

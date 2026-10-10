@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Glass tab bar:** New switch under Tab bar in HushGram settings, Hide the tab bar as you scroll. It starts off. Scroll a list down and the glass pill slides off the bottom of the screen, like on the iPhone. Scroll back up, reach the top of the list, change tab or press Back and it slides back. Nothing under it moves, so with Show content behind the tab bar off you just see the screen's background where the pill was. Reels keeps its bar. A change shows after a restart. Refs #87.
+
 * **Instagram - Glass tab bar:** Under Tab bar in HushGram settings there are two new lists, Tab bar opacity and Tab bar height. Opacity runs from Clearest to Frosted, height from Compact to Tall, and both start on Standard, which is the pill exactly as it looks now. A compact pill is a slimmer pill drawn inside the same bar, so every tab keeps its whole tap area. A tall bar is a little taller than Instagram's and stops growing well short of the screens above it, so icons and badges are never cut off. A change shows after a restart. Refs #65.
 
 * **Instagram - Start Home on Following:** New switch under Feed, Instagram logo on Home. It starts off and needs Start Home on Following. Turn it on and restart Instagram, and the top of Home shows Instagram's logo with its arrow where the feed's name would be. Tap it to switch feeds like before. The logo stands in for whichever feed you pick, Following, Favorites or For you, so the name isn't there to tell you which one you're on. Turn it off or pause HushGram and Home shows the name the way Instagram does.

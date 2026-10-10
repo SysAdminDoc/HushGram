@@ -53,6 +53,7 @@ import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Helper for the "Glass tab bar" patch.
@@ -184,7 +185,9 @@ public final class GlassTabBar {
             View found = find(activity.getWindow().getDecorView(), TAB_BAR);
             if (!(found instanceof ViewGroup) || !(found.getParent() instanceof FrameLayout)) return;
             if (applied.containsKey(found)) return;
-            applied.put(found, new Glass((ViewGroup) found));
+            Glass glass = new Glass((ViewGroup) found);
+            applied.put(found, glass);
+            glass.watchScrolling(activity.getWindow());
             HookStatus.invoked(FamilyNames.GLASS_TAB_BAR);
             Logger.printDebug(() -> "Glass tab bar: restyled the tab bar");
         } catch (Throwable failure) {
@@ -284,6 +287,15 @@ public final class GlassTabBar {
         return Math.max(minimum, Math.max(byShare, byWidth));
     }
 
+    /** Brings back every bar a scroll has hidden: the screen is going to the background. */
+    static void restoreAll() {
+        try {
+            for (Glass glass : new java.util.ArrayList<>(applied.values())) glass.restoreScrolling();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "restore", failure);
+        }
+    }
+
     private static final class Watcher implements Application.ActivityLifecycleCallbacks {
         @Override public void onActivityResumed(@NonNull Activity activity) {
             apply(activity);
@@ -291,7 +303,9 @@ public final class GlassTabBar {
 
         @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
         @Override public void onActivityStarted(@NonNull Activity activity) { }
-        @Override public void onActivityPaused(@NonNull Activity activity) { }
+        @Override public void onActivityPaused(@NonNull Activity activity) {
+            restoreAll();
+        }
         @Override public void onActivityStopped(@NonNull Activity activity) { }
         @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
         @Override public void onActivityDestroyed(@NonNull Activity activity) { }
@@ -307,6 +321,8 @@ public final class GlassTabBar {
         private final HapticStyle hapticStyle;
         private final GlassOpacity opacity;
         private final GlassHeight height;
+        /** Hides the bar while a list scrolls down, when that switch is on; otherwise null. */
+        @Nullable private final GlassScrollHide scrollHide;
         /** Whether this slide has had its tick: one tick for a change of tab, however many tabs the capsule crosses. */
         private boolean tickedThisSlide;
         private final boolean floating;
@@ -337,6 +353,8 @@ public final class GlassTabBar {
             this.hapticStyle = Settings.GLASS_TAB_BAR_HAPTIC_STYLE.get();
             this.opacity = Settings.GLASS_TAB_BAR_OPACITY.get();
             this.height = Settings.GLASS_TAB_BAR_HEIGHT.get();
+            this.scrollHide = Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.get()
+                    ? new GlassScrollHide(bar, () -> !HushgramPause.isPaused()) : null;
             this.base = baseColor(bar.getBackground());
             this.originalLeft = bar.getPaddingLeft();
             this.originalRight = bar.getPaddingRight();
@@ -355,6 +373,20 @@ public final class GlassTabBar {
 
         private int dp(int value) {
             return Math.round(value * density);
+        }
+
+        void watchScrolling(Window window) {
+            if (scrollHide == null) return;
+            try {
+                GlassScrollHide.install(window, scrollHide);
+                HookStatus.counted(FamilyNames.GLASS_TAB_BAR, "scroll hide watching");
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "scroll hide", failure);
+            }
+        }
+
+        void restoreScrolling() {
+            if (scrollHide != null) scrollHide.restoreNow();
         }
 
         /** The clear space above and under the pill. */
@@ -481,13 +513,14 @@ public final class GlassTabBar {
                 View before = lastSelected == null ? null : lastSelected.get();
                 if (selected != before) {
                     lastSelected = selected == null ? null : new WeakReference<>(selected);
+                    if (scrollHide != null) scrollHide.show();
                     bar.invalidate();
                 }
                 // Something on screen is drawing a frame, so the glass records what's under it again, at most
                 // every RECORD_EVERY_MS, and once more shortly after a frame it skipped so it never stays behind.
                 // Only its own render node is recorded, not a view, so this asks for no frame of its own: the
                 // screen stops drawing as soon as nothing else changes.
-                if (!blurBroken && blurWanted) pill.recordIfDue();
+                if (!blurBroken && blurWanted && (scrollHide == null || !scrollHide.isOffScreen())) pill.recordIfDue();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.GLASS_TAB_BAR, "draw", failure);
                 diagnose("pre-draw failed", failure);
@@ -513,6 +546,7 @@ public final class GlassTabBar {
         }
 
         @Override public void onViewDetachedFromWindow(@NonNull View view) {
+            if (scrollHide != null) scrollHide.restoreNow();
             bar.getViewTreeObserver().removeOnPreDrawListener(this);
         }
 
