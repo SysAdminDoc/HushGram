@@ -41,9 +41,10 @@ val showHiddenLikeCountsPatch = bytecodePatch(
 /**
  * The flag goes through [HIDDEN_DECISION] first thing in the decider, as an int, and what it
  * answers is what the decider tests; the like count reader hands its tree and what it read to
- * [SAW_LIKE_COUNT] right after the read, before its own null test; and the stub is filled with the
- * reader's own boolean read on the tree, so the extension reads the flag the way Instagram reads
- * its own fields.
+ * [SAW_LIKE_COUNT] right after the read, before its own null test; each like row hands its tree and
+ * the flag it just read to [ROW_READ], so the decision is that post's own; and the two stubs are
+ * filled with the reader's own reads on the tree, so the extension reads the flag and the count the
+ * way Instagram reads its own fields.
  */
 internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCountAnchors) {
     mutable(anchors.counter).addInstructions(
@@ -58,18 +59,28 @@ internal fun BytecodePatchContext.applyHiddenLikeCounts(anchors: HiddenLikeCount
         """,
     )
 
-    val read = anchors.treeFlagRead
-    mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single {
-        it.name == TREE_FLAG_STUB && AccessFlags.STATIC.isSet(it.accessFlags)
-    }.addInstructions(
-        0,
-        """
-            check-cast p0, ${read.definingClass}
-            invoke-interface { p0, p1 }, ${read.definingClass}->${read.name}(I)${read.returnType}
-            move-result-object p0
-            return-object p0
-        """,
-    )
+    // Each like row hands the post it just read the flag of, and the flag, to the extension, which
+    // looks at that post's own count. Later reads first, so earlier indexes stay where they were.
+    for ((method, reads) in anchors.rows.groupBy { it.method.toString() }.values.map { it.first().method to it }) {
+        val target = mutable(method)
+        for (row in reads.sortedByDescending { it.at }) {
+            target.addInstructions(row.at + 1, "invoke-static { v${row.tree}, v${row.flag} }, $ROW_READ")
+        }
+    }
+
+    for ((stub, read) in listOf(TREE_FLAG_STUB to anchors.treeFlagRead, TREE_COUNT_STUB to anchors.countRead)) {
+        mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single {
+            it.name == stub && AccessFlags.STATIC.isSet(it.accessFlags)
+        }.addInstructions(
+            0,
+            """
+                check-cast p0, ${read.definingClass}
+                invoke-interface { p0, p1 }, ${read.definingClass}->${read.name}(I)${read.returnType}
+                move-result-object p0
+                return-object p0
+            """,
+        )
+    }
 }
 
 private fun BytecodePatchContext.mutable(method: Method): MutableMethod =

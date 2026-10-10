@@ -1241,9 +1241,20 @@ start-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z 
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
 # It also hands HiddenLikeCounts.sawCount the post's data and the like_count it read, once, in the like
 # count reader behind Media.A0B (04wK.A00 on 450), the static method reading a post's tree out of
-# 03p2.A01 and its count with CtN. Left out, the report can't say whether the count arrives, and the
-# switch never lets one through. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
+# 03p2.A01 and its count with CtN. Left out, the report can't say whether the count arrives. The
+# rows below decide which posts show a count. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/04wI;)I calling instance LX/0A0W;->CtN(I)Ljava/lang/Integer; holding LX/03p2;->A01:LX/0A0W;
+# Each like row that reads a post's hidden-count flag and then asks that method hands HiddenLikeCounts.rowRead
+# the post's data and the flag it just read, once, so the decision is that post's own count and not another's.
+# Six rows on 450: 08um.A05, 00gF.A09, 00gF.A0P, 04uv.A00 (the hash of the like row's view model), 04uv.A01
+# and 05wC.A00. Left out, a hidden post is never let through; elsewhere or twice, it isn't the hook the patch wrote.
+# NativeHiddenLikeCountsTest checks each row on all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/04zw;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/0A0W;LX/00gF;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/CharSequence; holding sans-serif-medium LX/03p2;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Landroid/content/Context;LX/08WI;Ljava/lang/String;Ljava/lang/String;ZZZ)Ljava/lang/CharSequence; holding on_media sans-serif-medium
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04uv;)I holding getMediaUfiViewModelHash
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (Lcom/instagram/common/session/UserSession;LX/06vF;Ljava/lang/String;)Z holding LX/04wE;->A00:LX/04wE; LX/06Hl;->A01:LX/0A0W;
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V in (LX/0A0W;LX/04Wz;LX/05wD;LX/05wC;Ljava/lang/String;Z)LX/05xH; holding feed_timeline ig4a-instagram-schema
 # Clear the media cache hands MediaCache.beforeVideoCache the folder first thing in the method that
 # names the video cache's three folders (08nf.A00 on 450), the one static (Integer, String) method
 # holding all three. Instagram's only builder of its video cache asks it for the folder before it

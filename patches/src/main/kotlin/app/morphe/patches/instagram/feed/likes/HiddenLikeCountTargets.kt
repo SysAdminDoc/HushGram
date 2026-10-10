@@ -28,8 +28,13 @@ internal const val HIDDEN_LIKE_COUNTS = "$EXTENSION_PACKAGE/feed/HiddenLikeCount
 internal const val HIDDEN_DECISION = "$HIDDEN_LIKE_COUNTS->hidden(I)Z"
 internal const val SAW_LIKE_COUNT = "$HIDDEN_LIKE_COUNTS->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V"
 
+internal const val ROW_READ = "$HIDDEN_LIKE_COUNTS->rowRead(Ljava/lang/Object;Ljava/lang/Object;)V"
+
 /** The extension's stub the patch fills: a boolean read off a post's data, by key. */
 internal const val TREE_FLAG_STUB = "flag"
+
+/** The extension's stub the patch fills: the like count read off a post's data, by key. */
+internal const val TREE_COUNT_STUB = "count"
 
 /** The post model, a kept name. */
 internal const val POST_MODEL = "Lcom/instagram/feed/media/Media;"
@@ -73,7 +78,15 @@ internal class HiddenLikeCountAnchors(
     val tree: Int,
     val count: Int,
     val treeFlagRead: MethodReference,
+    val countRead: MethodReference,
+    val rows: List<RowRead>,
 )
+
+/**
+ * A like row's read of a post's flag: [method] reads it by an interface call on the data tree in
+ * register [tree], and keeps the answer, a Boolean, in register [flag] at instruction [at].
+ */
+internal class RowRead(val method: Method, val at: Int, val tree: Int, val flag: Int)
 
 /**
  * Finds both anchors and proves what the hooks rely on, before any change.
@@ -99,7 +112,7 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
     pandoGetter(HIDDEN_LIKE_COUNTS_PATCH, POST_MODEL, LIKES_HIDDEN_FIELD, BOOLEAN)
     pandoGetter(HIDDEN_LIKE_COUNTS_PATCH, POST_MODEL, LIKE_COUNT_FIELD, INTEGER)
 
-    val (decider, flag) = findDecider()
+    val (decider, flag, asked) = findDecider()
     val counter = findCounter()
     val code = counter.code()
     val read = code.indices.single { code.readsKey(it, LIKE_COUNT_KEY, INTEGER) }
@@ -124,7 +137,7 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
         ?: refuse("$where makes ${flagReads.size} kinds of boolean read on its data tree, not one")
 
     val extension = classDefByOrNull(HIDDEN_LIKE_COUNTS) ?: refuse("the extension has no $HIDDEN_LIKE_COUNTS")
-    for (hook in listOf(HIDDEN_DECISION, SAW_LIKE_COUNT)) {
+    for (hook in listOf(HIDDEN_DECISION, SAW_LIKE_COUNT, ROW_READ)) {
         extension.methods.singleOrNull {
             "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
                 AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -134,19 +147,38 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
         it.name == TREE_FLAG_STUB && it.returnType == BOOLEAN && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "I") && it.implementation != null
     } ?: refuse("$HIDDEN_LIKE_COUNTS has no static $BOOLEAN $TREE_FLAG_STUB($OBJECT I)")
+    extension.methods.singleOrNull {
+        it.name == TREE_COUNT_STUB && it.returnType == OBJECT && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(OBJECT, "I") && it.implementation != null
+    } ?: refuse("$HIDDEN_LIKE_COUNTS has no static $OBJECT $TREE_COUNT_STUB($OBJECT I)")
 
-    return HiddenLikeCountAnchors(decider, flag, counter, read + 1, tree, count, treeFlagRead)
+    val rows = asked.map { (method, readAt) ->
+        val reader = "${method.definingClass}->${method.name}"
+        val rowCode = method.code()
+        val call = rowCode[readAt] as FiveRegisterInstruction
+        val rowTree = call.registerC
+        val rowFlag = (rowCode[readAt + 1] as OneRegisterInstruction).registerA
+        if ((call as ReferenceInstruction).reference.toString() != treeFlagRead.toString()) {
+            refuse("$reader reads the flag with a different call than $where does")
+        }
+        if (rowTree == rowFlag) refuse("$reader reads the flag over its own data tree")
+        if (rowTree > 15 || rowFlag > 15) refuse("$reader keeps the data tree or the flag in a register the hook can't name")
+        if (readAt + 2 >= rowCode.size || readAt + 2 in method.jumpTargets()) refuse("a branch in $reader lands right after its flag read")
+        RowRead(method, readAt + 1, rowTree, rowFlag)
+    }
+
+    return HiddenLikeCountAnchors(decider, flag, counter, read + 1, tree, count, treeFlagRead, countRead, rows)
 }
 
 /** The decider and the register its flag parameter is in. */
-private fun BytecodePatchContext.findDecider(): Pair<Method, Int> {
+private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Method, Int>>> {
     val asked = classesLoading(LIKES_HIDDEN_KEY.toLong()).filter { it.type != POST_MODEL }.flatMap { classDef ->
-        classDef.methods.mapNotNull { method -> method.deciderAsked()?.let { method.key() to it } }
+        classDef.methods.flatMap { method -> method.deciderAsked().map { (read, decider) -> Triple(method, read, decider) } }
     }
-    val deciders = asked.map { it.second }.distinct()
+    val deciders = asked.map { it.third }.distinct()
     val reference = deciders.singleOrNull()
         ?: refuse("expected the like rows to ask one method whether to hide the count, found ${deciders.size}: ${deciders.joinToString()}")
-    val readers = asked.map { it.first }.distinct()
+    val readers = asked.map { it.first.key() }.distinct()
     if (readers.size < FEWEST_READERS) refuse("only ${readers.size} like rows ask $reference, fewer than $FEWEST_READERS")
 
     val owner = reference.substringBefore("->")
@@ -168,26 +200,24 @@ private fun BytecodePatchContext.findDecider(): Pair<Method, Int> {
     }
     if (0 in decider.jumpTargets()) refuse("a jump or exception handler enters $reference at its first instruction")
     if (flag > 255) refuse("$reference keeps the flag in a register the hook can't write")
-    return decider to flag
+    return Triple(decider, flag, asked.map { it.first to it.second })
 }
 
 /**
- * The decider this method asks after it reads the flag: the first call taking the session, an id
- * and a boolean and answering a boolean within [READER_REACH] instructions of a read. Null when it
- * makes no such read, or asks nothing after one.
+ * Each read of the flag in this method, with the decider asked after it: the first call taking the
+ * session, an id and a boolean and answering a boolean within [READER_REACH] instructions of the
+ * read. Empty when it makes no such read, or asks nothing after one.
  */
-private fun Method.deciderAsked(): String? {
+private fun Method.deciderAsked(): List<Pair<Int, String>> {
     val code = code()
-    for (read in code.indices) {
-        if (!code.readsKey(read, LIKES_HIDDEN_KEY, BOOLEAN)) continue
-        for (at in read + 2 until minOf(code.size, read + READER_REACH)) {
-            val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference ?: continue
-            if (called.returnType == "Z" && called.parameterTypes.map(CharSequence::toString) == DECIDER_PARAMETERS) {
-                return called.key()
-            }
+    return code.indices.mapNotNull { read ->
+        if (!code.readsKey(read, LIKES_HIDDEN_KEY, BOOLEAN)) return@mapNotNull null
+        (read + 2 until minOf(code.size, read + READER_REACH)).firstNotNullOfOrNull { at ->
+            val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
+            called?.takeIf { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == DECIDER_PARAMETERS }
+                ?.let { read to it.key() }
         }
     }
-    return null
 }
 
 /**

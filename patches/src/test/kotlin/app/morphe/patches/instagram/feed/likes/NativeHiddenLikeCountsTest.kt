@@ -10,8 +10,10 @@ import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertCountHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertDecisionHook
+import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertRowHook
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.assertStub
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.code
+import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.reference
 import app.morphe.patches.instagram.feed.likes.ShowHiddenLikeCountsHookTest.Companion.snapshot
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -51,9 +53,21 @@ class NativeHiddenLikeCountsTest {
             assertEquals("$name: the stub reads with the interface the count is read with", countRead.definingClass,
                 anchors.treeFlagRead.definingClass)
 
-            val hooked = setOf(anchors.decider.toString(), anchors.counter.toString())
+            assertTrue("$name: every like row is found, ${anchors.rows.size}", anchors.rows.size >= 3)
+            assertEquals("$name: the count is read with the interface the flag is", anchors.treeFlagRead.definingClass,
+                anchors.countRead.definingClass)
+            for (row in anchors.rows) {
+                val rowCode = row.method.code()
+                assertEquals("$name: ${row.method} keeps the flag", Opcode.MOVE_RESULT_OBJECT, rowCode[row.at].opcode)
+                assertEquals("$name: ${row.method} reads the flag the way the reader does", anchors.treeFlagRead.toString(),
+                    rowCode[row.at - 1].methodReference().toString())
+            }
+
+            val rowMethods = anchors.rows.map { it.method.toString() }.toSet()
+            val hooked = setOf(anchors.decider.toString(), anchors.counter.toString()) + rowMethods
             val decider = anchors.decider.code()
             val counter = anchors.counter.code()
+            val originalRows = anchors.rows.associate { it.method.toString() to it.method.code() }
             val before = classes.values.associate { it.type to snapshot(it.methods.filter { method -> method.toString() !in hooked }) }
             context.applyHiddenLikeCounts(anchors)
 
@@ -62,6 +76,16 @@ class NativeHiddenLikeCountsTest {
                 counter, anchors.countAt, anchors.tree, anchors.count)
             assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_FLAG_STUB },
                 anchors.treeFlagRead.toString())
+            assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_COUNT_STUB },
+                anchors.countRead.toString())
+            for ((type, rows) in anchors.rows.groupBy { it.method.definingClass }) {
+                for (method in context.mutableClassDefBy(type).methods.filter { it.toString() in rowMethods }) {
+                    val here = rows.filter { it.method.toString() == method.toString() }.sortedBy { it.at }
+                    val hookCode = method.code()
+                    assertEquals("$name: $method hooked once per read", here.size, hookCode.count { it.reference() == ROW_READ })
+                    if (here.size == 1) assertRowHook(method, originalRows.getValue(method.toString()), here[0].at, here[0].tree, here[0].flag)
+                }
+            }
             for (type in classes.keys) {
                 assertEquals("$name: $type changed past the two hooks", before[type],
                     snapshot(context.mutableClassDefBy(type).methods.filter { it.toString() !in hooked }))
@@ -82,6 +106,7 @@ class NativeHiddenLikeCountsTest {
             assertEquals(listOf(copied.flag, copied.countAt, copied.tree, copied.count), listOf(anchors.flag, anchors.countAt, anchors.tree, anchors.count))
             val decider = anchors.decider.code()
             val counter = anchors.counter.code()
+            assertEquals(copied.rows.map { it.method.toString() to it.at }, anchors.rows.map { it.method.toString() to it.at })
             context.applyHiddenLikeCounts(anchors)
             assertDecisionHook(context.mutableClassDefBy(anchors.decider.definingClass).methods.single { it.toString() == anchors.decider.toString() }, decider)
             assertCountHook(context.mutableClassDefBy(anchors.counter.definingClass).methods.single { it.toString() == anchors.counter.toString() },

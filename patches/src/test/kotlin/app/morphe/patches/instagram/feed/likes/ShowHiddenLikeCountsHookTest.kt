@@ -55,9 +55,25 @@ class ShowHiddenLikeCountsHookTest {
         assertCountHook(context.mutableClassDefBy(LikeFixture.COUNTER).methods.single(), LikeFixture.counter().code(), 8, 2, 0)
         assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_FLAG_STUB },
             "${LikeFixture.TREE}->CtD(I)Ljava/lang/Boolean;")
-        for (candidate in input.filter { it.type != LikeFixture.DECIDER && it.type != LikeFixture.COUNTER && it.type != HIDDEN_LIKE_COUNTS }) {
+        assertStub(context.mutableClassDefBy(HIDDEN_LIKE_COUNTS).methods.single { it.name == TREE_COUNT_STUB },
+            "${LikeFixture.TREE}->CtN(I)Ljava/lang/Integer;")
+        val rows = context.mutableClassDefBy(LikeFixture.ROWS).methods.sortedBy { it.name }
+        assertEquals(3, rows.size)
+        val originals = LikeFixture.rows().methods.sortedBy { it.name }
+        rows.zip(originals).forEach { (row, original) -> assertRowHook(row, original.code(), 2, 2, 0) }
+        for (candidate in input.filter {
+            it.type != LikeFixture.DECIDER && it.type != LikeFixture.COUNTER && it.type != LikeFixture.ROWS && it.type != HIDDEN_LIKE_COUNTS
+        }) {
             assertEquals("${candidate.type} changed", before[candidate.type], snapshot(context.mutableClassDefBy(candidate.type).methods))
         }
+    }
+
+    @Test fun everyRowIsHookedOnceWithItsOwnTreeAndFlag() {
+        val context = PatchContexts.of(LikeFixture.classes())
+        val anchors = context.findHiddenLikeCounts()
+        assertEquals(3, anchors.rows.size)
+        assertEquals(listOf(2), anchors.rows.map { it.at }.distinct())
+        assertEquals("${LikeFixture.TREE}->CtN(I)Ljava/lang/Integer;", anchors.countRead.toString())
     }
 
     @Test fun aMissingExtensionIsRefused() = refuses("the extension has no $HIDDEN_LIKE_COUNTS",
@@ -76,6 +92,8 @@ class ShowHiddenLikeCountsHookTest {
         LikeFixture.classes().map { if (it.type == LikeFixture.DECIDER) LikeFixture.deciderClass(answer = 0) else it })
     @Test fun aBranchLandingAfterTheCountReadIsRefused() = refuses("lands right after its like count read",
         LikeFixture.classes().map { if (it.type == LikeFixture.COUNTER) LikeFixture.counterClass(branchAfterRead = true) else it })
+    @Test fun aBranchLandingAfterARowsFlagReadIsRefused() = refuses("lands right after its flag read",
+        LikeFixture.classes().map { if (it.type == LikeFixture.ROWS) LikeFixture.rows(branchAfterRead = true) else it })
     @Test fun aCounterWithoutABooleanReadIsRefused() = refuses("makes 0 kinds of boolean read",
         LikeFixture.classes().map { if (it.type == LikeFixture.COUNTER) LikeFixture.counterClass(flagRead = false) else it })
 
@@ -117,6 +135,22 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals("the tree and the count", listOf(tree, count), code[countAt + 1].namedRegisters())
             assertEquals(original.size + 1, code.size)
             assertEquals(original.map { it.shape() }, (code.take(countAt + 1) + code.drop(countAt + 2)).map { it.shape() })
+        }
+
+        /**
+         * The row hands its tree and the flag it just read to the extension right after keeping it,
+         * at [flagAt] + 1, and nothing else changes.
+         */
+        internal fun assertRowHook(method: Method, original: List<Instruction>, flagAt: Int, tree: Int, flag: Int) {
+            val code = method.code()
+            assertEquals(1, code.count { it.reference() == ROW_READ })
+            assertEquals(Opcode.MOVE_RESULT_OBJECT, code[flagAt].opcode)
+            assertEquals(listOf(flag), code[flagAt].namedRegisters())
+            assertEquals(Opcode.INVOKE_STATIC, code[flagAt + 1].opcode)
+            assertEquals(ROW_READ, code[flagAt + 1].reference())
+            assertEquals("the tree and the flag", listOf(tree, flag), code[flagAt + 1].namedRegisters())
+            assertEquals(original.size + 1, code.size)
+            assertEquals(original.map { it.shape() }, (code.take(flagAt + 1) + code.drop(flagAt + 2)).map { it.shape() })
         }
 
         /** The stub reads the flag off the tree it's given, by the key it's given, with [read]. */
@@ -185,9 +219,11 @@ internal object LikeFixture {
     }
 
     /** [count] like rows, each reading the flag off the tree it's given and asking the decider with it. */
-    fun rows(count: Int = 3, otherDecider: Boolean = false): ClassDef = clazz(ROWS, (0 until count).map { index ->
+    fun rows(count: Int = 3, otherDecider: Boolean = false, branchAfterRead: Boolean = false): ClassDef = clazz(ROWS, (0 until count).map { index ->
         val decider = if (otherDecider && index == 0) "Lfixture/OtherDecider;" else DECIDER
-        method(ROWS, "row$index", listOf(TREE, SESSION, STRING), "Z", 5, listOf(
+        method(ROWS, "row$index", listOf(TREE, SESSION, STRING), "Z", 5, (if (branchAfterRead && index == 0) listOf(
+            ImmutableInstruction21t(Opcode.IF_EQZ, 3, 9),
+        ) else emptyList()) + listOf(
             ImmutableInstruction31i(Opcode.CONST, 0, LIKES_HIDDEN_KEY),
             ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 2, 2, 0, 0, 0, 0, flagRead),
             ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),

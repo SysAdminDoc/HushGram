@@ -352,7 +352,12 @@ tasks.register("verifyAndroidBoundaries") {
                 "postsListSwitchStartsOffLastUnderProfilesAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.feed.HiddenLikeCountsTest" to listOf(
                 "theKeyIsTheFieldNamesHash[28]", "theKeyIsTheFieldNamesHash[37]",
-                "onceACountArrivesAHiddenCountIsShown[28]", "onceACountArrivesAHiddenCountIsShown[37]",
+                "aPostThatCameWithACountHasItsHiddenCountShown[28]", "aPostThatCameWithACountHasItsHiddenCountShown[37]",
+                "aHiddenPostWithoutACountStaysHiddenWhateverAnotherPostCameWith[28]",
+                "aHiddenPostWithoutACountStaysHiddenWhateverAnotherPostCameWith[37]",
+                "aRowsNoteIsTakenByTheNextAskOnly[28]", "aRowsNoteIsTakenByTheNextAskOnly[37]",
+                "rowsOnlyNoteTheirHiddenPosts[28]", "rowsOnlyNoteTheirHiddenPosts[37]",
+                "theCountKeyIsTheFieldNamesHash[28]", "theCountKeyIsTheFieldNamesHash[37]",
                 "noCountLeavesItHidden[28]", "noCountLeavesItHidden[37]",
                 "postsThatDidntHideTheirLikesProveNothing[28]", "postsThatDidntHideTheirLikesProveNothing[37]",
                 "aShownCountStaysShown[28]", "aShownCountStaysShown[37]",
