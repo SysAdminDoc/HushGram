@@ -657,6 +657,7 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	사용자 이름 추가
 Hide their posts	게시물 숨기기
 Posts from @%1$s are hidden	@%1$s 님의 게시물을 숨겼습니다
+Posts from @%1$s are hidden from Home and Following	@%1$s 님의 게시물을 홈과 팔로잉에서 숨겼습니다
 Posts from @%1$s show again	@%1$s 님의 게시물을 다시 표시합니다
 A username is up to 30 letters, numbers, dots and underscores	사용자 이름은 영문자, 숫자, 마침표, 밑줄로 30자까지입니다
 # context: a row in a post's menu that puts the post's author on Hidden accounts

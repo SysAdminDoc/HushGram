@@ -209,7 +209,7 @@ public class HideAccountRowTest {
         assertEquals("nasa", HideAccountRow.hide(new Post("NASA"), authorOf));
 
         assertEquals(Collections.singletonList("nasa"), HiddenAccounts.saved());
-        assertEquals("Posts from @nasa are hidden", ShadowToast.getTextOfLatestToast());
+        assertEquals("Posts from @nasa are hidden from Home and Following", ShadowToast.getTextOfLatestToast());
         assertTrue(report(), report().contains(HideAccountRow.HID + " 1"));
     }
 

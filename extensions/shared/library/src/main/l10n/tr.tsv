@@ -658,6 +658,7 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	Kullanıcı adı ekle
 Hide their posts	Gönderilerini gizle
 Posts from @%1$s are hidden	@%1$s hesabının gönderileri gizlendi
+Posts from @%1$s are hidden from Home and Following	@%1$s hesabının gönderileri Ana Sayfa'da ve Takip Edilenler'de gizlendi
 Posts from @%1$s show again	@%1$s hesabının gönderileri yeniden görünür
 A username is up to 30 letters, numbers, dots and underscores	Kullanıcı adı en fazla 30 harf, rakam, nokta ve alt çizgiden oluşur
 # context: a row in a post's menu that puts the post's author on Hidden accounts

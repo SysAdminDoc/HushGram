@@ -658,6 +658,7 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	Tambahkan nama pengguna
 Hide their posts	Sembunyikan postingannya
 Posts from @%1$s are hidden	Postingan dari @%1$s disembunyikan
+Posts from @%1$s are hidden from Home and Following	Postingan dari @%1$s disembunyikan dari Beranda dan Mengikuti
 Posts from @%1$s show again	Postingan dari @%1$s ditampilkan lagi
 A username is up to 30 letters, numbers, dots and underscores	Nama pengguna berisi hingga 30 huruf, angka, titik, dan garis bawah
 # context: a row in a post's menu that puts the post's author on Hidden accounts

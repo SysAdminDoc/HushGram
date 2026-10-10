@@ -658,6 +658,7 @@ No accounts are hidden yet. Add a username to take that account's posts out of H
 Add a username	Benutzernamen hinzufügen
 Hide their posts	Beiträge ausblenden
 Posts from @%1$s are hidden	Beiträge von @%1$s sind ausgeblendet
+Posts from @%1$s are hidden from Home and Following	Beiträge von @%1$s sind in der Startseite und in „Gefolgt“ ausgeblendet
 Posts from @%1$s show again	Beiträge von @%1$s werden wieder angezeigt
 A username is up to 30 letters, numbers, dots and underscores	Ein Benutzername hat bis zu 30 Buchstaben, Ziffern, Punkte und Unterstriche
 # context: a row in a post's menu that puts the post's author on Hidden accounts

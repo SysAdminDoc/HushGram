@@ -164,7 +164,7 @@ public final class HideAccountRow {
                 return null;
             }
             HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HID);
-            Utils.showToastShort(String.format(L10n.t("Posts from @%1$s are hidden"), name));
+            Utils.showToastShort(String.format(L10n.t("Posts from @%1$s are hidden from Home and Following"), name));
             return name;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "hide account tap", failure);
