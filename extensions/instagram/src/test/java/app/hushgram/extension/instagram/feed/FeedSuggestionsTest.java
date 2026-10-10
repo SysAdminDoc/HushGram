@@ -62,6 +62,8 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homeReadsForTests = false;
         FeedSuggestions.homeLost = false;
         FeedSuggestions.homeKept = false;
+        FeedSuggestions.homeKeptNoPost = false;
+        FeedSuggestions.homeEndCounted = false;
         FeedSuggestions.homeReadAt = 0;
     }
 
@@ -70,6 +72,8 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homeReadsForTests = null;
         FeedSuggestions.homeLost = false;
         FeedSuggestions.homeKept = false;
+        FeedSuggestions.homeKeptNoPost = false;
+        FeedSuggestions.homeEndCounted = false;
         FeedSuggestions.homeReadAt = 0;
         FeedSuggestions.clock = SystemClock::elapsedRealtime;
         FeedSuggestions.tookOut = false;
@@ -274,6 +278,62 @@ public class FeedSuggestionsTest {
         assertEquals("a later read kept a post", 0, FeedSuggestions.feedEnded(0));
     }
 
+    /**
+     * An account that follows nobody gets a Home of suggestions plus an item or two that carry no
+     * post (#105). Those don't hold off the end of Home, the report says why Home ended, and a post
+     * beside them still does.
+     */
+    @Test
+    public void aKeptItemWithoutAPostDoesNotHoldOffTheEnd() {
+        FeedSuggestions.homeReadsForTests = true;
+        FeedFilterCounters.snapshotAndClear();
+        Item header = new Item(Kind.MEDIA);
+        for (int i = 0; i < 5; i++) {
+            assertNull(FeedSuggestions.homeItem(FeedSuggestions.filter(new Item(Kind.EXPLORE_STORY)), item -> 0));
+        }
+        assertSame(header, FeedSuggestions.homeItem(FeedSuggestions.filter(header), item -> 0));
+        assertEquals("every post removed", 1, FeedSuggestions.feedEnded(0));
+        assertEquals(1, FeedSuggestions.feedEnded(0));
+        String report = String.join("\n", FeedFilterCounters.report());
+        assertTrue(report, report.contains(FeedSuggestions.HOME_ENDED + " 1"));
+        assertTrue(report, report.contains(FeedSuggestions.KEPT_NO_POST));
+
+        // A post in the same read keeps Home going.
+        FeedSuggestions.homeKept = false;
+        Item post = new Item(Kind.MEDIA);
+        assertSame(post, FeedSuggestions.homeItem(FeedSuggestions.filter(post), item -> FeedSuggestions.VIDEO));
+        assertEquals("Home kept a post", 0, FeedSuggestions.feedEnded(0));
+    }
+
+    /** With every suggestion switch off the post isn't read, and a failed read counts as a post. */
+    @Test
+    public void thePostCheckStaysOutOfTheWayWhenOffOrBroken() {
+        FeedSuggestions.homeReadsForTests = true;
+        Item header = new Item(Kind.MEDIA);
+        assertNull(FeedSuggestions.homeItem(FeedSuggestions.filter(new Item(Kind.EXPLORE_STORY)), item -> 0));
+        assertSame(header, FeedSuggestions.homeItem(FeedSuggestions.filter(header), item -> {
+            throw new IllegalStateException("gone");
+        }));
+        assertEquals("a failed read counts as a post", 0, FeedSuggestions.feedEnded(0));
+
+        FeedSuggestions.homeKept = false;
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_SUGGESTED_ACCOUNTS.save(false);
+        Settings.HIDE_THREADS_POSTS.save(false);
+        try {
+            int[] reads = {0};
+            assertSame(header, FeedSuggestions.homeItem(header, item -> {
+                reads[0]++;
+                return 0;
+            }));
+            assertEquals(0, reads[0]);
+            assertTrue(FeedSuggestions.homeKept);
+        } finally {
+            Settings.HIDE_SUGGESTED_POSTS.save(true);
+            Settings.HIDE_SUGGESTED_ACCOUNTS.save(true);
+            Settings.HIDE_THREADS_POSTS.save(true);
+        }
+    }
     @Test
     @Config(sdk = {28, 37})
     public void turningOffAllSuggestionSwitchesRestoresBothNativeEndAnswers() {

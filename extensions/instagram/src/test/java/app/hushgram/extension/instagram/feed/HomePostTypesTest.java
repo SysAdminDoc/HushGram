@@ -68,6 +68,9 @@ public class HomePostTypesTest {
     @After
     public void restore() {
         for (BooleanSetting setting : SWITCHES) setting.resetToDefault();
+        Settings.HIDE_SUGGESTED_POSTS.resetToDefault();
+        Settings.HIDE_SUGGESTED_ACCOUNTS.resetToDefault();
+        Settings.HIDE_THREADS_POSTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         FeedSuggestions.typesTookOut = false;
@@ -87,6 +90,10 @@ public class HomePostTypesTest {
     /** With every switch off Home keeps everything, and no item's post is read at all. */
     @Test
     public void allOffKeepsEveryItemAndReadsNothing() {
+        // Hide suggested posts reads a kept item's post to tell a post from a unit without one, so its switches go off too.
+        Settings.HIDE_SUGGESTED_POSTS.save(false);
+        Settings.HIDE_SUGGESTED_ACCOUNTS.save(false);
+        Settings.HIDE_THREADS_POSTS.save(false);
         for (int type : new int[] {0, FeedSuggestions.PHOTO, FeedSuggestions.VIDEO, FeedSuggestions.CAROUSEL}) {
             Item item = new Item(type);
             assertSame(item, FeedSuggestions.homeItem(item, typeOf));

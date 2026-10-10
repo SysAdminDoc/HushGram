@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** With Hide suggested posts on, Home no longer stays on its gray loading boxes for an account whose feed is all suggestions, like a new account that follows nobody. Home still kept an item or two that isn't a post, and those counted as posts, so it never decided it was empty. Now only items that carry a post count, and Instagram's own empty feed shows once everything else is gone. Your diagnostic report says when it happened (home page ended with every post removed). Asked about in #105 and #104.
+
 * **Instagram:** Ghost mode now works from inside Instagram. Press and hold New message at the top of your inbox and the Ghost mode switches in your build all turn on or off together, with a toast that says which way it went. A tap still starts a new message. The press does nothing while HushGram is paused.
 
 * **Instagram:** Hide Meta AI has a seventh switch, Hide Blend on reels, that starts off. With it on, the Blend invite button is gone from reels, in the Reels viewer and in the clips viewer, and the rest of the reel stays as it is. Turn the switch off to bring it back.

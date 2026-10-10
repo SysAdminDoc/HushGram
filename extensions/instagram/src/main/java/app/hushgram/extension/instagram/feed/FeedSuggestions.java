@@ -126,8 +126,20 @@ public final class FeedSuggestions {
     /** Set once Home's latest read has lost an item to {@link #filter}. Tests clear it. */
     static volatile boolean homeLost;
 
-    /** Set once Home's latest read has kept an item. Tests clear it. */
+    /** Set once Home's latest read has kept an item that carries a post. Tests clear it. */
     static volatile boolean homeKept;
+
+    /** Set once Home's latest read has kept an item that carries no post. Tests clear it. */
+    static volatile boolean homeKeptNoPost;
+
+    /** Set once the report has counted the end of Home's latest read ({@link #HOME_ENDED}). Tests clear it. */
+    static volatile boolean homeEndCounted;
+
+    /** The counted kind of a Home page that was ended because every post in it was removed. */
+    static final String HOME_ENDED = "home page ended with every post removed";
+
+    /** The counted kind of an item Home kept that carries no post (an end of feed or a header unit). */
+    static final String KEPT_NO_POST = "kept item without a post";
 
     /** Whether Home's reads go through {@link #homeItem}, when a test says so instead of the build. */
     @Nullable
@@ -180,7 +192,13 @@ public final class FeedSuggestions {
     private static boolean suggestionsEmptiedHome() {
         Boolean forced = homeReadsForTests;
         boolean homeReads = forced != null ? forced : PatchFamily.feedTypesInBuild();
-        return !homeReads || (homeLost && !homeKept);
+        if (!homeReads) return true;
+        if (!homeLost || homeKept) return false;
+        if (homeKeptNoPost && !homeEndCounted) {
+            homeEndCounted = true;
+            FeedFilterCounters.sawKind(ROUTE, HOME_ENDED);
+        }
+        return true;
     }
 
     /**
@@ -270,7 +288,13 @@ public final class FeedSuggestions {
             return null;
         }
         Object kept = byType(item, typeOf);
-        if (kept != null) homeKept = true;
+        if (kept != null) {
+            if (carriesPost(kept, typeOf)) homeKept = true;
+            else {
+                homeKeptNoPost = true;
+                FeedFilterCounters.sawKind(TYPES_ROUTE, KEPT_NO_POST);
+            }
+        }
         return kept;
     }
 
@@ -286,8 +310,29 @@ public final class FeedSuggestions {
         if (now - homeReadAt > READ_GAP_MS) {
             homeLost = false;
             homeKept = false;
+            homeKeptNoPost = false;
+            homeEndCounted = false;
         }
         homeReadAt = now;
+    }
+
+    /**
+     * Whether a kept item carries a post. A Home whose first page was all suggestions can still keep
+     * an item or two with none (a unit with no post of its own), and counting those as kept posts held
+     * off the end of Home for good: Instagram's loading placeholder stayed on an account that follows
+     * nobody (#105). Instagram ends Home only when it has nothing to draw, so this only lets the end
+     * through. Skipped while every suggestion switch is off, and an item whose post can't be read
+     * counts as one, so a failure never ends a Home that has posts.
+     */
+    private static boolean carriesPost(Object item, ToIntFunction<Object> typeOf) {
+        try {
+            if (!Utils.settingsReady() || !(Settings.HIDE_SUGGESTED_POSTS.get()
+                    || Settings.HIDE_SUGGESTED_ACCOUNTS.get() || Settings.HIDE_THREADS_POSTS.get())) return true;
+            return typeOf.applyAsInt(item) != 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post check", failure);
+            return true;
+        }
     }
 
     /** [item], or null while the switch for its post's type is on. */
