@@ -266,6 +266,8 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/VoiceMessageSaveTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/PostInfo.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/PostInfoTest.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/PopupRows.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/download/PopupRowsTest.java",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/SettingsScreenRow.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/download/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/extension/PurgeMarkers.kt",
