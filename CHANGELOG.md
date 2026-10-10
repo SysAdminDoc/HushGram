@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 * **Tooling:** The release facts check reads the push gate's kept run again when the pre-push hook starts it in a fresh PowerShell. It took git's first line straight off the pipeline, which stopped git before its exit code was set, so a fresh process saw no HEAD and fell back to the checkout's own build outputs. That's what refused the 0.0.8 index push until the gate's test results were copied in.
 
+* **Tooling:** Patch tests now run by area. Gradle can reuse results for areas whose inputs haven't changed, and release checks count the reports in each area folder.
+
 ## 0.0.8 (2026-10-09)
 
 * **Instagram:** HushGram 0.0.8 adds 1 patch, for 79 in all, and stays on Instagram 450.0.0.50.77 with Morphe Manager 1.34.0 or newer. All seven builds of that version patch: the arm64 ones (385611395, 385611400, 385611404, 385611431 and 385611438) and the x86 and x86_64 ones (385611439 and 385611440).

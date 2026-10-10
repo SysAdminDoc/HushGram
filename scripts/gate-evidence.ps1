@@ -154,7 +154,7 @@ function Get-CommitTree {
 function Get-JUnitCounts {
     <#
     .SYNOPSIS
-        The test cases, failures, errors and skips in the TEST-*.xml files of one folder.
+        The test cases, failures, errors and skips in the TEST-*.xml files below one folder.
     .DESCRIPTION
         Test cases are counted the way validate-release-facts.ps1 counts them, one per testcase
         element, so a manifest's count is the number a release description quotes.
@@ -162,7 +162,7 @@ function Get-JUnitCounts {
     param([Parameter(Mandatory = $true)][string]$Directory)
     $counts = [ordered]@{ files = 0; tests = 0; failures = 0; errors = 0; skipped = 0 }
     if (Test-Path -LiteralPath $Directory -PathType Container) {
-        foreach ($file in @(Get-ChildItem -LiteralPath $Directory -Filter 'TEST-*.xml' -File)) {
+        foreach ($file in @(Get-ChildItem -LiteralPath $Directory -Filter 'TEST-*.xml' -File -Recurse)) {
             $document = [xml](Get-Content -LiteralPath $file.FullName -Raw)
             foreach ($suite in @($document.testsuite)) {
                 $counts.failures += [int]$suite.failures
@@ -223,10 +223,14 @@ function Start-GateEvidence {
 function Copy-EvidenceFiles {
     param([string]$From, [string]$To, [string]$Filter)
     if (-not (Test-Path -LiteralPath $From -PathType Container)) { return 0 }
-    $files = @(Get-ChildItem -LiteralPath $From -Filter $Filter -File)
+    $files = @(Get-ChildItem -LiteralPath $From -Filter $Filter -File -Recurse)
     if ($files.Count -eq 0) { return 0 }
-    New-Item -ItemType Directory -Force -Path $To | Out-Null
-    foreach ($file in $files) { Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $To $file.Name) -Force }
+    foreach ($file in $files) {
+        $relative = [System.IO.Path]::GetRelativePath($From, $file.FullName)
+        $destination = Join-Path $To $relative
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
+        Copy-Item -LiteralPath $file.FullName -Destination $destination -Force
+    }
     return $files.Count
 }
 

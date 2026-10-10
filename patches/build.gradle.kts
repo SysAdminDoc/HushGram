@@ -7,6 +7,7 @@ import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedComponentResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
+import org.gradle.api.internal.tasks.testing.filter.DefaultTestFilter
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
@@ -765,14 +766,231 @@ val verifyBouncyCastleBuildGraph = tasks.register("verifyBouncyCastleBuildGraph"
     }
 }
 
+// Remove reports written by Gradle before the suite moved into area folders. They share the new
+// recursive evidence root, so leaving them there would count the same classes twice.
+val cleanLegacyPatchTestResults = tasks.register("cleanLegacyPatchTestResults") {
+    doLast {
+        val legacyDirectory = layout.buildDirectory.dir("test-results/test").get().asFile
+        legacyDirectory.listFiles().orEmpty()
+            .filter { it.isFile && it.name.startsWith("TEST-") && it.extension == "xml" }
+            .forEach { report ->
+                if (!report.delete() && report.exists()) {
+                    throw GradleException("Could not remove the old patch test report ${report.absolutePath}")
+                }
+            }
+    }
+}
+
 // By type rather than by the one name, so a second test task cannot start on a graph nothing
 // has looked at. :patches:test is what scripts/pre-push.ps1 runs when a patch source changes.
 tasks.withType<Test>().configureEach {
+    dependsOn(cleanLegacyPatchTestResults)
     dependsOn(verifyBouncyCastleBuildGraph)
     // Whole-fixture proofs need more than Gradle's default 512 MiB test-worker heap.
     maxHeapSize = "4g"
     jvmArgs("-XX:ActiveProcessorCount=2")
+    // The fixture tests skip when this is unset and read the folder when it is set. What the
+    // folder holds is the input, not its name: a run whose APK was swapped, re-signed or deleted
+    // under the same path has to run again, not come back up to date or out of the build cache
+    // with the last folder's verdict. Relative, so where the folder sits on this machine does not
+    // count. Every test task, the area tasks included, declares it. Blank counts as unset, as
+    // Fixtures.kt reads it; File("") would be the whole project.
+    val fixtureDirectory = providers.environmentVariable("HUSHGRAM_FIXTURE_DIR")
+    inputs.files(fixtureDirectory.map { if (it.isBlank()) emptyList() else listOf(File(it)) }.orElse(emptyList()))
+        .withPropertyName("fixtures")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
+
+// Split the long patch suite by its source area. Each worker gets only the compiled classes in
+// that area and the categories it imports. A change to one patch therefore leaves unrelated test
+// classpaths and JUnit results up to date. Imports are task inputs too, so adding a dependency
+// rebuilds the right staged classpath instead of silently running with a missing class.
+val patchMainSourceSet = sourceSets.named("main").get()
+val patchTestSourceSet = sourceSets.named("test").get()
+val patchInstagramMainRoot = layout.projectDirectory.dir("src/main/kotlin/app/morphe/patches/instagram").asFile
+val patchInstagramJavaMainRoot = layout.projectDirectory.dir("src/main/java/app/morphe/patches/instagram").asFile
+val patchInstagramTestRoots = listOf(
+    layout.projectDirectory.dir("src/test/kotlin/app/morphe/patches/instagram").asFile,
+    layout.projectDirectory.dir("src/test/java/app/morphe/patches/instagram").asFile,
+)
+val patchMainAreas = (listOf(patchInstagramMainRoot, patchInstagramJavaMainRoot))
+    .flatMap { it.listFiles().orEmpty().filter(File::isDirectory).map(File::getName) }
+    .toSortedSet()
+val patchPackageRegex = Regex("(?m)^\\s*package\\s+([\\w.]+)")
+val patchImportRegex = Regex("(?m)^\\s*import\\s+(?:static\\s+)?app\\.morphe\\.patches\\.instagram\\.([A-Za-z_][\\w]*)")
+val patchAreaNames = patchMainAreas + patchInstagramTestRoots
+    .flatMap { it.listFiles().orEmpty().filter(File::isDirectory).map(File::getName) }
+    .toSet()
+
+fun patchSourceFiles(directory: File): List<File> = if (directory.isDirectory) {
+    directory.walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }
+        .sortedBy { it.invariantSeparatorsPath }.toList()
+} else {
+    emptyList()
+}
+
+fun patchAreaFromPackage(packageName: String, areas: Set<String>): String? {
+    val parts = packageName.split('.')
+    if (parts.take(4) != listOf("app", "morphe", "patches", "instagram")) return null
+    return parts.getOrNull(4)?.takeIf(areas::contains)
+}
+
+fun patchSourceArea(source: File, areas: Set<String>): String? =
+    patchPackageRegex.find(source.readText())?.groupValues?.get(1)?.let { patchAreaFromPackage(it, areas) }
+
+fun patchImportedAreas(source: File, areas: Set<String>): Set<String> =
+    patchImportRegex.findAll(source.readText()).map { it.groupValues[1] }
+        .filter(areas::contains).toSet()
+
+fun patchDependencyClosure(seed: Set<String>, dependencies: Map<String, Set<String>>): Set<String> {
+    val result = seed.toMutableSet()
+    val pending = ArrayDeque(seed)
+    while (pending.isNotEmpty()) {
+        for (dependency in dependencies[pending.removeFirst()].orEmpty()) {
+            if (result.add(dependency)) pending.addLast(dependency)
+        }
+    }
+    return result
+}
+
+fun patchSourceTopology(sources: List<File>): String = sources.sortedBy { it.invariantSeparatorsPath }
+    .joinToString("\n") { source ->
+        val declarations = source.readLines().filter {
+            it.trimStart().startsWith("package ") || it.trimStart().startsWith("import ")
+        }
+        "${source.relativeTo(projectDir).invariantSeparatorsPath}:${declarations.joinToString("|")}"
+    }
+
+val patchMainRoots = listOf(
+    layout.projectDirectory.dir("src/main/kotlin").asFile,
+    layout.projectDirectory.dir("src/main/java").asFile,
+)
+val patchMainSources = patchMainRoots.flatMap(::patchSourceFiles)
+val patchTestSources = listOf(
+    layout.projectDirectory.dir("src/test/kotlin").asFile,
+    layout.projectDirectory.dir("src/test/java").asFile,
+).flatMap(::patchSourceFiles)
+val patchMainSourcesByArea = patchMainSources.mapNotNull { source ->
+    patchSourceArea(source, patchMainAreas)?.let { it to source }
+}.groupBy({ it.first }, { it.second })
+val patchMainDependencies = patchMainSources.groupBy { patchSourceArea(it, patchMainAreas) }
+    .mapNotNull { (area, sources) -> area?.let { it to sources.flatMap { patchImportedAreas(it, patchMainAreas) }.toSet() } }
+    .toMap()
+val patchTestSourcesByArea = patchTestSources.mapNotNull { source ->
+    patchSourceArea(source, patchAreaNames)?.let { it to source }
+}.groupBy({ it.first }, { it.second })
+// Test helpers in the package above the areas (FixtureDex, NeutralNativePath) are staged into every area.
+val patchSharedTestSources = patchTestSources.filter { source ->
+    !(source.name.endsWith("Test.kt") || source.name.endsWith("Test.java")) &&
+        patchPackageRegex.find(source.readText())?.groupValues?.get(1) == "app.morphe.patches.instagram"
+}
+val patchTestAreas = patchTestSources.filter { it.name.endsWith("Test.kt") || it.name.endsWith("Test.java") }
+    .mapNotNull { patchSourceArea(it, patchAreaNames) }.toSortedSet()
+fun patchTestDependencyClosure(area: String): Set<String> {
+    val result = mutableSetOf(area)
+    val pending = ArrayDeque<String>().apply { addLast(area) }
+    while (pending.isNotEmpty()) {
+        val current = pending.removeFirst()
+        val sources = patchTestSourcesByArea[current].orEmpty().filter {
+            current == area || !(it.name.endsWith("Test.kt") || it.name.endsWith("Test.java"))
+        }
+        for (dependency in sources.flatMap { patchImportedAreas(it, patchAreaNames) }) {
+            if (result.add(dependency)) pending.addLast(dependency)
+        }
+    }
+    return result
+}
+val patchCoreTestExcludes = patchTestAreas.flatMap { area ->
+    listOf(
+        "app/morphe/patches/instagram/$area/*Test.class",
+        "app/morphe/patches/instagram/$area/**/*Test.class",
+    )
+}
+val patchTestRuntimeDependencies = configurations.named("testRuntimeClasspath")
+val patchAreaTasks = patchTestAreas.map { area ->
+    val areaTests = patchTestDependencyClosure(area)
+    val areaMain = patchDependencyClosure(areaTests, patchMainDependencies)
+    val areaTestSupportSources = areaTests.filter { it != area }.flatMap { dependency ->
+        patchTestSourcesByArea[dependency].orEmpty().filterNot { it.name.endsWith("Test.kt") || it.name.endsWith("Test.java") }
+    }
+    val areaMainSources = areaMain.flatMap { patchMainSourcesByArea[it].orEmpty() }
+    val areaTestTopology = patchSourceTopology(patchTestSourcesByArea[area].orEmpty() + areaTestSupportSources +
+        patchSharedTestSources)
+    val areaMainTopology = patchSourceTopology(areaMainSources)
+    val areaNeedsMainResources = (patchTestSourcesByArea[area].orEmpty() + areaTestSupportSources).any { source ->
+        source.readText().contains("ExtensionDex") || source.readText().contains("PlayerHooks") ||
+            source.readText().contains(".mpe")
+    }
+    val capitalizedArea = area.replaceFirstChar { it.uppercase() }
+    val stagedMainClasses = tasks.register<Sync>("stage${capitalizedArea}TestMainClasses") {
+        group = "verification"
+        description = "Stages the $area patch classes used by its test partition"
+        dependsOn(tasks.named("classes"))
+        from(patchMainSourceSet.output.classesDirs) {
+            include("app/morphe/patches/instagram/*.class")
+            areaMain.forEach { include("app/morphe/patches/instagram/$it/**") }
+        }
+        from(patchMainSourceSet.output.classesDirs) {
+            include("app/morphe/**")
+            exclude("app/morphe/patches/instagram/**")
+        }
+        inputs.property("sourceTopology", areaMainTopology)
+        into(layout.buildDirectory.dir("staged-test-classes/main/$area"))
+    }
+    val stagedTestClasses = tasks.register<Sync>("stage${capitalizedArea}TestClasses") {
+        group = "verification"
+        description = "Stages the $area test classes and their shared helpers"
+        dependsOn(tasks.named("testClasses"))
+        from(patchTestSourceSet.output.classesDirs) {
+            include("app/morphe/patches/instagram/$area/**")
+        }
+        // Helpers in the package above the areas, such as FixtureDex, serve every area.
+        from(patchTestSourceSet.output.classesDirs) {
+            include("app/morphe/patches/instagram/*.class")
+            exclude("**/*Test.class", "**/*Test\$*.class")
+        }
+        areaTests.filter { it != area }.forEach { dependency ->
+            from(patchTestSourceSet.output.classesDirs) {
+                include("app/morphe/patches/instagram/$dependency/**")
+                exclude("**/*Test.class", "**/*Test\$*.class")
+            }
+        }
+        from(patchTestSourceSet.output.classesDirs) {
+            include("app/morphe/**")
+            exclude("app/morphe/patches/instagram/**")
+            exclude("**/*Test.class", "**/*Test\$*.class")
+        }
+        from(patchTestSourceSet.output.resourcesDir)
+        inputs.property("sourceTopology", areaTestTopology)
+        into(layout.buildDirectory.dir("staged-test-classes/test/$area"))
+    }
+    tasks.register<Test>("test$capitalizedArea") {
+        group = "verification"
+        description = "Runs the $area patch tests"
+        dependsOn(stagedMainClasses, stagedTestClasses)
+        testClassesDirs = files(stagedTestClasses)
+        classpath = patchTestRuntimeDependencies.get() + files(stagedMainClasses, stagedTestClasses, patchTestSourceSet.output.resourcesDir) +
+            if (areaNeedsMainResources) files(patchMainSourceSet.output.resourcesDir) else files()
+        include("app/morphe/patches/instagram/$area/*Test.class", "app/morphe/patches/instagram/$area/**/*Test.class")
+        reports.junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test/$area"))
+        binaryResultsDirectory.set(layout.buildDirectory.dir("test-binary-results/$area"))
+        inputs.property("sourceTopology", "$areaMainTopology\n$areaTestTopology")
+        val selectedPatterns = providers.provider {
+            (tasks.named<Test>("test").get().filter as DefaultTestFilter).commandLineIncludePatterns.toList()
+        }
+        inputs.property("suiteSelection", selectedPatterns)
+        failOnNoDiscoveredTests.set(selectedPatterns.map { it.isEmpty() })
+        doFirst {
+            val selected = selectedPatterns.get()
+            if (selected.isNotEmpty()) {
+                setTestNameIncludePatterns(selected)
+                filter.isFailOnNoMatchingTests = false
+            }
+        }
+    }
+}
+
+patchAreaTasks.zipWithNext().forEach { (previous, next) -> next.configure { mustRunAfter(previous) } }
 
 dependencies {
     compileOnly(libs.morphe.patcher)
@@ -800,6 +1018,15 @@ tasks {
     // The README tests read the README and the patch list, both outside this module. Declare
     // those inputs so Gradle reruns them when either changes.
     test {
+        dependsOn(patchAreaTasks)
+        exclude(patchCoreTestExcludes)
+        reports.junitXml.outputLocation.set(layout.buildDirectory.dir("test-results/test/core"))
+        binaryResultsDirectory.set(layout.buildDirectory.dir("test-binary-results/core"))
+        val selectedPatterns = providers.provider { (filter as DefaultTestFilter).commandLineIncludePatterns.toList() }
+        failOnNoDiscoveredTests.set(selectedPatterns.map { it.isEmpty() })
+        doFirst {
+            if (selectedPatterns.get().isNotEmpty()) filter.isFailOnNoMatchingTests = false
+        }
         inputs.file(rootProject.file("README.md"))
             .withPropertyName("readme")
             .withPathSensitivity(PathSensitivity.RELATIVE)
@@ -824,17 +1051,6 @@ tasks {
             },
         )
             .withPropertyName("shippedSources")
-            .withPathSensitivity(PathSensitivity.RELATIVE)
-        // The fixture tests skip when this is unset and read the folder when it is set. What the
-        // folder holds is the input, not its name: a run whose APK was swapped, re-signed or
-        // deleted under the same path has to run again, not come back up to date or out of the
-        // build cache with the last folder's verdict. Relative, so where the folder sits on this
-        // machine does not count, and an APK moved into or out of a subfolder does: the tests
-        // read only the folder's top level, and name only would call that move no change.
-        // Blank counts as unset, as Fixtures.kt reads it; File("") would be the whole project.
-        val fixtureDirectory = providers.environmentVariable("HUSHGRAM_FIXTURE_DIR")
-        inputs.files(fixtureDirectory.map { if (it.isBlank()) emptyList() else listOf(File(it)) }.orElse(emptyList()))
-            .withPropertyName("fixtures")
             .withPathSensitivity(PathSensitivity.RELATIVE)
     }
     // The bundle a release publishes lives in build/release, not build/libs. The plugin's

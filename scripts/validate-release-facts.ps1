@@ -578,7 +578,7 @@ if (-not $SkipDescriptionTestCount) {
     $patchTestRoot = if ($gateRun) { Join-Path $gateRun.Directory 'test-results/test' } else {
         Join-Path $rootPath 'patches/build/test-results/test'
     }
-    $patchTestFiles = @(Get-ChildItem -LiteralPath $patchTestRoot -Filter '*.xml' -File -ErrorAction SilentlyContinue)
+    $patchTestFiles = @(Get-ChildItem -LiteralPath $patchTestRoot -Filter '*.xml' -File -Recurse -ErrorAction SilentlyContinue)
     if ($patchTestFiles.Count -eq 0) {
         throw ("No patch test results found under $patchTestRoot. Run :patches:test with " +
             'HUSHGRAM_FIXTURE_DIR set first.')

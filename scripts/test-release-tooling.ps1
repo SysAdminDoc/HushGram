@@ -2312,7 +2312,7 @@ try {
     # patcher, Manager at the README's floor refuses it.
     # Test results as Gradle writes them, one class per file, for the cases below.
     $runtimeResults = 'extensions/instagram/build/test-results/testDebugUnitTest'
-    $patchResults = 'patches/build/test-results/test'
+    $patchResults = 'patches/build/test-results/test/direct'
     function Write-FactsResults {
         param([string]$Folder, [string]$Suite, [int]$Tests, [int]$Skipped = 0, [string]$Under = $factsRoot)
         $directory = Join-Path $Under $Folder
@@ -3564,7 +3564,7 @@ try {
         } finally {
             Remove-Item -LiteralPath $releaseBundle -Force -ErrorAction SilentlyContinue
         }
-        $sevenPatchTests = Get-ChildItem -LiteralPath (Join-Path $indexGate 'test-results/test') -Filter '*.xml' | Select-Object -First 1
+        $sevenPatchTests = Get-ChildItem -LiteralPath (Join-Path $indexGate 'test-results/test') -Filter '*.xml' -File -Recurse | Select-Object -First 1
         $sevenPatchTestsText = [System.IO.File]::ReadAllText($sevenPatchTests.FullName)
         try {
             # Six patch tests in the gate's results, with the manifest saying so, against a

@@ -164,11 +164,11 @@ try {
     }
     $countTool = Join-Path $releaseDir 'count_tests.py'
     Write-Results (Join-Path $countRoot 'extensions/instagram/build/test-results/testDebugUnitTest') 5 -Claimed 9
-    Write-Results (Join-Path $countRoot 'patches/build/test-results/test') 7
+    Write-Results (Join-Path $countRoot 'patches/build/test-results/test/direct') 7
     $run = Invoke-Python $countTool '--root' $countRoot '--description'
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Validation: 5 runtime tests passed locally. All 7 patch tests passed too.*') `
         "The counter didn't count test cases the way the release check does: $($run.Output)"
-    Write-Results (Join-Path $countRoot 'patches/build/test-results/test') 7 -Skipped 1
+    Write-Results (Join-Path $countRoot 'patches/build/test-results/test/direct') 7 -Skipped 1
     $run = Invoke-Python $countTool '--root' $countRoot
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*skipped=1*' -and $run.Output -like '*no release can quote it*') `
         "A run with a skip was counted as quotable: $($run.Output)"
@@ -187,7 +187,7 @@ try {
     $countCommit = "$(Invoke-CountGit rev-parse HEAD)".Trim()
     $countTree = "$(Invoke-CountGit rev-parse 'HEAD^{tree}')".Trim()
     Write-Results (Join-Path $gateCache "$countCommit/test-results/testDebugUnitTest") 4
-    Write-Results (Join-Path $gateCache "$countCommit/test-results/test") 6
+    Write-Results (Join-Path $gateCache "$countCommit/test-results/test/feed") 6
     $countManifest = Join-Path $gateCache "$countCommit/manifest.json"
     function Write-CountManifest([string]$Passed = 'true', [string]$Commit = $countCommit, [string]$Tree = $countTree) {
         Write-Text $countManifest "{`"passed`": $Passed, `"stage`": `"done`", `"commit`": `"$Commit`", `"tree`": `"$Tree`"}"
@@ -229,7 +229,11 @@ try {
     Write-Text (Join-Path $repo '.gitignore') "build/`npatches/build/`n"
     $catalog = Get-Content -LiteralPath (Join-Path $repo 'patches-list.json') -Raw | ConvertFrom-Json
     $patchNames = @($catalog.patches | ForEach-Object { [string]$_.name })
-    function Invoke-RepoGit { $gitArguments = $args; & git -C $repo @gitArguments 2>&1; if ($LASTEXITCODE -ne 0) { throw "git $gitArguments failed" } }
+    function Invoke-RepoGit {
+        $gitArguments = $args
+        & git -C $repo @gitArguments 2>&1
+        if ($LASTEXITCODE -ne 0) { throw "git $gitArguments failed" }
+    }
     Invoke-RepoGit init -q -b main | Out-Null
     Invoke-RepoGit config core.autocrlf false | Out-Null
     Invoke-RepoGit add -A | Out-Null
@@ -368,7 +372,7 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     # The gate builds in a worktree at the pushed commit, and the manifest names that tree.
     Invoke-RepoGit worktree add --detach $gateTree HEAD | Out-Null
     Write-Results (Join-Path $gateTree 'extensions/instagram/build/test-results/testDebugUnitTest') 3
-    Write-Results (Join-Path $gateTree 'patches/build/test-results/test') 2
+    Write-Results (Join-Path $gateTree 'patches/build/test-results/test/stories') 2
     Write-Text (Join-Path $gateTree 'patches/build/release/patches-0.0.1.mpp') 'bundle'
     Write-Text (Join-Path $gateTree 'patches/build/release/patches-0.0.1.cdx.json') '{}'
     $gateDir = Start-GateEvidence -Commit $repoHead
@@ -379,6 +383,8 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
         -Apk $declaredBundle -Bundle $bundle -PatchList (Join-Path $repo 'patches-list.json') -DesktopJar $desktop `
         -VersionName $declared -VersionCode '385611438' -Forced $false
     Save-GateEvidence -Directory $gateDir -GateRoot $gateTree -Commit $repoHead -Passed $true -Stage 'done' -FixturesPatched $true | Out-Null
+    Assert-True (Test-Path -LiteralPath (Join-Path $gateDir 'test-results/test/stories/TEST-fixture.Suite.xml')) `
+        'The gate did not preserve a nested patch test report.'
     $run = Invoke-AllBuilds @('-Only', '385611438', '-FromGate')
     $entry = @((Read-Summary).builds)[0]
     Assert-True ($run.Exit -eq 0 -and @(Read-Log | Where-Object { $_ -like 'patch *' }).Count -eq 0 -and $entry.ok -and
@@ -475,5 +481,8 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], [EnvironmentVariableTarget]::Process) }
     $temp = [IO.Path]::GetFullPath([IO.Path]::GetTempPath())
     if (-not $scratch.StartsWith($temp, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe release helper fixture cleanup path.' }
+    if (Get-Command Unlock-GateEvidence -ErrorAction SilentlyContinue) {
+        foreach ($commit in @($script:GateEvidenceLocks.Keys)) { Unlock-GateEvidence -Commit $commit }
+    }
     if (Test-Path -LiteralPath $scratch) { Remove-Item -LiteralPath $scratch -Recurse -Force }
 }

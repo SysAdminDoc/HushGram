@@ -8,10 +8,10 @@ data folder (or HUSHGRAM_GATE_CACHE set only for the user on Windows), the place
 scripts/gate-evidence.ps1 keeps them, and refuses a run whose manifest doesn't say it passed or
 names another commit or tree than the one asked for.
 
-Tests are counted one per testcase element, the way validate-release-facts.ps1 counts them, so
-the numbers are the ones the index description has to quote. A folder with no results, or with
-a failure, an error or a skip, makes the run exit 1. --description prints the description's
-validation sentence from the two counts.
+Nested area reports are read recursively. Tests are counted one per testcase element, the way
+validate-release-facts.ps1 counts them, so the numbers are the ones the index description has to
+quote. A folder with no results, or with a failure, an error or a skip, makes the run exit 1.
+--description prints the description's validation sentence from the two counts.
 
     py -3.13 -I scripts/release/count_tests.py --gate --description
 
@@ -35,9 +35,9 @@ PATCHES = "patches/build/test-results/test"
 
 
 def count(folder: pathlib.Path) -> dict[str, int]:
-    """Files, test cases, failures, errors and skips in the TEST-*.xml files of one folder."""
+    """Files, cases, failures, errors and skips in reports below one folder."""
     totals = {"files": 0, "tests": 0, "failures": 0, "errors": 0, "skipped": 0}
-    for path in sorted(folder.glob("TEST-*.xml")):
+    for path in sorted(folder.rglob("TEST-*.xml")):
         root = ET.parse(path).getroot()
         suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
         for suite in suites:
