@@ -460,6 +460,17 @@ tasks.register("verifyAndroidBoundaries") {
                 "choosingMuteChangesTheSummaryAndPauseKeepsTheSavedChoice[28]", "choosingMuteChangesTheSummaryAndPauseKeepsTheSavedChoice[37]",
                 "keepMutedSwitchFollowsTheTapChoiceAndStartsOff[28]", "keepMutedSwitchFollowsTheTapChoiceAndStartsOff[37]",
                 "missingPatchHasNoKeepMutedSwitch[28]", "missingPatchHasNoKeepMutedSwitch[37]"),
+            "app.hushgram.extension.instagram.stories.StorySoundTest" to listOf(
+                "itStartsOffAndLeavesInstagramsOwnSoundAlone[28]", "itStartsOffAndLeavesInstagramsOwnSoundAlone[37]",
+                "onWithTheRingerOnAndTheVolumeUpItStartsWithSound[28]", "onWithTheRingerOnAndTheVolumeUpItStartsWithSound[37]",
+                "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[28]", "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[37]",
+                "pausedHushGramLeavesTheSoundAlone[28]", "pausedHushGramLeavesTheSoundAlone[37]",
+                "beforeTheSettingsAreReadyItIsInstagramsOwnSound[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnSound[37]",
+                "withoutAViewerItSaysNo[28]", "withoutAViewerItSaysNo[37]"),
+            "app.hushgram.extension.instagram.settings.StorySoundSettingsTest" to listOf(
+                "theSwitchIsUnderStoriesAfterLoopAndStartsOff[28]", "theSwitchIsUnderStoriesAfterLoopAndStartsOff[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

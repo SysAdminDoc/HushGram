@@ -187,6 +187,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_loop_stories", FALSE);
 
     /**
+     * Stories open with their sound on, through Instagram's own audio state, when the phone's ringer
+     * is on and its volume is up ({@link app.hushgram.extension.instagram.stories.StorySound}). Off
+     * to start.
+     */
+    public static final BooleanSetting START_STORIES_WITH_SOUND =
+            new BooleanSetting("hushgram_start_stories_with_sound", FALSE);
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */

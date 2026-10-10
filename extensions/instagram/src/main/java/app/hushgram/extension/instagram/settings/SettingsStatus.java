@@ -80,6 +80,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storySound() {
+        return false;
+    }
+
     public static boolean storySeen() {
         return false;
     }

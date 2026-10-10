@@ -1367,3 +1367,8 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->muteInstead
 # ReelTapAndVolumeHookTest checks on all seven 450 builds that it lands once, there. It also hands over whether Reels sound is on,
 # read the way the audio toggle reads it, so a volume up on a reel that already has sound keeps Instagram's unmute.
 once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(II)Z in instance ()V holding android_purge_26_q3_ClipsVideoPlayerController_onVolumeAdjustedByUser
+# Start stories with sound asks StorySound.startWithSound() once, right after the story viewer's
+# onCreate calls its super, and the viewer's own onCreate is the one instance (Bundle)V method of
+# the class that calls a superclass onCreate. Left out, stories open as the ringer and volume
+# alone say; twice or elsewhere, it isn't the call the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StorySound;->startWithSound(Ljava/lang/Object;)I in instance (Landroid/os/Bundle;)V calling instance L*;->onCreate(Landroid/os/Bundle;)V class-holding ReelViewerFragment.onCurrentActiveItemBound
