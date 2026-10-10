@@ -301,6 +301,8 @@ internal class FollowingStubs(
     private val fetchViewerId: MutableMethod,
     private val statusFollowedBy: MutableMethod,
     private val sessionUserId: MutableMethod,
+    internal val orderBinder: MutableMethod,
+    internal val rebuildRows: MutableMethod,
 ) {
     fun fill(found: FollowRow, answers: FollowAnswers) {
         // Answers an Object, so its ways out may meet at one return.
@@ -411,7 +413,7 @@ internal fun BytecodePatchContext.followingStubs(): FollowingStubs {
         it.name == name && it.returnType == returns && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf(OBJECT)
     } ?: refuse("$FOLLOWING_LIST has no static $returns $name($OBJECT)")
-    for (hook in listOf(FOLLOWING_ROW, KNOWN, ANSWERED)) {
+    for (hook in listOf(FOLLOWING_ROW, KNOWN, ANSWERED, ORDERED)) {
         extension.methods.singleOrNull {
             "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->") &&
                 AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
@@ -428,5 +430,10 @@ internal fun BytecodePatchContext.followingStubs(): FollowingStubs {
         fetchViewerId = stub("fetchViewerId", OBJECT),
         statusFollowedBy = stub("statusFollowedBy", "Ljava/lang/Boolean;"),
         sessionUserId = stub("sessionUserId", STRING),
+        orderBinder = stub("orderBinder", OBJECT),
+        rebuildRows = extension.methods.singleOrNull {
+            it.name == "rebuildRows" && it.returnType == "V" && AccessFlags.STATIC.isSet(it.accessFlags) &&
+                it.parameterTypes.map(Any::toString) == listOf(OBJECT, "Z", "Z")
+        } ?: refuse("$FOLLOWING_LIST has no static V rebuildRows($OBJECT" + "ZZ)"),
     )
 }

@@ -10,10 +10,13 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -53,10 +56,22 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * name line in again on each bind, and a mark it didn't overwrite is taken back here before the row
  * is looked at afresh. With the switch off, HushGram paused, the settings not read yet or anything
  * thrown, the row stays as Instagram drew it.
+ *
+ * <p>The third switch puts the accounts that don't follow you back first ({@link #ordered}). Instagram
+ * rebuilds every row of a follow list from the whole list of accounts loaded so far, at each page and
+ * each change, and the patch hands that list here as it does. The sort is stable and works on a copy,
+ * with the same answers the mark goes by, so it covers every page loaded and never just the newest.
+ * The answers come after the rows are drawn, so once the server has said no to an account, the
+ * list is rebuilt once more, a moment later ({@link #rebuildSoon}).
  */
 public final class FollowingList {
     static final String REFETCH = "following list refetch";
     static final String ANSWER = "following list answer";
+    static final String ORDER = "following list order";
+    static final String REBUILD = "following list rebuild";
+
+    /** How long after the last no from the server the list is rebuilt, so one page's answers rebuild it once. */
+    static final long REBUILD_DELAY_MS = 400;
 
     /** How many answers are kept: about a dozen pages of a long list, oldest dropped first. */
     static final int MAX_ANSWERS = 4096;
@@ -84,6 +99,10 @@ public final class FollowingList {
             Collections.unmodifiableSet(new HashSet<>(Arrays.asList("FOLLOWING", "FOLLOWING_SIMPLIFIED")));
 
     static final String ROW = "following list row";
+
+    /** The state holder of the list last put in order, weakly, so it can be asked to rebuild its rows. */
+    private static WeakReference<Object> orderedList = new WeakReference<>(null);
+    private static boolean rebuildQueued;
 
     /**
      * The name lines this marked, with what each held before and what it was given. Weak, so a row
@@ -205,7 +224,7 @@ public final class FollowingList {
     @Nullable
     public static Object known(@Nullable Object friendship, Object list) {
         return known(friendship, list, FollowingList::fetchKind, FollowingList::fetchOwnerId,
-                FollowingList::fetchViewerId, FollowingList::switchedOn);
+                FollowingList::fetchViewerId, FollowingList::asking);
     }
 
     interface ListPart {
@@ -235,10 +254,84 @@ public final class FollowingList {
     public static void answered(@Nullable Object user, @Nullable Object status, @Nullable Object session) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
-            if (!switchedOn() || user == null || status == null || session == null) return;
-            remember(sessionUserId(session), FriendshipStatus.userId(user), statusFollowedBy(status));
+            if (!asking() || user == null || status == null || session == null) return;
+            Boolean followedBy = statusFollowedBy(status);
+            remember(sessionUserId(session), FriendshipStatus.userId(user), followedBy);
+            if (Boolean.FALSE.equals(followedBy) && orderSwitchedOn()) rebuildSoon();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ANSWER, failure);
+        }
+    }
+
+    /**
+     * Injected where a follow list builds its rows, with the list of accounts loaded so far and the
+     * list's state holder. Answers the list with the accounts that don't follow you back first, each
+     * group in Instagram's order, when it's your own Following list and the switch is on, and the list
+     * itself otherwise. The answer is a copy and Instagram's list is never changed. Never throws.
+     */
+    public static Object ordered(Object users, Object list) {
+        try {
+            HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (!orderSwitchedOn()) return users;
+            return ordered(users, list, orderBinder(list), PATCHED, FollowingList::orderSwitchedOn);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ORDER, failure);
+            return users;
+        }
+    }
+
+    static Object ordered(Object users, Object list, @Nullable Object binder, Reader reader, BooleanSupplier on) {
+        try {
+            HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (!(users instanceof List) || list == null || binder == null || !on.getAsBoolean()) return users;
+            String viewer = reader.viewerId(binder);
+            if (!ownFollowingList(reader.listKind(binder), reader.listOwnerId(binder), viewer)) return users;
+            synchronized (FollowingList.class) {
+                orderedList = new WeakReference<>(list);
+            }
+            List<Object> notBack = new ArrayList<>();
+            List<Object> rest = new ArrayList<>();
+            boolean moved = false;
+            for (Object user : (List<?>) users) {
+                // Only the server's no to a request that asked counts, as it does for the mark.
+                if (Boolean.FALSE.equals(reader.answer(viewer, user)) && !Boolean.TRUE.equals(reader.followedBy(user))) {
+                    moved |= !rest.isEmpty();
+                    notBack.add(user);
+                } else {
+                    rest.add(user);
+                }
+            }
+            if (!moved) return users;
+            notBack.addAll(rest);
+            return notBack;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ORDER, failure);
+            return users;
+        }
+    }
+
+    /**
+     * Has the list put in order last rebuild its rows once, a moment from now, when none is queued
+     * already: the server's answers come after the rows are drawn, and a no moves its account up.
+     */
+    private static void rebuildSoon() {
+        synchronized (FollowingList.class) {
+            if (rebuildQueued || orderedList.get() == null) return;
+            rebuildQueued = true;
+        }
+        Utils.runOnMainThreadDelayed(FollowingList::rebuild, REBUILD_DELAY_MS);
+    }
+
+    private static void rebuild() {
+        Object list;
+        synchronized (FollowingList.class) {
+            rebuildQueued = false;
+            list = orderedList.get();
+        }
+        try {
+            if (list != null && orderSwitchedOn()) rebuildRows(list, false, false);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, REBUILD, failure);
         }
     }
 
@@ -321,7 +414,27 @@ public final class FollowingList {
         return Utils.settingsReady() && Settings.MARK_FOLLOWING_LIST.get();
     }
 
+    /** Whether the list is asked about every row: for the mark, or for the order, which goes by the same answers. */
+    static boolean asking() {
+        return Utils.settingsReady() && (Settings.MARK_FOLLOWING_LIST.get() || Settings.FOLLOWING_NOT_BACK_FIRST.get());
+    }
+
+    /** Whether the order switch is on: off while paused and before the settings are read. */
+    static boolean orderSwitchedOn() {
+        return Utils.settingsReady() && Settings.FOLLOWING_NOT_BACK_FIRST.get();
+    }
+
     // ------------------------------------------------------------------ what the patch fills in
+
+    /** Filled in by the patch: the row binder a follow list's state holder [list] draws its rows with, or null. */
+    @Nullable
+    public static Object orderBinder(Object list) {
+        return null;
+    }
+
+    /** Filled in by the patch: has the follow list's state holder [list] build its rows again from its accounts. */
+    public static void rebuildRows(Object list, boolean first, boolean second) {
+    }
 
     /** Filled in by the patch: the kind of list [binder] draws, Instagram's enum constant, or null. */
     @Nullable

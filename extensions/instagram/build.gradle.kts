@@ -433,7 +433,13 @@ tasks.register("verifyAndroidBoundaries") {
                 "otherListsStayUnmarked[28]", "otherListsStayUnmarked[37]",
                 "offPausedAndUnreadyKeepInstagramsRow[28]", "offPausedAndUnreadyKeepInstagramsRow[37]",
                 "aThrowingReaderOrSwitchKeepsTheRowAndIsReported[28]", "aThrowingReaderOrSwitchKeepsTheRowAndIsReported[37]",
-                "aRecycledRowLosesItsStaleMark[28]", "aRecycledRowLosesItsStaleMark[37]"),
+                "aRecycledRowLosesItsStaleMark[28]", "aRecycledRowLosesItsStaleMark[37]",
+                "ownFollowingListPutsWhoDoesNotFollowBackFirstAndKeepsTheOrder[28]", "ownFollowingListPutsWhoDoesNotFollowBackFirstAndKeepsTheOrder[37]",
+                "aListAlreadyInOrderComesBackAsItIs[28]", "aListAlreadyInOrderComesBackAsItIs[37]",
+                "aLaterYesKeepsAnAnsweredNoInTheSecondGroup[28]", "aLaterYesKeepsAnAnsweredNoInTheSecondGroup[37]",
+                "otherListsAndAnOffSwitchKeepInstagramsOrder[28]", "otherListsAndAnOffSwitchKeepInstagramsOrder[37]",
+                "aThrowingReaderKeepsTheListAndIsReported[28]", "aThrowingReaderKeepsTheListAndIsReported[37]",
+                "eitherSwitchHasTheListAskAboutEveryRow[28]", "eitherSwitchHasTheListAskAboutEveryRow[37]"),
             "app.hushgram.extension.instagram.stories.StoryMarksTest" to listOf(
                 "unmarkedStoriesNeverReachTheRequest[28]", "unmarkedStoriesNeverReachTheRequest[37]",
                 "aMarkedStoryGoesOnceAndOnlyOnce[28]", "aMarkedStoryGoesOnceAndOnlyOnce[37]",
@@ -503,7 +509,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "bothCommentSwitchesShareOneCategoryAndStayIndependent[28]", "bothCommentSwitchesShareOneCategoryAndStayIndependent[37]"),
             "app.hushgram.extension.instagram.settings.FollowingListSettingsTest" to listOf(
                 "missingPatchHasNoFollowingListSwitch[28]", "missingPatchHasNoFollowingListSwitch[37]",
-                "followingListSwitchStartsOffPersistsAndHonorsPause[28]", "followingListSwitchStartsOffPersistsAndHonorsPause[37]"),
+                "followingListSwitchStartsOffPersistsAndHonorsPause[28]", "followingListSwitchStartsOffPersistsAndHonorsPause[37]",
+                "orderSwitchStartsOffUnderTheMarkAndHonorsPause[28]", "orderSwitchStartsOffUnderTheMarkAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.reels.ReelAutoScrollTest" to listOf(
                 "anOnAnswerIsRememberedAndOutlivesInstagramsOff[28]", "anOnAnswerIsRememberedAndOutlivesInstagramsOff[37]",
                 "turningItOffIsRemembered[28]", "turningItOffIsRemembered[37]",

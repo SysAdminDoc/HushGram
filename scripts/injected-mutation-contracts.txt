@@ -980,6 +980,13 @@ once-call Lapp/hushgram/extension/instagram/profile/FollowingList;->row(Ljava/la
 # wrote. FollowingListHookTest checks on the 450 fixture where each lands.
 once-call Lapp/hushgram/extension/instagram/profile/FollowingList;->known(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()Ljava/lang/Object; holding non_recip_followers
 once-call Lapp/hushgram/extension/instagram/profile/FollowingList;->answered(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/*;Lcom/instagram/common/session/UserSession;Z)LX/*; holding friendship_statuses
+# Its third switch (#40) puts the accounts that don't follow you back first. The follow list's state
+# holder builds every row from the accounts loaded so far (0E7S.A0H on 450, the one (ZZ)V method
+# loading the trace name below), so each page and each change builds them all again. The hook is
+# called once there, right after the read of that list, and what it answers is walked in its place.
+# Left out, the list keeps Instagram's order; twice or elsewhere, it isn't the hook the patch wrote.
+# FollowingListHookTest checks on the 450 fixtures where it lands.
+once-call Lapp/hushgram/extension/instagram/profile/FollowingList;->ordered(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance (ZZ)V holding follow_list_users_added_to_view
 
 # Copy comment and Save comment photo share one call, added after the common renderer's popup
 # guards, once before its stock list iteration. Whichever patch runs first writes it and the other

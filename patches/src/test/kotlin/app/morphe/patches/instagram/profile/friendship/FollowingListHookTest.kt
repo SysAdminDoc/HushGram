@@ -50,6 +50,9 @@ class FollowingListHookTest {
             "subtitle(Ljava/lang/Object;)Landroid/widget/TextView;",
             KNOWN.substringAfter("->"),
             ANSWERED.substringAfter("->"),
+            ORDERED.substringAfter("->"),
+            "orderBinder(Ljava/lang/Object;)Ljava/lang/Object;",
+            "rebuildRows(Ljava/lang/Object;ZZ)V",
             "fetchKind(Ljava/lang/Object;)Ljava/lang/Object;",
             "fetchOwnerId(Ljava/lang/Object;)Ljava/lang/Object;",
             "fetchViewerId(Ljava/lang/Object;)Ljava/lang/Object;",
@@ -92,6 +95,49 @@ class FollowingListHookTest {
 
         assertAsked("stand-in", context, found)
     }
+
+    /** #40: the rows are built from the loaded accounts, and the hook puts them in order right before the loop walks them. */
+    @Test
+    fun theOrderHookGoesWhereTheRowsAreBuilt() {
+        val context = PatchContexts.of(standIns())
+        val found = context.findFollowOrder(context.findFollowRow())
+        assertEquals("$ORDER_STATE->build", "${found.type}->${found.name}")
+        assertEquals("$ORDER_STATE->binder:$BINDER", found.binder.toString())
+        context.orderFollowRows(found)
+
+        assertOrdered("stand-in", context, found)
+    }
+
+    @Test
+    fun theOrderStubsReachTheBinderAndTheBuilder() {
+        val context = PatchContexts.of(standIns())
+        val stubs = context.followingStubs()
+        stubs.fillOrder(context.findFollowOrder(context.findFollowRow()))
+
+        val extension = context.mutableClassDefBy(FOLLOWING_LIST).methods
+        fun reads(stub: String) = extension.single { it.name == stub }.implementation!!.instructions
+            .mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
+        assertTrue("$ORDER_STATE->binder:$BINDER" in reads("orderBinder"))
+        assertTrue("$ORDER_STATE->build(ZZ)V" in reads("rebuildRows"))
+    }
+
+    @Test
+    fun noBuilderFailsTheOrder() = assertOrderRefused(standIns(orderTrace = "something_else"), "expected one method loading")
+
+    @Test
+    fun twoBuildersFailTheOrder() =
+        assertOrderRefused(standIns() + copyOf(standIns().single { it.type == ORDER_STATE }, "Lfixture/SecondBuilder;"), "found 2")
+
+    /** A jump past the read to the iterator call would skip the hook for some rebuilds, and the accounts wouldn't be the read's. */
+    @Test
+    fun aBranchSkippingTheReadFailsTheOrder() = assertOrderRefused(standIns(orderJump = true), "found 0")
+
+    /** The accounts written again between the read and the emptiness check could be anything by then. */
+    @Test
+    fun aListWrittenOverFailsTheOrder() = assertOrderRefused(standIns(orderListAgain = "const/4 v0, 0x0"), "found 0")
+
+    @Test
+    fun aBuilderWithoutTheBinderFailsTheOrder() = assertOrderRefused(standIns(orderBinderField = false), "to keep one public")
 
     @Test
     fun theStubsReachTheListTheAccountAndTheNameLine() {
@@ -247,6 +293,12 @@ class FollowingListHookTest {
                 assertHooked("${bundle.name} ${found.type}->${found.name}", method)
                 assertAsked(bundle.name, context, answers)
 
+                val order = context.findFollowOrder(found)
+                assertEquals("${bundle.name}: the builder keeps the binder", found.type, order.binder.type)
+                context.orderFollowRows(order)
+                context.followingStubs().fillOrder(order)
+                assertOrdered(bundle.name, context, order)
+
                 val binder = classes.single { it.type == found.type }
                 assertRefused(classes + copyOf(binder, "Lfixture/SecondBinder;"), "found 2")
                 assertRefused(classes.filter { it.type != FOLLOW_LIST_DATA }, "$FOLLOW_LIST_DATA isn't in this build")
@@ -261,7 +313,7 @@ class FollowingListHookTest {
      * get to the list, the row, the status and the account, in three passes over the bundle.
      */
     private fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
-        val anchors = listOf(FOLLOW_ROW_STATE, NON_RECIP_FOLLOWERS, FRIENDSHIP_STATUSES)
+        val anchors = listOf(FOLLOW_ROW_STATE, NON_RECIP_FOLLOWERS, FRIENDSHIP_STATUSES, FOLLOW_LIST_ADDED)
         val binders = anchors.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
         val wanted = mutableSetOf(USER, USER_SESSION, FOLLOW_LIST_DATA, RELATIONSHIP)
         for (classDef in binders) {
@@ -299,6 +351,15 @@ class FollowingListHookTest {
         assertUntouched(context)
     }
 
+    /** [assertRefused] for the place the list's rows are built from its accounts. */
+    private fun assertOrderRefused(classes: List<ClassDef>, why: String) {
+        val context = PatchContexts.of(classes)
+        val row = context.findFollowRow()
+        val refusal = assertThrows(PatchException::class.java) { context.findFollowOrder(row) }
+        assertTrue(refusal.message, refusal.message!!.startsWith("$PATCH: ") && why in refusal.message!!)
+        assertUntouched(context)
+    }
+
     /** [assertRefused] for the places the list's answers come from. */
     private fun assertAnswersRefused(classes: List<ClassDef>, why: String) {
         val context = PatchContexts.of(classes)
@@ -309,7 +370,7 @@ class FollowingListHookTest {
     }
 
     private fun assertUntouched(context: BytecodePatchContext) {
-        val hooks = setOf(FOLLOWING_ROW, KNOWN, ANSWERED)
+        val hooks = setOf(FOLLOWING_ROW, KNOWN, ANSWERED, ORDERED)
         context.classDefForEach { classDef ->
             classDef.methods.forEach { method ->
                 val calls = method.implementation?.instructions?.toList().orEmpty()
@@ -387,6 +448,34 @@ class FollowingListHookTest {
         assertNoBranchLands(what, parser, answered)
     }
 
+    /**
+     * The order hook once and nowhere else: handed the loaded accounts and `this` right after the
+     * builder reads the accounts, answered into the same register, typed back to a List before the
+     * iterator is asked for, and with no branch landing on it.
+     */
+    private fun assertOrdered(what: String, context: BytecodePatchContext, found: FollowOrder) {
+        var total = 0
+        context.classDefForEach { classDef ->
+            classDef.methods.forEach { method ->
+                total += method.implementation?.instructions?.count { (it as? ReferenceInstruction)?.reference?.toString() == ORDERED } ?: 0
+            }
+        }
+        assertEquals("$what: calls of the order hook", 1, total)
+
+        val code = context.mutableClassDefBy(found.type).methods.single {
+            it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        }.implementation!!.instructions.toList()
+        val hook = code.indexOfFirst { (it as? ReferenceInstruction)?.reference?.toString() == ORDERED }
+        assertEquals("$what: right after the read", Opcode.IGET_OBJECT, code[hook - 1].opcode)
+        assertEquals("$what: of the accounts", found.users, (code[hook - 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: answered into the same register", found.users, (code[hook + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: kept", Opcode.MOVE_RESULT_OBJECT, code[hook + 1].opcode)
+        assertEquals("$what: typed back", Opcode.CHECK_CAST, code[hook + 2].opcode)
+        assertEquals("$what: as a list", "Ljava/util/List;", ((code[hook + 2] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("$what: before the iterator", "iterator", ((code[hook + 3] as ReferenceInstruction).reference as MethodReference).name)
+        assertNoBranchLands(what, code, hook)
+    }
+
     private fun assertNoBranchLands(what: String, code: List<com.android.tools.smali.dexlib2.iface.instruction.Instruction>, at: Int) {
         val addresses = code.runningFold(0) { address, instruction -> address + instruction.codeUnits }
         for ((index, instruction) in code.withIndex()) {
@@ -412,6 +501,7 @@ class FollowingListHookTest {
         const val STATUS = "Lfixture/Status;"
         const val JSON = "Lfixture/Json;"
         const val USERS = "Lfixture/Users;"
+        const val ORDER_STATE = "Lfixture/ListBuilder;"
 
         /**
          * The classes the patch reads, shaped as on 449: an instance `bindView(int, View, Object,
@@ -435,6 +525,10 @@ class FollowingListHookTest {
             checksAccount: Boolean = true,
             jumpsPastCheck: Boolean = false,
             statusAgain: String = "",
+            orderTrace: String = FOLLOW_LIST_ADDED,
+            orderJump: Boolean = false,
+            orderListAgain: String = "",
+            orderBinderField: Boolean = true,
         ): List<ClassDef> {
             val bind = method(
                 BINDER, "bindView", parameters, "V", 10,
@@ -575,7 +669,41 @@ class FollowingListHookTest {
                     return-void
                 """,
             )
+            // Shaped as on 450: the state holder's row builder walks the accounts it has loaded, adding a row
+            // for each, and names its trace once they are on screen.
+            val build = method(
+                ORDER_STATE, "build", listOf("Z", "Z"), "V", 8,
+                """
+                    const/4 v4, 0x0
+                    ${if (orderJump) "if-nez v4, :iterate" else ""}
+                    iget-object v0, p0, $ORDER_STATE->users:Ljava/util/List;
+                    :iterate
+                    invoke-interface { v0 }, Ljava/util/List;->iterator()Ljava/util/Iterator;
+                    move-result-object v1
+                    $orderListAgain
+                    :each
+                    invoke-interface { v1 }, Ljava/util/Iterator;->hasNext()Z
+                    move-result v2
+                    if-eqz v2, :done
+                    invoke-interface { v1 }, Ljava/util/Iterator;->next()Ljava/lang/Object;
+                    move-result-object v3
+                    goto :each
+                    :done
+                    invoke-interface { v0 }, Ljava/util/List;->isEmpty()Z
+                    move-result v2
+                    if-nez v2, :skip
+                    const-string v3, "$orderTrace"
+                    :skip
+                    return-void
+                """,
+                static = false,
+            )
             return listOf(
+                classOf(
+                    ORDER_STATE,
+                    listOf(field(ORDER_STATE, "users", "Ljava/util/List;")) + if (orderBinderField) listOf(field(ORDER_STATE, "binder", BINDER)) else emptyList(),
+                    listOf(build),
+                ),
                 classOf(FETCH, listOf(field(FETCH, "list", LIST_STATE)), listOf(fetch)),
                 classOf(LIST_STATE, listOf(field(LIST_STATE, "data", FOLLOW_LIST_DATA), field(LIST_STATE, "session", USER_SESSION)), emptyList()),
                 classOf(PARSER, emptyList(), listOf(parse)),

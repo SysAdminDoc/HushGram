@@ -38,6 +38,7 @@ public class FollowingListSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
+        Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
         Settings.SHOW_FRIENDSHIP_STATUS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -50,6 +51,7 @@ public class FollowingListSettingsTest {
         PatchFamily.inBuildForTests = null;
         PatchFamily.followingListMarkForTests = null;
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
+        Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
         Settings.SHOW_FRIENDSHIP_STATUS.resetToDefault();
         Settings.FRIENDSHIP_STATUS_CHIP.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -92,6 +94,29 @@ public class FollowingListSettingsTest {
         assertTrue(Settings.MARK_FOLLOWING_LIST.get());
         assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
+    /** Put accounts that don't follow you back first sits right under the mark's switch, starts off and is off while paused. */
+    @Test public void orderSwitchStartsOffUnderTheMarkAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference first = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FOLLOWING_NOT_BACK_FIRST.key);
+        SwitchPreference mark = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_FOLLOWING_LIST.key);
+        assertNotNull(first);
+        assertEquals("Put accounts that don't follow you back first", first.getTitle().toString());
+        assertFalse(first.isChecked());
+        assertFalse(Settings.FOLLOWING_NOT_BACK_FIRST.get());
+        assertEquals(mark.getOrder() + 1, first.getOrder());
+        assertTrue(PatchFamily.FRIENDSHIP_STATUS.switches.contains(Settings.FOLLOWING_NOT_BACK_FIRST));
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.FOLLOWING_NOT_BACK_FIRST.get());
+        assertTrue(Settings.FOLLOWING_NOT_BACK_FIRST.savedValue());
+        PauseForTests.resume();
+        assertTrue(Settings.FOLLOWING_NOT_BACK_FIRST.get());
+        controller.close();
+        PatchFamily.followingListMarkForTests = false;
+        open(true);
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FOLLOWING_NOT_BACK_FIRST.key));
+    }
+
     /** Show it as a chip sits right under the label's switch, starts off and is off while paused. */
     @Test public void chipSwitchStartsOffUnderTheLabelAndHonorsPause() throws Exception {
         open(true);

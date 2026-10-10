@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.profile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -22,7 +23,10 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 
@@ -66,6 +70,7 @@ public class FollowingListTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.MARK_FOLLOWING_LIST.save(true);
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(false);
         HookStatus.clear();
         FollowingList.forgetAnswers();
     }
@@ -74,6 +79,7 @@ public class FollowingListTest {
     public void restore() {
         FollowingList.forgetAnswers();
         Settings.MARK_FOLLOWING_LIST.resetToDefault();
+        Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -345,12 +351,131 @@ public class FollowingListTest {
         assertEquals(friendship, FollowingList.known(friendship, new Object()));
         FollowingList.answered(new Object(), new Object(), new Object());
         FollowingList.answered(null, null, null);
+        Object loaded = new ArrayList<>();
+        assertSame(loaded, FollowingList.ordered(loaded, new Object()));
+        assertSame(loaded, FollowingList.ordered(loaded, null));
+        assertNull(FollowingList.orderBinder(new Object()));
+        FollowingList.rebuildRows(new Object(), false, false);
 
         assertEquals("Ana", row.text());
         assertNull(FollowingList.listKind(binder));
         assertNull(FollowingList.fetchKind(binder));
         assertNull(FollowingList.statusFollowedBy(new Object()));
         assertFalse(FollowingList.ownFollowingList(Kind.FOLLOWING, null, null));
+    }
+
+    /**
+     * #40: on your own Following list, the accounts the server said don't follow you back come first,
+     * each group in Instagram's order, and an account not yet asked about stays in the second group.
+     */
+    @Test
+    public void ownFollowingListPutsWhoDoesNotFollowBackFirstAndKeepsTheOrder() {
+        Object second = new Object();
+        Object third = new Object();
+        List<Object> loaded = Arrays.asList(unknown, following, notFollowing, second, third);
+
+        for (Kind kind : new Kind[] {Kind.FOLLOWING, Kind.FOLLOWING_SIMPLIFIED}) {
+            Reader reader = new Reader(kind, ME, ME);
+            reader.answers.put(second, false);
+            reader.answers.put(third, false);
+            Object ordered = FollowingList.ordered(loaded, binder, binder, reader, ON);
+
+            assertEquals(kind.name(), Arrays.asList(notFollowing, second, third, unknown, following), ordered);
+        }
+        assertEquals("Instagram's list is left as it was", Arrays.asList(unknown, following, notFollowing, second, third), loaded);
+    }
+
+    /** Nothing to move, or already in order: Instagram's own list comes back, not a copy. */
+    @Test
+    public void aListAlreadyInOrderComesBackAsItIs() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        List<Object> inOrder = Arrays.asList(notFollowing, following, unknown);
+        List<Object> nobody = Arrays.asList(following, unknown);
+
+        assertSame(inOrder, FollowingList.ordered(inOrder, binder, binder, reader, ON));
+        assertSame(nobody, FollowingList.ordered(nobody, binder, binder, reader, ON));
+        List<Object> empty = new ArrayList<>();
+        assertSame(empty, FollowingList.ordered(empty, binder, binder, reader, ON));
+    }
+
+    /** A yes on the account's own status overrules the server's earlier no, as it does for the mark. */
+    @Test
+    public void aLaterYesKeepsAnAnsweredNoInTheSecondGroup() {
+        Reader reader = new Reader(Kind.FOLLOWING, ME, ME);
+        reader.follows.put(notFollowing, true);
+        List<Object> loaded = Arrays.asList(following, notFollowing);
+
+        assertSame(loaded, FollowingList.ordered(loaded, binder, binder, reader, ON));
+    }
+
+    /** Followers, someone else's list, any other list, a switch that's off and a list that isn't one stay as Instagram has them. */
+    @Test
+    public void otherListsAndAnOffSwitchKeepInstagramsOrder() {
+        List<Object> loaded = Arrays.asList(following, notFollowing);
+        Reader[] others = {
+                new Reader(Kind.FOLLOWERS, ME, ME),
+                new Reader(Kind.MUTUAL, ME, ME),
+                new Reader(Kind.FOLLOWING, "2002", ME),
+                new Reader(Kind.FOLLOWING, null, ME),
+                new Reader(Kind.FOLLOWING, ME, null),
+                new Reader(null, ME, ME),
+        };
+        for (Reader reader : others) assertSame(reader.toString(), loaded, FollowingList.ordered(loaded, binder, binder, reader, ON));
+
+        Reader own = new Reader(Kind.FOLLOWING, ME, ME);
+        assertSame(loaded, FollowingList.ordered(loaded, binder, binder, own, OFF));
+        assertSame(loaded, FollowingList.ordered(loaded, binder, null, own, ON));
+        assertSame(loaded, FollowingList.ordered(loaded, null, binder, own, ON));
+        Object notAList = new Object();
+        assertSame(notAList, FollowingList.ordered(notAList, binder, binder, own, ON));
+    }
+
+    /** A reader or a switch that throws hands Instagram its own list and the hook says so. */
+    @Test
+    public void aThrowingReaderKeepsTheListAndIsReported() {
+        List<Object> loaded = Arrays.asList(following, notFollowing);
+        Reader broken = new Reader(Kind.FOLLOWING, ME, ME) {
+            @Override
+            public Boolean followedBy(Object user) {
+                throw new UnsupportedOperationException("no friendship status");
+            }
+        };
+
+        assertSame(loaded, FollowingList.ordered(loaded, binder, binder, broken, ON));
+        String missing = HookStatus.missing(FamilyNames.FRIENDSHIP_STATUS).toString();
+        assertTrue(missing, missing.contains("'" + FollowingList.ORDER + "'") && missing.contains(UnsupportedOperationException.class.getName()));
+        HookStatus.clear();
+
+        assertSame(loaded, FollowingList.ordered(loaded, binder, binder, new Reader(Kind.FOLLOWING, ME, ME), THROWS));
+        assertTrue(HookStatus.missing(FamilyNames.FRIENDSHIP_STATUS).toString().contains(IllegalStateException.class.getName()));
+    }
+
+    /** Either switch has the list ask about every row, and neither on or paused leaves it as Instagram asks. */
+    @Test
+    public void eitherSwitchHasTheListAskAboutEveryRow() {
+        Settings.MARK_FOLLOWING_LIST.save(false);
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(false);
+        assertFalse(FollowingList.asking());
+        assertFalse(FollowingList.orderSwitchedOn());
+
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(true);
+        assertTrue(FollowingList.asking());
+        assertTrue(FollowingList.orderSwitchedOn());
+        assertFalse("the mark has its own switch", FollowingList.switchedOn());
+
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(false);
+        Settings.MARK_FOLLOWING_LIST.save(true);
+        assertTrue(FollowingList.asking());
+        assertFalse(FollowingList.orderSwitchedOn());
+
+        Settings.FOLLOWING_NOT_BACK_FIRST.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(FollowingList.asking());
+        assertFalse(FollowingList.orderSwitchedOn());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse(FollowingList.asking()));
     }
 
     /** A row of the list: its view, whose tag is the holder, and the holder's name line. */

@@ -292,6 +292,8 @@ Show if a profile follows you	프로필이 나를 팔로우하는지 표시
 Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	상대방의 프로필에서 이름 옆에 ‘나를 팔로우하고 있음’ 또는 ‘나를 팔로우하지 않음’을 표시합니다. 대명사를 설정한 경우 대명사 뒤에 표시됩니다. Instagram이 확인을 완료하기 전에는 아무것도 표시되지 않습니다
 Mark who doesn't follow you back	나를 팔로우하지 않는 사람 표시
 On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	내 팔로잉 목록에서 나를 맞팔로우하지 않는 계정의 이름 뒤에 '나를 팔로우하지 않음’이라고 표시합니다. Instagram에서 확인을 완료하기 전까지는 아무것도 표시되지 않습니다
+Put accounts that don't follow you back first	나를 팔로우하지 않는 계정을 먼저 표시
+On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.	내 팔로잉 목록에서 나를 맞팔로우하지 않는 계정을 맨 위로 올리고, 각 그룹 안에서는 Instagram의 순서를 유지합니다. Instagram에서 아직 확인하지 않은 계정은 아래에 남습니다.
 Follows you	나를 팔로우하고 있음
 Doesn't follow you	나를 팔로우하지 않음
 Hide suggested people	추천 사용자 숨기기

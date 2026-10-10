@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Show if a profile follows you has a third switch under Profiles, Put accounts that don't follow you back first, that starts off. With it on, your own Following list shows the accounts that don't follow you back at the top, and everyone else comes after them in Instagram's usual order. It covers every account the list has loaded, so scrolling for more doesn't scramble it, and your Followers and other people's lists stay as they are. For a moment after a page loads the list can shuffle once while the answers come in. Turn the switch off and you get Instagram's list back. Asked for in #40.
+
 * **Instagram:** Bigger seek bar on reels is a new switch under Reels, off to start. With it on, Instagram's thin line under a reel becomes a thicker bar with a round white handle and the time above it, over a soft dark fade so it shows on any video. It's Instagram's own bar made bigger, so tapping and dragging to seek work as they always did, and it appears on short reels too. Turn the switch off and Instagram's bar comes back. Asked for in #10.
 
 * **Instagram:** Lock your messages can now hide single chats. Open HushGram settings > Messages > Hidden chats, tick the chat you want, and it leaves your inbox and its notifications stop showing up at all. The chat you opened last is at the top of the list, so open it in Instagram first and come back. Untick it there to bring it back. If Lock your messages is on, the list asks for your fingerprint, face or screen lock before it opens. Pausing HushGram shows every chat again, and the hidden list is still there when you turn it back on. The chat ids stay on your phone. Needs a device check on a real inbox and push.

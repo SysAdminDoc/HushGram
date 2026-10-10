@@ -112,7 +112,9 @@ val friendshipStatusPatch = bytecodePatch(
         if (mark != null) {
             markFollowRow(mark.row)
             askFollowAnswers(mark.answers)
+            orderFollowRows(mark.order)
             rowStubs.fill(mark.row, mark.answers)
+            rowStubs.fillOrder(mark.order)
             enableStatus(FOLLOWING_LIST_STATUS)
         }
         enableStatus("friendshipStatus")
@@ -122,8 +124,11 @@ val friendshipStatusPatch = bytecodePatch(
 /** The status of the second switch, which a build can lack while the profile label goes in. */
 internal const val FOLLOWING_LIST_STATUS = "followingListMark"
 
-/** The Following list mark's parts: the row binder, and where Instagram asks the server and hears back. */
-internal class FollowMark(val row: FollowRow, val answers: FollowAnswers)
+/**
+ * The Following list switches' parts: the row binder, where Instagram asks the server and hears
+ * back, and where it builds the rows from its loaded accounts (the order switch, #40).
+ */
+internal class FollowMark(val row: FollowRow, val answers: FollowAnswers, val order: FollowOrder)
 
 /**
  * The follow list's row binder and the places its answers come from, or null with a warning in the
@@ -133,7 +138,8 @@ internal class FollowMark(val row: FollowRow, val answers: FollowAnswers)
  * don't offer the switch.
  */
 internal fun BytecodePatchContext.followRowOrWarn(): FollowMark? = try {
-    FollowMark(findFollowRow(), findFollowAnswers())
+    val row = findFollowRow()
+    FollowMark(row, findFollowAnswers(), findFollowOrder(row))
 } catch (moved: PatchException) {
     patchLog.warning("${moved.message}. The profile label goes in without Mark who doesn't follow you back.")
     null

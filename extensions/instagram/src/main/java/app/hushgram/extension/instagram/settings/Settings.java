@@ -653,6 +653,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_mark_following_list", FALSE);
 
     /**
+     * Your own Following list with the accounts that don't follow you back first
+     * ({@link app.hushgram.extension.instagram.profile.FollowingList}). Off to start. Read each time
+     * Instagram rebuilds the rows of a follow list.
+     */
+    public static final BooleanSetting FOLLOWING_NOT_BACK_FIRST =
+            new BooleanSetting("hushgram_following_not_back_first", FALSE);
+
+    /**
      * Suggested for you and the Discover people button on profiles
      * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions}). Read each time Instagram
      * builds or binds a profile's header, so off or paused, the suggestions are back on the next one.

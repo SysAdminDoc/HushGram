@@ -291,6 +291,8 @@ Show if a profile follows you	Mostrar se um perfil segue você
 Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	Adiciona Segue você ou Não segue você ao lado do nome no perfil de alguém, depois dos pronomes, se a pessoa tiver definido. Nada aparece até o Instagram verificar.
 Mark who doesn't follow you back	Marcar quem não segue você de volta
 On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	Na sua própria lista Seguindo, adiciona Não segue você depois do nome de cada conta que não segue você de volta. Nada aparece até o Instagram verificar.
+Put accounts that don't follow you back first	Mostrar primeiro as contas que não seguem você de volta
+On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.	Na sua própria lista Seguindo, move para o topo as contas que não seguem você de volta e mantém a ordem do Instagram dentro de cada grupo. As contas que o Instagram ainda não verificou ficam abaixo.
 Follows you	Segue você
 Doesn't follow you	Não segue você
 Hide suggested people	Ocultar pessoas sugeridas

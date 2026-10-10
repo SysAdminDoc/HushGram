@@ -249,7 +249,7 @@ private fun BytecodePatchContext.answerSite(classDef: ClassDef, method: Method, 
  * way to [at] starts at the method's start or another write of [register] without passing [write].
  * A write that throws leaves the value it would have replaced.
  */
-private fun Method.holdsAt(register: Int, write: Int?, at: Int): Boolean {
+internal fun Method.holdsAt(register: Int, write: Int?, at: Int): Boolean {
     val flow = ControlFlow.of(this)
     val writes = flow.instructions.indices.filter { flow.instructions[it].writes(register) }.toSet()
     val reached = BitSet()
