@@ -30,6 +30,7 @@ import android.preference.SwitchPreference;
 import android.preference.TwoStatePreference;
 import android.text.Layout;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.format.Formatter;
@@ -45,6 +46,7 @@ import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.LinearLayout;
@@ -76,6 +78,7 @@ import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.media.ResumePlayback;
 import app.hushgram.extension.instagram.misc.OverrideExchange;
+import app.hushgram.extension.instagram.feed.HiddenAccounts;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.FlagNames;
 import app.hushgram.extension.instagram.misc.MediaCache;
@@ -132,6 +135,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the chats hidden one at a time. */
     static final String HIDDEN_CHATS_ROW = "hushgram_hidden_chats_row";
+    static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of the rows that open each category's page, numbered in the page's order. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
@@ -446,6 +450,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 feed.addPreference(toggle(context, Settings.HIDE_FEED_LIKED, L10n.t("Hide posts you've liked"),
                         L10n.t("Removes posts you've already liked from Home and Following. A post you like now "
                                 + "stays until you pull down on Home to refresh.")));
+                feed.addPreference(hiddenAccountsRow(context));
             }
         }
         if (homeFeed) {
@@ -2657,6 +2662,89 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
+    /** The row that opens the list of accounts whose posts Home and Following leave out. */
+    private Row hiddenAccountsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(HIDDEN_ACCOUNTS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Hidden accounts"));
+        row.setSummary(L10n.t("Takes posts by the accounts you pick out of Home and Following. Each account you "
+                + "sign in to keeps its own list."));
+        row.setOnPreferenceClickListener(tapped -> {
+            showHiddenAccounts();
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The usernames hidden for the signed-in account, each with a check. Unchecking one shows that
+     * account's posts again at once, and checking it again hides them. Add a username opens a box to
+     * type one. Paused, the list still shows what you chose, though Home shows every post.
+     */
+    void showHiddenAccounts() {
+        Context context = getActivity();
+        if (context == null) return;
+        List<String> names = HiddenAccounts.saved();
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden accounts"));
+        if (names.isEmpty()) {
+            builder.setMessage(L10n.t("No accounts are hidden yet. Add a username to take that account's posts out "
+                    + "of Home and Following."));
+        } else {
+            CharSequence[] shown = new CharSequence[names.size()];
+            boolean[] hidden = new boolean[names.size()];
+            for (int i = 0; i < shown.length; i++) {
+                shown[i] = "@" + names.get(i);
+                hidden[i] = true;
+            }
+            builder.setMultiChoiceItems(shown, hidden, (dialog, which, checked) -> {
+                String name = names.get(which);
+                if (checked) {
+                    HiddenAccounts.add(name);
+                    Utils.showToastShort(L10n.f("Posts from @%1$s are hidden", name));
+                } else {
+                    HiddenAccounts.remove(name);
+                    Utils.showToastShort(L10n.f("Posts from @%1$s show again", name));
+                }
+            });
+        }
+        show(builder.setNeutralButton(L10n.t("Add a username"), (dialog, which) -> askHiddenAccount())
+                .setPositiveButton(L10n.t("OK"), null));
+    }
+
+    /**
+     * A box to type a username in. Hide their posts adds it for the signed-in account and goes back
+     * to the list; a name that can't be a username is turned down with a toast saying what one is.
+     */
+    void askHiddenAccount() {
+        Context context = getActivity();
+        if (context == null) return;
+        EditText field = new EditText(context);
+        field.setTag(HIDDEN_ACCOUNTS_ROW);
+        field.setSingleLine(true);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setHint(L10n.t("Username"));
+        field.setContentDescription(L10n.t("Username"));
+        int inset = Math.round(20 * context.getResources().getDisplayMetrics().density);
+        FrameLayout box = new FrameLayout(context);
+        box.setPaddingRelative(inset, inset / 2, inset, 0);
+        box.addView(field);
+        AlertDialog dialog = show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Add a username"))
+                .setView(box)
+                .setPositiveButton(L10n.t("Hide their posts"), (shown, which) -> {
+                    String name = HiddenAccounts.add(field.getText().toString());
+                    if (name == null) {
+                        Utils.showToastShort(L10n.t("A username is up to 30 letters, numbers, dots and underscores"));
+                    } else {
+                        Utils.showToastShort(L10n.f("Posts from @%1$s are hidden", name));
+                    }
+                    showHiddenAccounts();
+                })
+                .setNegativeButton(L10n.t("Cancel"), (shown, which) -> showHiddenAccounts()));
+        fitAboveKeyboard(dialog);
+    }
+
     private static void setChecked(AlertDialog dialog, int position, boolean checked) {
         try {
             dialog.getListView().setItemChecked(position, checked);
@@ -3332,15 +3420,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /**
      * Shows a dialog over this page and remembers it, so it goes with the page. Nothing shows once
-     * the view is gone or the activity is finishing.
+     * the view is gone or the activity is finishing. Answers the dialog, or null when none showed.
      */
-    private void show(AlertDialog.Builder builder) {
+    @Nullable
+    private AlertDialog show(AlertDialog.Builder builder) {
         Activity activity = getActivity();
-        if (getView() == null || activity == null || activity.isFinishing() || activity.isDestroyed()) return;
+        if (getView() == null || activity == null || activity.isFinishing() || activity.isDestroyed()) return null;
         AlertDialog dialog = builder.show();
         ScreenColors.dialog(dialog);
         shownDialogs.add(dialog);
         dialog.setOnDismissListener(shownDialogs::remove);
+        return dialog;
     }
 
     /**

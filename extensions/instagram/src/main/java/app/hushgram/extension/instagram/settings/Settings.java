@@ -394,6 +394,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_feed_liked", FALSE);
 
     /**
+     * The accounts whose posts Home leaves out ({@link app.hushgram.extension.instagram.feed.HiddenAccounts}),
+     * a line for each: the id of the signed-in account it was hidden for, a tab, and the username.
+     * Empty to start. A name on the list is the switch. It reads empty while HushGram is paused, and
+     * a backup leaves it out, since the ids are only good on this phone's accounts.
+     */
+    public static final StringSetting HIDDEN_ACCOUNTS =
+            new StringSetting("hushgram_hidden_accounts", "", false, false);
+
+    /**
+     * The id of the account Home was last set up for, so a restart that opens settings before Home
+     * still shows that account's hidden accounts. Not a switch, and left out of a backup.
+     */
+    public static final StringSetting FEED_ACCOUNT =
+            new StringSetting("hushgram_feed_account", "", false, false);
+
+    /**
      * Every post in Home's feed, on purpose, leaving the stories row
      * ({@link app.hushgram.extension.instagram.feed.HomeFeed}). Read as each page arrives, so a
      * change shows on the next pull to refresh. Off to start.

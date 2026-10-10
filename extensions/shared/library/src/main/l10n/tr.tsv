@@ -650,6 +650,14 @@ Removes every single-video post and reel from Home, even from accounts you follo
 Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	Ana Sayfa'dan birden fazla fotoğraf veya videolu tüm gönderileri, takip ettiğin hesaplardan gelenler dahil kaldırır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
 Hide posts you've liked	Beğendiğin gönderileri gizle
 Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	Zaten beğendiğin gönderileri Ana Sayfa'dan ve Takip Edilenler'den kaldırır. Şimdi beğendiğin bir gönderi, yenilemek için Ana Sayfa'yı aşağı çekene kadar kalır.
+Hidden accounts	Gizli hesaplar
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	Seçtiğin hesapların gönderilerini Ana Sayfa'dan ve Takip Edilenler'den kaldırır. Giriş yaptığın her hesabın kendi listesi olur.
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	Henüz gizlenen hesap yok. O hesabın gönderilerini Ana Sayfa'dan ve Takip Edilenler'den kaldırmak için bir kullanıcı adı ekle.
+Add a username	Kullanıcı adı ekle
+Hide their posts	Gönderilerini gizle
+Posts from @%1$s are hidden	@%1$s hesabının gönderileri gizlendi
+Posts from @%1$s show again	@%1$s hesabının gönderileri yeniden görünür
+A username is up to 30 letters, numbers, dots and underscores	Kullanıcı adı en fazla 30 harf, rakam, nokta ve alt çizgiden oluşur
 %1$d mentions	%1$d bahsetme
 %1$s, see who this story mentions	%1$s, bu hikâyede kimlerden bahsedildiğini gör
 1 mention	1 bahsetme

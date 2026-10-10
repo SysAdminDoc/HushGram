@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
+import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
@@ -65,6 +66,7 @@ class HomeFeedTypesHookTest {
     private val helper = ImmutableMethodReference(FeedItemStandIns.ITEM, "A02", listOf(json), FeedItemStandIns.ITEM)
     private val mediaType = "$FEED_SUGGESTIONS->mediaType(Ljava/lang/Object;)I"
     private val liked = "$FEED_SUGGESTIONS->liked(Ljava/lang/Object;)I"
+    private val author = "$FEED_SUGGESTIONS->author(Ljava/lang/Object;)Ljava/lang/String;"
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, vararg code: Instruction) =
         ImmutableMethod(
@@ -94,8 +96,12 @@ class HomeFeedTypesHookTest {
 
     /** A getter of Media answering [returns] and holding the hash of [field]. */
     private fun mediaGetter(name: String, field: String, returns: String, flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
+        getter(MEDIA, name, field, returns, flags)
+
+    /** A getter of [owner] answering [returns] and holding the hash of [field]. */
+    private fun getter(owner: String, name: String, field: String, returns: String, flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
         ImmutableMethod(
-            MEDIA, name, emptyList(), returns, flags, null, null,
+            owner, name, emptyList(), returns, flags, null, null,
             ImmutableMethodImplementation(
                 1,
                 listOf(ImmutableInstruction31i(Opcode.CONST, 0, field.hashCode()), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)),
@@ -106,6 +112,21 @@ class HomeFeedTypesHookTest {
     /** Media's has_liked getter, as 438 names it. */
     private fun likedGetter(flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
         mediaGetter("A41", "has_liked", "Ljava/lang/Boolean;", flags)
+
+    /** Media's user getter, as 438 names it. */
+    private fun userGetter(flags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) = mediaGetter("A3R", "user", USER, flags)
+
+    /** The user's class with its username getter, as 438 names it. */
+    private fun user(classFlags: Int = AccessFlags.PUBLIC.value, getterFlags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value) =
+        ImmutableClassDef(
+            USER, classFlags, "Ljava/lang/Object;", null, null, null, null,
+            listOf(getter(USER, "A89", "username", "Ljava/lang/String;", getterFlags)),
+        )
+
+    /** Media as the stubs read it: like_count beside media_type, has_liked and user. */
+    private fun media(
+        getters: List<Method> = listOf(integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), likedGetter(), userGetter()),
+    ) = type(MEDIA, *getters.toTypedArray())
 
     /**
      * Home's response with a second return, for a response it can't read, that a branch lands on
@@ -143,7 +164,8 @@ class HomeFeedTypesHookTest {
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(store)),
                 ImmutableInstruction10x(Opcode.RETURN_VOID))),
             reader(chain, "unsafeParseFromJson", json, "Ljava/lang/Object;", "chain_pagination_token", "more_available"),
-            type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), likedGetter()),
+            media(),
+            user(),
             ExtensionDex.classDef(FEED_SUGGESTIONS),
         )
 
@@ -152,7 +174,7 @@ class HomeFeedTypesHookTest {
         val declared = ExtensionDex.classDef(FEED_SUGGESTIONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$FEED_SUGGESTIONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(HOME_TYPES_FILTER, mediaType, liked, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(HOME_TYPES_FILTER, mediaType, liked, author, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     /**
@@ -311,6 +333,34 @@ class HomeFeedTypesHookTest {
         assertEquals("$MEDIA->A6M()Ljava/lang/Integer;", ((type[5] as ReferenceInstruction).reference as MethodReference).toString())
     }
 
+    /**
+     * Hidden accounts' stub reads the same post field, the post's user through the getter holding
+     * the hash of "user", and that user's username, answering null on its own return wherever there's
+     * nothing to read, so a post without an author stays.
+     */
+    @Test
+    fun theAuthorStubReadsThePostItsUserAndTheUsername() {
+        val context = PatchContexts.of(classes())
+
+        requireNotNull(context.homeFeedTypesOrWarn()).write()
+
+        val code = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "author" }.instructions()
+        assertEquals(
+            listOf(
+                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT,
+                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT,
+                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT,
+            ),
+            code.take(13).map { it.opcode },
+        )
+        assertEquals(FeedItemStandIns.ITEM, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("A0u", ((code[1] as ReferenceInstruction).reference as FieldReference).name)
+        assertEquals("$MEDIA->A3R()$USER", ((code[5] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("$USER->A89()Ljava/lang/String;", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
+        val p0 = (code[0] as OneRegisterInstruction).registerA
+        assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+    }
+
     /** With Hide the home feed in too, each read goes through both filters once, whichever applied first. */
     @Test
     fun besideHideTheHomeFeedEachReadPassesBothFiltersOnce() {
@@ -344,8 +394,8 @@ class HomeFeedTypesHookTest {
     }
 
     /**
-     * A feed item class, a media_type getter or a has_liked getter the extension can't reach, or a
-     * has_liked getter that can't be told, leaves the switches out and every class as it was.
+     * A feed item class, a media_type, has_liked, user or username getter the extension can't reach,
+     * or one of them that can't be told, leaves the switches out and every class as it was.
      */
     @Test
     fun whatTheExtensionCantReachLeavesEverythingUnchanged() {
@@ -357,7 +407,7 @@ class HomeFeedTypesHookTest {
                 null, null,
             ),
         )
-        val privateGetter = classes().map { if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), hiddenGetter, likedGetter()) else it }
+        val privateGetter = classes().map { if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), hiddenGetter, likedGetter(), userGetter()) else it }
         val privateItem = classes().map { classDef ->
             if (classDef.type != FeedItemStandIns.ITEM) classDef else ImmutableClassDef(
                 classDef.type, AccessFlags.FINAL.value, classDef.superclass, classDef.interfaces, classDef.sourceFile,
@@ -366,18 +416,30 @@ class HomeFeedTypesHookTest {
         }
         val privateLiked = classes().map {
             if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"),
-                likedGetter(AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)) else it
+                likedGetter(AccessFlags.PRIVATE.value or AccessFlags.FINAL.value), userGetter()) else it
         }
         val noLiked = classes().map {
-            if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type")) else it
+            if (it.type == MEDIA) type(MEDIA, integerGetter("A6L", "like_count"), integerGetter("A6M", "media_type"), userGetter()) else it
         }
         val twoLiked = classes().map {
             if (it.type == MEDIA) type(MEDIA, integerGetter("A6M", "media_type"), likedGetter(),
-                mediaGetter("A42", "has_liked", "Ljava/lang/Boolean;")) else it
+                mediaGetter("A42", "has_liked", "Ljava/lang/Boolean;"), userGetter()) else it
         }
+        val private = AccessFlags.PRIVATE.value or AccessFlags.FINAL.value
+        val withMedia = { getters: List<Method> -> classes().map { if (it.type == MEDIA) media(getters) else it } }
+        val withUser = { user: ClassDef -> classes().map { if (it.type == USER) user else it } }
+        val noUser = withMedia(listOf(integerGetter("A6M", "media_type"), likedGetter()))
+        val privateUser = withMedia(listOf(integerGetter("A6M", "media_type"), likedGetter(), userGetter(private)))
+        val twoUsers = withMedia(listOf(integerGetter("A6M", "media_type"), likedGetter(), userGetter(), mediaGetter("A3S", "user", USER)))
+        val privateUserClass = withUser(user(classFlags = AccessFlags.FINAL.value))
+        val privateUsername = withUser(user(getterFlags = private))
+        val noUsername = withUser(type(USER))
         for ((case, built) in listOf(
             "private getter" to privateGetter, "private item" to privateItem, "private has_liked getter" to privateLiked,
             "no has_liked getter" to noLiked, "two has_liked getters" to twoLiked,
+            "no user getter" to noUser, "private user getter" to privateUser, "two user getters" to twoUsers,
+            "private user class" to privateUserClass, "private username getter" to privateUsername,
+            "no username getter" to noUsername,
         )) {
             val context = PatchContexts.of(built)
             val before = built.associate { it.type to it.methods.sumOf { m -> m.instructions().size } }
@@ -419,8 +481,9 @@ class HomeFeedTypesHookTest {
 
     /**
      * On every build of the declared version, the declared bundle and each other build alike, Media
-     * is public and has exactly one public getter answering media_type as an Integer and one
-     * answering has_liked as a Boolean, the two the stubs call.
+     * is public and has exactly one public getter answering media_type as an Integer, one answering
+     * has_liked as a Boolean and one answering user as a User, and User is public with one public
+     * getter answering username, the getters the stubs call.
      */
     @Test
     fun everyBuildHasThePostGettersTheStubsCall() {
@@ -432,10 +495,14 @@ class HomeFeedTypesHookTest {
         var checked = 0
         for (bundle in bundles + others) {
             val where = "${bundle.parentFile.name}/${bundle.name}"
-            val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(MEDIA)).values)
+            val context = PatchContexts.of(FixtureDex.classes(bundle, setOf(MEDIA, USER)).values)
             assertTrue("$where: Media is public", AccessFlags.PUBLIC.isSet(context.classDefBy(MEDIA).accessFlags))
-            for ((field, returns) in listOf("media_type" to "Ljava/lang/Integer;", "has_liked" to "Ljava/lang/Boolean;")) {
-                val getter = context.pandoGetter("test", MEDIA, field, returns)
+            assertTrue("$where: User is public", AccessFlags.PUBLIC.isSet(context.classDefBy(USER).accessFlags))
+            for ((owner, field, returns) in listOf(
+                Triple(MEDIA, "media_type", "Ljava/lang/Integer;"), Triple(MEDIA, "has_liked", "Ljava/lang/Boolean;"),
+                Triple(MEDIA, "user", USER), Triple(USER, "username", "Ljava/lang/String;"),
+            )) {
+                val getter = context.pandoGetter("test", owner, field, returns)
                 assertTrue("$where: ${getter.name} for $field is public", AccessFlags.PUBLIC.isSet(getter.accessFlags))
                 assertFalse("$where: ${getter.name} for $field is static", AccessFlags.STATIC.isSet(getter.accessFlags))
             }

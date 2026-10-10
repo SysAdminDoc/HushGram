@@ -524,6 +524,11 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeItem(Lj
 start-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageParsed()V in instance (L*;)Ljava/lang/Object; sites 2 holding feed_items pull_to_refresh_window_ms
+# Hidden accounts learns whose Home it is from homeSession, first thing in the constructor of Home's
+# cache source (MainFeedCacheDataSource, a kept name): its one constructor taking a boolean and the
+# session, in the class holding the two strings below. Left out, one list counts for every account.
+start-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
+once-call Lapp/hushgram/extension/instagram/feed/HiddenAccounts;->homeSession(Ljava/lang/Object;)V in instance (ZLcom/instagram/common/session/UserSession;)V class-holding MainFeedCacheDataSource.start feed_schedule_initial_cache_load
 #
 # Hide suggested posts answers the home feed adapter's "no next page" flag through feedEnded() at
 # each of its two reads: the model builder, the one method holding both strings below, and the

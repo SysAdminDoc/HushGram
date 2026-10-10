@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.ToIntFunction;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -39,9 +40,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>Explore's grid doesn't go through that helper (S22, Instagram 449), so it keeps its posts.
  *
  * <p>Hide videos, Hide photos, Hide carousels and Hide posts you've liked filter by the post an item
- * carries, whoever posted it, so they sit on Home's own reads ({@link #homeItem}) rather than that
- * helper, which Explore's chain of posts and the shop and ad feeds read through too. Following is a
- * feed of Home's, paged through the same response parser, so it loses the same posts.
+ * carries, whoever posted it, and Hidden accounts ({@link HiddenAccounts}) by who posted it, so they
+ * sit on Home's own reads ({@link #homeItem}) rather than that helper, which Explore's chain of posts
+ * and the shop and ad feeds read through too. Following is a feed of Home's, paged through the same
+ * response parser, so it loses the same posts.
  */
 public final class FeedSuggestions {
     /**
@@ -194,10 +196,11 @@ public final class FeedSuggestions {
         }
     }
 
-    /** Whether any switch {@link #homeItem} takes posts out for is on. */
+    /** Whether any switch {@link #homeItem} takes posts out for is on, a name on Hidden accounts included. */
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
-                || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get();
+                || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
+                || !HiddenAccounts.hidden().isEmpty();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -370,21 +373,26 @@ public final class FeedSuggestions {
     /**
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
-     * of one video, one photo or a carousel while that type's switch is on, or a post you've liked
-     * while Hide posts you've liked is on, and [item] itself otherwise, or when anything goes wrong.
-     * An item with no post, a row of suggested accounts for one, stays. Inside a page of Home's feed
-     * response it also counts the item toward that page, and whether it was lost to
-     * {@link #filter}, for {@link #homePageParsed}. Never throws.
+     * of one video, one photo or a carousel while that type's switch is on, a post you've liked
+     * while Hide posts you've liked is on, or a post by an account on {@link HiddenAccounts}, and
+     * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
+     * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
+     * that page, and whether it was lost to {@link #filter}, for {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
-        return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked);
+        return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked, FeedSuggestions::author);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
-        return homeItem(item, typeOf, FeedSuggestions::liked);
+        return homeItem(item, typeOf, FeedSuggestions::liked, FeedSuggestions::author);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf) {
+        return homeItem(item, typeOf, likedOf, FeedSuggestions::author);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -394,7 +402,8 @@ public final class FeedSuggestions {
         }
         if (item == null) return null;
         if (byType(item, typeOf) == null) return null;
-        return byLiked(item, likedOf);
+        if (byLiked(item, likedOf) == null) return null;
+        return byAuthor(item, authorOf);
     }
 
     /** [item], or null while the switch for its post's type is on. */
@@ -441,6 +450,25 @@ public final class FeedSuggestions {
     }
 
     /**
+     * [item], or null when its post's author is on {@link HiddenAccounts} for the signed-in account.
+     * The author isn't read while the list is empty. A post whose author can't be read stays.
+     */
+    private static Object byAuthor(Object item, Function<Object, String> authorOf) {
+        try {
+            if (HiddenAccounts.hidden().isEmpty()) return item;
+            if (!HiddenAccounts.hides(authorOf.apply(item))) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, HiddenAccounts.HIDDEN);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post from a hidden account out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, HiddenAccounts.HIDDEN, failure);
+            return item;
+        }
+    }
+
+    /**
      * The media_type of the post a feed item carries: 1 for one photo, 2 for one video, 8 for a
      * carousel, and 0 when it carries none or the post doesn't say. The patch writes the body, which
      * reads the item's post field and the post's media_type.
@@ -456,6 +484,15 @@ public final class FeedSuggestions {
      */
     public static int liked(Object item) {
         return 0;
+    }
+
+    /**
+     * The username of whoever posted the post a feed item carries, or null when it carries none or
+     * the post doesn't say. The patch writes the body, which reads the item's post field, the post's
+     * user and that user's username. Null as built.
+     */
+    public static String author(Object item) {
+        return null;
     }
 
     private static BooleanSetting switchFor(String kind) {

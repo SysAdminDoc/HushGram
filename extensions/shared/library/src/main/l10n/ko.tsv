@@ -649,6 +649,14 @@ Removes every single-video post and reel from Home, even from accounts you follo
 Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	팔로우하는 계정의 것을 포함해 사진이나 동영상이 둘 이상인 게시물을 홈에서 모두 없앱니다. 바꾼 뒤에는 홈을 아래로 당겨 새로고침하세요.
 Hide posts you've liked	좋아요한 게시물 숨기기
 Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	이미 좋아요한 게시물을 홈과 팔로잉에서 없앱니다. 지금 좋아요한 게시물은 홈을 아래로 당겨 새로고침할 때까지 남아 있습니다.
+Hidden accounts	숨긴 계정
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	고른 계정의 게시물을 홈과 팔로잉에서 없앱니다. 로그인한 계정마다 목록이 따로 있습니다.
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	아직 숨긴 계정이 없습니다. 사용자 이름을 추가하면 그 계정의 게시물이 홈과 팔로잉에서 사라집니다.
+Add a username	사용자 이름 추가
+Hide their posts	게시물 숨기기
+Posts from @%1$s are hidden	@%1$s 님의 게시물을 숨겼습니다
+Posts from @%1$s show again	@%1$s 님의 게시물을 다시 표시합니다
+A username is up to 30 letters, numbers, dots and underscores	사용자 이름은 영문자, 숫자, 마침표, 밑줄로 30자까지입니다
 %1$d mentions	언급 %1$d개
 %1$s, see who this story mentions	%1$s, 이 스토리에서 언급한 사람 보기
 1 mention	언급 1개

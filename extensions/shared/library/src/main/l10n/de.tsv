@@ -650,6 +650,14 @@ Removes every single-video post and reel from Home, even from accounts you follo
 Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	Entfernt jeden Beitrag mit mehreren Fotos oder Videos von der Startseite, auch von Konten, denen du folgst. Ziehe die Startseite nach dem Ändern nach unten, um sie zu aktualisieren.
 Hide posts you've liked	Beiträge ausblenden, die dir gefallen
 Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	Entfernt Beiträge, die dir schon gefallen, von der Startseite und aus „Gefolgt“. Ein Beitrag, der dir jetzt gefällt, bleibt, bis du die Startseite zum Aktualisieren nach unten ziehst.
+Hidden accounts	Versteckte Konten
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	Nimmt Beiträge der Konten, die du auswählst, aus der Startseite und aus „Gefolgt“. Jedes Konto, mit dem du dich anmeldest, hat seine eigene Liste.
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	Noch sind keine Konten versteckt. Füge einen Benutzernamen hinzu, um die Beiträge dieses Kontos aus der Startseite und aus „Gefolgt“ zu nehmen.
+Add a username	Benutzernamen hinzufügen
+Hide their posts	Beiträge ausblenden
+Posts from @%1$s are hidden	Beiträge von @%1$s sind ausgeblendet
+Posts from @%1$s show again	Beiträge von @%1$s werden wieder angezeigt
+A username is up to 30 letters, numbers, dots and underscores	Ein Benutzername hat bis zu 30 Buchstaben, Ziffern, Punkte und Unterstriche
 %1$d mentions	%1$d Erwähnungen
 %1$s, see who this story mentions	%1$s, sieh dir an, wen diese Story erwähnt
 1 mention	1 Erwähnung

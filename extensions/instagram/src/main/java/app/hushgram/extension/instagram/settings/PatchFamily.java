@@ -226,9 +226,9 @@ public enum PatchFamily {
     static volatile Boolean feedTypesForTests;
 
     /**
-     * Whether this build filters Home by a post's type and whether you've liked it. Hide suggested
-     * posts goes in without it when Home's reads or a post's fields have moved, so those switches
-     * aren't offered then.
+     * Whether this build filters Home by a post's type, whether you've liked it and who posted it.
+     * Hide suggested posts goes in without it when Home's reads or a post's fields have moved, so
+     * those switches and Hidden accounts aren't offered then.
      */
     public static boolean feedTypesInBuild() {
         Boolean forced = feedTypesForTests;
@@ -320,8 +320,8 @@ public enum PatchFamily {
             if (inBuild.contains(family)) {
                 lines.add(family.reportLine(paused));
                 if (family == FEED_SUGGESTIONS && !feedTypesInBuild()) {
-                    lines.add("  Hide videos, Hide photos, Hide carousels and Hide posts you've liked: not in this build "
-                            + "(Home's feed or a post's type didn't match)");
+                    lines.add("  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "
+                            + "not in this build (Home's feed or a post's details didn't match)");
                 }
                 if (family == COMMENT_COPY && !commentAuthorInBuild()) {
                     lines.add("  Copy the commenter's username: not in this build (the comment menu's label or the comment's author didn't match)");

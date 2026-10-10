@@ -96,8 +96,8 @@ public class FeedTypeSettingsTest {
         for (BooleanSetting setting : SWITCHES) assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false);
         assertTrue(report.toString(), report.contains(
-                "  Hide videos, Hide photos, Hide carousels and Hide posts you've liked: not in this build "
-                        + "(Home's feed or a post's type didn't match)"));
+                "  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "
+                        + "not in this build (Home's feed or a post's details didn't match)"));
     }
     @Test public void aBuildFilteringByTypeReportsNothingMissing() throws Exception {
         open(true);

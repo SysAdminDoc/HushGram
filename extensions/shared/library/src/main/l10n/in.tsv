@@ -650,6 +650,14 @@ Removes every single-video post and reel from Home, even from accounts you follo
 Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	Menghapus setiap postingan dengan lebih dari satu foto atau video dari Beranda, bahkan dari akun yang kamu ikuti. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
 Hide posts you've liked	Sembunyikan postingan yang sudah kamu sukai
 Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	Menghapus postingan yang sudah kamu sukai dari Beranda dan Mengikuti. Postingan yang kamu sukai sekarang tetap ada sampai kamu menarik Beranda ke bawah untuk menyegarkan.
+Hidden accounts	Akun tersembunyi
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	Menghapus postingan dari akun yang kamu pilih dari Beranda dan Mengikuti. Setiap akun yang kamu pakai untuk masuk punya daftarnya sendiri.
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	Belum ada akun yang disembunyikan. Tambahkan nama pengguna untuk menghapus postingan akun itu dari Beranda dan Mengikuti.
+Add a username	Tambahkan nama pengguna
+Hide their posts	Sembunyikan postingannya
+Posts from @%1$s are hidden	Postingan dari @%1$s disembunyikan
+Posts from @%1$s show again	Postingan dari @%1$s ditampilkan lagi
+A username is up to 30 letters, numbers, dots and underscores	Nama pengguna berisi hingga 30 huruf, angka, titik, dan garis bawah
 %1$d mentions	%1$d sebutan
 %1$s, see who this story mentions	%1$s, lihat siapa yang disebut cerita ini
 1 mention	1 sebutan

@@ -650,6 +650,14 @@ Removes every single-video post and reel from Home, even from accounts you follo
 Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	Quita de Inicio todas las publicaciones con más de una foto o video, incluso de cuentas que sigues. Desliza Inicio hacia abajo para actualizar después de cambiarlo.
 Hide posts you've liked	Ocultar publicaciones que te gustaron
 Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	Quita de Inicio y de Seguidos las publicaciones que ya te gustaron. Una publicación que te guste ahora se queda hasta que deslices Inicio hacia abajo para actualizar.
+Hidden accounts	Cuentas ocultas
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	Quita de Inicio y de Seguidos las publicaciones de las cuentas que elijas. Cada cuenta con la que inicias sesión tiene su propia lista.
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	Todavía no hay cuentas ocultas. Agrega un nombre de usuario para quitar las publicaciones de esa cuenta de Inicio y de Seguidos.
+Add a username	Agregar un nombre de usuario
+Hide their posts	Ocultar sus publicaciones
+Posts from @%1$s are hidden	Las publicaciones de @%1$s están ocultas
+Posts from @%1$s show again	Las publicaciones de @%1$s vuelven a mostrarse
+A username is up to 30 letters, numbers, dots and underscores	Un nombre de usuario tiene hasta 30 letras, números, puntos y guiones bajos
 %1$d mentions	%1$d menciones
 %1$s, see who this story mentions	%1$s, mira a quién menciona esta historia
 1 mention	1 mención
