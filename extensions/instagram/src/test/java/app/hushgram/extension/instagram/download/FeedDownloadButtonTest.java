@@ -13,8 +13,11 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.os.LocaleList;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -65,6 +68,7 @@ public class FeedDownloadButtonTest {
     public void setUp() {
         activity = Robolectric.buildActivity(Activity.class).setup().get();
         FeedDownloadButton.actions = recorder;
+        FeedDownloadButton.resetForTests();
         Settings.DOWNLOAD_VIDEOS.save(true);
         Settings.FEED_DOWNLOAD_BUTTON.save(true);
     }
@@ -72,6 +76,7 @@ public class FeedDownloadButtonTest {
     @After
     public void tearDown() {
         FeedDownloadButton.actions = original;
+        FeedDownloadButton.resetForTests();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
@@ -610,5 +615,44 @@ public class FeedDownloadButtonTest {
     @Test
     public void theDownloadGlyphIsFoundByItsResourceNameAndMissingMeansNoIcon() {
         assertEquals("a resource this app lacks", 0, originalLitho.drawable(activity));
+    }
+
+    /** The glyph is looked up by name once, found or not, and never again on the compose after. */
+    @Test
+    public void theDownloadGlyphIsLookedUpOnce() {
+        int[] asked = {0};
+        Context counting = new ContextWrapper(activity) {
+            @Override public Resources getResources() {
+                asked[0]++;
+                return super.getResources();
+            }
+        };
+
+        assertEquals(0, originalLitho.drawable(counting));
+        assertEquals("missing is remembered too", 0, originalLitho.drawable(counting));
+        assertEquals(1, asked[0]);
+        assertEquals(-1, FeedDownloadButton.glyph);
+
+        FeedDownloadButton.glyph = 0x7f080042;
+        assertEquals("a glyph already found", 0x7f080042, originalLitho.drawable(counting));
+        assertEquals(1, asked[0]);
+        FeedDownloadButton.resetForTests();
+        originalLitho.drawable(counting);
+        assertEquals("a fresh start looks again", 2, asked[0]);
+    }
+
+    /** The description is written once per set of languages and again when they change. */
+    @Test
+    public void theDescriptionIsKeptUntilTheLanguageChanges() {
+        assertEquals("Download", FeedDownloadButton.description(activity));
+        FeedDownloadButton.Label first = FeedDownloadButton.label;
+        assertNotNull(first);
+        assertEquals(activity.getApplicationContext().getResources().getConfiguration().getLocales(), first.locales);
+
+        FeedDownloadButton.label = new FeedDownloadButton.Label(first.locales, "kept");
+        assertEquals("the same languages reuse it", "kept", FeedDownloadButton.description(activity));
+        FeedDownloadButton.label = new FeedDownloadButton.Label(LocaleList.forLanguageTags("xx"), "stale");
+        assertEquals("other languages write it again", "Download", FeedDownloadButton.description(activity));
+        assertEquals(first.locales, FeedDownloadButton.label.locales);
     }
 }

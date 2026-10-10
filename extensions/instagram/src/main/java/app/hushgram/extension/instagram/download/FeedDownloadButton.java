@@ -16,6 +16,7 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.os.LocaleList;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -93,6 +94,25 @@ public final class FeedDownloadButton {
     private static volatile boolean logged;
     private static volatile boolean lithoLogged;
     private static volatile int lithoId;
+    /**
+     * Instagram's download glyph, found once since its id can't change while the app runs: 0 until
+     * it's looked up, -1 when this build has none. A row composes on every scroll, and the lookup by
+     * name is a search through the app's resource table.
+     */
+    static volatile int glyph;
+    /** The icon's description, with the languages it was written for. */
+    static volatile Label label;
+
+    /** A description and the languages Instagram ran in when it was written. */
+    static final class Label {
+        final LocaleList locales;
+        final String text;
+
+        Label(LocaleList locales, String text) {
+            this.locales = locales;
+            this.text = text;
+        }
+    }
 
     /** What a tap saves, and what shows the carousel choice. Replaced by tests. */
     interface Actions {
@@ -172,12 +192,16 @@ public final class FeedDownloadButton {
         }
 
         @Override public int drawable(Context context) {
+            int known = glyph;
+            if (known != 0) return Math.max(known, 0);
             Resources resources = context.getResources();
+            int found = 0;
             for (String name : ICON_NAMES) {
-                int found = resources.getIdentifier(name, "drawable", context.getPackageName());
-                if (found != 0) return found;
+                found = resources.getIdentifier(name, "drawable", context.getPackageName());
+                if (found != 0) break;
             }
-            return 0;
+            glyph = found != 0 ? found : -1;
+            return found;
         }
 
         @Override public List<Object> parts(Object save) {
@@ -285,7 +309,27 @@ public final class FeedDownloadButton {
         if (modifier == null) return null;
         Click click = new Click(litho.post(state), litho.item(state));
         if (lithoId == 0) lithoId = View.generateViewId();
-        return litho.icon(save, modifier, click, Consume.INSTANCE, lithoId, L10n.t(context, "Download"), drawable);
+        return litho.icon(save, modifier, click, Consume.INSTANCE, lithoId, description(context), drawable);
+    }
+
+    /**
+     * "Download" in Instagram's language, written again only when the languages change. L10n reads
+     * them from the application's configuration, so the same list is the key here.
+     */
+    static String description(Context context) {
+        Context application = context.getApplicationContext();
+        LocaleList locales = (application != null ? application : context).getResources().getConfiguration().getLocales();
+        Label known = label;
+        if (known != null && known.locales.equals(locales)) return known.text;
+        String text = L10n.t(context, "Download");
+        label = new Label(locales, text);
+        return text;
+    }
+
+    /** Back to how a fresh start finds it. */
+    static void resetForTests() {
+        glyph = 0;
+        label = null;
     }
 
     /**
