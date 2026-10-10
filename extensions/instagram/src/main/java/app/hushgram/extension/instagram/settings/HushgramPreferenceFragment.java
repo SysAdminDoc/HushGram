@@ -97,6 +97,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.Setting;
+import app.hushgram.extension.shared.settings.EnumSetting;
 import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 import app.hushgram.extension.shared.settings.preference.ClearLogBufferPreference;
 import app.hushgram.extension.shared.settings.preference.ExportDiagnosticReportPreference;
@@ -774,6 +775,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 playback.addPreference(toggle(context, Settings.DEFAULT_PLAYBACK_QUALITY, L10n.t("Default playback quality"),
                         L10n.t("Videos, reels and stories play at the quality below, starting with the next one you open.")));
                 playback.addPreference(playbackQualityRow(context));
+                playback.addPreference(qualityTabRow(context));
             }
             if (build.contains(PatchFamily.DATA_SAVER)) {
                 playback.addPreference(toggle(context, Settings.DATA_SAVER, L10n.t("Data saver"),
@@ -1251,6 +1253,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     boolean belongs = family.switches.stream().anyMatch(setting -> setting.key.equals(key));
                     belongs |= family == PatchFamily.STORY_RING && Settings.STORY_RING_SCALE.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
+                    belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && Settings.TAP_TO_PLAY_SCOPE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
@@ -2612,9 +2615,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      * what the shared page syncs a list by, and the summary says what the choice does.
      */
     static NavigationRow navigationRow(Context context) {
-        NavigationRow row = new NavigationRow(context);
-        row.setKey(Settings.NAVIGATION_SETTINGS_TARGET.key);
-        row.setTitle(L10n.t("Open settings with a tab long press"));
+        return tabRow(context, false);
+    }
+
+    /** The row choosing the tab whose long press opens the playback quality list (#93). */
+    static NavigationRow qualityTabRow(Context context) {
+        return tabRow(context, true);
+    }
+
+    private static NavigationRow tabRow(Context context, boolean forQuality) {
+        EnumSetting<NavigationTarget> setting = forQuality ? Settings.QUALITY_TAB_TARGET : Settings.NAVIGATION_SETTINGS_TARGET;
+        NavigationRow row = new NavigationRow(context, forQuality);
+        row.setKey(setting.key);
+        row.setTitle(forQuality ? L10n.t("Pick the playback quality with a tab long press")
+                : L10n.t("Open settings with a tab long press"));
         row.setDialogTitle(L10n.t("Choose a tab"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         NavigationTarget[] targets = NavigationTarget.values();
@@ -2626,7 +2640,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         row.setEntries(labels);
         row.setEntryValues(values);
-        row.setValue(Settings.NAVIGATION_SETTINGS_TARGET.savedValue().name());
+        row.setValue(setting.savedValue().name());
         return row;
     }
 
@@ -3643,7 +3657,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
      */
     static final class NavigationRow extends ListPreference {
         private String summary;
-        NavigationRow(Context context) { super(context); }
+        /** The row for the quality picker's tab (#93) rather than the one that opens HushGram. */
+        private final boolean forQuality;
+        NavigationRow(Context context) { this(context, false); }
+        NavigationRow(Context context, boolean forQuality) {
+            super(context);
+            this.forQuality = forQuality;
+        }
         /** The tabs take the choice once the setting has it, after this change's own sync (#82). */
         @Override public void setValue(String value) {
             super.setValue(value);
@@ -3654,6 +3674,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             NavigationTarget target = NavigationTarget.OFF;
             for (NavigationTarget candidate : NavigationTarget.values()) {
                 if (candidate.name().equals(getValue())) target = candidate;
+            }
+            if (forQuality) {
+                summary = target == NavigationTarget.OFF
+                        ? L10n.t("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.")
+                        : L10n.f("Long-press %1$s to pick the playback quality instead of that tab's usual action. "
+                                + "Normal taps and other tabs stay the same. Needs Default playback quality on. "
+                                + "If the same tab opens HushGram, that comes first.", navigationLabel(target));
+                setSummary(summary);
+                return;
             }
             summary = target == NavigationTarget.OFF
                     ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open HushGram instead.")

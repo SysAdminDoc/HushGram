@@ -708,3 +708,8 @@ Hide single chats. A hidden chat leaves your inbox and its notifications don't p
 Open a chat in Instagram, then come back here to hide it.	Abre un chat en Instagram y vuelve aquí para ocultarlo.
 %1$s is hidden	%1$s está oculto
 %1$s is shown again	%1$s se muestra de nuevo
+Pick the playback quality with a tab long press	Elegir la calidad de reproducción al mantener pulsada una pestaña
+Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Mantener pulsadas las pestañas conserva la acción de Instagram. Elige una para elegir la calidad de reproducción en su lugar.
+Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Mantén pulsado %1$s para elegir la calidad de reproducción en lugar de la acción habitual de esa pestaña. Los toques normales y las demás pestañas no cambian. Hace falta tener activada la Calidad de reproducción predeterminada. Si la misma pestaña abre HushGram, eso va primero.
+Playback quality: %1$s. The next video you open uses it.	Calidad de reproducción: %1$s. El próximo vídeo que abras la usará.
+Couldn't save the playback quality. Open HushGram settings to set it.	No se pudo guardar la calidad de reproducción. Abre los ajustes de HushGram para elegirla.

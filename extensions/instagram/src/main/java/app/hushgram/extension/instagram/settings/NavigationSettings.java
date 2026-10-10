@@ -131,8 +131,7 @@ public final class NavigationSettings {
                 if (view == null || binding == null) continue;
                 View.OnLongClickListener original = binding.original.get();
                 if (original == null && binding.hadOriginal) continue;
-                NavigationTarget chosen = Utils.settingsReady() ? Settings.NAVIGATION_SETTINGS_TARGET.get() : NavigationTarget.OFF;
-                if (chosen != NavigationTarget.OFF && chosen.name().equals(binding.tab)) {
+                if (selected(binding.tab)) {
                     view.setOnLongClickListener(new Press(binding, original));
                 } else {
                     binding.opens = false;
@@ -182,8 +181,10 @@ public final class NavigationSettings {
         }
     }
 
+    /** Whether either long press choice, opening HushGram or the quality picker, names [tab]. */
     private static boolean selected(Object tab) {
-        return Utils.settingsReady() && Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab);
+        return Utils.settingsReady()
+                && (Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab) || Settings.QUALITY_TAB_TARGET.get().matches(tab));
     }
 
     private static final class Press implements View.OnLongClickListener {
@@ -202,9 +203,15 @@ public final class NavigationSettings {
             }
             Activity owner = ownerOf(view);
             if (owner == null) return false;
-            if (Utils.settingsReady() && Settings.NAVIGATION_SETTINGS_TARGET.get() != NavigationTarget.OFF
-                    && Settings.NAVIGATION_SETTINGS_TARGET.get().name().equals(binding.tab)
-                    && SettingsEntry.requestOpen(owner)) return true;
+            if (Utils.settingsReady()) {
+                // Opening HushGram wins when both choices name this tab.
+                NavigationTarget settingsTab = Settings.NAVIGATION_SETTINGS_TARGET.get();
+                if (settingsTab != NavigationTarget.OFF && settingsTab.name().equals(binding.tab)
+                        && SettingsEntry.requestOpen(owner)) return true;
+                NavigationTarget qualityTab = Settings.QUALITY_TAB_TARGET.get();
+                if (qualityTab != NavigationTarget.OFF && qualityTab.name().equals(binding.tab)
+                        && QualityPicker.show(owner)) return true;
+            }
             return original != null && original.onLongClick(view);
         }
 
@@ -214,7 +221,7 @@ public final class NavigationSettings {
             }
             if (ownerOf(view) == null) return false;
             // Before API 34 Android never calls this method. Native handlers keep their choice.
-            return (Utils.settingsReady() && Settings.NAVIGATION_SETTINGS_TARGET.get().name().equals(binding.tab))
+            return (Utils.settingsReady() && selected(binding.tab))
                     || original == null || Build.VERSION.SDK_INT < 34
                     || original.onLongClickUseDefaultHapticFeedback(view);
         }

@@ -44,6 +44,14 @@ public class Settings extends BaseSettings {
             new EnumSetting<>("hushgram_navigation_settings_target", NavigationTarget.OFF, false);
 
     /**
+     * The tab whose long press opens the Playback quality picker (#93). It rides the same tab hooks as
+     * {@link #NAVIGATION_SETTINGS_TARGET}, so a change reaches the tabs already built, and when both
+     * name one tab, opening HushGram wins. Off to start.
+     */
+    public static final EnumSetting<NavigationTarget> QUALITY_TAB_TARGET =
+            new EnumSetting<>("hushgram_quality_tab_target", NavigationTarget.OFF, false);
+
+    /**
      * Leaves the HushGram row out of Instagram's own settings menu while a tab long press opens
      * HushGram (#84). Off to start. The row is left out only while the chosen tab is on a button
      * Instagram built ({@link NavigationSettings#opensFromATab}), so turning the long press off,

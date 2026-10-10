@@ -708,3 +708,8 @@ Hide single chats. A hidden chat leaves your inbox and its notifications don't p
 Open a chat in Instagram, then come back here to hide it.	Buka chat di Instagram, lalu kembali ke sini untuk menyembunyikannya.
 %1$s is hidden	%1$s disembunyikan
 %1$s is shown again	%1$s ditampilkan lagi
+Pick the playback quality with a tab long press	Pilih kualitas pemutaran dengan menekan lama tab
+Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk memilih kualitas pemutaran sebagai gantinya.
+Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka HushGram, itu yang didahulukan.
+Playback quality: %1$s. The next video you open uses it.	Kualitas pemutaran: %1$s. Video berikutnya yang kamu buka memakainya.
+Couldn't save the playback quality. Open HushGram settings to set it.	Kualitas pemutaran tidak bisa disimpan. Buka pengaturan HushGram untuk mengaturnya.
