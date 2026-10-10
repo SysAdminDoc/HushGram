@@ -87,10 +87,18 @@ internal const val FEED_TYPES_STATUS = "feedTypes"
 internal const val FEED_SUGGESTIONS = "$EXTENSION_PACKAGE/feed/FeedSuggestions;"
 internal const val HOME_TYPES_FILTER = "$FEED_SUGGESTIONS->homeItem(Ljava/lang/Object;)Ljava/lang/Object;"
 
+/** First thing in Home's feed response parser: a page of Home's own feed starts on this thread. */
+internal const val HOME_PAGE_STARTS = "$FEED_SUGGESTIONS->homePageStarts()V"
+
+/** Right before each return of Home's feed response parser: that page is parsed. */
+internal const val HOME_PAGE_PARSED = "$FEED_SUGGESTIONS->homePageParsed()V"
+
 /**
  * Hide videos, Hide photos and Hide carousels, found: Home's reads, the feed item's post field, the
  * post's media_type getter and the extension's stub reading them. [write] passes each item Home
- * reads through FeedSuggestions.homeItem and fills the stub.
+ * reads through FeedSuggestions.homeItem and fills the stub. It also marks each page of Home's feed
+ * response, so FeedSuggestions can tell a page of Home's own that the suggestion switches emptied
+ * from Home's store and other feeds (#105, #28).
  */
 internal class HomeFeedTypes(
     private val reads: HomeFeedReads,
@@ -120,7 +128,9 @@ internal class HomeFeedTypes(
                 return p0
             """,
         )
-        return reads.filterWith(HOME_TYPES_FILTER)
+        val filtered = reads.filterWith(HOME_TYPES_FILTER)
+        reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED)
+        return filtered
     }
 }
 
@@ -131,6 +141,7 @@ internal class HomeFeedTypes(
  */
 internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
     val reads = findHomeFeedReads(PATCH)
+    if (reads.pageReturns() == 0) throw PatchException("$PATCH: Home's feed response parser never returns")
     val stub = mutableClassDefBy(FEED_SUGGESTIONS).methods.singleOrNull {
         it.name == "mediaType" && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "I" &&
             it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")

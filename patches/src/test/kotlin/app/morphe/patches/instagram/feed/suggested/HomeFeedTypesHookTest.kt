@@ -5,19 +5,28 @@
 package app.morphe.patches.instagram.feed.suggested
 
 import app.morphe.ExtensionDex
+import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.home.FEED_MEDIA_CACHE
 import app.morphe.patches.instagram.feed.home.HOME_FEED_FILTER
+import app.morphe.patches.instagram.feed.home.HomeFeedReads
+import app.morphe.patches.instagram.feed.home.HomeFeedResponseFingerprint
 import app.morphe.patches.instagram.feed.home.filterHomeFeedItems
+import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -87,10 +96,37 @@ class HomeFeedTypesHookTest {
             ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
         )
 
+    /**
+     * Home's response with a second return, for a response it can't read, that a branch lands on
+     * directly, as the parser's early return of null can.
+     */
+    private fun branchingResponse(): ClassDef {
+        val parser = MutableMethod(
+            ImmutableMethod(
+                response, "unsafeParseFromJson", listOf(ImmutableMethodParameter(json, null, null)), "Ljava/lang/Object;",
+                AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, ImmutableMethodImplementation(3, emptyList(), null, null),
+            ),
+        )
+        parser.addInstructionsWithLabels(
+            0,
+            """
+                const-string v0, "feed_items"
+                const-string v0, "pull_to_refresh_window_ms"
+                if-eqz p1, :none
+                invoke-static { p1 }, $helper
+                move-result-object v0
+                return-object v0
+                :none
+                return-object p1
+            """,
+        )
+        return type(response, ImmutableMethod.of(parser))
+    }
+
     /** The feed item stand-ins, Home's response and store, Explore's chain, Media and the extension's FeedSuggestions. */
-    private fun classes(postWrites: List<String> = listOf("A0u")): List<ClassDef> =
+    private fun classes(postWrites: List<String> = listOf("A0u"), branching: Boolean = false): List<ClassDef> =
         FeedItemStandIns.classes(kindNames = listOf("MEDIA"), postWrites = postWrites) + listOf(
-            reader(response, "unsafeParseFromJson", json, "Ljava/lang/Object;", "feed_items", "pull_to_refresh_window_ms"),
+            if (branching) branchingResponse() else reader(response, "unsafeParseFromJson", json, "Ljava/lang/Object;", "feed_items", "pull_to_refresh_window_ms"),
             reader(store, "A00", "[B", FeedItemStandIns.ITEM),
             type(FEED_MEDIA_CACHE, method(FEED_MEDIA_CACHE, "<init>", emptyList(), "V", 1,
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(store)),
@@ -105,7 +141,86 @@ class HomeFeedTypesHookTest {
         val declared = ExtensionDex.classDef(FEED_SUGGESTIONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$FEED_SUGGESTIONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(HOME_TYPES_FILTER, mediaType)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(HOME_TYPES_FILTER, mediaType, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+    }
+
+    /**
+     * Each page of Home's feed response is marked: the start first thing in its parser, and the end
+     * right before each return, a return a branch lands on included. Home's store and Explore's chain
+     * get no marks, so their reads never count toward a page of Home's own.
+     */
+    @Test
+    fun onlyHomesResponseMarksItsPages() {
+        for (branching in listOf(false, true)) {
+            val context = PatchContexts.of(classes(branching = branching))
+
+            requireNotNull(context.homeFeedTypesOrWarn()).write()
+
+            val code = context.mutableClassDefBy(response).methods.single().instructions()
+            assertTrue("branching $branching: the start first", code[0].calls(HOME_PAGE_STARTS))
+            assertEquals("branching $branching: one start", 1, code.count { it.calls(HOME_PAGE_STARTS) })
+            val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+            assertEquals(if (branching) 2 else 1, returns.size)
+            for (at in returns) assertTrue("branching $branching: the end before the return at $at", code[at - 1].calls(HOME_PAGE_PARSED))
+            assertEquals("branching $branching: one end per return", returns.size, code.count { it.calls(HOME_PAGE_PARSED) })
+            if (branching) {
+                val jump = code.indexOfFirst { it.opcode == Opcode.IF_EQZ }
+                assertTrue("the branch to the early return marks the end", code[target(code, jump)].calls(HOME_PAGE_PARSED))
+            }
+            assertEquals("branching $branching: the filter still after the read", listOf(HOME_TYPES_FILTER), filtersAfterRead(code))
+            for (owner in listOf(store, chain)) {
+                val other = context.mutableClassDefBy(owner).methods.single().instructions()
+                assertTrue("$owner is marked", other.none { it.calls(HOME_PAGE_STARTS) || it.calls(HOME_PAGE_PARSED) })
+            }
+        }
+    }
+
+    /**
+     * On each build of the declared version, Home's feed response parser is found and marked: the
+     * start first thing, and the end before each return. The declared bundle's parser has the two
+     * returns its contract rule counts.
+     */
+    @Test
+    fun eachBuildMarksHomesPages() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        val others = Fixtures.otherBuilds()
+        assertTrue("no fixture of a declared build", bundles.isNotEmpty())
+        assertTrue("other builds of the declared version were not read", others.isNotEmpty())
+        var checked = 0
+        for (bundle in bundles + others) {
+            val where = "${bundle.parentFile.name}/${bundle.name}"
+            val classes = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                if (dex.stringSection.none { it == "pull_to_refresh_window_ms" }) return@forEach
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { it.holds("pull_to_refresh_window_ms") }) classes += ImmutableClassDef.of(classDef)
+                }
+            }
+            val context = PatchContexts.of(classes.distinctBy { it.type })
+            val parser = context.uniqueMethod("test", "Home's feed response parser", HomeFeedResponseFingerprint)
+            val reads = HomeFeedReads(FeedItemStandIns.ITEM, listOf(parser to emptyList<Pair<Int, Int>>()))
+            val returns = reads.pageReturns()
+            assertTrue("$where: the parser returns", returns > 0)
+            if (bundle in bundles) assertEquals("$where: the returns the contract rule counts", 2, returns)
+
+            assertEquals(where, returns, reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED))
+
+            val code = parser.instructions()
+            assertTrue("$where: the start first", code[0].calls(HOME_PAGE_STARTS))
+            val ends = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+            assertEquals(where, returns, ends.size)
+            for (at in ends) assertTrue("$where: the end before the return at $at", code[at - 1].calls(HOME_PAGE_PARSED))
+            checked++
+        }
+        assertEquals("every build was checked", bundles.size + others.size, checked)
+    }
+
+    /** The index of the instruction the branch at [at] lands on. */
+    private fun target(code: List<Instruction>, at: Int): Int {
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        return address.indexOf(address[at] + (code[at] as OffsetInstruction).codeOffset)
     }
 
     /** Home's two reads answer through homeItem; Explore's chain and the feed item helper don't. */

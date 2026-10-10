@@ -566,6 +566,8 @@ This creates a concrete source risk. If one account has kept a Home item, homeKe
 
 Acceptance should cover A with followed posts to B following nobody, B to A, a refresh after a populated cached page, an initially empty cache, returning from Explore and switching Home feed modes in one process. Record the item-kind counters and native loading/no-next-page flags. The desired fix should scope empty-feed evidence to the account and feed generation whose adapter reads it. It should not set a universal no-next-page flag or fetch unbounded extra pages.
 
+Follow-up: homeLost and homeKept are gone. homePageStarts and homePageParsed now bracket each page of Home's own feed response on the parsing thread, and only that page's own losses set the verdict, so the next account's first page decides its Home. feedEnded also asks the feed object the adapter reads whether it's empty before counting the end. The verdict is still process-wide, so switching from an emptied account to one whose Home is empty and not loading can show the empty card until that account's first page lands.
+
 Relevant issues are [#104](https://github.com/SysAdminDoc/HushGram/issues/104), [#105](https://github.com/SysAdminDoc/HushGram/issues/105) and [#28](https://github.com/SysAdminDoc/HushGram/issues/28). #104 has no diagnostic report. #105 reports a fresh no-follow account. #28's reporter says Pause avoids the blank frame and has now supplied a report, so older notes saying that no report exists are stale.
 
 ##### Empty feed, sparse feed and transient recycled content are separate problems

@@ -11,6 +11,8 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.patchLog
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -24,6 +26,12 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val FEED_ENDED = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->feedEnded(I)I"
+
+/** Handed the home feed object right before each read of its flag, so feedEnded can ask it whether it's empty. */
+internal const val HOME_FEED_READ = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->homeFeedRead(Ljava/lang/Object;)V"
+
+/** The extension's stub the patch fills with the feed's own empty check. */
+internal const val FEED_EMPTY_STUB = "feedEmpty"
 
 /** The log tag of the home feed adapter's model builder, and the key of the loading row it adds. */
 internal const val BUILD_MODELS = "MainfeedAdapter.buildModels"
@@ -51,10 +59,11 @@ internal val emptiedFeedEndPatch = bytecodePatch {
 }
 
 /**
- * The home feed adapter and the flag it reads to tell an empty feed that's finished (no next page)
- * from one still loading.
+ * The home feed adapter, the flag it reads to tell an empty feed that's finished (no next page)
+ * from one still loading, and the question it asks the same feed object right after: whether it's
+ * empty.
  */
-internal class FeedEnd(val adapter: String, val flag: FieldReference)
+internal class FeedEnd(val adapter: String, val flag: FieldReference, val empty: MethodReference)
 
 /**
  * Finds the one method holding [BUILD_MODELS] and [SHIMMER_KEY]. With the feed empty it adds a
@@ -87,7 +96,7 @@ internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
     }
     val again = (read + 3 until shimmer).any { code[it].calls(empty) }
     if (!again) refuse("$where adds its loading row without asking whether the feed is empty")
-    return FeedEnd(adapter, (code[read] as ReferenceInstruction).reference as FieldReference)
+    return FeedEnd(adapter, (code[read] as ReferenceInstruction).reference as FieldReference, empty!!)
 }
 
 /**
@@ -96,13 +105,18 @@ internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
  * feed is empty and that nothing is loading, so a feed with posts left, or one waiting on a page,
  * keeps what it draws. An emptied feed then gets Instagram's own empty feed card instead of its
  * loading placeholder, which it would keep for good: nothing asks for the next page of an empty feed.
+ *
+ * Right before each read, [HOME_FEED_READ] gets the feed object the flag is read from, taking any
+ * branch to the read with it, and the extension's [FEED_EMPTY_STUB] is filled with the feed's own
+ * empty check ([tellFeedEmptiness]), so feedEnded knows whether the feed it answers for is empty.
  */
 internal fun BytecodePatchContext.endEmptiedFeed(end: FeedEnd) {
     var hooked = 0
     mutableClassDefBy(end.adapter).methods.forEach { method ->
         val code = method.implementation?.instructions?.toList() ?: return@forEach
         code.indices.filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].reads(end.flag) }.reversed().forEach { at ->
-            val flag = (code[at] as TwoRegisterInstruction).registerA
+            val read = code[at] as TwoRegisterInstruction
+            val flag = read.registerA
             method.addInstructions(
                 at + 1,
                 """
@@ -110,10 +124,52 @@ internal fun BytecodePatchContext.endEmptiedFeed(end: FeedEnd) {
                     move-result v$flag
                 """,
             )
+            // Before the read, since the read can write the flag over the register holding the feed.
+            method.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v${read.registerB} .. v${read.registerB} }, $HOME_FEED_READ")
             hooked++
         }
     }
     if (hooked == 0) refuse("${end.adapter} never reads ${end.flag.name}")
+    tellFeedEmptiness(end)
+}
+
+/**
+ * Fills the extension's [FEED_EMPTY_STUB] with the question the adapter asks its feed right after
+ * reading the flag, so the extension can ask it too. Answers whether it did. A build where that
+ * question or the stub can't be reached leaves the stub answering that it can't tell, with a
+ * warning: Home still ends, and the report doesn't count it.
+ */
+internal fun BytecodePatchContext.tellFeedEmptiness(end: FeedEnd): Boolean {
+    val empty = end.empty
+    val feed = classDefByOrNull(empty.definingClass)
+    var owner = feed
+    var declared: Method? = null
+    while (owner != null && declared == null) {
+        declared = owner.methods.singleOrNull { it.name == empty.name && it.parameterTypes.isEmpty() && it.returnType == "Z" }
+        owner = owner.superclass?.let { classDefByOrNull(it) }
+    }
+    val reachable = feed != null && AccessFlags.PUBLIC.isSet(feed.accessFlags) && declared != null &&
+        AccessFlags.PUBLIC.isSet(declared.accessFlags) && !AccessFlags.STATIC.isSet(declared.accessFlags)
+    val stub = classDefByOrNull(FEED_SUGGESTIONS)?.let {
+        mutableClassDefBy(FEED_SUGGESTIONS).methods.singleOrNull { method ->
+            method.name == FEED_EMPTY_STUB && AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
+                method.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
+        }
+    }
+    if (!reachable || stub == null) {
+        patchLog.warning("Home feed end: ${if (stub == null) "$FEED_SUGGESTIONS has no $FEED_EMPTY_STUB(Object)I" else "$empty isn't public"}, so the report won't say when an emptied Home ended.")
+        return false
+    }
+    stub.addInstructions(
+        0,
+        """
+            check-cast p0, ${empty.definingClass}
+            invoke-virtual { p0 }, $empty
+            move-result p0
+            return p0
+        """,
+    )
+    return true
 }
 
 /**

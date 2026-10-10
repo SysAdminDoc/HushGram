@@ -19,6 +19,7 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -102,6 +103,32 @@ internal class HomeFeedReads(val itemType: String, private val sites: List<Pair<
         }
         return sites.sumOf { it.second.size }
     }
+
+    /** Home's feed response parser, which [findHomeFeedReads] lists first. */
+    private val response: MutableMethod get() = sites.first().first
+
+    /** How many returns Home's feed response parser has, each of which [markPages] marks. */
+    fun pageReturns(): Int = response.returnsOfObjects().size
+
+    /**
+     * Marks each page of Home's feed response as it's parsed: [starts], a static method of the
+     * extension taking nothing, first thing in the parser, and [parsed] right before each of its
+     * returns, branches to a return included. The items read between the two are that page's, so the
+     * extension can tell a page of Home's own from its store's reads and from every other feed's.
+     * Goes in after the filters, since it moves the reads they were found at. Answers how many
+     * returns it marked.
+     */
+    fun markPages(starts: String, parsed: String): Int {
+        val returns = response.returnsOfObjects()
+        returns.asReversed().forEach { response.addInstructionsAtControlFlowLabel(it, "invoke-static { }, $parsed") }
+        response.addInstructions(0, "invoke-static { }, $starts")
+        return returns.size
+    }
+}
+
+private fun Method.returnsOfObjects(): List<Int> {
+    val code = implementation?.instructions?.toList().orEmpty()
+    return code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
 }
 
 /** Finds Home's feed response parser and the read of Home's store, and each item they read, for [patch]. */

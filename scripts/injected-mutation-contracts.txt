@@ -487,6 +487,14 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->filter(Ljava/lang/Ob
 # post with a type switch on.
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeItem(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeItem(Ljava/lang/Object;)Ljava/lang/Object; in instance ([B)LX/*; sites 2 class-holding MIXED_UNCONNECTED EXPLORE_STORY
+# With them it marks each page of Home's feed response: homePageStarts first thing in the parser and
+# homePageParsed right before each of its two returns, so the items homeItem reads in between are that
+# page's. A page of Home's own that the suggestion switches emptied ends Home, while Home's store and
+# the other feeds the helper reads never do. Left out, Home keeps its loading placeholder for an account
+# whose feed is all suggestions (#105).
+start-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
+once-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageStarts()V in instance (L*;)Ljava/lang/Object; holding feed_items pull_to_refresh_window_ms
+shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homePageParsed()V in instance (L*;)Ljava/lang/Object; sites 2 holding feed_items pull_to_refresh_window_ms
 #
 # Hide suggested posts answers the home feed adapter's "no next page" flag through feedEnded() at
 # each of its two reads: the model builder, the one method holding both strings below, and the
@@ -494,6 +502,9 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeItem(Lj
 # builder beside it, so it has no rule. Left out of the builder, a Home emptied of suggestions keeps
 # its loading placeholder for good.
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->feedEnded(I)I in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
+# Right before each of those reads, homeFeedRead gets the feed object the flag is read from, so
+# feedEnded can ask it whether it's empty. Same two methods, same reason the empty check has no rule.
+shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeFeedRead(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
 # It also answers the load more row's end card rule, in the row's show check (the one instance
 # method answering a boolean that holds Following's paging source): whether the feed pages as
 # Following's through endCardRule(), and whether there's a next page through moreAfterFollowing().
