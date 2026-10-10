@@ -13,9 +13,11 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
@@ -91,6 +93,10 @@ private fun Instruction.firstArgument(): Int? = when (this) {
  * The String field the Uri the builder returns at [call] ends up in: its result moved out, its
  * toString() moved out, and that register put into a field within a few instructions. Null when
  * the code at [call] does anything else.
+ *
+ * Only a straight run of code counts (audit A20): the register can't be written again before the
+ * store, no branch, switch, return or throw may come first, and no jump may land anywhere between
+ * the call and the store, since a path arriving there would store some other value.
  */
 private fun List<Instruction>.storedField(call: Int): String? {
     val uri = getOrNull(call + 1)?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT }?.let { (it as OneRegisterInstruction).registerA } ?: return null
@@ -99,14 +105,45 @@ private fun List<Instruction>.storedField(call: Int): String? {
         instruction.opcode in VIRTUAL_CALLS && reference?.name == "toString" &&
             reference.parameterTypes.isEmpty() && reference.returnType == "Ljava/lang/String;" && instruction.firstArgument() == uri
     }?.let { getOrNull(call + 3) }?.takeIf { it.opcode == Opcode.MOVE_RESULT_OBJECT }?.let { (it as OneRegisterInstruction).registerA } ?: return null
+    val landing = jumpTargets()
+    if ((call + 1..call + 3).any { it in landing }) return null
     for (index in call + 4 until minOf(size, call + 4 + STORE_WINDOW)) {
+        if (index in landing) return null
         val instruction = this[index]
-        if (instruction.opcode != Opcode.IPUT_OBJECT && instruction.opcode != Opcode.SPUT_OBJECT) continue
-        if ((instruction as OneRegisterInstruction).registerA != text) continue
-        val field = (instruction as ReferenceInstruction).reference as FieldReference
-        return field.takeIf { it.type == "Ljava/lang/String;" }?.key()
+        if (instruction.opcode == Opcode.IPUT_OBJECT || instruction.opcode == Opcode.SPUT_OBJECT) {
+            if ((instruction as OneRegisterInstruction).registerA != text) continue
+            val field = (instruction as ReferenceInstruction).reference as FieldReference
+            return field.takeIf { it.type == "Ljava/lang/String;" }?.key()
+        }
+        if (instruction is OffsetInstruction || !instruction.opcode.canContinue() || instruction.writes(text)) return null
     }
     return null
+}
+
+/** The indices an if, goto or switch in this code can jump to. */
+private fun List<Instruction>.jumpTargets(): Set<Int> {
+    val address = IntArray(size + 1)
+    forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+    val byAddress = HashMap<Int, Int>().apply { address.forEachIndexed { index, at -> putIfAbsent(at, index) } }
+    val targets = HashSet<Int>()
+    forEachIndexed { index, instruction ->
+        val offset = (instruction as? OffsetInstruction)?.codeOffset ?: return@forEachIndexed
+        val target = byAddress[address[index] + offset] ?: return@forEachIndexed
+        when (instruction.opcode) {
+            Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH -> (this[target] as? SwitchPayload)?.switchElements?.forEach { element ->
+                byAddress[address[index] + element.offset]?.let(targets::add)
+            }
+            Opcode.FILL_ARRAY_DATA -> Unit
+            else -> targets += target
+        }
+    }
+    return targets
+}
+
+private fun Instruction.writes(register: Int): Boolean {
+    if (!opcode.setsRegister()) return false
+    val first = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return first == register || (opcode.setsWideRegister() && first + 1 == register)
 }
 
 /** The index and target register of each read of one of [fields] in this method. */

@@ -32,6 +32,13 @@ class ReportAddressReadsTest {
     private val toText = "Ljava/lang/Object;->toString()Ljava/lang/String;"
     private val parse = "Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;"
 
+    /** The report's name in an array, in v0, as Lacrima passes it to the builder. */
+    private val reportArray = """
+        const-string v1, "reliability_event_log_upload"
+        filled-new-array { v1 }, [Ljava/lang/String;
+        move-result-object v0
+    """
+
     /** Both stored copies are found, every read of them goes through endpoint(), and an unrelated field read doesn't. */
     @Test
     fun everyReadOfAStoredAddressGoesThroughTheExtension() {
@@ -65,6 +72,129 @@ class ReportAddressReadsTest {
 
         assertEquals(0, context.filterReportAddressReads(context.builder(), endpoint))
     }
+
+    /**
+     * Audit A20: only the builder's own text, stored on a straight run of code, counts. Each body
+     * builds the address, then does one thing that means the field may hold something else.
+     */
+    @Test
+    fun aStoreThatMayHoldAnotherValueIsNotFollowed() {
+        val built = """
+            invoke-static { v0 }, $build
+            move-result-object v0
+            invoke-virtual { v0 }, $toText
+            move-result-object v0
+        """
+        val newReporter = """
+            new-instance v1, Lfixture/Reporter;
+            invoke-direct { v1 }, Lfixture/Reporter;-><init>()V
+        """
+        val cases = mapOf(
+            "the register written again" to """
+                $reportArray
+                $built
+                const-string v0, "https://example.com/"
+                $newReporter
+                iput-object v0, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+                return-object v1
+            """,
+            "a copy stored after the original changed" to """
+                $reportArray
+                $built
+                move-object v2, v0
+                const-string v0, "https://example.com/"
+                $newReporter
+                iput-object v2, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+                return-object v1
+            """,
+            "a branch before the store" to """
+                $reportArray
+                $built
+                if-eqz v0, :keep
+                const-string v0, "https://example.com/"
+                :keep
+                $newReporter
+                iput-object v0, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+                return-object v1
+            """,
+            "a jump past the builder into the store" to """
+                const/4 v2, 0x0
+                $reportArray
+                if-eqz v2, :store
+                $built
+                :store
+                $newReporter
+                iput-object v0, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+                return-object v1
+            """,
+        )
+        for ((case, body) in cases) {
+            val context = PatchContexts.of(reporterWith(body))
+            assertEquals(case, 0, context.filterReportAddressReads(context.builder(), endpoint))
+        }
+    }
+
+    /** The first store of the text is the address. A later store, after the register changed, isn't. */
+    @Test
+    fun onlyTheStoreBeforeTheRegisterChangesIsFollowed() {
+        val context = PatchContexts.of(reporterWith("""
+            $reportArray
+            invoke-static { v0 }, $build
+            move-result-object v0
+            invoke-virtual { v0 }, $toText
+            move-result-object v0
+            new-instance v1, Lfixture/Reporter;
+            invoke-direct { v1 }, Lfixture/Reporter;-><init>()V
+            iput-object v0, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+            const-string v0, "https://example.com/"
+            iput-object v0, v1, Lfixture/Reporter;->other:Ljava/lang/String;
+            return-object v1
+        """))
+
+        assertEquals(1, context.filterReportAddressReads(context.builder(), endpoint))
+        val code = context.code("Lfixture/Reader;", "read")
+        val other = code.indexOfFirst { it.referenceText() == "Lfixture/Reporter;->other:Ljava/lang/String;" }
+        assertTrue("the later store's read was filtered", code[other + 1].referenceText() != endpoint)
+    }
+
+    /**
+     * Shaped like 450's 00Ya.A00: a check before the build jumps past the store, never into it, so
+     * the store still counts.
+     */
+    @Test
+    fun aJumpThatSkipsTheWholeStoreLeavesItFollowed() {
+        val context = PatchContexts.of(reporterWith("""
+            const/4 v2, 0x0
+            if-nez v2, :done
+            $reportArray
+            invoke-static { v0 }, $build
+            move-result-object v0
+            invoke-virtual { v0 }, $toText
+            move-result-object v0
+            new-instance v1, Lfixture/Reporter;
+            invoke-direct { v1 }, Lfixture/Reporter;-><init>()V
+            iput-object v0, v1, Lfixture/Reporter;->address:Ljava/lang/String;
+            :done
+            return-object v1
+        """))
+
+        assertEquals(1, context.filterReportAddressReads(context.builder(), endpoint))
+    }
+
+    /** The builder, a Reporter whose instance() runs [body], and a reader of both its String fields. */
+    private fun reporterWith(body: String): List<ClassDef> = listOf(
+        classes().first { it.type == builderType },
+        classOf("Lfixture/Reporter;", method("Lfixture/Reporter;", "instance", emptyList(), "Lfixture/Reporter;", static = true,
+            registers = 3, body = body), fields = listOf("address" to "Ljava/lang/String;", "other" to "Ljava/lang/String;")),
+        classOf("Lfixture/Reader;", method("Lfixture/Reader;", "read", listOf("Lfixture/Reporter;"), "V", static = true, registers = 2,
+            body = """
+                iget-object v0, p0, Lfixture/Reporter;->address:Ljava/lang/String;
+                invoke-static { v0 }, $parse
+                iget-object v1, p0, Lfixture/Reporter;->other:Ljava/lang/String;
+                invoke-static { v1 }, $parse
+                return-void
+            """)),
+    )
 
     private fun BytecodePatchContext.builder() = classDefBy(builderType).methods.single { it.name == "build" }
 

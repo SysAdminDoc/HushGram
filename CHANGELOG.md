@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Disable analytics is stricter about which saved address it treats as the crash reporter's. It only follows the address when it's saved right after it's built, so a later Instagram build that saves something else there won't have that value changed. Both places Instagram 450 saves it still qualify.
+
 * **Tooling:** Hide ads has tests of its own. One checks that only an on switch with HushGram ready and not paused hides an ad. The other checks that each supported Instagram build has exactly one place where ads go into a feed, and that HushGram's check is the first thing that runs there.
 
 * **Instagram:** Disable analytics won't apply to an Instagram build where it finds only the contacts and location setup screens and none of the ways reports are sent, since skipping those screens protects nothing by itself. When a build has only some of what Disable analytics or Sanitize sharing links work on, the switch's description in HushGram settings now says how many it covers.
