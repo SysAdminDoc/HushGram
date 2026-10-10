@@ -1,7 +1,7 @@
 ![HushGram. Keep the moments. Cut the noise.](assets/readme-hero.png)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.0.7-E1306C" alt="Version 0.0.7">
+  <img src="https://img.shields.io/badge/version-0.0.8-E1306C" alt="Version 0.0.8">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License GPL-3.0"></a>
   <img src="https://img.shields.io/badge/platform-Android%209%2B-3DDC84" alt="Platform Android 9+">
   <img src="https://img.shields.io/badge/Instagram-450.0.0.50.77-E1306C" alt="Instagram 450.0.0.50.77">
@@ -94,7 +94,7 @@ Four patches stay out of simple mode. Tick them in Manager's patch list if you w
 
 Expert mode is still there if you'd rather leave a patch out. It groups the patches under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings. Ghost mode holds the six patches its card in HushGram settings turns on together.
 
-There are 79 patches for `com.instagram.android`, checked against Instagram 450.0.0.50.77 (arm64-v8a, build 385611438, the version's other arm64 builds 385611395, 385611400, 385611404 and 385611431, and its x86 and x86_64 builds 385611439 and 385611440). Hide suggested accounts in DMs is the newest and comes in the next release. The other 78 are all in v0.0.7.
+There are 79 patches for `com.instagram.android`, checked against Instagram 450.0.0.50.77 (arm64-v8a, build 385611438, the version's other arm64 builds 385611395, 385611400, 385611404 and 385611431, and its x86 and x86_64 builds 385611439 and 385611440). Hide suggested accounts in DMs is new in v0.0.8, and the other 78 were in v0.0.7 too.
 
 | Patch | What it does | Simple mode |
 |---|---|---|
@@ -516,7 +516,7 @@ For a local selection of more than one source, `scripts/patch-with-sources.ps1` 
 Create a selection file such as `selected-sources.json`. Bundle paths are relative to that file, and patch names belong to their own bundle. `"*"` selects every patch for the input APK's package:
 
 ```json
-{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.7.mpp","patches":["*"]}]}
+{"schemaVersion":1,"sources":[{"bundle":"patches/build/release/patches-0.0.8.mpp","patches":["*"]}]}
 ```
 
 ```powershell
