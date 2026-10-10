@@ -106,11 +106,18 @@ public final class ReelSeekBar {
         ReelTimeLabel.bind(container, ad != 0, ReelSeekBar::switchedOn);
     }
 
+    /** Whether every reel keeps its bar and time label: Keep a seek bar, or the bigger bar, which needs the bar shown. */
     static boolean switchedOn() {
-        return Utils.settingsReady() && Settings.REEL_SEEK_BAR.get();
+        return Utils.settingsReady() && (Settings.REEL_SEEK_BAR.get() || Settings.BIG_REEL_SEEK_BAR.get());
     }
 
+    /** Whether the bar gets a thumb: Show a Reel seek thumb, or the bigger bar, which always has one. */
     static boolean thumbOn() {
-        return Utils.settingsReady() && Settings.REEL_SEEK_THUMB.get();
+        return Utils.settingsReady() && (Settings.REEL_SEEK_THUMB.get() || Settings.BIG_REEL_SEEK_BAR.get());
+    }
+
+    /** Whether the bar is restyled thicker with a dark fade behind it. */
+    static boolean bigOn() {
+        return Utils.settingsReady() && Settings.BIG_REEL_SEEK_BAR.get();
     }
 }

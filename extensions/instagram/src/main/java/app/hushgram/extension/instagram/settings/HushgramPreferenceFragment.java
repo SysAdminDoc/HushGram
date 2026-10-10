@@ -656,6 +656,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             + "the reel's length above it. Ads keep Instagram's own rules.")));
             reels.add(toggle(context, Settings.REEL_SEEK_THUMB, L10n.t("Show a Reel seek thumb"),
                     L10n.t("Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.")));
+            reels.add(toggle(context, Settings.BIG_REEL_SEEK_BAR, L10n.t("Bigger seek bar on reels"),
+                    L10n.t("Makes the seek bar thicker, with a round white handle and the time above it, over a soft "
+                            + "dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.")));
         }
         if (build.contains(PatchFamily.REEL_AUTO_SCROLL)) {
             reels.add(toggle(context, Settings.KEEP_REEL_AUTO_SCROLL, L10n.t("Keep auto scroll on"),

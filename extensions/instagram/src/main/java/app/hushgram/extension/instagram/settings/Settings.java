@@ -880,6 +880,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_seek_thumb", FALSE);
 
     /**
+     * A thicker seek bar on every ordinary reel, with a round white thumb, the time label and a soft
+     * dark fade behind it, drawn on Instagram's own bar
+     * ({@link app.hushgram.extension.instagram.reels.ReelSeekBar}). Also keeps the bar on short reels.
+     * Off to start.
+     */
+    public static final BooleanSetting BIG_REEL_SEEK_BAR =
+            new BooleanSetting("hushgram_big_reel_seek_bar", FALSE);
+
+    /**
      * Instagram's auto scroll in Reels stays the way you last set it after a restart and after
      * you leave Reels ({@link app.hushgram.extension.instagram.reels.ReelAutoScroll}). Read each
      * time Instagram asks whether auto scroll is on, so a change shows from the next reel. Off to

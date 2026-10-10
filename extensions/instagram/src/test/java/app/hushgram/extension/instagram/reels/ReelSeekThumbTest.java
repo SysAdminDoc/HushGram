@@ -77,6 +77,7 @@ public class ReelSeekThumbTest {
     @After public void restore() {
         activity.close();
         Settings.REEL_SEEK_THUMB.resetToDefault();
+        Settings.BIG_REEL_SEEK_BAR.resetToDefault();
         Settings.REEL_SEEK_BAR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -233,6 +234,90 @@ public class ReelSeekThumbTest {
             assertEquals(direction == View.LAYOUT_DIRECTION_LTR ? 40 : 70, bar.getProgress());
         }
         assertEquals(2, changed[0]);
+    }
+
+    @Test public void defaultOffLeavesTheTrackAndBackgroundAlone() {
+        Drawable track = bar.getProgressDrawable();
+        Drawable background = bar.getBackground();
+        assertFalse(Settings.BIG_REEL_SEEK_BAR.get());
+        refresh();
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(background, bar.getBackground());
+        assertTrue(container.getClipChildren());
+    }
+
+    @Test public void theBiggerBarThickensTheTrackAddsAThumbAndAFadeOnTheSameBar() {
+        Settings.REEL_SEEK_BAR.save(false);
+        Drawable track = bar.getProgressDrawable();
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        assertNotSame(track, bar.getProgressDrawable());
+        assertNotNull(bar.getProgressDrawable().getBounds());
+        assertTrue(bar.getBackground() instanceof android.graphics.drawable.LayerDrawable);
+        assertFalse(container.getClipChildren());
+        int expected = Math.min(Math.round(ReelTimeLabel.BIG_THUMB_DP * bar.getResources().getDisplayMetrics().density),
+                bar.getHeight());
+        assertEquals(expected, bar.getThumb().getIntrinsicWidth());
+        assertEquals(25, bar.getProgress());
+        assertSame(bar, container.getChildAt(0));
+        // The fade and the track draw: white where the progress is, translucent after it.
+        Bitmap pixels = Bitmap.createBitmap(400, 28, Bitmap.Config.ARGB_8888);
+        bar.draw(new Canvas(pixels));
+        assertTrue(Color.alpha(pixels.getPixel(20, 27)) > 0 || Color.alpha(pixels.getPixel(20, 14)) > 0);
+        // Settled, a frame changes none of it.
+        Drawable styled = bar.getProgressDrawable();
+        Drawable backdrop = bar.getBackground();
+        refresh();
+        assertSame(styled, bar.getProgressDrawable());
+        assertSame(backdrop, bar.getBackground());
+    }
+
+    @Test public void theBiggerBarAlsoShowsTheTimeLabelAndKeepsShortReelsInstagramsBar() {
+        Settings.REEL_SEEK_BAR.save(false);
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        assertNotNull(ReelTimeLabel.labelOf(bar));
+        assertTrue(ReelSeekBar.switchedOn());
+        assertEquals(1L, ReelSeekBar.minSeconds(7L));
+        assertFalse(ReelSeekBar.lazy(1));
+    }
+
+    @Test public void turningTheBiggerBarOffOrPausingGivesInstagramsDrawablesAndClippingBack() {
+        Drawable track = bar.getProgressDrawable();
+        Drawable background = bar.getBackground();
+        container.setClipChildren(false);
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        assertNotSame(track, bar.getProgressDrawable());
+        Settings.BIG_REEL_SEEK_BAR.save(false);
+        refresh();
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(background, bar.getBackground());
+        assertFalse("A view that already drew past its edges keeps doing so", container.getClipChildren());
+        container.setClipChildren(true);
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        refresh();
+        assertSame(track, bar.getProgressDrawable());
+        assertSame(background, bar.getBackground());
+        assertTrue(container.getClipChildren());
+        assertSame(original, bar.getThumb());
+    }
+
+    @Test public void theBiggerBarComesOffAnAdAtOnceAndWhenTheBarLeaves() {
+        Drawable track = bar.getProgressDrawable();
+        Settings.BIG_REEL_SEEK_BAR.save(true);
+        refresh();
+        ReelSeekBar.bind(container, 1);
+        assertSame(track, bar.getProgressDrawable());
+        ReelSeekBar.bind(container, 0);
+        refresh();
+        assertNotSame(track, bar.getProgressDrawable());
+        container.removeView(bar);
+        ShadowLooper.idleMainLooper();
+        assertSame(track, bar.getProgressDrawable());
+        assertTrue(container.getClipChildren());
     }
 
     private void refresh() {

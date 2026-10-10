@@ -424,6 +424,8 @@ Exporting HushGram settings...	Exportando as configurações do HushGram...
 Settings export cancelled.	Exportação das configurações cancelada.
 Show a Reel seek thumb	Mostrar controle circular nos Reels
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Adiciona à barra de progresso uma alça redonda branca que você pode arrastar. Os anúncios mantêm a barra deles.
+Bigger seek bar on reels	Barra de progresso maior nos Reels
+Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	Deixa a barra de progresso mais grossa, com um controle redondo branco e o tempo acima, sobre um degradê escuro suave para aparecer em qualquer vídeo. Arraste para avançar. Também mantém a barra em Reels curtos.
 # Chosen navigation long-press settings entry. Account tab availability varies.
 Settings entry	Acesso às configurações
 Open settings with a tab long press	Abrir configurações ao manter uma aba pressionada

@@ -5,12 +5,18 @@
 package app.hushgram.extension.instagram.reels;
 
 import android.content.Context;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.ClipDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -94,6 +100,14 @@ final class ReelTimeLabel {
      */
     private static final int HOST_REACH = 4;
 
+    /** The bigger bar's track height, thumb size and the height of the dark fade behind it, in dp. */
+    static final float BIG_TRACK_DP = 4f;
+    static final float BIG_THUMB_DP = 14f;
+    static final float BIG_FADE_DP = 64f;
+    /** The bigger bar's track behind the progress, white at about a third, and the fade's darkest end, 40% black. */
+    static final int BIG_TRACK_COLOR = 0x55FFFFFF;
+    static final int BIG_FADE_COLOR = 0x66000000;
+
     /** The space between the label and the bar's track, and around the label's text. */
     private static final float GAP_DP = 4f;
 
@@ -130,6 +144,18 @@ final class ReelTimeLabel {
         Drawable originalThumb;
         GradientDrawable thumb;
         int originalThumbOffset;
+        /** The bigger bar: Instagram's own track and background, ours in their place, and the views let draw past their edges. */
+        boolean styled;
+        Drawable originalProgress;
+        LayerDrawable bigTrack;
+        Drawable originalBackground;
+        LayerDrawable backdrop;
+        int fadeIndex;
+        int styledHeight = -1;
+        int styledBottom = -1;
+        final ViewGroup[] unclipped = new ViewGroup[HOST_REACH];
+        final boolean[] clippedBefore = new boolean[HOST_REACH];
+        int unclippedCount;
 
         State(SeekBar bar) {
             this.bar = new WeakReference<>(bar);
@@ -337,7 +363,9 @@ final class ReelTimeLabel {
     /** Uses Android's thumb drawing and seeking without replacing any listener. */
     private static void updateThumb(SeekBar bar, State state, boolean wanted) {
         float density = bar.getResources().getDisplayMetrics().density;
-        int diameter = Math.min(Math.round(10 * density), bar.getHeight());
+        boolean big = wanted && ReelSeekBar.bigOn();
+        updateStyle(bar, state, big);
+        int diameter = Math.min(Math.round((big ? BIG_THUMB_DP : 10) * density), bar.getHeight());
         if (!wanted || diameter <= 0) {
             if (state.thumb != null && bar.getThumb() == state.thumb) {
                 bar.setThumb(state.originalThumb);
@@ -372,6 +400,133 @@ final class ReelTimeLabel {
         int top = Math.max(-bar.getPaddingTop(),
                 Math.min(bounds.top, bar.getHeight() - bar.getPaddingTop() - diameter));
         if (bounds.top != top) state.thumb.setBounds(bounds.left, top, bounds.right, top + diameter);
+    }
+
+    /**
+     * The bigger bar, while [big]: a thicker white track with a translucent one behind it, in place of
+     * Instagram's drawable for the bar's track, and a soft dark fade drawn as part of the bar's own
+     * background, reaching up from the bar's bottom. The bar stays Instagram's view, so its taps,
+     * dragging and accessibility seeking are untouched. The fade is drawn by the bar, in its place
+     * among the reel's views, so it can't land over the caption or buttons above it; the views from
+     * the bar's parent up to the first with room for the fade are let draw past their edges for it.
+     * Costs nothing per frame once set; it starts over only if the bar's size or place changes or
+     * Instagram swaps a drawable. Off, it gives Instagram's drawables and clipping back.
+     */
+    private static void updateStyle(SeekBar bar, State state, boolean big) {
+        ViewParent parent = bar.getParent();
+        if (!big || !(parent instanceof ViewGroup)) {
+            unstyle(bar, state);
+            return;
+        }
+        int height = bar.getHeight();
+        if (height <= 0) return;
+        float density = bar.getResources().getDisplayMetrics().density;
+        if (state.bigTrack == null) state.bigTrack = bigTrack(density);
+        if (bar.getProgressDrawable() != state.bigTrack) {
+            state.originalProgress = bar.getProgressDrawable();
+            bar.setProgressDrawable(state.bigTrack);
+        }
+        boolean moved = state.styledHeight != height || state.styledBottom != bar.getBottom();
+        if (state.backdrop == null || bar.getBackground() != state.backdrop) {
+            state.originalBackground = bar.getBackground();
+            GradientDrawable fade = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                    new int[] {Color.TRANSPARENT, BIG_FADE_COLOR});
+            state.fadeIndex = state.originalBackground == null ? 0 : 1;
+            state.backdrop = new LayerDrawable(state.originalBackground == null
+                    ? new Drawable[] {fade} : new Drawable[] {state.originalBackground, fade});
+            bar.setBackground(state.backdrop);
+            moved = true;
+        }
+        if (moved) {
+            restoreClipping(state);
+            int wanted = Math.round(BIG_FADE_DP * density);
+            ViewGroup view = (ViewGroup) parent;
+            int room = bar.getBottom();
+            int count = 0;
+            while (count < HOST_REACH) {
+                state.unclipped[count] = view;
+                state.clippedBefore[count] = view.getClipChildren();
+                view.setClipChildren(false);
+                count++;
+                if (room >= wanted) break;
+                ViewParent up = view.getParent();
+                if (!(up instanceof ViewGroup)) break;
+                room += view.getTop();
+                view = (ViewGroup) up;
+            }
+            state.unclippedCount = count;
+            // The fade ends at the bar's bottom and reaches up by its height, as far as there's room.
+            state.backdrop.setLayerInset(state.fadeIndex, 0, height - Math.min(wanted, room), 0, 0);
+            state.styledHeight = height;
+            state.styledBottom = bar.getBottom();
+        }
+        state.styled = true;
+    }
+
+    private static void unstyle(SeekBar bar, State state) {
+        if (!state.styled) return;
+        state.styled = false;
+        if (bar.getProgressDrawable() == state.bigTrack) bar.setProgressDrawable(state.originalProgress);
+        if (bar.getBackground() == state.backdrop) bar.setBackground(state.originalBackground);
+        restoreClipping(state);
+        state.originalProgress = null;
+        state.originalBackground = null;
+        state.backdrop = null;
+        state.styledHeight = -1;
+        state.styledBottom = -1;
+    }
+
+    private static void restoreClipping(State state) {
+        for (int i = 0; i < state.unclippedCount; i++) {
+            state.unclipped[i].setClipChildren(state.clippedBefore[i]);
+            state.unclipped[i] = null;
+        }
+        state.unclippedCount = 0;
+    }
+
+    /** A translucent track with the progress over it in white, both [BIG_TRACK_DP] thick, drawn in code. */
+    private static LayerDrawable bigTrack(float density) {
+        float thickness = BIG_TRACK_DP * density;
+        ClipDrawable progress = new ClipDrawable(new Pill(Color.WHITE, thickness), Gravity.START, ClipDrawable.HORIZONTAL);
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(BIG_TRACK_COLOR, thickness), progress});
+        track.setId(0, android.R.id.background);
+        track.setId(1, android.R.id.progress);
+        return track;
+    }
+
+    /** A rounded bar of a fixed thickness, centered in its bounds' height and as wide as they are. */
+    static final class Pill extends Drawable {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF rect = new RectF();
+        private final float thickness;
+
+        Pill(int color, float thickness) {
+            this.paint.setColor(color);
+            this.thickness = thickness;
+        }
+
+        @Override
+        public void draw(Canvas canvas) {
+            Rect bounds = getBounds();
+            float middle = (bounds.top + bounds.bottom) / 2f;
+            rect.set(bounds.left, middle - thickness / 2f, bounds.right, middle + thickness / 2f);
+            canvas.drawRoundRect(rect, thickness / 2f, thickness / 2f, paint);
+        }
+
+        @Override
+        public void setAlpha(int alpha) {
+            paint.setAlpha(alpha);
+        }
+
+        @Override
+        public void setColorFilter(ColorFilter filter) {
+            paint.setColorFilter(filter);
+        }
+
+        @Override
+        public int getOpacity() {
+            return PixelFormat.TRANSLUCENT;
+        }
     }
 
     /** "m:ss", or "h:mm:ss" from an hour, like Instagram's own scrubber times, in the phone's digits. */
