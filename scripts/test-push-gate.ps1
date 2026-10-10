@@ -289,6 +289,13 @@ exit 0
     $evidence = Find-GateEvidence -Root $script:repo
     Assert-True ($null -ne $evidence -and $evidence.Commit -eq $tip -and -not $evidence.IndexOnly -and
         (Test-Path -LiteralPath $evidence.Bundle) -and (Test-Path -LiteralPath $evidence.Sbom)) 'The passing gate run was not found for HEAD.'
+    # The hook starts the facts check in a pwsh of its own, where $LASTEXITCODE starts out unset.
+    # Reading git's first line with Select-Object -First stopped git before its exit code was set,
+    # so that pwsh read HEAD as unknown and fell back to the checkout's own build outputs.
+    $freshCheck = "`$env:HUSHGRAM_GATE_CACHE = '$($script:gateCache)'; . '$(Join-Path $PSScriptRoot 'common.ps1')'; " +
+        ". '$(Join-Path $PSScriptRoot 'gate-evidence.ps1')'; if (Find-GateEvidence -Root '$($script:repo)') { 'found' } else { 'missing' }"
+    $fresh = @(& pwsh -NoProfile -NonInteractive -Command $freshCheck 2>&1 | ForEach-Object { "$_" })
+    Assert-True ($fresh.Count -gt 0 -and $fresh[-1] -eq 'found') "A fresh pwsh didn't find the passing gate run: $($fresh -join '; ')"
     $bundleHash = Get-EvidenceHash -Path $evidence.Bundle
     $catalogFile = Join-Path $script:repo 'patches-list.json'
     $why = ''

@@ -143,7 +143,10 @@ function Invoke-EvidenceGit {
 function Get-CommitTree {
     <# The tree git records for -Commit, or $null when it can't say. #>
     param([Parameter(Mandatory = $true)][string]$Root, [Parameter(Mandatory = $true)][string]$Commit)
-    $tree = "$(Invoke-EvidenceGit -Root $Root -Arguments @('rev-parse', '--verify', '--quiet', "$Commit^{tree}") | Select-Object -First 1)".Trim()
+    # Collected before the first line is taken: a Select-Object -First right after git stops the
+    # pipeline before git's exit code is set, and a fresh pwsh then reads $LASTEXITCODE as $null.
+    $answer = @(Invoke-EvidenceGit -Root $Root -Arguments @('rev-parse', '--verify', '--quiet', "$Commit^{tree}"))
+    $tree = "$($answer | Select-Object -First 1)".Trim()
     if ($LASTEXITCODE -ne 0 -or $tree -notmatch '^[0-9a-f]{40}$') { return $null }
     return $tree
 }
@@ -441,7 +444,9 @@ function Find-GateEvidence {
         [switch]$AllowIndexCommits,
         [string]$Prefix = '[gate]'
     )
-    $head = "$(Invoke-EvidenceGit -Root $Root -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+    # Collected first for the same reason as in Get-CommitTree.
+    $answer = @(Invoke-EvidenceGit -Root $Root -Arguments @('rev-parse', 'HEAD'))
+    $head = "$($answer | Select-Object -First 1)".Trim()
     if ($LASTEXITCODE -ne 0 -or $head -notmatch '^[0-9a-f]{40}$') { Write-Host "$Prefix git could not say what HEAD is, so no gate run is read"; return $null }
     $dirty = @(Invoke-EvidenceGit -Root $Root -Arguments @('status', '--porcelain', '--untracked-files=no') | Where-Object { "$_".Trim() })
     if ($dirty.Count -gt 0) {
