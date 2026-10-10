@@ -181,9 +181,9 @@ public class KeepInChatTest {
         assertFalse(report, report.contains(KeepInChat.NO_VIEWER));
     }
 
-    /** A reader with no account goes by the last account a reader had, and with none the photo stays kept and is counted. */
+    /** A reader with no account goes by the one account readers have had, and with none the photo stays kept and is counted. */
     @Test
-    public void aReaderWithNoAccountGoesByTheLastOneSeen() {
+    public void aReaderWithNoAccountGoesByTheOnlyAccountSeen() {
         FakeMessage unknown = new FakeMessage();
         unknown.viewer = null;
         unknown.sender = "42";
@@ -201,6 +201,59 @@ public class KeepInChatTest {
         KeepInChat.messageRead(unknown, READER, unknown);
         assertEquals("once", unknown.modes.get(unknown.visual));
         assertTrue(theirs.modes.isEmpty());
+    }
+
+    /**
+     * Two accounts signed in, B's messages read and then A's: a reader with no account could be
+     * reading for either, so a view once photo A sent B isn't taken as sent by you. It stays kept,
+     * so B opening it doesn't use it up, and it's counted. Readers with an account still tell their
+     * own, and once cleared, one account is enough to go by again.
+     */
+    @Test
+    public void withTwoAccountsAReaderWithNoAccountCantTell() {
+        FakeMessage forB = new FakeMessage();
+        forB.viewer = "7";
+        forB.sender = "9";
+        assertEquals("permanent", KeepInChat.viewMode("once", forB.visual));
+        KeepInChat.messageRead(forB, READER, forB);
+        FakeMessage forA = new FakeMessage();
+        forA.sender = "9";
+        assertEquals("permanent", KeepInChat.viewMode("once", forA.visual));
+        KeepInChat.messageRead(forA, READER, forA);
+
+        FakeMessage fromAToB = new FakeMessage();
+        fromAToB.viewer = null;
+        fromAToB.sender = "42";
+        assertEquals("permanent", KeepInChat.viewMode("once", fromAToB.visual));
+        KeepInChat.messageRead(fromAToB, READER, fromAToB);
+        assertTrue("could be B's: stays kept", fromAToB.modes.isEmpty());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(KeepInChat.NO_VIEWER + " 1"));
+
+        // A's own reader tells A's photo, and seeing A again doesn't make A the only account.
+        FakeMessage mine = new FakeMessage();
+        mine.sender = "42";
+        assertEquals("permanent", KeepInChat.viewMode("once", mine.visual));
+        KeepInChat.messageRead(mine, READER, mine);
+        assertEquals("once", mine.modes.get(mine.visual));
+        KeepInChat.messageRead(fromAToB, READER, fromAToB);
+        assertTrue("still could be B's", fromAToB.modes.isEmpty());
+        assertTrue(forA.modes.isEmpty());
+        assertTrue(forB.modes.isEmpty());
+
+        KeepInChat.clearRemembered();
+        HookStatus.clear();
+        FakeMessage theirs = new FakeMessage();
+        theirs.sender = "7";
+        assertEquals("permanent", KeepInChat.viewMode("once", theirs.visual));
+        KeepInChat.messageRead(theirs, READER, theirs);
+        FakeMessage unknown = new FakeMessage();
+        unknown.viewer = null;
+        unknown.sender = "42";
+        assertEquals("permanent", KeepInChat.viewMode("once", unknown.visual));
+        KeepInChat.messageRead(unknown, READER, unknown);
+        assertEquals("one account again", "once", unknown.modes.get(unknown.visual));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains(KeepInChat.NO_VIEWER));
     }
 
     /**

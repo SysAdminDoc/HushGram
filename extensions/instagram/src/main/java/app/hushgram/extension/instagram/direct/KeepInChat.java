@@ -33,6 +33,12 @@ import java.util.function.BooleanSupplier;
  * still counts when it's there. A message whose sender can't be told is treated as one you
  * received and stays kept in the chat.
  *
+ * <p>Some readers parse without an account. One of those goes by the account the other readers
+ * have had, but only while they've all had the same one. With two accounts signed in it could be
+ * reading for either, and a view once photo one of them sent the other could pass for one you sent
+ * on the other's side, so opening it there would use it up. From the second account on, a reader
+ * without one can't tell, and the photo stays kept as one you received.
+ *
  * <p>Instagram saves its messages to a cache with the view mode they hold, and reads them back the
  * next time the chat opens. {@link #storedViewMode} hands the cache the mode the server sent for a
  * media this class rewrote, so the cache keeps Instagram's own mode and the next read decides again.
@@ -51,7 +57,10 @@ public final class KeepInChat {
 
     /** Counted for each photo or video you sent that got its own view mode back. */
     static final String GAVE_BACK = "gave a photo or video you sent its own bubble";
-    /** Counted when a message's sender was read but the signed-in account never was. */
+    /**
+     * Counted when a message's sender was read but not the account it was read for: its reader had
+     * none, and readers haven't had exactly one account to go by.
+     */
     static final String NO_VIEWER = "couldn't tell who's signed in";
     /** Counted each time a kept photo or video went to the cache with the view mode it came with. */
     static final String SAVED = "saved a kept photo or video with its own view mode";
@@ -68,8 +77,12 @@ public final class KeepInChat {
      */
     private static final Map<Object, String> rewritten = Collections.synchronizedMap(new WeakHashMap<>());
 
-    /** The signed-in account's id, the last time a message's reader had it. */
-    private static volatile String lastViewer;
+    /** Guards {@link #firstViewer} and {@link #severalViewers}, which change together. */
+    private static final Object VIEWERS = new Object();
+    /** The id of the first account a message's reader had in this process, or null before one. */
+    private static String firstViewer;
+    /** Whether a message's reader has had an account other than {@link #firstViewer}. */
+    private static boolean severalViewers;
 
     private static volatile boolean logged;
 
@@ -139,7 +152,8 @@ public final class KeepInChat {
 
     /**
      * Whether [message] is one the signed-in account sent: its own flag says so, or its sender is
-     * the account [reader] is reading for (or, when the reader has no account, the last one seen).
+     * the account [reader] is reading for (or, when the reader has no account, the one account
+     * readers have had, if they've only had one).
      */
     private static boolean isYours(Object message, Object reader, Message stubs) {
         if (stubs.sentByYou(message)) {
@@ -151,15 +165,33 @@ public final class KeepInChat {
         }
         String viewer = stubs.viewerId(reader);
         if (viewer != null && !viewer.isEmpty()) {
-            lastViewer = viewer;
+            sawViewer(viewer);
         } else {
-            viewer = lastViewer;
+            viewer = onlyViewer();
         }
         if (viewer == null) {
             HookStatus.counted(FamilyNames.KEEP_IN_CHAT, NO_VIEWER);
             return false;
         }
         return sender.equals(viewer);
+    }
+
+    /** Notes [viewer], the account a message's reader had. */
+    private static void sawViewer(String viewer) {
+        synchronized (VIEWERS) {
+            if (firstViewer == null) {
+                firstViewer = viewer;
+            } else if (!firstViewer.equals(viewer)) {
+                severalViewers = true;
+            }
+        }
+    }
+
+    /** The one account readers have had in this process, or null with none or more than one. */
+    private static String onlyViewer() {
+        synchronized (VIEWERS) {
+            return severalViewers ? null : firstViewer;
+        }
     }
 
     /**
@@ -201,7 +233,10 @@ public final class KeepInChat {
 
     static void clearRemembered() {
         rewritten.clear();
-        lastViewer = null;
+        synchronized (VIEWERS) {
+            firstViewer = null;
+            severalViewers = false;
+        }
     }
 
     private static boolean switchedOn() {
