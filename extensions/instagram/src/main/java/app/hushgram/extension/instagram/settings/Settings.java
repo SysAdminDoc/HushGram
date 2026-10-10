@@ -239,6 +239,15 @@ public class Settings extends BaseSettings {
     public static final StringSetting LOCKED_CHATS =
             new StringSetting("hushgram_locked_chats", "", false, false);
 
+    /**
+     * The chats hidden one at a time ({@link app.hushgram.extension.instagram.direct.HiddenChats}),
+     * in the same lines as {@link #LOCKED_CHATS}. A chat on the list is the switch. It isn't kept
+     * while HushGram is paused, so a paused Instagram shows every chat again, and a backup leaves it
+     * out like the locked chats.
+     */
+    public static final StringSetting HIDDEN_CHATS =
+            new StringSetting("hushgram_hidden_chats", "", false, false);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.

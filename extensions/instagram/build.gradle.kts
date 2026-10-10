@@ -366,6 +366,18 @@ tasks.register("verifyAndroidBoundaries") {
                 "theChatsNameIsFoundForTheList[28]", "theChatsNameIsFoundForTheList[37]",
                 "theListReadsWhatWasSavedAndNothingElse[28]", "theListReadsWhatWasSavedAndNothingElse[37]",
                 "aListedChatStaysLockedWhilePausedAndWithoutContext[28]", "aListedChatStaysLockedWhilePausedAndWithoutContext[37]"),
+            "app.hushgram.extension.instagram.direct.HiddenChatsTest" to listOf(
+                "aHiddenChatLeavesTheInboxAndTheOthersStay[28]", "aHiddenChatLeavesTheInboxAndTheOthersStay[37]",
+                "anEmptyListChangesNothing[28]", "anEmptyListChangesNothing[37]",
+                "showingAChatAgainBringsItBack[28]", "showingAChatAgainBringsItBack[37]",
+                "aSummaryWhoseIdCantBeReadStaysInTheInbox[28]", "aSummaryWhoseIdCantBeReadStaysInTheInbox[37]",
+                "aHiddenChatsPushIsDroppedAndOthersAreNot[28]", "aHiddenChatsPushIsDroppedAndOthersAreNot[37]",
+                "aDroppedPushIsNotMarkedForTheLock[28]", "aDroppedPushIsNotMarkedForTheLock[37]",
+                "pausedBringsEveryChatBackWhileTheListKeepsWhatWasChosen[28]", "pausedBringsEveryChatBackWhileTheListKeepsWhatWasChosen[37]",
+                "nothingIsHiddenWithoutContextAndOtherSettingsDontMatter[28]", "nothingIsHiddenWithoutContextAndOtherSettingsDontMatter[37]",
+                "theListReadsAndWritesTheSameLinesAsLockedChats[28]", "theListReadsAndWritesTheSameLinesAsLockedChats[37]",
+                "theLastChatOpenedIsOfferedUntilItIsHidden[28]", "theLastChatOpenedIsOfferedUntilItIsHidden[37]",
+                "theListOpensBehindThePhoneLockOnlyWhileAMessagesLockIsOn[28]", "theListOpensBehindThePhoneLockOnlyWhileAMessagesLockIsOn[37]"),
             "app.hushgram.extension.instagram.settings.TypingSettingsTest" to listOf(
                 "missingPatchHasNoTypingSwitch[28]", "missingPatchHasNoTypingSwitch[37]",
                 "typingAloneStillGetsMessages[28]", "typingAloneStillGetsMessages[37]",

@@ -37,7 +37,7 @@ internal const val CHAT_LOCKS = "$EXTENSION_PACKAGE/direct/ChatLocks;"
 internal const val CHAT_OPENED = "$CHAT_LOCKS->opened(Ljava/lang/Object;)V"
 internal const val CHAT_CLOSED = "$CHAT_LOCKS->closed(Ljava/lang/Object;)V"
 internal const val CHAT_TRACK = "$CHAT_LOCKS->track(Landroid/app/Notification;Landroid/app/Notification;" +
-    "Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"
+    "Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z"
 private const val CHAT_THREAD_ID = "threadId"
 
 /** What the chat screen logs first in onResume and onPause, as Instagram's thread controller. */
@@ -91,7 +91,8 @@ internal object PushLabelsFingerprint : Fingerprint(
 /**
  * What the chat lock needs from Instagram, all proved before anything changes: the chat screen's
  * two lifecycle methods and the body of the extension's thread id bridge, and the push display
- * with the fields its hook reads.
+ * with the fields its hook reads. The push hook answers true for a push of a hidden chat, and the
+ * display then returns before it builds or posts anything.
  */
 internal class ChatLockTargets(
     val resume: MutableMethod,
@@ -104,13 +105,13 @@ internal class ChatLockTargets(
 
 private fun refuse(why: String): Nothing = throw PatchException("$LOCK_PATCH: $why")
 
-private fun <T> List<T>.one(what: String): T = singleOrNull() ?: refuse("expected one $what, found $size")
+internal fun <T> List<T>.one(what: String): T = singleOrNull() ?: refuse("expected one $what, found $size")
 
-private fun Method.parameters() = parameterTypes.map(CharSequence::toString)
+internal fun Method.parameters() = parameterTypes.map(CharSequence::toString)
 
-private fun MethodReference.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+internal fun MethodReference.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
-private fun FieldReference.signature() = "$definingClass->$name:$type"
+internal fun FieldReference.signature() = "$definingClass->$name:$type"
 
 /**
  * The chat screen's lifecycle methods and the push display, and the reads between them: the thread
@@ -180,6 +181,9 @@ internal fun BytecodePatchContext.findChatLockTargets(): ChatLockTargets {
         iget-object v4, v5, ${thread.signature()}
         iget-object v5, v5, ${threadIg.signature()}
         invoke-static/range { v0 .. v5 }, $CHAT_TRACK
+        move-result v0
+        if-eqz v0, :skip
+        return-void
     """.trimIndent()
     return ChatLockTargets(resume, pause, bridge, bridgeBody, display, hook)
 }
@@ -202,8 +206,9 @@ private fun BytecodePatchContext.requireHooks() {
     for (hook in listOf(CHAT_OPENED, CHAT_CLOSED, CHAT_TRACK)) {
         val name = hook.substringAfter("->").substringBefore("(")
         val parameters = hook.substringAfter("(").substringBefore(")")
+        val returns = hook.substringAfter(")")
         if (extension.methods.none {
-                it.name == name && it.parameterTypes.joinToString("") == parameters && it.returnType == "V" &&
+                it.name == name && it.parameterTypes.joinToString("") == parameters && it.returnType == returns &&
                     AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
             }
         ) refuse("the extension has no public static $hook")
@@ -245,7 +250,7 @@ private fun keyGetter(methods: List<Method>, controller: String): MethodReferenc
 }
 
 /** The field a chat key's toString writes right after [THREAD_KEY_TEXT]: its own thread id. */
-private fun threadIdField(key: ClassDef): FieldReference {
+internal fun threadIdField(key: ClassDef): FieldReference {
     val toString = key.methods.filter { it.name == "toString" && it.parameterTypes.isEmpty() && it.returnType == STRING }
         .one("chat key's toString")
     val code = toString.visualCode()
@@ -289,7 +294,7 @@ private fun labelField(toString: Method, label: String, owner: String): FieldRef
 }
 
 /** Refuses unless [type] is a public class and [member], when given, is a public member the extension can reach. */
-private fun BytecodePatchContext.requirePublic(type: String, member: Any?) {
+internal fun BytecodePatchContext.requirePublic(type: String, member: Any?) {
     val owner = classDefByOrNull(type) ?: refuse("$type is missing")
     val flags = when (member) {
         null -> AccessFlags.PUBLIC.value

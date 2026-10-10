@@ -137,8 +137,13 @@ public final class ChatLocks {
 
     /** The last chat that was on screen, with the name it was found under, if it isn't on the list. */
     public static Chat lastOpened() {
+        return lastOpenedUnless(ChatLocks::listed);
+    }
+
+    /** The last chat that was on screen, unless [onList] says it is already on the list being offered it. */
+    static Chat lastOpenedUnless(java.util.function.Predicate<String> onList) {
         String id = last;
-        if (empty(id) || listed(id)) return null;
+        if (empty(id) || onList.test(id)) return null;
         return new Chat(id, lastName == null ? placeholder(id) : lastName);
     }
 
@@ -146,20 +151,12 @@ public final class ChatLocks {
 
     /** The chats on the list, oldest first. */
     public static List<Chat> chats() {
-        List<Chat> chats = new ArrayList<>();
         try {
-            if (!Utils.settingsReady()) return chats;
-            for (String line : Settings.LOCKED_CHATS.get().split("\n")) {
-                int tab = line.indexOf('\t');
-                String id = (tab < 0 ? line : line.substring(0, tab)).trim();
-                if (id.isEmpty()) continue;
-                String name = tab < 0 ? "" : line.substring(tab + 1).trim();
-                chats.add(new Chat(id, name.isEmpty() ? placeholder(id) : name));
-            }
+            if (Utils.settingsReady()) return ChatList.parse(Settings.LOCKED_CHATS.get());
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
         }
-        return chats;
+        return new ArrayList<>();
     }
 
     /** Any chat is on the list. */
@@ -169,48 +166,26 @@ public final class ChatLocks {
 
     /** The chat with [id] is on the list. */
     public static boolean listed(String id) {
-        for (Chat chat : chats()) {
-            if (chat.id.equals(id)) return true;
-        }
-        return false;
+        return ChatList.contains(chats(), id);
     }
 
     /** Puts a chat on the list, or renames it there. */
     public static void add(String id, String name) {
-        List<Chat> chats = chats();
-        StringBuilder text = new StringBuilder();
-        boolean found = false;
-        for (Chat chat : chats) {
-            boolean same = chat.id.equals(id);
-            found |= same;
-            append(text, chat.id, same ? name : chat.name);
-        }
-        if (!found) append(text, id, name);
-        Settings.LOCKED_CHATS.save(text.toString());
+        Settings.LOCKED_CHATS.save(ChatList.added(chats(), id, name));
     }
 
     /** Takes a chat off the list. */
     public static void remove(String id) {
-        StringBuilder text = new StringBuilder();
-        for (Chat chat : chats()) {
-            if (!chat.id.equals(id)) append(text, chat.id, chat.name);
-        }
-        Settings.LOCKED_CHATS.save(text.toString());
-    }
-
-    private static void append(StringBuilder text, String id, String name) {
-        if (text.length() > 0) text.append('\n');
-        text.append(clean(id)).append('\t').append(clean(name));
+        Settings.LOCKED_CHATS.save(ChatList.removed(chats(), id));
     }
 
     private static String clean(String text) {
-        return text == null ? "" : text.replace('\t', ' ').replace('\n', ' ').trim();
+        return ChatList.clean(text);
     }
 
     /** What a chat is called when its name was never found. */
     static String placeholder(String id) {
-        String tail = id.length() > 4 ? id.substring(id.length() - 4) : id;
-        return app.hushgram.extension.shared.L10n.f("Chat %1$s", tail);
+        return ChatList.placeholder(id);
     }
 
     // ---------------------------------------------------------------- the chat's name
@@ -229,6 +204,7 @@ public final class ChatLocks {
         if (id.equals(last)) lastName = name;
         try {
             if (listed(id)) add(id, name);
+            if (HiddenChats.savedListed(id)) HiddenChats.add(id, name);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
         }
@@ -278,18 +254,21 @@ public final class ChatLocks {
     /**
      * Asked first when Instagram hands a push's notifications to Android: the notification, the
      * group summary, the others it posts with them, and the ids the push carries (its deep link, its
-     * thread id and its thread IG id). Each notification is marked with the chat's ids so the lock can
-     * tell later which chat it belongs to. Instagram's own notification is changed in nothing else.
+     * thread id and its thread IG id). Answers true for the push of a hidden chat ({@link HiddenChats}),
+     * which the display then drops before it builds or posts anything. Otherwise each notification is
+     * marked with them as it goes to Android, so a copy in the shade can be matched to a chat later,
+     * when the lock comes back. Instagram's own notification is changed in nothing else.
      */
-    public static void track(Notification notification, Notification summary, Map<?, ?> others,
-                             String action, String threadId, String igThreadId) {
+    public static boolean track(Notification notification, Notification summary, Map<?, ?> others,
+                                String action, String threadId, String igThreadId) {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             Set<String> ids = new LinkedHashSet<>();
             addId(ids, linkId(action));
             addId(ids, threadId);
             addId(ids, igThreadId);
-            if (ids.isEmpty()) return;
+            if (ids.isEmpty()) return false;
+            if (HiddenChats.hides(ids)) return true;
             String marked = String.join(",", ids);
             mark(notification, marked);
             mark(summary, marked);
@@ -301,6 +280,7 @@ public final class ChatLocks {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, TRACK, t);
         }
+        return false;
     }
 
     /** The chat id in a direct message push's deep link, like {@code direct_v2?id=340282&x=1}. */
@@ -353,5 +333,6 @@ public final class ChatLocks {
         lastName = null;
         nameAttempts = 0;
         reader = ChatLocks::threadId;
+        HiddenChats.resetForTests();
     }
 }

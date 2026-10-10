@@ -117,7 +117,12 @@ class ChatLockHookTest {
         assertEquals("$name: the six reads", 6, (display[track] as RegisterRangeInstruction).registerCount)
         val skip = found.display.implementation!!.instructions.toList().filterIsInstance<BuilderOffsetInstruction>()
             .first { it.opcode == Opcode.IF_EQZ }
-        assertEquals("$name: a push with no payload goes on to the original code", track + 1, skip.target.location.index)
+        assertEquals("$name: a push with no payload goes on to the original code", track + 4, skip.target.location.index)
+        assertEquals("$name: the answer is read", Opcode.MOVE_RESULT, display[track + 1].opcode)
+        assertEquals("$name: a hidden chat's push returns early", Opcode.RETURN_VOID, display[track + 3].opcode)
+        val drop = found.display.implementation!!.instructions.toList().filterIsInstance<BuilderOffsetInstruction>()
+            .filter { it.opcode == Opcode.IF_EQZ }[1]
+        assertEquals("$name: any other push goes on to the original code", track + 4, drop.target.location.index)
 
         val bridge = found.bridge.visualCode()
         assertEquals("$name: the bridge casts to the chat screen", Opcode.CHECK_CAST, bridge[0].opcode)

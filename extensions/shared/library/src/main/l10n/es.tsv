@@ -695,3 +695,9 @@ Open a chat in Instagram, then come back here to lock it.	Abre un chat en Instag
 %1$s is locked	%1$s está bloqueado
 %1$s is unlocked	%1$s está desbloqueado
 Chat %1$s	Chat %1$s
+# context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
+Hidden chats	Chats ocultos
+Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Oculta chats uno por uno. Un chat oculto sale de tu bandeja de entrada y sus notificaciones no aparecen hasta que lo vuelvas a mostrar aquí.
+Open a chat in Instagram, then come back here to hide it.	Abre un chat en Instagram y vuelve aquí para ocultarlo.
+%1$s is hidden	%1$s está oculto
+%1$s is shown again	%1$s se muestra de nuevo

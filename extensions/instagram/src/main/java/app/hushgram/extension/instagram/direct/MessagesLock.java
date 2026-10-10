@@ -246,6 +246,18 @@ public final class MessagesLock {
     }
 
     /**
+     * Runs [then] at once while neither messages lock is on, else after the phone's lock confirms
+     * it's you. The list of hidden chats opens through here, since it names them.
+     */
+    public static void confirmHiddenThen(Activity activity, Runnable then) {
+        if (!switchedOn()) {
+            then.run();
+            return;
+        }
+        ask(activity, then);
+    }
+
+    /**
      * A lock was just turned on while nothing was locked. It waits until you leave Instagram rather
      * than covering the screen you're on, since you're the one who turned it on.
      */

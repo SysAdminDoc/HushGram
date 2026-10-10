@@ -695,3 +695,9 @@ Open a chat in Instagram, then come back here to lock it.	Instagram'da bir sohbe
 %1$s is locked	%1$s kilitli
 %1$s is unlocked	%1$s artık kilitli değil
 Chat %1$s	Sohbet %1$s
+# context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
+Hidden chats	Gizli sohbetler
+Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Sohbetleri tek tek gizleyin. Gizlenen sohbet gelen kutunuzdan kalkar ve burada yeniden gösterene kadar bildirimleri gelmez.
+Open a chat in Instagram, then come back here to hide it.	Instagram'da bir sohbet açın, sonra gizlemek için buraya dönün.
+%1$s is hidden	%1$s gizlendi
+%1$s is shown again	%1$s yeniden gösteriliyor

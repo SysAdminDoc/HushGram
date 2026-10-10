@@ -68,6 +68,7 @@ import java.util.Map;
 import java.util.Set;
 
 import app.hushgram.extension.instagram.direct.ChatLocks;
+import app.hushgram.extension.instagram.direct.HiddenChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.DownloadQuality;
@@ -123,6 +124,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_MEDIA_CACHE_NOW = "hushgram_clear_media_cache_now";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
+    /** The row that lists the chats hidden one at a time. */
+    static final String HIDDEN_CHATS_ROW = "hushgram_hidden_chats_row";
     private static final String SCREEN_KEY = "hushgram_settings_root";
     /** The keys of the rows that open each category's page, numbered in the page's order. */
     static final String CATEGORY_ROW_KEY = "hushgram_category_page_";
@@ -570,6 +573,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "you, your messages too.")));
                 messages.addPreference(lockDelayRow(context));
                 messages.addPreference(lockedChatsRow(context));
+                messages.addPreference(hiddenChatsRow(context));
             }
         }
 
@@ -1244,7 +1248,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
-                            && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key));
+                            && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
+                            || HIDDEN_CHATS_ROW.equals(key));
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD
                             || family == PatchFamily.VIDEO_DOWNLOAD || family == PatchFamily.PROFILE_PICTURE
@@ -2507,6 +2512,61 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         // Stays checked until the phone's lock says it's you, if anything is locked.
         setChecked(dialog, position, true);
         MessagesLock.confirmChatsThen(activity, unlock);
+    }
+
+    /** The row that opens the list of chats hidden one at a time. */
+    private Row hiddenChatsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(HIDDEN_CHATS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Hidden chats"));
+        row.setSummary(L10n.t("Hide single chats. A hidden chat leaves your inbox and its notifications don't post "
+                + "until you show it here again."));
+        row.setOnPreferenceClickListener(tapped -> {
+            Activity activity = getActivity();
+            if (activity == null) return true;
+            // The list names the chats, so it asks the phone's lock first while Lock your messages is on.
+            MessagesLock.confirmHiddenThen(activity, this::showHiddenChats);
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The hidden chats, each with a check, and the chat you opened last above them when it isn't
+     * hidden. Checking one hides it at once; unchecking one shows it again. Paused, the list still
+     * shows what you chose, though Instagram shows every chat until HushGram is back on.
+     */
+    private void showHiddenChats() {
+        Context context = getActivity();
+        if (context == null) return;
+        List<ChatLocks.Chat> chats = new ArrayList<>(HiddenChats.saved());
+        ChatLocks.Chat last = HiddenChats.lastOpened();
+        int offered = last == null ? 0 : 1;
+        if (last != null) chats.add(0, last);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Hidden chats"));
+        if (chats.isEmpty()) {
+            builder.setMessage(L10n.t("Open a chat in Instagram, then come back here to hide it."));
+        } else {
+            CharSequence[] names = new CharSequence[chats.size()];
+            boolean[] hidden = new boolean[chats.size()];
+            for (int i = 0; i < names.length; i++) {
+                boolean offer = i < offered;
+                names[i] = offer ? L10n.f("%1$s (opened last)", chats.get(i).name) : chats.get(i).name;
+                hidden[i] = !offer;
+            }
+            builder.setMultiChoiceItems(names, hidden, (dialog, which, checked) -> {
+                ChatLocks.Chat chat = chats.get(which);
+                if (checked) {
+                    HiddenChats.add(chat.id, chat.name);
+                    Utils.showToastShort(L10n.f("%1$s is hidden", chat.name));
+                } else {
+                    HiddenChats.remove(chat.id);
+                    Utils.showToastShort(L10n.f("%1$s is shown again", chat.name));
+                }
+            });
+        }
+        show(builder.setPositiveButton(L10n.t("OK"), null));
     }
 
     private static void setChecked(AlertDialog dialog, int position, boolean checked) {

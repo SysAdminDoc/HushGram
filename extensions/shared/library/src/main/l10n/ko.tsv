@@ -694,3 +694,9 @@ Open a chat in Instagram, then come back here to lock it.	Instagram에서 채팅
 %1$s is locked	%1$s 잠김
 %1$s is unlocked	%1$s 잠금 해제됨
 Chat %1$s	채팅 %1$s
+# context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
+Hidden chats	숨긴 채팅
+Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	채팅을 하나씩 숨깁니다. 숨긴 채팅은 받은 메시지함에서 사라지고, 여기서 다시 표시하기 전까지 알림도 울리지 않습니다.
+Open a chat in Instagram, then come back here to hide it.	Instagram에서 채팅을 연 다음 이곳으로 돌아와 숨기세요.
+%1$s is hidden	%1$s 채팅을 숨겼습니다
+%1$s is shown again	%1$s 채팅을 다시 표시합니다
