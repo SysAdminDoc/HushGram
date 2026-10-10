@@ -187,7 +187,7 @@ public class SettingsHostRestorationTest {
                 ShadowLooper.idleMainLooper();
                 assertTrue("the original operation was not delivered", NativeTable.captures > captures);
                 if (index == 2) assertArrayEquals(document, output.toByteArray());
-                else if (index == 3) assertEquals("Validated 3 overrides only. Nothing was applied.",
+                else if (index == 3) assertEquals("Checked 3 overrides only. Nothing was applied.",
                         HushgramPreferenceFragment.overrideValidationFeedback);
                 else assertEquals("This file matches the current overrides. Nothing changed.",
                         HushgramPreferenceFragment.overrideImportFeedback);

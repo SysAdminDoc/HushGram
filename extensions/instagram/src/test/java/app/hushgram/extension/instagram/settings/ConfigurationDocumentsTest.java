@@ -287,7 +287,7 @@ public class ConfigurationDocumentsTest {
                 Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
                 finish();
                 receipt = page.findPreference("hushgram_import_configuration").getSummary().toString();
-                assertTrue(receipt.contains("Imported 1 settings. Skipped 0 unsupported keys."));
+                assertTrue(receipt.contains("Imported 1 settings. Skipped 0 that this version doesn't know."));
                 assertTrue(receipt.contains("Restart Instagram to apply these choices."));
             }
             try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {

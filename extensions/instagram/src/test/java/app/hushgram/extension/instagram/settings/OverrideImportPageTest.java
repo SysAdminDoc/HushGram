@@ -186,7 +186,7 @@ public class OverrideImportPageTest {
         click("hushgram_reset_overrides");
         Utils.awaitBackgroundTasksForTests();
         ShadowLooper.idleMainLooper();
-        assertEquals("Removed 2 overrides. Restart Instagram to go back to its own flags.",
+        assertEquals("Removed 2 overrides. Restart Instagram to go back to its own settings.",
                 HushgramPreferenceFragment.overrideResetFeedback);
         // The null override can't be put back, so it stays.
         java.util.Map<String, String> left = new java.util.TreeMap<>();

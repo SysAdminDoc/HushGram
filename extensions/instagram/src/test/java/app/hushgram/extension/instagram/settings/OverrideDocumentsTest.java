@@ -166,7 +166,7 @@ public class OverrideDocumentsTest {
         ShadowActivity.IntentForResult picked = pick(true);
         assertEquals(Intent.ACTION_OPEN_DOCUMENT, picked.intent.getAction());
         result(picked, Activity.RESULT_OK, DOCUMENT);
-        assertEquals("Validated 1 overrides only. Nothing was applied.", HushgramPreferenceFragment.overrideValidationFeedback);
+        assertEquals("Checked 1 overrides only. Nothing was applied.", HushgramPreferenceFragment.overrideValidationFeedback);
         assertTrue(page.findPreference("hushgram_validate_overrides").getSummary().toString().contains("Nothing was applied"));
         unchanged();
     }
@@ -179,7 +179,7 @@ public class OverrideDocumentsTest {
         assertEquals(0, NativeReader.calls);
         HostActivity.noPicker = true;
         assertNull(pick(true));
-        assertTrue(HushgramPreferenceFragment.overrideValidationFeedback.contains("No document picker"));
+        assertTrue(HushgramPreferenceFragment.overrideValidationFeedback.contains("no file picker"));
         unchanged();
     }
 
