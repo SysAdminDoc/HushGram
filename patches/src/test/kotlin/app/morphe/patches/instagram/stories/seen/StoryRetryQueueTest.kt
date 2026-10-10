@@ -142,7 +142,7 @@ class StoryRetryQueueTest {
         refused(changed(classes, method, 6, "iget-object v1, p0, $owner->pending:Ljava/util/LinkedHashMap;"), "lookup uses another store's maps")
     }
 
-    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative449() {
+    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val owner = classes.single { it.type == found.queue!!.owner }
@@ -160,7 +160,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative449() {
+    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
@@ -177,7 +177,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative449() {
+    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val owner = classes.single { it.type == found.queue!!.owner }
@@ -201,7 +201,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative449() {
+    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
@@ -224,7 +224,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative449() {
+    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val run = classes.single { it.type == found.queue!!.owner }.methods.single { it.name == found.queue!!.run }
@@ -240,7 +240,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative449() {
+    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val store = classes.single { it.type == found.store }
@@ -264,7 +264,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative449() {
+    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
@@ -315,7 +315,7 @@ class StoryRetryQueueTest {
         refused(changed(classes, reader, 15, "nop"), "disk reader no longer reaches its native cleanup")
     }
 
-    @Test fun diskCleanupCalleeReceiverAndKeyMustMatchTheOriginal449Read() {
+    @Test fun diskCleanupCalleeReceiverAndKeyMustMatchTheNativeRead() {
         for (classes in proofInputs()) {
             val found = PatchContexts.of(classes).findStorySeen()
             val reader = classes.single { it.type == found.store }.methods.single { method ->
@@ -325,12 +325,16 @@ class StoryRetryQueueTest {
             val loop = code.indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
             val remove = loop + 4
             val registers = code[remove].namedRegisters()
-            refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[1]} }, LX/00CN;->preserve(Ljava/lang/String;)V"), "native cleanup")
-            refused(changed(classes, reader, remove, "invoke-virtual { v${code[loop + 2].namedRegisters()[0]}, v${registers[1]} }, LX/00CN;->A05(Ljava/lang/String;)V"), "native receiver")
-            refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${code[loop + 2].namedRegisters()[0]} }, LX/00CN;->A05(Ljava/lang/String;)V"), "native cleanup")
+            // Obfuscated names differ per build, so take the cleanup call and the key builder from the reader itself.
+            val cleanup = code[remove].reference()!!
+            val keyBuilder = code[loop + 2].reference()!!
+            refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[1]} }, ${cleanup.substringBefore("->")}->preserve(Ljava/lang/String;)V"), "native cleanup")
+            refused(changed(classes, reader, remove, "invoke-virtual { v${code[loop + 2].namedRegisters()[0]}, v${registers[1]} }, $cleanup"), "native receiver")
+            refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${code[loop + 2].namedRegisters()[0]} }, $cleanup"), "native cleanup")
             val key = code[loop + 2].namedRegisters()
-            refused(changed(classes, reader, loop + 2, "invoke-static { v${key[1]}, v${key[1]} }, LX/0003;->A0R(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"), "pending-story prefix")
-            val load = code.indexOfFirst { it.reference() == "LX/00CN;->A02(Ljava/lang/String;Z)Ljava/lang/Object;" }
+            refused(changed(classes, reader, loop + 2, "invoke-static { v${key[1]}, v${key[1]} }, $keyBuilder"), "pending-story prefix")
+            val load = code.indexOfFirst { val ref = it.reference()
+                ref != null && ref.startsWith(cleanup.substringBefore("->")) && ref.endsWith("(Ljava/lang/String;Z)Ljava/lang/Object;") }
             refused(changed(classes, reader, load - 1, "const/4 v${code[load - 1].namedRegisters().single()}, 0x0"), "consumes the copy it read")
             for (register in listOf(registers[0], key[0], code[loop + 1].namedRegisters().last())) {
                 refused(inserted(classes, reader, loop, "const/4 v$register, 0x0"), "changed receiver, prefix or account dataflow")
@@ -477,7 +481,7 @@ class StoryRetryQueueTest {
         val mutable = MutableMethod(ImmutableMethod.of(method))
         mutable.addInstructionsWithLabels(at, body)
         // Mutate an executed path. Native labels otherwise stay on the old instruction and skip
-        // an inserted overwrite, which would be an inert counterexample on original449.
+        // an inserted overwrite, which would be an inert counterexample on native450.
         val code = mutable.code().toMutableList()
         val added = code.size - method.code().size
         val addresses = addresses(code)
@@ -493,7 +497,7 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative original 449 fixture is required", nativeProofInputs.isNotEmpty())
+        assertTrue("the authoritative declared 450 build (385611438) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
     }
     private fun replace(classes: List<ClassDef>, owner: ClassDef, fields: Iterable<com.android.tools.smali.dexlib2.iface.Field> = owner.fields,
@@ -511,7 +515,7 @@ class StoryRetryQueueTest {
 
     companion object {
         private val nativeProofInputs by lazy {
-            Fixtures.files { it.extension == "apks" && it.name.contains("-449.0.0.52.84-") }
+            Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
     }
