@@ -469,6 +469,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_META_AI_PROFILE_BANNER =
             new BooleanSetting("hushgram_hide_meta_ai_profile_banner", TRUE);
 
+    /**
+     * The Blend invite button on a reel, in the Reels viewer and the clips viewer. Everything else
+     * on the reel stays. Off to start, since Blend isn't Meta AI and the other switches here don't
+     * ask for it.
+     */
+    public static final BooleanSetting HIDE_META_AI_BLEND =
+            new BooleanSetting("hushgram_hide_meta_ai_blend", FALSE);
+
     /** The grid of posts and reels under the Search tab's bar. Search and its results stay. Off to start. */
     public static final BooleanSetting HIDE_EXPLORE_GRID =
             new BooleanSetting("hushgram_hide_explore_grid", FALSE);

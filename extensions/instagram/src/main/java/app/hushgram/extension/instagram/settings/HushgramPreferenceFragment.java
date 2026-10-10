@@ -492,6 +492,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_PROFILE_BANNER, L10n.t("Hide the Muse card on profiles"),
                     L10n.t("Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile "
                             + "cards stay.")));
+            metaAi.addPreference(toggle(context, Settings.HIDE_META_AI_BLEND, L10n.t("Hide Blend on reels"),
+                    L10n.t("Removes the Blend invite button from reels. Everything else on a reel stays.")));
         }
 
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)) {

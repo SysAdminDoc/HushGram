@@ -531,6 +531,10 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroi
 # no Meta AI target. Left out, the target stays with Hide Meta AI in the share sheet on.
 # 385611400 and 439 ask a string pool for some of these names there, so pool asks count (pooled).
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in static (L*;Ljava/lang/Object;)Ljava/util/ArrayList; pooled holding hatch whatsapp_status add_to_audio_note screenshot_preview
+# Hide Blend on reels asks MetaAi.blendButton() first in the one static method that logs
+# android_purge_26_q2_BlendButtonVisibilityUtils_computeBlendInviteButtonVisibility (0362.A00 on 450).
+# No rule here, like the Muse card's: BlendButtonHookTest proves the hook on every Instagram 450
+# fixture, the declared bundles and the other 450 folders.
 #
 # Hide the Explore grid asks the extension once, at the return of the topical Explore page's JSON
 # parser, the one method holding "sectional_items" and "session_paging_token". Search results come

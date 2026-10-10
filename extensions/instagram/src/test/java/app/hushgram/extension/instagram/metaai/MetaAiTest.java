@@ -119,6 +119,25 @@ public class MetaAiTest {
         }
     }
 
+    /** The Blend button is left off a reel only with its own switch, which starts off, and never while paused. */
+    @Test
+    public void theBlendButtonFollowsItsOwnSwitch() {
+        assertFalse("off to start", Settings.HIDE_META_AI_BLEND.get());
+        assertFalse(MetaAi.blendButton());
+        Settings.HIDE_META_AI_BLEND.save(true);
+        try {
+            assertTrue(MetaAi.blendButton());
+            Settings.HIDE_META_AI_SEARCH.save(false);
+            assertTrue("the search switch doesn't matter", MetaAi.blendButton());
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram decides", MetaAi.blendButton());
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_SEARCH.save(true);
+            Settings.HIDE_META_AI_BLEND.resetToDefault();
+        }
+    }
+
     /** The search switch also leaves the results page's Ask a follow-up bar out, and only that switch. */
     @Test
     public void theFollowUpBarFollowsTheSearchSwitch() {

@@ -48,6 +48,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The share sheet builds the targets in its bottom row from a list of names. Meta AI's ("hatch",
  * shown as Muse on some accounts) has its own case, and the answer of the case's name check goes
  * through {@link #shareTarget}.
+ *
+ * <p>A reel's Blend invite button comes from one static check that the Reels viewer's reel binder
+ * and the clips viewer both read. {@link #blendButton} makes it answer "no Blend" first.
  */
 public final class MetaAi {
     /**
@@ -234,6 +237,23 @@ public final class MetaAi {
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.META_AI, "Muse banner", failure);
+            return false;
+        }
+    }
+
+    /**
+     * Injected at the start of the method that decides a reel's Blend invite button. Answers true to
+     * have it answer "no Blend" without working anything out, while Hide Blend on reels is on, and
+     * false otherwise, or when anything goes wrong. Never throws.
+     */
+    public static boolean blendButton() {
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            if (!Utils.settingsReady() || !Settings.HIDE_META_AI_BLEND.get()) return false;
+            Logger.printDebug(() -> "Meta AI: left the Blend button off a reel");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "Blend button", failure);
             return false;
         }
     }
