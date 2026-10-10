@@ -782,3 +782,5 @@ Stories open with their sound on, the same as tapping Instagram's speaker. Your 
 Queued. It starts once the post before it is saved.	En cola. Empieza en cuanto se guarde la publicación anterior.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	No se guardó: ya hay %1$d publicaciones esperando
+Show all settings as a list	Mostrar todos los ajustes como lista
+Show settings by category	Mostrar los ajustes por categoría

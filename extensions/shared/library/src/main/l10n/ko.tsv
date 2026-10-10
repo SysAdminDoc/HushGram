@@ -781,3 +781,5 @@ Stories open with their sound on, the same as tapping Instagram's speaker. Your 
 Queued. It starts once the post before it is saved.	대기 중입니다. 앞의 게시물 저장이 끝나면 시작됩니다.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
 Not saved: %1$d posts are already waiting	저장 안 됨: 이미 게시물 %1$d개가 대기 중입니다
+Show all settings as a list	모든 설정을 목록으로 보기
+Show settings by category	카테고리별로 설정 보기

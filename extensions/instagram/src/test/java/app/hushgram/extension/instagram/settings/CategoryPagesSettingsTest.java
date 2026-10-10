@@ -98,12 +98,33 @@ public class CategoryPagesSettingsTest {
         ShadowLooper.idleMainLooper();
     }
 
-    @Test public void offToStartTheCategoriesStayOneList() throws Exception {
+    @Test public void onToStartTheCategoriesAreListed() throws Exception {
         open();
         SwitchPreference pages = (SwitchPreference) page.findPreference(Settings.CATEGORY_PAGES.key);
         assertNotNull(pages);
         assertEquals("Open categories as pages", pages.getTitle().toString());
-        assertFalse(pages.isChecked());
+        assertTrue(pages.isChecked());
+        assertTrue(shown(Preference.class).contains("Feed"));
+    }
+
+    @Test public void theTopButtonSwitchesBetweenListAndCategories() throws Exception {
+        open();
+        Preference button = page.findPreference("hushgram_view_toggle");
+        assertEquals("Show all settings as a list", button.getTitle().toString());
+        tap(button);
+        assertFalse(Settings.CATEGORY_PAGES.savedValue());
+        assertEquals("Show settings by category", button.getTitle().toString());
+        assertTrue(shown(Preference.class).isEmpty());
+        assertTrue(shown(PreferenceCategory.class).containsAll(
+                List.of("Settings entry", "Ads and privacy", "Feed", "Notifications", "Pause and diagnostics")));
+        tap(button);
+        assertTrue(Settings.CATEGORY_PAGES.savedValue());
+        assertTrue(shown(Preference.class).contains("Feed"));
+    }
+
+    @Test public void offTheCategoriesStayOneList() throws Exception {
+        Settings.CATEGORY_PAGES.save(false);
+        open();
         assertTrue(shown(Preference.class).isEmpty());
         assertTrue(shown(PreferenceCategory.class).containsAll(
                 List.of("Settings entry", "Ads and privacy", "Feed", "Notifications", "Pause and diagnostics")));
@@ -126,7 +147,7 @@ public class CategoryPagesSettingsTest {
         Settings.CATEGORY_PAGES.save(true);
         open();
         tap(categoryRow("Feed"));
-        assertEquals(List.of("Feed", "Pause and diagnostics"), shown(PreferenceCategory.class));
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
         assertTrue(shown(Preference.class).isEmpty());
 
         assertTrue(page.closeCategory());
@@ -146,10 +167,11 @@ public class CategoryPagesSettingsTest {
         assertTrue(shown(Preference.class).isEmpty());
 
         page.searchSettings("");
-        assertEquals(List.of("Feed", "Pause and diagnostics"), shown(PreferenceCategory.class));
+        assertEquals(List.of("Feed"), shown(PreferenceCategory.class));
     }
 
     @Test public void theSwitchChangesTheOpenPage() throws Exception {
+        Settings.CATEGORY_PAGES.save(false);
         open();
         ((SwitchPreference) page.findPreference(Settings.CATEGORY_PAGES.key)).setChecked(true);
         ShadowLooper.idleMainLooper();
