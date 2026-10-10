@@ -218,18 +218,24 @@ public final class ChatLocks {
     /**
      * The chat header's title when Instagram names it, else the first text high in the chat. The
      * header is looked for from the chat's root up, so the nearest one is the chat's own. A header
-     * that is still empty is waited for, since the first text in the chat may be a message.
+     * that is still empty, hidden or not there yet is waited for: the first text in the chat may be
+     * a message, so it's only read in a build whose header has neither name.
      */
     private static String findName(View root) {
+        boolean headerKnown = false;
         for (String name : TITLES) {
             int id = MessagesLock.id(root.getContext(), name);
             if (id == 0) continue;
+            headerKnown = true;
             for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
                 View title = at.findViewById(id);
                 if (title == null) continue;
-                return title instanceof TextView ? text((TextView) title) : null;
+                String text = title instanceof TextView && title.isShown() ? text((TextView) title) : null;
+                if (text != null) return text;
+                break;
             }
         }
+        if (headerKnown) return null;
         if (!(root instanceof ViewGroup)) return null;
         int[] origin = new int[2];
         root.getLocationOnScreen(origin);

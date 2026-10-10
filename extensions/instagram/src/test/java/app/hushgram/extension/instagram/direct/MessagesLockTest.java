@@ -872,11 +872,6 @@ public class MessagesLockTest {
         Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
         android.widget.LinearLayout fragment = new android.widget.LinearLayout(activity);
         fragment.setOrientation(android.widget.LinearLayout.VERTICAL);
-        FrameLayout header = new FrameLayout(activity);
-        TextView title = new TextView(activity);
-        title.setId(headerTitle);
-        header.addView(title, new FrameLayout.LayoutParams(300, 60));
-        fragment.addView(header, new android.widget.LinearLayout.LayoutParams(300, 60));
         FrameLayout screen = new FrameLayout(activity);
         screen.setId(CHAT);
         TextView message = new TextView(activity);
@@ -887,6 +882,16 @@ public class MessagesLockTest {
         layout(activity);
         open(ALICE);
 
+        MessagesLock.check(activity);
+        assertEquals("a message was taken before the header came",
+                ChatList.placeholder(ALICE), ChatLocks.lastOpened().name);
+
+        FrameLayout header = new FrameLayout(activity);
+        TextView title = new TextView(activity);
+        title.setId(headerTitle);
+        header.addView(title, new FrameLayout.LayoutParams(300, 60));
+        fragment.addView(header, 0, new android.widget.LinearLayout.LayoutParams(300, 60));
+        layout(activity);
         MessagesLock.check(activity);
         assertEquals("a message was taken while the header was empty",
                 ChatList.placeholder(ALICE), ChatLocks.lastOpened().name);
