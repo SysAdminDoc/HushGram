@@ -65,7 +65,7 @@ private const val FUNCTION0 = "Lkotlin/jvm/functions/Function0;"
 
 /**
  * Gives the New message button in the inbox's top bar a long press that turns Ghost mode on or off
- * from inside Instagram. It has no patch of its own: the six Ghost mode patches depend on it, so
+ * from inside Instagram. It has no patch of its own: the seven Ghost mode patches depend on it, so
  * it goes in once, and the extension decides at press time whether anything is there to turn and
  * whether HushGram is paused. A build whose header it can't read keeps every Ghost mode switch in
  * HushGram's settings and loses only the shortcut, with a warning in the patch log.
