@@ -4,11 +4,12 @@
     applied, what failed and what the desktop CLI warned about on each.
 
 .DESCRIPTION
-    A release checks more than the declared build: the other arm64 builds of the same version, the
-    x86 ones and older versions kept beside it, to see what still applies where. This runs the
-    desktop CLI over each of them with every patch in patches-list.json, the way
-    verify-all-patches.ps1 does (--exclusive --continue-on-error --unsigned), with -f for a build
-    the catalog doesn't declare.
+    A release checks more than the declared build: the other arm64 builds and the x86 ones of the
+    same version, to see what still applies where. Only the latest official Instagram release is
+    supported, so builds of any other version kept in the folder are named and skipped unless -Only
+    asks for them. This runs the desktop CLI over each build with every patch in patches-list.json,
+    the way verify-all-patches.ps1 does (--exclusive --continue-on-error --unsigned), with -f for a
+    build the catalog doesn't declare.
 
     The builds come from -FixtureDir (HUSHGRAM_FIXTURE_DIR by default). Each one is named
     instagram-<version>-<version code>, as a file (.apks, .apkm, .xapk or .apk) or as a folder
@@ -47,7 +48,8 @@ param(
     [string]$DesktopJar,
     [string]$Java,
     [string]$Aapt2,
-    # Version codes or version names to keep, such as 385611438; every build when left out.
+    # Version codes or version names to patch, such as 385611438, older versions included; every
+    # build of the declared version when left out.
     [string[]]$Only,
     [switch]$ListOnly,
     [switch]$FromGate,
@@ -107,7 +109,16 @@ function Get-FixtureBuilds {
 $builds = @(Get-FixtureBuilds -Folder $FixtureDir)
 # -Only 385611438,385611395 arrives as one string through pwsh -File.
 $Only = @($Only | ForEach-Object { "$_" -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-if ($Only) { $builds = @($builds | Where-Object { $_.Code -in $Only -or $_.Version -in $Only -or $_.Label -in $Only }) }
+if (-not $PatchList) { $PatchList = Join-Path $Root 'patches-list.json' }
+if ($Only) {
+    $builds = @($builds | Where-Object { $_.Code -in $Only -or $_.Version -in $Only -or $_.Label -in $Only })
+} else {
+    $declaredVersions = @((Get-PatchTarget -PatchList (Get-Content -LiteralPath $PatchList -Raw | ConvertFrom-Json)).PackageVersions)
+    foreach ($build in @($builds | Where-Object { $_.Version -notin $declaredVersions })) {
+        Write-Host "[all-builds] skipped $($build.Label), not the declared version $($declaredVersions -join ' or ') (name it with -Only to patch it)"
+    }
+    $builds = @($builds | Where-Object { $_.Version -in $declaredVersions })
+}
 if ($builds.Count -eq 0) { throw "No Instagram build in $FixtureDir$(if ($Only) { " matches $($Only -join ', ')" })." }
 foreach ($build in $builds) {
     Write-Host "[all-builds] $($build.Label): $($build.Kind) $(Split-Path -Leaf $build.Path)"
@@ -119,7 +130,6 @@ if ($ListOnly) { exit 0 }
 $Java = Resolve-Java -Explicit $Java
 $Aapt2 = Resolve-Aapt2 -Explicit $Aapt2 -Root $Root
 $DesktopJar = Resolve-DesktopCli -Explicit $DesktopJar -Root $Root -Required
-if (-not $PatchList) { $PatchList = Join-Path $Root 'patches-list.json' }
 if (-not $Bundle) { $Bundle = Get-ReleaseBundlePath -Root $Root -Version (Get-BundleVersion -Root $Root) }
 $gateRun = $null
 if ($FromGate) {

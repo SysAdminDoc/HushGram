@@ -365,9 +365,16 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     }
     function Read-Summary { Get-Content -LiteralPath (Join-Path $out 'summary.json') -Raw | ConvertFrom-Json }
 
-    # Listed: the declared build from its bundle, not its base split; the other build from its
-    # base split, the only copy; the older one from its bundle; nothing for the empty folder.
+    # Left to itself it lists the declared version's builds only and names the older one it skips.
     $run = Invoke-AllBuilds @('-ListOnly')
+    $listed = @($run.Output -split "`n" | Where-Object { $_ -like '`[all-builds`] *: *' })
+    Assert-True ($run.Exit -eq 0 -and $listed.Count -eq 2 -and $run.Output -notlike '*384510833: bundle*' -and
+        $run.Output -like "*skipped 439.0.0.37.89-384510833, not the declared version $declared (name it with -Only to patch it)*") `
+        "An older version's build was taken, or its skip wasn't named: $($run.Output)"
+    # Listed by name: the declared build from its bundle, not its base split; the other build from
+    # its base split, the only copy; the older one from its bundle; nothing for the empty folder.
+    $allThree = @('-Only', '385611438,385611395,384510833')
+    $run = Invoke-AllBuilds (@('-ListOnly') + $allThree)
     $listed = @($run.Output -split "`n" | Where-Object { $_ -like '`[all-builds`] *: *' })
     Assert-True ($run.Exit -eq 0 -and $listed.Count -eq 3 -and
         $run.Output -like "*$declared-385611438: bundle instagram-$declared-385611438.apks*" -and
@@ -382,7 +389,7 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     # patched APKs gone. The broken run fails the whole.
     $env:BUILD_QUEUE_SCRIPT = $queue
     $env:HUSHGRAM_ALLOW_RELEASE = '1'
-    $run = Invoke-AllBuilds @()
+    $run = Invoke-AllBuilds $allThree
     $summary = Read-Summary
     $byBuild = @{}
     foreach ($entry in @($summary.builds)) { $byBuild[$entry.build] = $entry }
