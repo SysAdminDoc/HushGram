@@ -118,6 +118,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** The repository as a link, and as a person reads it. */
     static final String SOURCE_URL = "https://github.com/SysAdminDoc/HushGram";
     static final String SOURCE_ADDRESS = SOURCE_URL.substring(SOURCE_URL.indexOf("://") + 3);
+    /** Where Support HushGram goes: the maintainer's Ko-fi page. */
+    static final String SUPPORT_URL = "https://ko-fi.com/X8K126YVER";
+    static final String SUPPORT_ADDRESS = SUPPORT_URL.substring(SUPPORT_URL.indexOf("://") + 3);
+    /** The key of Support HushGram, the settings home's last row. */
+    static final String SUPPORT_ROW_KEY = "action_support_hushgram";
     /** The English of the row listing what Pause can't reach, and its key in {@link L10n}. */
     static final String STAYS_WHILE_PAUSED = "Stays in while paused";
     /** The Before you sign in notice's key, which finds it on the screen. */
@@ -182,6 +187,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private String searchQuery = "";
     @Nullable private SearchRow search;
     @Nullable private Row noSearchResults;
+    /** The home page's last row, which opens the Ko-fi page in a browser. */
+    @Nullable private Row support;
     /** Keep the actual row objects, including their values and listeners, while filtering. */
     private final Map<PreferenceCategory, List<Preference>> searchableRows = new LinkedHashMap<>();
     private final Map<Preference, String> searchAliases = new HashMap<>();
@@ -1250,6 +1257,20 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return true;
         });
         about.addPreference(mark(licenses, SettingsIcons.LICENSE));
+
+        // Outside every category, so no category page, count or saved setting changes. filterSettings
+        // puts it last on the home page and in a search it matches.
+        Row donate = support = new Row(context);
+        donate.setKey(SUPPORT_ROW_KEY);
+        donate.setTitle(L10n.t("Support HushGram"));
+        donate.setSummary(L10n.t("Buy me a coffee on Ko-fi"));
+        donate.setPersistent(false);
+        donate.setOrder(Integer.MAX_VALUE - 1);
+        donate.setOnPreferenceClickListener(p -> {
+            openSupport(p.getContext());
+            return true;
+        });
+        mark(donate, SettingsIcons.OPENING);
         for (int i = 0; i < screen.getPreferenceCount(); i++) {
             Preference section = screen.getPreference(i);
             if (!(section instanceof PreferenceCategory)) continue;
@@ -1507,10 +1528,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 } else if (row.getParent() == screen) screen.removePreference(row);
             }
         }
+        Row donate = support;
+        if (donate != null) {
+            String text = searchText(donate.getTitle()) + " " + searchText(donate.getSummary()) + " ko-fi kofi donate";
+            boolean match = true;
+            for (String term : terms) if (!text.contains(term)) { match = false; break; }
+            // The home page (and a search it matches) shows it, a category's page doesn't.
+            boolean shown = match && (terms.length > 0 || !pages || openCategory == null);
+            if (terms.length > 0 && match) matches++;
+            if (shown) {
+                if (donate.getParent() != screen) screen.addPreference(donate);
+            } else if (donate.getParent() == screen) screen.removePreference(donate);
+        }
         // removePreference notifies even when absent. No-op changes mustn't rebind live Cancel.
         if (terms.length > 0 && matches == 0) {
             if (noSearchResults.getParent() != screen) screen.addPreference(noSearchResults);
         } else if (noSearchResults.getParent() == screen) screen.removePreference(noSearchResults);
+    }
+
+    /** The Ko-fi page, for a browser, in a task of its own so it never opens inside Instagram's. */
+    static Intent supportIntent() {
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(SUPPORT_URL))
+                .addCategory(Intent.CATEGORY_BROWSABLE)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
+    /** Opens the Ko-fi page, or says no app here can, as Source code and issues does. */
+    static void openSupport(Context context) {
+        try {
+            context.startActivity(supportIntent());
+        } catch (ActivityNotFoundException | SecurityException missing) {
+            // No browser, or none switched on. Uncaught, Android's exception closed Instagram.
+            Logger.printInfo(() -> "No app opened the support link");
+            Utils.showToastLong(L10n.f("No app on this phone can open the link. The address is %1$s.",
+                    L10n.isolate(SUPPORT_ADDRESS)));
+        }
     }
 
     private void showConfiguration() {
