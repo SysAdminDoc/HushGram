@@ -23,6 +23,8 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -44,8 +46,10 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringRefere
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class ExploreShopTilesTest {
@@ -198,6 +202,114 @@ class ExploreShopTilesTest {
 
         assertEquals("$label: the section parser", parser.single().type, found.parser)
         assertHooked("$label ${found.parser}", context, found)
+        assertEveryReaderSkipsNull(bundle, label, found.parser)
+    }
+
+    /**
+     * The hook answers null for a section holding a shop tile, so every reader of the section parser
+     * has to drop a null section, as it does one that didn't parse. A reader takes the parser's
+     * instance (its one static field of its own type) and parses through parseFromJsonParser, in one
+     * of three shapes, each of which this holds to account:
+     *  - A: the answer is tested for null right away (a check-cast may come first) and the branch
+     *    goes past its use, as a list's add or a single field's store.
+     *  - B: the instance goes to a static helper taking the reader, the parser and a collection,
+     *    which parses, tests for null and adds, and whose code is checked to do exactly that.
+     *  - C: the answer is cast to the section type and kept for later, and then every store of
+     *    a section-typed object into a field in that method is directly behind a null test that
+     *    branches past it, so the section can only be stored when it isn't null.
+     * The whole APK is read for the instance and for any call into the parser from outside it.
+     */
+    private fun assertEveryReaderSkipsNull(bundle: File, label: String, parser: String) {
+        val instance = FixtureDex.classes(bundle, setOf(parser)).getValue(parser).staticFields
+            .filter { it.type == parser }.map { it.name }
+        assertEquals("$label: the parser's instance field", 1, instance.size)
+        val field = "$parser->${instance.single()}:$parser"
+        val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == parser } }) { method ->
+            method.definingClass != parser && method.implementation?.instructions?.any {
+                val reference = (it as? ReferenceInstruction)?.reference
+                reference?.toString() == field || (reference as? MethodReference)?.definingClass == parser
+            } == true
+        }
+        assertTrue("$label: no reader of $parser found", readers.size >= 3)
+        val helpers = HashMap<String, Boolean>()
+        val shapes = mutableListOf<String>()
+        for (reader in readers) {
+            val code = reader.implementation!!.instructions.toList()
+            val address = IntArray(code.size + 1)
+            for (i in code.indices) address[i + 1] = address[i] + code[i].codeUnits
+            fun skips(test: Int): Boolean {
+                val branch = code[test] as com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+                val index = address.indexOf(address[test] + branch.codeOffset)
+                return index in code.indices && index != test + 1
+            }
+            fun names(at: Int) = ((code.getOrNull(at) as? ReferenceInstruction)?.reference as? MethodReference)?.name
+            var reads = 0
+            for (at in code.indices) {
+                val reference = (code[at] as? ReferenceInstruction)?.reference
+                val where = "$label: ${reader.definingClass}->${reader.name} at $at"
+                if (reference is MethodReference && reference.definingClass == parser) {
+                    fail("$where calls into the section parser itself: $reference")
+                }
+                if (reference?.toString() != field) continue
+                assertEquals("$where: only a read of the instance", Opcode.SGET_OBJECT, code[at].opcode)
+                val instanceRegister = (code[at] as OneRegisterInstruction).registerA
+                val call = code[at + 1]
+                if (call.opcode == Opcode.INVOKE_STATIC) {
+                    // B: the instance is the helper's second argument.
+                    val helper = (call as ReferenceInstruction).reference as MethodReference
+                    val registers = call as FiveRegisterInstruction
+                    assertEquals("$where: the instance goes to a helper", instanceRegister, registers.registerD)
+                    val key = helper.toString()
+                    helpers.getOrPut(key) {
+                        val body = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == helper.definingClass } }) {
+                            it.definingClass == helper.definingClass && it.name == helper.name &&
+                                it.parameterTypes.map(CharSequence::toString) == helper.parameterTypes.map(CharSequence::toString)
+                        }.single().implementation!!.instructions.toList()
+                        val ops = body.map { it.opcode }
+                        ops == listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID) &&
+                            (body[0] as ReferenceInstruction).reference.toString().let { it.contains("->parseFromJsonParser(") } &&
+                            (body[2] as OneRegisterInstruction).registerA == (body[1] as OneRegisterInstruction).registerA &&
+                            (body[3] as ReferenceInstruction).reference.toString().endsWith("->add(Ljava/lang/Object;)Z") &&
+                            (body[3] as FiveRegisterInstruction).registerD == (body[1] as OneRegisterInstruction).registerA
+                    }.also { assertTrue("$where: helper $key parses, tests for null and adds", it) }
+                    shapes += "B"
+                    reads++
+                    continue
+                }
+                assertEquals("$where: parses through parseFromJsonParser", "parseFromJsonParser", names(at + 1))
+                assertEquals("$where: on the instance", instanceRegister, (call as FiveRegisterInstruction).registerC)
+                assertEquals("$where: keeps the answer", Opcode.MOVE_RESULT_OBJECT, code[at + 2].opcode)
+                val answer = (code[at + 2] as OneRegisterInstruction).registerA
+                var next = at + 3
+                var cast: String? = null
+                if (code[next].opcode == Opcode.CHECK_CAST) {
+                    assertEquals("$where: casts the answer", answer, (code[next] as OneRegisterInstruction).registerA)
+                    cast = ((code[next] as ReferenceInstruction).reference as TypeReference).type
+                    next++
+                }
+                if (code[next].opcode == Opcode.IF_EQZ && (code[next] as OneRegisterInstruction).registerA == answer) {
+                    assertTrue("$where: branches past its use of the section", skips(next))
+                    shapes += "A"
+                } else {
+                    assertNotNull("$where: neither tested for null nor cast to a section", cast)
+                    val stores = code.indices.filter { i ->
+                        code[i].opcode == Opcode.IPUT_OBJECT && ((code[i] as ReferenceInstruction).reference as FieldReference).type == cast
+                    }
+                    assertTrue("$where: stores the section nowhere", stores.isNotEmpty())
+                    for (store in stores) {
+                        val guard = code[store - 1]
+                        assertEquals("$where: the store at $store is behind a null test", Opcode.IF_EQZ, guard.opcode)
+                        assertEquals("$where: that tests what it stores", (code[store] as OneRegisterInstruction).registerA, (guard as OneRegisterInstruction).registerA)
+                        val branch = guard as com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+                        assertEquals("$where: and skips the store", address[store + 1], address[store - 1] + branch.codeOffset)
+                    }
+                    shapes += "C"
+                }
+                reads++
+            }
+            assertTrue("$label: ${reader.definingClass}->${reader.name} doesn't read the parser", reads > 0)
+        }
+        assertTrue("$label: shapes read ${shapes.sorted()}", shapes.isNotEmpty())
     }
 
     private fun Method.holds(string: String): Boolean = implementation?.instructions?.any {
