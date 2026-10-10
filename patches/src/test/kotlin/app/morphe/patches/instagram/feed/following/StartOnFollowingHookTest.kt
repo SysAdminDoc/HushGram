@@ -179,10 +179,8 @@ class StartOnFollowingHookTest {
                 context.defaultSavedFeed(saved)
                 context.answerFlagReads(reads, FEED_FLAG)
 
-                if (version == "449.0.0.52.84") {
-                    assertEquals("${bundle.name}: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
-                    assertEquals("${bundle.name}: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
-                }
+                assertEquals("${bundle.name}: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
+                assertEquals("${bundle.name}: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
                 assertDefaultedAndAnswered(
                     "${bundle.name} ${saved.type}",
                     context.mutableClassDefBy(saved.type).methods.single { it.name == saved.name && it.parameterTypes.isEmpty() },

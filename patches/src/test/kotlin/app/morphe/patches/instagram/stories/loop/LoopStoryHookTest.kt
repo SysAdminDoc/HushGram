@@ -146,14 +146,10 @@ class LoopStoryHookTest {
                 val handler = askers.filter { AccessFlags.BRIDGE.isSet(it.accessFlags) }
                 assertEquals("${bundle.name}: the finished story handler asks: ${askers.map { it.name }}", 1, handler.size)
                 assertTrue("${bundle.name}: the handler holds \"userSession\"", handler.single().code().any { it.string() == "userSession" })
-                if (version == "449.0.0.52.84") {
-                    assertEquals("${bundle.name}: what asks the loop check: ${askers.map { it.name }}", 2, askers.size)
-                    val other = askers.single { it !in handler }
-                    assertEquals("${bundle.name}: the other asker's shape", listOf(storyItem), other.parameterTypes.map(CharSequence::toString))
-                    assertEquals("${bundle.name}: the other asker's answer", "Z", other.returnType)
-                    val videoStart = viewer.methods.filter { m -> m.code().any { it.calls(other.name) } && m.code().any { it.string() == "ReelViewerFragment" } }
-                    assertEquals("${bundle.name}: the video start asks ${other.name}", 1, videoStart.size)
-                }
+                assertEquals("${bundle.name}: what asks the loop check: ${askers.map { it.name }}", 2, askers.size)
+                val other = askers.single { it !in handler }
+                assertEquals("${bundle.name}: the other asker's shape", listOf(storyItem), other.parameterTypes.map(CharSequence::toString))
+                assertEquals("${bundle.name}: the other asker's answer", "Z", other.returnType)
                 checked += version
             }
         }

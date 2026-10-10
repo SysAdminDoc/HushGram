@@ -133,13 +133,11 @@ class ShowStoryTimeHookTest {
                 assertFlagAnswered(bundle.name, builder)
                 val callers = askers.filter { it.second == sites.name }.map { it.first }.distinct()
                 assertTrue("${bundle.name}: the header reading the flag asks for the label: $callers", "${sites.header.type}->${sites.header.name}" in callers)
-                if (version == "449.0.0.52.84") {
-                    assertEquals("${bundle.name}: what asks the story item for its label: $callers", 3, callers.size)
-                    assertTrue(
-                        "${bundle.name}: your own story's viewer list asks too: $callers",
-                        callers.any { it.startsWith("Linstagram/features/stories/dashboard/fragment/ReelDashboardFragment;->") },
-                    )
-                }
+                assertEquals("${bundle.name}: what asks the story item for its label: $callers", 3, callers.size)
+                assertTrue(
+                    "${bundle.name}: your own story's viewer list asks too: $callers",
+                    callers.any { it.startsWith("Linstagram/features/stories/dashboard/fragment/ReelDashboardFragment;->") },
+                )
                 val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
                     .filter { method -> method.code().any { it.referenceText() in hooks } }
                 assertEquals("${bundle.name}: methods hooked", 2, written.size)

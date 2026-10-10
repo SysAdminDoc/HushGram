@@ -120,8 +120,8 @@ class NavigationEntryTest {
         assertEquals(before, snapshot(context))
     }
 
-    @Test fun original449ProvesBothVariantsAndPreservesAllNativeFactoryCalls() {
-        val bundle = Fixtures.files { it.name == "instagram-449.0.0.52.84-385511871.apks" }.single()
+    @Test fun declaredBuildProvesBothVariantsAndPreservesAllNativeFactoryCalls() {
+        val bundle = Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }.single()
         val tabs = FixtureDex.classesHolding(bundle, "clips_viewer_clips_tab").filter { it.superclass == "Ljava/lang/Enum;" }
         val main = FixtureDex.classes(bundle, setOf(MAIN_ACTIVITY)).getValue(MAIN_ACTIVITY)
         val factory = main.methods.single { method -> method.implementation?.instructions?.any {

@@ -359,7 +359,7 @@ class HideMetaAiHookTest {
                 context.answerSearchFlagReads(reads)
 
                 assertEquals("${bundle.name}: flags read", SEARCH_FLAGS.toSet(), reads.map { it.flag }.toSet())
-                if (version == "449.0.0.52.84") assertEquals("${bundle.name}: reads", 7, reads.size)
+                assertEquals("${bundle.name}: reads", 7, reads.size)
                 for (read in reads) {
                     val method = context.mutableClassDefBy(read.type).methods.single {
                         it.name == read.name && it.parameterTypes.map(CharSequence::toString) == read.parameters

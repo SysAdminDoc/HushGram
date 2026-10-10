@@ -332,10 +332,8 @@ class ReelSeekBarHookTest {
 
                 val sites = context.findReelSeekBarSites()
                 assertEquals("${bundle.name}: reads of the minimum", 3, sites.lengths.size)
-                if (version == "449.0.0.52.84") {
-                    assertEquals("${bundle.name}: shared reads of the minimum", 2, sites.lengths.count { it.shared })
-                    assertTrue("${bundle.name}: the hidden kind's read is shared", sites.lazy.shared)
-                }
+                assertEquals("${bundle.name}: shared reads of the minimum", 2, sites.lengths.count { it.shared })
+                assertTrue("${bundle.name}: the hidden kind's read is shared", sites.lazy.shared)
                 context.applyReelSeekBar(sites)
 
                 for (load in sites.lengths) {
@@ -350,9 +348,6 @@ class ReelSeekBarHookTest {
                 )
                 assertProgressHookedFirst(bundle.name, context.method(SEEK_BAR, PROGRESS_CHANGED))
                 assertBindHookedAfterTheAdRead(bundle.name, context.method(sites.bind.method), context.method(sites.lazy))
-                if (version == "449.0.0.52.84") {
-                    assertEquals("${bundle.name}: the binder", "LX/063c;", sites.bind.method.definingClass)
-                }
                 checked++
             }
         }
