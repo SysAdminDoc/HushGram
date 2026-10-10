@@ -519,4 +519,30 @@ public class ReelBlurBarsTest {
         }
         assertTrue("one look happened while frames kept coming", ReelBlurBars.rounds > asleepAt);
     }
+
+    /** An awake loop has no use for the window's pre-draw callbacks, so a pager in front adds none to every frame. */
+    @Test
+    public void thePreDrawListenerIsOnlyOnWhileTheLoopIsAsleep() throws Exception {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        advance(1100);
+        assertEquals("awake: none", 0, ReelBlurBars.drawListenerCount());
+
+        pager.setVisibility(View.INVISIBLE);
+        advance(1100);
+        assertEquals("asleep: one", 1, ReelBlurBars.drawListenerCount());
+
+        pager.setVisibility(View.VISIBLE);
+        preDraw();
+        assertEquals("woken: gone again", 0, ReelBlurBars.drawListenerCount());
+        advance(400);
+        advance(1100);
+        assertEquals(0, ReelBlurBars.drawListenerCount());
+
+        pager.setVisibility(View.INVISIBLE);
+        advance(1100);
+        assertEquals(1, ReelBlurBars.drawListenerCount());
+        ((ViewGroup) pager.getParent()).removeView(pager);
+        assertEquals("detached: nothing left on the window", 0, ReelBlurBars.drawListenerCount());
+    }
 }

@@ -172,6 +172,15 @@ public final class ReelBlurBars {
         return count;
     }
 
+    /** How many pagers are on the window's pre-draw callbacks, for tests. */
+    static int drawListenerCount() {
+        int count = 0;
+        synchronized (CONTROLLERS) {
+            for (Controller controller : CONTROLLERS.values()) if (controller.drawListening) count++;
+        }
+        return count;
+    }
+
     /** The backdrops currently held across all pagers, for tests. */
     static int backdropCount() {
         int count = 0;
@@ -189,6 +198,8 @@ public final class ReelBlurBars {
         private final BooleanSupplier on;
         /** Whether this controller is on the window's observer. Off while the pager is detached. */
         boolean listening;
+        /** Whether this controller is on the window's pre-draw callbacks. Only while the loop is asleep. */
+        boolean drawListening;
         /** Whether the loop stopped because the pager wasn't in front. A layout, scroll, draw or window focus change wakes it. */
         private boolean asleep;
         final Map<View, Backdrop> backdrops = new WeakHashMap<>();
@@ -225,9 +236,10 @@ public final class ReelBlurBars {
             observer.removeOnWindowFocusChangeListener(this);
             observer.addOnScrollChangedListener(this);
             observer.addOnGlobalLayoutListener(this);
-            observer.addOnPreDrawListener(this);
             observer.addOnWindowFocusChangeListener(this);
             listening = true;
+            drawListening = false;
+            if (asleep) watchDraws(group, true);
         }
 
         /** Takes this off the window's observer, which outlives the pager. */
@@ -240,10 +252,25 @@ public final class ReelBlurBars {
                 observer.removeOnWindowFocusChangeListener(this);
             }
             listening = false;
+            drawListening = false;
         }
 
         private static boolean inFront(View view) {
             return ReelBlurBars.inFront(view.isAttachedToWindow(), view.isShown(), view.getWindowVisibility());
+        }
+
+        /**
+         * Puts the pre-draw listener on the window's observer or takes it off. The observer is the whole
+         * window's, so it is on only while the loop is asleep: an awake loop has no use for it, and a
+         * hidden pager would otherwise be asked about on every frame the app draws.
+         */
+        private void watchDraws(ViewGroup group, boolean watch) {
+            if (drawListening == watch) return;
+            ViewTreeObserver observer = group.getViewTreeObserver();
+            if (!observer.isAlive()) return;
+            if (watch) observer.addOnPreDrawListener(this);
+            else observer.removeOnPreDrawListener(this);
+            drawListening = watch;
         }
 
         /** Starts the loop again if it stopped for the pager not being in front and it is back. */
@@ -253,6 +280,7 @@ public final class ReelBlurBars {
             if (group == null || !inFront(group)) return;
             // Awake from here, so a draw every frame doesn't push the first look back each time.
             asleep = false;
+            watchDraws(group, false);
             schedule(group, SETTLE_MILLIS);
         }
 
@@ -315,9 +343,11 @@ public final class ReelBlurBars {
                 }
                 if (!inFront(group)) {
                     asleep = true;
+                    watchDraws(group, true);
                     return;
                 }
                 asleep = false;
+                watchDraws(group, false);
                 scan(group);
                 schedule(group, REFRESH_MILLIS);
             } catch (Throwable failure) {
