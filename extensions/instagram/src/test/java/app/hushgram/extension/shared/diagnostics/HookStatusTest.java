@@ -62,6 +62,29 @@ public class HookStatusTest {
                 HookStatus.report());
     }
 
+    /** A failed cast names its two types, so a report shows which anchor met the wrong object (#125). */
+    @Test
+    public void aFailedCastNamesItsTypesAndOtherFailuresKeepTheirMessageOut() {
+        HookStatus.threw("Story", "story header",
+                new ClassCastException("X.0Jrg cannot be cast to X.00uB"));
+        HookStatus.threw("Clock", "tap clock", new IllegalStateException("someone's caption"));
+        HookStatus.threw("Long", "long cast", new ClassCastException(repeat('a', HookStatus.MAX_CAST_MESSAGE + 50)));
+
+        List<String> missing = HookStatus.missing("Story");
+        assertEquals(Arrays.asList("a working 'story header' hook (it threw "
+                + "java.lang.ClassCastException: X.0Jrg cannot be cast to X.00uB)"), missing);
+        assertEquals(Arrays.asList("a working 'tap clock' hook (it threw java.lang.IllegalStateException)"),
+                HookStatus.missing("Clock"));
+        assertEquals(Arrays.asList("a working 'long cast' hook (it threw java.lang.ClassCastException: "
+                + repeat('a', HookStatus.MAX_CAST_MESSAGE) + "...)"), HookStatus.missing("Long"));
+    }
+
+    private static String repeat(char c, int count) {
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < count; i++) text.append(c);
+        return text.toString();
+    }
+
     /** A family that only ran has a line too, and a line with nothing wrong in it is no finding. */
     @Test
     public void aFamilyThatOnlyRanIsListedAndIsNoFinding() {

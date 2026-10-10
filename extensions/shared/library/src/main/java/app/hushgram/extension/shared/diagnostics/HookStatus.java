@@ -38,6 +38,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class HookStatus {
     /** Enough detail to describe a broken build; past this a family says it stopped counting. */
     private static final int MAX_ENTRIES_PER_FAMILY = 200;
+
+    /** How much of a failed cast's message a report keeps: two class names fit with room to spare. */
+    static final int MAX_CAST_MESSAGE = 240;
     /** Named counts a family keeps; a caller has a handful of fixed ones, never a growing set. */
     private static final int MAX_COUNTS_PER_FAMILY = 16;
     /** Serializes first observations with diagnostic snapshot, clear, and restore. */
@@ -286,6 +289,12 @@ public final class HookStatus {
         Family entry = FAMILIES.get(family);
         if (entry != null && (entry.truncated || entry.missed.contains(key))) return;
         String cause = failure == null ? "an error it could not name" : failure.getClass().getName();
+        // A failed cast's message names only the two types, and that's what shows which anchor met
+        // an object it wasn't written for. Other messages can carry content, so they stay out.
+        if (failure instanceof ClassCastException && failure.getMessage() != null) {
+            String types = failure.getMessage();
+            cause += ": " + (types.length() > MAX_CAST_MESSAGE ? types.substring(0, MAX_CAST_MESSAGE) + "..." : types);
+        }
         record(family, key,
                 "a working '" + name + "' hook (it threw " + cause + ")",
                 "The '" + name + "' hook for " + family + " threw " + cause
