@@ -499,7 +499,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
 
-        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INSTANTS)
+        if (build.contains(PatchFamily.NOTES_ROW) || build.contains(PatchFamily.INBOX_SUGGESTIONS)
+                || build.contains(PatchFamily.INSTANTS)
                 || build.contains(PatchFamily.THREAD_SEEN) || build.contains(PatchFamily.TYPING)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
@@ -511,6 +512,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(toggle(context, Settings.HIDE_NOTES_ROW, L10n.t("Hide the notes row"),
                         L10n.t("Takes the row of notes off the top of your messages, the Map bubble in it too. "
                                 + "Your chats, search and requests stay.")));
+            }
+            if (build.contains(PatchFamily.INBOX_SUGGESTIONS)) {
+                messages.addPreference(toggle(context, Settings.HIDE_INBOX_SUGGESTIONS,
+                        L10n.t("Hide Accounts to follow"),
+                        L10n.t("Takes the accounts Instagram suggests off the bottom of your messages. Your chats "
+                                + "and follow requests stay. Restart Instagram to see the change.")));
             }
             if (build.contains(PatchFamily.INSTANTS)) {
                 messages.addPreference(toggle(context, Settings.HIDE_INSTANTS, L10n.t("Hide Instants"),

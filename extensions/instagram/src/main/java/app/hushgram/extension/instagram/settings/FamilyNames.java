@@ -48,6 +48,7 @@ public final class FamilyNames {
     public static final String EXPLORE_GRID = "Hide the Explore grid";
     public static final String RECENT_SEARCHES = "Don't save recent searches";
     public static final String NOTES_ROW = "Hide the notes row";
+    public static final String INBOX_SUGGESTIONS = "Hide suggested accounts in DMs";
     public static final String INSTANTS = "Hide Instants";
     public static final String SHARE_SHEET = "Hide group buttons on the share sheet";
     public static final String REPOST_BUTTON = "Hide the Repost button";

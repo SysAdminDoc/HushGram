@@ -463,6 +463,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notes_row", FALSE);
 
     /**
+     * The Accounts to follow section under your chats
+     * ({@link app.hushgram.extension.instagram.direct.InboxSuggestions}). Read each time your
+     * messages build that section. Off to start.
+     */
+    public static final BooleanSetting HIDE_INBOX_SUGGESTIONS =
+            new BooleanSetting("hushgram_hide_inbox_suggestions", FALSE);
+
+    /**
      * Instants, Instagram's no-edit camera for friends, everywhere Instagram offers it
      * ({@link app.hushgram.extension.instagram.direct.Instants}). Instagram settles what it shows when
      * it starts, so a change takes a restart. Off to start.

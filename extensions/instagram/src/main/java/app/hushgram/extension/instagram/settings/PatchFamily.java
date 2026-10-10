@@ -89,6 +89,7 @@ public enum PatchFamily {
     EXPLORE_GRID(FamilyNames.EXPLORE_GRID, "exploreGrid", null, Settings.HIDE_EXPLORE_GRID),
     RECENT_SEARCHES(FamilyNames.RECENT_SEARCHES, "recentSearches", null, Settings.DONT_SAVE_RECENT_SEARCHES),
     NOTES_ROW(FamilyNames.NOTES_ROW, "notesRow", null, Settings.HIDE_NOTES_ROW),
+    INBOX_SUGGESTIONS(FamilyNames.INBOX_SUGGESTIONS, "inboxSuggestions", null, Settings.HIDE_INBOX_SUGGESTIONS),
     INSTANTS(FamilyNames.INSTANTS, "instants", null, Settings.HIDE_INSTANTS),
     SHARE_SHEET(FamilyNames.SHARE_SHEET, "shareSheet", null, Settings.HIDE_SHARE_SHEET_GROUP),
     REPOST_BUTTON(FamilyNames.REPOST_BUTTON, "repostButton", null, Settings.HIDE_REPOST_BUTTON),

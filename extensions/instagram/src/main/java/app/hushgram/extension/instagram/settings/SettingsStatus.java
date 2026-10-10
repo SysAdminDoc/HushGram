@@ -133,6 +133,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean inboxSuggestions() {
+        return false;
+    }
+
     public static boolean instants() {
         return false;
     }

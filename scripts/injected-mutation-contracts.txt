@@ -64,6 +64,13 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->inboxRow(Ljava/lang/
 # back; twice or elsewhere, it isn't the hook the patch wrote. HideNotesRowHookTest checks on the
 # 449 fixture where it lands.
 once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->sections([Ljava/lang/Object;)[Ljava/lang/Object; in static (L*;)V holding InboxViewModelGenerator.calculateAndApplyDiffUpdate
+# Hide suggested accounts in DMs (#112) hands InboxSuggestions the units your messages build their
+# section of accounts from, first thing in the method building it (07Ml.A0F on 450). That's the one
+# instance (List, String) method in a class reading follow requests by name, which the patch reaches
+# through the one call the inbox's loader makes of that shape. Left out, Accounts to follow stays
+# with the switch on; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V class-holding pending_follow_requests
+once-call Lapp/hushgram/extension/instagram/direct/InboxSuggestions;->units(Ljava/util/List;)Ljava/util/List; in instance (Ljava/util/List;Ljava/lang/String;)V class-holding pending_follow_requests
 # Hide Instants (#59) asks Instants.hide() first in Instagram's one Instants check (02qP.A0O on 450),
 # the static (UserSession, boolean) method answering a boolean from two rollout flags. It holds no
 # string, so the rules pick it by the fields it reads and its device check, pinned to 450. Left out,

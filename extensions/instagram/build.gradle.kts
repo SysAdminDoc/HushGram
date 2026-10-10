@@ -253,6 +253,17 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoNotesRowSwitch[28]", "missingPatchHasNoNotesRowSwitch[37]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
                 "notesRowSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.direct.InboxSuggestionsTest" to listOf(
+                "withTheSwitchOnAccountsToFollowAreLeftOut[28]", "withTheSwitchOnAccountsToFollowAreLeftOut[37]",
+                "offToStartAndOffKeepTheSection[28]", "offToStartAndOffKeepTheSection[37]",
+                "offPausedAndUnreadyKeepTheSection[28]", "offPausedAndUnreadyKeepTheSection[37]",
+                "aListLedByAnotherUnitGoesThroughAsItCame[28]", "aListLedByAnotherUnitGoesThroughAsItCame[37]",
+                "aThrowingSwitchKeepsTheSectionAndIsReported[28]", "aThrowingSwitchKeepsTheSectionAndIsReported[37]",
+                "aNameThatThrowsKeepsTheSectionAndIsReported[28]", "aNameThatThrowsKeepsTheSectionAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.InboxSuggestionsSettingsTest" to listOf(
+                "missingPatchHasNoInboxSuggestionsSwitch[28]", "missingPatchHasNoInboxSuggestionsSwitch[37]",
+                "inboxSuggestionsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[28]",
+                "inboxSuggestionsSwitchStartsOffUnderMessagesPersistsAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.direct.InstantsTest" to listOf(
                 "withTheSwitchOnTheCheckAnswersNo[28]", "withTheSwitchOnTheCheckAnswersNo[37]",
                 "offToStartAndOffLeaveItToInstagram[28]", "offToStartAndOffLeaveItToInstagram[37]",

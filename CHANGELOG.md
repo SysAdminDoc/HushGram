@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Hide suggested accounts in DMs. Turn on its switch under Messages and restart Instagram, and the Accounts to follow section at the bottom of your messages isn't built. Your chats and follow requests stay, and so does a section of people who follow you. It's in the default selection with its switch off. Asked for in #112.
+
 * **Instagram:** With Hide the Stories tray on, the tray could still show up at the top of Home for a few seconds after you watched a story you opened in DMs. When you come back to Home partway down the feed, Instagram floats a copy of the tray over it, and that copy now stays hidden too. Reported in #88.
 
 * **Instagram:** Disable analytics is stricter about which saved address it treats as the crash reporter's. It only follows the address when it's saved right after it's built, so a later Instagram build that saves something else there won't have that value changed. Both places Instagram 450 saves it still qualify.
