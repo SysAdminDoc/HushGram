@@ -63,7 +63,7 @@ public class ReelBlurBarsTest {
 
     private ActivityController<Activity> controller;
     private Activity activity;
-    private FrameLayout pager;
+    private WindowPager pager;
     private FrameLayout list;
     private FrameLayout page;
     private TextureView video;
@@ -88,7 +88,7 @@ public class ReelBlurBarsTest {
         };
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
         activity = controller.get();
-        pager = new FrameLayout(activity);
+        pager = new WindowPager(activity);
         list = new FrameLayout(activity);
         page = pageWith(VIDEO_HEIGHT);
         pager.addView(list, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
@@ -105,6 +105,34 @@ public class ReelBlurBarsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+    }
+
+    /** A pager whose window visibility a test sets, since a stopped activity's window can't be modelled directly. */
+    private static final class WindowPager extends FrameLayout {
+        int windowVisibility = View.VISIBLE;
+
+        WindowPager(Activity activity) {
+            super(activity);
+        }
+
+        @Override
+        public int getWindowVisibility() {
+            return windowVisibility;
+        }
+    }
+
+    /** What the framework does before it draws a frame: the window's observer asks each pre-draw listener. */
+    private void preDraw() throws Exception {
+        java.lang.reflect.Method dispatch = android.view.ViewTreeObserver.class.getDeclaredMethod("dispatchOnPreDraw");
+        dispatch.setAccessible(true);
+        dispatch.invoke(pager.getViewTreeObserver());
+    }
+
+    /** What the framework does when the window gains or loses focus. */
+    private void windowFocus(boolean hasFocus) throws Exception {
+        java.lang.reflect.Method dispatch = android.view.ViewTreeObserver.class.getDeclaredMethod("dispatchOnWindowFocusChange", boolean.class);
+        dispatch.setAccessible(true);
+        dispatch.invoke(pager.getViewTreeObserver(), hasFocus);
     }
 
     /** A page that is a full-size container with a black background and a video of [videoHeight] in the middle. */
@@ -415,5 +443,80 @@ public class ReelBlurBarsTest {
         advance(1100);
         assertTrue("it runs again once it is back in front", ReelBlurBars.rounds > whileHidden);
         assertTrue(asked > 0);
+    }
+
+    @Test
+    public void aPagerIsInFrontOnlyInAVisibleWindow() {
+        assertTrue(ReelBlurBars.inFront(true, true, View.VISIBLE));
+        assertFalse("detached", ReelBlurBars.inFront(false, true, View.VISIBLE));
+        assertFalse("hidden by a parent", ReelBlurBars.inFront(true, false, View.VISIBLE));
+        assertFalse("window invisible", ReelBlurBars.inFront(true, true, View.INVISIBLE));
+        assertFalse("window gone, as in a stopped activity", ReelBlurBars.inFront(true, true, View.GONE));
+    }
+
+    /** The activity stops: the pager is still shown to its parents, but its window is gone and the 1 s scan must stop. */
+    @Test
+    public void aStoppedWindowStopsTheLoopAndComingBackWakesIt() throws Exception {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        advance(1100);
+        asked = 0;
+
+        pager.windowVisibility = View.GONE;
+        assertTrue("the parents still say shown", pager.isShown());
+        advance(1100);
+        int whileStopped = ReelBlurBars.rounds;
+        advance(10_000);
+        assertEquals("the loop does not run in the background", whileStopped, ReelBlurBars.rounds);
+        assertEquals(0, asked);
+
+        pager.windowVisibility = View.VISIBLE;
+        windowFocus(true);
+        advance(400);
+        advance(1100);
+        assertTrue("it runs again once the window is back", ReelBlurBars.rounds > whileStopped);
+        assertTrue(asked > 0);
+    }
+
+    /** INVISIBLE to VISIBLE invalidates but lays nothing out, so the next draw is what wakes the loop. */
+    @Test
+    public void aPagerThatTurnsVisibleAgainWakesWithoutALayout() throws Exception {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        advance(1100);
+
+        pager.setVisibility(View.INVISIBLE);
+        advance(1100);
+        int whileInvisible = ReelBlurBars.rounds;
+        advance(5000);
+        assertEquals("the loop stopped", whileInvisible, ReelBlurBars.rounds);
+
+        pager.setVisibility(View.VISIBLE);
+        preDraw();
+        advance(400);
+        advance(1100);
+        assertTrue("the next draw woke it", ReelBlurBars.rounds > whileInvisible);
+    }
+
+    /** Draws while the pager is still out of front change nothing, and a frame at a time doesn't push the first look back. */
+    @Test
+    public void drawsWhileNotInFrontLeaveItAsleepAndDrawsAfterwardsDoNotDelayIt() throws Exception {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        advance(1100);
+        pager.windowVisibility = View.GONE;
+        advance(1100);
+        int asleepAt = ReelBlurBars.rounds;
+
+        preDraw();
+        advance(1500);
+        assertEquals("a draw in a stopped window wakes nothing", asleepAt, ReelBlurBars.rounds);
+
+        pager.windowVisibility = View.VISIBLE;
+        for (int frame = 0; frame < 40; frame++) {
+            preDraw();
+            advance(16);
+        }
+        assertTrue("one look happened while frames kept coming", ReelBlurBars.rounds > asleepAt);
     }
 }

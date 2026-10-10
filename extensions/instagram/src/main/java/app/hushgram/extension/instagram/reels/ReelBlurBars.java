@@ -155,6 +155,14 @@ public final class ReelBlurBars {
         logged = false;
     }
 
+    /**
+     * Whether a pager is in front: attached, shown by every parent, and in a window the user can see.
+     * isShown() ignores the window, so a stopped activity's pager still counted and its loop kept scanning.
+     */
+    static boolean inFront(boolean attached, boolean shown, int windowVisibility) {
+        return attached && shown && windowVisibility == View.VISIBLE;
+    }
+
     /** How many pagers still have a listener on their window's observer, for tests. */
     static int listenerCount() {
         int count = 0;
@@ -175,12 +183,13 @@ public final class ReelBlurBars {
 
     /** Watches one Reels pager. Only ever touched on the main thread. */
     private static final class Controller implements Runnable, View.OnAttachStateChangeListener,
-            ViewTreeObserver.OnScrollChangedListener, ViewTreeObserver.OnGlobalLayoutListener {
+            ViewTreeObserver.OnScrollChangedListener, ViewTreeObserver.OnGlobalLayoutListener,
+            ViewTreeObserver.OnPreDrawListener, ViewTreeObserver.OnWindowFocusChangeListener {
         private final WeakReference<ViewGroup> pager;
         private final BooleanSupplier on;
         /** Whether this controller is on the window's observer. Off while the pager is detached. */
         boolean listening;
-        /** Whether the loop stopped because the pager wasn't in front. A layout or scroll wakes it. */
+        /** Whether the loop stopped because the pager wasn't in front. A layout, scroll, draw or window focus change wakes it. */
         private boolean asleep;
         final Map<View, Backdrop> backdrops = new WeakHashMap<>();
 
@@ -212,8 +221,12 @@ public final class ReelBlurBars {
             if (!observer.isAlive()) return;
             observer.removeOnScrollChangedListener(this);
             observer.removeOnGlobalLayoutListener(this);
+            observer.removeOnPreDrawListener(this);
+            observer.removeOnWindowFocusChangeListener(this);
             observer.addOnScrollChangedListener(this);
             observer.addOnGlobalLayoutListener(this);
+            observer.addOnPreDrawListener(this);
+            observer.addOnWindowFocusChangeListener(this);
             listening = true;
         }
 
@@ -223,12 +236,24 @@ public final class ReelBlurBars {
             if (observer.isAlive()) {
                 observer.removeOnScrollChangedListener(this);
                 observer.removeOnGlobalLayoutListener(this);
+                observer.removeOnPreDrawListener(this);
+                observer.removeOnWindowFocusChangeListener(this);
             }
             listening = false;
         }
 
         private static boolean inFront(View view) {
-            return view.isAttachedToWindow() && view.isShown();
+            return ReelBlurBars.inFront(view.isAttachedToWindow(), view.isShown(), view.getWindowVisibility());
+        }
+
+        /** Starts the loop again if it stopped for the pager not being in front and it is back. */
+        private void wake() {
+            if (!asleep) return;
+            ViewGroup group = pager.get();
+            if (group == null || !inFront(group)) return;
+            // Awake from here, so a draw every frame doesn't push the first look back each time.
+            asleep = false;
+            schedule(group, SETTLE_MILLIS);
         }
 
         private void schedule(ViewGroup group, long delay) {
@@ -252,9 +277,23 @@ public final class ReelBlurBars {
         /** The pager came back in front after the loop stopped for it. */
         @Override
         public void onGlobalLayout() {
-            if (!asleep) return;
-            ViewGroup group = pager.get();
-            if (group != null && inFront(group)) schedule(group, SETTLE_MILLIS);
+            wake();
+        }
+
+        /**
+         * Drawing starts again after the pager went from invisible to visible, which lays nothing out, or
+         * after its window came back. Never cancels the draw.
+         */
+        @Override
+        public boolean onPreDraw() {
+            wake();
+            return true;
+        }
+
+        /** The window gained focus, as it does coming back from the background. */
+        @Override
+        public void onWindowFocusChanged(boolean hasFocus) {
+            if (hasFocus) wake();
         }
 
         /** A scroll moved something. Looks once it has been quiet for a moment. */
