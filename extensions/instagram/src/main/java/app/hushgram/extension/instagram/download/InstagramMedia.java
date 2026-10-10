@@ -122,6 +122,29 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * A picture's {@code additional_candidates}: its other stills, which the server may size
+     * larger than its candidates. Written by the patches with Download cover alone.
+     */
+    public static Object additionalCandidates(Object imageVersions) {
+        return null;
+    }
+
+    /** The {@code first_frame} of {@link #additionalCandidates}, read as a candidate, or null. */
+    public static Object firstFrame(Object additionalCandidates) {
+        return null;
+    }
+
+    /** The {@code igtv_first_frame} of {@link #additionalCandidates}, read as a candidate, or null. */
+    public static Object igtvFirstFrame(Object additionalCandidates) {
+        return null;
+    }
+
+    /** The {@code smart_frame} of {@link #additionalCandidates}, read as a candidate, or null. */
+    public static Object smartFrame(Object additionalCandidates) {
+        return null;
+    }
+
     /** A candidate's address. */
     public static String candidateUrl(Object candidate) {
         return null;

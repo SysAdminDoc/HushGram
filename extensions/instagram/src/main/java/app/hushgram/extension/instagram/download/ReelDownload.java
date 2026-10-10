@@ -455,11 +455,10 @@ public final class ReelDownload {
      * like {@code p540x540}, which the photo save takes for a thumbnail's and turns down (#79).
      */
     static boolean saveCover(Context context, Object media) {
-        List<MediaSave.Rendition> pictures = StoryDownload.pictures(media);
-        final int sizes = pictures.size();
-        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel cover tapped: " + sizes + " picture size(s)");
-        if (sizes == 0) return false;
-        boolean started = MediaSave.savePictureBySize(context, pictures, details(media));
+        StoryDownload.Cover cover = StoryDownload.cover(media);
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel cover tapped: " + cover.summary());
+        if (cover.sizes.isEmpty()) return false;
+        boolean started = MediaSave.savePictureBySize(context, cover.sizes, details(media));
         if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_COVER);
         return started;
     }

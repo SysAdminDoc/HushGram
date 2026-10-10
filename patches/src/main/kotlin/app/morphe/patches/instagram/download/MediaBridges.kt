@@ -122,6 +122,34 @@ internal fun BytecodePatchContext.imageBridges(patch: String): () -> Unit {
 }
 
 /**
+ * A picture's other stills, `additional_candidates`: the video's first frame, its IGTV first frame
+ * and its smart frame, each one more size of a picture, and the tree-backed class that reads them.
+ */
+internal const val ADDITIONAL_CANDIDATES = "Lcom/instagram/model/mediasize/AdditionalCandidates;"
+internal const val PANDO_ADDITIONAL_CANDIDATES = "Lcom/instagram/model/mediasize/ImmutablePandoAdditionalCandidates;"
+private const val ADDITIONAL_IMAGE_URL = "Lcom/instagram/model/mediasize/ExtendedImageUrl;"
+
+/**
+ * The same for the other stills a picture's sizes carry, which Download cover reads besides the
+ * candidates: the sizes' `additional_candidates` and its three entries, each read as a candidate
+ * through the bridges [imageBridges] writes. The candidates of a reel often hold one size while
+ * these hold a larger one, and only Download cover reads them, so a build where any can't be told
+ * answers null, after the patch log says why, and the cover saves from the candidates alone.
+ */
+internal fun BytecodePatchContext.coverBridges(patch: String): (() -> Unit)? = try {
+    fun frame(field: String) = throughInterface(patch, ADDITIONAL_CANDIDATES, PANDO_ADDITIONAL_CANDIDATES, field, ADDITIONAL_IMAGE_URL)
+    bridgeWriter(patch, listOf(
+        Bridge("additionalCandidates", IMAGE_INFO, throughInterface(patch, IMAGE_INFO, PANDO_IMAGE_INFO, "additional_candidates", ADDITIONAL_CANDIDATES)),
+        Bridge("firstFrame", ADDITIONAL_CANDIDATES, frame("first_frame")),
+        Bridge("igtvFirstFrame", ADDITIONAL_CANDIDATES, frame("igtv_first_frame")),
+        Bridge("smartFrame", ADDITIONAL_CANDIDATES, frame("smart_frame")),
+    ))
+} catch (unknown: PatchException) {
+    patchLog.warning("${unknown.message}. $patch goes in saving a cover from the candidates alone.")
+    null
+}
+
+/**
  * The same for an account's picture: the one its profile shows, read as a picture's candidate, and
  * its full size, read through the interface both of Instagram's classes for it implement, whose
  * getters keep their names. The account's username names the save, and it and the account's bio

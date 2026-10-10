@@ -78,6 +78,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram - Download any reel:** Download cover now looks for a bigger picture than the one size Instagram lists first. Besides its usual sizes, a post can carry a first frame, an IGTV first frame and a smart frame, and Download cover saves the largest of them all as long as it has the cover's proportions. A cover with a single size saves as it did. Diagnostics says how many sizes the cover had and which one was the largest. The same goes for Download cover on a video in Home and on a profile.
+
 * **Instagram:** The diagnostic report has a Stories tray reel types line that counts each kind of card the stories row loads, by Instagram's own name for it. A report from an account that gets a card none of the switches cover yet, like the Music for you card in #111, shows which kind it is, so a switch can take out that card and nothing else.
 
 * **Instagram - Hide suggested posts:** Hide suggested posts' Hide shopping switch now also takes shop tiles out of Explore. A shop's tile is the one with the shop's name over a few of its posts, and the block of the grid holding it goes with it, since Instagram doesn't draw a block with a gap in it. The rest of Explore stays, and with the switch off shop tiles come back on Explore's next load.

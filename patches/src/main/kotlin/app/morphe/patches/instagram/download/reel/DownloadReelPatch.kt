@@ -17,6 +17,7 @@ import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.carouselBridge
+import app.morphe.patches.instagram.download.coverBridges
 import app.morphe.patches.instagram.download.imageBridges
 import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.musicBridges
@@ -195,6 +196,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
     val icon = optionIcon(PATCH)
     val writeBridges = mediaBridges(PATCH)
     val writeImageBridges = imageBridges(PATCH)
+    val writeCoverBridges = coverBridges(PATCH)
     val writeMusicBridges = musicBridges(PATCH)
     // Only a carousel's Download reads its pages, so a build where they can't be told keeps
     // Download on reels, which then saves a carousel's first page as before.
@@ -289,6 +291,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
     )
     writeBridges()
     writeImageBridges()
+    writeCoverBridges?.invoke()
     writeMusicBridges()
     writeCarouselBridge?.invoke()
     writeRowBridges()

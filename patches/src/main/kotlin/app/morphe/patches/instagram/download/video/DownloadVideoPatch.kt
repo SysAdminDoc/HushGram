@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.captionBridges
 import app.morphe.patches.instagram.download.carouselBridge
+import app.morphe.patches.instagram.download.coverBridges
 import app.morphe.patches.instagram.download.imageBridges
 import app.morphe.patches.instagram.download.mediaBridges
 import app.morphe.patches.instagram.download.pandoGetter
@@ -331,6 +332,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     }
     val writeBridges = mediaBridges(PATCH)
     val writeImageBridges = imageBridges(PATCH)
+    val writeCoverBridges = coverBridges(PATCH)
     val writeCarouselBridge = carouselBridge(PATCH)
     val writeCaptionBridges = captionBridges(PATCH)
 
@@ -490,6 +492,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     })
     writeBridges()
     writeImageBridges()
+    writeCoverBridges?.invoke()
     writeCarouselBridge()
     writeCaptionBridges?.invoke()
     return page

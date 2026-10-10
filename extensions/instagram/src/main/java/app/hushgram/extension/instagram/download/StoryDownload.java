@@ -218,6 +218,80 @@ public final class StoryDownload {
         return pictures;
     }
 
+    /**
+     * The sizes of a cover and the places they came from, for the log.
+     * {@code sources} is as long as {@code sizes}, and each entry names the field it was read from.
+     */
+    static final class Cover {
+        final List<MediaSave.Rendition> sizes = new ArrayList<>();
+        final List<String> sources = new ArrayList<>();
+
+        /** The place the largest size came from, as {@link MediaSave#savePictureBySize} picks it, or "none". */
+        String chosenSource() {
+            int best = -1;
+            for (int i = 0; i < sizes.size(); i++) {
+                MediaSave.Rendition r = sizes.get(i);
+                if (best < 0 || (long) r.width * r.height > (long) sizes.get(best).width * sizes.get(best).height) best = i;
+            }
+            if (best < 0) return "none";
+            MediaSave.Rendition r = sizes.get(best);
+            return sources.get(best) + (r.width > 0 && r.height > 0 ? " " + r.width + "x" + r.height : "");
+        }
+
+        /** A line for the log: how many sizes, per place, and where the largest is from. */
+        String summary() {
+            StringBuilder places = new StringBuilder();
+            for (int i = 0; i < sizes.size(); i++) {
+                String source = sources.get(i);
+                int count = 0;
+                for (String other : sources) if (other.equals(source)) count++;
+                if (sources.indexOf(source) == i) places.append(places.length() == 0 ? "" : ", ").append(source).append(' ').append(count);
+            }
+            return sizes.size() + " picture size(s) (" + places + "), largest from " + chosenSource();
+        }
+    }
+
+    /**
+     * Every size [media] states for its cover: its {@code image_versions2} candidates, and the stills
+     * in {@code additional_candidates} (the first frame, the IGTV first frame and the smart frame)
+     * that keep the candidates' proportions. A smart frame is cropped, and a still of other
+     * proportions isn't the cover, so one is left out, and so is every still when the candidates
+     * state no size to compare with. A build where the stills can't be read gives the candidates
+     * alone. Never null, never throws.
+     */
+    static Cover cover(Object media) {
+        Cover cover = new Cover();
+        for (MediaSave.Rendition candidate : pictures(media)) {
+            cover.sizes.add(candidate);
+            cover.sources.add("candidates");
+        }
+        try {
+            MediaSave.Rendition base = null;
+            for (MediaSave.Rendition r : cover.sizes) {
+                if (r.width > 0 && r.height > 0 && (base == null || (long) r.width * r.height > (long) base.width * base.height)) base = r;
+            }
+            Object versions = base == null ? null : InstagramMedia.imageVersions(media);
+            Object more = versions == null ? null : InstagramMedia.additionalCandidates(versions);
+            if (more == null) return cover;
+            Object[] frames = {InstagramMedia.firstFrame(more), InstagramMedia.igtvFirstFrame(more), InstagramMedia.smartFrame(more)};
+            String[] names = {"first_frame", "igtv_first_frame", "smart_frame"};
+            for (int i = 0; i < frames.length; i++) {
+                if (frames[i] == null) continue;
+                String url = InstagramMedia.candidateUrl(frames[i]);
+                int width = InstagramMedia.candidateWidth(frames[i]);
+                int height = InstagramMedia.candidateHeight(frames[i]);
+                if (url == null || url.isEmpty() || width <= 0 || height <= 0) continue;
+                // Same proportions as the candidates', within 2 percent.
+                if (Math.abs((long) width * base.height - (long) height * base.width) * 50L > (long) height * base.width) continue;
+                cover.sizes.add(new MediaSave.Rendition(url, width, height, 0));
+                cover.sources.add(names[i]);
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "cover stills", t);
+        }
+        return cover;
+    }
+
     /** The row for [choice], in the app's language. */
     static String label(Choice choice) {
         switch (choice) {

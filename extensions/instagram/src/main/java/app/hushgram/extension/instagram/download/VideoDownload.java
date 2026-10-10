@@ -116,11 +116,10 @@ public final class VideoDownload {
         try {
             if (!covers()) return;
             Object shown = shown(media, itemState);
-            List<MediaSave.Rendition> pictures = shown == null ? new ArrayList<>() : StoryDownload.pictures(shown);
-            final int sizes = pictures.size();
+            final StoryDownload.Cover cover = shown == null ? new StoryDownload.Cover() : StoryDownload.cover(shown);
             final String on = shown != media ? " on a carousel page" : "";
-            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed cover download tapped" + on + ": " + sizes + " picture size(s)");
-            if (sizes == 0 || !MediaSave.savePictureBySize(context, pictures, details(shown, media))) {
+            Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "feed cover download tapped" + on + ": " + cover.summary());
+            if (cover.sizes.isEmpty() || !MediaSave.savePictureBySize(context, cover.sizes, details(shown, media))) {
                 Context application = context.getApplicationContext();
                 Feedback.show(application, L10n.t(application, "Download failed"), true);
             }

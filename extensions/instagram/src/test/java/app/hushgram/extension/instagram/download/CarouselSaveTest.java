@@ -117,6 +117,7 @@ public class CarouselSaveTest {
         MediaBridge.poster = null;
         MediaBridge.postedAt = null;
         MediaBridge.cover = null;
+        MediaBridge.frames = null;
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         LogBufferManager.clearLogBuffer();
@@ -355,6 +356,48 @@ public class CarouselSaveTest {
         assertEquals(1, server.hits("/cover.jpg")); assertEquals(0, server.hits("/small.jpg"));
         assertEquals(1, gallery.rows.size());
         assertClean();
+    }
+
+    /**
+     * A reel whose model keeps a larger still in additional_candidates than its candidates state
+     * saves that still, and the log names where the largest came from.
+     */
+    @Test public void aReelsCoverSavesTheLargestStillItsModelKeeps() throws Exception {
+        server.serve("/small.jpg", "image/jpeg", body(false));
+        server.serve("/first.jpg", "image/jpeg", body(false));
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/first.jpg", 1080, 1920, 0), null, null};
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/small.jpg", 360, 640, 0)), null, PostDetails.of("7"));
+        StoryDownload.Cover cover = StoryDownload.cover(reel);
+        assertEquals(2, cover.sizes.size());
+        assertEquals("first_frame 1080x1920", cover.chosenSource());
+        assertEquals("2 picture size(s) (candidates 1, first_frame 1), largest from first_frame 1080x1920", cover.summary());
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/first.jpg")); assertEquals(0, server.hits("/small.jpg"));
+        assertClean();
+    }
+
+    /** A reel with a single size, and no still beside it, saves as it did, and a still of other proportions is left out. */
+    @Test public void aReelsCoverWithOneSizeSavesAsBefore() throws Exception {
+        server.serve("/small.jpg", "image/jpeg", body(false));
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/small.jpg", 360, 640, 0)), null, PostDetails.of("7"));
+        StoryDownload.Cover alone = StoryDownload.cover(reel);
+        assertEquals("1 picture size(s) (candidates 1), largest from candidates 360x640", alone.summary());
+        MediaBridge.frames = new MediaSave.Rendition[] {null, null, new MediaSave.Rendition(server.origin() + "/square.jpg", 1080, 1080, 0)};
+        assertEquals("a square smart frame isn't the cover", 1, StoryDownload.cover(reel).sizes.size());
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/small.jpg"));
+        assertClean();
+    }
+
+    /** Candidates that state no size give nothing to compare a still with, so the stills aren't read. */
+    @Test public void stillsAreLeftOutWhenTheCandidatesStateNoSize() {
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition("https://x.invalid/f.jpg", 1080, 1920, 0), null, null};
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(MediaSave.Rendition.of("https://x.invalid/c.jpg")), null, PostDetails.of("7"));
+        assertEquals(1, StoryDownload.cover(reel).sizes.size());
     }
 
     /**
@@ -656,6 +699,8 @@ public class CarouselSaveTest {
         static String poster;
         static Long postedAt;
         static List<MediaSave.Rendition> cover;
+        /** first_frame, igtv_first_frame and smart_frame of the additional_candidates, or null when it has none. */
+        static MediaSave.Rendition[] frames;
         static final Object ALL = new Object(), DOWNLOAD = new Object();
         static CharSequence label;
         @Implementation protected static Object saveAllOption() { return ALL; }
@@ -677,6 +722,10 @@ public class CarouselSaveTest {
             MediaSave.Item item = (MediaSave.Item) (media instanceof List ? ((List<?>) media).get(0) : media);
             return item.video ? cover : item.renditions;
         }
+        @Implementation protected static Object additionalCandidates(Object versions) { return frames; }
+        @Implementation protected static Object firstFrame(Object more) { return frames[0]; }
+        @Implementation protected static Object igtvFirstFrame(Object more) { return frames[1]; }
+        @Implementation protected static Object smartFrame(Object more) { return frames[2]; }
         @Implementation protected static String versionUrl(Object version) { return ((MediaSave.Rendition) version).url; }
         @Implementation protected static Integer versionWidth(Object version) { return ((MediaSave.Rendition) version).width; }
         @Implementation protected static Integer versionHeight(Object version) { return ((MediaSave.Rendition) version).height; }
