@@ -20,7 +20,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.shadows.ShadowSystemClock;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 
@@ -194,5 +196,27 @@ public class TabStartTest {
         coldStart(new Intent(Intent.ACTION_VIEW), BAR, Tab.FEED);
         report = String.join(" | ", HookStatus.report());
         assertTrue(report, report.contains("Start tab skipped, not from the icon 1"));
+    }
+
+    @Test
+    public void aTapAfterStartupIsNeverSwapped() {
+        Settings.START_TAB.save(StartTab.SEARCH);
+        TabStart.noteFirstStart(launcher(), null);
+        ReelsTab.tabs(BAR);
+        TabStart.noteResumed();
+        ShadowSystemClock.advanceBy(Duration.ofMillis(TabStart.STARTUP_MS + 1));
+        assertSame("the person's first tap on Home", Tab.FEED, ReelsTab.tab(Tab.FEED));
+        assertSame("and on Reels", Tab.CLIPS, ReelsTab.tab(Tab.CLIPS));
+        assertSame(Tab.FEED, ReelsTab.tab(Tab.FEED));
+    }
+
+    @Test
+    public void theStartupRequestStillSwapsJustAfterTheFirstResume() {
+        Settings.START_TAB.save(StartTab.SEARCH);
+        TabStart.noteFirstStart(launcher(), null);
+        ReelsTab.tabs(BAR);
+        TabStart.noteResumed();
+        ShadowSystemClock.advanceBy(Duration.ofMillis(TabStart.STARTUP_MS - 1));
+        assertSame(Tab.SEARCH, ReelsTab.tab(Tab.FEED));
     }
 }

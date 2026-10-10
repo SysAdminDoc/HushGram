@@ -9,6 +9,7 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 
@@ -32,7 +33,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * no extras, and no saved state to restore. A notification, a link or a shortcut start its
  * activity with something else, so they open what they were meant for. And the first tab Instagram
  * is asked to open has to be a landing tab (Home, or Reels for accounts that open on Reels).
- * That one answer is swapped for the chosen tab, once per process. Everything after it passes.
+ * That one answer is swapped for the chosen tab, once per process, and only while the process is
+ * still starting: until a moment after the first activity has resumed. A tap on Home or Reels after
+ * that is the person's own and is never redirected.
  *
  * <p>The chosen tab has to be on the bar as the tab list hook last shaped it. A hidden tab, or one
  * Instagram left off the account's bar (Messages is on some), opens Home.
@@ -40,6 +43,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class TabStart {
     /** The names of the tabs Instagram lands on when nothing asks for another. */
     private static final Set<String> LANDING = new HashSet<>(Arrays.asList("FEED", "FEED_SWITCHER", "CLIPS"));
+
+    /** How long after the first activity resumes a landing can still be swapped, in milliseconds. */
+    static final long STARTUP_MS = 1500;
 
     private static final int UNKNOWN = 0;
     private static final int LAUNCHER = 1;
@@ -54,6 +60,9 @@ public final class TabStart {
 
     /** Whether the one landing swap has been decided. */
     private static volatile boolean decided;
+
+    /** When the first activity resumed, by the elapsed-realtime clock, or -1 before it has. */
+    private static volatile long resumedAt = -1;
 
     private TabStart() {
     }
@@ -70,12 +79,18 @@ public final class TabStart {
                 @Override public void onActivityCreated(Activity activity, Bundle state) {
                     try {
                         noteFirstStart(activity.getIntent(), state);
+                    } catch (Throwable failure) {
+                        HookStatus.threw(FamilyNames.REELS_TAB, "start", failure);
+                    }
+                }
+                @Override public void onActivityStarted(Activity activity) { }
+                @Override public void onActivityResumed(Activity activity) {
+                    try {
+                        noteResumed();
                     } finally {
                         application.unregisterActivityLifecycleCallbacks(this);
                     }
                 }
-                @Override public void onActivityStarted(Activity activity) { }
-                @Override public void onActivityResumed(Activity activity) { }
                 @Override public void onActivityPaused(Activity activity) { }
                 @Override public void onActivityStopped(Activity activity) { }
                 @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) { }
@@ -90,6 +105,17 @@ public final class TabStart {
     static void noteFirstStart(@Nullable Intent intent, @Nullable Bundle savedState) {
         if (firstStart != UNKNOWN) return;
         firstStart = fromLauncher(intent, savedState) ? LAUNCHER : OTHER;
+    }
+
+    /** Records that the first activity has resumed, which starts the short window that ends the startup. */
+    static void noteResumed() {
+        if (resumedAt < 0) resumedAt = SystemClock.elapsedRealtime();
+    }
+
+    /** Whether the first activity resumed long enough ago that a request for a tab is the person's. */
+    private static boolean startupOver() {
+        long at = resumedAt;
+        return at >= 0 && SystemClock.elapsedRealtime() - at > STARTUP_MS;
     }
 
     /** Whether [intent] is what the launcher sends, with no state being restored. */
@@ -119,6 +145,10 @@ public final class TabStart {
     @Nullable
     static Object landing(Enum<?> asked) {
         if (decided) return null;
+        if (startupOver()) {
+            decided = true;
+            return null;
+        }
         if (!Utils.settingsReady()) {
             decided = true;
             return null;
@@ -152,5 +182,6 @@ public final class TabStart {
         firstStart = UNKNOWN;
         onTheBar = null;
         decided = false;
+        resumedAt = -1;
     }
 }
