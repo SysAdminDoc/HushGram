@@ -70,6 +70,16 @@ public class ReelsTabTest {
         assertSame("an enum with no Reels keeps its list", NoReels.list, ReelsTab.tabs(NoReels.list));
     }
 
+    /** Show on, a list without Home has no place Reels is known to go, so it stays as built. */
+    @Test
+    public void withShowOnAListWithoutHomeStays() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_REELS_TAB.save(true);
+        List<Tab> built = Arrays.asList(Tab.SEARCH, Tab.DIRECT, Tab.PROFILE);
+
+        assertSame(built, ReelsTab.tabs(built));
+    }
+
     /** Both on, Hide wins: Reels leaves the list and nothing is added. */
     @Test
     public void hideWinsWhenBothAreOn() {

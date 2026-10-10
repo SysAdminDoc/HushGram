@@ -79,7 +79,8 @@ public final class ReelsTab {
 
     /**
      * A copy of [tabs] with Reels after Home when the list has no Reels, or [tabs] as it came: when
-     * it has Reels already, is empty, holds something that isn't a tab, or its enum has no Reels.
+     * it has Reels already, has no Home, is empty, holds something that isn't a tab, or its enum has
+     * no Reels.
      */
     @Nullable
     static List<?> withReels(List<?> tabs) {
@@ -93,6 +94,8 @@ public final class ReelsTab {
             if (isReels(tab)) return tabs;
             if (HOME.equals(((Enum<?>) tab).name())) home = index;
         }
+        // Without Home there's no place the tab is known to go, so the bar stays as Instagram built it.
+        if (home < 0) return tabs;
         Object reels;
         try {
             reels = reelsOf((Enum<?>) first);
