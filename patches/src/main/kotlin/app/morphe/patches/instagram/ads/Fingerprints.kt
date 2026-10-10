@@ -14,7 +14,9 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 /**
  * The strings only the ad-insert method holds: it writes the "Is ad pod" key into its debug map and
- * flags a "cross_surface_duplicate_ad". No other method in Instagram 449 or 450 carries both.
+ * flags a "cross_surface_duplicate_ad". No other method in Instagram 449 or 450 carries both. They're
+ * matched exactly, where the fingerprint this replaced matched any string containing them; each
+ * is an exact constant in the insert on 449 and 450 (395, 438), so both find the same method.
  */
 internal val AD_INJECTOR_STRINGS = listOf("cross_surface_duplicate_ad", "Is ad pod")
 

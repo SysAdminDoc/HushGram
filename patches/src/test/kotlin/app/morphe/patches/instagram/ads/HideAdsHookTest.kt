@@ -66,6 +66,14 @@ class HideAdsHookTest {
         }
     }
 
+    /** Both strings in one class, each in a method of its own: the class qualifies, neither method does. */
+    @Test
+    fun theStringsSplitAcrossTwoMethodsFailThePatch() {
+        val methods = AD_INJECTOR_STRINGS.mapIndexed { index, string -> injector(strings = listOf(string), name = "A0$index").methods.single() }
+        val split = ImmutableClassDef(INJECTOR, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods)
+        refuses("0 methods") { PatchContexts.of(listOf(split)).findAdInjector() }
+    }
+
     @Test
     fun twoInsertersFailThePatch() {
         val context = PatchContexts.of(listOf(injector(), injector("Lfixture/OtherInjector;")))
@@ -140,6 +148,7 @@ class HideAdsHookTest {
         /** Shaped like 449's and 450's: static, three arguments, a boolean back, both strings loaded. */
         fun injector(
             type: String = INJECTOR,
+            name: String = "A00",
             strings: List<String> = AD_INJECTOR_STRINGS,
             static: Boolean = true,
             parameters: List<String> = PARAMETERS,
@@ -154,7 +163,7 @@ class HideAdsHookTest {
                 type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
                 listOf(
                     ImmutableMethod(
-                        type, "A00", parameters.map { ImmutableMethodParameter(it, null, null) }, returns, access, null, null,
+                        type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, access, null, null,
                         ImmutableMethodImplementation(registers, code, null, null),
                     ),
                 ),
