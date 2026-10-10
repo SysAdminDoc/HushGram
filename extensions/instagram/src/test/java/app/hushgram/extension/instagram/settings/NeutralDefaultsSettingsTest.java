@@ -83,7 +83,8 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_PROFILE_SUGGESTIONS, Settings.HIDE_REELS_SUGGESTIONS, Settings.HIDE_REEL_FOLLOW_BUTTON,
                 Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.TURN_OFF_DOUBLE_TAP_LIKE,
                 Settings.HIDE_REELS_TAB, Settings.REEL_SEEK_BAR, Settings.KEEP_REEL_AUTO_SCROLL,
-                Settings.DOWNLOAD_VIDEOS, Settings.TAP_TO_PLAY};
+                Settings.DOWNLOAD_VIDEOS, Settings.TAP_TO_PLAY,
+                Settings.GLASS_TAB_BAR, Settings.SAVED_ON_PROFILE, Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM};
         restoreDefaults();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -99,7 +100,8 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.EXPLORE_GRID, PatchFamily.SHARE_SHEET, PatchFamily.REPOST_BUTTON, PatchFamily.BOTTOM_SPACE,
                 PatchFamily.PROFILE_SUGGESTIONS, PatchFamily.REELS_SUGGESTIONS, PatchFamily.DOUBLE_TAP_LIKE,
                 PatchFamily.REELS_TAB, PatchFamily.REEL_SEEK_BAR, PatchFamily.REEL_AUTO_SCROLL,
-                PatchFamily.VIDEO_DOWNLOAD, PatchFamily.TAP_TO_PLAY);
+                PatchFamily.VIDEO_DOWNLOAD, PatchFamily.TAP_TO_PLAY,
+                PatchFamily.GLASS_TAB_BAR, PatchFamily.SAVED_ON_PROFILE, PatchFamily.STOP_HEARTBEAT);
     }
 
     @After public void restore() throws Exception {

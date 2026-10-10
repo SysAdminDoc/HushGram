@@ -653,3 +653,25 @@ Couldn't save the setting names. Nothing changed.	Ayar adları kaydedilemedi. Hi
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.
 Hide Accounts to follow	Takip edilecek hesapları gizle
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Vurgu bir sekmenin üzerinden her geçtiğinde hafif bir titreşim verir; ekranlar arasında dokunurken veya kaydırırken çubuğu takip eder.
+Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 ve üzerinde hapın arkasındaki görüntüyü bulanıklaştırır. Kapalıyken hap, buzlu bir renk tonudur.
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
+Glass tab bar	Cam sekme çubuğu
+Haptics on the tab bar	Sekme çubuğunda titreşim
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Ana Sayfa ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur. Reels yine de onun üstünde biter.
+Show content behind the tab bar	İçeriği sekme çubuğunun arkasında göster
+Tab bar	Sekme çubuğu
+Saved	Kaydedilenler
+Saved tab on your profile	Profilinde Kaydedilenler sekmesi
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Kendi profilinin sekmelerine Kaydedilenler'i açan bir yer imi ekler. Değiştirdikten sonra Instagram'ı yeniden başlat.
+Battery	Pil
+Stop the background heartbeat	Arka plandaki kalp atışını durdur
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
+Stop the analytics upload alarm	Analiz yükleme alarmını durdur
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider, Analizleri kapat açıkken hiçbir yere gitmez.
+Haptic style	Haptik stili
+Short tick	Kısa tık
+System tick	Sistem tıkı
+Soft tick	Yumuşak tık
+Full tick	Tam tık

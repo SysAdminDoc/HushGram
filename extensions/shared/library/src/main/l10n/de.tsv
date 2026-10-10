@@ -653,3 +653,25 @@ Couldn't save the setting names. Nothing changed.	Die Einstellungsnamen konnten 
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bei diesem Instagram-Build deckt es %1$d von %2$d Wegen ab. Der Diagnosebericht nennt die übrigen.
 Hide Accounts to follow	„Konten zum Folgen“ ausblenden
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Entfernt die Konten, die Instagram dir vorschlägt, unten aus deinen Nachrichten. Deine Chats und Followeranfragen bleiben. Starte Instagram neu, um die Änderung zu sehen.
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Ein leichtes Ticken, sobald das Highlight an einem Tab vorbeigleitet, damit es der Leiste folgt, wenn du tippst oder zwischen Bildschirmen wischst.
+Blur behind the tab bar	Unschärfe hinter der Tab-Leiste
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Verwischt ab Android 12, was hinter der Pille liegt. Aus: Die Pille ist eine mattierte Tönung.
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Zeichnet Instagrams Tab-Leiste als schwebende, abgerundete Glaspille mit einer Hervorhebung des aktuellen Tabs. Starte Instagram nach der Änderung neu.
+Glass tab bar	Glas-Tab-Leiste
+Haptics on the tab bar	Haptik der Tab-Leiste
+Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Home und die anderen Tabs laufen hinter der Pille weiter, damit das Glas echten Inhalt zum Verwischen hat. Reels endet weiterhin darüber.
+Show content behind the tab bar	Inhalt hinter der Tab-Leiste zeigen
+Tab bar	Tab-Leiste
+Saved	Gespeichert
+Saved tab on your profile	Gespeichert-Tab im Profil
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	Fügt den Tabs deines eigenen Profils ein Lesezeichen hinzu, das Gespeichert öffnet. Starte Instagram nach der Änderung neu.
+Battery	Akku
+Stop the background heartbeat	Hintergrund-Herzschlag stoppen
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram weckt dein Handy jede oder jede zweite Minute, auch bei ausgeschaltetem Bildschirm, nur um zu vermerken, dass es noch läuft. Das hört damit auf. Nachrichten, Benachrichtigungen und alles, was du siehst, bleiben unverändert.
+Stop the analytics upload alarm	Analyse-Upload-Wecker stoppen
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram stellt einen Wecker, der dein Handy fünf Minuten später weckt, um Nutzungsdaten zu senden. Das stoppt diesen Wecker. Die Daten gehen beim nächsten Öffnen der App raus, mit „Analysen deaktivieren“ nirgendwohin.
+Haptic style	Haptik-Stil
+Short tick	Kurzer Tick
+System tick	System-Tick
+Soft tick	Sanfter Tick
+Full tick	Voller Tick

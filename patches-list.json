@@ -786,6 +786,43 @@
       "options": []
     },
     {
+      "name": "Glass tab bar",
+      "description": "Draws the tab bar as a floating, rounded pill of frosted glass that blurs what's behind it (Android 12 and newer), with a highlight on the tab you're on. Content can optionally run down behind it. Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Group Instagram's notifications",
       "description": "Puts Instagram's notifications in one group, or in a group for each type, so they don't fill your notification shade. Tapping one still opens it. Starts off. Turn it on in HushGram settings > Notifications.",
       "category": "Interface",
@@ -2267,6 +2304,43 @@
       "options": []
     },
     {
+      "name": "Saved on your profile",
+      "description": "Adds a bookmark to the tabs on your own profile, beside posts, reels and tagged, that opens Saved. Starts off. Turn it on in HushGram settings > Profiles, then restart Instagram.",
+      "category": "Profiles",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "See who a story mentions",
       "description": "Adds a small label in a story's header showing how many accounts it mentions. Tap it for a list and tap an account to open their profile. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
@@ -2566,6 +2640,43 @@
       "name": "Stop Story auto-advance",
       "description": "Keeps each story on screen until you tap or swipe. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Stop background wake-ups",
+      "description": "Stops two alarms that wake your phone while Instagram is in the background. One goes off every minute or two only to note that Instagram is still running, and the other wakes it five minutes later to upload usage events. Messages and notifications still arrive. Starts off. Turn it on in HushGram settings > Battery.",
+      "category": "Fixes",
       "use": true,
       "dependencies": [
         "BytecodePatch",

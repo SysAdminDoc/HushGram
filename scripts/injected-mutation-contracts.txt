@@ -1142,3 +1142,11 @@ once-call Lapp/hushgram/extension/instagram/download/VoiceMessage;->offer(ILjava
 # DownloadVoiceMessagesHookTest checks where both land on each declared build.
 start-call Lapp/hushgram/extension/instagram/download/VoiceMessage;->save(Landroid/content/Context;Ljava/lang/Object;)Z in static (L*;L*;L*;L*;Z)V calling static LX/0Prd;->A04(*)V class-holding DirectThreadMediaSaver Invalid\smessage\scontentType:\s
 once-call Lapp/hushgram/extension/instagram/download/VoiceMessage;->save(Landroid/content/Context;Ljava/lang/Object;)Z in static (L*;L*;L*;L*;Z)V calling static LX/0Prd;->A04(*)V class-holding DirectThreadMediaSaver Invalid\smessage\scontentType:\s
+# Stop background wake-ups asks the extension first thing in the method that sets Instagram's next
+# heartbeat alarm, the one taking its own class and holding both the WarmHeartbeat tag and the message
+# for a missing AlarmManager. StopHeartbeatFixtureTest checks the shape on each declared build.
+start-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
+once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V holding WarmHeartbeat AlarmManager\snot\savailable,\scannot\sschedule\sheartbeat
+# It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
+# static upload scheduler holding the alarm's tag and its intent action.
+sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload

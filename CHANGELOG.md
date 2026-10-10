@@ -4,6 +4,12 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Glass tab bar, from @sherifrahim. It draws the tab bar as a floating, rounded pill of frosted glass, with a lighter capsule on the tab you're on that slides when you change tabs. On Android 12 and newer it blurs what's behind it, and older phones (or the blur switch off) get the same tint without the blur. Under Tab bar in HushGram settings there's also a light tick as the highlight passes a tab, in four styles, and Show content behind the tab bar, which lets Home and the other tabs run down behind the pill. Reels keeps its seek bar and buttons above it. It's in the default selection with its switch off, and a change shows after a restart. Refs #89, #65.
+
+* **Instagram:** New patch, Saved on your profile, from @sherifrahim. Your own profile's tabs get a bookmark next to posts, reels and tagged, and tapping it takes you to Saved. It opens the menu and taps Saved for you, with the screen hidden for a moment so the menu doesn't flash by. If the Saved row doesn't turn up within two seconds, the menu stays open so you can tap it yourself. Turn it on under Profiles in HushGram settings and restart Instagram. Refs #89.
+
+* **Instagram:** New patch, Stop background wake-ups, from @sherifrahim. Instagram sets two alarms that wake your phone while it's in the background. One fires every minute or two just to note that the app is still running, and the other wakes the phone five minutes later to upload usage events. Each gets a switch under Battery in HushGram settings, and both start off. Notifications still come through Instagram's push service, and the usage events go out the next time you use the app (or nowhere, with Disable analytics on). Refs #89.
+
 * **Tooling:** The release facts check reads the push gate's kept run again when the pre-push hook starts it in a fresh PowerShell. It took git's first line straight off the pipeline, which stopped git before its exit code was set, so a fresh process saw no HEAD and fell back to the checkout's own build outputs. That's what refused the 0.0.8 index push until the gate's test results were copied in.
 
 * **Tooling:** Patch tests now run by area. Gradle can reuse results for areas whose inputs haven't changed, and release checks count the reports in each area folder.
