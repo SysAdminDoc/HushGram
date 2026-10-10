@@ -330,7 +330,7 @@ internal fun BytecodePatchContext.endOlderPostsSpinnerOrWarn() {
 private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
 
 /** The names of the boolean methods without parameters this method calls on [type]. */
-private fun Method.ownQuestions(type: String): Set<String> = implementation?.instructions?.toList().orEmpty().mapNotNull {
+internal fun Method.ownQuestions(type: String): Set<String> = implementation?.instructions?.toList().orEmpty().mapNotNull {
     ((it as? ReferenceInstruction)?.reference as? MethodReference)
         ?.takeIf { called -> called.definingClass == type && called.returnType == "Z" && called.parameterTypes.isEmpty() }?.name
 }.toSet()

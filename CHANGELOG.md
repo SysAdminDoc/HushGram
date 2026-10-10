@@ -72,6 +72,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - Hide suggested posts:** With Hide suggested posts on, Home's For you feed no longer grows one post at a time. On an account where most of each page Instagram sends is suggestions, hiding them left a single post with the loading row right under it, and Instagram only asks for more once you scroll down to that row. Now, when a page comes back with fewer than five posts left after hiding, HushGram asks for the next page as soon as that page is shown, the same way the loading row would, and keeps going for up to three short pages in a row. It never asks while a page is still loading or after the feed has run out. Following and Favorites page the way they did, and the card at the end of the feed still shows. Your diagnostic report counts each time it asks (asked for the next page after a short page). Reported in #52.
+
 * **Instagram - See who a story mentions:** The label now shows on stories Instagram loaded from its older format. Those stories hold their mentions in a different kind of object than the one the patch expected, so the patch failed on every story that mentioned someone and the label never appeared. It reads the account the way both kinds allow now.
 * **Instagram - See who a story mentions:** Tapping the label opens the list again. Instagram's story viewer grabs every touch on a story for its own taps and swipes before the header gets it, so the tap never reached the label. A tap that starts and ends on the label is now caught before Instagram sees it, so it opens the list without pausing or skipping the story. Diagnostics also count when the label shows, when it's tapped and when the list opens. Refs #125.
 

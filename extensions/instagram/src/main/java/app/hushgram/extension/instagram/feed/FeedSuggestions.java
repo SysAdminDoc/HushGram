@@ -207,11 +207,14 @@ public final class FeedSuggestions {
 
     /**
      * Injected right before each read of the home feed adapter's "no next page" flag, with the feed
-     * object the flag is read from, which {@link #feedEnded} asks whether it's empty. Never throws.
+     * object the flag is read from, which {@link #feedEnded} asks whether it's empty. A build of
+     * Home's list waiting on a short page learns its feed here too ({@link HomeNextPage#feedRead}).
+     * Never throws.
      */
     public static void homeFeedRead(Object feed) {
         try {
             READING.set(feed);
+            HomeNextPage.feedRead(feed);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home feed read", failure);
         }
@@ -301,7 +304,7 @@ public final class FeedSuggestions {
     }
 
     /** 1 when [feed] says it's empty, 0 when it holds something, and -1 when it can't be asked. */
-    private static int feedIsEmpty(@Nullable Object feed) {
+    static int feedIsEmpty(@Nullable Object feed) {
         if (feed == null) return -1;
         try {
             int answer = emptiness.applyAsInt(feed);
@@ -336,14 +339,17 @@ public final class FeedSuggestions {
 
     /**
      * Injected right before each return of Home's feed response parser. A page that held items
-     * replaces the verdict of the one before: whether it lost any to {@link #filter}. A page with no
-     * items, the parser giving up on a response for one, leaves it. Never throws.
+     * replaces the verdict of the one before: whether it lost any to {@link #filter}. It also tells
+     * {@link HomeNextPage} how many items the page kept, so a page the switches left short gets the
+     * next one asked for. A page with no items, the parser giving up on a response for one, leaves
+     * both. Never throws.
      */
     public static void homePageParsed() {
         try {
             int[] page = PAGE.get();
             PAGE.remove();
             if (page == null || page[0] == 0) return;
+            HomeNextPage.pageParsed(page[0], page[1]);
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
             pageSeq++;

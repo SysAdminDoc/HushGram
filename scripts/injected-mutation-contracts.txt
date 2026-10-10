@@ -549,6 +549,13 @@ shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->feedEnded(I
 # Right before each of those reads, homeFeedRead gets the feed object the flag is read from, so
 # feedEnded can ask it whether it's empty. Same two methods, same reason the empty check has no rule.
 shared-call Lapp/hushgram/extension/instagram/feed/FeedSuggestions;->homeFeedRead(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
+# The same builder hands its adapter to HomeNextPage.buildStarts() first thing, so after a page of
+# For you the switches left short, the next page is asked for once the build is done (#52). The five
+# HomeNextPage stubs the patch fills are the extension's own methods, called only by HomeNextPage, so
+# they get no rule; HomeNextPageTest checks them on each declared build. Left out, Home waits for the
+# scroll and grows one post at a time on an account whose pages are mostly suggestions.
+start-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
+once-call Lapp/hushgram/extension/instagram/feed/HomeNextPage;->buildStarts(Ljava/lang/Object;)V in instance (ILjava/lang/Integer;)V holding MainfeedAdapter.buildModels shimmer
 # It also answers the load more row's end card rule, in the row's show check (the one instance
 # method answering a boolean that holds Following's paging source): whether the feed pages as
 # Following's through endCardRule(), and whether there's a next page through moreAfterFollowing().

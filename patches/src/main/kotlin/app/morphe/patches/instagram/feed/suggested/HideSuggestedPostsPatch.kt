@@ -77,10 +77,14 @@ val hideSuggestedPostsPatch = bytecodePatch(
         // indicator moved stops the patch with Home's filter not yet written.
         val exploreShops = findExploreShopSections()
         val productTags = findProductTagIndicator()
+        // Asking for For you's next page after a page the switches left short (#52), found before the
+        // show check changes. A build without it waits for the scroll as Instagram has it.
+        val nextPage = homeNextPageOrWarn()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
         // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
         endOlderPostsSpinnerOrWarn()
+        nextPage?.write(this)
         exploreShops.write(this)
         productTags.write(this)
         // The post type switches are found whole before their part changes anything, so a build
