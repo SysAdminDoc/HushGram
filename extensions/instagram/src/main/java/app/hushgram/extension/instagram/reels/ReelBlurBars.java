@@ -104,6 +104,9 @@ public final class ReelBlurBars {
 
     static volatile FrameSource source = TEXTURE;
 
+    /** How many times a pager's loop has run, so tests can see it stop. */
+    static volatile int rounds;
+
     /** The controller for each pager handed over, held weakly so a closed viewer's can go. */
     private static final Map<Object, Controller> CONTROLLERS = new WeakHashMap<>();
 
@@ -148,7 +151,17 @@ public final class ReelBlurBars {
             CONTROLLERS.clear();
         }
         source = TEXTURE;
+        rounds = 0;
         logged = false;
+    }
+
+    /** How many pagers still have a listener on their window's observer, for tests. */
+    static int listenerCount() {
+        int count = 0;
+        synchronized (CONTROLLERS) {
+            for (Controller controller : CONTROLLERS.values()) if (controller.listening) count++;
+        }
+        return count;
     }
 
     /** The backdrops currently held across all pagers, for tests. */
@@ -162,9 +175,13 @@ public final class ReelBlurBars {
 
     /** Watches one Reels pager. Only ever touched on the main thread. */
     private static final class Controller implements Runnable, View.OnAttachStateChangeListener,
-            ViewTreeObserver.OnScrollChangedListener {
+            ViewTreeObserver.OnScrollChangedListener, ViewTreeObserver.OnGlobalLayoutListener {
         private final WeakReference<ViewGroup> pager;
         private final BooleanSupplier on;
+        /** Whether this controller is on the window's observer. Off while the pager is detached. */
+        boolean listening;
+        /** Whether the loop stopped because the pager wasn't in front. A layout or scroll wakes it. */
+        private boolean asleep;
         final Map<View, Backdrop> backdrops = new WeakHashMap<>();
 
         Controller(ViewGroup pager, BooleanSupplier on) {
@@ -184,8 +201,7 @@ public final class ReelBlurBars {
             ViewGroup group = pager.get();
             if (group != null) {
                 group.removeOnAttachStateChangeListener(this);
-                ViewTreeObserver observer = group.getViewTreeObserver();
-                if (observer.isAlive()) observer.removeOnScrollChangedListener(this);
+                unlisten(group);
                 group.removeCallbacks(this);
             }
             releaseAll();
@@ -195,7 +211,24 @@ public final class ReelBlurBars {
             ViewTreeObserver observer = group.getViewTreeObserver();
             if (!observer.isAlive()) return;
             observer.removeOnScrollChangedListener(this);
+            observer.removeOnGlobalLayoutListener(this);
             observer.addOnScrollChangedListener(this);
+            observer.addOnGlobalLayoutListener(this);
+            listening = true;
+        }
+
+        /** Takes this off the window's observer, which outlives the pager. */
+        private void unlisten(ViewGroup group) {
+            ViewTreeObserver observer = group.getViewTreeObserver();
+            if (observer.isAlive()) {
+                observer.removeOnScrollChangedListener(this);
+                observer.removeOnGlobalLayoutListener(this);
+            }
+            listening = false;
+        }
+
+        private static boolean inFront(View view) {
+            return view.isAttachedToWindow() && view.isShown();
         }
 
         private void schedule(ViewGroup group, long delay) {
@@ -212,7 +245,16 @@ public final class ReelBlurBars {
         @Override
         public void onViewDetachedFromWindow(@NonNull View view) {
             view.removeCallbacks(this);
+            unlisten((ViewGroup) view);
             releaseAll();
+        }
+
+        /** The pager came back in front after the loop stopped for it. */
+        @Override
+        public void onGlobalLayout() {
+            if (!asleep) return;
+            ViewGroup group = pager.get();
+            if (group != null && inFront(group)) schedule(group, SETTLE_MILLIS);
         }
 
         /** A scroll moved something. Looks once it has been quiet for a moment. */
@@ -226,12 +268,18 @@ public final class ReelBlurBars {
         public void run() {
             ViewGroup group = pager.get();
             if (group == null) return;
+            rounds++;
             try {
                 if (!on.getAsBoolean()) {
                     releaseAll();
                     return;
                 }
-                if (group.isAttachedToWindow() && group.isShown()) scan(group);
+                if (!inFront(group)) {
+                    asleep = true;
+                    return;
+                }
+                asleep = false;
+                scan(group);
                 schedule(group, REFRESH_MILLIS);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REEL_BLUR_BARS, SCAN, failure);

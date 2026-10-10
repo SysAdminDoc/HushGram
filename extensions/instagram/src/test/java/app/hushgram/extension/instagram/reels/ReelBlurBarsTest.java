@@ -382,4 +382,38 @@ public class ReelBlurBarsTest {
         assertEquals(0xFF, Color.alpha(blurred[0]));
         assertEquals("a flat area stays flat", 255, Color.red(blurred[0]));
     }
+
+    @Test
+    public void aDetachedPagerLeavesNothingOnTheWindow() {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        assertEquals(1, ReelBlurBars.listenerCount());
+
+        ((ViewGroup) pager.getParent()).removeView(pager);
+
+        assertEquals(0, ReelBlurBars.listenerCount());
+        assertEquals(0, ReelBlurBars.backdropCount());
+    }
+
+    @Test
+    public void aPagerThatIsNotInFrontStopsTheLoopAndAScrollWakesIt() {
+        ReelBlurBars.pager(pager);
+        advance(400);
+        asked = 0;
+        advance(0);
+
+        pager.setVisibility(View.GONE);
+        advance(1100);
+        int whileHidden = ReelBlurBars.rounds;
+        advance(5000);
+        assertEquals("the loop does not run while hidden", whileHidden, ReelBlurBars.rounds);
+        assertEquals(0, asked);
+
+        pager.setVisibility(View.VISIBLE);
+        layout();
+        advance(400);
+        advance(1100);
+        assertTrue("it runs again once it is back in front", ReelBlurBars.rounds > whileHidden);
+        assertTrue(asked > 0);
+    }
 }
