@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Opening HushGram's settings from the launcher shortcut while Instagram was restarting its screen could crash Instagram, because the screen still had Instagram's startup look and couldn't draw text yet. The settings now wait until the screen is ready and then open.
+
 * **Instagram:** View stories anonymously has a new switch, Gray out stories you've watched. It starts off, so a story you watch keeps its colored ring as it does now. Turn it on and a watched story turns gray and moves to the end of the row on your phone, while Instagram still isn't told you watched it. Asked for in #113 and on #92.
 
 * **Instagram:** Sanitize sharing links now also cleans a link that's copied to the clipboard as a link item rather than as text, which kept its share id before. Thanks to @Aholicknight, who spotted it and sent the approach in #107.

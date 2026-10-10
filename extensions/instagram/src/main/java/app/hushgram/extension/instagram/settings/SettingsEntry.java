@@ -27,12 +27,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
+import android.widget.TextView;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
@@ -67,6 +69,16 @@ public final class SettingsEntry {
 
     /** A request older than this is dropped rather than opened over some later screen. */
     private static final long REQUEST_LIFETIME_MS = 30_000;
+    /** How long a request waits before it looks again at a screen whose theme can't draw text. */
+    private static final long THEME_RETRY_MS = 250;
+
+    /**
+     * Whether a screen's theme can build the screen's text. During a relaunch Instagram's main
+     * activity can still carry its launcher theme, whose text styles point at igds colors it
+     * doesn't define, and the first TextView built over it threw (2026-10-09). Tests swap this,
+     * since they can't build such a theme.
+     */
+    static volatile Predicate<Context> drawsText = SettingsEntry::buildsText;
 
     private static volatile boolean openPending;
     private static volatile long requestedAt;
@@ -387,9 +399,39 @@ public final class SettingsEntry {
                     Logger.printInfo(() -> "Settings request expired before an Instagram screen could show it");
                     return;
                 }
-                if (open(activity)) openPending = false;
+                if (open(activity)) {
+                    openPending = false;
+                } else if (!activity.isFinishing() && !activity.isDestroyed() && !drawsText.test(activity)) {
+                    // The theme can arrive without another resume, so look again shortly.
+                    WeakReference<Activity> later = new WeakReference<>(activity);
+                    Utils.runOnMainThreadDelayed(() -> {
+                        Activity waiting = later.get();
+                        if (waiting != null) openWhenSettled(waiting);
+                    }, THEME_RETRY_MS);
+                }
             });
         }
+    }
+
+    static boolean buildsText(Context context) {
+        try {
+            new TextView(context);
+            return true;
+        } catch (UnsupportedOperationException unresolved) {
+            return false;
+        }
+    }
+
+    /**
+     * The screen closed itself over a host whose theme couldn't draw it. The request starts again,
+     * for this host once its theme can or for the next screen to resume.
+     */
+    static void reopenOnceThemed(Activity activity) {
+        host = null;
+        closedByUser = false;
+        requestedAt = SystemClock.elapsedRealtime();
+        openPending = true;
+        if (activity != null) OpenWhenResumed.openWhenSettled(activity);
     }
 
     /**
@@ -413,6 +455,10 @@ public final class SettingsEntry {
             }
             if (fragments.isStateSaved()) {
                 Logger.printInfo(() -> "Settings wait: " + name + " has saved its state");
+                return false;
+            }
+            if (!drawsText.test(activity)) {
+                Logger.printInfo(() -> "Settings wait: " + name + "'s theme can't draw text yet");
                 return false;
             }
             // While Instagram is locked, the screen that could turn the lock off waits for the phone's lock.

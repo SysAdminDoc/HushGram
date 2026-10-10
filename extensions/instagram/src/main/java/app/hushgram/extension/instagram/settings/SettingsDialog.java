@@ -93,6 +93,14 @@ public final class SettingsDialog extends DialogFragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+        // Put back over a screen that still has Instagram's launcher theme (a relaunch), the
+        // first TextView would throw. Close, and open again once a screen can draw it.
+        if (!SettingsEntry.drawsText.test(getContext())) {
+            Logger.printInfo(() -> "Settings closed over a screen whose theme can't draw text yet");
+            dismissAllowingStateLoss();
+            SettingsEntry.reopenOnceThemed(getActivity());
+            return new FrameLayout(getContext());
+        }
         ScreenColors palette = ScreenColors.DEFAULT;
         LinearLayout root = new LinearLayout(getContext());
         root.setOrientation(LinearLayout.VERTICAL);
