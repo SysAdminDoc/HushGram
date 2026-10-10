@@ -630,6 +630,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.HIDE_REELS_TAB, L10n.t("Hide the Reels tab"),
                     L10n.t("Takes Reels off the tab bar. Reels in your feed and reels people send you still open. "
                             + "Restart Instagram to see the change.")));
+            reels.add(toggle(context, Settings.SHOW_REELS_TAB, L10n.t("Show the Reels tab"),
+                    L10n.t("Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if "
+                            + "both are on. Restart Instagram to see the change.")));
         }
         if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
             reels.add(toggle(context, Settings.KEEP_REEL_SPEED, L10n.t("Keep the reel speed"),

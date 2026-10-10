@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** Hide the Reels tab has a second switch, Show the Reels tab, that starts off. With it on, if Instagram built your tab bar without Reels, the tab is put back right after Home and opens Reels. If Hide the Reels tab is on too, Hide wins. Restart Instagram to see the change. Asked for in #120.
+
 * **Instagram:** Clean up Reels has a fifth switch, Hide the comment bar on all reels, that starts off. With it on, the Add a comment bar is gone from every reel, including the ones in the Reels tab, and the comment button still opens the comments. Asked for in #119.
 
 * **Instagram:** New patch, Glass tab bar, from @sherifrahim. It draws the tab bar as a floating, rounded pill of frosted glass, with a lighter capsule on the tab you're on that slides when you change tabs. On Android 12 and newer it blurs what's behind it, and older phones (or the blur switch off) get the same tint without the blur. Under Tab bar in HushGram settings there's also a light tick as the highlight passes a tab, in four styles, and Show content behind the tab bar, which lets Home and the other tabs run down behind the pill. Reels keeps its seek bar and buttons above it. It's in the default selection with its switch off, and a change shows after a restart. Refs #89, #65.

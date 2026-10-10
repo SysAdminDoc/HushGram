@@ -825,6 +825,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_reels_tab", FALSE, true);
 
     /**
+     * Reels is put on the tab bar when Instagram's tab list leaves it out (#120). Hide the Reels tab
+     * wins when both are on. The list is built as Instagram starts, so a change takes a restart.
+     * Off to start.
+     */
+    public static final BooleanSetting SHOW_REELS_TAB =
+            new BooleanSetting("hushgram_show_reels_tab", FALSE, true);
+
+    /**
      * The speed locked with Instagram's own 2x lock on a reel stays for the next reels, until the
      * lock is slid off, a hold at the edge is let go of, or Instagram restarts.
      */

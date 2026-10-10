@@ -27,6 +27,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * through {@link #tab} too, so a start, a notification or a link meant for the Reels tab lands on
  * Home instead.
  *
+ * <p>With Show the Reels tab on, a list Instagram built without Reels gets it back right after
+ * Home, from the same enum, and Hide the Reels tab wins when both are on.
+ *
  * <p>Reels themselves aren't touched. A reel in the feed, a shared reel and the Reels viewer open as
  * before. The list is built as Instagram starts, so a change to the switch shows after a restart.
  * Every tab goes through as it came while the switch is off, HushGram is paused or the settings
@@ -58,7 +61,7 @@ public final class ReelsTab {
             HookStatus.invoked(FamilyNames.REELS_TAB);
             if (tabs == null) return null;
             FeedFilterCounters.sawList(ROUTE, tabs.size());
-            if (!hiding()) return tabs;
+            if (!hiding()) return showing() ? withReels(tabs) : tabs;
             List<Object> shown = new ArrayList<>(tabs.size());
             for (Object tab : tabs) {
                 if (!isReels(tab)) shown.add(tab);
@@ -72,6 +75,34 @@ public final class ReelsTab {
             HookStatus.threw(FamilyNames.REELS_TAB, "tab list", failure);
             return tabs;
         }
+    }
+
+    /**
+     * A copy of [tabs] with Reels after Home when the list has no Reels, or [tabs] as it came: when
+     * it has Reels already, is empty, holds something that isn't a tab, or its enum has no Reels.
+     */
+    @Nullable
+    static List<?> withReels(List<?> tabs) {
+        if (tabs.isEmpty()) return tabs;
+        Object first = tabs.get(0);
+        if (!(first instanceof Enum)) return tabs;
+        int home = -1;
+        for (int index = 0; index < tabs.size(); index++) {
+            Object tab = tabs.get(index);
+            if (!(tab instanceof Enum)) return tabs;
+            if (isReels(tab)) return tabs;
+            if (HOME.equals(((Enum<?>) tab).name())) home = index;
+        }
+        Object reels;
+        try {
+            reels = reelsOf((Enum<?>) first);
+        } catch (IllegalArgumentException noReels) {
+            return tabs;
+        }
+        List<Object> shown = new ArrayList<>(tabs);
+        shown.add(home + 1, reels);
+        Logger.printDebug(() -> "Reels tab: put Reels on a list of " + tabs.size() + " tabs");
+        return shown;
     }
 
     /**
@@ -99,6 +130,15 @@ public final class ReelsTab {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Object home(Enum<?> reels) {
         return Enum.valueOf((Class) reels.getDeclaringClass(), HOME);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Object reelsOf(Enum<?> any) {
+        return Enum.valueOf((Class) any.getDeclaringClass(), REELS);
+    }
+
+    private static boolean showing() {
+        return Utils.settingsReady() && Settings.SHOW_REELS_TAB.get();
     }
 
     private static boolean hiding() {
