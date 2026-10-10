@@ -61,7 +61,19 @@ public final class ReelsTab {
     /** What a tab taken off the bar is counted under. */
     static final String HIDDEN = "tabs";
 
+    /**
+     * The name of the one tab the next switch opens as asked, even while a switch hides it, or null.
+     * Set only around the Search button's own switch ({@link SearchHeaderButton}), and cleared by it.
+     */
+    @Nullable
+    private static volatile String letThrough;
+
     private ReelsTab() {
+    }
+
+    /** Lets the next switch to the tab called [name] through as asked, or with null, stops letting one through. */
+    static void letThrough(@Nullable String name) {
+        letThrough = name;
     }
 
     /**
@@ -173,16 +185,21 @@ public final class ReelsTab {
     /**
      * Handed a tab Instagram is about to open, or the one it treats as home. Home in place of Reels,
      * Search or Profile while its switch hides it, otherwise the tab as it came. Create is left
-     * alone: Instagram opens its camera from other places too. Never throws.
+     * alone: Instagram opens its camera from other places too. The one switch the Search button on
+     * Home's header makes goes through as asked. Never throws.
      */
     @Nullable
     public static Object tab(@Nullable Object tab) {
         try {
             HookStatus.invoked(FamilyNames.REELS_TAB);
             if (!(tab instanceof Enum)) return tab;
+            String name = ((Enum<?>) tab).name();
+            if (name.equals(letThrough)) {
+                letThrough = null;
+                return tab;
+            }
             Object landed = TabStart.landing((Enum<?>) tab);
             if (landed != null) return landed;
-            String name = ((Enum<?>) tab).name();
             if (!REELS.equals(name) && !SEARCH.equals(name) && !PROFILE.equals(name)) return tab;
             if (!hiddenByName(name)) return tab;
             Object home = home((Enum<?>) tab);

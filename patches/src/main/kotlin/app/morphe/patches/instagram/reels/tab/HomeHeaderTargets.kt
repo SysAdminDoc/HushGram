@@ -34,7 +34,7 @@ internal const val HEADER_ICON_STUB = "icon"
 internal const val HEADER_HEART_STUB = "heart"
 internal const val HEADER_ROW_STUB = "endRow"
 
-/** Called as the header starts drawing from its state, with the header, to put the Ghost mode button in beside Messages. */
+/** Called as the header starts drawing from its state, with the header, to put the Search and Ghost mode buttons on it. */
 internal const val GHOST_BUTTON = "$EXTENSION_PACKAGE/settings/GhostHeaderButton;->drew(Landroid/view/View;)V"
 
 /** The notifications heart's view, a class Instagram's layouts name, so every build keeps the name. */

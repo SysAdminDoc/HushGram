@@ -58,6 +58,10 @@ public final class TabStart {
     @Nullable
     private static volatile Set<String> onTheBar;
 
+    /** Instagram's tab enum, from the last list the tab list hook answered with. Null until a list is built. */
+    @Nullable
+    private static volatile Class<?> tabEnum;
+
     /** Whether the one landing swap has been decided. */
     private static volatile boolean decided;
 
@@ -131,10 +135,37 @@ public final class TabStart {
     /** Remembers the tabs on the bar, as the tab list hook answers. */
     static void remember(List<?> shown) {
         Set<String> names = new HashSet<>();
+        Class<?> kind = null;
         for (Object tab : shown) {
-            if (tab instanceof Enum) names.add(((Enum<?>) tab).name());
+            if (tab instanceof Enum) {
+                names.add(((Enum<?>) tab).name());
+                kind = ((Enum<?>) tab).getDeclaringClass();
+            }
         }
+        if (kind != null) tabEnum = kind;
         onTheBar = names;
+    }
+
+    /** Whether the tab called [name] is on the bar as the tab list hook last answered. False before a list is built. */
+    static boolean isOnTheBar(String name) {
+        Set<String> bar = onTheBar;
+        return bar != null && bar.contains(name);
+    }
+
+    /**
+     * The tab called [name] in Instagram's tab enum, as the tab list hook last saw it, on the bar or
+     * not. Null before a list is built or when the enum has no such tab.
+     */
+    @Nullable
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    static Object tabNamed(String name) {
+        Class<?> kind = tabEnum;
+        if (kind == null) return null;
+        try {
+            return Enum.valueOf((Class) kind, name);
+        } catch (IllegalArgumentException none) {
+            return null;
+        }
     }
 
     /**
@@ -181,6 +212,7 @@ public final class TabStart {
     static void forgetForTests() {
         firstStart = UNKNOWN;
         onTheBar = null;
+        tabEnum = null;
         decided = false;
         resumedAt = -1;
     }

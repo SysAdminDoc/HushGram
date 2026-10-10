@@ -1155,8 +1155,12 @@ once-call Lapp/hushgram/extension/instagram/reels/HomeHeader;->buttons(Ljava/uti
 # Its Ghost mode button switch hands the header to GhostHeaderButton.drew first thing in the method
 # that draws the header from a state (MainFeedActionBar.A08 on 450): the one instance method of the
 # header taking the session and the state, holding the casts to ToastingBadge and ImageView. The
-# hook posts the button's placement behind the draw. Left out, no button; twice or elsewhere, it
-# isn't the hook the patch wrote. HomeHeaderHookTest checks all seven 450 builds.
+# hook posts the placement of the Ghost mode and Search buttons behind the draw. Left out, no
+# buttons; twice or elsewhere, it isn't the hook the patch wrote. HomeHeaderHookTest checks all
+# seven 450 builds. The stubs the Search button and the end row use (SearchHeaderButton.select and
+# paging, HomeHeader.endRow) are the extension's own methods, called only from the extension, so
+# they're no hook into Instagram and get no rule; HomeHeaderHookTest and SearchHeaderHookTest check
+# them on all seven.
 start-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
 once-call Lapp/hushgram/extension/instagram/settings/GhostHeaderButton;->drew(Landroid/view/View;)V in instance (LX/*;Lcom/instagram/common/session/UserSession;LX/*;)V holding null\scannot\sbe\scast\sto\snon-null\stype\scom.instagram.notifications.badging.ui.component.ToastingBadge null\scannot\sbe\scast\sto\snon-null\stype\sandroid.widget.ImageView
 # Profile posts as a list hands a profile's posts tab to PostsList.resumed first thing in the tab's

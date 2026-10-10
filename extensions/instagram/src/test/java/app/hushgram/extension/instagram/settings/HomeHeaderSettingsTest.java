@@ -95,6 +95,25 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GHOST_BUTTON_ON_HOME.key));
     }
 
+    @Test public void theSearchButtonSwitchShowsUnderTabBarWithTheReelsTabPatchAndStartsOff() throws Exception {
+        open();
+        assertNull(row(Settings.SEARCH_BUTTON_ON_HOME.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SEARCH_BUTTON_ON_HOME.key));
+        controller.close();
+        controller = null;
+
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.SEARCH_BUTTON_ON_HOME.key);
+        assertNotNull(toggle);
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+        assertEquals("Search button on Home's header", String.valueOf(toggle.getTitle()));
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.SEARCH_BUTTON_ON_HOME.defaultValue);
+        assertTrue(Settings.SEARCH_BUTTON_ON_HOME.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.SEARCH_BUTTON_ON_HOME));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEARCH_BUTTON_ON_HOME.key));
+    }
+
     @Test public void eachHeaderButtonHasASwitchUnderTabBarThatStartsOffAndAsksForARestart() throws Exception {
         open(PatchFamily.REELS_TAB);
         for (BooleanSetting setting : switches()) {

@@ -992,6 +992,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_ghost_button_on_home", FALSE, true);
 
     /**
+     * A Search button on Home's header that opens Instagram's own Search tab, with Hide the Search tab
+     * on too where the tabs don't swipe ({@link app.hushgram.extension.instagram.reels.SearchHeaderButton}).
+     * The header builds it as it draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting SEARCH_BUTTON_ON_HOME =
+            new BooleanSetting("hushgram_search_button_on_home", FALSE, true);
+
+    /**
      * The tab Instagram opens on when it's started from its icon ({@link app.hushgram.extension.instagram.reels.TabStart}).
      * Home leaves Instagram's own start alone. A tab that's hidden or isn't on the bar opens Home.
      * Read once, as Instagram starts, so a change takes a restart.

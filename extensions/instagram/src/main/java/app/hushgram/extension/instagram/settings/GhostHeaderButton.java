@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.reels.HomeHeader;
+import app.hushgram.extension.instagram.reels.SearchHeaderButton;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -57,14 +58,18 @@ public final class GhostHeaderButton {
     static final String NO_ANCHOR = "Home header Ghost button not placed, no row to put it in";
 
     /**
-     * Injected first thing as Home's header draws from its state. Queues the button's placement
-     * behind the draw. Never throws, and does nothing to the header itself.
+     * Injected first thing as Home's header draws from its state. Queues the placement of this
+     * button and of the Search button ({@link SearchHeaderButton}) behind the draw. Never throws,
+     * and does nothing to the header itself.
      */
     public static void drew(View header) {
         try {
             HookStatus.invoked(ROUTE);
             if (header == null) return;
-            header.post(() -> place(header));
+            header.post(() -> {
+                SearchHeaderButton.place(header);
+                place(header);
+            });
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "ghost button", failure);
         }
