@@ -80,7 +80,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
-* **Instagram - Download any reel:** Download cover now looks for a bigger picture than the one size Instagram lists first. Besides its usual sizes, a post can carry a first frame, an IGTV first frame and a smart frame, and Download cover saves the largest of them all as long as it has the cover's proportions. A cover with a single size saves as it did. Diagnostics says how many sizes the cover had and which one was the largest. The same goes for Download cover on a video in Home and on a profile.
+* **Instagram - Download any reel:** Download cover now looks for a bigger picture than the one size Instagram lists first. Besides its usual sizes, a post can carry a first frame, an IGTV first frame and a smart frame, and Download cover saves the largest of them all as long as it has the cover's proportions and is a picture of the same file, so a reel with a custom cover never saves its first frame instead. A cover with a single size saves as it did. Diagnostics says how many sizes the cover had and which one was the largest. The same goes for Download cover on a video in Home and on a profile.
 
 * **Instagram:** The diagnostic report has a Stories tray reel types line that counts each kind of card the stories row loads, by Instagram's own name for it. A report from an account that gets a card none of the switches cover yet, like the Music for you card in #111, shows which kind it is, so a switch can take out that card and nothing else.
 

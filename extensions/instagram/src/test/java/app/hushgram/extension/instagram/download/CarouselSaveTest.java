@@ -363,19 +363,48 @@ public class CarouselSaveTest {
      * saves that still, and the log names where the largest came from.
      */
     @Test public void aReelsCoverSavesTheLargestStillItsModelKeeps() throws Exception {
-        server.serve("/small.jpg", "image/jpeg", body(false));
-        server.serve("/first.jpg", "image/jpeg", body(false));
-        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/first.jpg", 1080, 1920, 0), null, null};
+        server.serve("/v/up_1_n.jpg", "image/jpeg", body(false));
+        server.serve("/w/up_1_n.jpg", "image/jpeg", body(false));
+        MediaBridge.frames = new MediaSave.Rendition[] {new MediaSave.Rendition(server.origin() + "/w/up_1_n.jpg?stp=dst-jpg_e15", 1080, 1920, 0), null, null};
         MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
-                new MediaSave.Rendition(server.origin() + "/small.jpg", 360, 640, 0)), null, PostDetails.of("7"));
+                new MediaSave.Rendition(server.origin() + "/v/up_1_n.jpg?stp=dst-jpg_e15_s360x640", 360, 640, 0)), null, PostDetails.of("7"));
         StoryDownload.Cover cover = StoryDownload.cover(reel);
         assertEquals(2, cover.sizes.size());
         assertEquals("first_frame 1080x1920", cover.chosenSource());
         assertEquals("2 picture size(s) (candidates 1, first_frame 1), largest from first_frame 1080x1920", cover.summary());
         assertTrue(ReelDownload.saveCover(context, reel));
         waitForSaves();
-        assertEquals(1, server.hits("/first.jpg")); assertEquals(0, server.hits("/small.jpg"));
+        assertEquals(1, server.hits("/w/up_1_n.jpg")); assertEquals(0, server.hits("/v/up_1_n.jpg"));
         assertClean();
+    }
+
+    /**
+     * A reel with a custom cover keeps a first frame that is another picture, and nothing 450 states
+     * says which a reel has, so a still from another file isn't taken for its cover. The candidates
+     * save, and an address naming no file leaves the stills out too.
+     */
+    @Test public void aStillFromAnotherPictureIsNotTheCover() throws Exception {
+        server.serve("/v/custom_n.jpg", "image/jpeg", body(false));
+        server.serve("/w/frame0_n.jpg", "image/jpeg", body(false));
+        MediaBridge.frames = new MediaSave.Rendition[] {
+                new MediaSave.Rendition(server.origin() + "/w/frame0_n.jpg", 1080, 1920, 0),
+                new MediaSave.Rendition(server.origin() + "/", 1080, 1920, 0), null};
+        MediaSave.Item reel = new MediaSave.Item(false, Arrays.asList(
+                new MediaSave.Rendition(server.origin() + "/v/custom_n.jpg", 360, 640, 0)), null, PostDetails.of("7"));
+        StoryDownload.Cover cover = StoryDownload.cover(reel);
+        assertEquals(1, cover.sizes.size());
+        assertEquals("1 picture size(s) (candidates 1), largest from candidates 360x640", cover.summary());
+        assertTrue(ReelDownload.saveCover(context, reel));
+        waitForSaves();
+        assertEquals(1, server.hits("/v/custom_n.jpg")); assertEquals(0, server.hits("/w/frame0_n.jpg"));
+        assertClean();
+    }
+
+    @Test public void theFileAnAddressNamesIsWhatTwoSizesShare() {
+        assertEquals("up_1_n", StoryDownload.assetOf("https://cdn.example/v/t51.1-15/up_1_n.jpg?stp=a/b&x=1"));
+        assertEquals("up_1_n", StoryDownload.assetOf("https://cdn.example/other/up_1_n.webp#top"));
+        assertNull(StoryDownload.assetOf("https://cdn.example/"));
+        assertNull(StoryDownload.assetOf(null));
     }
 
     /** A reel with a single size, and no still beside it, saves as it did, and a still of other proportions is left out. */
@@ -385,7 +414,7 @@ public class CarouselSaveTest {
                 new MediaSave.Rendition(server.origin() + "/small.jpg", 360, 640, 0)), null, PostDetails.of("7"));
         StoryDownload.Cover alone = StoryDownload.cover(reel);
         assertEquals("1 picture size(s) (candidates 1), largest from candidates 360x640", alone.summary());
-        MediaBridge.frames = new MediaSave.Rendition[] {null, null, new MediaSave.Rendition(server.origin() + "/square.jpg", 1080, 1080, 0)};
+        MediaBridge.frames = new MediaSave.Rendition[] {null, null, new MediaSave.Rendition(server.origin() + "/sq/small.jpg", 1080, 1080, 0)};
         assertEquals("a square smart frame isn't the cover", 1, StoryDownload.cover(reel).sizes.size());
         assertTrue(ReelDownload.saveCover(context, reel));
         waitForSaves();

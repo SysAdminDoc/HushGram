@@ -6,11 +6,15 @@ package app.hushgram.extension.instagram.download;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -254,10 +258,13 @@ public final class StoryDownload {
     /**
      * Every size [media] states for its cover: its {@code image_versions2} candidates, and the stills
      * in {@code additional_candidates} (the first frame, the IGTV first frame and the smart frame)
-     * that keep the candidates' proportions. A smart frame is cropped, and a still of other
-     * proportions isn't the cover, so one is left out, and so is every still when the candidates
-     * state no size to compare with. A build where the stills can't be read gives the candidates
-     * alone. Never null, never throws.
+     * that keep the candidates' proportions and are the same picture. A smart frame is cropped, and
+     * a still of other proportions isn't the cover, so one is left out, and so is every still when
+     * the candidates state no size to compare with. A reel with a custom cover keeps a first frame
+     * that is a different picture from it, and 450 states nothing that says which a reel has, so a
+     * still counts only when the file in its address is one of the candidates' files. Any doubt,
+     * such as an address that names no file, leaves it out. A build where the stills can't be read
+     * gives the candidates alone. Never null, never throws.
      */
     static Cover cover(Object media) {
         Cover cover = new Cover();
@@ -275,6 +282,11 @@ public final class StoryDownload {
             if (more == null) return cover;
             Object[] frames = {InstagramMedia.firstFrame(more), InstagramMedia.igtvFirstFrame(more), InstagramMedia.smartFrame(more)};
             String[] names = {"first_frame", "igtv_first_frame", "smart_frame"};
+            Set<String> assets = new HashSet<>();
+            for (MediaSave.Rendition r : cover.sizes) {
+                String asset = assetOf(r.url);
+                if (asset != null) assets.add(asset);
+            }
             for (int i = 0; i < frames.length; i++) {
                 if (frames[i] == null) continue;
                 String url = InstagramMedia.candidateUrl(frames[i]);
@@ -283,6 +295,11 @@ public final class StoryDownload {
                 if (url == null || url.isEmpty() || width <= 0 || height <= 0) continue;
                 // Same proportions as the candidates', within 2 percent.
                 if (Math.abs((long) width * base.height - (long) height * base.width) * 50L > (long) height * base.width) continue;
+                String asset = assetOf(url);
+                if (asset == null || !assets.contains(asset)) {
+                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, "cover still left out, not the cover's picture");
+                    continue;
+                }
                 cover.sizes.add(new MediaSave.Rendition(url, width, height, 0));
                 cover.sources.add(names[i]);
             }
@@ -290,6 +307,26 @@ public final class StoryDownload {
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "cover stills", t);
         }
         return cover;
+    }
+
+    /**
+     * The file a picture's address names: the last part of its path without the extension, which is
+     * what two sizes of one upload share. Null when the address names none.
+     */
+    @Nullable
+    static String assetOf(@Nullable String url) {
+        if (url == null) return null;
+        int end = url.length();
+        int query = url.indexOf('?');
+        if (query >= 0) end = query;
+        int fragment = url.indexOf('#');
+        if (fragment >= 0 && fragment < end) end = fragment;
+        String path = url.substring(0, end);
+        int slash = path.lastIndexOf('/');
+        String file = path.substring(slash + 1);
+        int dot = file.lastIndexOf('.');
+        if (dot > 0) file = file.substring(0, dot);
+        return file.isEmpty() ? null : file;
     }
 
     /** The row for [choice], in the app's language. */
