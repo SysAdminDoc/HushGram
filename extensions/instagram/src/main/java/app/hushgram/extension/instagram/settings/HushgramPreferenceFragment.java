@@ -972,8 +972,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                                 + "to see the change.")));
                 if (!GhostMode.switches(build).isEmpty()) {
                     glass.addPreference(toggle(context, Settings.GHOST_BUTTON_ON_HOME, L10n.t("Ghost mode button on Home's header"),
-                            L10n.t("Adds a ghost button beside Messages at the top of Home. Tap it to turn Ghost mode "
-                                    + "on or off. Restart Instagram to see the change.")));
+                            L10n.t("Adds a ghost button at the top of Home, next to Messages when it's there and at the end "
+                                    + "of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram "
+                                    + "to see the change.")));
                 }
                 glass.addPreference(tabOrderRow(context));
                 glass.addPreference(startTabRow(context));
