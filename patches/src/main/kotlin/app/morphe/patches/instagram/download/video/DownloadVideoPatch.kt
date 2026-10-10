@@ -44,6 +44,7 @@ import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
@@ -187,7 +188,23 @@ internal class OthersRow(
     val media: FieldReference,
 )
 
-internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
+/**
+ * The feed menu's pieces every row added to it needs: its helper, Instagram's download check, the
+ * builder that adds rows, where anyone else's rows start in it, the page reads and the lists of
+ * kept options for the short menu. Hide posts from this account finds them the same way.
+ */
+internal class FeedMenu(
+    val helper: ClassDef,
+    val eligible: Method,
+    val builder: Method,
+    val others: OthersRow,
+    val outlined: (MethodReference) -> Method?,
+    val pageReads: List<PageRead>,
+    val shortLists: List<Method>,
+)
+
+/** Finds [FeedMenu] without changing anything. */
+internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
     val helpers = mutableListOf<ClassDef>()
     val eligibles = mutableListOf<Method>()
     val loaders = mutableListOf<Method>()
@@ -215,7 +232,6 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     if (eligible.returnType != "Z" || MEDIA !in eligible.parameterTypes.map(Any::toString)) {
         throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean for a Media")
     }
-    val type = helper.type
     // The builder adds Download with a static method of its state, which the menu keeps a field of.
     // R8 merges the builder into a different method in each build, and whether that method also
     // touches the menu itself varies (450's 385611395 build never does), so the state is what counts.
@@ -227,9 +243,15 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     )
     val outlined = { call: MethodReference -> classDefByOrNull(call.definingClass)?.methods?.firstOrNull { it.isTargetOf(call) } }
     val others = builder.othersRow(eligible, outlined)
-    val batchAt = builder.batchRow(others, outlined)
-    val own = builder.ownPost(eligible, others)
-    val icon = optionIcon(PATCH)
+    return FeedMenu(helper, eligible, builder, others, outlined, pageReads, shortLists)
+}
+
+/** The feed menu's handler of a tapped option, the getter of the post it is for, and the field of its activity. */
+internal class MenuHandler(val handler: Method, val media: Method, val activity: Field)
+
+/** Finds [MenuHandler] in [helper], the class that runs a feed post's menu. */
+internal fun findMenuHandler(helper: ClassDef): MenuHandler {
+    val type = helper.type
     val handlers = helper.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(OPTION)
     }
@@ -246,6 +268,26 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
     val activities = helper.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == FRAGMENT_ACTIVITY }
     val activity = activities.singleOrNull()
         ?: throw PatchException("$PATCH: expected one $FRAGMENT_ACTIVITY field in $type, found ${activities.size}")
+    return MenuHandler(handler, media, activity)
+}
+
+internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
+    val menuFound = findFeedMenu()
+    val helper = menuFound.helper
+    val eligible = menuFound.eligible
+    val builder = menuFound.builder
+    val outlined = menuFound.outlined
+    val others = menuFound.others
+    val pageReads = menuFound.pageReads
+    val shortLists = menuFound.shortLists
+    val batchAt = builder.batchRow(others, outlined)
+    val own = builder.ownPost(eligible, others)
+    val icon = optionIcon(PATCH)
+    val type = helper.type
+    val tap = findMenuHandler(helper)
+    val handler = tap.handler
+    val media = tap.media
+    val activity = tap.activity
     val carousel = pandoGetter(PATCH, MEDIA, CAROUSEL_FIELD, LIST)
     val page = pageIndex(pageReads, carousel, builder, others.stateType, helper)
     val menu = mutable(handler)
@@ -460,7 +502,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
  * last is false, as the builder passes it for your own posts.
  * The batch bridge instead takes its separate option and localized title from the extension.
  */
-private fun downloadRow(stub: Method, found: OthersRow, all: Boolean = false): MutableMethod {
+internal fun downloadRow(stub: Method, found: OthersRow, all: Boolean = false): MutableMethod {
     val parameters = found.adder.parameterTypes.map(Any::toString)
     val spare = parameters.size
     val loads = parameters.mapIndexed { index, type ->
@@ -808,7 +850,7 @@ private fun Instruction.writes(register: Int): Boolean {
     return first == register || (opcode.setsWideRegister() && first + 1 == register)
 }
 
-private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
+internal fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     mutableClassDefBy(method.definingClass).methods.single {
         it.name == method.name && it.returnType == method.returnType &&
             it.parameterTypes.map(Any::toString) == method.parameterTypes.map(Any::toString)
