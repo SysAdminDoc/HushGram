@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+* **Instagram:** New patch, Show hidden like counts. When someone hides the like count on a post or reel, Instagram can still get the number with it and just doesn't draw it. Turn on the switch, Show like counts the poster hid, under Feed, and the like row shows the number whenever Instagram's server sent it. If it didn't, nothing changes, so no count is ever made up. Diagnostics says how many of those posts came with their count and how many came without. It's in the default selection with its switch off.
+
 * **Instagram:** HushGram settings end with a new row, Support HushGram. Tap it and my Ko-fi page opens in your browser. It also turns up if you search for coffee or Ko-fi.
 
 * **Instagram:** New patch, Profile posts as a list. Turn on its switch under Profiles, and opening someone's profile takes you on to their posts as a scrolling list of full posts, the one Instagram opens when you tap a post. Back takes you to the grid, and it stays the grid when you look at the other tabs and come back. If you switch tabs before the posts have loaded, the list opens when you come back to Posts. Your own profile, tagged posts and the other tabs keep their grid. It's in the default selection with its switch off.

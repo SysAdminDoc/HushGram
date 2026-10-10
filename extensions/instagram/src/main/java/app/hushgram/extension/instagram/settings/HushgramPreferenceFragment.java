@@ -407,8 +407,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean askLike = build.contains(PatchFamily.ASK_BEFORE_LIKE);
         boolean askRefresh = build.contains(PatchFamily.ASK_BEFORE_REFRESH);
         boolean postTime = build.contains(PatchFamily.POST_TIME);
+        boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime ? category(screen, L10n.t("Feed")) : null;
+                || askLike || askRefresh || postTime || hiddenLikes ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
                     L10n.t("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to "
@@ -479,6 +480,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             feed.addPreference(toggle(context, Settings.SHOW_POST_TIME, L10n.t("Show a post's exact time"),
                     L10n.t("Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long "
                             + "ago. Posts you load after a change show it.")));
+        }
+        if (hiddenLikes) {
+            feed.addPreference(toggle(context, Settings.SHOW_HIDDEN_LIKE_COUNTS, L10n.t("Show like counts the poster hid"),
+                    L10n.t("Shows how many likes a post or reel has when its owner hid the count, but only when "
+                            + "Instagram still sends the number. If it doesn't, nothing changes. Posts you load "
+                            + "after a change show it.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {

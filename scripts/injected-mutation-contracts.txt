@@ -1183,6 +1183,17 @@ shared-call Lapp/hushgram/extension/instagram/misc/VersionCode;->read(Landroid/c
 start-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->pick(Ljava/lang/Object;)Ljava/lang/Object; in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
 once-call Lapp/hushgram/extension/instagram/feed/LikeAnimation;->allow(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/02IM;)V holding LX/02IM;->A0W:LX/02IM;
+# Show hidden like counts hands HiddenLikeCounts.hidden the post's hidden-count flag first thing in the
+# method every like row asks whether to hide a post's count (04wE.A06 on 450), the one instance
+# (UserSession, String, boolean) method reading your own hide-like-counts setting (03zP.A00). Left out,
+# the switch shows nothing; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(I)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)Z holding LX/03zP;->A00:Z
+# It also hands HiddenLikeCounts.sawCount the post's data and the like_count it read, once, in the like
+# count reader behind Media.A0B (04wK.A00 on 450), the static method reading a post's tree out of
+# 03p2.A01 and its count with CtN. Left out, the report can't say whether the count arrives, and the
+# switch never lets one through. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/04wI;)I calling instance LX/0A0W;->CtN(I)Ljava/lang/Integer; holding LX/03p2;->A01:LX/0A0W;
 # Clear the media cache hands MediaCache.beforeVideoCache the folder first thing in the method that
 # names the video cache's three folders (08nf.A00 on 450), the one static (Integer, String) method
 # holding all three. Instagram's only builder of its video cache asks it for the folder before it

@@ -597,6 +597,8 @@ Save profile picture	Simpan foto profil
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Menambahkan Simpan foto profil ke menu di profil seseorang. Menyimpan fotonya dalam ukuran terbesar yang dimiliki Instagram.
 Show a post's exact time	Tampilkan waktu persis postingan
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Menampilkan kapan postingan dan komentarnya diunggah, seperti 2 Okt, 15.45, bukan berapa lama yang lalu. Postingan yang dimuat setelah perubahan akan menampilkannya.
+Show like counts the poster hid	Tampilkan jumlah suka yang disembunyikan pengunggah
+Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Menampilkan berapa banyak suka pada postingan atau reel saat pemiliknya menyembunyikan jumlahnya, tetapi hanya jika Instagram masih mengirim angkanya. Jika tidak, tidak ada yang berubah. Postingan yang dimuat setelah perubahan akan menampilkannya.
 By @%1$s	Oleh @%1$s
 Close	Tutup
 Copy media link	Salin tautan media

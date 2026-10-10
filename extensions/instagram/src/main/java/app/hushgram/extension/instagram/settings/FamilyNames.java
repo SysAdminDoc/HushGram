@@ -28,6 +28,7 @@ public final class FamilyNames {
     public static final String STORY_TIME = "Show a story's exact time";
     public static final String STORY_MENTIONS = "See who a story mentions";
     public static final String POST_TIME = "Show a post's exact time";
+    public static final String HIDDEN_LIKE_COUNTS = "Show hidden like counts";
     public static final String STORY_LOOP = "Loop a story";
     public static final String STORY_SEEN = "View stories anonymously";
     public static final String DM_MEDIA_SEEN = "View DM photos and videos anonymously";

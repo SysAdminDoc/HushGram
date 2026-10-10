@@ -350,6 +350,21 @@ tasks.register("verifyAndroidBoundaries") {
                 "postsListAloneStillGetsProfiles[28]", "postsListAloneStillGetsProfiles[37]",
                 "postsListSwitchStartsOffLastUnderProfilesAndHonorsPause[28]",
                 "postsListSwitchStartsOffLastUnderProfilesAndHonorsPause[37]"),
+            "app.hushgram.extension.instagram.feed.HiddenLikeCountsTest" to listOf(
+                "theKeyIsTheFieldNamesHash[28]", "theKeyIsTheFieldNamesHash[37]",
+                "onceACountArrivesAHiddenCountIsShown[28]", "onceACountArrivesAHiddenCountIsShown[37]",
+                "noCountLeavesItHidden[28]", "noCountLeavesItHidden[37]",
+                "postsThatDidntHideTheirLikesProveNothing[28]", "postsThatDidntHideTheirLikesProveNothing[37]",
+                "aShownCountStaysShown[28]", "aShownCountStaysShown[37]",
+                "unpatchedTheReaderSeesNoFlag[28]", "unpatchedTheReaderSeesNoFlag[37]",
+                "offToStartOffPausedAndUnreadyKeepItHidden[28]", "offToStartOffPausedAndUnreadyKeepItHidden[37]",
+                "offTheReaderDoesntLook[28]", "offTheReaderDoesntLook[37]",
+                "throwingKeepsItHiddenAndIsReported[28]", "throwingKeepsItHiddenAndIsReported[37]"),
+            "app.hushgram.extension.instagram.settings.HiddenLikeCountsSettingsTest" to listOf(
+                "missingPatchHasNoHiddenLikesSwitch[28]", "missingPatchHasNoHiddenLikesSwitch[37]",
+                "hiddenLikesAloneStillGetsFeed[28]", "hiddenLikesAloneStillGetsFeed[37]",
+                "hiddenLikesSwitchStartsOffLastUnderFeedAndHonorsPause[28]",
+                "hiddenLikesSwitchStartsOffLastUnderFeedAndHonorsPause[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

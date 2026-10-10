@@ -597,6 +597,8 @@ Save profile picture	Profilbild speichern
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Fügt dem Menü auf dem Profil einer Person Profilbild speichern hinzu. Speichert das Bild in der größten Größe, die Instagram hat.
 Show a post's exact time	Genaue Zeit eines Beitrags anzeigen
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Zeigt, wann ein Beitrag und seine Kommentare veröffentlicht wurden, z. B. 2. Okt., 15:45, statt wie lange es her ist. Beiträge, die du nach einer Änderung lädst, zeigen es.
+Show like counts the poster hid	Like-Zahlen anzeigen, die der Verfasser verborgen hat
+Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Zeigt, wie viele Likes ein Beitrag oder Reel hat, wenn der Inhaber die Zahl verborgen hat, aber nur, wenn Instagram die Zahl noch sendet. Wenn nicht, ändert sich nichts. Beiträge, die du nach einer Änderung lädst, zeigen es.
 By @%1$s	Von @%1$s
 Close	Schließen
 Copy media link	Medienlink kopieren

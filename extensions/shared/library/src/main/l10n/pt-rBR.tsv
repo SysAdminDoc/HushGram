@@ -597,6 +597,8 @@ Save profile picture	Salvar foto do perfil
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Adiciona Salvar foto do perfil ao menu no perfil de alguém. Salva a foto no maior tamanho que o Instagram tiver.
 Show a post's exact time	Mostrar o horário exato de um post
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Mostra quando um post e os comentários dele foram publicados, como 2 de out., 15:45, em vez de há quanto tempo. Posts carregados depois de uma mudança mostram isso.
+Show like counts the poster hid	Mostrar curtidas que o autor ocultou
+Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Mostra quantas curtidas um post ou reel tem quando o dono ocultou o número, mas só quando o Instagram ainda envia esse número. Se não enviar, nada muda. Posts carregados depois de uma mudança mostram isso.
 By @%1$s	Por @%1$s
 Close	Fechar
 Copy media link	Copiar link da mídia

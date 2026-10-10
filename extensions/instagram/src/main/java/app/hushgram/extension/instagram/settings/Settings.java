@@ -171,6 +171,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SHOW_POST_TIME = new BooleanSetting("hushgram_show_post_time", FALSE);
 
     /**
+     * A post or reel whose poster hid its like count shows the count, when Instagram's server still
+     * sends it ({@link app.hushgram.extension.instagram.feed.HiddenLikeCounts}). Read each time a like
+     * row is drawn, so a change shows on posts loaded after it. Off to start.
+     */
+    public static final BooleanSetting SHOW_HIDDEN_LIKE_COUNTS =
+            new BooleanSetting("hushgram_show_hidden_like_counts", FALSE);
+
+    /**
      * A story plays again from the start when it ends, instead of the viewer moving on
      * ({@link app.hushgram.extension.instagram.stories.StoryLoop}). While it's on it wins over
      * {@link #BLOCK_STORY_AUTO_ADVANCE}. Off to start.

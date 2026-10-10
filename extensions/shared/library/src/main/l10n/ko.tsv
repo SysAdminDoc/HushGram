@@ -596,6 +596,8 @@ Save profile picture	프로필 사진 저장
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	다른 사람 프로필의 메뉴에 프로필 사진 저장을 추가합니다. Instagram에 있는 가장 큰 크기로 사진을 저장합니다.
 Show a post's exact time	게시물의 정확한 시간 표시
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	게시물과 댓글이 올라온 시점을 얼마 전인지 대신 10월 2일 오후 3:45처럼 보여줍니다. 변경 후에 불러오는 게시물부터 적용됩니다.
+Show like counts the poster hid	게시자가 숨긴 좋아요 수 표시
+Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	게시자가 좋아요 수를 숨긴 게시물이나 릴스의 좋아요 수를 보여줍니다. 단, Instagram이 그 숫자를 계속 보내는 경우에만 해당합니다. 보내지 않으면 아무것도 바뀌지 않습니다. 변경 후에 불러오는 게시물부터 적용됩니다.
 By @%1$s	게시자 @%1$s
 Close	닫기
 Copy media link	미디어 링크 복사
