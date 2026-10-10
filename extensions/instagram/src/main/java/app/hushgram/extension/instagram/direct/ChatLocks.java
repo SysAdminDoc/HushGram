@@ -255,9 +255,11 @@ public final class ChatLocks {
      * Asked first when Instagram hands a push's notifications to Android: the notification, the
      * group summary, the others it posts with them, and the ids the push carries (its deep link, its
      * thread id and its thread IG id). Answers true for the push of a hidden chat ({@link HiddenChats}),
-     * which the display then drops before it builds or posts anything. Otherwise each notification is
-     * marked with them as it goes to Android, so a copy in the shade can be matched to a chat later,
-     * when the lock comes back. Instagram's own notification is changed in nothing else.
+     * which the display then drops before it builds or posts anything. Otherwise, only while some chat
+     * is on the locked list, each notification is marked with them as it goes to Android, so a copy in
+     * the shade can be matched to a chat later, when the lock comes back. With no locked chat (the list
+     * stays in force while HushGram is paused) nothing is written and every notification goes through
+     * untouched, since the mark is only ever read to match a locked chat.
      */
     public static boolean track(Notification notification, Notification summary, Map<?, ?> others,
                                 String action, String threadId, String igThreadId) {
@@ -269,6 +271,7 @@ public final class ChatLocks {
             addId(ids, igThreadId);
             if (ids.isEmpty()) return false;
             if (HiddenChats.hides(ids)) return true;
+            if (!any()) return false;
             String marked = String.join(",", ids);
             mark(notification, marked);
             mark(summary, marked);

@@ -603,6 +603,7 @@ public class MessagesLockTest {
 
     @Test
     public void aPushIsMarkedWithEveryIdItCarries() {
+        ChatLocks.add(ALICE, "Alice");
         Notification main = message("ig_direct", Notification.CATEGORY_MESSAGE);
         Notification summary = message("ig_direct", Notification.CATEGORY_MESSAGE);
         Notification other = message("ig_direct", Notification.CATEGORY_MESSAGE);
@@ -618,6 +619,31 @@ public class MessagesLockTest {
         ChatLocks.track(like, null, null, "media?id=5", null, null);
         assertNull("a link that isn't a chat's", ChatLocks.idsOf(like));
         ChatLocks.track(null, null, null, null, null, null);
+        assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
+    }
+
+    @Test
+    public void aPushIsLeftUntouchedWhileNoChatIsLocked() {
+        for (boolean lockMessages : new boolean[]{false, true}) {
+            Settings.LOCK_MESSAGES.save(lockMessages);
+            Notification main = message("ig_direct", Notification.CATEGORY_MESSAGE);
+            Notification summary = message("ig_direct", Notification.CATEGORY_MESSAGE);
+            Notification other = message("ig_direct", Notification.CATEGORY_MESSAGE);
+            Map<String, Notification> others = new HashMap<>();
+            others.put("one", other);
+
+            assertFalse(ChatLocks.track(main, summary, others, "direct_v2?id=" + ALICE, "111", ALICE));
+
+            assertNull("lock messages " + lockMessages, ChatLocks.idsOf(main));
+            assertNull(ChatLocks.idsOf(summary));
+            assertNull(ChatLocks.idsOf(other));
+            assertFalse(main.extras.containsKey(ChatLocks.CHAT_EXTRA));
+        }
+        HiddenChats.add(BOB, "Bob");
+        Notification alice = message("ig_direct", Notification.CATEGORY_MESSAGE);
+
+        assertFalse("a hidden list alone doesn't mark other chats", ChatLocks.track(alice, null, null, "direct_v2?id=" + ALICE, null, null));
+        assertNull(ChatLocks.idsOf(alice));
         assertTrue(HookStatus.missing(FamilyNames.MESSAGES_LOCK).toString(), HookStatus.missing(FamilyNames.MESSAGES_LOCK).isEmpty());
     }
 
