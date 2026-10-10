@@ -200,4 +200,43 @@ public class QualityTabPickerTest {
     @Test public void thePickerIsNotShownWithoutAnActivity() {
         assertFalse(QualityPicker.show(null));
     }
+
+    /**
+     * The press's haptic answer follows what the press does: the picker's own while it offers
+     * itself, and Instagram's own answer whenever the press goes to Instagram instead.
+     */
+    @Test @Config(sdk = 37) public void theHapticIsInstagramsWheneverThePickerIsNotOffered() {
+        AtomicInteger asked = new AtomicInteger();
+        View.OnLongClickListener own = new View.OnLongClickListener() {
+            @Override public boolean onLongClick(View view) {
+                stockClips.incrementAndGet();
+                return true;
+            }
+
+            @Override public boolean onLongClickUseDefaultHapticFeedback(View view) {
+                asked.incrementAndGet();
+                return false;
+            }
+        };
+        clips.setOnLongClickListener(NavigationSettings.remember(clips, Tab.CLIPS, own));
+        NavigationSettings.bind(clips, Tab.CLIPS);
+        View.OnLongClickListener press = shadowOf(clips).getOnLongClickListener();
+        assertTrue("the picker's own press", press.onLongClickUseDefaultHapticFeedback(clips));
+        assertEquals(0, asked.get());
+
+        Settings.DEFAULT_PLAYBACK_QUALITY.save(false);
+        assertFalse("switch off", press.onLongClickUseDefaultHapticFeedback(clips));
+        Settings.DEFAULT_PLAYBACK_QUALITY.save(true);
+        PatchFamily.inBuildForTests = EnumSet.noneOf(PatchFamily.class);
+        assertFalse("without the patch", press.onLongClickUseDefaultHapticFeedback(clips));
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PLAYBACK_QUALITY);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", press.onLongClickUseDefaultHapticFeedback(clips));
+        PauseForTests.resume();
+        assertEquals("each time Instagram's listener answered", 3, asked.get());
+
+        Settings.NAVIGATION_SETTINGS_TARGET.save(NavigationTarget.CLIPS);
+        Settings.DEFAULT_PLAYBACK_QUALITY.save(false);
+        assertTrue("opening HushGram doesn't need the picker", press.onLongClickUseDefaultHapticFeedback(clips));
+    }
 }

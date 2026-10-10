@@ -220,10 +220,29 @@ public final class NavigationSettings {
                 if (nativeBindings.get(view) != binding) return false;
             }
             if (ownerOf(view) == null) return false;
-            // Before API 34 Android never calls this method. Native handlers keep their choice.
-            return (Utils.settingsReady() && selected(binding.tab))
+            // Before API 34 Android never calls this method. Native handlers keep their choice, and
+            // so does a press onLongClick would hand back to Instagram.
+            return takes(binding.tab)
                     || original == null || Build.VERSION.SDK_INT < 34
                     || original.onLongClickUseDefaultHapticFeedback(view);
+        }
+    }
+
+    /**
+     * Whether a long press on [tab] is HushGram's right now, as onLongClick decides it: it opens
+     * HushGram, or it shows the quality picker while the picker offers itself. Paused, with Default
+     * playback quality off or without its patch, the picker doesn't, and the press is Instagram's.
+     */
+    private static boolean takes(String tab) {
+        try {
+            if (!Utils.settingsReady()) return false;
+            NavigationTarget settingsTab = Settings.NAVIGATION_SETTINGS_TARGET.get();
+            if (settingsTab != NavigationTarget.OFF && settingsTab.name().equals(tab)) return true;
+            NavigationTarget qualityTab = Settings.QUALITY_TAB_TARGET.get();
+            return qualityTab != NavigationTarget.OFF && qualityTab.name().equals(tab) && QualityPicker.offered();
+        } catch (Throwable t) {
+            Logger.printException(() -> "Navigation settings: could not check a tab's long press", t);
+            return false;
         }
     }
 
