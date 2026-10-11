@@ -1203,13 +1203,17 @@ public final class MediaSave {
                 failure(() -> "the save failed", t);
                 if (pages == 0) Feedback.show(application, L10n.t(application, "Download failed"), true);
             } finally {
-                SaveLeftovers.finishJob(application, marker);
+                // Each step is guarded on its own: one that throws must not keep the in-flight slot
+                // or the Download all turn, or every later Download all would wait forever (#115).
+                try { SaveLeftovers.finishJob(application, marker); }
+                catch (Throwable failure) { failure(() -> "could not close a save's job marker", failure); }
                 // Publish the batch outcome before the end notification asks the settings to redraw.
                 if (pages > 0) {
                     try { finishing.accept(save); }
                     catch (Throwable failure) { failure(() -> "could not deliver a save's completion", failure); }
                 }
-                save.end();
+                try { save.end(); }
+                catch (Throwable failure) { failure(() -> "could not end a save", failure); }
                 IN_FLIGHT.decrementAndGet();
                 try { finished.run(); }
                 catch (Throwable failure) { failure(() -> "could not deliver a save's completion", failure); }
