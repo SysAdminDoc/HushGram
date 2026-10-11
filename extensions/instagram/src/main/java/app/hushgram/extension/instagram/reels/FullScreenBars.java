@@ -22,6 +22,7 @@ import android.view.WindowInsetsController;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.WeakHashMap;
@@ -48,8 +49,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * "show transient bars by swipe" behaviour, and on Android 9 and 10 through the immersive sticky
  * system UI flags. Either way a swipe from the edge shows them for a moment, the back gesture works
  * as before, and the keyboard opens and pushes the screen up as it always did, because only the bars
- * are asked to hide. Whatever the window had before is put back when Reels is left, when the
- * activity pauses, and when the switch is turned off.
+ * are asked to hide. When Reels is left, the activity pauses or the switch is turned off, only what
+ * HushGram asked for is undone: the immersive flags it added (anything else Instagram set meanwhile
+ * stays), or the bars that were showing before it hid them.
  *
  * <p>The check runs from a draw listener at most every {@link #CHECK_MS}, and acts only when the
  * answer changes, so a swipe that brought the bars back for a moment isn't fought. Anything that
@@ -161,6 +163,22 @@ public final class FullScreenBars {
         }
     }
 
+    /** [now]'s flags without the immersive ones HushGram added to [before]; the rest stay as they are. */
+    static int withoutAdded(int now, int before) {
+        return now & ~(IMMERSIVE_FLAGS & ~before);
+    }
+
+    /**
+     * The status and navigation bars [insets] has showing (Android 11 and newer), or both when there
+     * are no insets to ask, which shows them as the switch's first version did.
+     */
+    @RequiresApi(Build.VERSION_CODES.R)
+    static int visibleBars(@Nullable WindowInsets insets) {
+        int status = WindowInsets.Type.statusBars(), navigation = WindowInsets.Type.navigationBars();
+        if (insets == null) return status | navigation;
+        return (insets.isVisible(status) ? status : 0) | (insets.isVisible(navigation) ? navigation : 0);
+    }
+
     @Nullable
     static Session sessionFor(Activity activity) {
         return sessions.get(activity);
@@ -215,6 +233,8 @@ public final class FullScreenBars {
         private boolean hidden;
         private int savedUi;
         private int savedBehavior;
+        /** The bars (Android 11 and newer) that were showing when they were first hidden. */
+        private int savedVisible;
         private boolean saved;
         private boolean stopped;
 
@@ -264,10 +284,13 @@ public final class FullScreenBars {
         }
 
         @Override public void onWindowFocusChanged(boolean hasFocus) {
-            // A dialog or the keyboard can take the bars back; when the window is ours again, ask again.
+            // A dialog or the keyboard can take the bars back; when the window is ours again, ask again:
+            // hide them once more if this screen still wants it, or undo the hide if the dialog led
+            // somewhere else (the window still asks for hidden bars until something says otherwise).
             if (hasFocus && hidden) {
                 hidden = false;
                 evaluate();
+                if (!hidden) show();
             }
         }
 
@@ -292,12 +315,16 @@ public final class FullScreenBars {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 WindowInsetsController controller = window.getInsetsController();
                 if (controller == null) return;
-                if (!saved) savedBehavior = controller.getSystemBarsBehavior();
+                if (!saved) {
+                    savedBehavior = controller.getSystemBarsBehavior();
+                    savedVisible = visibleBars(decor.getRootWindowInsets());
+                }
                 controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
                 controller.hide(WindowInsets.Type.systemBars());
             } else {
-                if (!saved) savedUi = decor.getSystemUiVisibility();
-                decor.setSystemUiVisibility(savedUi | IMMERSIVE_FLAGS);
+                int current = decor.getSystemUiVisibility();
+                if (!saved) savedUi = current;
+                decor.setSystemUiVisibility(current | IMMERSIVE_FLAGS);
             }
             saved = true;
             hidden = true;
@@ -317,10 +344,11 @@ public final class FullScreenBars {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     WindowInsetsController controller = window.getInsetsController();
                     if (controller == null) return;
-                    controller.show(WindowInsets.Type.systemBars());
+                    if (savedVisible != 0) controller.show(savedVisible);
                     controller.setSystemBarsBehavior(savedBehavior);
                 } else {
-                    window.getDecorView().setSystemUiVisibility(savedUi);
+                    View decor = window.getDecorView();
+                    decor.setSystemUiVisibility(withoutAdded(decor.getSystemUiVisibility(), savedUi));
                 }
                 HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_SHOWED);
             } catch (Throwable failure) {

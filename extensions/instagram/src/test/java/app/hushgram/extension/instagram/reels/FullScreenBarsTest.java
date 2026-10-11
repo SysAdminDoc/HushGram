@@ -231,6 +231,59 @@ public class FullScreenBarsTest {
         assertFalse(session.isHidden());
     }
 
+    /**
+     * A dialog over Reels that leads to a profile: focus comes back on a screen that doesn't want the
+     * bars hidden, and the window still asks for them hidden, so they have to be put back right then.
+     */
+    @Test public void focusComingBackAwayFromReelsBringsTheBarsBack() {
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        root.removeView(viewer);
+        viewer = null;
+        layout();
+        session.onWindowFocusChanged(true);
+        assertFalse(session.isHidden());
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) assertFalse(barsGone());
+    }
+
+    /** A flag Instagram sets while the bars are hidden (a light status bar on the next screen) stays. */
+    @Test public void flagsSetWhileTheBarsAreHiddenStayWhenTheyComeBack() {
+        View decor = activity.getWindow().getDecorView();
+        decor.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        Settings.FULL_SCREEN_REELS.save(true);
+        showViewer(W, H);
+        FullScreenBars.Session session = watch();
+        assertTrue(session.isHidden());
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            decor.setSystemUiVisibility(decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            FullScreenBars.release(activity);
+            assertEquals(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR, decor.getSystemUiVisibility());
+        }
+    }
+
+    /** Only the immersive flags HushGram added come off; one the window had already stays. */
+    @Test public void onlyTheAddedImmersiveFlagsComeOff() {
+        int before = View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        int now = before | FullScreenBars.IMMERSIVE_FLAGS | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        assertEquals(before | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR, FullScreenBars.withoutAdded(now, before));
+        assertEquals(0, FullScreenBars.withoutAdded(FullScreenBars.IMMERSIVE_FLAGS, 0));
+    }
+
+    /** On Android 11 and newer only the bars that were showing before the hide are shown again. */
+    @Config(sdk = 37)
+    @Test public void onlyTheBarsThatWereShowingComeBack() {
+        int status = android.view.WindowInsets.Type.statusBars(), navigation = android.view.WindowInsets.Type.navigationBars();
+        android.view.WindowInsets noStatus = new android.view.WindowInsets.Builder()
+                .setVisible(status, false).setVisible(navigation, true).build();
+        assertEquals(navigation, FullScreenBars.visibleBars(noStatus));
+        android.view.WindowInsets both = new android.view.WindowInsets.Builder()
+                .setVisible(status, true).setVisible(navigation, true).build();
+        assertEquals(status | navigation, FullScreenBars.visibleBars(both));
+        assertEquals("no insets shows both", status | navigation, FullScreenBars.visibleBars(null));
+    }
+
     @Test public void aScreenWithNoTabBarAndNoViewerIsLeftAlone() {
         Settings.FULL_SCREEN_REELS.save(true);
         Settings.FULL_SCREEN_HOME.save(true);
