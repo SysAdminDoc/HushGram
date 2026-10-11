@@ -392,6 +392,18 @@ class TapToPlayHookTest {
         assertUntouched(context)
     }
 
+    /**
+     * The gate passes playInternal's start reason in a plain invoke-static, which names nothing past
+     * v15. With 20 registers the reason sits at v17, so the patch refuses before anything changes.
+     */
+    @Test
+    fun aStartReasonPastV15FailsBeforeAnythingChanges() {
+        val context = PatchContexts.of(classes(playInternalRegisters = 20))
+        val failure = assertThrows(PatchException::class.java) { context.holdStartsWithoutATap() }
+        assertTrue(failure.message!!, failure.message!!.contains("start reason past v15"))
+        assertUntouched(context)
+    }
+
     @Test
     fun twoPausesFailBeforeAnythingChanges() {
         val context = PatchContexts.of(classes(secondPause = true))
@@ -622,12 +634,17 @@ class TapToPlayHookTest {
         scroller: Scroller = Scroller(),
         reelsLoggers: Int = 1,
         twoLoggerFields: Boolean = false,
+        playInternalRegisters: Int = 6,
     ): List<ClassDef> {
         val videoPlayer = classDef(
             player,
             listOf(
                 // playInternal: static, (player, reason, playAfterSeek, fromPrepare), two locals.
-                method(player, "A0J", listOf(player, string, "Z", "Z"), "V", 6, static = true, body = """
+                // Past 16 registers its parameters can't be named in a plain invoke, so it only logs.
+                method(player, "A0J", listOf(player, string, "Z", "Z"), "V", playInternalRegisters, static = true, body = if (playInternalRegisters > 16) """
+                    const-string v0, "$PLAY_INTERNAL"
+                    return-void
+                """ else """
                     const-string v0, "$PLAY_INTERNAL"
                     ${if (grootFromElsewhere) "sget-object v1, $player->shared:$groot" else "iget-object v1, p0, $player->groot:$groot"}
                     if-eqz v1, :end
