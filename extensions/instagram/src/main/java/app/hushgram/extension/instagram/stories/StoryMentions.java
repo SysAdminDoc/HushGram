@@ -27,6 +27,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -34,6 +35,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -99,6 +101,9 @@ public final class StoryMentions {
     private static final Set<Pill> PILLS = Collections.newSetFromMap(new WeakHashMap<>());
 
     /** The pill a finger went down on and hasn't come up from yet, where it went down, and whether it moved since. */
+    /** The activity the last touch went down in, for a pill whose context doesn't lead to one (#125). */
+    private static WeakReference<Activity> touched = new WeakReference<>(null);
+
     @Nullable private static Pill pressed;
     private static float downX;
     private static float downY;
@@ -353,7 +358,8 @@ public final class StoryMentions {
         PILLS.add(pill);
         pill.setOnClickListener(view -> {
             try {
-                list(view.getContext(), ((Pill) view).people);
+                Activity activity = activityOf(view);
+                list(activity != null ? activity : view.getContext(), ((Pill) view).people);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
             }
@@ -497,6 +503,7 @@ public final class StoryMentions {
             if (event == null) return false;
             int action = event.getActionMasked();
             if (action == MotionEvent.ACTION_DOWN) {
+                if (activity != null && touched.get() != activity) touched = new WeakReference<>(activity);
                 pressed = PILLS.isEmpty() ? null : pillAt(activity, event.getX(), event.getY());
                 if (pressed == null) return false;
                 downX = event.getX();
@@ -535,12 +542,19 @@ public final class StoryMentions {
         }
     }
 
-    /** The pill showing in [activity] whose box holds the point [x], [y] in the window, or null. */
+    /**
+     * The pill showing in [activity]'s window whose box holds the point [x], [y] in that window, or
+     * null. It goes by the window, not the pill's context: the story viewer's views on 450 carry a
+     * context that doesn't lead back to the activity (#125).
+     */
     @Nullable
     static Pill pillAt(Activity activity, float x, float y) {
+        Window window = activity == null ? null : activity.getWindow();
+        View decor = window == null ? null : window.peekDecorView();
+        if (decor == null) return null;
         int[] at = new int[2];
         for (Pill pill : PILLS) {
-            if (!pill.isShown() || pill.getWidth() == 0 || activity(pill.getContext()) != activity) continue;
+            if (!pill.isShown() || pill.getWidth() == 0 || pill.getRootView() != decor) continue;
             pill.getLocationInWindow(at);
             if (x >= at[0] && x < at[0] + pill.getWidth() && y >= at[1] && y < at[1] + pill.getHeight()) return pill;
         }
@@ -563,6 +577,21 @@ public final class StoryMentions {
 
     static Uri profileLink(String username) {
         return Uri.parse("https://www.instagram.com/" + Uri.encode(username) + "/");
+    }
+
+    /**
+     * The activity [view] shows in: the one its context leads to, or else the one the last touch
+     * went through when [view] is in that activity's window. The story viewer's views on 450 carry
+     * a context that doesn't lead back to the activity, so a pill's own click needs the second (#125).
+     */
+    @Nullable
+    static Activity activityOf(View view) {
+        Activity own = activity(view.getContext());
+        if (own != null) return own;
+        Activity last = touched.get();
+        Window window = last == null ? null : last.getWindow();
+        View decor = window == null ? null : window.peekDecorView();
+        return decor != null && view.getRootView() == decor ? last : null;
     }
 
     @Nullable
@@ -591,6 +620,7 @@ public final class StoryMentions {
         PICTURES.evictAll();
         PILLS.clear();
         pressed = null;
+        touched = new WeakReference<>(null);
         anyPill = false;
     }
 

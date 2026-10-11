@@ -13,12 +13,14 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.MotionEvent;
+import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -291,6 +293,35 @@ public class StoryMentionsTest {
         assertTrue(report, report.contains(StoryMentions.LIST_SHOWN + " 1"));
         assertTrue(report, report.contains(StoryMentions.PILL_SHOWN + " "));
         assertFalse("the next touch elsewhere is Instagram's", StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, 1, 1)));
+    }
+
+    /**
+     * On 450 the story viewer's views carry a context that doesn't lead back to the activity (the
+     * emulator's report counted "list not shown, no activity" for a tap). The pill is found by the
+     * window it's in, and the list opens on the activity the touch went through.
+     */
+    @Test
+    public void aPillWhoseContextIsntTheActivitysStillOpensTheList() {
+        Context plain = new ContextThemeWrapper(activity.getApplicationContext(), android.R.style.Theme_DeviceDefault);
+        root.removeView(header);
+        header = new LinearLayout(plain);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setId(StoryMentions.headerIdForTests);
+        TextView name = new TextView(plain);
+        name.setText("someone");
+        header.addView(name);
+        root.addView(header);
+        bind(ANA, BO);
+        float[] center = layOut(pill());
+        assertTrue("the finger going down", StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], center[1])));
+        assertTrue("the finger coming up", StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], center[1])));
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        assertTrue(dialog.isShowing());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(StoryMentions.PILL_TAPPED + " 1"));
+        assertTrue(report, report.contains(StoryMentions.LIST_SHOWN + " 1"));
+        assertFalse(report, report.contains(StoryMentions.LIST_NO_ACTIVITY));
     }
 
     /** A touch that doesn't go down on the pill is Instagram's, every event of it. */
