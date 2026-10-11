@@ -100,11 +100,14 @@ public final class StoryMentions {
     /** Every pill made, so a touch can find the one under it. Weak, so a closed story lets its pills go. */
     private static final Set<Pill> PILLS = Collections.newSetFromMap(new WeakHashMap<>());
 
-    /** The pill a finger went down on and hasn't come up from yet, where it went down, and whether it moved since. */
     /** The activity the last touch went down in, for a pill whose context doesn't lead to one (#125). */
     private static WeakReference<Activity> touched = new WeakReference<>(null);
 
-    @Nullable private static Pill pressed;
+    /**
+     * The pill a finger went down on and hasn't come up from yet, where it went down, and whether it
+     * moved since. Weak, so a story closed in the middle of a touch lets its pill and activity go.
+     */
+    private static WeakReference<Pill> pressed = new WeakReference<>(null);
     private static float downX;
     private static float downY;
     private static boolean moved;
@@ -504,14 +507,15 @@ public final class StoryMentions {
             int action = event.getActionMasked();
             if (action == MotionEvent.ACTION_DOWN) {
                 if (activity != null && touched.get() != activity) touched = new WeakReference<>(activity);
-                pressed = PILLS.isEmpty() ? null : pillAt(activity, event.getX(), event.getY());
-                if (pressed == null) return false;
+                Pill down = PILLS.isEmpty() ? null : pillAt(activity, event.getX(), event.getY());
+                pressed = new WeakReference<>(down);
+                if (down == null) return false;
                 downX = event.getX();
                 downY = event.getY();
                 moved = false;
                 return true;
             }
-            Pill pill = pressed;
+            Pill pill = pressed.get();
             if (pill == null) return false;
             switch (action) {
                 case MotionEvent.ACTION_MOVE:
@@ -522,21 +526,21 @@ public final class StoryMentions {
                     moved = true;
                     break;
                 case MotionEvent.ACTION_UP:
-                    pressed = null;
+                    pressed = new WeakReference<>(null);
                     if (!moved && !beyondSlop(pill, event.getX(), event.getY()) && pill.isShown()) {
                         HookStatus.counted(FamilyNames.STORY_MENTIONS, PILL_TAPPED);
                         pill.performClick();
                     }
                     break;
                 case MotionEvent.ACTION_CANCEL:
-                    pressed = null;
+                    pressed = new WeakReference<>(null);
                     break;
                 default:
                     break;
             }
             return true;
         } catch (Throwable failure) {
-            pressed = null;
+            pressed = new WeakReference<>(null);
             HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions tap", failure);
             return false;
         }
@@ -619,7 +623,7 @@ public final class StoryMentions {
         LATEST.clear();
         PICTURES.evictAll();
         PILLS.clear();
-        pressed = null;
+        pressed = new WeakReference<>(null);
         touched = new WeakReference<>(null);
         anyPill = false;
     }
