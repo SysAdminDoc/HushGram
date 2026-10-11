@@ -4,7 +4,9 @@
  */
 package app.hushgram.extension.instagram.feed;
 
-import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -36,8 +38,12 @@ public final class FeedSound {
     /** The hook's name in a failure report. */
     static final String VIDEO = "feed video start";
 
-    /** The controller that already had its turn, held weakly so a closed feed is not kept alive. */
-    private static WeakReference<Object> served;
+    /**
+     * Every controller that already had its turn, held weakly so a closed feed is not kept alive.
+     * One controller class serves Home and other post lists, so going back to Home after a profile's
+     * posts must still find Home's controller here.
+     */
+    private static final Set<Object> served = Collections.newSetFromMap(new WeakHashMap<>());
 
     private FeedSound() {
     }
@@ -54,8 +60,7 @@ public final class FeedSound {
             if (controller == null || !Utils.settingsReady() || !Settings.START_FEED_VIDEOS_WITH_SOUND.get()) return 0;
             if (!StorySound.phoneAllowsSound()) return 0;
             synchronized (FeedSound.class) {
-                if (served != null && served.get() == controller) return 0;
-                served = new WeakReference<>(controller);
+                if (!served.add(controller)) return 0;
             }
             HookStatus.counted(FamilyNames.FEED_SOUND, STARTED);
             Logger.printDebug(() -> "Feed video: starting with sound");
@@ -69,7 +74,7 @@ public final class FeedSound {
     /** Forgets which controller had its turn. For tests. */
     static void resetForTests() {
         synchronized (FeedSound.class) {
-            served = null;
+            served.clear();
         }
     }
 }

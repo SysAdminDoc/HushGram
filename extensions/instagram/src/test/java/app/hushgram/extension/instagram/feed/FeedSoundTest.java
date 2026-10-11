@@ -96,6 +96,19 @@ public class FeedSoundTest {
         assertTrue(report(), report().contains(FeedSound.STARTED + " 2"));
     }
 
+    /** Going back to a feed that already had its turn, after another one, doesn't give it a second one. */
+    @Test
+    public void goingBackToAFeedAfterAnotherDoesntTurnItsSoundBackOn() {
+        Settings.START_FEED_VIDEOS_WITH_SOUND.save(true);
+        Object home = new Object();
+        Object profilePosts = new Object();
+        assertEquals("Home's first video", 1, FeedSound.startWithSound(home));
+        assertEquals("a profile's posts", 1, FeedSound.startWithSound(profilePosts));
+        assertEquals("back on Home", 0, FeedSound.startWithSound(home));
+        assertEquals("back on the profile's posts", 0, FeedSound.startWithSound(profilePosts));
+        assertTrue(report(), report().contains(FeedSound.STARTED + " 2"));
+    }
+
     /** A silent or vibrating phone, or a media volume of zero, keeps Instagram's own choice and keeps the turn. */
     @Test
     public void aSilentPhoneOrNoVolumeIsInstagramsOwnChoice() {
