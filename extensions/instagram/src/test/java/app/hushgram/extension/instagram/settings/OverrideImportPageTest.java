@@ -59,6 +59,7 @@ public class OverrideImportPageTest {
         PatchFamily.inBuildForTests = null;
         PatchFamily.overrideExchangeForTests = null;
         PatchFamily.overrideImportForTests = null;
+        PatchFamily.flagNamesForTests = null;
         Settings.ALLOW_OVERRIDE_IMPORT.resetToDefault();
         OverrideImportTest.restoreTiming();
         clearFeedback();
@@ -136,6 +137,23 @@ public class OverrideImportPageTest {
         assertNotNull(page.findPreference("hushgram_validate_overrides"));
         for (String key : new String[]{Settings.ALLOW_OVERRIDE_IMPORT.key, "hushgram_import_overrides",
                 "hushgram_restore_overrides", "hushgram_discard_overrides", "hushgram_reset_overrides"}) {
+            assertNull(key, page.findPreference(key));
+        }
+    }
+
+    @Test public void theFlagNamesSwitchSitsBesideImportAndRemoveAndIsOnToStart() throws Exception {
+        openHost();
+        assertNotNull(page.findPreference(Settings.USE_FLAG_NAMES.key));
+        assertNotNull(page.findPreference("hushgram_import_flag_names"));
+        assertNotNull(page.findPreference("hushgram_remove_flag_names"));
+        assertTrue(Settings.USE_FLAG_NAMES.get());
+    }
+
+    @Test public void aBuildWithoutTheMetaConfigListHookHasNoFlagNameRows() throws Exception {
+        PatchFamily.flagNamesForTests = false;
+        openHost();
+        assertNotNull(page.findPreference("hushgram_open_overrides"));
+        for (String key : new String[]{Settings.USE_FLAG_NAMES.key, "hushgram_import_flag_names", "hushgram_remove_flag_names"}) {
             assertNull(key, page.findPreference(key));
         }
     }

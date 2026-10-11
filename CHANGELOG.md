@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Open developer options:** MetaConfig now shows flag names from piko's Instagram 447 list instead of numbers, with no import. Use HushGram's setting names, under Developer in HushGram settings, turns it off. Asked for in #91.
+
 * **Instagram - Save comment photo:** A comment's own GIF now gets Save in its menu too, under the same switch, Save comment photo, in HushGram settings > Comments. It starts off. Save puts the GIF in Pictures/Instagram as a .gif, taken from Instagram's own copy on its servers, so nothing comes from Giphy. When Instagram lists only an animated WebP or an MP4 for a GIF, you get that file instead with its own extension, and an MP4 goes in Movies/Instagram like a video. Asked for in #1.
 
 * **Instagram - Long press to zoom:** New patch with a switch under Feed in HushGram settings, Long press a photo to zoom. It starts off. Turn it on, then press and hold a photo or a carousel in a feed, and the picture opens over a dimmed screen at twice the size, centered on your finger. Slide your finger to look around it and let go to close it. It's the picture the feed already loaded, so nothing new gets downloaded. Pinch to zoom still works, and so do taps and double taps. Videos keep Instagram's own long press, and on photos the zoom takes its place only while the switch is on. Asked for in #63.

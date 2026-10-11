@@ -111,6 +111,16 @@
     },
     {
       "paths": [
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/FlagNameData.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/crimera/piko",
+      "commit": "ea752648f5688a50a96df21430020e98bf9ece00",
+      "license": "GPL-3.0",
+      "changes": "Data, not code: piko's docs/mappings/447.0.0.55.81.json (5,774 configs and 41,075 parameter names, SHA-256 3bc238c717001737c925c2f31d4fae42644943e47d165490c1836f40dc2da441), packed into a Java string table by scripts/gen-flag-names.py. Words are numbered, config numbers and parameter indexes are stored as differences, and the text is deflated and written as base64. FlagNames unpacks it and shows the names in MetaConfig's list in place of numbers. The names are shown only and never written into Instagram's schema. piko's NOTICE is carried in HushGram's NOTICE."
+    },
+    {
+      "paths": [
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TranslatedStart.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/TranslatedStartTest.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/translatedstart/TranslatedStartPatch.kt"

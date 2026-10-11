@@ -25,11 +25,15 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -51,6 +55,10 @@ import app.hushgram.extension.shared.settings.Setting;
  * A label Instagram named itself stays as it is. Only that screen's labels change: Instagram's
  * schema, its overrides file and anything it sends still carry the numbers, and its search still
  * matches a config's number, which it keeps on each row apart from the label.
+ *
+ * <p>With no list imported, the labels come from the names HushGram ships ({@link FlagNameData},
+ * taken from piko's list for Instagram 447), unless "Use HushGram's setting names" is off. An
+ * imported list is used on its own in place of the shipped one, and Remove brings the shipped one back.
  */
 public final class FlagNames {
     private FlagNames() {
@@ -67,7 +75,8 @@ public final class FlagNames {
     static final int CONFIG_LIMIT = 0x100000, INDEX_LIMIT = 0x4000;
 
     private static final String ROWS = "MetaConfig rows", ROWS_NAMED = "MetaConfig rows named",
-            CONFIGS_NAMED = "MetaConfig configs named";
+            CONFIGS_NAMED = "MetaConfig configs named", ROWS_SHIPPED = "MetaConfig rows named from HushGram's list",
+            CONFIGS_SHIPPED = "MetaConfig configs named from HushGram's list";
 
     /** A name list: config names by config number, parameter names by {@link #key}. */
     public static final class Names {
@@ -75,11 +84,18 @@ public final class FlagNames {
         final Map<Long, String> parameters;
         /** Entries the file held that were repeated, malformed or out of Instagram's range. */
         public final int leftOut;
+        /** Whether these are the names HushGram ships, and not a list the person imported. */
+        final boolean shipped;
 
         Names(Map<Integer, String> configs, Map<Long, String> parameters, int leftOut) {
+            this(configs, parameters, leftOut, false);
+        }
+
+        Names(Map<Integer, String> configs, Map<Long, String> parameters, int leftOut, boolean shipped) {
             this.configs = configs;
             this.parameters = parameters;
             this.leftOut = leftOut;
+            this.shipped = shipped;
         }
 
         public int size() {
@@ -118,8 +134,10 @@ public final class FlagNames {
 
     private static final Names NONE = new Names(Collections.emptyMap(), Collections.emptyMap(), 0);
     private static final Object LOCK = new Object();
-    /** The names in use, read from HushGram's copy on first use; null until then. */
+    /** The imported list, read from HushGram's copy on first use; null until then, and empty when there is none. */
     @Nullable private static volatile Names loaded;
+    /** The names HushGram ships, unpacked on first use; null until then, and empty if they wouldn't unpack. */
+    @Nullable private static volatile Names unpacked;
 
     static long key(int config, int index) {
         return ((long) config << 14) | index;
@@ -335,7 +353,7 @@ public final class FlagNames {
         }
     }
 
-    /** How many names are in use, reading HushGram's copy first if it hasn't been read yet. */
+    /** How many names are in use, reading the imported copy or unpacking the shipped names first if need be. */
     public static int count() {
         return names().size();
     }
@@ -378,8 +396,95 @@ public final class FlagNames {
         }
     }
 
-    /** The names in use, read once from HushGram's copy. No copy, or one that won't read, is no names. */
+    /**
+     * The names in use: the imported list when there is one, else the shipped names while
+     * "Use HushGram's setting names" is on, else none.
+     */
     static Names names() {
+        Names imported = imported();
+        if (imported.size() > 0) return imported;
+        return Settings.USE_FLAG_NAMES.get() ? shipped() : NONE;
+    }
+
+    /** The names HushGram ships, unpacked once. Names that won't unpack are no names, and say so once. */
+    static Names shipped() {
+        Names current = unpacked;
+        if (current != null) return current;
+        synchronized (LOCK) {
+            if (unpacked != null) return unpacked;
+            Names read = NONE;
+            try {
+                read = unpack(FlagNameData.PACKED);
+                Logger.printInfo(() -> "Flag names: unpacked HushGram's list");
+            } catch (IOException | RuntimeException failure) {
+                HookStatus.threw(FamilyNames.DEVELOPER_OPTIONS, "flag names", failure);
+            }
+            unpacked = read;
+            return read;
+        }
+    }
+
+    /**
+     * Unpacks the list scripts/gen-flag-names.py wrote: base64 pieces joined, inflated, then a word
+     * count, the words, and a line a config. See that script for the format.
+     */
+    static Names unpack(String[] pieces) throws IOException {
+        StringBuilder joined = new StringBuilder();
+        for (String piece : pieces) joined.append(piece);
+        byte[] packed = Base64.getDecoder().decode(joined.toString());
+        Inflater inflater = new Inflater();
+        ByteArrayOutputStream text = new ByteArrayOutputStream(1 << 20);
+        try {
+            inflater.setInput(packed);
+            byte[] buffer = new byte[64 * 1024];
+            while (!inflater.finished()) {
+                int read = inflater.inflate(buffer);
+                if (read == 0 && (inflater.needsInput() || inflater.needsDictionary())) throw new Unreadable();
+                if (text.size() + read > MAX_BYTES) throw new Unreadable();
+                text.write(buffer, 0, read);
+            }
+        } catch (DataFormatException failure) {
+            throw new Unreadable();
+        } finally {
+            inflater.end();
+        }
+        String[] lines = text.toString("UTF-8").split("\n", -1);
+        int count = Integer.parseInt(lines[0]);
+        String[] words = new String[count];
+        System.arraycopy(lines, 1, words, 0, count);
+        Builder names = new Builder();
+        int config = 0;
+        for (int at = 1 + count; at < lines.length; at++) {
+            if (lines[at].isEmpty()) continue;
+            String[] fields = lines[at].split(":", -1);
+            if (fields.length < 2 || fields.length % 2 != 0) throw new Unreadable();
+            config += Integer.parseInt(fields[0]);
+            names.add(config, name(words, fields[1]));
+            int index = 0;
+            for (int field = 2; field < fields.length; field += 2) {
+                index += Integer.parseInt(fields[field]);
+                names.add(config, index, name(words, fields[field + 1]));
+            }
+        }
+        Names built = names.build();
+        return new Names(built.configs, built.parameters, 0, true);
+    }
+
+    /** A name from its dot-joined hexadecimal word numbers. */
+    private static String name(String[] words, String numbers) {
+        StringBuilder name = new StringBuilder();
+        int from = 0;
+        while (true) {
+            int dot = numbers.indexOf('.', from);
+            if (name.length() > 0 || from > 0) name.append('_');
+            name.append(words[Integer.parseInt(numbers.substring(from, dot < 0 ? numbers.length() : dot), 16)]);
+            if (dot < 0) return name.toString();
+            from = dot + 1;
+        }
+    }
+
+    /** The imported list, read once from HushGram's copy. No copy, or one that won't read, is no names. */
+    private static Names imported() {
         Names current = loaded;
         if (current != null) return current;
         Context context = Utils.getContext();
@@ -403,6 +508,7 @@ public final class FlagNames {
     /** Forgets what's in use, so the next use reads HushGram's copy again. */
     static void forgetForTests() {
         loaded = null;
+        unpacked = null;
     }
 
     /**
@@ -421,6 +527,7 @@ public final class FlagNames {
             String name = names.parameter(reader.config(entry), reader.index(entry));
             if (name == null) return label;
             HookStatus.counted(FamilyNames.DEVELOPER_OPTIONS, ROWS_NAMED);
+            if (names.shipped) HookStatus.counted(FamilyNames.DEVELOPER_OPTIONS, ROWS_SHIPPED);
             return name;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.DEVELOPER_OPTIONS, "flag names", failure);
@@ -438,6 +545,7 @@ public final class FlagNames {
             String name = names.config(entries.config(entry));
             if (name == null) return label;
             HookStatus.counted(FamilyNames.DEVELOPER_OPTIONS, CONFIGS_NAMED);
+            if (names.shipped) HookStatus.counted(FamilyNames.DEVELOPER_OPTIONS, CONFIGS_SHIPPED);
             return name;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.DEVELOPER_OPTIONS, "flag names", failure);

@@ -685,12 +685,14 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Tombol unduh di kiriman beranda
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Menaruh ikon unduh di baris di bawah kiriman, di sebelah kiri Simpan, sehingga satu ketukan menyimpannya tanpa membuka menu. Pada carousel, ia menanyakan halaman ini saja atau semuanya.
 Nothing to download on this post	Tidak ada yang bisa diunduh di kiriman ini
+Use HushGram's setting names	Gunakan nama pengaturan HushGram
+MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig menampilkan nama dari daftar bawaan HushGram sebagai pengganti angka. Daftar ini berasal dari Instagram 447, jadi beberapa pengaturan yang lebih baru tetap tampil sebagai angka. Daftar yang kamu impor dipakai sebagai gantinya.
 Import setting names	Impor nama pengaturan
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Pilih daftar nama MetaConfig, misalnya berkas id_name_mapping.json, dan MetaConfig akan menampilkan nama itu sebagai pengganti angka. Pencarian dengan angka tetap berfungsi.
 Remove setting names	Hapus nama pengaturan
-Forget the imported names, so MetaConfig shows Instagram's own labels again.	Melupakan nama yang diimpor, sehingga MetaConfig kembali menampilkan label bawaan Instagram.
+Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	Melupakan nama yang diimpor. MetaConfig kembali memakai nama HushGram, atau label bawaan Instagram jika sakelar itu mati.
 Couldn't read setting names from that file. Nothing changed.	Tidak bisa membaca nama pengaturan dari file itu. Tidak ada yang berubah.
-Setting names removed. Open MetaConfig again to see Instagram's own labels.	Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat label bawaan Instagram.
+Setting names removed. Open MetaConfig again to see the change.	Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat perubahannya.
 There are no imported setting names to remove.	Tidak ada nama pengaturan yang diimpor untuk dihapus.
 Setting names imported: %1$d. Open MetaConfig again to see them.	Nama pengaturan diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.
 Entries left out because they repeat or don't fit: %1$d.	Entri yang dilewati karena berulang atau tidak cocok: %1$d.

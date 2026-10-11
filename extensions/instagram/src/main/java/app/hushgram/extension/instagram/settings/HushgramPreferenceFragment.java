@@ -1176,6 +1176,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             // The names go through the patch's hook on MetaConfig's list, which a build goes without
             // when Instagram moved it.
             if (PatchFamily.flagNamesInBuild()) {
+                developer.addPreference(toggle(context, Settings.USE_FLAG_NAMES,
+                        L10n.t("Use HushGram's setting names"),
+                        L10n.t("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from "
+                                + "Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.")));
                 importFlagNames = new Row(context);
                 importFlagNames.setKey("hushgram_import_flag_names");
                 importFlagNames.setPersistent(false);
@@ -1188,7 +1192,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 removeFlagNames.setKey("hushgram_remove_flag_names");
                 removeFlagNames.setPersistent(false);
                 removeFlagNames.setTitle(L10n.t("Remove setting names"));
-                removeFlagNames.setSummary(L10n.t("Forget the imported names, so MetaConfig shows Instagram's own labels again."));
+                removeFlagNames.setSummary(L10n.t("Forget the imported names. MetaConfig goes back to HushGram's names, "
+                        + "or to Instagram's own labels if that switch is off."));
                 removeFlagNames.setOnPreferenceClickListener(row -> { flagNames(null, REMOVE_FLAG_NAMES); return true; });
                 developer.addPreference(removeFlagNames);
             }
@@ -1992,7 +1997,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             try {
                 if (removing) {
                     overrideFeedback(request, FlagNames.clear(context)
-                            ? L10n.t("Setting names removed. Open MetaConfig again to see Instagram's own labels.")
+                            ? L10n.t("Setting names removed. Open MetaConfig again to see the change.")
                             : L10n.t("There are no imported setting names to remove."));
                 } else {
                     byte[] bytes;

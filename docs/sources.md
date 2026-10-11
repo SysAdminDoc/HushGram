@@ -909,7 +909,7 @@ The file headers and [provenance.json](../provenance.json) say which files came 
 
 ### piko
 
-**[crimera/piko](https://github.com/crimera/piko)** (GPL-3.0) patches Twitter and Instagram, and its Instagram half has more patches than any other source: ghost mode, downloads, saved deleted messages, feed and story filters, developer options, about sixty patches in all. It's a candidate in the ledger. Its licence would allow a port, but HushGram 0.0.1 took nothing but behavior from it: we read what its patches do and which parts of Instagram they touch, and wrote our own. No piko code is in HushGram.
+**[crimera/piko](https://github.com/crimera/piko)** (GPL-3.0) patches Twitter and Instagram, and its Instagram half has more patches than any other source: ghost mode, downloads, saved deleted messages, feed and story filters, developer options, about sixty patches in all. It's a candidate in the ledger. Its licence would allow a port, but HushGram 0.0.1 took nothing but behavior from it: we read what its patches do and which parts of Instagram they touch, and wrote our own. No piko code is in HushGram. One piece of piko's data is: since the October 2026 flag names change, HushGram ships the MetaConfig name list piko publishes for Instagram 447 (`docs/mappings/447.0.0.55.81.json` at commit `ea752648f5688a50a96df21430020e98bf9ece00`, 5,774 configs and 41,075 parameter names). `scripts/gen-flag-names.py` packs it into `FlagNameData.java`, and MetaConfig's list and search show those names in place of numbers. The names are shown only and never written into Instagram's schema. The list is from 447, so a few flags new in 450 still show as numbers. provenance.json records the file as ported from piko under GPL-3.0.
 
 piko ships a NOTICE file with an extra term under section 7(b) of the GPL. Here it is, word for word:
 
@@ -921,7 +921,7 @@ This NOTICE file must be preserved and retained in all distributions
 of the Source Code and any Derivative Works.
 ```
 
-If a patch is ever ported from piko, that NOTICE goes into HushGram's distributions with it.
+That NOTICE goes into HushGram's distributions with the name list, and with any patch ported from piko later.
 
 Why HushGram exists at all comes down to the recorded comparison against Instagram 449. piko 3.10.0-dev.9, run through the Morphe CLI 1.17.0 with every Instagram patch selected:
 

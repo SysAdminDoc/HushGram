@@ -685,12 +685,14 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	Botón de descarga en las publicaciones del feed
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Pone un icono de descarga en la fila bajo una publicación, a la izquierda de Guardar, para que un toque la guarde sin abrir el menú. En un carrusel pregunta si quieres esta página o todas.
 Nothing to download on this post	No hay nada que descargar en esta publicación
+Use HushGram's setting names	Usar los nombres de ajustes de HushGram
+MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig muestra nombres de la lista propia de HushGram en lugar de números. La lista viene de Instagram 447, así que unos pocos ajustes más nuevos siguen apareciendo como números. Una lista que importes se usa en su lugar.
 Import setting names	Importar nombres de ajustes
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	Elige una lista de nombres de MetaConfig, como un archivo id_name_mapping.json, y MetaConfig mostrará esos nombres en lugar de números. La búsqueda por número sigue funcionando.
 Remove setting names	Quitar nombres de ajustes
-Forget the imported names, so MetaConfig shows Instagram's own labels again.	Olvida los nombres importados para que MetaConfig vuelva a mostrar las etiquetas propias de Instagram.
+Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	Olvida los nombres importados. MetaConfig vuelve a los nombres de HushGram, o a las etiquetas propias de Instagram si ese interruptor está apagado.
 Couldn't read setting names from that file. Nothing changed.	No se pudieron leer los nombres de ajustes de ese archivo. No cambió nada.
-Setting names removed. Open MetaConfig again to see Instagram's own labels.	Nombres de ajustes quitados. Abre MetaConfig otra vez para ver las etiquetas propias de Instagram.
+Setting names removed. Open MetaConfig again to see the change.	Nombres de ajustes quitados. Abre MetaConfig otra vez para ver el cambio.
 There are no imported setting names to remove.	No hay nombres de ajustes importados que quitar.
 Setting names imported: %1$d. Open MetaConfig again to see them.	Nombres de ajustes importados: %1$d. Abre MetaConfig otra vez para verlos.
 Entries left out because they repeat or don't fit: %1$d.	Entradas omitidas porque se repiten o no encajan: %1$d.

@@ -26,10 +26,17 @@ Instagram's launcher icon, open HushGram settings, then Licenses.
   morphe-patches              https://github.com/MorpheApp/morphe-patches
   morphe-patches-library      https://github.com/MorpheApp/morphe-patches-library
   ReVanced                    https://gitlab.com/ReVanced/revanced-patches
+  piko                        https://github.com/crimera/piko
 
 Andrew Liang's patches are licensed under the GNU General Public License v3.0.
 Their files here keep a "Forked from" line naming the file and commit they
 came from, and provenance.json records every rule.
+
+crimera/piko is licensed under the GNU General Public License v3.0. HushGram
+carries no piko code. It ships the MetaConfig name list that piko publishes for
+Instagram 447 (docs/mappings/447.0.0.55.81.json, commit
+ea752648f5688a50a96df21430020e98bf9ece00), packed into FlagNameData.java by
+scripts/gen-flag-names.py. piko's notice is reproduced below.
 
 Carried third-party libraries
 ----------------------------
@@ -121,6 +128,19 @@ GPLv3 Section 7e: Declining Grant of Trademark Rights
 This License does not grant any rights or permission under trademark law
 to use the name "Morphe" or any of the Program's trade names, trademarks,
 service marks, or logos.
+
+
+Piko NOTICE
+
+https://github.com/crimera/piko
+
+=============
+
+7b. Attribution Requirement
+---------------------------
+
+This NOTICE file must be preserved and retained in all distributions
+of the Source Code and any Derivative Works.
 
 
 Trademarks

@@ -115,6 +115,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_open_developer_options", TRUE);
 
     /**
+     * MetaConfig's list shows the names HushGram ships in place of numbers, when no list is imported.
+     * Off goes back to Instagram's own labels. Only the labels change, never Instagram's schema.
+     */
+    public static final BooleanSetting USE_FLAG_NAMES =
+            new BooleanSetting("hushgram_use_flag_names", TRUE);
+
+    /**
      * Shows Import, Restore and Discard for native overrides, and OverrideImport checks it again
      * before it reads the store. Off by default, and deliberately not a patch switch: Pause and a
      * settings import never turn it on, and it answers off while HushGram is paused.

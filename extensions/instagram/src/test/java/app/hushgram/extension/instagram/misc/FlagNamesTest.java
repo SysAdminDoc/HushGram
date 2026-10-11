@@ -25,7 +25,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.security.MessageDigest;
 
+import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -63,6 +65,7 @@ public class FlagNamesTest {
         };
         FlagNames.clear(context());
         FlagNames.forgetForTests();
+        Settings.USE_FLAG_NAMES.save(false);
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -73,6 +76,7 @@ public class FlagNamesTest {
         FlagNames.entries = stock;
         FlagNames.clear(context());
         FlagNames.forgetForTests();
+        Settings.USE_FLAG_NAMES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -319,5 +323,98 @@ public class FlagNamesTest {
     public void unnamedMatchesInstagramsOwnShapes() {
         for (String label : new String[]{"", "_", "_16", "16", "_1048575"}) assertTrue(label, FlagNames.unnamed(label));
         for (String label : new String[]{"enabled", "_a1", "1a", "__1", "_12345678901"}) assertFalse(label, FlagNames.unnamed(label));
+    }
+
+    /** The names HushGram ships unpack to exactly piko's list for Instagram 447, byte for byte once sorted. */
+    @Test
+    public void theShippedNamesUnpackToPikosList() throws Exception {
+        FlagNames.Names names = FlagNames.shipped();
+
+        assertTrue(names.shipped);
+        assertEquals(FlagNameData.CONFIGS, names.configs.size());
+        assertEquals(FlagNameData.PARAMETERS, names.parameters.size());
+        assertEquals(5774, names.configs.size());
+        assertEquals(41075, names.parameters.size());
+        assertEquals("igd_android_mwb_enable_message_reporting", names.config(23355));
+        assertEquals("is_enabled", names.parameter(23355, 0));
+        assertEquals("sonar_prober_launcher", names.config(23482));
+        assertEquals("latency_sample_rate", names.parameter(23482, 8));
+        assertEquals("connectivity_test_host_v6", names.parameter(23482, 14));
+        assertNull("an index piko has no name for", names.parameter(23482, 2));
+        // Names with a trailing or a doubled underscore keep them.
+        assertEquals("disallow_list_", names.parameter(72088, 2));
+        assertEquals("android_killswitch__is_stories_secondary_cta_enabled", names.parameter(90608, 2));
+        assertEquals("sorted lines of piko's list, hashed", "c592da1549458f81a48d0f2a247394af3329ba28f2f27a0df9d1d0c496894e7f",
+                hex(MessageDigest.getInstance("SHA-256").digest(FlagNames.text(names).getBytes(StandardCharsets.UTF_8))));
+        assertEquals(0, names.leftOut);
+    }
+
+    private static String hex(byte[] bytes) {
+        StringBuilder text = new StringBuilder();
+        for (byte b : bytes) text.append(String.format("%02x", b));
+        return text.toString();
+    }
+
+    /** With nothing imported and the switch on, the rows get HushGram's names, and the Diagnostics count says so. */
+    @Test
+    public void theShippedNamesLabelRowsWithNoImport() {
+        Settings.USE_FLAG_NAMES.save(true);
+        Entry parameter = new Entry(23482, 8);
+
+        assertEquals("latency_sample_rate", FlagNames.parameter(parameter, "_8"));
+        assertEquals("sonar_prober_launcher", FlagNames.config(parameter, "_23482"));
+        assertEquals("a label Instagram named itself stays", "its_own", FlagNames.parameter(parameter, "its_own"));
+        assertEquals("a number HushGram has no name for", "_5", FlagNames.parameter(new Entry(23482, 5), "_5"));
+        assertEquals("a config HushGram has no name for", "_9999999", FlagNames.config(new Entry(999999, 0), "_9999999"));
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("MetaConfig rows named from HushGram's list 1"));
+        assertTrue(report, report.contains("MetaConfig configs named from HushGram's list 1"));
+        assertTrue(report, report.contains("MetaConfig rows named 1"));
+        assertTrue(FlagNames.count() > 40000);
+    }
+
+    /** Turning the switch off goes back to numbers, and on again brings the names back. */
+    @Test
+    public void theSwitchTurnsTheShippedNamesOffAndOn() {
+        Settings.USE_FLAG_NAMES.save(false);
+        Entry parameter = new Entry(23482, 8);
+
+        assertEquals("_8", FlagNames.parameter(parameter, "_8"));
+        assertEquals("_23482", FlagNames.config(parameter, "_23482"));
+        assertEquals(0, FlagNames.count());
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("from HushGram's list"));
+
+        Settings.USE_FLAG_NAMES.save(true);
+        assertEquals("latency_sample_rate", FlagNames.parameter(parameter, "_8"));
+    }
+
+    /** An imported list is used on its own; removing it brings HushGram's names back, and the switch still governs them. */
+    @Test
+    public void anImportedListWinsAndRemovingItFallsBack() throws IOException {
+        Settings.USE_FLAG_NAMES.save(true);
+        Entry mine = new Entry(23355, 16);
+        Entry shippedOnly = new Entry(23482, 8);
+
+        FlagNames.importNames(context(), bytes(MAPPING));
+        assertEquals("item_limit", FlagNames.parameter(mine, "_16"));
+        assertEquals("the import is used on its own", "_8", FlagNames.parameter(shippedOnly, "_8"));
+        assertEquals("ig_android_feed_tweaks", FlagNames.config(mine, "_23355"));
+        assertFalse(HookStatus.report().toString(), HookStatus.report().toString().contains("from HushGram's list"));
+
+        assertTrue(FlagNames.clear(context()));
+        assertEquals("latency_sample_rate", FlagNames.parameter(shippedOnly, "_8"));
+        assertEquals("igd_android_mwb_enable_message_reporting", FlagNames.config(mine, "_23355"));
+
+        Settings.USE_FLAG_NAMES.save(false);
+        assertEquals("_8", FlagNames.parameter(shippedOnly, "_8"));
+    }
+
+    /** A packed list that is cut short, isn't compressed or has a word number past its table is no names, and never throws. */
+    @Test
+    public void aBrokenPackIsNoNames() {
+        String[] cut = {FlagNameData.PACKED[0].substring(0, 400)};
+        assertThrows(IOException.class, () -> FlagNames.unpack(cut));
+        assertThrows(IOException.class, () -> FlagNames.unpack(new String[]{"bm90IGRlZmxhdGVk"}));
+        assertThrows(RuntimeException.class, () -> FlagNames.unpack(new String[]{"!!"}));
     }
 }

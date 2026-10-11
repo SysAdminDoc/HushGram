@@ -684,12 +684,14 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 Download button on feed posts	피드 게시물 다운로드 버튼
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	게시물 아래 줄의 저장 왼쪽에 다운로드 아이콘을 넣어, 메뉴를 열지 않고 한 번 탭으로 저장합니다. 캐러셀에서는 이 페이지만 저장할지 모두 저장할지 묻습니다.
 Nothing to download on this post	이 게시물에는 다운로드할 항목이 없습니다
+Use HushGram's setting names	HushGram 설정 이름 사용
+MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig에서 숫자 대신 HushGram이 가진 목록의 이름이 표시됩니다. 이 목록은 Instagram 447 기준이라 더 새로운 설정 몇 개는 계속 숫자로 보입니다. 가져온 목록이 있으면 그 목록이 대신 쓰입니다
 Import setting names	설정 이름 가져오기
 Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json 파일 같은 MetaConfig 이름 목록을 고르면 MetaConfig에서 숫자 대신 그 이름이 표시됩니다. 숫자로 검색하는 기능은 그대로 작동합니다
 Remove setting names	설정 이름 제거
-Forget the imported names, so MetaConfig shows Instagram's own labels again.	가져온 이름을 지워 MetaConfig에 Instagram 기본 라벨이 다시 표시되게 합니다
+Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	가져온 이름을 지웁니다. MetaConfig는 HushGram의 이름으로 돌아가고, 이 스위치가 꺼져 있으면 Instagram 기본 라벨이 표시됩니다
 Couldn't read setting names from that file. Nothing changed.	그 파일에서 설정 이름을 읽을 수 없습니다. 바뀐 것은 없습니다.
-Setting names removed. Open MetaConfig again to see Instagram's own labels.	설정 이름을 제거했습니다. Instagram의 기본 이름을 보려면 MetaConfig를 다시 여세요.
+Setting names removed. Open MetaConfig again to see the change.	설정 이름을 제거했습니다. 변경 내용을 보려면 MetaConfig를 다시 여세요.
 There are no imported setting names to remove.	제거할 가져온 설정 이름이 없습니다.
 Setting names imported: %1$d. Open MetaConfig again to see them.	가져온 설정 이름: %1$d개. 확인하려면 MetaConfig를 다시 여세요.
 Entries left out because they repeat or don't fit: %1$d.	중복되거나 맞지 않아 제외된 항목: %1$d

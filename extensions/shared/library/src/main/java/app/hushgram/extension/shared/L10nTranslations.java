@@ -48,7 +48,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildDe() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillDe0(table);
         fillDe1(table);
         fillDe2(table);
@@ -593,8 +593,8 @@ public final class L10nTranslations {
                 "Folgt dir");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "F\u00fcr WhatsApp, Videoeditoren wie CapCut und InShot oder wenn eine Galerie oder ein Player gespeicherte Videos ohne Ton abspielt. Kann die Qualit\u00e4t senken.");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "Vergisst die importierten Namen, damit MetaConfig wieder Instagrams eigene Bezeichnungen zeigt.");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "Vergisst die importierten Namen. MetaConfig zeigt wieder die Namen von HushGram oder Instagrams eigene Bezeichnungen, wenn dieser Schalter aus ist.");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "Vergisst die f\u00fcr \u201eWiederherstellen\u201c gespeicherte Kopie, damit Importe wieder laufen k\u00f6nnen. Instagrams eigene Einstellungen \u00e4ndern sich nicht.");
         table.put("Freed %1$s.",
@@ -968,6 +968,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "MetaConfig ist auf diesem Bildschirm nicht verf\u00fcgbar. \u00d6ffne die HushGram-Einstellungen auf der Startseite, w\u00e4hrend du angemeldet bist.");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "MetaConfig zeigt Namen aus der eigenen Liste von HushGram statt Nummern. Die Liste stammt von Instagram 447, deshalb erscheinen ein paar neuere Einstellungen weiterhin als Nummern. Eine importierte Liste wird stattdessen verwendet.");
         table.put("Much larger",
                 "Viel gr\u00f6\u00dfer");
         table.put("Much smaller",
@@ -1046,11 +1048,11 @@ public final class L10nTranslations {
                 "MetaConfig-\u00dcberschreibungen \u00f6ffnen");
         table.put("Open Whitehat settings",
                 "Whitehat-Einstellungen \u00f6ffnen");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "\u00d6ffne einen Chat in Instagram und komm dann hierher zur\u00fcck, um ihn zu verstecken.");
     }
 
     private static void fillDe8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "\u00d6ffne einen Chat in Instagram und komm dann hierher zur\u00fcck, um ihn zu verstecken.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "\u00d6ffne einen Chat in Instagram und komm dann hierher zur\u00fcck, um ihn zu sperren.");
         table.put("Open categories as pages",
@@ -1169,11 +1171,11 @@ public final class L10nTranslations {
                 "%1$d Overrides entfernt. Starte Instagram neu, um zu seinen eigenen Einstellungen zur\u00fcckzukehren.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "Entfernt \u201eF\u00fcr dich\u201c aus der Auswahl oben auf der Startseite, sodass sie bei \u201eFolge ich\u201c oder \u201eFavoriten\u201c bleibt. Braucht \u201eStart Home on Following\u201c. Starte Instagram neu, um die \u00c4nderung zu sehen.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "Entfernt Meta AI aus der Reihe unten im Teilen-Fenster. Manche Konten sehen es als Muse.");
     }
 
     private static void fillDe9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "Entfernt Meta AI aus der Reihe unten im Teilen-Fenster. Manche Konten sehen es als Muse.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "Entfernt alle Overrides von diesem angemeldeten Konto, sodass Instagram zu seinen eigenen Einstellungen zur\u00fcckkehrt. Deine aktuellen Overrides werden zuerst f\u00fcr \u201eWiederherstellen\u201c gespeichert.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -1292,17 +1294,17 @@ public final class L10nTranslations {
                 "Senden an");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "Richte eine Displaysperre auf deinem Handy ein, damit HushGram Instagram sperren kann.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "Richte eine Displaysperre auf deinem Handy ein, damit HushGram deine Nachrichten sperren kann.");
     }
 
     private static void fillDe10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "Richte eine Displaysperre auf deinem Handy ein, damit HushGram deine Nachrichten sperren kann.");
         table.put("Set when you patched",
                 "Beim Patchen festgelegt");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "Einstellungsnamen importiert: %1$d. \u00d6ffne MetaConfig erneut, um sie zu sehen.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "Einstellungsnamen entfernt. \u00d6ffne MetaConfig erneut, um Instagrams eigene Bezeichnungen zu sehen.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "Einstellungsnamen entfernt. \u00d6ffne MetaConfig erneut, um die \u00c4nderung zu sehen.");
         table.put("Settings backup",
                 "Einstellungen sichern");
         table.put("Settings couldn't open",
@@ -1415,11 +1417,11 @@ public final class L10nTranslations {
                 "HushGram unterst\u00fctzen");
         table.put("System tick",
                 "System-Tick");
-        table.put("Tab bar",
-                "Tab-Leiste");
     }
 
     private static void fillDe11(Map<String, String> table) {
+        table.put("Tab bar",
+                "Tab-Leiste");
         table.put("Tab bar height",
                 "H\u00f6he der Tab-Leiste");
         table.put("Tab bar opacity",
@@ -1538,11 +1540,11 @@ public final class L10nTranslations {
                 "Es gibt keine \u00dcberschreibungen zum Zur\u00fccksetzen. Nichts wurde ge\u00e4ndert.");
         table.put("There's no diagnostic data to clear.",
                 "Es gibt keine Diagnosedaten zum L\u00f6schen.");
-        table.put("There's no diagnostic data to put back.",
-                "Es gibt keine Diagnosedaten zum Wiederherstellen.");
     }
 
     private static void fillDe12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "Es gibt keine Diagnosedaten zum Wiederherstellen.");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "Es gibt keine gespeicherte Kopie zum Verwerfen. Es wurde nichts ge\u00e4ndert.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -1609,6 +1611,8 @@ public final class L10nTranslations {
                 "Updates");
         table.put("Updating remembered positions...",
                 "Gespeicherte Wiedergabepositionen werden aktualisiert...");
+        table.put("Use HushGram's setting names",
+                "HushGram-Einstellungsnamen verwenden");
         table.put("Username",
                 "Benutzername");
         table.put("Username copied",
@@ -1659,13 +1663,13 @@ public final class L10nTranslations {
                 "Wo Videos warten");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "Solange langes Dr\u00fccken auf einen Tab HushGram \u00f6ffnet, fehlt die HushGram-Zeile auf Instagrams Seite Einstellungen und Aktivit\u00e4t. Schaltest du das lange Dr\u00fccken aus, ist die Zeile wieder da.");
+    }
+
+    private static void fillDe13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "W\u00e4hrend du Stories anonym ansiehst, wird eine angesehene Story grau und r\u00fcckt ans Ende der Reihe, nur auf diesem Handy. Instagram erf\u00e4hrt weiterhin nicht, dass du sie angesehen hast.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "Die Whitehat-Einstellungen sind auf diesem Bildschirm nicht verf\u00fcgbar. \u00d6ffne die HushGram-Einstellungen auf der Startseite, w\u00e4hrend du angemeldet bist.");
-    }
-
-    private static void fillDe13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "WLAN bleibt, wie es ist. Schalte das aus, um in jedem Netz Daten zu sparen.");
         table.put("You cleared the remembered playback positions.",
@@ -1689,7 +1693,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildEs() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillEs0(table);
         fillEs1(table);
         fillEs2(table);
@@ -2234,8 +2238,8 @@ public final class L10nTranslations {
                 "Te sigue");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "Para WhatsApp, editores de video como CapCut e InShot, o una galer\u00eda o un reproductor que reproduzca sin sonido los videos guardados. Puede bajar la calidad.");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "Olvida los nombres importados para que MetaConfig vuelva a mostrar las etiquetas propias de Instagram.");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "Olvida los nombres importados. MetaConfig vuelve a los nombres de HushGram, o a las etiquetas propias de Instagram si ese interruptor est\u00e1 apagado.");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "Olvida la copia guardada para Restaurar para que las importaciones vuelvan a funcionar. Los ajustes propios de Instagram no cambian.");
         table.put("Freed %1$s.",
@@ -2609,6 +2613,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "MetaConfig no est\u00e1 disponible en esta pantalla. Abre los ajustes de HushGram desde Inicio con la sesi\u00f3n iniciada.");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "MetaConfig muestra nombres de la lista propia de HushGram en lugar de n\u00fameros. La lista viene de Instagram 447, as\u00ed que unos pocos ajustes m\u00e1s nuevos siguen apareciendo como n\u00fameros. Una lista que importes se usa en su lugar.");
         table.put("Much larger",
                 "Mucho m\u00e1s grande");
         table.put("Much smaller",
@@ -2687,11 +2693,11 @@ public final class L10nTranslations {
                 "Abrir anulaciones de MetaConfig");
         table.put("Open Whitehat settings",
                 "Abrir ajustes de Whitehat");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "Abre un chat en Instagram y vuelve aqu\u00ed para ocultarlo.");
     }
 
     private static void fillEs8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "Abre un chat en Instagram y vuelve aqu\u00ed para ocultarlo.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "Abre un chat en Instagram y vuelve aqu\u00ed para bloquearlo.");
         table.put("Open categories as pages",
@@ -2810,11 +2816,11 @@ public final class L10nTranslations {
                 "Se quitaron %1$d overrides. Reinicia Instagram para volver a sus propios ajustes.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "Quita Para ti de las opciones de la parte de arriba de Inicio, as\u00ed que se queda en Siguiendo o Favoritos. Necesita Start Home on Following. Reinicia Instagram para ver el cambio.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "Quita Meta AI de la fila de la parte inferior de la hoja de compartir. Algunas cuentas lo ven como Muse.");
     }
 
     private static void fillEs9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "Quita Meta AI de la fila de la parte inferior de la hoja de compartir. Algunas cuentas lo ven como Muse.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "Quita todos los overrides de esta cuenta con sesi\u00f3n iniciada, as\u00ed Instagram vuelve a sus propios ajustes. Tus overrides actuales se guardan antes para Restaurar.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -2933,17 +2939,17 @@ public final class L10nTranslations {
                 "Enviar a");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "Configura un bloqueo de pantalla en tu tel\u00e9fono para que HushGram pueda bloquear Instagram.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "Configura un bloqueo de pantalla en tu tel\u00e9fono para que HushGram pueda bloquear tus mensajes.");
     }
 
     private static void fillEs10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "Configura un bloqueo de pantalla en tu tel\u00e9fono para que HushGram pueda bloquear tus mensajes.");
         table.put("Set when you patched",
                 "Aplicado al parchear");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "Nombres de ajustes importados: %1$d. Abre MetaConfig otra vez para verlos.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "Nombres de ajustes quitados. Abre MetaConfig otra vez para ver las etiquetas propias de Instagram.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "Nombres de ajustes quitados. Abre MetaConfig otra vez para ver el cambio.");
         table.put("Settings backup",
                 "Copia de ajustes");
         table.put("Settings couldn't open",
@@ -3056,11 +3062,11 @@ public final class L10nTranslations {
                 "Apoya HushGram");
         table.put("System tick",
                 "Toque del sistema");
-        table.put("Tab bar",
-                "Barra de pesta\u00f1as");
     }
 
     private static void fillEs11(Map<String, String> table) {
+        table.put("Tab bar",
+                "Barra de pesta\u00f1as");
         table.put("Tab bar height",
                 "Altura de la barra de pesta\u00f1as");
         table.put("Tab bar opacity",
@@ -3179,11 +3185,11 @@ public final class L10nTranslations {
                 "No hay valores personalizados que restablecer. No se cambi\u00f3 nada.");
         table.put("There's no diagnostic data to clear.",
                 "No hay datos de diagn\u00f3stico que borrar.");
-        table.put("There's no diagnostic data to put back.",
-                "No hay datos de diagn\u00f3stico que restaurar.");
     }
 
     private static void fillEs12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "No hay datos de diagn\u00f3stico que restaurar.");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "No hay ninguna copia guardada que descartar. Nada ha cambiado.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -3250,6 +3256,8 @@ public final class L10nTranslations {
                 "Actualizaciones");
         table.put("Updating remembered positions...",
                 "Actualizando las posiciones guardadas...");
+        table.put("Use HushGram's setting names",
+                "Usar los nombres de ajustes de HushGram");
         table.put("Username",
                 "Nombre de usuario");
         table.put("Username copied",
@@ -3300,13 +3308,13 @@ public final class L10nTranslations {
                 "D\u00f3nde esperan los videos");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "Mientras mantener pulsada una pesta\u00f1a abra HushGram, la pantalla Configuraci\u00f3n y actividad de Instagram no muestra la fila de HushGram. Desactiva la pulsaci\u00f3n larga y la fila vuelve.");
+    }
+
+    private static void fillEs13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Mientras ves de forma an\u00f3nima, una historia que ya viste se pone en gris y pasa al final de la fila, solo en este tel\u00e9fono. Instagram sigue sin saber que la viste.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "Los ajustes de Whitehat no est\u00e1n disponibles en esta pantalla. Abre los ajustes de HushGram desde Inicio con la sesi\u00f3n iniciada.");
-    }
-
-    private static void fillEs13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "El Wi-Fi se queda como est\u00e1. Desactiva este interruptor para ahorrar datos en cualquier red.");
         table.put("You cleared the remembered playback positions.",
@@ -3330,7 +3338,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildIn() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillIn0(table);
         fillIn1(table);
         fillIn2(table);
@@ -3875,8 +3883,8 @@ public final class L10nTranslations {
                 "Mengikuti kamu");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "Untuk WhatsApp, editor video seperti CapCut dan InShot, atau galeri atau pemutar yang memutar video tersimpan tanpa suara. Kualitas bisa lebih rendah.");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "Melupakan nama yang diimpor, sehingga MetaConfig kembali menampilkan label bawaan Instagram.");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "Melupakan nama yang diimpor. MetaConfig kembali memakai nama HushGram, atau label bawaan Instagram jika sakelar itu mati.");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "Melupakan salinan yang disimpan untuk Pulihkan agar impor bisa berjalan lagi. Pengaturan Instagram sendiri tidak berubah.");
         table.put("Freed %1$s.",
@@ -4250,6 +4258,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "MetaConfig tidak tersedia di layar ini. Buka pengaturan HushGram dari Beranda saat sudah masuk.");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "MetaConfig menampilkan nama dari daftar bawaan HushGram sebagai pengganti angka. Daftar ini berasal dari Instagram 447, jadi beberapa pengaturan yang lebih baru tetap tampil sebagai angka. Daftar yang kamu impor dipakai sebagai gantinya.");
         table.put("Much larger",
                 "Jauh lebih besar");
         table.put("Much smaller",
@@ -4328,11 +4338,11 @@ public final class L10nTranslations {
                 "Buka penggantian MetaConfig");
         table.put("Open Whitehat settings",
                 "Buka pengaturan Whitehat");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "Buka chat di Instagram, lalu kembali ke sini untuk menyembunyikannya.");
     }
 
     private static void fillIn8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "Buka chat di Instagram, lalu kembali ke sini untuk menyembunyikannya.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "Buka obrolan di Instagram, lalu kembali ke sini untuk menguncinya.");
         table.put("Open categories as pages",
@@ -4451,11 +4461,11 @@ public final class L10nTranslations {
                 "%1$d override dihapus. Mulai ulang Instagram untuk kembali ke pengaturannya sendiri.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "Menghapus Untuk Anda dari pilihan di bagian atas Beranda, jadi Beranda tetap di Mengikuti atau Favorit. Perlu Start Home on Following. Mulai ulang Instagram untuk melihat perubahannya.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "Menghapus Meta AI dari baris di bagian bawah lembar bagikan. Beberapa akun melihatnya sebagai Muse.");
     }
 
     private static void fillIn9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "Menghapus Meta AI dari baris di bagian bawah lembar bagikan. Beberapa akun melihatnya sebagai Muse.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "Menghapus semua override dari akun yang sedang masuk ini, sehingga Instagram kembali ke pengaturannya sendiri. Override kamu saat ini disimpan dulu untuk Pulihkan.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -4574,17 +4584,17 @@ public final class L10nTranslations {
                 "Kirim ke");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "Atur kunci layar di ponsel Anda agar HushGram bisa mengunci Instagram.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "Atur kunci layar di ponsel Anda agar HushGram bisa mengunci pesan Anda.");
     }
 
     private static void fillIn10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "Atur kunci layar di ponsel Anda agar HushGram bisa mengunci pesan Anda.");
         table.put("Set when you patched",
                 "Diatur saat Anda menambal");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "Nama pengaturan diimpor: %1$d. Buka MetaConfig lagi untuk melihatnya.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat label bawaan Instagram.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "Nama pengaturan dihapus. Buka MetaConfig lagi untuk melihat perubahannya.");
         table.put("Settings backup",
                 "Cadangan pengaturan");
         table.put("Settings couldn't open",
@@ -4697,11 +4707,11 @@ public final class L10nTranslations {
                 "Dukung HushGram");
         table.put("System tick",
                 "Ketukan sistem");
-        table.put("Tab bar",
-                "Bilah tab");
     }
 
     private static void fillIn11(Map<String, String> table) {
+        table.put("Tab bar",
+                "Bilah tab");
         table.put("Tab bar height",
                 "Tinggi bilah tab");
         table.put("Tab bar opacity",
@@ -4820,11 +4830,11 @@ public final class L10nTranslations {
                 "Tidak ada nilai pengganti untuk diatur ulang. Tidak ada yang berubah.");
         table.put("There's no diagnostic data to clear.",
                 "Tidak ada data diagnostik yang dapat dihapus.");
-        table.put("There's no diagnostic data to put back.",
-                "Tidak ada data diagnostik yang dapat dikembalikan.");
     }
 
     private static void fillIn12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "Tidak ada data diagnostik yang dapat dikembalikan.");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "Tidak ada salinan tersimpan untuk dibuang. Tidak ada yang berubah.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -4891,6 +4901,8 @@ public final class L10nTranslations {
                 "Pembaruan");
         table.put("Updating remembered positions...",
                 "Memperbarui posisi tersimpan...");
+        table.put("Use HushGram's setting names",
+                "Gunakan nama pengaturan HushGram");
         table.put("Username",
                 "Nama pengguna");
         table.put("Username copied",
@@ -4941,13 +4953,13 @@ public final class L10nTranslations {
                 "Tempat video menunggu");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "Selama menekan lama tab membuka HushGram, layar Pengaturan dan aktivitas Instagram tidak menampilkan baris HushGram. Matikan tekan lama itu dan barisnya kembali.");
+    }
+
+    private static void fillIn13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Saat kamu melihat secara anonim, cerita yang sudah kamu tonton berubah abu-abu dan pindah ke ujung baris, hanya di ponsel ini. Instagram tetap tidak diberi tahu bahwa kamu menontonnya.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "Pengaturan Whitehat tidak tersedia di layar ini. Buka pengaturan HushGram dari Beranda saat sudah masuk.");
-    }
-
-    private static void fillIn13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi tetap seperti semula. Matikan sakelar ini untuk menghemat data di setiap jaringan.");
         table.put("You cleared the remembered playback positions.",
@@ -4971,7 +4983,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildKo() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillKo0(table);
         fillKo1(table);
         fillKo2(table);
@@ -5516,8 +5528,8 @@ public final class L10nTranslations {
                 "\ub098\ub97c \ud314\ub85c\uc6b0\ud558\uace0 \uc788\uc74c");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "WhatsApp, CapCut\uc774\ub098 InShot \uac19\uc740 \ub3d9\uc601\uc0c1 \ud3b8\uc9d1 \uc571, \ub610\ub294 \uc18c\ub9ac\uc5c6\uc774 \uc800\uc7a5\ub41c \ub3d9\uc601\uc0c1\uc744 \uc7ac\uc0dd\ud560 \uc218 \uc788\ub294 \uac24\ub7ec\ub9ac\ub098 \ud50c\ub808\uc774\uc5b4 \uc571\uc5d0\uc11c \uc5f4 \uc218 \uc788\ub3c4\ub85d \ub3d9\uc601\uc0c1\uc744 \uc800\uc7a5\ud569\ub2c8\ub2e4. \ud654\uc9c8\uc774 \ub0ae\uc544\uc9c8 \uc218 \uc788\uc2b5\ub2c8\ub2e4");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "\uac00\uc838\uc628 \uc774\ub984\uc744 \uc9c0\uc6cc MetaConfig\uc5d0 Instagram \uae30\ubcf8 \ub77c\ubca8\uc774 \ub2e4\uc2dc \ud45c\uc2dc\ub418\uac8c \ud569\ub2c8\ub2e4");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "\uac00\uc838\uc628 \uc774\ub984\uc744 \uc9c0\uc6c1\ub2c8\ub2e4. MetaConfig\ub294 HushGram\uc758 \uc774\ub984\uc73c\ub85c \ub3cc\uc544\uac00\uace0, \uc774 \uc2a4\uc704\uce58\uac00 \uaebc\uc838 \uc788\uc73c\uba74 Instagram \uae30\ubcf8 \ub77c\ubca8\uc774 \ud45c\uc2dc\ub429\ub2c8\ub2e4");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "\uac00\uc838\uc624\uae30\ub97c \ub2e4\uc2dc \uc2e4\ud589\ud560 \uc218 \uc788\ub3c4\ub85d \ubcf5\uc6d0\uc6a9\uc73c\ub85c \uc800\uc7a5\ud55c \uc0ac\ubcf8\uc744 \uc9c0\uc6c1\ub2c8\ub2e4. Instagram \uc790\uccb4 \uc124\uc815\uc740 \ubc14\ub00c\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("Freed %1$s.",
@@ -5891,6 +5903,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "\uc774 \ud654\uba74\uc5d0\uc11c\ub294 MetaConfig\ub97c \uc0ac\uc6a9\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ub85c\uadf8\uc778\ud55c \uc0c1\ud0dc\uc5d0\uc11c \ud648 \ud654\uba74\uc744 \ud1b5\ud574 HushGram \uc124\uc815\uc744 \uc5ec\uc138\uc694");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "MetaConfig\uc5d0\uc11c \uc22b\uc790 \ub300\uc2e0 HushGram\uc774 \uac00\uc9c4 \ubaa9\ub85d\uc758 \uc774\ub984\uc774 \ud45c\uc2dc\ub429\ub2c8\ub2e4. \uc774 \ubaa9\ub85d\uc740 Instagram 447 \uae30\uc900\uc774\ub77c \ub354 \uc0c8\ub85c\uc6b4 \uc124\uc815 \uba87 \uac1c\ub294 \uacc4\uc18d \uc22b\uc790\ub85c \ubcf4\uc785\ub2c8\ub2e4. \uac00\uc838\uc628 \ubaa9\ub85d\uc774 \uc788\uc73c\uba74 \uadf8 \ubaa9\ub85d\uc774 \ub300\uc2e0 \uc4f0\uc785\ub2c8\ub2e4");
         table.put("Much larger",
                 "\ub9e4\uc6b0 \ud07c");
         table.put("Much smaller",
@@ -5969,11 +5983,11 @@ public final class L10nTranslations {
                 "MetaConfig \uc7ac\uc815\uc758 \uc5f4\uae30");
         table.put("Open Whitehat settings",
                 "Whitehat \uc124\uc815 \uc5f4\uae30");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "Instagram\uc5d0\uc11c \ucc44\ud305\uc744 \uc5f0 \ub2e4\uc74c \uc774\uacf3\uc73c\ub85c \ub3cc\uc544\uc640 \uc228\uae30\uc138\uc694.");
     }
 
     private static void fillKo8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "Instagram\uc5d0\uc11c \ucc44\ud305\uc744 \uc5f0 \ub2e4\uc74c \uc774\uacf3\uc73c\ub85c \ub3cc\uc544\uc640 \uc228\uae30\uc138\uc694.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "Instagram\uc5d0\uc11c \ucc44\ud305\uc744 \uc5f0 \ub2e4\uc74c \uc5ec\uae30\ub85c \ub3cc\uc544\uc640 \uc7a0\uadf8\uc138\uc694.");
         table.put("Open categories as pages",
@@ -6092,11 +6106,11 @@ public final class L10nTranslations {
                 "\uc624\ubc84\ub77c\uc774\ub4dc %1$d\uac1c\ub97c \uc81c\uac70\ud588\uc2b5\ub2c8\ub2e4. Instagram\uc758 \uc790\uccb4 \uc124\uc815\uc73c\ub85c \ub3cc\uc544\uac00\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "\ud648 \uc0c1\ub2e8\uc758 \uc120\ud0dd\uc9c0\uc5d0\uc11c \ucd94\ucc9c\uc744 \uc5c6\uc560\uc11c \ud314\ub85c\uc789\uc774\ub098 \uc990\uaca8\ucc3e\uae30\uc5d0 \uba38\ubb3c\uac8c \ud569\ub2c8\ub2e4. Start Home on Following\uc774 \ud544\uc694\ud569\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "\uacf5\uc720 \uc2dc\ud2b8 \ud558\ub2e8 \ubaa9\ub85d\uc5d0\uc11c Meta AI\ub97c \uc5c6\uc571\ub2c8\ub2e4. \uc77c\ubd80 \uacc4\uc815\uc5d0\uc11c\ub294 Muse\ub85c \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
     }
 
     private static void fillKo9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "\uacf5\uc720 \uc2dc\ud2b8 \ud558\ub2e8 \ubaa9\ub85d\uc5d0\uc11c Meta AI\ub97c \uc5c6\uc571\ub2c8\ub2e4. \uc77c\ubd80 \uacc4\uc815\uc5d0\uc11c\ub294 Muse\ub85c \ud45c\uc2dc\ub429\ub2c8\ub2e4.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "\ub85c\uadf8\uc778\ub41c \uc774 \uacc4\uc815\uc758 \ubaa8\ub4e0 \uc624\ubc84\ub77c\uc774\ub4dc\ub97c \uc9c0\uc6cc\uc11c Instagram\uc774 \uc790\uccb4 \uc124\uc815\uc73c\ub85c \ub3cc\uc544\uac00\uac8c \ud569\ub2c8\ub2e4. \ubcf5\uc6d0\ud560 \uc218 \uc788\ub3c4\ub85d \ud604\uc7ac \uc624\ubc84\ub77c\uc774\ub4dc\ub97c \uba3c\uc800 \uc800\uc7a5\ud569\ub2c8\ub2e4.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -6215,17 +6229,17 @@ public final class L10nTranslations {
                 "\ubcf4\ub0bc \uc571");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "HushGram\uc774 Instagram\uc744 \uc7a0\uae00 \uc218 \uc788\ub3c4\ub85d \ud734\ub300\ud3f0\uc5d0 \ud654\uba74 \uc7a0\uae08\uc744 \uc124\uc815\ud558\uc138\uc694.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "HushGram\uc774 \uba54\uc2dc\uc9c0\ub97c \uc7a0\uae00 \uc218 \uc788\ub3c4\ub85d \ud734\ub300\ud3f0\uc5d0 \ud654\uba74 \uc7a0\uae08\uc744 \uc124\uc815\ud558\uc138\uc694.");
     }
 
     private static void fillKo10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "HushGram\uc774 \uba54\uc2dc\uc9c0\ub97c \uc7a0\uae00 \uc218 \uc788\ub3c4\ub85d \ud734\ub300\ud3f0\uc5d0 \ud654\uba74 \uc7a0\uae08\uc744 \uc124\uc815\ud558\uc138\uc694.");
         table.put("Set when you patched",
                 "\ud328\uce58\ud560 \ub54c \uc124\uc815\ub418\ub294 \uae30\ub2a5");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "\uac00\uc838\uc628 \uc124\uc815 \uc774\ub984: %1$d\uac1c. \ud655\uc778\ud558\ub824\uba74 MetaConfig\ub97c \ub2e4\uc2dc \uc5ec\uc138\uc694.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "\uc124\uc815 \uc774\ub984\uc744 \uc81c\uac70\ud588\uc2b5\ub2c8\ub2e4. Instagram\uc758 \uae30\ubcf8 \uc774\ub984\uc744 \ubcf4\ub824\uba74 MetaConfig\ub97c \ub2e4\uc2dc \uc5ec\uc138\uc694.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "\uc124\uc815 \uc774\ub984\uc744 \uc81c\uac70\ud588\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \ub0b4\uc6a9\uc744 \ubcf4\ub824\uba74 MetaConfig\ub97c \ub2e4\uc2dc \uc5ec\uc138\uc694.");
         table.put("Settings backup",
                 "\uc124\uc815 \ubc31\uc5c5");
         table.put("Settings couldn't open",
@@ -6338,11 +6352,11 @@ public final class L10nTranslations {
                 "HushGram \ud6c4\uc6d0\ud558\uae30");
         table.put("System tick",
                 "\uc2dc\uc2a4\ud15c \ud2f1");
-        table.put("Tab bar",
-                "\ud0ed \ubc14");
     }
 
     private static void fillKo11(Map<String, String> table) {
+        table.put("Tab bar",
+                "\ud0ed \ubc14");
         table.put("Tab bar height",
                 "\ud0ed \ubc14 \ub192\uc774");
         table.put("Tab bar opacity",
@@ -6461,11 +6475,11 @@ public final class L10nTranslations {
                 "\ucd08\uae30\ud654\ud560 \uc7ac\uc815\uc758\uac00 \uc5c6\uc2b5\ub2c8\ub2e4. \uc544\ubb34\uac83\ub3c4 \ubc14\ub00c\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.");
         table.put("There's no diagnostic data to clear.",
                 "\uc0ad\uc81c\ud560 \uc9c4\ub2e8 \ub370\uc774\ud130\uac00 \uc5c6\uc2b5\ub2c8\ub2e4");
-        table.put("There's no diagnostic data to put back.",
-                "\ubcf5\uc6d0\ud560 \uc9c4\ub2e8 \ub370\uc774\ud130\uac00 \uc5c6\uc2b5\ub2c8\ub2e4");
     }
 
     private static void fillKo12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "\ubcf5\uc6d0\ud560 \uc9c4\ub2e8 \ub370\uc774\ud130\uac00 \uc5c6\uc2b5\ub2c8\ub2e4");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "\uc0ad\uc81c\ud560 \uc800\uc7a5\ub41c \ubcf5\uc0ac\ubcf8\uc774 \uc5c6\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd\ub41c \uc0ac\ud56d\uc740 \uc5c6\uc2b5\ub2c8\ub2e4");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -6532,6 +6546,8 @@ public final class L10nTranslations {
                 "\uc5c5\ub370\uc774\ud2b8");
         table.put("Updating remembered positions...",
                 "\uc800\uc7a5\ub41c \uc704\uce58\ub97c \uc5c5\ub370\uc774\ud2b8\ud558\ub294 \uc911...");
+        table.put("Use HushGram's setting names",
+                "HushGram \uc124\uc815 \uc774\ub984 \uc0ac\uc6a9");
         table.put("Username",
                 "\uc0ac\uc6a9\uc790 \uc774\ub984");
         table.put("Username copied",
@@ -6582,13 +6598,13 @@ public final class L10nTranslations {
                 "\ub3d9\uc601\uc0c1\uc774 \ub300\uae30\ud558\ub294 \uacf3");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "\ud0ed\uc744 \uae38\uac8c \ud0ed\ud574 HushGram\uc744 \uc5ec\ub294 \ub3d9\uc548\uc5d0\ub294 Instagram\uc758 \uc124\uc815 \ubc0f \ud65c\ub3d9 \ud654\uba74\uc5d0 HushGram \ud56d\ubaa9\uc774 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \uae38\uac8c \ud0ed\ud558\uae30\ub97c \ub044\uba74 \ud56d\ubaa9\uc774 \ub2e4\uc2dc \ub098\ud0c0\ub0a9\ub2c8\ub2e4.");
+    }
+
+    private static void fillKo13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "\uc2a4\ud1a0\ub9ac\ub97c \ubab0\ub798 \ubcf4\ub294 \ub3d9\uc548 \uc774\ubbf8 \ubcf8 \uc2a4\ud1a0\ub9ac\uac00 \ud68c\uc0c9\uc73c\ub85c \ubc14\ub00c\uace0 \uc904\uc758 \ub9e8 \ub05d\uc73c\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4. \uc774 \ubcc0\ud654\ub294 \uc774 \ud734\ub300\ud3f0\uc5d0\uc11c\ub9cc \ubcf4\uc774\uba70, Instagram\uc5d0\ub294 \uc5ec\uc804\ud788 \uc2dc\uccad \uc0ac\uc2e4\uc774 \uc804\ub2ec\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "\uc774 \ud654\uba74\uc5d0\uc11c\ub294 Whitehat \uc124\uc815\uc744 \uc0ac\uc6a9\ud560 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \ub85c\uadf8\uc778\ud55c \uc0c1\ud0dc\uc5d0\uc11c \ud648 \ud654\uba74\uc744 \ud1b5\ud574 HushGram \uc124\uc815\uc744 \uc5ec\uc138\uc694");
-    }
-
-    private static void fillKo13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi\ub294 \uadf8\ub300\ub85c\uc785\ub2c8\ub2e4. \ubaa8\ub4e0 \ub124\ud2b8\uc6cc\ud06c\uc5d0\uc11c \ub370\uc774\ud130\ub97c \uc544\ub07c\ub824\uba74 \uc774 \uc2a4\uc704\uce58\ub97c \ub044\uc138\uc694.");
         table.put("You cleared the remembered playback positions.",
@@ -6612,7 +6628,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildPt_rBR() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillPt_rBR0(table);
         fillPt_rBR1(table);
         fillPt_rBR2(table);
@@ -7157,8 +7173,8 @@ public final class L10nTranslations {
                 "Segue voc\u00ea");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "Para o WhatsApp, editores de v\u00eddeo como CapCut e InShot ou uma galeria ou player que reproduza os v\u00eddeos salvos sem som. Pode reduzir a qualidade.");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "Esquece os nomes importados, para o MetaConfig voltar a mostrar os r\u00f3tulos do pr\u00f3prio Instagram.");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "Esquece os nomes importados. O MetaConfig volta aos nomes do HushGram, ou aos r\u00f3tulos do pr\u00f3prio Instagram se essa chave estiver desligada.");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "Esquece a c\u00f3pia salva para o Restaurar, para que as importa\u00e7\u00f5es possam rodar de novo. As configura\u00e7\u00f5es do pr\u00f3prio Instagram n\u00e3o mudam.");
         table.put("Freed %1$s.",
@@ -7532,6 +7548,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "O MetaConfig n\u00e3o est\u00e1 dispon\u00edvel nesta tela. Abra as configura\u00e7\u00f5es do HushGram pela p\u00e1gina inicial com a sess\u00e3o iniciada.");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "O MetaConfig mostra nomes da lista pr\u00f3pria do HushGram no lugar dos n\u00fameros. A lista vem do Instagram 447, ent\u00e3o algumas configura\u00e7\u00f5es mais novas continuam aparecendo como n\u00fameros. Uma lista que voc\u00ea importar \u00e9 usada no lugar dela.");
         table.put("Much larger",
                 "Bem maior");
         table.put("Much smaller",
@@ -7610,11 +7628,11 @@ public final class L10nTranslations {
                 "Abrir substitui\u00e7\u00f5es do MetaConfig");
         table.put("Open Whitehat settings",
                 "Abrir configura\u00e7\u00f5es de Whitehat");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "Abra um chat no Instagram e volte aqui para ocult\u00e1-lo.");
     }
 
     private static void fillPt_rBR8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "Abra um chat no Instagram e volte aqui para ocult\u00e1-lo.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "Abra uma conversa no Instagram e volte aqui para bloque\u00e1-la.");
         table.put("Open categories as pages",
@@ -7733,11 +7751,11 @@ public final class L10nTranslations {
                 "%1$d overrides removidos. Reinicie o Instagram para voltar \u00e0s configura\u00e7\u00f5es dele.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "Tira Para voc\u00ea das op\u00e7\u00f5es no topo do In\u00edcio, que ent\u00e3o fica em Seguindo ou Favoritos. Precisa de Start Home on Following. Reinicie o Instagram para ver a mudan\u00e7a.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "Tira o Meta AI da fileira na parte de baixo da tela de compartilhar. Algumas contas veem como Muse.");
     }
 
     private static void fillPt_rBR9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "Tira o Meta AI da fileira na parte de baixo da tela de compartilhar. Algumas contas veem como Muse.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "Tira todos os overrides desta conta conectada, e o Instagram volta \u00e0s configura\u00e7\u00f5es dele. Seus overrides atuais s\u00e3o salvos antes para o Restaurar.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -7856,17 +7874,17 @@ public final class L10nTranslations {
                 "Enviar para");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "Configure um bloqueio de tela no seu celular para o HushGram poder bloquear o Instagram.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "Configure um bloqueio de tela no seu celular para o HushGram poder bloquear suas mensagens.");
     }
 
     private static void fillPt_rBR10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "Configure um bloqueio de tela no seu celular para o HushGram poder bloquear suas mensagens.");
         table.put("Set when you patched",
                 "Definido ao aplicar os patches");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "Nomes de configura\u00e7\u00f5es importados: %1$d. Abra o MetaConfig de novo para v\u00ea-los.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "Nomes de configura\u00e7\u00f5es removidos. Abra o MetaConfig de novo para ver os r\u00f3tulos do pr\u00f3prio Instagram.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "Nomes de configura\u00e7\u00f5es removidos. Abra o MetaConfig de novo para ver a mudan\u00e7a.");
         table.put("Settings backup",
                 "Backup das configura\u00e7\u00f5es");
         table.put("Settings couldn't open",
@@ -7979,11 +7997,11 @@ public final class L10nTranslations {
                 "Apoie o HushGram");
         table.put("System tick",
                 "Toque do sistema");
-        table.put("Tab bar",
-                "Barra de abas");
     }
 
     private static void fillPt_rBR11(Map<String, String> table) {
+        table.put("Tab bar",
+                "Barra de abas");
         table.put("Tab bar height",
                 "Altura da barra de abas");
         table.put("Tab bar opacity",
@@ -8102,11 +8120,11 @@ public final class L10nTranslations {
                 "N\u00e3o h\u00e1 valores personalizados para redefinir. Nada mudou.");
         table.put("There's no diagnostic data to clear.",
                 "N\u00e3o h\u00e1 dados de diagn\u00f3stico para limpar.");
-        table.put("There's no diagnostic data to put back.",
-                "N\u00e3o h\u00e1 dados de diagn\u00f3stico para restaurar.");
     }
 
     private static void fillPt_rBR12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "N\u00e3o h\u00e1 dados de diagn\u00f3stico para restaurar.");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "N\u00e3o h\u00e1 c\u00f3pia salva para descartar. Nada mudou.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -8173,6 +8191,8 @@ public final class L10nTranslations {
                 "Atualiza\u00e7\u00f5es");
         table.put("Updating remembered positions...",
                 "Atualizando posi\u00e7\u00f5es salvas...");
+        table.put("Use HushGram's setting names",
+                "Usar os nomes de configura\u00e7\u00f5es do HushGram");
         table.put("Username",
                 "Nome de usu\u00e1rio");
         table.put("Username copied",
@@ -8223,13 +8243,13 @@ public final class L10nTranslations {
                 "Onde os v\u00eddeos esperam");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "Enquanto manter uma aba pressionada abrir o HushGram, a tela Configura\u00e7\u00f5es e atividade do Instagram n\u00e3o mostra a linha do HushGram. Desative o toque longo e a linha volta.");
+    }
+
+    private static void fillPt_rBR13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Enquanto voc\u00ea assiste anonimamente, um Story que voc\u00ea j\u00e1 viu fica cinza e vai para o fim da fila, s\u00f3 neste celular. O Instagram continua sem saber que voc\u00ea viu.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "As configura\u00e7\u00f5es de Whitehat n\u00e3o est\u00e3o dispon\u00edveis nesta tela. Abra as configura\u00e7\u00f5es do HushGram pela p\u00e1gina inicial com a sess\u00e3o iniciada.");
-    }
-
-    private static void fillPt_rBR13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "O Wi-Fi fica como est\u00e1. Desative esta chave para economizar dados em qualquer rede.");
         table.put("You cleared the remembered playback positions.",
@@ -8253,7 +8273,7 @@ public final class L10nTranslations {
     }
 
     private static Map<String, String> buildTr() {
-        Map<String, String> table = new HashMap<>(1580);
+        Map<String, String> table = new HashMap<>(1584);
         fillTr0(table);
         fillTr1(table);
         fillTr2(table);
@@ -8798,8 +8818,8 @@ public final class L10nTranslations {
                 "Seni takip ediyor");
         table.put("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.",
                 "WhatsApp, CapCut ve InShot gibi video d\u00fczenleyiciler ya da kaydedilen videolar\u0131 sessiz oynatan bir galeri veya oynat\u0131c\u0131 i\u00e7in. Kaliteyi d\u00fc\u015f\u00fcrebilir.");
-        table.put("Forget the imported names, so MetaConfig shows Instagram's own labels again.",
-                "\u0130\u00e7e aktar\u0131lan adlar\u0131 unutur, b\u00f6ylece MetaConfig yeniden Instagram'\u0131n kendi etiketlerini g\u00f6sterir.");
+        table.put("Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.",
+                "\u0130\u00e7e aktar\u0131lan adlar\u0131 unutur. MetaConfig HushGram'\u0131n adlar\u0131na d\u00f6ner, bu anahtar kapal\u0131ysa Instagram'\u0131n kendi etiketlerini g\u00f6sterir.");
         table.put("Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.",
                 "\u0130\u00e7e aktarmalar yeniden \u00e7al\u0131\u015fabilsin diye Geri Y\u00fckle i\u00e7in kaydedilen kopyay\u0131 unutur. Instagram'\u0131n kendi ayarlar\u0131 de\u011fi\u015fmez.");
         table.put("Freed %1$s.",
@@ -9173,6 +9193,8 @@ public final class L10nTranslations {
                 "Meta AI");
         table.put("MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "MetaConfig bu ekranda kullan\u0131lam\u0131yor. Oturum a\u00e7\u0131kken Ana Sayfa'dan HushGram ayarlar\u0131n\u0131 a\u00e7\u0131n.");
+        table.put("MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.",
+                "MetaConfig say\u0131lar yerine HushGram'\u0131n kendi listesindeki adlar\u0131 g\u00f6sterir. Liste Instagram 447'den geldi\u011fi i\u00e7in daha yeni birka\u00e7 ayar yine say\u0131 olarak g\u00f6r\u00fcn\u00fcr. \u0130\u00e7e aktard\u0131\u011f\u0131n bir liste varsa onun yerine o kullan\u0131l\u0131r.");
         table.put("Much larger",
                 "\u00c7ok daha b\u00fcy\u00fck");
         table.put("Much smaller",
@@ -9251,11 +9273,11 @@ public final class L10nTranslations {
                 "MetaConfig ge\u00e7ersiz k\u0131lmalar\u0131n\u0131 a\u00e7");
         table.put("Open Whitehat settings",
                 "Whitehat ayarlar\u0131n\u0131 a\u00e7");
-        table.put("Open a chat in Instagram, then come back here to hide it.",
-                "Instagram'da bir sohbet a\u00e7\u0131n, sonra gizlemek i\u00e7in buraya d\u00f6n\u00fcn.");
     }
 
     private static void fillTr8(Map<String, String> table) {
+        table.put("Open a chat in Instagram, then come back here to hide it.",
+                "Instagram'da bir sohbet a\u00e7\u0131n, sonra gizlemek i\u00e7in buraya d\u00f6n\u00fcn.");
         table.put("Open a chat in Instagram, then come back here to lock it.",
                 "Instagram'da bir sohbet a\u00e7, sonra kilitlemek i\u00e7in buraya d\u00f6n.");
         table.put("Open categories as pages",
@@ -9374,11 +9396,11 @@ public final class L10nTranslations {
                 "%1$d override kald\u0131r\u0131ld\u0131. Instagram'\u0131n kendi ayarlar\u0131na d\u00f6nmek i\u00e7in yeniden ba\u015flat.");
         table.put("Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.",
                 "Ana Sayfa'n\u0131n \u00fcst\u00fcndeki se\u00e7eneklerden Senin i\u00e7in'i kald\u0131r\u0131r, b\u00f6ylece Takip edilenler veya Favoriler'de kal\u0131r. Start Home on Following gerekir. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
-        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
-                "Payla\u015f\u0131m sayfas\u0131n\u0131n alt\u0131ndaki sat\u0131rdan Meta AI'\u0131 kald\u0131r\u0131r. Baz\u0131 hesaplar bunu Muse olarak g\u00f6r\u00fcr.");
     }
 
     private static void fillTr9(Map<String, String> table) {
+        table.put("Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.",
+                "Payla\u015f\u0131m sayfas\u0131n\u0131n alt\u0131ndaki sat\u0131rdan Meta AI'\u0131 kald\u0131r\u0131r. Baz\u0131 hesaplar bunu Muse olarak g\u00f6r\u00fcr.");
         table.put("Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.",
                 "Oturum a\u00e7\u0131k olan bu hesaptaki t\u00fcm override'lar\u0131 kald\u0131r\u0131r, b\u00f6ylece Instagram kendi ayarlar\u0131na d\u00f6ner. Mevcut override'lar\u0131n \u00f6nce Geri Y\u00fckle i\u00e7in kaydedilir.");
         table.put("Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.",
@@ -9497,17 +9519,17 @@ public final class L10nTranslations {
                 "G\u00f6nderilecek uygulama");
         table.put("Set a screen lock on your phone so HushGram can lock Instagram.",
                 "HushGram'\u0131n Instagram'\u0131 kilitleyebilmesi i\u00e7in telefonunda bir ekran kilidi ayarla.");
-        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
-                "HushGram'\u0131n mesajlar\u0131n\u0131 kilitleyebilmesi i\u00e7in telefonunda bir ekran kilidi ayarla.");
     }
 
     private static void fillTr10(Map<String, String> table) {
+        table.put("Set a screen lock on your phone so HushGram can lock your messages.",
+                "HushGram'\u0131n mesajlar\u0131n\u0131 kilitleyebilmesi i\u00e7in telefonunda bir ekran kilidi ayarla.");
         table.put("Set when you patched",
                 "Yamalad\u0131\u011f\u0131nda ayarlananlar");
         table.put("Setting names imported: %1$d. Open MetaConfig again to see them.",
                 "\u0130\u00e7e aktar\u0131lan ayar adlar\u0131: %1$d. G\u00f6rmek i\u00e7in MetaConfig'i yeniden a\u00e7.");
-        table.put("Setting names removed. Open MetaConfig again to see Instagram's own labels.",
-                "Ayar adlar\u0131 kald\u0131r\u0131ld\u0131. Instagram'\u0131n kendi etiketlerini g\u00f6rmek i\u00e7in MetaConfig'i yeniden a\u00e7.");
+        table.put("Setting names removed. Open MetaConfig again to see the change.",
+                "Ayar adlar\u0131 kald\u0131r\u0131ld\u0131. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in MetaConfig'i yeniden a\u00e7.");
         table.put("Settings backup",
                 "Ayar yede\u011fi");
         table.put("Settings couldn't open",
@@ -9620,11 +9642,11 @@ public final class L10nTranslations {
                 "HushGram'\u0131 destekle");
         table.put("System tick",
                 "Sistem t\u0131k\u0131");
-        table.put("Tab bar",
-                "Sekme \u00e7ubu\u011fu");
     }
 
     private static void fillTr11(Map<String, String> table) {
+        table.put("Tab bar",
+                "Sekme \u00e7ubu\u011fu");
         table.put("Tab bar height",
                 "Sekme \u00e7ubu\u011fu y\u00fcksekli\u011fi");
         table.put("Tab bar opacity",
@@ -9743,11 +9765,11 @@ public final class L10nTranslations {
                 "S\u0131f\u0131rlanacak ge\u00e7ersiz k\u0131lma yok. Hi\u00e7bir \u015fey de\u011fi\u015fmedi.");
         table.put("There's no diagnostic data to clear.",
                 "Temizlenecek tan\u0131lama verisi yok.");
-        table.put("There's no diagnostic data to put back.",
-                "Geri getirilecek tan\u0131lama verisi yok.");
     }
 
     private static void fillTr12(Map<String, String> table) {
+        table.put("There's no diagnostic data to put back.",
+                "Geri getirilecek tan\u0131lama verisi yok.");
         table.put("There's no saved copy to discard. Nothing changed.",
                 "At\u0131lacak kay\u0131tl\u0131 kopya yok. Hi\u00e7bir \u015fey de\u011fi\u015fmedi.");
         table.put("They're chosen in Morphe Manager when you patch, and Pause doesn't turn them off. Patch again to change them.",
@@ -9814,6 +9836,8 @@ public final class L10nTranslations {
                 "G\u00fcncellemeler");
         table.put("Updating remembered positions...",
                 "Kaydedilen konumlar g\u00fcncelleniyor...");
+        table.put("Use HushGram's setting names",
+                "HushGram'\u0131n ayar adlar\u0131n\u0131 kullan");
         table.put("Username",
                 "Kullan\u0131c\u0131 ad\u0131");
         table.put("Username copied",
@@ -9864,13 +9888,13 @@ public final class L10nTranslations {
                 "Videolar\u0131n bekledi\u011fi yer");
         table.put("While a tab long press opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn the long press off and the row comes back.",
                 "Bir sekmeye uzun basmak HushGram'\u0131 a\u00e7t\u0131\u011f\u0131 s\u00fcrece Instagram'\u0131n Ayarlar ve hareketler ekran\u0131nda HushGram sat\u0131r\u0131 g\u00f6sterilmez. Uzun basmay\u0131 kapat\u0131nca sat\u0131r geri gelir.");
+    }
+
+    private static void fillTr13(Map<String, String> table) {
         table.put("While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.",
                 "Anonim izlerken izledi\u011fin bir hikaye griye d\u00f6ner ve s\u0131ran\u0131n sonuna ge\u00e7er, yaln\u0131zca bu telefonda. Instagram yine de onu izledi\u011fini \u00f6\u011frenmez.");
         table.put("Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.",
                 "Whitehat ayarlar\u0131 bu ekranda kullan\u0131lam\u0131yor. Oturum a\u00e7\u0131kken Ana Sayfa'dan HushGram ayarlar\u0131n\u0131 a\u00e7\u0131n.");
-    }
-
-    private static void fillTr13(Map<String, String> table) {
         table.put("Wi-Fi stays as it is. Turn this off to save data on every network.",
                 "Wi-Fi oldu\u011fu gibi kal\u0131r. Her a\u011fda veri tasarrufu i\u00e7in bu anahtar\u0131 kapat.");
         table.put("You cleared the remembered playback positions.",
