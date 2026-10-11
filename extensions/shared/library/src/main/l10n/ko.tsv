@@ -17,9 +17,9 @@ Edit a story after posting	올린 뒤 스토리 수정
 Enlarge profile photos	프로필 사진 확대
 Extra-bright HDR video	초고휘도 HDR 동영상
 Fills the space behind a reposted reel, post or story with a blur.	리포스트한 릴스, 게시물, 스토리 뒤의 빈 공간을 흐림 효과로 채웁니다.
-Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.	Instagram은 시작할 때마다 자동 스크롤을 끕니다. 여기서 사용 안함을 선택하면 내 선택이 유지됩니다.
+Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	Instagram은 시작할 때마다 자동 스크롤을 끕니다. 켜면 마지막에 두었던 상태가 유지됩니다.
 Instagram's own	Instagram 기본값
-Keep Reels auto-scroll between sessions	세션이 바뀌어도 릴스 자동 스크롤 유지
+Keep Reels auto scroll between sessions	세션이 바뀌어도 릴스 자동 스크롤 유지
 Leave a Close Friends list	친한 친구 목록에서 나가기
 Lets you change a story for a short while after you post it.	올린 뒤 잠시 동안 스토리를 수정할 수 있습니다.
 Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	프로필 사진을 눌러 크게 볼 수 있으며, 계정 개인정보 보호에 설정이 생깁니다.
@@ -36,7 +36,7 @@ Press and hold a reel to open a menu with playback speed.	릴스를 길게 누�
 Press and hold the edge of a video in your feed to watch it at double speed.	피드 동영상의 가장자리를 길게 누르면 2배속으로 볼 수 있습니다.
 Press and hold the like button on a story to pick an emoji reaction.	스토리의 좋아요 버튼을 길게 누르면 이모지 반응을 고를 수 있습니다.
 Press and hold the paper plane on a story to send it.	스토리의 종이비행기를 길게 누르면 보낼 수 있습니다.
-Preview of disappearing photos in Direct	DM의 사라지는 사진 미리보기
+Preview of disappearing photos in Messages	DM의 사라지는 사진 미리보기
 Quick emoji reactions on stories	스토리 빠른 이모지 반응
 Quick speed menu in Reels	릴스 빠른 속도 메뉴
 Recommended flags	추천 플래그
@@ -62,7 +62,7 @@ This Instagram version has none of these switches.	이 Instagram 버전에는 �
 Turn on Allow importing overrides first. These switches use the same path.	먼저 재정의 가져오기 허용을 켜세요. 이 스위치는 같은 경로를 씁니다.
 Ultra HDR photos	울트라 HDR 사진
 Upload stories at higher quality	더 높은 화질로 스토리 업로드
-Usernames in Direct and notifications	DM과 알림의 사용자 이름
+Usernames in Messages and notifications	DM과 알림의 사용자 이름
 %1$s of %2$s	%2$s 중 %1$s
 %1$s so far	현재까지 %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. 패치할 때 적용되었기 때문에 HushGram 일시 정지로는 비활성화할 수 없습니다. 이 기능이 원인인지 확인하려면 다시 패치하면서 해당 패치를 제외하세요

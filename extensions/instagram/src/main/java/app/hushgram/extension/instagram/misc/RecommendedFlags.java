@@ -1,6 +1,7 @@
 /*
- * Copyright 2026 HushGram contributors
- * https://github.com/SysAdminDoc/HushGram
+ * The config numbers, parameter indexes and on values come from docs/mappings/piko_recommended_flags_v3.json
+ * in https://github.com/crimera/piko (GPL-3.0), commit ea752648f5688a50a96df21430020e98bf9ece00.
+ * Modified for HushGram, 2026. https://github.com/SysAdminDoc/HushGram
  */
 package app.hushgram.extension.instagram.misc;
 
@@ -134,10 +135,12 @@ public final class RecommendedFlags {
         flags.add(new Builder(L10n.t("Quick speed menu in Reels"),
                 L10n.t("Press and hold a reel to open a menu with playback speed."))
                 .p(121815, 0).build());
-        flags.add(new Builder(L10n.t("Keep Reels auto-scroll between sessions"),
-                L10n.t("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick."))
-                .p(83371, 10).build());
-        flags.add(new Builder(L10n.t("Preview of disappearing photos in Direct"),
+        // piko names 83371::10 "Per-session auto-scroll": true makes Instagram reset auto scroll at
+        // every start, so On here, keeping it between sessions, sets the parameter false.
+        flags.add(new Builder(L10n.t("Keep Reels auto scroll between sessions"),
+                L10n.t("Instagram turns auto scroll off each time it starts. On keeps it the way you left it."))
+                .q(83371, 10).build());
+        flags.add(new Builder(L10n.t("Preview of disappearing photos in Messages"),
                 L10n.t("Shows a blurred preview of a disappearing photo or video in a chat."))
                 .p(98405, 1).build());
         flags.add(new Builder(L10n.t("Enlarge profile photos"),
@@ -149,7 +152,7 @@ public final class RecommendedFlags {
         flags.add(new Builder(L10n.t("Saved button in Explore"),
                 L10n.t("Adds a shortcut to your saved posts in the Explore tab."))
                 .p(126311, 1).p(133789, 0).build());
-        flags.add(new Builder(L10n.t("Usernames in Direct and notifications"),
+        flags.add(new Builder(L10n.t("Usernames in Messages and notifications"),
                 L10n.t("Shows usernames in place of display names in chats and notifications."))
                 .p(77064, 0).p(77064, 1).p(77064, 2).build());
         flags.add(new Builder(L10n.t("Redesigned notification settings"),
@@ -157,7 +160,7 @@ public final class RecommendedFlags {
                 .p(91066, 0).build());
         flags.add(new Builder(L10n.t("Suggested accounts in search"),
                 L10n.t("Choose Off to hide the suggested accounts that show before you type a search."))
-                .p(130063, 0).build());
+                .p(130063, 0).p(130063, 4).p(130063, 3).p(130063, 2).build());
         flags.add(new Builder(L10n.t("Meta AI suggestions in search"),
                 L10n.t("Choose Off to show your recent searches instead of AI suggestions."))
                 .p(111509, 3).build());

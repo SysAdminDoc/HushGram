@@ -900,8 +900,8 @@ public final class L10nTranslations {
                 "Instagram stellt einen Wecker, der dein Handy f\u00fcnf Minuten sp\u00e4ter weckt, um Nutzungsdaten zu senden. Das stoppt diesen Wecker. Die Daten gehen beim n\u00e4chsten \u00d6ffnen der App raus, mit \u201eAnalysen deaktivieren\u201c nirgendwohin.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "Instagram zeigt den Bildschirm nicht mehr an, der meldet, dass diese Version zu alt ist. Ein gepatchter Build aktualisiert sich nicht von selbst, so bleibt er nutzbar.");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "Instagram schaltet das automatische Weiterscrollen bei jedem Start aus. W\u00e4hle hier Aus, damit deine Wahl bleibt.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "Instagram schaltet das automatische Weiterscrollen bei jedem Start aus. An beh\u00e4lt es so, wie du es gelassen hast.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "Instagram weckt dein Handy jede oder jede zweite Minute, auch bei ausgeschaltetem Bildschirm, nur um zu vermerken, dass es noch l\u00e4uft. Das h\u00f6rt damit auf. Nachrichten, Benachrichtigungen und alles, was du siehst, bleiben unver\u00e4ndert.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -920,7 +920,7 @@ public final class L10nTranslations {
                 "Gr\u00f6\u00dfe von Instagram");
         table.put("Joining the picture and sound",
                 "Bild und Ton werden zusammengef\u00fcgt");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "Reels-Autoscroll zwischen Sitzungen behalten");
         table.put("Keep a seek bar",
                 "Zeitleiste immer zeigen");
@@ -1201,8 +1201,8 @@ public final class L10nTranslations {
                 "Halte den Like-Button einer Story gedr\u00fcckt, um eine Emoji-Reaktion zu w\u00e4hlen.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "Halte das Papierflugzeug einer Story gedr\u00fcckt, um sie zu senden.");
-        table.put("Preview of disappearing photos in Direct",
-                "Vorschau f\u00fcr verschwindende Fotos in Direct");
+        table.put("Preview of disappearing photos in Messages",
+                "Vorschau f\u00fcr verschwindende Fotos in Nachrichten");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "Vorherige \u00dcberschreibungen wiederhergestellt. Starte Instagram neu, um sie anzuwenden.");
         table.put("Profile",
@@ -1751,8 +1751,8 @@ public final class L10nTranslations {
                 "Benutzername");
         table.put("Username copied",
                 "Benutzername kopiert");
-        table.put("Usernames in Direct and notifications",
-                "Benutzernamen in Direct und Benachrichtigungen");
+        table.put("Usernames in Messages and notifications",
+                "Benutzernamen in Nachrichten und Benachrichtigungen");
         table.put("Validate an overrides file",
                 "Eine \u00dcberschreibungsdatei pr\u00fcfen");
         table.put("Version",
@@ -2681,8 +2681,8 @@ public final class L10nTranslations {
                 "Instagram programa una alarma que despierta tu tel\u00e9fono para enviar sus datos de uso cinco minutos despu\u00e9s. Esto detiene esa alarma. Los datos se env\u00edan la pr\u00f3xima vez que uses la app, o a ninguna parte con Desactivar anal\u00edticas.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "Instagram deja de mostrar la pantalla que dice que esta versi\u00f3n es demasiado antigua. Una versi\u00f3n parcheada no se actualiza sola, as\u00ed que esto la mantiene usable.");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "Instagram desactiva el desplazamiento autom\u00e1tico cada vez que se inicia. Elige Desactivado aqu\u00ed para conservar tu elecci\u00f3n.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "Instagram desactiva el desplazamiento autom\u00e1tico cada vez que se inicia. Activado lo mantiene como lo dejaste.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "Instagram despierta tu tel\u00e9fono cada minuto o dos, tambi\u00e9n con la pantalla apagada, solo para anotar que sigue funcionando. Esto lo detiene. Los mensajes, las notificaciones y todo lo que ves no cambian.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -2701,7 +2701,7 @@ public final class L10nTranslations {
                 "Tama\u00f1o de Instagram");
         table.put("Joining the picture and sound",
                 "Uniendo la imagen y el sonido");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "Mantener el desplazamiento autom\u00e1tico de Reels entre sesiones");
         table.put("Keep a seek bar",
                 "Mantener la barra de reproducci\u00f3n");
@@ -2982,8 +2982,8 @@ public final class L10nTranslations {
                 "Mant\u00e9n pulsado el bot\u00f3n de me gusta de una historia para elegir una reacci\u00f3n con emoji.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "Mant\u00e9n pulsado el avi\u00f3n de papel de una historia para enviarla.");
-        table.put("Preview of disappearing photos in Direct",
-                "Vista previa de fotos temporales en Direct");
+        table.put("Preview of disappearing photos in Messages",
+                "Vista previa de fotos temporales en Mensajes");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "Valores anteriores restaurados. Reinicia Instagram para aplicarlos.");
         table.put("Profile",
@@ -3532,8 +3532,8 @@ public final class L10nTranslations {
                 "Nombre de usuario");
         table.put("Username copied",
                 "Nombre de usuario copiado");
-        table.put("Usernames in Direct and notifications",
-                "Nombres de usuario en Direct y notificaciones");
+        table.put("Usernames in Messages and notifications",
+                "Nombres de usuario en Mensajes y notificaciones");
         table.put("Validate an overrides file",
                 "Validar un archivo de valores personalizados");
         table.put("Version",
@@ -4462,8 +4462,8 @@ public final class L10nTranslations {
                 "Instagram memasang alarm yang membangunkan ponselmu untuk mengirim data penggunaannya lima menit kemudian. Ini menghentikan alarm itu. Data dikirim saat kamu memakai aplikasi berikutnya, atau tidak ke mana pun dengan Nonaktifkan analitik.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "Instagram berhenti menampilkan layar yang menyatakan versi ini terlalu lama. Build yang ditambal tidak memperbarui dirinya sendiri, jadi ini membuatnya tetap bisa dipakai.");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "Instagram mematikan gulir otomatis setiap kali dimulai. Pilih Nonaktif di sini agar pilihanmu tetap.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "Instagram mematikan gulir otomatis setiap kali dimulai. Aktif mempertahankannya seperti yang kamu tinggalkan.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "Instagram membangunkan ponselmu setiap satu atau dua menit, termasuk saat layar mati, hanya untuk mencatat bahwa ia masih berjalan. Ini menghentikannya. Pesan, notifikasi, dan semua yang kamu lihat tidak terpengaruh.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -4482,7 +4482,7 @@ public final class L10nTranslations {
                 "Ukuran Instagram");
         table.put("Joining the picture and sound",
                 "Menggabungkan gambar dan suara");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "Pertahankan gulir otomatis Reels antar sesi");
         table.put("Keep a seek bar",
                 "Tetap tampilkan bilah putar");
@@ -4763,8 +4763,8 @@ public final class L10nTranslations {
                 "Tekan dan tahan tombol suka pada cerita untuk memilih reaksi emoji.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "Tekan dan tahan ikon pesawat kertas pada cerita untuk mengirimnya.");
-        table.put("Preview of disappearing photos in Direct",
-                "Pratinjau foto sekali lihat di Direct");
+        table.put("Preview of disappearing photos in Messages",
+                "Pratinjau foto sekali lihat di Pesan");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "Nilai pengganti sebelumnya sudah dipulihkan. Mulai ulang Instagram untuk menerapkannya.");
         table.put("Profile",
@@ -5313,8 +5313,8 @@ public final class L10nTranslations {
                 "Nama pengguna");
         table.put("Username copied",
                 "Nama pengguna disalin");
-        table.put("Usernames in Direct and notifications",
-                "Nama pengguna di Direct dan notifikasi");
+        table.put("Usernames in Messages and notifications",
+                "Nama pengguna di Pesan dan notifikasi");
         table.put("Validate an overrides file",
                 "Validasi berkas nilai pengganti");
         table.put("Version",
@@ -6243,8 +6243,8 @@ public final class L10nTranslations {
                 "Instagram\uc740 5\ubd84 \ub4a4 \uc0ac\uc6a9 \ub370\uc774\ud130\ub97c \ubcf4\ub0b4\uae30 \uc704\ud574 \ud734\ub300\ud3f0\uc744 \uae68\uc6b0\ub294 \uc54c\ub78c\uc744 \uc124\uc815\ud569\ub2c8\ub2e4. \uc774 \uc54c\ub78c\uc744 \uba48\ucda5\ub2c8\ub2e4. \ub370\uc774\ud130\ub294 \ub2e4\uc74c\uc5d0 \uc571\uc744 \uc0ac\uc6a9\ud560 \ub54c \uc804\uc1a1\ub418\uba70, \ubd84\uc11d \ub044\uae30\ub97c \ucf1c\uba74 \uc5b4\ub514\ub85c\ub3c4 \uac00\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "Instagram\uc5d0\uc11c \uc774 \ubc84\uc804\uc774 \ub9cc\ub8cc\ub418\uc5c8\ub2e4\ub77c\ub294 \ud654\uba74\uc774 \ub354 \uc774\uc0c1 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4. \ud328\uce58\ub41c \ube4c\ub4dc\ub294 \uc790\ub3d9\uc73c\ub85c \uc5c5\ub370\uc774\ud2b8\ub418\uc9c0 \uc54a\uc73c\ubbc0\ub85c, \uc774 \uc124\uc815\uc744 \ud1b5\ud574 \uacc4\uc18d \uc0ac\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "Instagram\uc740 \uc2dc\uc791\ud560 \ub54c\ub9c8\ub2e4 \uc790\ub3d9 \uc2a4\ud06c\ub864\uc744 \ub055\ub2c8\ub2e4. \uc5ec\uae30\uc11c \uc0ac\uc6a9 \uc548\ud568\uc744 \uc120\ud0dd\ud558\uba74 \ub0b4 \uc120\ud0dd\uc774 \uc720\uc9c0\ub429\ub2c8\ub2e4.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "Instagram\uc740 \uc2dc\uc791\ud560 \ub54c\ub9c8\ub2e4 \uc790\ub3d9 \uc2a4\ud06c\ub864\uc744 \ub055\ub2c8\ub2e4. \ucf1c\uba74 \ub9c8\uc9c0\ub9c9\uc5d0 \ub450\uc5c8\ub358 \uc0c1\ud0dc\uac00 \uc720\uc9c0\ub429\ub2c8\ub2e4.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "Instagram\uc740 \ud654\uba74\uc774 \uaebc\uc838 \uc788\uc744 \ub54c\ub3c4 1~2\ubd84\ub9c8\ub2e4 \ud734\ub300\ud3f0\uc744 \uae68\uc6cc \uc544\uc9c1 \uc2e4\ud589 \uc911\uc774\ub77c\uace0 \uae30\ub85d\ub9cc \ud569\ub2c8\ub2e4. \uc774\ub97c \uba48\ucda5\ub2c8\ub2e4. \uba54\uc2dc\uc9c0, \uc54c\ub9bc, \ud654\uba74\uc5d0 \ubcf4\uc774\ub294 \ubaa8\ub4e0 \uac83\uc740 \uadf8\ub300\ub85c\uc785\ub2c8\ub2e4.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -6263,7 +6263,7 @@ public final class L10nTranslations {
                 "Instagram \uc0ac\uc774\uc988");
         table.put("Joining the picture and sound",
                 "\uc0ac\uc9c4\uacfc \uc18c\ub9ac\uac00 \uacb0\ud569\ud558\ub294 \uc911");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "\uc138\uc158\uc774 \ubc14\ub00c\uc5b4\ub3c4 \ub9b4\uc2a4 \uc790\ub3d9 \uc2a4\ud06c\ub864 \uc720\uc9c0");
         table.put("Keep a seek bar",
                 "\uc7ac\uc0dd\ubc14 \uc720\uc9c0");
@@ -6544,7 +6544,7 @@ public final class L10nTranslations {
                 "\uc2a4\ud1a0\ub9ac\uc758 \uc88b\uc544\uc694 \ubc84\ud2bc\uc744 \uae38\uac8c \ub204\ub974\uba74 \uc774\ubaa8\uc9c0 \ubc18\uc751\uc744 \uace0\ub97c \uc218 \uc788\uc2b5\ub2c8\ub2e4.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "\uc2a4\ud1a0\ub9ac\uc758 \uc885\uc774\ube44\ud589\uae30\ub97c \uae38\uac8c \ub204\ub974\uba74 \ubcf4\ub0bc \uc218 \uc788\uc2b5\ub2c8\ub2e4.");
-        table.put("Preview of disappearing photos in Direct",
+        table.put("Preview of disappearing photos in Messages",
                 "DM\uc758 \uc0ac\ub77c\uc9c0\ub294 \uc0ac\uc9c4 \ubbf8\ub9ac\ubcf4\uae30");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "\uc774\uc804 \uc7ac\uc815\uc758 \uc124\uc815\uc774 \ubcf5\uc6d0\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uc801\uc6a9\ud558\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694");
@@ -7094,7 +7094,7 @@ public final class L10nTranslations {
                 "\uc0ac\uc6a9\uc790 \uc774\ub984");
         table.put("Username copied",
                 "\uc0ac\uc6a9\uc790 \uc774\ub984\uc744 \ubcf5\uc0ac\ud588\uc2b5\ub2c8\ub2e4");
-        table.put("Usernames in Direct and notifications",
+        table.put("Usernames in Messages and notifications",
                 "DM\uacfc \uc54c\ub9bc\uc758 \uc0ac\uc6a9\uc790 \uc774\ub984");
         table.put("Validate an overrides file",
                 "\uc7ac\uc815\uc758 \ud30c\uc77c \uc720\ud6a8\uc131 \uac80\uc0ac");
@@ -8024,8 +8024,8 @@ public final class L10nTranslations {
                 "O Instagram define um alarme para acordar seu telefone e enviar os dados de uso cinco minutos depois. Isso para esse alarme. Os dados v\u00e3o na pr\u00f3xima vez que voc\u00ea usar o app, ou para lugar nenhum com Desativar an\u00e1lises.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "O Instagram para de mostrar a tela que diz que esta vers\u00e3o \u00e9 antiga demais. Uma vers\u00e3o com patches n\u00e3o se atualiza sozinha, ent\u00e3o isso a mant\u00e9m utiliz\u00e1vel.");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "O Instagram desliga a rolagem autom\u00e1tica toda vez que inicia. Escolha Desativado aqui para manter sua escolha.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "O Instagram desliga a rolagem autom\u00e1tica toda vez que inicia. Ativado mant\u00e9m do jeito que voc\u00ea deixou.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "O Instagram acorda seu telefone a cada minuto ou dois, inclusive com a tela apagada, s\u00f3 para anotar que ainda est\u00e1 em execu\u00e7\u00e3o. Isso para essa atividade. Mensagens, notifica\u00e7\u00f5es e tudo o que voc\u00ea v\u00ea n\u00e3o mudam.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -8044,7 +8044,7 @@ public final class L10nTranslations {
                 "Tamanho do Instagram");
         table.put("Joining the picture and sound",
                 "Juntando a imagem e o som");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "Manter a rolagem autom\u00e1tica do Reels entre sess\u00f5es");
         table.put("Keep a seek bar",
                 "Manter a barra de progresso");
@@ -8325,8 +8325,8 @@ public final class L10nTranslations {
                 "Pressione e segure o bot\u00e3o de curtir em um story para escolher uma rea\u00e7\u00e3o com emoji.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "Pressione e segure o avi\u00e3o de papel em um story para envi\u00e1-lo.");
-        table.put("Preview of disappearing photos in Direct",
-                "Pr\u00e9via de fotos tempor\u00e1rias no Direct");
+        table.put("Preview of disappearing photos in Messages",
+                "Pr\u00e9via de fotos tempor\u00e1rias nas Mensagens");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "Valores anteriores restaurados. Reinicie o Instagram para aplic\u00e1-los.");
         table.put("Profile",
@@ -8875,8 +8875,8 @@ public final class L10nTranslations {
                 "Nome de usu\u00e1rio");
         table.put("Username copied",
                 "Nome de usu\u00e1rio copiado");
-        table.put("Usernames in Direct and notifications",
-                "Nomes de usu\u00e1rio no Direct e nas notifica\u00e7\u00f5es");
+        table.put("Usernames in Messages and notifications",
+                "Nomes de usu\u00e1rio nas Mensagens e nas notifica\u00e7\u00f5es");
         table.put("Validate an overrides file",
                 "Validar um arquivo de valores personalizados");
         table.put("Version",
@@ -9805,8 +9805,8 @@ public final class L10nTranslations {
                 "Instagram, kullan\u0131m verilerini be\u015f dakika sonra g\u00f6ndermek i\u00e7in telefonunu uyand\u0131ran bir alarm kurar. Bu, o alarm\u0131 durdurur. Veriler uygulamay\u0131 bir sonraki kullan\u0131\u015f\u0131nda gider, Analizleri kapat a\u00e7\u0131kken hi\u00e7bir yere gitmez.");
         table.put("Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.",
                 "Instagram bu s\u00fcr\u00fcm\u00fcn \u00e7ok eski oldu\u011funu s\u00f6yleyen ekran\u0131 art\u0131k g\u00f6stermez. Yamalanm\u0131\u015f bir s\u00fcr\u00fcm kendi kendine g\u00fcncellenmez, bu y\u00fczden bu onu kullan\u0131labilir tutar.");
-        table.put("Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.",
-                "Instagram her a\u00e7\u0131l\u0131\u015fta otomatik kayd\u0131rmay\u0131 kapat\u0131r. Se\u00e7imin kalmas\u0131 i\u00e7in burada Kapal\u0131'y\u0131 se\u00e7.");
+        table.put("Instagram turns auto scroll off each time it starts. On keeps it the way you left it.",
+                "Instagram her a\u00e7\u0131l\u0131\u015fta otomatik kayd\u0131rmay\u0131 kapat\u0131r. A\u00e7\u0131k, b\u0131rakt\u0131\u011f\u0131n gibi kalmas\u0131n\u0131 sa\u011flar.");
         table.put("Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.",
                 "Instagram, ekran kapal\u0131yken bile her bir iki dakikada bir telefonunu yaln\u0131zca h\u00e2l\u00e2 \u00e7al\u0131\u015ft\u0131\u011f\u0131n\u0131 not etmek i\u00e7in uyand\u0131r\u0131r. Bu, bunu durdurur. Mesajlar, bildirimler ve g\u00f6rd\u00fc\u011f\u00fcn her \u015fey etkilenmez.");
         table.put("Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.",
@@ -9825,7 +9825,7 @@ public final class L10nTranslations {
                 "Instagram boyutu");
         table.put("Joining the picture and sound",
                 "G\u00f6r\u00fcnt\u00fc ve ses birle\u015ftiriliyor");
-        table.put("Keep Reels auto-scroll between sessions",
+        table.put("Keep Reels auto scroll between sessions",
                 "Reels otomatik kayd\u0131rmay\u0131 oturumlar aras\u0131nda koru");
         table.put("Keep a seek bar",
                 "\u0130lerleme \u00e7ubu\u011fu hep g\u00f6r\u00fcns\u00fcn");
@@ -10106,8 +10106,8 @@ public final class L10nTranslations {
                 "Bir emoji tepkisi se\u00e7mek i\u00e7in hikayedeki be\u011fen d\u00fc\u011fmesine bas\u0131l\u0131 tut.");
         table.put("Press and hold the paper plane on a story to send it.",
                 "Hikayeyi g\u00f6ndermek i\u00e7in ka\u011f\u0131t u\u00e7a\u011fa bas\u0131l\u0131 tut.");
-        table.put("Preview of disappearing photos in Direct",
-                "Direct'te kaybolan foto\u011fraflar\u0131n \u00f6nizlemesi");
+        table.put("Preview of disappearing photos in Messages",
+                "Mesajlar'da kaybolan foto\u011fraflar\u0131n \u00f6nizlemesi");
         table.put("Previous overrides restored. Restart Instagram to apply them.",
                 "\u00d6nceki ge\u00e7ersiz k\u0131lmalar geri y\u00fcklendi. Uygulamak i\u00e7in Instagram'\u0131 yeniden ba\u015flat\u0131n.");
         table.put("Profile",
@@ -10656,8 +10656,8 @@ public final class L10nTranslations {
                 "Kullan\u0131c\u0131 ad\u0131");
         table.put("Username copied",
                 "Kullan\u0131c\u0131 ad\u0131 kopyaland\u0131");
-        table.put("Usernames in Direct and notifications",
-                "Direct ve bildirimlerde kullan\u0131c\u0131 adlar\u0131");
+        table.put("Usernames in Messages and notifications",
+                "Mesajlar ve bildirimlerde kullan\u0131c\u0131 adlar\u0131");
         table.put("Validate an overrides file",
                 "Bir ge\u00e7ersiz k\u0131lma dosyas\u0131n\u0131 do\u011frula");
         table.put("Version",

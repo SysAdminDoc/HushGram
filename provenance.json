@@ -121,6 +121,16 @@
     },
     {
       "paths": [
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/RecommendedFlags.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/crimera/piko",
+      "commit": "ea752648f5688a50a96df21430020e98bf9ece00",
+      "license": "GPL-3.0",
+      "changes": "Data, not code: the config numbers, parameter indexes and which value means on from piko's docs/mappings/piko_recommended_flags_v3.json, written as a Java switch list with HushGram's own titles, descriptions and code. The Instagram Plus fonts flag is left out, and the story upload quality and newer like animation rows have no piko counterpart. piko's NOTICE is carried in HushGram's NOTICE."
+    },
+    {
+      "paths": [
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/TranslatedStart.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/TranslatedStartTest.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/translatedstart/TranslatedStartPatch.kt"
@@ -369,7 +379,6 @@
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/NavigationTarget.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/NavigationSettingsTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/NavigationChoiceTest.java",
-        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/RecommendedFlags.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/RecommendedFlagsTest.java"
       ],
       "origin": "original",

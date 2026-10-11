@@ -35,6 +35,35 @@ import app.hushgram.extension.shared.SettingsContextRule;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37}, shadows = OverrideImportTest.NativeTable.class)
 public class RecommendedFlagsTest {
+    /**
+     * The shipped list says what On means per parameter. piko's 83371::10 is "per-session
+     * auto-scroll", true resetting it at each start, so keeping auto scroll sets it false; and the
+     * suggested accounts in search are four parameters of 130063, not one.
+     */
+    @Test public void keepingAutoScrollTurnsThePerSessionResetOffAndSearchSuggestionsCoverEveryParameter() {
+        RecommendedFlags.Flag keep = shipped("Keep Reels auto scroll between sessions");
+        assertEquals(1, keep.size());
+        assertEquals(83371, keep.config[0]);
+        assertEquals(10, keep.index[0]);
+        assertFalse("On keeps auto scroll, so the reset parameter goes false", keep.on[0]);
+
+        RecommendedFlags.Flag suggested = shipped("Suggested accounts in search");
+        Set<Integer> indexes = new HashSet<>();
+        for (int i = 0; i < suggested.size(); i++) {
+            assertEquals(130063, suggested.config[i]);
+            assertTrue("Off hides them, so On is Instagram's own true", suggested.on[i]);
+            indexes.add(suggested.index[i]);
+        }
+        assertEquals(new HashSet<>(Arrays.asList(0, 2, 3, 4)), indexes);
+    }
+
+    private static RecommendedFlags.Flag shipped(String title) {
+        for (RecommendedFlags.Flag flag : RecommendedFlags.catalogue()) {
+            if (flag.title.equals(title)) return flag;
+        }
+        throw new AssertionError("no switch titled " + title);
+    }
+
     @Rule public final SettingsContextRule context = new SettingsContextRule();
     private static final String STORE = "{\"500:cfg_a\":[\"1: second: false\"],\"800:cfg_d\":[\"0: other: true\"]}";
     private static final long FIRST = OverrideImportTest.NativeTable.id(1, 10), SECOND = OverrideImportTest.NativeTable.id(1, 11),
