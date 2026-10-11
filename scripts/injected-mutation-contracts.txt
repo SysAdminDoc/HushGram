@@ -1279,6 +1279,13 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->hidden(Ljava
 # 03p2.A01 and its count with CtN. Left out, the report can't say whether the count arrives. The
 # rows below note the same. NativeHiddenLikeCountsTest checks both on all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->sawCount(Ljava/lang/Object;Ljava/lang/Object;)V in static (LX/04wI;)I calling instance LX/0A0W;->CtN(I)Ljava/lang/Integer; holding LX/03p2;->A01:LX/0A0W;
+# Back leaves Home asks BackLeavesHome.leave right before Home's Back handler scrolls the feed to the top
+# with the reason BACK_BUTTON_PRESS, in MainFeedFragment.onBackPressed (01fK on 450), the class tracing
+# "MainFeedFragment.scrollToTopWithReason.". The class's one instance ()Z method that calls
+# System.currentTimeMillis is the Back handler, and it's called once there and nowhere else. Left out,
+# Back scrolls Home up and reloads it first; twice or elsewhere, it isn't the hook the patch wrote.
+# NativeBackLeavesHomeTest checks where it lands on all seven 450 builds.
+once-call Lapp/hushgram/extension/instagram/feed/BackLeavesHome;->leave()I in instance ()Z calling static Ljava/lang/System;->currentTimeMillis()J class-holding MainFeedFragment.scrollToTopWithReason.
 # Each like row that reads a post's hidden-count flag and then asks that method hands HiddenLikeCounts.rowRead
 # the post's data and the flag it just read, once, so the poster is noted by that post's own count and not
 # another's.

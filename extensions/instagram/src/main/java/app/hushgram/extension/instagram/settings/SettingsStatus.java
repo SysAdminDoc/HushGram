@@ -411,6 +411,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Back leaves Home patch. */
+    public static boolean backLeavesHome() {
+        return false;
+    }
+
     /** Rewritten by the Keep in chat patch. */
     public static boolean keepInChat() {
         return false;

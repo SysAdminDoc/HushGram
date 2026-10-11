@@ -437,8 +437,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean askRefresh = build.contains(PatchFamily.ASK_BEFORE_REFRESH);
         boolean postTime = build.contains(PatchFamily.POST_TIME);
         boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
+        boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes ? category(screen, L10n.t("Feed")) : null;
+                || askLike || askRefresh || postTime || hiddenLikes || backHome ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
                     L10n.t("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to "
@@ -513,6 +514,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_REFRESH, L10n.t("Ask before a refresh"),
                     L10n.t("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on "
                             + "screen.")));
+        }
+        if (backHome) {
+            feed.addPreference(toggle(context, Settings.BACK_LEAVES_HOME, L10n.t("Back leaves Home as it is"),
+                    L10n.t("Back on Home leaves Instagram without first scrolling the feed to the top and reloading "
+                            + "it.")));
         }
         if (postTime) {
             feed.addPreference(toggle(context, Settings.SHOW_POST_TIME, L10n.t("Show a post's exact time"),

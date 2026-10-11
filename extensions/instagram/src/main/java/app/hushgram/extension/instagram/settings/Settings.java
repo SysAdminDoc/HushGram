@@ -180,6 +180,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_hidden_like_counts", FALSE);
 
     /**
+     * Back on Home leaves as it is, instead of first scrolling the feed to the top and reloading it
+     * ({@link app.hushgram.extension.instagram.feed.BackLeavesHome}). Read at each Back press on Home,
+     * so a change applies at once. Off to start.
+     */
+    public static final BooleanSetting BACK_LEAVES_HOME =
+            new BooleanSetting("hushgram_back_leaves_home", FALSE);
+
+    /**
      * A story plays again from the start when it ends, instead of the viewer moving on
      * ({@link app.hushgram.extension.instagram.stories.StoryLoop}). While it's on it wins over
      * {@link #BLOCK_STORY_AUTO_ADVANCE}. Off to start.
