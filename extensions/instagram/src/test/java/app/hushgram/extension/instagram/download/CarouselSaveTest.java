@@ -260,8 +260,8 @@ public class CarouselSaveTest {
         assertEquals(0, server.hits("/last.jpg"));
         assertEquals(1, gallery.rows.size());
         assertEquals(Integer.valueOf(0), gallery.rows.get(1L).getAsInteger(MediaStore.MediaColumns.IS_PENDING));
-        assertEquals("Carousel cancelled. Saved 1. Failed 0. Skipped 2.", ShadowToast.getTextOfLatestToast());
-        assertEquals("Carousel cancelled. Saved 1. Failed 0. Skipped 2.", SaveControl.batchOutcome());
+        assertEquals("Carousel canceled. Saved 1. Failed 0. Skipped 2.", ShadowToast.getTextOfLatestToast());
+        assertEquals("Carousel canceled. Saved 1. Failed 0. Skipped 2.", SaveControl.batchOutcome());
         assertClean();
     }
 

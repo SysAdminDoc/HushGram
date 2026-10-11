@@ -68,7 +68,7 @@ public class NavigationChoiceTest {
             row.setValue("PROFILE");
             ShadowLooper.idleMainLooper();
             assertEquals(NavigationTarget.PROFILE, Settings.NAVIGATION_SETTINGS_TARGET.savedValue());
-            assertTrue(row.getSummary().toString().contains("Long-press Profile"));
+            assertTrue(row.getSummary().toString().contains("Long press Profile"));
             // The tabs take a change at once (#82), so the row no longer asks for a restart.
             assertFalse(row.getSummary().toString().contains("Restart Instagram"));
             assertFalse(Settings.NAVIGATION_SETTINGS_TARGET.rebootApp);
@@ -89,7 +89,7 @@ public class NavigationChoiceTest {
                     page.findPreference(Settings.NAVIGATION_SETTINGS_TARGET.key);
             assertEquals("CLIPS", row.getValue());
             assertEquals(NavigationTarget.OFF, Settings.NAVIGATION_SETTINGS_TARGET.get());
-            assertTrue(row.getSummary().toString().contains("Long-press Reels"));
+            assertTrue(row.getSummary().toString().contains("Long press Reels"));
         }
     }
 

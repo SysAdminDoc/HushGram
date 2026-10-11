@@ -112,7 +112,7 @@ Instagram's own checks of who signed the app keep passing on this patched build.
 Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Evita que Instagram envíe informes de uso y de fallos a Instagram y Facebook. Reinicia Instagram para ver el cambio.
 Joining the picture and sound	Uniendo la imagen y el sonido
 Licenses	Licencias
-Link expired. Reopen the item and try again	El enlace expiró. Vuelve a abrir el contenido e inténtalo de nuevo
+Link expired. Reopen the item and try again.	El enlace expiró. Vuelve a abrir el contenido e inténtalo de nuevo.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Nadie fuera de Meta sabe qué hace que una cuenta sea suspendida. Un Instagram parcheado no puede pasar la comprobación de Google de que viene de Play Store, y ningún parche cambia eso. Si prefieres no arriesgar tu cuenta, prueba primero con una de repuesto. Instalar actualizaciones encima con la misma clave de firma conserva los datos de Instagram y tu sesión. En un teléfono con root, una instalación Root Mount conserva la sesión que ya tienes.
 No app on this phone can open the link. The address is %1$s.	Ninguna app de este teléfono puede abrir el enlace. La dirección es %1$s.
 Not saved: that isn't an Instagram photo or video	No se guardó: no es una foto ni un video de Instagram
@@ -125,7 +125,7 @@ Record patch activity and show errors for a bug report. Leave off during normal 
 Remove build expired popup	Quitar el aviso de versión caducada
 Retry	Reintentar
 Sanitize sharing links	Limpiar enlaces compartidos
-Save cancelled	Se canceló el guardado
+Save canceled	Se canceló el guardado
 Save full report	Guardar informe completo
 Save the full report in %1$s.	Guarda el informe completo en %1$s.
 Saved to %1$s	Se guardó en %1$s
@@ -421,7 +421,7 @@ Saving a carousel	Guardando un carrusel
 Cancel saving this carousel	Cancelar el guardado de este carrusel
 Page %1$d of %2$d	Página %1$d de %2$d
 Not saved: a carousel can have at most %1$d pages	No se guardó: un carrusel puede tener como máximo %1$d páginas
-Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carrusel cancelado. Guardados %1$d. Fallidos %2$d. Omitidos %3$d.
+Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carrusel cancelado. Guardados %1$d. Fallidos %2$d. Omitidos %3$d.
 Saved %1$d. Failed %2$d. Skipped %3$d.	Guardados %1$d. Fallidos %2$d. Omitidos %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d guardados con menor calidad que en Instagram.
 Last carousel save	Último carrusel guardado
@@ -495,7 +495,7 @@ Saving diagnostic report...	Guardando el informe de diagnóstico...
 Diagnostic report saved.	Informe de diagnóstico guardado.
 Choose a file for the settings export.	Elige un archivo para exportar los ajustes.
 Exporting HushGram settings...	Exportando los ajustes de HushGram...
-Settings export cancelled.	Exportación de ajustes cancelada.
+Settings export canceled.	Exportación de ajustes cancelada.
 Show a Reel seek thumb	Mostrar control circular en Reels
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Añade a la barra de búsqueda un control redondo blanco que puedes arrastrar. Los anuncios conservan su propia barra.
 Bigger seek bar on reels	Barra de progreso más grande en Reels
@@ -517,7 +517,7 @@ Home feed picker	Selector de Inicio
 Custom tab	Pestaña personalizada
 Off	Desactivado
 Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	Mantener pulsadas las pestañas conserva la acción de Instagram. Elige una para abrir HushGram en su lugar.
-Long-press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Mantén pulsado %1$s para abrir HushGram en lugar de la acción habitual de esa pestaña. Los toques normales y las otras pestañas siguen igual. Solo se pueden usar las pestañas que muestra tu cuenta.
+Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Mantén pulsado %1$s para abrir HushGram en lugar de la acción habitual de esa pestaña. Los toques normales y las otras pestañas siguen igual. Solo se pueden usar las pestañas que muestra tu cuenta.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	Deslizar de lado ya no te lleva entre Inicio, Reels y las demás pestañas principales. Toca la barra de pestañas en su lugar. De la cámara se encarga Desactivar deslizar para crear.
 Ask for larger photos	Pedir fotos más grandes
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Vacía Inicio a propósito, así que ves la fila de historias y nada debajo. Los perfiles, Explorar y Reels siguen mostrando publicaciones. Desliza Inicio hacia abajo para actualizar después de cambiarlo.
@@ -804,7 +804,7 @@ Open a chat in Instagram, then come back here to hide it.	Abre un chat en Instag
 %1$s is shown again	%1$s se muestra de nuevo
 Pick the playback quality with a tab long press	Elegir la calidad de reproducción al mantener pulsada una pestaña
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Mantener pulsadas las pestañas conserva la acción de Instagram. Elige una para elegir la calidad de reproducción en su lugar.
-Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Mantén pulsado %1$s para elegir la calidad de reproducción en lugar de la acción habitual de esa pestaña. Los toques normales y las demás pestañas no cambian. Hace falta tener activada la Calidad de reproducción predeterminada. Si la misma pestaña abre HushGram, eso va primero.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Mantén pulsado %1$s para elegir la calidad de reproducción en lugar de la acción habitual de esa pestaña. Los toques normales y las demás pestañas no cambian. Hace falta tener activada la Calidad de reproducción predeterminada. Si la misma pestaña abre HushGram, eso va primero.
 Playback quality: %1$s. The next video you open uses it.	Calidad de reproducción: %1$s. El próximo vídeo que abras la usará.
 Couldn't save the playback quality. Open HushGram settings to set it.	No se pudo guardar la calidad de reproducción. Abre los ajustes de HushGram para elegirla.
 Support HushGram	Apoya HushGram

@@ -112,7 +112,7 @@ Instagram's own checks of who signed the app keep passing on this patched build.
 Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Instagram'ın kullanım ve çökme raporlarını Instagram'a ve Facebook'a göndermesini engeller. Değişikliği görmek için Instagram'ı yeniden başlat.
 Joining the picture and sound	Görüntü ve ses birleştiriliyor
 Licenses	Lisanslar
-Link expired. Reopen the item and try again	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene
+Link expired. Reopen the item and try again.	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Meta dışında kimse bir hesabın neden askıya alındığını bilmiyor. Yamalı bir Instagram, Google'ın Play Store'dan geldiğini doğrulayan kontrolünü geçemez ve hiçbir yama bunu değiştirmez. Hesabını riske atmak istemiyorsan önce yedek bir hesapla dene. Güncellemeleri aynı imza anahtarıyla üzerine kurmak Instagram'ın verilerini ve oturumunu korur. Root'lu bir telefonda Root Mount kurulumu mevcut oturumunu korur.
 No app on this phone can open the link. The address is %1$s.	Bu telefondaki hiçbir uygulama bağlantıyı açamıyor. Adres: %1$s.
 Not saved: that isn't an Instagram photo or video	Kaydedilmedi: Bu bir Instagram fotoğrafı veya videosu değil
@@ -125,7 +125,7 @@ Record patch activity and show errors for a bug report. Leave off during normal 
 Remove build expired popup	Süresi dolan sürüm uyarısını kaldır
 Retry	Yeniden dene
 Sanitize sharing links	Paylaşım bağlantılarını temizle
-Save cancelled	Kaydetme iptal edildi
+Save canceled	Kaydetme iptal edildi
 Save full report	Tam raporu kaydet
 Save the full report in %1$s.	Tam raporu %1$s konumuna kaydeder.
 Saved to %1$s	Şuraya kaydedildi: %1$s
@@ -421,7 +421,7 @@ Saving a carousel	Çoklu gönderi kaydediliyor
 Cancel saving this carousel	Bu çoklu gönderinin kaydını iptal et
 Page %1$d of %2$d	%1$d / %2$d sayfa
 Not saved: a carousel can have at most %1$d pages	Kaydedilmedi: çoklu gönderide en fazla %1$d sayfa olabilir
-Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.	Çoklu gönderi iptal edildi. Kaydedilen %1$d. Başarısız %2$d. Atlanan %3$d.
+Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Çoklu gönderi iptal edildi. Kaydedilen %1$d. Başarısız %2$d. Atlanan %3$d.
 Saved %1$d. Failed %2$d. Skipped %3$d.	Kaydedilen %1$d. Başarısız %2$d. Atlanan %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d öğe Instagram'dakinden daha düşük kalitede kaydedildi.
 Last carousel save	Son çoklu gönderi kaydı
@@ -495,7 +495,7 @@ Saving diagnostic report...	Tanılama raporu kaydediliyor...
 Diagnostic report saved.	Tanılama raporu kaydedildi.
 Choose a file for the settings export.	Ayarları dışa aktarmak için bir dosya seçin.
 Exporting HushGram settings...	HushGram ayarları dışa aktarılıyor...
-Settings export cancelled.	Ayar dışa aktarma işlemi iptal edildi.
+Settings export canceled.	Ayar dışa aktarma işlemi iptal edildi.
 Show a Reel seek thumb	Reel ilerleme tutamacını göster
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Arama çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
 Bigger seek bar on reels	Reel'lerde daha büyük ilerleme çubuğu
@@ -517,7 +517,7 @@ Home feed picker	Ana Sayfa seçici
 Custom tab	Özel sekme
 Off	Kapalı
 Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine HushGram açmak için bir sekme seç.
-Long-press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Sekmenin normal işlemi yerine HushGram açmak için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Yalnızca hesabının gösterdiği sekmeler kullanılabilir.
+Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Sekmenin normal işlemi yerine HushGram açmak için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Yalnızca hesabının gösterdiği sekmeler kullanılabilir.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	Yana kaydırmak artık Ana Sayfa, Reels ve diğer ana sekmeler arasında geçiş yapmaz. Bunun yerine sekme çubuğuna dokun. Kamerayı Oluşturmak için kaydırmayı durdur kapsar.
 Ask for larger photos	Daha büyük fotoğraflar iste
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Ana Sayfa'yı bilerek boşaltır, böylece hikâye satırını görürsün ve altında hiçbir şey olmaz. Profiller, Keşfet ve Reels gönderi göstermeye devam eder. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
@@ -804,7 +804,7 @@ Open a chat in Instagram, then come back here to hide it.	Instagram'da bir sohbe
 %1$s is shown again	%1$s yeniden gösteriliyor
 Pick the playback quality with a tab long press	Sekmeye uzun basarak oynatma kalitesini seç
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine oynatma kalitesini seçmek için bir sekme seç.
-Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Sekmenin normal işlemi yerine oynatma kalitesini seçmek için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Varsayılan oynatma kalitesi açık olmalı. Aynı sekme HushGram'ı açıyorsa o öncelikli olur.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Sekmenin normal işlemi yerine oynatma kalitesini seçmek için %1$s üzerine uzun bas. Normal dokunuşlar ve diğer sekmeler aynı kalır. Varsayılan oynatma kalitesi açık olmalı. Aynı sekme HushGram'ı açıyorsa o öncelikli olur.
 Playback quality: %1$s. The next video you open uses it.	Oynatma kalitesi: %1$s. Açacağın sonraki video bunu kullanır.
 Couldn't save the playback quality. Open HushGram settings to set it.	Oynatma kalitesi kaydedilemedi. Ayarlamak için HushGram ayarlarını aç.
 Support HushGram	HushGram'ı destekle

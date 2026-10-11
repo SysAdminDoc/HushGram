@@ -112,7 +112,7 @@ Instagram's own checks of who signed the app keep passing on this patched build.
 Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Menghentikan Instagram mengirim laporan penggunaan dan laporan error ke Instagram dan Facebook. Mulai ulang Instagram untuk melihat perubahannya.
 Joining the picture and sound	Menggabungkan gambar dan suara
 Licenses	Lisensi
-Link expired. Reopen the item and try again	Tautan kedaluwarsa. Buka ulang kontennya lalu coba lagi
+Link expired. Reopen the item and try again.	Tautan kedaluwarsa. Buka ulang kontennya lalu coba lagi.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Tidak ada yang tahu di luar Meta apa yang membuat akun ditangguhkan. Instagram yang sudah di-patch tidak bisa lolos pemeriksaan Google bahwa aplikasi itu berasal dari Play Store, dan tidak ada patch yang mengubahnya. Jika tidak ingin mempertaruhkan akunmu, coba dulu dengan akun cadangan. Memasang pembaruan di atasnya dengan kunci penandatanganan yang sama menjaga data Instagram dan loginmu. Di ponsel yang di-root, pemasangan Root Mount menjaga login yang sudah ada.
 No app on this phone can open the link. The address is %1$s.	Tidak ada aplikasi di ponsel ini yang dapat membuka tautan ini. Alamatnya %1$s.
 Not saved: that isn't an Instagram photo or video	Tidak disimpan: itu bukan foto atau video Instagram
@@ -125,7 +125,7 @@ Record patch activity and show errors for a bug report. Leave off during normal 
 Remove build expired popup	Hapus popup build kedaluwarsa
 Retry	Coba lagi
 Sanitize sharing links	Bersihkan tautan berbagi
-Save cancelled	Penyimpanan dibatalkan
+Save canceled	Penyimpanan dibatalkan
 Save full report	Simpan laporan lengkap
 Save the full report in %1$s.	Simpan laporan lengkap di %1$s.
 Saved to %1$s	Disimpan ke %1$s
@@ -421,7 +421,7 @@ Saving a carousel	Menyimpan carousel
 Cancel saving this carousel	Batalkan penyimpanan carousel ini
 Page %1$d of %2$d	Halaman %1$d dari %2$d
 Not saved: a carousel can have at most %1$d pages	Tidak disimpan: carousel hanya boleh memiliki paling banyak %1$d halaman
-Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carousel dibatalkan. Disimpan %1$d. Gagal %2$d. Dilewati %3$d.
+Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Carousel dibatalkan. Disimpan %1$d. Gagal %2$d. Dilewati %3$d.
 Saved %1$d. Failed %2$d. Skipped %3$d.	Disimpan %1$d. Gagal %2$d. Dilewati %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d disimpan dengan kualitas lebih rendah daripada di Instagram.
 Last carousel save	Penyimpanan carousel terakhir
@@ -495,7 +495,7 @@ Saving diagnostic report...	Menyimpan laporan diagnostik...
 Diagnostic report saved.	Laporan diagnostik disimpan.
 Choose a file for the settings export.	Pilih file untuk mengekspor pengaturan.
 Exporting HushGram settings...	Mengekspor pengaturan HushGram...
-Settings export cancelled.	Ekspor pengaturan dibatalkan.
+Settings export canceled.	Ekspor pengaturan dibatalkan.
 Show a Reel seek thumb	Tampilkan pegangan penggeser Reel
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Menambahkan gagang bundar putih pada bilah geser yang bisa kamu seret. Iklan tetap memakai bilahnya sendiri.
 Bigger seek bar on reels	Bilah geser lebih besar di Reel
@@ -517,7 +517,7 @@ Home feed picker	Pemilih beranda
 Custom tab	Tab khusus
 Off	Nonaktif
 Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk membuka HushGram sebagai gantinya.
-Long-press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Tekan lama %1$s untuk membuka HushGram menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lainnya tetap sama. Hanya tab yang ditampilkan akunmu yang dapat digunakan.
+Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	Tekan lama %1$s untuk membuka HushGram menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lainnya tetap sama. Hanya tab yang ditampilkan akunmu yang dapat digunakan.
 A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	Geser ke samping tidak lagi memindahkan Anda antara Beranda, Reels, dan tab utama lainnya. Ketuk bilah tab sebagai gantinya. Kamera ditangani oleh Hentikan geser untuk membuat.
 Ask for larger photos	Minta foto yang lebih besar
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Sengaja mengosongkan Beranda, jadi kamu melihat baris cerita dan tidak ada apa pun di bawahnya. Profil, Jelajahi, dan Reels tetap menampilkan postingan. Tarik Beranda ke bawah untuk menyegarkan setelah mengubahnya.
@@ -804,7 +804,7 @@ Open a chat in Instagram, then come back here to hide it.	Buka chat di Instagram
 %1$s is shown again	%1$s ditampilkan lagi
 Pick the playback quality with a tab long press	Pilih kualitas pemutaran dengan menekan lama tab
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	Menekan lama tab tetap menjalankan tindakan Instagram. Pilih satu tab untuk memilih kualitas pemutaran sebagai gantinya.
-Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka HushGram, itu yang didahulukan.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	Tekan lama %1$s untuk memilih kualitas pemutaran menggantikan tindakan biasa tab itu. Ketukan biasa dan tab lain tetap sama. Kualitas pemutaran default harus aktif. Jika tab yang sama membuka HushGram, itu yang didahulukan.
 Playback quality: %1$s. The next video you open uses it.	Kualitas pemutaran: %1$s. Video berikutnya yang kamu buka memakainya.
 Couldn't save the playback quality. Open HushGram settings to set it.	Kualitas pemutaran tidak bisa disimpan. Buka pengaturan HushGram untuk mengaturnya.
 Support HushGram	Dukung HushGram

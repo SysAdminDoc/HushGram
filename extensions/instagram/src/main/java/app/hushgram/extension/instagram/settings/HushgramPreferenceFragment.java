@@ -321,7 +321,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Activity activity = getActivity();
         boolean removed = isRemoving() || (getParentFragment() != null && getParentFragment().isRemoving());
         if (documentRequest == EXPORT_CONFIGURATION && (removed || (activity != null && activity.isFinishing()))) {
-            ExportStatus.CONFIGURATION.finish(configurationExportToken, L10n.t("Settings export cancelled."));
+            ExportStatus.CONFIGURATION.finish(configurationExportToken, L10n.t("Settings export canceled."));
         }
         super.onDestroy();
     }
@@ -1866,7 +1866,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
         if (result != Activity.RESULT_OK) {
             if (request == EXPORT_CONFIGURATION) ExportStatus.CONFIGURATION.finish(
-                    configurationExportToken, L10n.t("Settings export cancelled."));
+                    configurationExportToken, L10n.t("Settings export canceled."));
             showConfiguration();
             return;
         }
@@ -4410,7 +4410,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (forQuality) {
                 summary = target == NavigationTarget.OFF
                         ? L10n.t("Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.")
-                        : L10n.f("Long-press %1$s to pick the playback quality instead of that tab's usual action. "
+                        : L10n.f("Long press %1$s to pick the playback quality instead of that tab's usual action. "
                                 + "Normal taps and other tabs stay the same. Needs Default playback quality on. "
                                 + "If the same tab opens HushGram, that comes first.", navigationLabel(target));
                 setSummary(summary);
@@ -4418,7 +4418,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             summary = target == NavigationTarget.OFF
                     ? L10n.t("Tab long presses keep Instagram's own action. Choose one to open HushGram instead.")
-                    : L10n.f("Long-press %1$s to open HushGram instead of that tab's usual action. "
+                    : L10n.f("Long press %1$s to open HushGram instead of that tab's usual action. "
                             + "Normal taps and other tabs stay the same. Only tabs your account shows can be used.",
                             navigationLabel(target));
             setSummary(summary);

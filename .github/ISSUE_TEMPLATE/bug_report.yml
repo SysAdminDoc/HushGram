@@ -17,7 +17,7 @@ body:
     id: versions
     attributes:
       label: HushGram and Instagram versions
-      description: Long-press Instagram's icon and tap HushGram settings. Copy what the Version row under About says.
+      description: Long press Instagram's icon and tap HushGram settings. Copy what the Version row under About says.
       placeholder: HushGram 0.0.8 on Instagram 450.0.0.50.77
     validations:
       required: true
@@ -120,7 +120,7 @@ body:
     attributes:
       label: Diagnostic report
       description: |
-        This answers most of our questions, so please add it if you can. Long-press Instagram's icon, tap HushGram settings, turn on Debug logging, do the thing that goes wrong, then come back, tap Export diagnostic report and pick Save full report. That saves a text file in Download/Morphe on your phone (on Android 9, the message says which folder). Drag it into this box. If you can't get the file off your phone, pick Copy quick report instead and paste the shorter report here.
+        This answers most of our questions, so please add it if you can. Long press Instagram's icon, tap HushGram settings, turn on Debug logging, do the thing that goes wrong, then come back, tap Export diagnostic report and pick Save full report. That saves a text file in Download/Morphe on your phone (on Android 9, the message says which folder). Drag it into this box. If you can't get the file off your phone, pick Copy quick report instead and paste the shorter report here.
         The report leaves out links, IDs, cookies and sign-in tokens. It can't spot a name or message written anywhere else, so read it and remove anything private before you post it.
         Source builds also show a production build identity in About and in the report. Include it when available. The [settings guide](https://github.com/SysAdminDoc/HushGram#settings) explains the local report and build details.
   - type: textarea

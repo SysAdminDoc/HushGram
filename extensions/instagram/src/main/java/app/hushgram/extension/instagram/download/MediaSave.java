@@ -153,7 +153,7 @@ public final class MediaSave {
 
         String message(Context application) {
             String text = cancelled
-                    ? L10n.f(application, "Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.", saved, failed, skipped)
+                    ? L10n.f(application, "Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.", saved, failed, skipped)
                     : L10n.f(application, "Saved %1$d. Failed %2$d. Skipped %3$d.", saved, failed, skipped);
             return lower == 0 ? text : text + "\n" + L10n.f(application,
                     "%1$d saved in lower quality than on Instagram.", lower);
@@ -1254,13 +1254,13 @@ public final class MediaSave {
                     ? L10n.t(application, "Saved to the gallery")
                     : L10n.f(application, "Saved to %1$s", L10n.isolate(location));
             case EXPIRED:
-                return L10n.t(application, "Link expired. Reopen the item and try again");
+                return L10n.t(application, "Link expired. Reopen the item and try again.");
             case REFUSED:
                 return L10n.t(application, "Not saved: that isn't an Instagram photo or video");
             case TOO_LARGE:
                 return L10n.t(application, "Not saved: the file is over 512 MB");
             case CANCELLED:
-                return L10n.t(application, "Save cancelled");
+                return L10n.t(application, "Save canceled");
             default:
                 return L10n.t(application, "Download failed");
         }

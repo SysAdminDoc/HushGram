@@ -113,7 +113,7 @@ Instagram's own checks of who signed the app keep passing on this patched build.
 Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Instagram이 사용 보고서와 오류 보고서를 Instagram과 Facebook에 보내지 못하게 합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Joining the picture and sound	사진과 소리가 결합하는 중
 Licenses	라이선스
-Link expired. Reopen the item and try again	링크가 만료되었습니다. 항목을 다시 열고 다시 시도하세요
+Link expired. Reopen the item and try again.	링크가 만료되었습니다. 항목을 다시 열고 다시 시도하세요.
 Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Meta 밖에서는 아무도 어떤 행동이 계정 정지로 이어지는지 모릅니다. 패치된 Instagram은 Play 스토어에서 받은 앱인지 확인하는 Google의 검사를 통과할 수 없고, 어떤 패치로도 바꿀 수 없습니다. 계정이 위험해지는 것이 싫다면 먼저 보조 계정으로 시도해 보세요. 같은 서명 키로 위에 업데이트를 설치하면 Instagram 데이터와 로그인이 유지됩니다. 루팅된 휴대폰에서는 Root Mount 설치가 지금 로그인된 상태를 그대로 유지합니다.
 No app on this phone can open the link. The address is %1$s.	이 링크를 열 수 있는 앱이 없습니다. 주소는 %1$s입니다
 Not saved: that isn't an Instagram photo or video	저장되지 않음: Instagram 사진 또는 동영상이 아님
@@ -126,7 +126,7 @@ Record patch activity and show errors for a bug report. Leave off during normal 
 Remove build expired popup	빌드 만료 팝업 제거
 Retry	다시 시도
 Sanitize sharing links	공유 링크 정리
-Save cancelled	저장이 취소됨
+Save canceled	저장이 취소됨
 Save full report	전체 보고서 저장
 Save the full report in %1$s.	전체 보고서를 %1$s에 저장합니다
 Saved to %1$s	%1$s에 저장됨
@@ -422,7 +422,7 @@ Saving a carousel	캐러셀을 저장하는 중
 Cancel saving this carousel	이 캐러셀 저장 취소
 Page %1$d of %2$d	%2$d 페이지 중 %1$d 페이지
 Not saved: a carousel can have at most %1$d pages	저장되지 않음: 캐러셀에는 최대 %1$d 개의 페이지까지 포함할 수 있습니다.
-Carousel cancelled. Saved %1$d. Failed %2$d. Skipped %3$d.	캐러셀 저장이 취소됨. %1$d 개 저장됨. %2$d 개 실패. %3$d 개 건너뜀
+Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	캐러셀 저장이 취소됨. %1$d 개 저장됨. %2$d 개 실패. %3$d 개 건너뜀
 Saved %1$d. Failed %2$d. Skipped %3$d.	%1$d 개 저장됨. %2$d개 실패. %3$d 개 건너뜀
 %1$d saved in lower quality than on Instagram.	%1$d 개가 Instagram에서 제공되는 것보다 낮은 화질로 저장되었습니다
 Last carousel save	마지막 캐러셀 저장
@@ -495,7 +495,7 @@ Saving diagnostic report...	진단 보고서를 저장하는 중...
 Diagnostic report saved.	진단 보고서가 저장되었습니다.
 Choose a file for the settings export.	설정을 내보낼 파일을 선택하세요.
 Exporting HushGram settings...	HushGram 설정 내보내는 중...
-Settings export cancelled.	설정 내보내기가 취소되었습니다.
+Settings export canceled.	설정 내보내기가 취소되었습니다.
 Show a Reel seek thumb	릴스 탐색 핸들 표시
 Settings entry	설정 열기
 Open settings with a tab long press	탭을 길게 탭하여 설정 열기
@@ -511,7 +511,7 @@ Home feed picker	홈 피드 선택기
 Custom tab	사용자 정의 탭
 Off	사용 안함
 Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	탭을 길게 탭하면 Instagram의 기본 동작이 실행됩니다. HushGram을 대신 열 탭을 하나 선택하세요
-Long-press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 HushGram이 열립니다. 일반 탭 동작과 다른 탭은 그대로 유지됩니다. 계정에 표시되는 탭만 사용할 수 있습니다.
+Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 HushGram이 열립니다. 일반 탭 동작과 다른 탭은 그대로 유지됩니다. 계정에 표시되는 탭만 사용할 수 있습니다.
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	탐색 막대에 끌 수 있는 흰색 원형 손잡이를 추가합니다. 광고는 자체 막대를 유지합니다.
 Bigger seek bar on reels	릴스 탐색 바 크게
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	탐색 바를 더 두껍게 만들고, 둥근 흰색 핸들과 위쪽 시간 표시를 넣고, 어떤 영상에서도 보이도록 부드러운 어두운 그라데이션을 깝니다. 드래그해서 이동하세요. 짧은 릴스에서도 바를 유지합니다.
@@ -803,7 +803,7 @@ Open a chat in Instagram, then come back here to hide it.	Instagram에서 채팅
 %1$s is shown again	%1$s 채팅을 다시 표시합니다
 Pick the playback quality with a tab long press	탭을 길게 탭하여 재생 화질 선택
 Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	탭을 길게 탭하면 Instagram의 기본 동작이 실행됩니다. 재생 화질을 대신 선택할 탭을 하나 고르세요.
-Long-press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 재생 화질을 선택합니다. 일반 탭과 다른 탭은 그대로입니다. 기본 재생 화질이 켜져 있어야 합니다. 같은 탭이 HushGram을 여는 경우 그쪽이 우선합니다.
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	%1$s 탭을 길게 탭하면 해당 탭의 기본 동작 대신 재생 화질을 선택합니다. 일반 탭과 다른 탭은 그대로입니다. 기본 재생 화질이 켜져 있어야 합니다. 같은 탭이 HushGram을 여는 경우 그쪽이 우선합니다.
 Playback quality: %1$s. The next video you open uses it.	재생 화질: %1$s. 다음에 여는 동영상부터 적용됩니다.
 Couldn't save the playback quality. Open HushGram settings to set it.	재생 화질을 저장하지 못했습니다. HushGram 설정에서 직접 지정하세요.
 Support HushGram	HushGram 후원하기

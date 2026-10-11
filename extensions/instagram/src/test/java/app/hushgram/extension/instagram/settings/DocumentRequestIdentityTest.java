@@ -97,7 +97,7 @@ public class DocumentRequestIdentityTest {
             result(page, earlier, Activity.RESULT_CANCELED, null);
             assertFalse(page.findPreference(PICKERS[0]).isEnabled());
             result(page, current, Activity.RESULT_CANCELED, null);
-            assertEquals("Settings export cancelled.", page.findPreference(PICKERS[0]).getSummary());
+            assertEquals("Settings export canceled.", page.findPreference(PICKERS[0]).getSummary());
         }
     }
 

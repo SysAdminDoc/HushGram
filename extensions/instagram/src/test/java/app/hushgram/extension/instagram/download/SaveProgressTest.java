@@ -225,7 +225,7 @@ public class SaveProgressTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         finish(worker);
 
-        assertEquals("Save cancelled", ShadowToast.getTextOfLatestToast());
+        assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
         assertNull("the notification outlived the save: " + describe(saveNotification()), saveNotification());
         assertEquals("a cancelled save made a gallery row", 0, gallery.inserts.size());
         assertEquals("a cancelled save left work files", 0, workFiles());
@@ -336,7 +336,7 @@ public class SaveProgressTest {
             assertEquals("a save cancelled as its connection opened waited for the server",
                     Downloader.Status.CANCELLED, ended.get(30, TimeUnit.SECONDS).status);
             finish(worker);
-            assertEquals("Save cancelled", ShadowToast.getTextOfLatestToast());
+            assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
             assertEquals(0, gallery.inserts.size());
         } finally {
             release.countDown();
@@ -679,7 +679,7 @@ public class SaveProgressTest {
         assertTrue(SaveControl.cancel(saveId(moving)));
         finish(worker);
 
-        assertEquals("Save cancelled", ShadowToast.getTextOfLatestToast());
+        assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
         assertEquals("the single file was fetched after the cancel", 0, server.hits("/single.mp4"));
         // The fallback would reuse the cancelled progress and stop before a request, so the log
         // is what shows whether it was tried at all.
@@ -745,7 +745,7 @@ public class SaveProgressTest {
             assertNull("the notification stayed after Cancel", saveNotification());
             finish(worker);
 
-            assertEquals("Save cancelled", ShadowToast.getTextOfLatestToast());
+            assertEquals("Save canceled", ShadowToast.getTextOfLatestToast());
             assertEquals(0, workFiles());
             String report = LogBufferManager.buildExportText();
             assertTrue(report, report.contains("save finished: CANCELLED"));

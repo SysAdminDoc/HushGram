@@ -86,10 +86,10 @@ public class ExportFeedbackTest {
             ShadowActivity.IntentForResult picked = pick(page, host.get());
             shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_CANCELED, null);
             finish();
-            assertEquals("Settings export cancelled.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Settings export canceled.", page.findPreference(CONFIGURATION).getSummary());
             host.get().getFragmentManager().beginTransaction().remove(page).commitNow();
             page = DownloadSettingsTest.pageIn(host);
-            assertEquals("Settings export cancelled.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Settings export canceled.", page.findPreference(CONFIGURATION).getSummary());
             assertTrue(page.findPreference(CONFIGURATION).isEnabled());
         }
     }
@@ -269,7 +269,7 @@ public class ExportFeedbackTest {
             ShadowActivity.IntentForResult first = pick(old, host.get());
             host.get().getFragmentManager().beginTransaction().remove(old).commitNow();
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
-            assertEquals("Settings export cancelled.", page.findPreference(CONFIGURATION).getSummary());
+            assertEquals("Settings export canceled.", page.findPreference(CONFIGURATION).getSummary());
             ShadowActivity.IntentForResult second = pick(page, host.get());
             shadowOf(host.get()).receiveResult(second.intent, Activity.RESULT_CANCELED, null);
             String message = page.findPreference(CONFIGURATION).getSummary().toString();
