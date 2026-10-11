@@ -709,6 +709,13 @@ start-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z i
 shared-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->hideTray()Z in instance (Landroid/view/View;Landroid/view/View;Ljava/lang/String;I)V holding floating_tray_overlay_container show_tray_fail_reason
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
 once-call Lapp/hushgram/extension/instagram/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList; in instance (*)Ljava/lang/Object; holding tray story_ranking_token remaining_reel_ids_to_fetch
+# Hide the Music for you card answers the read of the music midcard config's is_enabled flag through
+# StoriesTray.musicCard(I)Z, right after its move-result in a static check of the session (05kB.A00
+# on 450). The check holds no string, no field and no call only it makes, so no rule can pick it
+# alone, and it rests on HideMusicCardHookTest, which checks on every declared fixture that the flag
+# has one read, in a check of the session asked by code that casts to the class holding
+# MusicMidcardRepository, and that the hook lands right after it. Left out, the card keeps coming;
+# twice or elsewhere, it isn't the answer the patch wrote.
 #
 # Download any reel lets the Download row into each builder of the reel's more menu: the download
 # check's answer goes through offer() in the legacy builder and both redesigned ones, and the flag

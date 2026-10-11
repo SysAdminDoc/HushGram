@@ -484,6 +484,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_stories_tray", FALSE);
 
     /**
+     * The Music for you card Instagram puts between stories in the viewer
+     * ({@link app.hushgram.extension.instagram.stories.StoriesTray#musicCard}). Off to start.
+     */
+    public static final BooleanSetting HIDE_MUSIC_CARD =
+            new BooleanSetting("hushgram_hide_music_card", FALSE);
+
+    /**
      * The rings in the stories row at the top of Home are drawn at the size in
      * {@link #STORY_RING_SCALE} ({@link app.hushgram.extension.instagram.stories.StoryRing}). The
      * switch starts on, and the size starts as Instagram's own, so nothing changes until a size is

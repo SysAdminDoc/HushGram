@@ -88,6 +88,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Stop background wake-ups:** New patch, from @sherifrahim. Instagram sets two alarms that wake your phone while it's in the background. One fires every minute or two just to note that the app is still running, and the other wakes the phone five minutes later to upload usage events. Each gets a switch under Battery in HushGram settings, and both start off. Notifications still come through Instagram's push service, and the usage events go out the next time you use the app (or nowhere, with Disable analytics on). Refs #89.
 
+* **Instagram - Hide suggested stories:** New switch under Stories in HushGram settings, Hide the Music for you card, starts off and keeps that card from turning up between the stories you watch. Asked for in #111.
+
 ### Bug Fixes
 
 * **Instagram - Hide suggested posts:** With Hide suggested posts on, Home's For you feed no longer grows one post at a time. On an account where most of each page Instagram sends is suggestions, hiding them left a single post with the loading row right under it, and Instagram only asks for more once you scroll down to that row. Now, when a page comes back with fewer than five posts left after hiding, HushGram asks for the next page as soon as that page is shown, the same way the loading row would, and keeps going for up to three short pages in a row. It never asks while a page is still loading or after the feed has run out. Following and Favorites page the way they did, and the card at the end of the feed still shows. Your diagnostic report counts each time it asks (asked for the next page after a short page). Reported in #52.

@@ -798,6 +798,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             stories.add(toggle(context, Settings.HIDE_STORIES_TRAY, L10n.t("Hide the Stories tray"),
                     L10n.t("Takes the whole row of stories off the top of Home, Your story included. Stories still "
                             + "open from a profile or a message.")));
+            stories.add(toggle(context, Settings.HIDE_MUSIC_CARD, L10n.t("Hide the Music for you card"),
+                    L10n.t("Keeps Instagram's Music for you card from turning up between the stories you watch. "
+                            + "The stories themselves stay.")));
         }
         if (build.contains(PatchFamily.STORY_RING)) {
             stories.add(toggle(context, Settings.STORY_RING, L10n.t("Story ring size"),

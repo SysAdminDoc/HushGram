@@ -10,10 +10,14 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.flags.FlagLoad
+import app.morphe.patches.instagram.misc.flags.answerFlagLoads
+import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -33,6 +37,19 @@ internal const val HIDE_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->hideTra
 internal const val TRAY_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val TRAY_REMAINING_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
+internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicCard(I)Z"
+
+/**
+ * The server flag that lets Instagram's Music for you card into the stories viewer: the
+ * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 450 it's read once, by a
+ * static check of the session, and the check is asked by the code that adds the card to the
+ * viewer's list, which casts to the music midcard repository first.
+ */
+internal const val MUSIC_CARD_FLAG = 0x810cca0001477fL
+
+/** The name only the music midcard repository's constructor holds, which it gives its base class. */
+internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"
+private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /** The trace name only the method adding Home's story tray row holds. */
 internal const val TRAY_ROWS = "MainFeedStoryTrayBinderGroup.buildRowViewTypes"
@@ -82,8 +99,42 @@ val hideSuggestedStoriesPatch = bytecodePatch(
         guardTray(findFloatingTrayShow())
         val parse = findTrayItemParse()
         hookTrayParser(parse, findTrayRemaining(parse.site))
+        hideMusicCard()
         enableStatus("storiesTray")
     }
+}
+
+/** Finds the Music for you card's flag read with [findMusicCard] and has the extension answer it through [MUSIC_CARD]. */
+internal fun BytecodePatchContext.hideMusicCard() {
+    answerFlagLoads(listOf(findMusicCard() to MUSIC_CARD))
+}
+
+/**
+ * Finds the one read of [MUSIC_CARD_FLAG]. It has to be the flag's own read, in a check taking the
+ * session and answering a boolean, and something calling that check has to cast to a class
+ * holding [MUSIC_CARD_REPOSITORY], since that's the card's own data. Fails before anything changes
+ * when any of it isn't so, since that's an update this patch hasn't seen.
+ */
+internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
+    val flag = MUSIC_CARD_FLAG.toString(16)
+    val repositories = classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.mapTo(HashSet()) { it.type }
+    if (repositories.isEmpty()) refuse("no class holds $MUSIC_CARD_REPOSITORY, so $flag isn't the Music for you card's flag")
+    val reads = findFlagLoads(PATCH, MUSIC_CARD_FLAG, "Z")
+    val read = reads.singleOrNull() ?: refuse("expected one read of the Music for you card flag $flag, found ${reads.size}")
+    val where = "${read.type}->${read.name}"
+    if (read.shared) refuse("the read of $flag in $where is shared with another flag")
+    if (read.parameters != listOf(USER_SESSION) || read.returnType != "Z") {
+        refuse("$flag is read in $where(${read.parameters.joinToString("")})${read.returnType}, not in a check of the session")
+    }
+    val casts = classesCalling(read.type, read.name).filterNot { it.type.startsWith(EXTENSION_ROOT) }.any { classDef ->
+        classDef.methods.any { method ->
+            method.implementation?.instructions?.any {
+                it.opcode == Opcode.CHECK_CAST && ((it as ReferenceInstruction).reference as TypeReference).type in repositories
+            } == true
+        }
+    }
+    if (!casts) refuse("nothing that asks $where casts to the class holding $MUSIC_CARD_REPOSITORY")
+    return read
 }
 
 /** A method by its class, name and parameter types. */
