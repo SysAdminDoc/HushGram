@@ -94,7 +94,7 @@ Four patches stay out of simple mode. Tick them in Manager's patch list if you w
 
 Expert mode is still there if you'd rather leave a patch out. It groups the patches under Ads, Ghost mode, Privacy, Messages, Feed, Stories, Reels, Playback, Interaction, Profiles, Interface, Downloads, Updates, Fixes and Settings, and most of those match a section in HushGram settings. Ghost mode holds the seven patches its card in HushGram settings turns on together.
 
-There are 91 patches for `com.instagram.android`, checked against Instagram 450.0.0.50.77 (arm64-v8a, build 385611438, the version's other arm64 builds 385611395, 385611400, 385611404 and 385611431, and its x86 and x86_64 builds 385611439 and 385611440). Glass tab bar, Saved on your profile, Stop background wake-ups, Hide your active status, Profile posts as a list, Show hidden like counts, Blur the bars around Reels, Control taps and volume on Reels and Long press to zoom are new since v0.0.8. Hide suggested accounts in DMs is new in v0.0.8, and the other 78 were in v0.0.7 too.
+There are 91 patches for `com.instagram.android`, checked against Instagram 450.0.0.50.77 (arm64-v8a, build 385611438, the version's other arm64 builds 385611395, 385611400, 385611404 and 385611431, and its x86 and x86_64 builds 385611439 and 385611440). Glass tab bar, Saved on your profile, Stop background wake-ups, Hide your active status, Profile posts as a list, Show hidden like counts, Blur the bars around Reels, Control taps and volume on Reels, Start stories with sound, Start feed videos with sound, Back leaves Home and Long press to zoom are new since v0.0.8. Hide suggested accounts in DMs is new in v0.0.8, and the other 78 were in v0.0.7 too.
 
 | Patch | What it does | Simple mode |
 |---|---|---|
