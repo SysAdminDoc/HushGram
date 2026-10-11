@@ -1,6 +1,68 @@
 # Korean for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
+2x speed for videos in the feed	피드 동영상 2배속
+Adds a shortcut to your saved posts in the Explore tab.	탐색 탭에 저장한 게시물로 가는 바로가기를 추가합니다.
+Adds a speed choice to the menu on a reel.	릴스 메뉴에 속도 선택을 추가합니다.
+Adds the option to put a new story in a Highlight as you post it.	새 스토리를 올릴 때 바로 하이라이트에 넣는 옵션을 추가합니다.
+Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	스토리를 준비할 때 Instagram이 더 많은 디테일을 유지하도록 합니다. Instagram 서버는 받은 파일을 여전히 압축합니다.
+Blurred background on story reposts	스토리 리포스트의 흐린 배경
+Choose Off to hide the suggested accounts that show before you type a search.	사용 안함을 선택하면 검색어를 입력하기 전에 보이는 추천 계정이 숨겨집니다.
+Choose Off to remove the brightness boost on reels and videos on HDR screens.	사용 안함을 선택하면 HDR 화면에서 릴스와 동영상의 밝기 증폭이 사라집니다.
+Choose Off to show your recent searches instead of AI suggestions.	사용 안함을 선택하면 AI 추천 대신 최근 검색어가 표시됩니다.
+Choose Off to stop photos from being shown at full HDR brightness.	사용 안함을 선택하면 사진이 HDR 최대 밝기로 표시되지 않습니다.
+Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	이 설정을 바꾸지 못했습니다. 로그인한 상태에서 홈에서 설정을 여세요. 바뀐 것은 없습니다.
+Couldn't read Instagram's overrides. Open settings from Home while signed in.	Instagram의 재정의를 읽지 못했습니다. 로그인한 상태에서 홈에서 설정을 여세요.
+Edit a story after posting	올린 뒤 스토리 수정
+Enlarge profile photos	프로필 사진 확대
+Extra-bright HDR video	초고휘도 HDR 동영상
+Fills the space behind a reposted reel, post or story with a blur.	리포스트한 릴스, 게시물, 스토리 뒤의 빈 공간을 흐림 효과로 채웁니다.
+Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.	Instagram은 시작할 때마다 자동 스크롤을 끕니다. 여기서 사용 안함을 선택하면 내 선택이 유지됩니다.
+Instagram's own	Instagram 기본값
+Keep Reels auto-scroll between sessions	세션이 바뀌어도 릴스 자동 스크롤 유지
+Leave a Close Friends list	친한 친구 목록에서 나가기
+Lets you change a story for a short while after you post it.	올린 뒤 잠시 동안 스토리를 수정할 수 있습니다.
+Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	프로필 사진을 눌러 크게 볼 수 있으며, 계정 개인정보 보호에 설정이 생깁니다.
+Meta AI suggestions in search	검색의 Meta AI 추천
+Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	새 스토리 스타일처럼 Instagram의 숨은 설정 일부에 이름을 붙인 스위치입니다. 각각 Instagram 기본값, 사용, 사용 안함 중에서 고릅니다. 현재 재정의는 복원을 위해 먼저 저장됩니다.
+New like animations	새 좋아요 애니메이션
+New story fonts and animations	새 스토리 글꼴과 애니메이션
+New story timestamp style	새 스토리 시간 표시 스타일
+On	사용
+Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Instagram 기본값, 사용, 사용 안함 중에서 고르세요. 바꾼 뒤에는 Instagram을 다시 시작하세요.
+Playback speed in the Reels menu	릴스 메뉴의 재생 속도
+Post a story straight to Highlights	스토리를 바로 하이라이트에 올리기
+Press and hold a reel to open a menu with playback speed.	릴스를 길게 누르면 재생 속도 메뉴가 열립니다.
+Press and hold the edge of a video in your feed to watch it at double speed.	피드 동영상의 가장자리를 길게 누르면 2배속으로 볼 수 있습니다.
+Press and hold the like button on a story to pick an emoji reaction.	스토리의 좋아요 버튼을 길게 누르면 이모지 반응을 고를 수 있습니다.
+Press and hold the paper plane on a story to send it.	스토리의 종이비행기를 길게 누르면 보낼 수 있습니다.
+Preview of disappearing photos in Direct	DM의 사라지는 사진 미리보기
+Quick emoji reactions on stories	스토리 빠른 이모지 반응
+Quick speed menu in Reels	릴스 빠른 속도 메뉴
+Recommended flags	추천 플래그
+Redesigned Explore tab	새로 디자인된 탐색 탭
+Redesigned notification settings	새로 디자인된 알림 설정
+Redesigned story viewer list	새로 디자인된 스토리 조회자 목록
+Saved button in Explore	탐색의 저장됨 버튼
+Saved. Restart Instagram to apply it.	저장했습니다. 적용하려면 Instagram을 다시 시작하세요.
+Send stories with a long press	길게 눌러 스토리 보내기
+Set another way right now.	지금은 다른 방식으로 설정되어 있습니다.
+Shows a blurred preview of a disappearing photo or video in a chat.	채팅에서 사라지는 사진이나 동영상의 흐릿한 미리보기를 보여줍니다.
+Shows usernames in place of display names in chats and notifications.	채팅과 알림에서 표시 이름 대신 사용자 이름을 보여줍니다.
+Suggested accounts in search	검색의 추천 계정
+Tap the Close Friends icon on someone's story to remove yourself from their list.	누군가의 스토리에서 친한 친구 아이콘을 누르면 그 사람의 목록에서 나갈 수 있습니다.
+That's already how it is. Nothing changed.	이미 그렇게 되어 있습니다. 바뀐 것은 없습니다.
+The newer animations when you like a post, and the emoji ones on stories.	게시물에 좋아요를 누를 때의 새 애니메이션과 스토리의 이모지 애니메이션입니다.
+The newer layout of the Explore tab.	탐색 탭의 새 레이아웃입니다.
+The newer layout of the notification settings.	알림 설정의 새 레이아웃입니다.
+The newer list of who viewed and replied to your story.	내 스토리를 본 사람과 답장한 사람의 새 목록입니다.
+The newer look for the "posted ... ago" label on stories.	스토리의 "... 전에 게시됨" 표시의 새 모양입니다.
+The newer text fonts, animations and effects in the story editor.	스토리 편집기의 새 글꼴, 애니메이션, 효과입니다.
+This Instagram version has none of these switches.	이 Instagram 버전에는 이 스위치가 하나도 없습니다.
+Turn on Allow importing overrides first. These switches use the same path.	먼저 재정의 가져오기 허용을 켜세요. 이 스위치는 같은 경로를 씁니다.
+Ultra HDR photos	울트라 HDR 사진
+Upload stories at higher quality	더 높은 화질로 스토리 업로드
+Usernames in Direct and notifications	DM과 알림의 사용자 이름
 %1$s of %2$s	%2$s 중 %1$s
 %1$s so far	현재까지 %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. 패치할 때 적용되었기 때문에 HushGram 일시 정지로는 비활성화할 수 없습니다. 이 기능이 원인인지 확인하려면 다시 패치하면서 해당 패치를 제외하세요

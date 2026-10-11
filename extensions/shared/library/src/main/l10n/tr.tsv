@@ -1,5 +1,67 @@
 # Turkish for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+2x speed for videos in the feed	Akıştaki videolar için 2x hız
+Adds a shortcut to your saved posts in the Explore tab.	Keşfet sekmesine kaydettiğin gönderilere bir kısayol ekler.
+Adds a speed choice to the menu on a reel.	Bir Reels menüsüne hız seçeneği ekler.
+Adds the option to put a new story in a Highlight as you post it.	Yeni bir hikayeyi paylaşırken doğrudan Öne Çıkanlar'a ekleme seçeneği getirir.
+Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Instagram'dan bir hikayeyi hazırlarken daha fazla ayrıntı korumasını ister. Instagram sunucuları aldıkları dosyayı yine de sıkıştırır.
+Blurred background on story reposts	Hikaye yeniden paylaşımlarında bulanık arka plan
+Choose Off to hide the suggested accounts that show before you type a search.	Aramaya yazmadan önce görünen önerilen hesapları gizlemek için Kapalı'yı seç.
+Choose Off to remove the brightness boost on reels and videos on HDR screens.	HDR ekranlarda Reels ve videolardaki parlaklık artışını kaldırmak için Kapalı'yı seç.
+Choose Off to show your recent searches instead of AI suggestions.	Yapay zekâ önerileri yerine son aramalarını görmek için Kapalı'yı seç.
+Choose Off to stop photos from being shown at full HDR brightness.	Fotoğrafların tam HDR parlaklığıyla gösterilmesini durdurmak için Kapalı'yı seç.
+Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Bu ayar değiştirilemedi. Oturum açıkken ayarları Ana Sayfa'dan aç. Hiçbir şey değişmedi.
+Couldn't read Instagram's overrides. Open settings from Home while signed in.	Instagram'ın geçersiz kılmaları okunamadı. Oturum açıkken ayarları Ana Sayfa'dan aç.
+Edit a story after posting	Paylaştıktan sonra hikayeyi düzenle
+Enlarge profile photos	Profil fotoğraflarını büyüt
+Extra-bright HDR video	Ekstra parlak HDR video
+Fills the space behind a reposted reel, post or story with a blur.	Yeniden paylaşılan bir Reels, gönderi veya hikayenin arkasındaki boşluğu bulanıklıkla doldurur.
+Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.	Instagram her açılışta otomatik kaydırmayı kapatır. Seçimin kalması için burada Kapalı'yı seç.
+Instagram's own	Instagram'ın kendi değeri
+Keep Reels auto-scroll between sessions	Reels otomatik kaydırmayı oturumlar arasında koru
+Leave a Close Friends list	Yakın Arkadaşlar listesinden ayrıl
+Lets you change a story for a short while after you post it.	Hikayeyi paylaştıktan sonra kısa bir süre değiştirmeni sağlar.
+Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Bir profil fotoğrafına dokunup daha büyük görmeni sağlar, Hesap Gizliliği'nde bir ayarı vardır.
+Meta AI suggestions in search	Aramada Meta AI önerileri
+Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Yeni hikaye stili gibi Instagram'ın bazı gizli ayarları için adlandırılmış anahtarlar. Her biri Instagram'ın kendi değeri, Açık veya Kapalı olabilir. Mevcut geçersiz kılmaların Geri Yükle için önce kaydedilir.
+New like animations	Yeni beğeni animasyonları
+New story fonts and animations	Yeni hikaye yazı tipleri ve animasyonları
+New story timestamp style	Yeni hikaye zaman damgası stili
+On	Açık
+Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Instagram'ın kendi değerini, Açık veya Kapalı'yı seç. Değişiklikten sonra Instagram'ı yeniden başlat.
+Playback speed in the Reels menu	Reels menüsünde oynatma hızı
+Post a story straight to Highlights	Hikayeyi doğrudan Öne Çıkanlar'a paylaş
+Press and hold a reel to open a menu with playback speed.	Oynatma hızı menüsünü açmak için bir Reels'e basılı tut.
+Press and hold the edge of a video in your feed to watch it at double speed.	Akıştaki bir videonun kenarına basılı tutarak iki kat hızda izle.
+Press and hold the like button on a story to pick an emoji reaction.	Bir emoji tepkisi seçmek için hikayedeki beğen düğmesine basılı tut.
+Press and hold the paper plane on a story to send it.	Hikayeyi göndermek için kağıt uçağa basılı tut.
+Preview of disappearing photos in Direct	Direct'te kaybolan fotoğrafların önizlemesi
+Quick emoji reactions on stories	Hikayelerde hızlı emoji tepkileri
+Quick speed menu in Reels	Reels'te hızlı hız menüsü
+Recommended flags	Önerilen bayraklar
+Redesigned Explore tab	Yeniden tasarlanan Keşfet sekmesi
+Redesigned notification settings	Yeniden tasarlanan bildirim ayarları
+Redesigned story viewer list	Yeniden tasarlanan hikaye izleyici listesi
+Saved button in Explore	Keşfet'te Kaydedilenler düğmesi
+Saved. Restart Instagram to apply it.	Kaydedildi. Uygulamak için Instagram'ı yeniden başlat.
+Send stories with a long press	Hikayeleri uzun basarak gönder
+Set another way right now.	Şu an başka bir yolla ayarlanmış.
+Shows a blurred preview of a disappearing photo or video in a chat.	Sohbette kaybolan bir fotoğraf veya videonun bulanık önizlemesini gösterir.
+Shows usernames in place of display names in chats and notifications.	Sohbetlerde ve bildirimlerde görünen ad yerine kullanıcı adını gösterir.
+Suggested accounts in search	Aramada önerilen hesaplar
+Tap the Close Friends icon on someone's story to remove yourself from their list.	Birinin listesinden çıkmak için hikayesindeki Yakın Arkadaşlar simgesine dokun.
+That's already how it is. Nothing changed.	Zaten böyle. Hiçbir şey değişmedi.
+The newer animations when you like a post, and the emoji ones on stories.	Bir gönderiyi beğenirken yeni animasyonlar ve hikayelerdeki emoji animasyonları.
+The newer layout of the Explore tab.	Keşfet sekmesinin yeni düzeni.
+The newer layout of the notification settings.	Bildirim ayarlarının yeni düzeni.
+The newer list of who viewed and replied to your story.	Hikayeni kimlerin izlediği ve yanıtladığının yeni listesi.
+The newer look for the "posted ... ago" label on stories.	Hikayelerdeki "... önce paylaşıldı" etiketinin yeni görünümü.
+The newer text fonts, animations and effects in the story editor.	Hikaye düzenleyicisindeki yeni yazı tipleri, animasyonlar ve efektler.
+This Instagram version has none of these switches.	Bu Instagram sürümünde bu anahtarların hiçbiri yok.
+Turn on Allow importing overrides first. These switches use the same path.	Önce Geçersiz kılmaları içe aktarmaya izin ver'i aç. Bu anahtarlar aynı yolu kullanır.
+Ultra HDR photos	Ultra HDR fotoğraflar
+Upload stories at higher quality	Hikayeleri daha yüksek kalitede yükle
+Usernames in Direct and notifications	Direct ve bildirimlerde kullanıcı adları
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Şimdiye kadar %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Yamaladığında ayarlandığı için Duraklatma bunu kapatamaz. Bunu elemek için yeniden yamala ve o yamayı dışarıda bırak.

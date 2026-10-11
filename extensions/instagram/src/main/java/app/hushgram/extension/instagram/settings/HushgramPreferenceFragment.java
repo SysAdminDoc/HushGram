@@ -51,6 +51,8 @@ import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -85,6 +87,7 @@ import app.hushgram.extension.instagram.misc.FlagNames;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.OverrideImport;
+import app.hushgram.extension.instagram.misc.RecommendedFlags;
 import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
@@ -1229,6 +1232,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         L10n.t("Allow importing overrides"),
                         L10n.t("Shows the Import and Restore rows. An import changes Instagram's hidden settings for "
                                 + "this signed-in account.")));
+                developer.addPreference(recommendedFlagsRow(context));
                 developerSection = developer;
                 importOverrides = new Row(context);
                 importOverrides.setKey("hushgram_import_overrides");
@@ -2023,6 +2027,176 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             overrideFeedback(request, L10n.t("Couldn't start that. Try again."));
             showConfiguration();
         }
+    }
+
+    /** The row that opens the page of named switches for Instagram's hidden settings. */
+    private Row recommendedFlagsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey("hushgram_recommended_flags");
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Recommended flags"));
+        row.setSummary(L10n.t("Named switches for some of Instagram's hidden settings, such as the new story style. "
+                + "Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore."));
+        row.setOnPreferenceClickListener(tapped -> {
+            if (!Settings.ALLOW_OVERRIDE_IMPORT.get()) {
+                Utils.showToastLong(L10n.t("Turn on Allow importing overrides first. These switches use the same path."));
+            } else {
+                openRecommendedFlags();
+            }
+            return true;
+        });
+        return row;
+    }
+
+    /** Reads the store off the main thread, then shows the page with each switch where it stands. */
+    private void openRecommendedFlags() {
+        if (documentRequest != 0 || changingConfiguration || changingOverrides || ExportStatus.CONFIGURATION.active()) return;
+        Activity activity = getActivity();
+        if (activity == null) return;
+        changingOverrides = true;
+        showConfiguration();
+        if (!Utils.runOnBackgroundThread(() -> {
+            RecommendedFlags.Page page = null;
+            try {
+                page = RecommendedFlags.load(activity);
+            } catch (Exception failure) {
+                Logger.printInfo(() -> "Recommended flags couldn't read the overrides");
+            }
+            RecommendedFlags.Page loaded = page;
+            Utils.runOnMainThread(() -> {
+                if (loaded == null) {
+                    Utils.showToastLong(L10n.t("Couldn't read Instagram's overrides. Open settings from Home while signed in."));
+                } else {
+                    showRecommendedFlags(loaded);
+                }
+            });
+            configurationFinished();
+        })) {
+            changingOverrides = false;
+            showConfiguration();
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+        }
+    }
+
+    private void showRecommendedFlags(RecommendedFlags.Page page) {
+        Context context = getActivity();
+        if (context == null) return;
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        int inset = Math.round(20 * context.getResources().getDisplayMetrics().density);
+        LinearLayout list = new LinearLayout(context);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPaddingRelative(inset, inset / 2, inset, inset / 2);
+        TextView intro = new TextView(context);
+        intro.setText(page.flags.isEmpty()
+                ? L10n.t("This Instagram version has none of these switches.")
+                : L10n.t("Pick Instagram's own setting, On or Off. Restart Instagram after a change."));
+        intro.setTextColor(colors.summary);
+        intro.setPadding(0, 0, 0, inset / 2);
+        list.addView(intro);
+        List<RadioGroup> groups = new ArrayList<>();
+        for (int i = 0; i < page.flags.size(); i++) {
+            RecommendedFlags.Flag flag = page.flags.get(i);
+            RecommendedFlags.Choice shown = page.choices.get(i);
+            TextView title = new TextView(context);
+            title.setText(flag.title);
+            title.setTextColor(colors.title);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            title.setPadding(0, inset / 2, 0, 0);
+            TextView about = new TextView(context);
+            about.setText(shown == RecommendedFlags.Choice.OTHER
+                    ? flag.description + " " + L10n.t("Set another way right now.") : flag.description);
+            about.setTextColor(colors.summary);
+            RadioGroup group = new RadioGroup(context);
+            group.setOrientation(RadioGroup.VERTICAL);
+            String[] labels = {L10n.t("Instagram's own"), L10n.t("On"), L10n.t("Off")};
+            RecommendedFlags.Choice[] choices = {RecommendedFlags.Choice.DEFAULT, RecommendedFlags.Choice.ON,
+                    RecommendedFlags.Choice.OFF};
+            for (int c = 0; c < labels.length; c++) {
+                RadioButton button = new RadioButton(context);
+                button.setId(View.generateViewId());
+                button.setText(labels[c]);
+                button.setTextColor(colors.title);
+                button.setTag(choices[c]);
+                group.addView(button);
+                if (choices[c] == shown) group.check(button.getId());
+            }
+            group.setTag(shown);
+            group.setOnCheckedChangeListener((radios, checkedId) -> {
+                RadioButton chosen = radios.findViewById(checkedId);
+                if (chosen == null || chosen.getTag() == radios.getTag()) return;
+                RecommendedFlags.Choice previous = (RecommendedFlags.Choice) radios.getTag();
+                setRecommendedFlag(flag, (RecommendedFlags.Choice) chosen.getTag(), radios, previous, groups);
+            });
+            groups.add(group);
+            list.addView(title);
+            list.addView(about);
+            list.addView(group);
+        }
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(list);
+        show(new AlertDialog.Builder(context).setTitle(L10n.t("Recommended flags")).setView(scroll)
+                .setPositiveButton(L10n.t("OK"), null));
+    }
+
+    /** Applies one switch the way Import overrides does, then puts the radio back if it didn't take. */
+    private void setRecommendedFlag(RecommendedFlags.Flag flag, RecommendedFlags.Choice wanted, RadioGroup group,
+                                    RecommendedFlags.Choice previous, List<RadioGroup> groups) {
+        Activity activity = getActivity();
+        if (activity == null || changingOverrides || changingConfiguration) {
+            revertRecommendedFlag(group, previous);
+            return;
+        }
+        changingOverrides = true;
+        showConfiguration();
+        for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(false);
+        if (!Utils.runOnBackgroundThread(() -> {
+            boolean held = false;
+            String message;
+            try {
+                OverrideImport.Result result = RecommendedFlags.set(activity, flag, wanted);
+                held = result.outcome == OverrideImport.Outcome.APPLIED || result.outcome == OverrideImport.Outcome.UNCHANGED;
+                message = result.outcome == OverrideImport.Outcome.UNCHANGED
+                        ? L10n.t("That's already how it is. Nothing changed.")
+                        : result.outcome == OverrideImport.Outcome.APPLIED
+                        ? L10n.t("Saved. Restart Instagram to apply it.") : overrideOutcome(result, false);
+            } catch (OverrideImport.RestoreFirst failure) {
+                message = L10n.t("An earlier import still needs Restore previous overrides, "
+                        + "or Discard saved overrides if Restore can't run. Nothing changed.");
+            } catch (OverrideImport.NotAllowed failure) {
+                message = L10n.t("Allow importing overrides is off or HushGram is paused. Nothing changed.");
+            } catch (OverrideImport.StoreChanging failure) {
+                message = L10n.t("Instagram is still saving an override change. Wait a moment and try again. Nothing changed.");
+            } catch (Exception failure) {
+                Logger.printInfo(() -> "Recommended flag change failed before native mutation");
+                message = L10n.t("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.");
+            }
+            boolean kept = held;
+            Utils.showToastLong(message);
+            Utils.runOnMainThread(() -> {
+                if (kept) group.setTag(wanted);
+                else revertRecommendedFlag(group, previous);
+                for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
+            });
+            configurationFinished();
+        })) {
+            changingOverrides = false;
+            showConfiguration();
+            revertRecommendedFlag(group, previous);
+            for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again. Nothing changed."));
+        }
+    }
+
+    /** Puts a switch's radios back on the choice it had, without applying anything. */
+    private static void revertRecommendedFlag(RadioGroup group, RecommendedFlags.Choice choice) {
+        // The tag is set first, so the listener sees no change in the choice and applies nothing.
+        group.setTag(choice);
+        boolean found = false;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getTag() == choice) { group.check(child.getId()); found = true; }
+        }
+        if (!found) group.clearCheck();
     }
 
     private static String resetOutcome(OverrideImport.Result result) {

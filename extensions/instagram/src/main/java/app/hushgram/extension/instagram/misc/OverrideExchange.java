@@ -271,6 +271,46 @@ public final class OverrideExchange {
         return values;
     }
 
+    /** The value type this build gives a parameter (1 bool, 2 long, 3 string, 4 double), or 0 when it has none there. */
+    static int typeOf(Snapshot snapshot, int config, int index) {
+        Parameter parameter = snapshot.parameters.get(key(config, index));
+        return parameter == null ? 0 : parameter.type;
+    }
+
+    /**
+     * {@link #export}'s document with these overrides set (a value) or taken away (null), by
+     * parameter key. Every other override stays as the store holds it, so applying the result
+     * through {@link OverrideImport} changes only these parameters.
+     */
+    static byte[] withOverrides(Snapshot snapshot, Map<Long, String> changes) throws IOException {
+        if (snapshot == null || changes == null) throw invalid();
+        try {
+            JSONObject all = new JSONObject(snapshot.overrides);
+            for (Map.Entry<Long, String> change : changes.entrySet()) {
+                Parameter parameter = snapshot.parameters.get(change.getKey());
+                if (parameter == null || change.getValue() != null && !fits(parameter.type, change.getValue())) throw invalid();
+                // The store may label a config with or without its name, so keep whichever it uses.
+                String label = null, prefix = parameter.config + ":";
+                for (java.util.Iterator<String> labels = all.keys(); labels.hasNext();) {
+                    String candidate = labels.next();
+                    if (candidate.startsWith(prefix)) label = candidate;
+                }
+                if (label == null) label = prefix + parameter.configName;
+                JSONArray before = all.optJSONArray(label), after = new JSONArray();
+                if (before != null) {
+                    for (int i = 0; i < before.length(); i++) {
+                        String record = before.getString(i);
+                        if (!record.startsWith(parameter.index + ": ")) after.put(record);
+                    }
+                }
+                if (change.getValue() != null) after.put(parameter.index + ": " + parameter.name + ": " + change.getValue());
+                if (after.length() > 0) all.put(label, after);
+                else all.remove(label);
+            }
+            return document(snapshot, all.toString());
+        } catch (JSONException failure) { throw invalid(); }
+    }
+
     static Parameter parameter(Snapshot snapshot, long key) { return snapshot.parameters.get(key); }
     static boolean sameSchema(Snapshot one, Snapshot other) {
         return one.version.equals(other.version) && one.code == other.code && one.hash.equals(other.hash);

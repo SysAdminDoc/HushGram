@@ -1,5 +1,67 @@
 # Brazilian Portuguese for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+2x speed for videos in the feed	Velocidade 2x para vídeos do feed
+Adds a shortcut to your saved posts in the Explore tab.	Adiciona um atalho para suas publicações salvas na aba Explorar.
+Adds a speed choice to the menu on a reel.	Adiciona uma opção de velocidade ao menu de um reel.
+Adds the option to put a new story in a Highlight as you post it.	Adiciona a opção de colocar um story novo em um destaque ao publicá-lo.
+Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Pede ao Instagram que mantenha mais detalhes ao preparar um story. Os servidores do Instagram ainda comprimem o que recebem.
+Blurred background on story reposts	Fundo desfocado em reposts de stories
+Choose Off to hide the suggested accounts that show before you type a search.	Escolha Desativado para ocultar as contas sugeridas que aparecem antes de você digitar uma busca.
+Choose Off to remove the brightness boost on reels and videos on HDR screens.	Escolha Desativado para remover o aumento de brilho em reels e vídeos em telas HDR.
+Choose Off to show your recent searches instead of AI suggestions.	Escolha Desativado para mostrar suas buscas recentes em vez de sugestões de IA.
+Choose Off to stop photos from being shown at full HDR brightness.	Escolha Desativado para que as fotos não sejam exibidas com todo o brilho HDR.
+Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Não foi possível alterar essa configuração. Abra as configurações pelo Início com a conta conectada. Nada foi alterado.
+Couldn't read Instagram's overrides. Open settings from Home while signed in.	Não foi possível ler os valores personalizados do Instagram. Abra as configurações pelo Início com a conta conectada.
+Edit a story after posting	Editar um story depois de publicar
+Enlarge profile photos	Ampliar fotos de perfil
+Extra-bright HDR video	Vídeo HDR extra brilhante
+Fills the space behind a reposted reel, post or story with a blur.	Preenche o espaço atrás de um reel, publicação ou story repostado com desfoque.
+Instagram turns auto-scroll off each time it starts. Choose Off here to keep your pick.	O Instagram desliga a rolagem automática toda vez que inicia. Escolha Desativado aqui para manter sua escolha.
+Instagram's own	Padrão do Instagram
+Keep Reels auto-scroll between sessions	Manter a rolagem automática do Reels entre sessões
+Leave a Close Friends list	Sair de uma lista de Melhores amigos
+Lets you change a story for a short while after you post it.	Permite alterar um story por pouco tempo depois de publicá-lo.
+Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Permite tocar em uma foto de perfil para vê-la maior, com uma configuração em Privacidade da conta.
+Meta AI suggestions in search	Sugestões da Meta AI na busca
+Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Chaves com nome para algumas configurações ocultas do Instagram, como o novo estilo de stories. Cada uma pode ficar no padrão do Instagram, Ativada ou Desativada. Seus valores personalizados atuais são salvos antes para a restauração.
+New like animations	Novas animações de curtida
+New story fonts and animations	Novas fontes e animações de stories
+New story timestamp style	Novo estilo de horário nos stories
+On	Ativado
+Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Escolha o padrão do Instagram, Ativado ou Desativado. Reinicie o Instagram depois de uma mudança.
+Playback speed in the Reels menu	Velocidade de reprodução no menu do Reels
+Post a story straight to Highlights	Publicar um story direto nos destaques
+Press and hold a reel to open a menu with playback speed.	Pressione e segure um reel para abrir um menu com a velocidade de reprodução.
+Press and hold the edge of a video in your feed to watch it at double speed.	Pressione e segure a borda de um vídeo do feed para assisti-lo em velocidade dobrada.
+Press and hold the like button on a story to pick an emoji reaction.	Pressione e segure o botão de curtir em um story para escolher uma reação com emoji.
+Press and hold the paper plane on a story to send it.	Pressione e segure o avião de papel em um story para enviá-lo.
+Preview of disappearing photos in Direct	Prévia de fotos temporárias no Direct
+Quick emoji reactions on stories	Reações rápidas com emoji nos stories
+Quick speed menu in Reels	Menu rápido de velocidade no Reels
+Recommended flags	Flags recomendados
+Redesigned Explore tab	Aba Explorar redesenhada
+Redesigned notification settings	Configurações de notificação redesenhadas
+Redesigned story viewer list	Lista de visualizações de stories redesenhada
+Saved button in Explore	Botão de salvos no Explorar
+Saved. Restart Instagram to apply it.	Salvo. Reinicie o Instagram para aplicar.
+Send stories with a long press	Enviar stories com um toque longo
+Set another way right now.	No momento está definido de outra forma.
+Shows a blurred preview of a disappearing photo or video in a chat.	Mostra uma prévia desfocada de uma foto ou vídeo temporário em uma conversa.
+Shows usernames in place of display names in chats and notifications.	Mostra nomes de usuário no lugar de nomes de exibição em conversas e notificações.
+Suggested accounts in search	Contas sugeridas na busca
+Tap the Close Friends icon on someone's story to remove yourself from their list.	Toque no ícone de Melhores amigos no story de alguém para sair da lista dessa pessoa.
+That's already how it is. Nothing changed.	Já está assim. Nada foi alterado.
+The newer animations when you like a post, and the emoji ones on stories.	As animações novas ao curtir uma publicação e as de emoji nos stories.
+The newer layout of the Explore tab.	O layout mais novo da aba Explorar.
+The newer layout of the notification settings.	O layout mais novo das configurações de notificação.
+The newer list of who viewed and replied to your story.	A lista mais nova de quem viu e respondeu ao seu story.
+The newer look for the "posted ... ago" label on stories.	O visual mais novo do rótulo "publicado há ..." nos stories.
+The newer text fonts, animations and effects in the story editor.	As fontes, animações e efeitos de texto mais novos no editor de stories.
+This Instagram version has none of these switches.	Esta versão do Instagram não tem nenhuma destas chaves.
+Turn on Allow importing overrides first. These switches use the same path.	Ative primeiro Permitir importar valores personalizados. Estas chaves usam o mesmo caminho.
+Ultra HDR photos	Fotos Ultra HDR
+Upload stories at higher quality	Enviar stories em qualidade mais alta
+Usernames in Direct and notifications	Nomes de usuário no Direct e nas notificações
 %1$s of %2$s	%1$s de %2$s
 %1$s so far	%1$s até o momento
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Isso foi definido quando você aplicou os patches, então a pausa não pode desativá-lo. Para descartar essa possibilidade, aplique os patches novamente sem esse patch.

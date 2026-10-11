@@ -923,6 +923,8 @@ of the Source Code and any Derivative Works.
 
 That NOTICE goes into HushGram's distributions with the name list, and with any patch ported from piko later.
 
+HushGram's Recommended flags page under Developer started from the config IDs in piko's `docs/mappings/piko_recommended_flags_v3.json`. Only the IDs and what each flag does were used. The names, descriptions and code are HushGram's own, and the Instagram Plus fonts flag is left out on purpose. Two groups of rows have no piko counterpart: story upload quality (#37) and the newer like animations (#13).
+
 Why HushGram exists at all comes down to the recorded comparison against Instagram 449. piko 3.10.0-dev.9, run through the Morphe CLI 1.17.0 with every Instagram patch selected:
 
 - On 439.0.0.37.89, the build piko pins, all 60 patches applied.
