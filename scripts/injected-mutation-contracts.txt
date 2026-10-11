@@ -123,6 +123,18 @@ start-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->notification(
 shared-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->notification(Landroid/app/Notification;)Landroid/app/Notification; in instance (Ljava/lang/String;ILandroid/app/Notification;)V holding android.support.useSideChannel
 start-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z in static (Landroid/content/Context;L*;L*;)V holding no\sforeground\sactivity\sto\srender\sin-app\snotification
 once-call Lapp/hushgram/extension/instagram/direct/MessagesLock;->holdBanner()Z in static (Landroid/content/Context;L*;L*;)V holding no\sforeground\sactivity\sto\srender\sin-app\snotification
+# Its single chat locks hand the chat screen to ChatLocks.opened first in its onResume and to
+# ChatLocks.closed first in its onPause (01Sn on 450), the one pair logging the thread controller's
+# DirectThreadController.onResume and .onPause. The push display, the one method logging both
+# is_alert_only_once and notification_displayed (04tc.A03), asks ChatLocks.track once, after its
+# null check, so that rule is once-call. All five pick one method on all seven 450 builds. Left out,
+# a locked chat opens without asking and a hidden chat's push still posts; twice or elsewhere, it
+# isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+start-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
+once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
+once-call Lapp/hushgram/extension/instagram/direct/ChatLocks;->track(Landroid/app/Notification;Landroid/app/Notification;Ljava/util/Map;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Z in instance (L*;L*;Ljava/lang/Runnable;Ljava/lang/String;I)V holding is_alert_only_once notification_displayed
 # Hidden chats (under Lock your messages) keep a hidden chat out of the inbox in three places: right
 # before the inbox's list of chats is written to the holder the row factory reads it from (a case
 # of the merged lambda 09kY.accept writing 07HZ.A03 on 450), in the unread badge snapshot after it
@@ -612,6 +624,18 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->askMetaAiBox(Landroi
 # no Meta AI target. Left out, the target stays with Hide Meta AI in the share sheet on.
 # 385611400 and 439 ask a string pool for some of these names there, so pool asks count (pooled).
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->shareTarget(I)Z in static (L*;Ljava/lang/Object;)Ljava/util/ArrayList; pooled holding hatch whatsapp_status add_to_audio_note screenshot_preview
+# The message composer's Meta AI buttons (discover, invocation and voice) all go through one
+# visibility dispatcher, the instance (holder, button, boolean) void method of 02Pe on 450, which
+# asks MetaAi.composerButton first. It holds no string, so the rules pick it by the session field
+# it reads, pinned 450 data that picks one method on 385611404, 431, 438 and 439. Hide Meta AI on
+# your profile asks MetaAi.museBanner() first in the Muse banner's builder, the one static
+# (Context, profile) method holding both of the banner's analytics names (0AW7.A01 on 450), and a
+# yes answers null like a profile with no banner. Left out, the buttons or the card stay with their
+# switches on; twice or elsewhere, it isn't the guard the patch wrote.
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z in instance (L*;L*;Z)V holding LX/02Pe;->A0J:Lcom/instagram/common/session/UserSession;
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z in instance (L*;L*;Z)V holding LX/02Pe;->A0J:Lcom/instagram/common/session/UserSession;
+start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
+once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 # Hide Blend on reels asks MetaAi.blendButton() first in the one static method that logs
 # android_purge_26_q2_BlendButtonVisibilityUtils_computeBlendInviteButtonVisibility (0362.A00 on 450).
 # No rule here, like the Muse card's: BlendButtonHookTest proves the hook on every Instagram 450
@@ -801,6 +825,11 @@ once-call Lapp/hushgram/extension/instagram/download/PostInfo;->show(Ljava/lang/
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->coverOption()Ljava/lang/Object; in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
 once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V in instance (Lcom/instagram/feed/media/mediaoption/MediaOption$Option;)V holding CAROUSEL_TO_REELS_ACTION_SHEET bloks_suggested_comments_network_error
+# Your own posts (#57): the same builder passes the answer of Instagram's check of whether your post
+# may be downloaded through ownPost() right after its move-result, and the flag it reads past a yes
+# through ownPostRow(), once each. Like offer(), these pick one method on 385611404, 431 and 438.
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPost(ILjava/lang/Object;)I in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
+once-call Lapp/hushgram/extension/instagram/download/VideoDownload;->ownPostRow(ILjava/lang/Object;)I in instance ()Ljava/lang/Object; holding MediaOptionsOverflowHelper basel_template_option_overflow_menu
 # The short menu most of the feed opens keeps only the rows whose option is on a list made by a
 # method holding no string, so the rule picks it by the two options it reads: the one static method
 # taking a flag and answering a list that reads "Why you're seeing this" and Report. It returns
@@ -1231,7 +1260,10 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/
 # calls answer at each of its four returns, which no rule here counts, so it rests on the same
 # test, which checks on the 449 fixture that every return passes through answer. The handler also
 # hands its choice to ReelAutoScroll.stored right after it keeps it in memory and right after it
-# saves it, two calls no rule here counts, so they rest on that test too. Two methods read the
+# saves it, the two calls its stored rule counts. The timed choice's duration callback, the invoke()
+# holding the logDurationTap marker that asks System.currentTimeMillis (0dxn on 450's 385611438),
+# hands each of the three expiration times it saves to ReelAutoScroll.timerSet right after the save.
+# Both pick one method on all seven 450 builds. Two methods read the
 # memory itself (the manager's one boolean) and pass what they read through answer once, right
 # after the read: the Reels viewer's state (07Bj.A0V on 449, the one method holding its marker
 # below) and the picture in picture fragment's onCreate (0Xrc.onCreate). The test finds every read
@@ -1242,6 +1274,8 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->chosen(I)V 
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->saved(I)Z in static (L*;)Z class-holding preference_clips_auto_scroll_enabled
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (*)L*; holding android_purge_26_q3_VideoPlaybackUseCase_getUiState
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V holding android_purge_26_q2_ClipsPiPFragment_onCreate
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_logDurationTap
 #
 # Stop Reels scrolling hands the Reels pager to ReelScrolling.pager right after the Reels viewer's
 # onViewCreated stores it (06Bw on 449, the one method of its shape holding the setup marker below),
@@ -1419,8 +1453,30 @@ once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->touch(Landroid/
 # Its gesture listener's long press, the one instance (float, float) void method writing the
 # helper's press time, asks once whether the zoom takes the press. Field names are pinned 450 data.
 once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->press(Landroid/view/View;Ljava/lang/Object;)I in instance (FF)V holding LX/07AW;->A00:J
+# Pure black dark mode paints the comments sheet (#108). The bottom sheet host's (Context, Fragment,
+# int) set-up method, the one method holding the host's kept name, hands the host and its screen to
+# CommentsSheet.paint before each of its two returns. Its public (int, int) drag method, the one
+# reading the container and SRC_IN that calls another of the host's (int, int) methods, hands the
+# host to CommentsSheet.repaint before each of its two returns. Each comments sheet screen's
+# onViewCreated calls CommentsSheet.contentShown first: the base screen holding comment_sheet_prefix_,
+# the Reels screen holding reel_comments_sheet, and the Compose screen (0SCM on 450's 385611438),
+# which holds no string and is picked by two of the base screen's fields it reads. Those field
+# names are pinned 450 data, picking one method on 385611404, 431 and 438. Left out, the sheet
+# stays gray; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->paint(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/content/Context;Landroidx/fragment/app/Fragment;I)V sites 2 holding BottomSheetFragment
+once-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->repaint(Ljava/lang/Object;)V in instance (II)V calling instance Lcom/instagram/igds/components/bottomsheet/BottomSheetFragment;->*(II)V sites 2 holding Lcom/instagram/igds/components/bottomsheet/BottomSheetFragment;->bottomSheetContainer:Landroid/view/ViewGroup; Landroid/graphics/PorterDuff$Mode;->SRC_IN:Landroid/graphics/PorterDuff$Mode;
+start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding comment_sheet_prefix_
+shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding comment_sheet_prefix_
+start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding reel_comments_sheet
+shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding reel_comments_sheet
+start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/0E1B;->A0N:LX/0P3T; LX/0E1B;->A0M:LX/0P3T;
+shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding LX/0E1B;->A0N:LX/0P3T; LX/0E1B;->A0M:LX/0P3T;
 # Hide Notes on profile pictures answers the two reads of Instagram's is_consumption_disabled flag
-# for profiles through ProfileNotes.consumptionDisabled, one in UserDetailFragment and one in the
-# profile header builder. The gate holds no strings to tell those methods apart from their
-# neighbors, so this rests on HideProfileNotesHookTest, which finds both reads in all seven 450
-# builds and checks each answer lands right after the flag's move-result.
+# for profiles through ProfileNotes.consumptionDisabled, right after each read's move-result. One
+# read is in the profile header builder, the instance (View, three objects, boolean) void method
+# holding self_profile and external_profile (092H.A06 on 450). The other is in UserDetailFragment's
+# static (fragment, boolean) method that reads the session's userId and asks NotesRepository for a
+# user's notes. Both rules pick one method on all seven 450 builds, and HideProfileNotesHookTest
+# still checks where each answer lands. Left out, notes stay on profile pictures with the switch on.
+shared-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->consumptionDisabled(I)Z in instance (Landroid/view/View;L*;L*;L*;Z)V holding self_profile external_profile
+shared-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->consumptionDisabled(I)Z in static (Lcom/instagram/profile/fragment/UserDetailFragment;Z)V calling instance Lcom/instagram/direct/inbox/notes/data/repository/NotesRepository;->*(Ljava/lang/String;)Ljava/util/List; holding Lcom/instagram/common/session/UserSession;->userId:Ljava/lang/String;
