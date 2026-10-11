@@ -126,7 +126,7 @@ public class FriendshipChipTest {
         FriendshipChip.Chip chip = FriendshipChip.shownUnder(counts);
         assertNotNull(chip);
         assertEquals("Following each other", chip.pill.text);
-        assertEquals(pronouns.getCurrentTextColor(), chip.pill.color());
+        assertEquals(FriendshipChip.color(Relation.FOLLOWING_EACH_OTHER), chip.pill.color());
         assertEquals(ownBottom + chip.room, counts.getPaddingBottom());
         assertEquals("the bio moves down by the chip's room", bioTop + chip.room, layOut());
         assertEquals("the chip sits in the room, at the counts' start", counts.getHeight() - ownBottom, chip.pill.getBounds().bottom);
@@ -137,6 +137,7 @@ public class FriendshipChipTest {
         FriendshipStatus.besidePronouns(pronouns, new Profile(true, false));
         assertSame(chip, FriendshipChip.shownUnder(counts));
         assertEquals("Follows you", chip.pill.text);
+        assertEquals(FriendshipChip.color(Relation.FOLLOWS_YOU), chip.pill.color());
         FriendshipStatus.besidePronouns(pronouns, new Profile(false, true));
         assertEquals("Doesn't follow you", chip.pill.text);
         assertEquals("the room is made once", ownBottom + chip.room, counts.getPaddingBottom());
