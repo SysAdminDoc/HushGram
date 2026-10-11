@@ -88,7 +88,7 @@ function Get-PatchTarget {
     # Every version the catalog declares, newest first. Instagram moves a release a week, so the
     # bundle may declare the build it was last proved on and the one before it; the newest is
     # the one a device build and the README name. Compared part by part as numbers, every part:
-    # Meta's versions have five (449.0.0.52.84) and [version] takes four, so the fifth was
+    # Meta's versions have five (450.0.0.50.77) and [version] takes four, so the fifth was
     # dropped, and two builds apart only there sorted as equals in whatever order the shell left
     # them, the older one first in both.
     $declared = @($targets[$packageName] | Sort-Object -Unique)
@@ -126,8 +126,8 @@ function Test-DeclaredBuild {
         Whether an APK is one of the builds a catalog declares.
     .DESCRIPTION
         Its version name has to be declared, and so does its version code wherever the catalog pins
-        codes to that name. Another arm64 build of Instagram 449 shares the declared name and was
-        never proved, so only a declared build is patched without -f, and only a run of one proves
+        codes to that name. A build of Instagram sharing a declared name under a code the catalog
+        doesn't pin was never proved, so only a declared build is patched without -f, and only a run of one proves
         a release. Takes Get-PatchTarget's answer, or anything carrying its PackageVersions and
         PackageVersionCodes.
     #>
