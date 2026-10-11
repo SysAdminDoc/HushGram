@@ -79,8 +79,11 @@ public final class ThreadsButton {
         return name != null && name.startsWith(THREADS_ICON);
     }
 
-    /** The resource name of [icon], "" when there's no such resource, or null with no context yet. */
-    static String iconName(int icon) {
+    /**
+     * The resource name of [icon], "" when there's no such resource, or null with no context yet.
+     * Home's header reads its buttons' icons through this too, so both share one cache.
+     */
+    public static String iconName(int icon) {
         String known = NAMES.get(icon);
         if (known != null) return known;
         Context context = Utils.getContext();

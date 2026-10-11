@@ -4,8 +4,6 @@
  */
 package app.hushgram.extension.instagram.reels;
 
-import android.content.Context;
-import android.content.res.Resources;
 import android.view.View;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
@@ -14,12 +12,11 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.profile.ThreadsButton;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Utils;
@@ -49,9 +46,6 @@ public final class HomeHeader {
     /** What's counted for each button left out. */
     static final String CREATE_LEFT_OUT = "Home header Create button left out";
     static final String NOTIFICATIONS_LEFT_OUT = "Home header notifications button left out";
-
-    /** Icon resource names already looked up, "" for an id with no resource. */
-    private static final Map<Integer, String> NAMES = new ConcurrentHashMap<>();
 
     private HomeHeader() {
     }
@@ -103,18 +97,7 @@ public final class HomeHeader {
 
     /** The resource name of [icon], "" when there's no such resource, or null with no context yet. */
     static String iconName(int icon) {
-        String known = NAMES.get(icon);
-        if (known != null) return known;
-        Context context = Utils.getContext();
-        if (context == null) return null;
-        String name;
-        try {
-            name = context.getResources().getResourceEntryName(icon);
-        } catch (Resources.NotFoundException missing) {
-            name = "";
-        }
-        NAMES.put(icon, name);
-        return name;
+        return ThreadsButton.iconName(icon);
     }
 
     /**
