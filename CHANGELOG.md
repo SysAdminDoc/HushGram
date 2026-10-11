@@ -102,6 +102,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Open developer options:** Export overrides no longer writes a file that Import overrides then refuses. A config Instagram had emptied out, from a build that no longer has it, slipped into the export as it was.
 
+* **Instagram - Show if a profile follows you:** The chip under a profile's counts grows with your phone's font size instead of cutting its words off at the largest sizes.
+
 * **Instagram - Hide Meta AI:** With Hide Meta AI in search and Home's bar on, a keyword search's results no longer end in an Ask a follow-up bar with a + button. Before, only its topic pills went and the bar stayed at the bottom of the page. The header at the top of the results, with Back and your search, stays as it was, and turning the switch off brings the bar back on your next search.
 
 * **Instagram - Hide suggested posts:** With Hide suggested posts on, Home no longer stays on its gray loading boxes for an account whose feed is all suggestions, like a new account that follows nobody. Home used to weigh every item it read in the last couple of seconds, its saved copy included, and one item Instagram shows somewhere else was enough to keep it waiting. Now each page Home loads is judged on its own. When a page held nothing but suggestions and Home has nothing to show, you get Instagram's own empty feed, and your diagnostic report says so (home page ended with every post removed). Asked about in #105 and #104.

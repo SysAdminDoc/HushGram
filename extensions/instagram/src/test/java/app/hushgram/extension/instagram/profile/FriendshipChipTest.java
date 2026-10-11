@@ -27,7 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.GraphicsMode;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
@@ -260,6 +262,26 @@ public class FriendshipChipTest {
                 assertFalse(type.getSimpleName() + "." + field.getName() + " holds a " + held.getName() + " strongly", leads);
                 if (field.getName().equals("block")) assertTrue(Reference.class.isAssignableFrom(held));
             }
+        }
+    }
+
+    /**
+     * At twice the usual font size the words are taller than a 28dp pill leaves room for, so the
+     * pill grows with them instead of its outline cutting them off.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    public void thePillGrowsWithTheFontSize() {
+        FriendshipChip.Pill usual = new FriendshipChip.Pill(RuntimeEnvironment.getApplication());
+        assertEquals("the usual pill is 28dp", usual.dp(28), usual.getIntrinsicHeight());
+        try {
+            RuntimeEnvironment.setFontScale(2f);
+            FriendshipChip.Pill large = new FriendshipChip.Pill(RuntimeEnvironment.getApplication());
+            assertTrue("words " + large.textHeight() + "px in a " + large.getIntrinsicHeight() + "px pill",
+                    large.getIntrinsicHeight() >= large.textHeight() + large.dp(8));
+            assertTrue(large.getIntrinsicHeight() > usual.getIntrinsicHeight());
+        } finally {
+            RuntimeEnvironment.setFontScale(1f);
         }
     }
 

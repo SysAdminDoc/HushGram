@@ -280,7 +280,9 @@ final class FriendshipChip {
             words.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 13, metrics));
             outline.setStyle(Paint.Style.STROKE);
             outline.setStrokeWidth(Math.max(1, dp(1)));
-            height = dp(28);
+            // 28dp at the usual text size, and taller when the phone's font scale makes the words
+            // taller than that, so the outline never clips them.
+            height = Math.max(dp(28), textHeight() + dp(8));
             padding = dp(12);
             iconSize = dp(16);
             iconGap = dp(6);
@@ -288,6 +290,12 @@ final class FriendshipChip {
 
         int dp(float value) {
             return Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, value, metrics));
+        }
+
+        /** How tall the words are at the current text size, ascent to descent. */
+        int textHeight() {
+            Paint.FontMetrics font = words.getFontMetrics();
+            return (int) Math.ceil(font.descent - font.ascent);
         }
 
         void set(String text, @Nullable Drawable icon, int color, @Nullable Typeface typeface) {
