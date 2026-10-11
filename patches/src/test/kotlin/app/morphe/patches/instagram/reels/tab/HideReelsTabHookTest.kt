@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -46,7 +47,7 @@ class HideReelsTabHookTest {
     /** The hooks the patch writes are in the ReelsTab the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(SHOWN_TABS, TAB_TO_OPEN)) {
+        for (hook in listOf(SHOWN_TABS, TAB_TO_OPEN, PAGER_START)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -56,7 +57,8 @@ class HideReelsTabHookTest {
 
     /**
      * The list builder's return asks for the shown tabs, and its loop still lands on the ask; the home
-     * tab's Reels is asked about before it's returned; the switch asks about its tab first.
+     * tab's Reels is asked about before it's returned; the switch asks about its tab first, and its
+     * read of the pager start flag goes through the extension.
      */
     @Test
     fun allThreeAsk() {
@@ -67,6 +69,7 @@ class HideReelsTabHookTest {
         assertListAsked("the builder", context.method(lists, builderName))
         assertHomeAsked("the home tab", context.method(lists, homeName), tab)
         assertSwitchAsked("the switch", context.method(host, switchName), tab, register = 4)
+        assertPagerStartAsked("the switch", context.method(host, switchName))
         assertTrue(
             "the home tab's Home return was touched",
             context.method(lists, homeName).code().count { it.referenceText() == TAB_TO_OPEN } == 1,
@@ -88,13 +91,15 @@ class HideReelsTabHookTest {
             classes(jumpToHomeReturn = true) to "something jumps to the return of Reels",
             classes(switches = 2) to "reporting \"$TAB_SWITCH_REPORT\", found 2",
             classes(jumpToSwitchStart = true) to "something jumps to the start",
+            classes(pagerFlagReads = 0) to "one read of the pager start flag ${PAGER_START_FLAG.toString(16)}",
+            classes(pagerFlagReads = 2) to "in $host->$switchName, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
             val failure = assertThrows(PatchException::class.java) { context.hideReelsTab() }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
-                .filter { method -> method.code().any { it.referenceText() == SHOWN_TABS || it.referenceText() == TAB_TO_OPEN } }
+                .filter { method -> method.code().any { it.referenceText() in setOf(SHOWN_TABS, TAB_TO_OPEN, PAGER_START) } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
         }
     }
@@ -135,6 +140,7 @@ class HideReelsTabHookTest {
                 val register = switch.implementation!!.registerCount - switch.parameterTypes.sumOf { width(it.toString()) } +
                     switch.parameterTypes.take(tabParameter).sumOf { width(it.toString()) }
                 assertSwitchAsked("${bundle.name}: the switch", switch, tabType, register)
+                assertPagerStartAsked("${bundle.name}: the switch", switch)
                 checked += version
             }
         }
@@ -183,6 +189,21 @@ class HideReelsTabHookTest {
         assertEquals("$what: asks", 1, code.count { it.referenceText() == TAB_TO_OPEN })
     }
 
+    /** The flag's read, right after its move-result, goes to the extension, and its answer takes the read's place. */
+    private fun assertPagerStartAsked(what: String, method: MutableMethod) {
+        val code = method.code()
+        val asks = code.indices.filter { code[it].referenceText() == PAGER_START }
+        assertEquals("$what: pager start asks", 1, asks.size)
+        val ask = asks.single()
+        assertEquals("$what: what comes before the pager start ask", Opcode.MOVE_RESULT, code[ask - 1].opcode)
+        val register = (code[ask - 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the read handed over", listOf(register, 1), (code[ask] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals("$what: the pager start answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
+        assertEquals("$what: the pager start answer's register", register, (code[ask + 1] as OneRegisterInstruction).registerA)
+        val load = code.subList(0, ask).indexOfLast { it.opcode == Opcode.CONST_WIDE }
+        assertTrue("$what: the pager start flag is what's read", load >= 0 && (code[load] as WideLiteralInstruction).wideLiteral == PAGER_START_FLAG)
+    }
+
     // ---- stand-ins shaped like Instagram 449's -------------------------------------------------
 
     /**
@@ -200,6 +221,7 @@ class HideReelsTabHookTest {
         jumpToHomeReturn: Boolean = false,
         switches: Int = 1,
         jumpToSwitchStart: Boolean = false,
+        pagerFlagReads: Int = 1,
     ): List<ClassDef> {
         val tabEnums = (0 until enums).map { copy ->
             val type = if (copy == 0) tab else "Lfixture/OtherTab;"
@@ -249,6 +271,11 @@ class HideReelsTabHookTest {
             move-result-object v0
             iput-object v0, p0, $host->otherTabs:$LIST
         """ else ""
+        val pagerFlagRead = """
+            const-wide v0, ${PAGER_START_FLAG}L
+            invoke-static { v0, v1 }, Lfixture/Config;->read(J)Z
+            move-result v2
+        """
         val hostMethods = (0 until hosts).map { copy ->
             method(host, "<init>", if (copy == 0) listOf(SESSION) else listOf(SESSION, "I"), "V", 2 + copy, constructor = true, body = """
                 const-string v0, "$TAB_HOST_STATE"
@@ -264,6 +291,7 @@ class HideReelsTabHookTest {
                 ${if (jumpToSwitchStart) ":start" else ""}
                 const-string v0, "$TAB_SWITCH_REPORT"
                 ${if (jumpToSwitchStart) "if-eqz p3, :start" else ""}
+                ${if (copy == 0) pagerFlagRead.repeat(pagerFlagReads) else ""}
                 return-void
             """)
         }

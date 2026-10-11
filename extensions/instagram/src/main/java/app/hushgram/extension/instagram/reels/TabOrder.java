@@ -29,7 +29,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * bar's buttons and the swipe between tabs are both built from that one list, and Instagram looks a
  * tab up in it by name, so the two stay in step. A tab the choice names that isn't on the bar is
  * skipped. Nothing changes which tab Instagram opens on: Home's place in the list doesn't make it
- * the start tab, the Start tab choice does.
+ * the start tab, the Start tab choice does. Instagram opens its tab pager on the pager's first tab
+ * unless a server flag says to open it on the tab asked for, and most accounts have that flag off,
+ * so while the bar is reordered {@link ReelsTab#startAtTab} answers it yes.
  *
  * <p>An empty choice, HushGram paused, the settings not read yet, or a list holding anything but
  * tabs, and the list goes through as it came. The list Instagram built is never changed.
@@ -46,6 +48,9 @@ public final class TabOrder {
     @Nullable
     private static volatile List<String> instagramOrder;
 
+    /** Whether the list was last handed back in another order than Instagram's. */
+    private static volatile boolean reordered;
+
     private TabOrder() {
     }
 
@@ -55,9 +60,11 @@ public final class TabOrder {
      */
     static List<?> apply(List<?> tabs) {
         try {
+            reordered = false;
             remember(tabs);
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return tabs;
             List<?> shown = ordered(tabs, parse(Settings.TAB_ORDER.get()));
+            reordered = shown != tabs;
             if (shown != tabs) {
                 HookStatus.counted(FamilyNames.REELS_TAB, APPLIED);
                 Logger.printDebug(() -> "Reels tab: put the bar in the order " + Settings.TAB_ORDER.get());
@@ -100,6 +107,11 @@ public final class TabOrder {
             if (TABS.contains(name)) names.add(name);
         }
         return new ArrayList<>(names);
+    }
+
+    /** Whether the bar was last built in another order than Instagram's. */
+    static boolean reordered() {
+        return reordered;
     }
 
     /** [names] as the saved choice. */
@@ -148,5 +160,6 @@ public final class TabOrder {
     /** Forgets the bar as last built, for tests, the settings page's included. */
     public static void forgetForTests() {
         instagramOrder = null;
+        reordered = false;
     }
 }

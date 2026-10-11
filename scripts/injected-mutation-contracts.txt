@@ -961,6 +961,10 @@ once-call Lapp/hushgram/extension/instagram/reels/DoubleTapLike;->holdBackMessag
 # isn't the ask the patch wrote.
 start-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in static (*)V holding feed_viewpager_view_not_found
 shared-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->tab(Ljava/lang/Object;)Ljava/lang/Object; in static (*)V holding feed_viewpager_view_not_found
+# The same switch reads one server flag (0x8104e200051584) as it makes the tab pager: on, the pager
+# opens on the asked tab, off, on its first tab. Tab order answers that read through startAtTab.
+# Left out, a bar whose order puts another tab before Home opens on that tab at every start.
+once-call Lapp/hushgram/extension/instagram/reels/ReelsTab;->startAtTab(I)Z in static (*)V holding feed_viewpager_view_not_found
 # The tab list builder hands its list to tabs() where it returns, once on 449, and tabs() is called
 # nowhere else, so the rule is once-call. The builder holds no string, and the one its class holds is
 # "default", which 233 other classes hold too. Among all of them the builder is the one instance

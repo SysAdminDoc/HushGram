@@ -16,6 +16,9 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.flags.FlagLoad
+import app.morphe.patches.instagram.misc.flags.answerFlagLoads
+import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
@@ -33,6 +36,14 @@ private const val PATCH = "Hide the Reels tab"
 private const val REELS_TAB = "$EXTENSION_PACKAGE/reels/ReelsTab;"
 internal const val SHOWN_TABS = "$REELS_TAB->tabs(Ljava/util/List;)Ljava/util/List;"
 internal const val TAB_TO_OPEN = "$REELS_TAB->tab(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val PAGER_START = "$REELS_TAB->startAtTab(I)Z"
+
+/**
+ * The server flag the tab switch reads as it makes the tab pager: on, the pager opens on the tab
+ * asked for, off, on the pager's first tab. Off on most accounts, which is right only while Home is
+ * first, so Tab order answers it.
+ */
+internal const val PAGER_START_FLAG = 0x8104e200051584L
 
 /** The names Instagram's tab enum gives Reels and Home, and the module name only its Reels tab carries. */
 internal const val REELS = "CLIPS"
@@ -99,12 +110,15 @@ internal fun BytecodePatchContext.hideReelsTab(found: ReelsTabHooks = findReelsT
 
     askAtReturn(builder, found.builderReturn)
     askBefore(home, found.homeReturn, (home.getInstructionAt(found.homeReturn) as OneRegisterInstruction).registerA, found.tabType)
+    // Worked out from the switch as it was found, so it goes in before the ask at its start moves it.
+    answerFlagLoads(listOf(found.pagerStart to PAGER_START))
     askBefore(switch, 0, found.switchTab, found.tabType)
 }
 
 /**
  * The tab enum, the tab list builder and its single return, the home tab method and the return of
- * Reels in it, and the tab host's switch with the register holding its tab.
+ * Reels in it, the tab host's switch with the register holding its tab, and the switch's read of
+ * whether the pager opens on that tab.
  */
 internal class ReelsTabHooks(
     val tabType: String,
@@ -114,6 +128,7 @@ internal class ReelsTabHooks(
     val homeReturn: Int,
     val switch: Method,
     val switchTab: Int,
+    val pagerStart: FlagLoad,
 )
 
 internal fun BytecodePatchContext.findReelsTab(): ReelsTabHooks {
@@ -179,7 +194,14 @@ internal fun BytecodePatchContext.findReelsTab(): ReelsTabHooks {
     val tabParameter = tabParameters.singleOrNull()
         ?: refuse("the tab switch ${switch.describe()} takes ${tabParameters.size} tabs, expected one")
 
-    return ReelsTabHooks(tabs.type, builder, builderReturn, home, homeReturn, switch, switch.parameterRegisterNumber(tabParameter))
+    val starts = findFlagLoads(PATCH, PAGER_START_FLAG, "Z").filter {
+        it.type == switch.definingClass && it.name == switch.name && it.parameters == switch.parameterTypes.map(CharSequence::toString)
+    }
+    val pagerStart = starts.singleOrNull()
+        ?: refuse("expected one read of the pager start flag ${PAGER_START_FLAG.toString(16)} in ${switch.describe()}, found ${starts.size}")
+    if (pagerStart.shared) refuse("the read of ${PAGER_START_FLAG.toString(16)} in ${switch.describe()} is shared with another flag")
+
+    return ReelsTabHooks(tabs.type, builder, builderReturn, home, homeReturn, switch, switch.parameterRegisterNumber(tabParameter), pagerStart)
 }
 
 /** The static field [type]'s setup stores its Reels tab in: the first one of that type written after the name. */

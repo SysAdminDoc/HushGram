@@ -136,4 +136,30 @@ public class TabOrderTest {
         assertEquals(names, TabOrder.movedUp(names, 7));
         assertEquals("the list handed in is left as it was", Arrays.asList("FEED", "SEARCH", "DIRECT"), names);
     }
+
+    @Test public void aReorderedBarOpensThePagerOnTheAskedTabAndInstagramsOwnOrderKeepsItsAnswer() {
+        assertTrue("Instagram's yes stays yes", ReelsTab.startAtTab(1));
+        assertEquals("nothing built yet", false, ReelsTab.startAtTab(0));
+        ReelsTab.tabs(BUILT);
+        assertEquals("Instagram's order", false, ReelsTab.startAtTab(0));
+
+        Settings.TAB_ORDER.save("PROFILE,SEARCH,FEED,CLIPS,DIRECT");
+        ReelsTab.tabs(BUILT);
+        assertTrue("Profile first, so the pager has to be sent to the asked tab", ReelsTab.startAtTab(0));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(ReelsTab.PAGER_STARTED + " 1"));
+
+        Settings.TAB_ORDER.save("FEED,SEARCH");
+        ReelsTab.tabs(BUILT);
+        assertEquals("an order Instagram already has", false, ReelsTab.startAtTab(0));
+    }
+
+    @Test public void pausedTheBarKeepsInstagramsOrderAndThePagerItsAnswer() {
+        Settings.TAB_ORDER.save("PROFILE,SEARCH,FEED");
+        ReelsTab.tabs(BUILT);
+        assertTrue(ReelsTab.startAtTab(0));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(BUILT, ReelsTab.tabs(BUILT));
+        assertEquals(false, ReelsTab.startAtTab(0));
+    }
 }

@@ -62,6 +62,9 @@ public final class ReelsTab {
     /** What a tab taken off the bar is counted under. */
     static final String HIDDEN = "tabs";
 
+    /** What a pager opened on the asked tab because of Tab order is counted under. */
+    static final String PAGER_STARTED = "Tab order opened the asked tab";
+
     /**
      * The name of the one tab the next switch opens as asked, even while a switch hides it, or null.
      * Set only around the Search button's own switch ({@link SearchHeaderButton}), and cleared by it.
@@ -210,6 +213,23 @@ public final class ReelsTab {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "tab switch", failure);
             return tab;
+        }
+    }
+
+    /**
+     * Handed Instagram's answer to whether its tab pager opens on the tab asked for, as the switch
+     * makes the pager: 0 for no, which opens it on the pager's first tab. Yes while Tab order has the
+     * bar in another order, since the first tab is then not Home, otherwise Instagram's answer.
+     * Never throws.
+     */
+    public static boolean startAtTab(int instagram) {
+        try {
+            if (instagram != 0 || !TabOrder.reordered()) return instagram != 0;
+            HookStatus.counted(FamilyNames.REELS_TAB, PAGER_STARTED);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REELS_TAB, "pager start", failure);
+            return instagram != 0;
         }
     }
 

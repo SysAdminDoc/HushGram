@@ -13,6 +13,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -162,7 +163,8 @@ class SearchHeaderHookTest {
     /** The hooks the tab list finder would hand over: only the switch and the tab type are read. */
     private fun hooks(context: BytecodePatchContext): ReelsTabHooks {
         val switch = context.classDefByOrNull(host)!!.methods.single { it.name == "switchTo" }
-        return ReelsTabHooks(tab, switch, 0, switch, 0, switch, 1)
+        val unread = FlagLoad(PAGER_START_FLAG, host, "switchTo", emptyList(), "V", "Z", 0, null, 0, 0, 0, false)
+        return ReelsTabHooks(tab, switch, 0, switch, 0, switch, 1, unread)
     }
 
     private fun classes(
