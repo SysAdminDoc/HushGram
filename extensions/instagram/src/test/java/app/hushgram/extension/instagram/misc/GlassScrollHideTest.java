@@ -252,6 +252,59 @@ public class GlassScrollHideTest {
         assertEquals(0f, bar.getTranslationY(), 0f);
     }
 
+    /** A restore only undoes what this did: a bar Instagram moved itself stays where Instagram put it. */
+    @Test public void aRestoreLeavesABarItNeverMovedAlone() {
+        bar.setTranslationY(200f);
+        hide.restoreNow();
+        assertEquals(200f, bar.getTranslationY(), 0f);
+        bar.setTranslationY(0f);
+
+        // Hidden and shown again, all the way: a later move of Instagram's is left alone too.
+        list.awayFromTop = true;
+        drag(-300);
+        settle();
+        touch(MotionEvent.ACTION_UP, 500, 600);
+        touch(MotionEvent.ACTION_DOWN, 500, 600);
+        for (int i = 1; i <= 10; i++) touch(MotionEvent.ACTION_MOVE, 500, 600 + 30 * i);
+        settle();
+        assertEquals(0f, bar.getTranslationY(), 0.5f);
+        bar.setTranslationY(50f);
+        hide.restoreNow();
+        assertEquals(50f, bar.getTranslationY(), 0f);
+    }
+
+    /** A bar Instagram rebuilds in the same window takes over the window's watcher, and the old one is put back. */
+    @Test public void aRebuiltBarTakesOverTheWindowsWatcher() {
+        Window window = activity.getWindow();
+        GlassScrollHide.install(window, hide);
+        Window.Callback wrapped = window.getCallback();
+        list.awayFromTop = true;
+        drag(-300);
+        settle();
+        assertTrue(hide.isHidden());
+
+        View rebuilt = new View(activity);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(1080, 150);
+        params.topMargin = 1770;
+        root.addView(rebuilt, params);
+        root.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 1080, 1920);
+        GlassScrollHide next = new GlassScrollHide(rebuilt, running::get);
+        GlassScrollHide.install(window, next);
+        assertSame("still wrapped once", wrapped, window.getCallback());
+        assertFalse(hide.isHidden());
+        assertEquals(0f, bar.getTranslationY(), 0f);
+
+        wrapped.dispatchTouchEvent(MotionEvent.obtain(clock, clock, MotionEvent.ACTION_DOWN, 500, 900, 0));
+        for (int i = 1; i <= 10; i++) {
+            clock += 16;
+            wrapped.dispatchTouchEvent(MotionEvent.obtain(clock, clock, MotionEvent.ACTION_MOVE, 500, 900 - 30 * i, 0));
+        }
+        assertTrue("the rebuilt bar gets the touches", next.isHidden());
+        assertFalse(hide.isHidden());
+    }
+
     @Test public void aVideoFillingTheScreenIsReelsAndKeepsTheBar() {
         list.awayFromTop = true;
         SurfaceView video = new SurfaceView(activity);

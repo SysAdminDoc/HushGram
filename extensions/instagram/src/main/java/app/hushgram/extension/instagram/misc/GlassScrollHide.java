@@ -139,6 +139,11 @@ final class GlassScrollHide {
     /** The list that hid the bar: the one the timer watches until the bar is back. */
     @Nullable private WeakReference<View> guard;
     private boolean hidden;
+    /**
+     * Whether this moved the bar and hasn't put it all the way back yet. Instagram may move its own
+     * bar, so a restore only undoes what this did.
+     */
+    private boolean moved;
     /** Whether this drag has been refused for a full-screen video, so the screen isn't walked again until the next one. */
     private boolean refused;
     private final Runnable watch = this::watchScroller;
@@ -167,11 +172,22 @@ final class GlassScrollHide {
         return Math.max(bar.getHeight(), 48 * density) + 8 * density;
     }
 
-    /** Wraps [window]'s callback so [hide] sees its touches and Back keys. Once per window. */
+    /**
+     * Wraps [window]'s callback so [hide] sees its touches and Back keys. Once per window: a window
+     * already wrapped for an earlier bar (one Instagram rebuilt) hands its touches to [hide] instead,
+     * after putting the earlier bar back.
+     */
     static void install(Window window, GlassScrollHide hide) {
         Window.Callback inner = window.getCallback();
         if (inner == null) return;
-        if (Proxy.isProxyClass(inner.getClass()) && Proxy.getInvocationHandler(inner) instanceof Watcher) return;
+        if (Proxy.isProxyClass(inner.getClass()) && Proxy.getInvocationHandler(inner) instanceof Watcher) {
+            Watcher watcher = (Watcher) Proxy.getInvocationHandler(inner);
+            if (watcher.hide != hide) {
+                watcher.hide.restoreNow();
+                watcher.hide = hide;
+            }
+            return;
+        }
         window.setCallback((Window.Callback) Proxy.newProxyInstance(GlassScrollHide.class.getClassLoader(),
                 new Class<?>[] {Window.Callback.class}, new Watcher(inner, hide)));
     }
@@ -182,7 +198,8 @@ final class GlassScrollHide {
      */
     private static final class Watcher implements InvocationHandler {
         private final Window.Callback inner;
-        private final GlassScrollHide hide;
+        /** The bar's hider now: a rebuilt bar takes over the window's watcher. Touched on the main thread only. */
+        private GlassScrollHide hide;
 
         Watcher(Window.Callback inner, GlassScrollHide hide) {
             this.inner = inner;
@@ -280,6 +297,7 @@ final class GlassScrollHide {
         }
         guard = scroller;
         hidden = true;
+        moved = true;
         bar.animate().cancel();
         bar.animate().translationY(travel()).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
         bar.removeCallbacks(watch);
@@ -293,15 +311,21 @@ final class GlassScrollHide {
         hidden = false;
         bar.removeCallbacks(watch);
         bar.animate().cancel();
-        bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator()).start();
+        bar.animate().translationY(0f).setDuration(SLIDE_MS).setInterpolator(new DecelerateInterpolator())
+                .withEndAction(() -> moved = hidden).start();
         HookStatus.counted(FamilyNames.GLASS_TAB_BAR, COUNT_SHOWED);
     }
 
-    /** Brings the bar back this instant: the screen is leaving, the bar is leaving, or something went wrong. */
+    /**
+     * Brings the bar back this instant: the screen is leaving, the bar is leaving, or something went
+     * wrong. Does nothing to a bar this never moved, which Instagram may have moved itself.
+     */
     void restoreNow() {
         bar.removeCallbacks(watch);
-        bar.animate().cancel();
         hidden = false;
+        if (!moved) return;
+        moved = false;
+        bar.animate().cancel();
         if (bar.getTranslationY() != 0f) bar.setTranslationY(0f);
     }
 
