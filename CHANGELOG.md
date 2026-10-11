@@ -6,6 +6,8 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Start feed videos with sound:** New patch with a switch under Feed in HushGram settings, Start feed videos with sound. It starts off. Turn it on and the first video Home starts plays with its sound on, the same as after you tap the video's speaker, so you don't have to tap it each time you open the feed. Your phone's ringer and volume still count, so a silent phone or media volume at zero starts it muted as before. Tapping the speaker still mutes and unmutes, and videos after the first start the way Instagram starts them. Reels and stories aren't touched. Asked for in #103.
+
 * **Instagram - Glass tab bar:** New switch under Tab bar in HushGram settings, Hide the tab bar as you scroll. It starts off. Scroll a list down and the glass pill slides off the bottom of the screen, like on the iPhone. Scroll back up, reach the top of the list, change tab or press Back and it slides back. Nothing under it moves, so with Show content behind the tab bar off you just see the screen's background where the pill was. Reels keeps its bar. A change shows after a restart. Refs #87.
 
 * **Instagram - Glass tab bar:** Under Tab bar in HushGram settings there are two new lists, Tab bar opacity and Tab bar height. Opacity runs from Clearest to Frosted, height from Compact to Tall, and both start on Standard, which is the pill exactly as it looks now. A compact pill is a slimmer pill drawn inside the same bar, so every tab keeps its whole tap area. A tall bar is a little taller than Instagram's and stops growing well short of the screens above it, so icons and badges are never cut off. A change shows after a restart. Refs #65.

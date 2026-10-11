@@ -481,6 +481,19 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchIsUnderStoriesAfterLoopAndStartsOff[28]", "theSwitchIsUnderStoriesAfterLoopAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.feed.FeedSoundTest" to listOf(
+                "itStartsOffAndLeavesInstagramsOwnSoundAlone[28]", "itStartsOffAndLeavesInstagramsOwnSoundAlone[37]",
+                "onWithTheRingerOnAndTheVolumeUpTheFirstVideoStartsWithSound[28]", "onWithTheRingerOnAndTheVolumeUpTheFirstVideoStartsWithSound[37]",
+                "aControllerGetsOneTurnAndTheNextFeedGetsItsOwn[28]", "aControllerGetsOneTurnAndTheNextFeedGetsItsOwn[37]",
+                "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[28]", "aSilentPhoneOrNoVolumeIsInstagramsOwnChoice[37]",
+                "pausedHushGramLeavesTheSoundAlone[28]", "pausedHushGramLeavesTheSoundAlone[37]",
+                "beforeTheSettingsAreReadyItIsInstagramsOwnSound[28]", "beforeTheSettingsAreReadyItIsInstagramsOwnSound[37]",
+                "withoutAControllerItSaysNo[28]", "withoutAControllerItSaysNo[37]"),
+            "app.hushgram.extension.instagram.settings.FeedSoundSettingsTest" to listOf(
+                "theSwitchIsUnderFeedAfterTheHiddenLikeCountsAndStartsOff[28]", "theSwitchIsUnderFeedAfterTheHiddenLikeCountsAndStartsOff[37]",
+                "theSwitchAloneStillMakesTheFeedSection[28]", "theSwitchAloneStillMakesTheFeedSection[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

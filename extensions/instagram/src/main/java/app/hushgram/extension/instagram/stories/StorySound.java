@@ -58,7 +58,7 @@ public final class StorySound {
     }
 
     /** True when the ringer is on and the media volume is up, which is when Instagram plays a story with no choice saved. */
-    static boolean phoneAllowsSound() {
+    public static boolean phoneAllowsSound() {
         Context context = Utils.getContext();
         if (context == null) return false;
         AudioManager audio = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);

@@ -32,6 +32,7 @@ public final class FamilyNames {
     public static final String BACK_LEAVES_HOME = "Back leaves Home";
     public static final String STORY_LOOP = "Loop a story";
     public static final String STORY_SOUND = "Start stories with sound";
+    public static final String FEED_SOUND = "Start feed videos with sound";
     public static final String STORY_SEEN = "View stories anonymously";
     public static final String DM_MEDIA_SEEN = "View DM photos and videos anonymously";
     public static final String SPOOF_LOCATION = "Spoof location";

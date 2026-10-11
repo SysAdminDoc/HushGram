@@ -416,6 +416,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Start feed videos with sound patch. */
+    public static boolean feedSound() {
+        return false;
+    }
+
     /** Rewritten by the Keep in chat patch. */
     public static boolean keepInChat() {
         return false;

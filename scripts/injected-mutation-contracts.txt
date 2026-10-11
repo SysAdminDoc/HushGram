@@ -1394,3 +1394,8 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelTapAndVolume;->keepMuted(I
 # the class that calls a superclass onCreate. Left out, stories open as the ringer and volume
 # alone say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StorySound;->startWithSound(Ljava/lang/Object;)I in instance (Landroid/os/Bundle;)V calling instance L*;->onCreate(Landroid/os/Bundle;)V class-holding ReelViewerFragment.onCurrentActiveItemBound
+# Start feed videos with sound asks FeedSound.startWithSound() once, in the feed video controller's video
+# start, the one instance (Media, x, y, z, int, int, int, boolean, boolean, boolean) void method of the class
+# that loads the volume key handler's crash string. Left out, feed videos start as Instagram's own settings
+# say; twice or elsewhere, it isn't the call the patch wrote.
+once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startWithSound(Ljava/lang/Object;)I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume

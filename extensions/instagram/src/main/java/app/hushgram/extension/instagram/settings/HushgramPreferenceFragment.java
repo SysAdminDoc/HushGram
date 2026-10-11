@@ -438,8 +438,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean postTime = build.contains(PatchFamily.POST_TIME);
         boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
+        boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome ? category(screen, L10n.t("Feed")) : null;
+                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
                     L10n.t("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to "
@@ -530,6 +531,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Shows how many likes a post or reel has when its owner hid the count, but only when "
                             + "Instagram still sends the number. If it doesn't, nothing changes. Posts you load "
                             + "after a change show it.")));
+        }
+        if (feedSound) {
+            feed.addPreference(toggle(context, Settings.START_FEED_VIDEOS_WITH_SOUND, L10n.t("Start feed videos with sound"),
+                    L10n.t("The first video on Home plays with its sound on, the same as tapping its speaker. Your "
+                            + "phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {

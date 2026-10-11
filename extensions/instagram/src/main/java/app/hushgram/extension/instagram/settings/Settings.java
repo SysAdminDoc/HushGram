@@ -204,6 +204,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_stories_with_sound", FALSE);
 
     /**
+     * The first feed video of a Home session starts with its sound on, through the video's own sound
+     * flag, when the phone's ringer is on and its volume is up
+     * ({@link app.hushgram.extension.instagram.feed.FeedSound}). Off to start.
+     */
+    public static final BooleanSetting START_FEED_VIDEOS_WITH_SOUND =
+            new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */

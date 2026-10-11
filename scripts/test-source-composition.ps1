@@ -223,7 +223,7 @@ if ($HushBundle -and $OriginalApk) {
         Assert ($r.Exit -eq 0 -and $r.Report.patching.valid) $r.Text
         $selectedCount = @($r.Report.sources[0].patches | Where-Object { $_.selected }).Count
         # Desktop reports selected roots. Dependency execution is independently proved below.
-        Assert ($selectedCount -eq 85 -and $r.Report.patching.applied -eq 86) 'Actual composition did not apply all 85 HushGram patches and the addon root.'
+        Assert ($selectedCount -eq 86 -and $r.Report.patching.applied -eq 87) 'Actual composition did not apply all 86 HushGram patches and the addon root.'
         Assert (@($r.Report.sources[1].patches | Where-Object { -not $_.selected -and $_.name -ceq 'Fixture settings' }).Count -eq 1) 'Actual composition lost the addon dependency.'
         $out = Get-ChildItem -LiteralPath $r.Directory -Recurse -Filter 'patched-unsigned.apk' -File | Select-Object -First 1
         & $Java '-cp' "$DesktopJar$([IO.Path]::PathSeparator)$classes" 'CompositionFixture' 'assert' $out.FullName 'Lapp/hushgram/fixture/addon/Bridge;'
