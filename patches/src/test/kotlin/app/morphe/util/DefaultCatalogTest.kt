@@ -213,7 +213,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(67, neutral.size)
+        assertEquals(68, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.use) }
     }
 
