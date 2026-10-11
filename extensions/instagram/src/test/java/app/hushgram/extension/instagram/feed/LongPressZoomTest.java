@@ -265,6 +265,28 @@ public class LongPressZoomTest {
         assertTrue(LongPressZoom.isShown());
     }
 
+    /**
+     * A photo kept on the GPU can't be copied: Canvas refuses to draw a hardware bitmap with an
+     * IllegalArgumentException. That's no picture to zoom, counted as such, not a failed hook.
+     */
+    @Test
+    public void aPictureThatCantBeCopiedKeepsInstagramsLongPressWithoutAFailure() {
+        Settings.LONG_PRESS_TO_ZOOM.save(true);
+        ImageView hardware = new ImageView(controller.get()) {
+            @Override public void draw(Canvas canvas) {
+                throw new IllegalArgumentException("Software rendering doesn't support hardware bitmaps");
+            }
+        };
+        frame.removeView(image);
+        frame.addView(hardware, new FrameLayout.LayoutParams(200, 200));
+        idle();
+
+        assertEquals(0, holdAt(50f, 60f, PHOTO));
+        assertFalse(LongPressZoom.isShown());
+        assertTrue(report(), report().contains(LongPressZoom.NO_PICTURE + " 1"));
+        assertFalse("reported as a failure: " + report(), report().contains("it threw"));
+    }
+
     /** A second finger is a pinch, Instagram's own zoom: it closes the zoom, and so does a cancel. */
     @Test
     public void aSecondFingerOrACancelClosesTheZoom() {

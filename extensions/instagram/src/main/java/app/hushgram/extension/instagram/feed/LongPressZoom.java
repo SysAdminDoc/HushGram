@@ -102,9 +102,9 @@ public final class LongPressZoom {
      * down. Never consumes a touch and never throws.
      */
     public static void touch(MotionEvent event) {
-        // Every touch on every feed photo passes here, so the switch off with nothing open costs one check.
-        if (shown == null && !switchedOn()) return;
         try {
+            // Every touch on every feed photo passes here, so the switch off with nothing open costs one check.
+            if (shown == null && !switchedOn()) return;
             follow(event);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.LONG_PRESS_ZOOM, TOUCH, failure);
@@ -403,8 +403,9 @@ public final class LongPressZoom {
             Bitmap snapshot = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
             try {
                 image.draw(new Canvas(snapshot));
-            } catch (IllegalStateException hardware) {
-                // A hardware bitmap can't be drawn into a software canvas: there's no picture to copy.
+            } catch (IllegalArgumentException | IllegalStateException hardware) {
+                // A hardware bitmap can't be drawn into a software canvas (Canvas says so with an
+                // IllegalArgumentException): there's no picture to copy.
                 snapshot.recycle();
                 return null;
             }
