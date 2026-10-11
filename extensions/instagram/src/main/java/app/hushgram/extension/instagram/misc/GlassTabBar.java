@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
@@ -180,6 +181,8 @@ public final class GlassTabBar {
     static final long RECORD_EVERY_MS = 33;
     /** How long the capsule takes to slide to a new tab. */
     static final long SLIDE_MS = 280;
+    /** How long a missing shadow or content view stays unsearched before the parent is walked for it again. */
+    static final long RESEARCH_MS = 500;
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -368,6 +371,8 @@ public final class GlassTabBar {
         /** The line above the bar and the screens' container, found once: looking them up costs a walk of the whole screen. */
         @Nullable private WeakReference<View> shadowRef;
         @Nullable private WeakReference<View> contentRef;
+        /** When the shadow or the content was last searched for and not found, so a miss isn't repeated every frame. */
+        private long missedAt = Long.MIN_VALUE / 2;
 
         Glass(ViewGroup bar) {
             this.bar = bar;
@@ -476,17 +481,34 @@ public final class GlassTabBar {
             lastBottom = under;
 
             if (parent != null) {
+                // A view that was never found is searched for again every RESEARCH_MS, not every
+                // frame: a bar without a shadow or a content view would otherwise walk its parent on
+                // each draw. One that was found and came off the window is looked for at once.
+                long now = SystemClock.uptimeMillis();
+                boolean lookAgain = now - missedAt >= RESEARCH_MS;
+                boolean missed = false;
                 View shadow = shadowRef == null ? null : shadowRef.get();
                 if (shadow == null || !shadow.isAttachedToWindow()) {
-                    shadow = find(parent, TAB_BAR_SHADOW);
-                    shadowRef = shadow == null ? null : new WeakReference<>(shadow);
+                    if (shadowRef != null || lookAgain) {
+                        shadow = find(parent, TAB_BAR_SHADOW);
+                        shadowRef = shadow == null ? null : new WeakReference<>(shadow);
+                        missed |= shadow == null;
+                    } else {
+                        shadow = null;
+                    }
                 }
                 if (shadow != null && shadow.getVisibility() != View.GONE) shadow.setVisibility(View.GONE);
                 View content = contentRef == null ? null : contentRef.get();
                 if (content == null || !content.isAttachedToWindow()) {
-                    content = find(parent, CONTENT);
-                    contentRef = content == null ? null : new WeakReference<>(content);
+                    if (contentRef != null || lookAgain) {
+                        content = find(parent, CONTENT);
+                        contentRef = content == null ? null : new WeakReference<>(content);
+                        missed |= content == null;
+                    } else {
+                        content = null;
+                    }
                 }
+                if (missed) missedAt = now;
                 if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
                     ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
                     if (contentMargin < 0) contentMargin = margins.bottomMargin;
@@ -681,7 +703,7 @@ public final class GlassTabBar {
                     fromRight = nowRight;
                     toLeft = targetLeft;
                     toRight = targetRight;
-                    slideStart = now;
+                    slideStart = slideStartAt(now);
                 }
                 float progress = slideProgress(now - slideStart);
                 nowLeft = fromLeft + (toLeft - fromLeft) * progress;
@@ -917,6 +939,22 @@ public final class GlassTabBar {
         float t = elapsed / (float) SLIDE_MS;
         float rest = 1f - t;
         return 1f - rest * rest * rest;
+    }
+
+    /**
+     * When a slide that begins now counts as having started: now, or {@link #SLIDE_MS} ago when the
+     * phone's animations are off (Remove animations under accessibility, or an animator scale of 0),
+     * so the capsule lands on the new tab in one frame instead of sliding there.
+     */
+    static long slideStartAt(long now) {
+        return animationsOn() ? now : now - SLIDE_MS;
+    }
+
+    @Nullable static Boolean animationsOnForTests;
+
+    static boolean animationsOn() {
+        Boolean forTests = animationsOnForTests;
+        return forTests != null ? forTests : ValueAnimator.areAnimatorsEnabled();
     }
 
     /**

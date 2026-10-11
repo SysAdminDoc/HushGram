@@ -150,6 +150,19 @@ public class GlassTabBarTest {
         assertEquals(420 * density, width - 2f * outer, 1f);
     }
 
+    /** With the phone's animations off, a slide that starts now is already over, so the capsule jumps. */
+    @Test
+    public void withAnimationsOffTheCapsuleJumpsToTheNewTab() {
+        try {
+            GlassTabBar.animationsOnForTests = false;
+            assertEquals(1f, GlassTabBar.slideProgress(1000L - GlassTabBar.slideStartAt(1000L)), 0f);
+            GlassTabBar.animationsOnForTests = true;
+            assertEquals(0f, GlassTabBar.slideProgress(1000L - GlassTabBar.slideStartAt(1000L)), 0f);
+        } finally {
+            GlassTabBar.animationsOnForTests = null;
+        }
+    }
+
     @Test
     public void theCapsuleSlideIsTimedNotCountedAndEasesOut() {
         assertEquals(0f, GlassTabBar.slideProgress(0), 0f);
