@@ -61,6 +61,7 @@ public final class FamilyNames {
     public static final String HIDE_SHARE_BUTTON = "Hide the Share button";
     public static final String BOTTOM_SPACE = "Remove the empty space at the bottom";
     public static final String GLASS_TAB_BAR = "Glass tab bar";
+    public static final String FULL_SCREEN_BARS = "Full screen Reels and Home";
     public static final String SAVED_ON_PROFILE = "Saved on your profile";
     public static final String STOP_HEARTBEAT = "Stop background wake-ups";
     public static final String EMOJI_STYLE = "Emoji style";

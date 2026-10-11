@@ -289,6 +289,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean fullScreenBars() {
+        return false;
+    }
+
     public static boolean savedOnProfile() {
         return false;
     }

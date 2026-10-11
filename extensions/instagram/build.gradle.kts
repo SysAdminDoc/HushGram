@@ -522,6 +522,22 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchAloneStillMakesTheFeedSection[28]", "theSwitchAloneStillMakesTheFeedSection[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.reels.FullScreenBarsTest" to listOf(
+                "bothSwitchesStartOffAndNothingHides[28]", "bothSwitchesStartOffAndNothingHides[37]",
+                "aViewerFillingTheWindowHidesTheBarsAndLeavingItBringsThemBack[28]", "aViewerFillingTheWindowHidesTheBarsAndLeavingItBringsThemBack[37]",
+                "aViewerOnlyPartlyOnScreenIsNotReels[28]", "aViewerOnlyPartlyOnScreenIsNotReels[37]",
+                "withoutAViewerTheSelectedReelsTabIsReels[28]", "withoutAViewerTheSelectedReelsTabIsReels[37]",
+                "homeHidesTheBarsOnlyWithItsOwnSwitch[28]", "homeHidesTheBarsOnlyWithItsOwnSwitch[37]",
+                "homesSwitchDoesNotHideReels[28]", "homesSwitchDoesNotHideReels[37]",
+                "aViewerOverTheHomeTabIsReelsNotHome[28]", "aViewerOverTheHomeTabIsReelsNotHome[37]",
+                "turningTheSwitchOffBringsTheBarsBack[28]", "turningTheSwitchOffBringsTheBarsBack[37]",
+                "pausingTheActivityBringsTheBarsBackAndForgetsIt[28]", "pausingTheActivityBringsTheBarsBackAndForgetsIt[37]",
+                "theWindowsOwnFlagsAreKeptAndPutBack[28]", "theWindowsOwnFlagsAreKeptAndPutBack[37]",
+                "aScreenWithNoTabBarAndNoViewerIsLeftAlone[28]", "aScreenWithNoTabBarAndNoViewerIsLeftAlone[37]"),
+            "app.hushgram.extension.instagram.settings.FullScreenBarsSettingsTest" to listOf(
+                "reelsIsUnderReelsAndHomeIsUnderFeedAndBothStartOff[28]", "reelsIsUnderReelsAndHomeIsUnderFeedAndBothStartOff[37]",
+                "savedSwitchesAnswerOffWhilePaused[28]", "savedSwitchesAnswerOffWhilePaused[37]",
+                "missingPatchHasNoSwitches[28]", "missingPatchHasNoSwitches[37]"),
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),

@@ -443,8 +443,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
         boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
         boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
+        boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || longPressZoom
+                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || longPressZoom || fullScreen
                 ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
@@ -547,6 +548,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     L10n.t("Press and hold a photo in a feed to see it twice as big around your finger, and slide to "
                             + "look around. Let go to close it. While this is on, it takes the place of Instagram's own "
                             + "long press on a photo.")));
+        }
+        if (fullScreen) {
+            feed.addPreference(toggle(context, Settings.FULL_SCREEN_HOME, L10n.t("Full screen Home"),
+                    L10n.t("Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to "
+                            + "bring them back for a moment.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {
@@ -731,6 +737,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             reels.add(toggle(context, Settings.SHOW_REELS_TAB, L10n.t("Show the Reels tab"),
                     L10n.t("Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if "
                             + "both are on. Restart Instagram to see the change.")));
+        }
+        if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
+            reels.add(toggle(context, Settings.FULL_SCREEN_REELS, L10n.t("Full screen Reels"),
+                    L10n.t("Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to "
+                            + "bring them back for a moment. Back and the keyboard work as usual.")));
         }
         if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
             reels.add(toggle(context, Settings.KEEP_REEL_SPEED, L10n.t("Keep the reel speed"),

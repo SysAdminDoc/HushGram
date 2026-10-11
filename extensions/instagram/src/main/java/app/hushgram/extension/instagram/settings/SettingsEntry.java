@@ -40,6 +40,7 @@ import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.shared.L10n;
@@ -117,6 +118,7 @@ public final class SettingsEntry {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
         GlassTabBar.install(context);
+        FullScreenBars.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);

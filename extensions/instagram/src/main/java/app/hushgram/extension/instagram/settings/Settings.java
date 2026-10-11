@@ -655,6 +655,19 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_glass_tab_bar", FALSE, true);
 
     /**
+     * The status bar and the navigation bar hide while Reels shows, in the Reels tab and in the full
+     * screen viewer a reel opens from anywhere
+     * ({@link app.hushgram.extension.instagram.reels.FullScreenBars}). A swipe from the edge brings them
+     * back for a moment. Off to start.
+     */
+    public static final BooleanSetting FULL_SCREEN_REELS =
+            new BooleanSetting("hushgram_full_screen_reels", FALSE);
+
+    /** The same on Home, while its tab is selected and Reels isn't showing. Off to start. */
+    public static final BooleanSetting FULL_SCREEN_HOME =
+            new BooleanSetting("hushgram_full_screen_home", FALSE);
+
+    /**
      * Under {@link #GLASS_TAB_BAR}: the pill blurs what's behind it, on Android 12 and newer. Off, or
      * on an older Android, it's a frosted tint without the blur.
      */
