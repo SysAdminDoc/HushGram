@@ -491,6 +491,10 @@ tasks.register("verifyAndroidBoundaries") {
                 "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[28]", "theSwitchIsUnderStoriesAfterTheTrayAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
                 "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
+            "app.hushgram.extension.instagram.settings.ProfileNotesSettingsTest" to listOf(
+                "theSwitchIsUnderProfilesAndStartsOff[28]", "theSwitchIsUnderProfilesAndStartsOff[37]",
+                "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",
+                "missingPatchHasNoSwitch[28]", "missingPatchHasNoSwitch[37]"),
             "app.hushgram.extension.instagram.settings.StorySoundSettingsTest" to listOf(
                 "theSwitchIsUnderStoriesAfterLoopAndStartsOff[28]", "theSwitchIsUnderStoriesAfterLoopAndStartsOff[37]",
                 "aSavedSwitchAnswersOffWhilePaused[28]", "aSavedSwitchAnswersOffWhilePaused[37]",

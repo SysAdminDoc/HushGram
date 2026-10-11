@@ -1419,3 +1419,8 @@ once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->touch(Landroid/
 # Its gesture listener's long press, the one instance (float, float) void method writing the
 # helper's press time, asks once whether the zoom takes the press. Field names are pinned 450 data.
 once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->press(Landroid/view/View;Ljava/lang/Object;)I in instance (FF)V holding LX/07AW;->A00:J
+# Hide Notes on profile pictures answers the two reads of Instagram's is_consumption_disabled flag
+# for profiles through ProfileNotes.consumptionDisabled, one in UserDetailFragment and one in the
+# profile header builder. The gate holds no strings to tell those methods apart from their
+# neighbors, so this rests on HideProfileNotesHookTest, which finds both reads in all seven 450
+# builds and checks each answer lands right after the flag's move-result.

@@ -90,6 +90,8 @@ Every HushGram release, newest first.
 
 * **Instagram - Hide suggested stories:** New switch under Stories in HushGram settings, Hide the Music for you card, starts off and keeps that card from turning up between the stories you watch. Asked for in #111.
 
+* **Instagram:** New patch, Hide Notes on profile pictures, starts off and takes the Notes bubble off profile pictures, yours included. Notes in Messages stay. Asked for on Hushfeed.
+
 ### Bug Fixes
 
 * **Instagram - Hide suggested posts:** With Hide suggested posts on, Home's For you feed no longer grows one post at a time. On an account where most of each page Instagram sends is suggestions, hiding them left a single post with the loading row right under it, and Instagram only asks for more once you scroll down to that row. Now, when a page comes back with fewer than five posts left after hiding, HushGram asks for the next page as soon as that page is shown, the same way the loading row would, and keeps going for up to three short pages in a row. It never asks while a page is still loading or after the feed has run out. Following and Favorites page the way they did, and the card at the end of the feed still shows. Your diagnostic report counts each time it asks (asked for the next page after a short page). Reported in #52.

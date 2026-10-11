@@ -838,6 +838,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_threads_button", FALSE);
 
     /**
+     * The Notes bubble on profile pictures, yours included
+     * ({@link app.hushgram.extension.instagram.profile.ProfileNotes}). Read each time Instagram opens
+     * a profile, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_NOTES =
+            new BooleanSetting("hushgram_hide_profile_notes", FALSE);
+
+    /**
      * Opening someone's profile goes on to their posts as a scrolling list, the one Instagram opens for a
      * tapped post, with the grid one Back away ({@link app.hushgram.extension.instagram.profile.PostsList}).
      * Read each time a posts tab comes up, so a change shows on the next profile opened. Off to start.

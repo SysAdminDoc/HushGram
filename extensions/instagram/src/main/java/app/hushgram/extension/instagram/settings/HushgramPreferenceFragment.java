@@ -948,6 +948,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         if (build.contains(PatchFamily.FRIENDSHIP_STATUS) || build.contains(PatchFamily.PROFILE_SUGGESTIONS)
                 || build.contains(PatchFamily.PROFILE_HIGHLIGHTS) || build.contains(PatchFamily.THREADS_BUTTON)
+                || build.contains(PatchFamily.PROFILE_NOTES)
                 || build.contains(PatchFamily.SAVED_ON_PROFILE) || build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
             PreferenceCategory profiles = category(screen, L10n.t("Profiles"));
             if (build.contains(PatchFamily.FRIENDSHIP_STATUS)) {
@@ -985,6 +986,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 profiles.addPreference(toggle(context, Settings.HIDE_THREADS_BUTTON, L10n.t("Hide the Threads button"),
                         L10n.t("Takes the Threads button off the top of profiles, yours included. The menu and "
                                 + "the other buttons stay where they were.")));
+            }
+            if (build.contains(PatchFamily.PROFILE_NOTES)) {
+                profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_NOTES, L10n.t("Hide Notes on profile pictures"),
+                        L10n.t("Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay "
+                                + "as they are.")));
             }
             if (build.contains(PatchFamily.PROFILE_POSTS_LIST)) {
                 profiles.addPreference(toggle(context, Settings.PROFILE_POSTS_LIST, L10n.t("Show profile posts as a list"),
