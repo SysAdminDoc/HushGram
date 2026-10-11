@@ -53,16 +53,6 @@ public final class Dim {
     }
 
     /**
-     * Converts a percentage of the screen height to pixels.
-     *
-     * @param percent The percentage (0–100).
-     * @return The pixel value corresponding to the percentage of screen height.
-     */
-    public static int pctHeight(int percent) {
-        return (SCREEN_HEIGHT * percent) / 100;
-    }
-
-    /**
      * Converts a percentage of the screen width to pixels.
      *
      * @param percent The percentage (0–100).

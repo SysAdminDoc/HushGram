@@ -65,43 +65,6 @@ public abstract class Setting<T> {
     }
 
     /**
-     * Availability based on a single parent setting being disabled.
-     */
-    public static Availability parentNot(BooleanSetting parent) {
-        return new Availability() {
-            @Override
-            public boolean isAvailable() {
-                return !parent.savedValue();
-            }
-
-            @Override
-            public List<Setting<?>> getParentSettings() {
-                return Collections.singletonList(parent);
-            }
-        };
-    }
-
-    /**
-     * Availability based on all parents being enabled.
-     */
-    public static Availability parentsAll(BooleanSetting... parents) {
-        return new Availability() {
-            @Override
-            public boolean isAvailable() {
-                for (BooleanSetting parent : parents) {
-                    if (!parent.savedValue()) return false;
-                }
-                return true;
-            }
-
-            @Override
-            public List<Setting<?>> getParentSettings() {
-                return Collections.unmodifiableList(Arrays.asList(parents));
-            }
-        };
-    }
-
-    /**
      * Availability based on any parent being enabled.
      */
     public static Availability parentsAny(BooleanSetting... parents) {
@@ -153,15 +116,6 @@ public abstract class Setting<T> {
      */
     public static List<Setting<?>> allLoadedSettings() {
         return Collections.unmodifiableList(SETTINGS);
-    }
-
-    /**
-     * @return All settings that have been created, sorted by keys.
-     */
-    private static List<Setting<?>> allLoadedSettingsSorted() {
-        //noinspection ComparatorCombinators
-        Collections.sort(SETTINGS, (Setting<?> o1, Setting<?> o2) -> o1.key.compareTo(o2.key));
-        return allLoadedSettings();
     }
 
     /**
@@ -293,53 +247,6 @@ public abstract class Setting<T> {
         }
 
         load();
-    }
-
-    /**
-     * Migrate an old Setting value previously stored in a different SharedPreference.
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    public static void migrateFromOldPreferences(SharedPrefCategory oldPrefs, Setting setting) {
-        if (!Utils.isMainProcess()) {
-            Logger.printInfo(() -> "Ignored settings migration from a secondary process: " + setting.key);
-            return;
-        }
-        String settingKey = setting.key;
-        if (!oldPrefs.preferences.contains(settingKey)) {
-            return; // Nothing to do.
-        }
-
-        Object newValue = setting.savedValue();
-        final Object migratedValue;
-        if (setting instanceof BooleanSetting) {
-            migratedValue = oldPrefs.getBoolean(settingKey, (Boolean) newValue);
-        } else if (setting instanceof IntegerSetting) {
-            migratedValue = oldPrefs.getIntegerString(settingKey, (Integer) newValue);
-        } else if (setting instanceof LongSetting) {
-            migratedValue = oldPrefs.getLongString(settingKey, (Long) newValue);
-        } else if (setting instanceof FloatSetting) {
-            migratedValue = oldPrefs.getFloatString(settingKey, (Float) newValue);
-        } else if (setting instanceof StringSetting) {
-            migratedValue = oldPrefs.getString(settingKey, (String) newValue);
-        } else {
-            Logger.printException(() -> "Unknown setting: " + setting);
-            // Remove otherwise it'll show a toast on every launch.
-            oldPrefs.preferences.edit().remove(settingKey).apply();
-            return;
-        }
-
-        if (migratedValue.equals(newValue)) {
-            Logger.printDebug(() -> "Value does not need migrating: " + settingKey);
-            oldPrefs.removeKey(settingKey);
-            return; // Old value is already equal to the new setting value.
-        }
-
-        Logger.printDebug(() -> "Migrating old preference value into current preference: " + settingKey);
-        if (setting.save(migratedValue)) {
-            oldPrefs.removeKey(settingKey);
-        } else {
-            Logger.printException(() -> "Kept old preference after migration failed: " + settingKey);
-        }
     }
 
     /**

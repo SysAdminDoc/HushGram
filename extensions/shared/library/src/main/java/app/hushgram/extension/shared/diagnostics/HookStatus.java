@@ -370,18 +370,6 @@ public final class HookStatus {
         }
     }
 
-    /** The families missing something, in the order the app first touched them. */
-    public static List<String> familiesMissingSomething() {
-        synchronized (STATE_LOCK) {
-            List<String> names = new ArrayList<>();
-            for (String name : SEEN) {
-                Family entry = FAMILIES.get(name);
-                if (entry != null && !entry.order.isEmpty()) names.add(name);
-            }
-            return names;
-        }
-    }
-
     /**
      * One line per family it has heard from: how many lookups bound, how many did not, and the
      * first thing that went missing. A family nothing has touched yet says nothing, because a

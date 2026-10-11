@@ -17,7 +17,6 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -43,7 +42,6 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import androidx.annotation.ChecksSdkIntAtLeast;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -52,13 +50,10 @@ import java.lang.ref.WeakReference;
 import java.io.FileInputStream;
 import java.text.Bidi;
 import java.text.Collator;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -83,7 +78,6 @@ public class Utils {
 
     private static String versionName;
     private static volatile long versionCode = -1;
-    private static String applicationLabel;
     private static volatile String processName;
 
     @ColorInt
@@ -103,7 +97,6 @@ public class Utils {
     private static Collator cachedCollator;
 
     private static final Pattern PUNCTUATION_PATTERN = Pattern.compile("\\p{P}+");
-    private static final Pattern DIACRITICS_PATTERN = Pattern.compile("\\p{M}");
 
     private Utils() {
     } // utility class
@@ -122,10 +115,6 @@ public class Utils {
     @SuppressWarnings("SameReturnValue")
     public static String getSourceBuildIdentity() {
         return "Unknown"; // Value is replaced during patching, independently of the version.
-    }
-
-    public static boolean isPreReleasePatches() {
-        return getPatchesReleaseVersion().contains("dev");
     }
 
     private static PackageInfo getPackageInfo() throws PackageManager.NameNotFoundException {
@@ -179,20 +168,6 @@ public class Utils {
             }
         }
         return code;
-    }
-
-    public static String getApplicationName() {
-        if (applicationLabel == null) {
-            try {
-                ApplicationInfo applicationInfo = getPackageInfo().applicationInfo;
-                applicationLabel = (String) applicationInfo.loadLabel(context.getPackageManager());
-            } catch (Exception ex) {
-                Logger.printException(() -> "Failed to get application name", ex);
-                applicationLabel = "Unknown";
-            }
-        }
-
-        return applicationLabel;
     }
 
     /**
@@ -339,29 +314,6 @@ public class Utils {
         }
     }
 
-    /**
-     * Simulates a delay by doing meaningless calculations.
-     * Used for debugging to verify UI timeout logic.
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    public static long doNothingForDuration(long amountOfTimeToWaste) {
-        final long timeCalculationStarted = System.currentTimeMillis();
-        Logger.printDebug(() -> "Artificially creating delay of: " + amountOfTimeToWaste + "ms");
-
-        long meaninglessValue = 0;
-        while (System.currentTimeMillis() - timeCalculationStarted < amountOfTimeToWaste) {
-            // Could do a thread sleep, but that will trigger an exception if the thread is interrupted.
-            meaninglessValue += Long.numberOfLeadingZeros((long) Math.exp(Math.random()));
-        }
-        // Return the value, otherwise the compiler or VM might optimize and remove the meaningless time wasting work,
-        // leaving an empty loop that hammers on the System.currentTimeMillis native call.
-        return meaninglessValue;
-    }
-
-    public static boolean containsAny(String value, String... targets) {
-        return indexOfFirstFound(value, targets) >= 0;
-    }
-
     public static int indexOfFirstFound(String value, String... targets) {
         if (isNotEmpty(value)) {
             for (String string : targets) {
@@ -374,28 +326,8 @@ public class Utils {
         return -1;
     }
 
-    public static boolean equalsAny(String value, String...targets) {
-        if (isNotEmpty(value)) {
-            for (String string : targets) {
-                if (value.equals(string)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     public interface MatchFilter<T> {
         boolean matches(T object);
-    }
-
-    /**
-     * Includes sub children.
-     */
-    public static <R extends View> R getChildViewByResourceName(View view, String str) {
-        var child = view.findViewById(ResourceUtils.getIdentifierOrThrow(ResourceType.ID, str));
-        //noinspection unchecked
-        return (R) child;
     }
 
     /**
@@ -421,36 +353,6 @@ public class Utils {
         }
 
         return null;
-    }
-
-    @Nullable
-    public static ViewParent getParentView(View view, int nthParent) {
-        ViewParent parent = view.getParent();
-
-        int currentDepth = 0;
-        while (++currentDepth < nthParent && parent != null) {
-            parent = parent.getParent();
-        }
-
-        if (currentDepth == nthParent) {
-            return parent;
-        }
-
-        final int currentDepthLog = currentDepth;
-        Logger.printDebug(() -> "Could not find parent view of depth: " + nthParent
-                + " and instead found at: " + currentDepthLog + " view: " + view);
-        return null;
-    }
-
-    public static void restartApp(Context context) {
-        String packageName = context.getPackageName();
-        Intent intent = Objects.requireNonNull(context.getPackageManager().getLaunchIntentForPackage(packageName));
-        Intent mainIntent = Intent.makeRestartActivityTask(intent.getComponent());
-        // Required for API 34 and later
-        // Ref: https://developer.android.com/about/versions/14/behavior-changes-14#safer-intents
-        mainIntent.setPackage(packageName);
-        context.startActivity(mainIntent);
-        System.exit(0);
     }
 
     public static Resources getResources() {
@@ -591,10 +493,6 @@ public class Utils {
         return str != null && !str.isEmpty();
     }
 
-    public static boolean isTablet() {
-        return context.getResources().getConfiguration().smallestScreenWidthDp >= 600;
-    }
-
     @Nullable
     private static Boolean isRightToLeftTextLayout;
 
@@ -638,23 +536,6 @@ public class Utils {
         return isRightToLeft
                 ? "\u200F"  // u200F = right to left character.
                 : "\u200E"; // u200E = left to right character.
-    }
-
-    /**
-     * @return if the text contains at least 1 number character,
-     *         including any unicode numbers such as Arabic.
-     */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public static boolean containsNumber(CharSequence text) {
-        for (int index = 0, length = text.length(); index < length;) {
-            final int codePoint = Character.codePointAt(text, index);
-            if (Character.isDigit(codePoint)) {
-                return true;
-            }
-            index += Character.charCount(codePoint);
-        }
-
-        return false;
     }
 
     /**
@@ -783,19 +664,6 @@ public class Utils {
     }
 
     /**
-     * Overrides dark mode status as returned by {@link #isDarkModeEnabled()}.
-     */
-    public static void setIsDarkModeEnabled(boolean isDarkMode) {
-        isDarkModeEnabled = isDarkMode;
-        Logger.printDebug(() -> "Dark mode status: " + isDarkMode);
-    }
-
-    public static boolean isLandscapeOrientation() {
-        final int orientation = Resources.getSystem().getConfiguration().orientation;
-        return orientation == Configuration.ORIENTATION_LANDSCAPE;
-    }
-
-    /**
      * Automatically logs any exceptions the runnable throws.
      *
      * @see #runOnMainThreadNowOrLater(Runnable)
@@ -852,15 +720,6 @@ public class Utils {
     }
 
     /**
-     * @throws IllegalStateException if the calling thread is _on_ the main thread.
-     */
-    public static void verifyOffMainThread() throws IllegalStateException {
-        if (isCurrentlyOnMainThread()) {
-            throw new IllegalStateException("Must call _off_ the main thread");
-        }
-    }
-
-    /**
      * Opens [url] in an app that opens web links. Only an http or https address with a host
      * leaves ({@link #isWebLink}): anything else, an intent: or javascript: link among them, is
      * dropped with a log line that leaves the address out.
@@ -900,17 +759,6 @@ public class Utils {
         NONE,
         MOBILE,
         OTHER,
-    }
-
-    /**
-     * Calling extension code must ensure the un-patched app has the permission
-     * <code>android.permission.ACCESS_NETWORK_STATE</code>,
-     * otherwise the app will crash if this method is used.
-     */
-    public static boolean isNetworkConnected() {
-        NetworkType networkType = getNetworkType();
-        return networkType == NetworkType.MOBILE
-                || networkType == NetworkType.OTHER;
     }
 
     /**
@@ -984,26 +832,10 @@ public class Utils {
     }
 
     /**
-     * The recommended app version of this app to patch. Set during patching.
-     * Returns an empty string if not set.
-     */
-    public static String getRecommendedAppVersion() {
-        return "";
-    }
-
-    /**
      * @return If the unpatched app is currently using bold icons.
      */
     public static boolean appIsUsingBoldIcons() {
         return appIsUsingBoldIcons;
-    }
-
-    /**
-     * Controls if Morphe bold icons are shown in various places.
-     * @param boldIcons If the app is currently using bold icons.
-     */
-    public static void setAppIsUsingBoldIcons(boolean boldIcons) {
-        appIsUsingBoldIcons = boldIcons;
     }
 
     /**
@@ -1082,14 +914,6 @@ public class Utils {
                     : darkColor;
         }
         return getThemeLightColor();
-    }
-
-    /**
-     * @return The current app background color.
-     */
-    @ColorInt
-    public static int getAppBackgroundColor() {
-        return isDarkModeEnabled() ? getThemeDarkColor() : getThemeLightColor();
     }
 
     /**
@@ -1172,16 +996,6 @@ public class Utils {
         if (original == null) return "";
         return PUNCTUATION_PATTERN.matcher(original).replaceAll("")
                 .toLowerCase(BaseSettings.MORPHE_LANGUAGE.get().getLocale());
-    }
-
-    /**
-     * Normalizes text for search: applies NFD, removes diacritics, and lowercases (locale-neutral).
-     * Returns an empty string if input is null.
-     */
-    public static String normalizeTextToLowercase(@Nullable CharSequence original) {
-        if (original == null) return "";
-        return DIACRITICS_PATTERN.matcher(Normalizer.normalize(original, Normalizer.Form.NFD))
-                .replaceAll("").toLowerCase(Locale.ROOT);
     }
 
     /**
@@ -1362,27 +1176,5 @@ public class Utils {
 
     public static float clamp(float value, float lower, float upper) {
         return Math.max(lower, Math.min(value, upper));
-    }
-
-    /**
-     * @param maxSize The maximum number of elements to keep in the map.
-     * @return A {@link LinkedHashMap} that automatically evicts the oldest entry
-     *        when the size exceeds {@code maxSize}.
-     */
-    public static <T, V> Map<T, V> createSizeRestrictedMap(int maxSize) {
-        return new LinkedHashMap<>(2 * maxSize) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry eldest) {
-                return size() > maxSize;
-            }
-        };
-    }
-
-    /**
-     * @return whether the device's API level is higher than a specific SDK version.
-     */
-    @ChecksSdkIntAtLeast(parameter = 0)
-    public static boolean isSDKAbove(int sdk) {
-        return Build.VERSION.SDK_INT >= sdk;
     }
 }
