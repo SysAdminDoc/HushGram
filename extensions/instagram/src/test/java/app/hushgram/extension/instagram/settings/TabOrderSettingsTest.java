@@ -40,6 +40,7 @@ import app.hushgram.extension.instagram.reels.TabOrder;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 /** Tab order's row under Tab bar: the list of tabs, moved up a place by a tap. */
 @RunWith(RobolectricTestRunner.class)
@@ -112,6 +113,21 @@ public class TabOrderSettingsTest {
         assertEquals("Tab order", String.valueOf(row().getTitle()));
         assertEquals("The tab bar keeps Instagram's order.", String.valueOf(row().getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAB_ORDER.key));
+    }
+
+    /** The row shows its own summary, so opening settings and moving a tab log no patch error. */
+    @Test public void theRowLogsNoPatchErrorWhenSettingsOpensOrATabMoves() throws Exception {
+        int before = unhandled(LogBufferManager.buildExportText());
+        open(PatchFamily.REELS_TAB);
+        AlertDialog dialog = openList();
+        tap(dialog.getListView(), 3);
+        String log = LogBufferManager.buildExportText();
+        assertEquals(log, before, unhandled(log));
+    }
+
+    private static int unhandled(String log) {
+        String needle = "Setting cannot be handled";
+        return (log.length() - log.replace(needle, "").length()) / needle.length();
     }
 
     @Test public void aTapMovesATabUpAtOnceAndKeepsTheListOpen() throws Exception {

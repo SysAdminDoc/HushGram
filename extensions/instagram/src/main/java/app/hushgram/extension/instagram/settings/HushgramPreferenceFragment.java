@@ -1520,6 +1520,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return null;
     }
 
+    /**
+     * A plain row tied to a setting (Tab order) shows its own summary and saves its own value, so
+     * there's nothing to sync. The shared sync would log every one as a patch error each time
+     * settings opens and on every tap.
+     */
+    @Override
+    protected void syncSettingWithPreference(Preference pref, Setting<?> setting, boolean applySettingToPreference) {
+        if (pref instanceof Row) return;
+        super.syncSettingWithPreference(pref, setting, applySettingToPreference);
+    }
+
     private void restoreSearchRows() {
         PreferenceScreen screen = getPreferenceScreen();
         if (screen == null || search == null || (!topHidden && screen.findPreference(search.getKey()) != search)) return;
