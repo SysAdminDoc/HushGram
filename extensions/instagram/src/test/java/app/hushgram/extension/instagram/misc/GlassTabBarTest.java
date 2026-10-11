@@ -22,6 +22,29 @@ import org.robolectric.RuntimeEnvironment;
 /** The colour and size choices Glass tab bar makes from Instagram's bar colour and the screen's width. */
 @RunWith(RobolectricTestRunner.class)
 public class GlassTabBarTest {
+    /**
+     * A missing shadow or content view is looked for again only every RESEARCH_MS, and a run of misses
+     * asks for a few redraws so a view that turns up after a screen switch is found without anything
+     * else drawing the bar, never more than MISS_REDRAWS until both views are found again.
+     */
+    @Test
+    public void missesAreLookedForAgainOnAScheduleWithAFewRedraws() {
+        GlassTabBar.Misses misses = new GlassTabBar.Misses();
+        long now = 1_000_000;
+        assertTrue("nothing missed yet", misses.lookAgain(now));
+        for (int i = 0; i < GlassTabBar.MISS_REDRAWS; i++) {
+            assertTrue("miss " + i + " asks for a redraw", misses.looked(now, true, false));
+            assertFalse("not again within RESEARCH_MS", misses.lookAgain(now + GlassTabBar.RESEARCH_MS - 1));
+            // A draw in between that didn't look must not restart the count.
+            assertFalse(misses.looked(now + 1, false, false));
+            now += GlassTabBar.RESEARCH_MS;
+            assertTrue(misses.lookAgain(now));
+        }
+        assertFalse("a bar that never has the view stops asking", misses.looked(now, true, false));
+        assertFalse(misses.looked(now + 1, false, true));
+        assertTrue("finding both starts a new run", misses.looked(now + GlassTabBar.RESEARCH_MS, true, false));
+    }
+
     @Test
     public void blackAndWhiteBarsReadAsDarkAndLight() {
         assertTrue(GlassTabBar.isDark(Color.BLACK));

@@ -183,6 +183,11 @@ public final class GlassTabBar {
     static final long SLIDE_MS = 280;
     /** How long a missing shadow or content view stays unsearched before the parent is walked for it again. */
     static final long RESEARCH_MS = 500;
+    /**
+     * How many redraws a run of misses asks for, so a view that turns up after a screen switch is
+     * found even when nothing else draws the bar, without a bar that never has one drawing forever.
+     */
+    static final int MISS_REDRAWS = 4;
 
     static final String TAG = "HushGlass";
     private static final boolean DIAGNOSE = false;
@@ -340,6 +345,35 @@ public final class GlassTabBar {
     }
 
     /** One restyled bar. */
+    /**
+     * When the bar last searched for its shadow or content view and missed, and how many redraws the
+     * misses since both were last found have asked for.
+     */
+    static final class Misses {
+        private long missedAt = Long.MIN_VALUE / 2;
+        private int redraws;
+
+        /** Whether it's been [RESEARCH_MS] since the last miss. */
+        boolean lookAgain(long now) {
+            return now - missedAt >= RESEARCH_MS;
+        }
+
+        /**
+         * Notes a draw's look: [missed] when a search found nothing, [bothKnown] when both views are
+         * held. True when the bar should draw again after [RESEARCH_MS] to look once more.
+         */
+        boolean looked(long now, boolean missed, boolean bothKnown) {
+            if (missed) {
+                missedAt = now;
+                if (redraws >= MISS_REDRAWS) return false;
+                redraws++;
+                return true;
+            }
+            if (bothKnown) redraws = 0;
+            return false;
+        }
+    }
+
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener,
             View.OnAttachStateChangeListener {
         private final ViewGroup bar;
@@ -371,8 +405,8 @@ public final class GlassTabBar {
         /** The line above the bar and the screens' container, found once: looking them up costs a walk of the whole screen. */
         @Nullable private WeakReference<View> shadowRef;
         @Nullable private WeakReference<View> contentRef;
-        /** When the shadow or the content was last searched for and not found, so a miss isn't repeated every frame. */
-        private long missedAt = Long.MIN_VALUE / 2;
+        /** When the shadow or the content was last missed, so a miss isn't repeated every frame. */
+        private final Misses misses = new Misses();
 
         Glass(ViewGroup bar) {
             this.bar = bar;
@@ -485,7 +519,7 @@ public final class GlassTabBar {
                 // frame: a bar without a shadow or a content view would otherwise walk its parent on
                 // each draw. One that was found and came off the window is looked for at once.
                 long now = SystemClock.uptimeMillis();
-                boolean lookAgain = now - missedAt >= RESEARCH_MS;
+                boolean lookAgain = misses.lookAgain(now);
                 boolean missed = false;
                 View shadow = shadowRef == null ? null : shadowRef.get();
                 if (shadow == null || !shadow.isAttachedToWindow()) {
@@ -508,7 +542,9 @@ public final class GlassTabBar {
                         content = null;
                     }
                 }
-                if (missed) missedAt = now;
+                if (misses.looked(now, missed, shadowRef != null && contentRef != null)) {
+                    bar.postInvalidateDelayed(RESEARCH_MS);
+                }
                 if (content != null && content.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
                     ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) content.getLayoutParams();
                     if (contentMargin < 0) contentMargin = margins.bottomMargin;
