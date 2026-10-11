@@ -84,6 +84,8 @@ public final class StoryMentions {
 
     /** Set by tests that have no Instagram resources: the header column's id. */
     static int headerIdForTests;
+    /** The header column's id in this app, or -1 before the first lookup. */
+    private static volatile int headerId = -1;
 
     /** Set by tests: fetches a profile picture instead of the network. */
     @Nullable static PictureSource picturesForTests;
@@ -327,9 +329,11 @@ public final class StoryMentions {
         return null;
     }
 
+    /** The header's id, looked up once: a name lookup on every story frame adds up. */
     private static int headerId(Context context) {
         if (headerIdForTests != 0) return headerIdForTests;
-        return context.getResources().getIdentifier(HEADER, "id", context.getPackageName());
+        if (headerId == -1) headerId = context.getResources().getIdentifier(HEADER, "id", context.getPackageName());
+        return headerId;
     }
 
     /**

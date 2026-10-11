@@ -58,6 +58,8 @@ final class FriendshipChip {
 
     /** Set by tests that have no Instagram resources: the followers count's id. */
     static int followersCountIdForTests;
+    /** The followers count's id in this app, or -1 before the first lookup. */
+    private static volatile int followersCountId = -1;
 
     /**
      * The chips showing, by the counts block they're under. Blocks go when their screen does: a
@@ -143,7 +145,10 @@ final class FriendshipChip {
 
     private static int followersCountId(Context context) {
         if (followersCountIdForTests != 0) return followersCountIdForTests;
-        return context.getResources().getIdentifier(FOLLOWERS_COUNT, "id", context.getPackageName());
+        if (followersCountId == -1) {
+            followersCountId = context.getResources().getIdentifier(FOLLOWERS_COUNT, "id", context.getPackageName());
+        }
+        return followersCountId;
     }
 
     /**

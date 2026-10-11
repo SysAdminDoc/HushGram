@@ -132,6 +132,7 @@ Every HushGram release, newest first.
 * **Instagram:** When a part of a patch fails on a type it didn't expect, the diagnostic report now names both types, so a report shows exactly which piece broke instead of only saying it failed.
 
 * **Instagram - Lock your messages:** The cover's Unlock link is darker on a light screen so it's easier to read, has a full finger's worth of height to tap, and reads as a button to screen readers. With no lock on, the check for which chat is open runs twice a second instead of on every frame.
+* **Instagram:** See who a story mentions, Show if a profile follows you, Pure black dark mode's comments and hidden chats in Lock your messages now look up what they need once instead of every time the screen redraws.
 
 * **Instagram:** The diagnostic report has a Stories tray reel types line that counts each kind of card the stories row loads, by Instagram's own name for it. A report from an account that gets a card none of the switches cover yet, like the Music for you card in #111, shows which kind it is, so a switch can take out that card and nothing else.
 

@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.direct;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -328,14 +329,32 @@ public final class HiddenChats {
 
     // ---------------------------------------------------------------- the list
 
-    /** The thread ids hidden now, none while HushGram is paused. */
+    /** The ids as last parsed, with the text they came from, so a list's worth of rows parse it once. */
+    private static final class Parsed {
+        final String raw;
+        final Set<String> ids;
+
+        Parsed(String raw, Set<String> ids) {
+            this.raw = raw;
+            this.ids = ids;
+        }
+    }
+
+    private static volatile Parsed parsed;
+
+    /** The thread ids hidden now, none while HushGram is paused; parsed again only when the list changed. */
     private static Set<String> ids() {
-        Set<String> ids = new HashSet<>();
-        if (!Utils.settingsReady()) return ids;
+        if (!Utils.settingsReady()) return Collections.emptySet();
         String text = Settings.HIDDEN_CHATS.get();
-        if (text.isEmpty()) return ids;
-        for (ChatLocks.Chat chat : ChatList.parse(text)) ids.add(chat.id);
-        return ids;
+        if (text.isEmpty()) return Collections.emptySet();
+        Parsed kept = parsed;
+        if (kept == null || !kept.raw.equals(text)) {
+            Set<String> ids = new HashSet<>();
+            for (ChatLocks.Chat chat : ChatList.parse(text)) ids.add(chat.id);
+            kept = new Parsed(text, Collections.unmodifiableSet(ids));
+            parsed = kept;
+        }
+        return kept.ids;
     }
 
     /** The hidden chats, oldest first, none while HushGram is paused. */

@@ -48,6 +48,8 @@ public final class CommentsSheet {
     private static final Map<Object, Boolean> HOSTS = Collections.synchronizedMap(new WeakHashMap<>());
     /** The sheet container's id name; resolved at run time, since ids change with every build. */
     private static final String SHEET_ID_NAME = "bottom_sheet_container";
+    /** That id in this app, or -1 before the first lookup. */
+    private static volatile int sheetId = -1;
     private static final PorterDuffColorFilter BLACK = new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN);
     /** The sheets already watched for a swapped background, weakly. */
     private static final Map<View, Boolean> WATCHED = Collections.synchronizedMap(new WeakHashMap<>());
@@ -148,7 +150,8 @@ public final class CommentsSheet {
 
     /** The nearest ancestor whose id is named bottom_sheet_container. */
     private static View findSheet(View root) {
-        int id = root.getResources().getIdentifier(SHEET_ID_NAME, "id", root.getContext().getPackageName());
+        int id = sheetId;
+        if (id == -1) sheetId = id = root.getResources().getIdentifier(SHEET_ID_NAME, "id", root.getContext().getPackageName());
         return id == 0 ? null : findSheet(root, id);
     }
 
