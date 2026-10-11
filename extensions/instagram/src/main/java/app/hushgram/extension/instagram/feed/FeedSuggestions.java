@@ -342,13 +342,17 @@ public final class FeedSuggestions {
      * replaces the verdict of the one before: whether it lost any to {@link #filter}. It also tells
      * {@link HomeNextPage} how many items the page kept, so a page the switches left short gets the
      * next one asked for. A page with no items, the parser giving up on a response for one, leaves
-     * both. Never throws.
+     * the verdict, and only tells {@link HomeNextPage} a request of its own was answered. Never throws.
      */
     public static void homePageParsed() {
         try {
             int[] page = PAGE.get();
             PAGE.remove();
-            if (page == null || page[0] == 0) return;
+            if (page == null) return;
+            if (page[0] == 0) {
+                HomeNextPage.emptyPageParsed();
+                return;
+            }
             HomeNextPage.pageParsed(page[0], page[1]);
             homePageLost = page[1] > 0;
             homePageEndCounted = false;

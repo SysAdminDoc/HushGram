@@ -398,6 +398,36 @@ public class HomeNextPageTest {
         assertTrue(posted.isEmpty());
     }
 
+    /** An empty page that answers a request made here ends that chain: the next short page, the scroll's, starts its own. */
+    @Test
+    public void anEmptyAnswerEndsTheChainItAnswered() {
+        FeedSuggestions.homeReadsForTests = true;
+        shortPage();
+        build();
+        assertEquals(1, asks.size());
+        assertTrue(HomeNextPage.waitingForOurs);
+
+        homePage();
+        assertFalse("the empty page answered it", HomeNextPage.waitingForOurs);
+
+        shortPage();
+        build();
+        assertEquals(2, asks.size());
+        assertEquals("a chain of its own", 1, HomeNextPage.chain);
+    }
+
+    /** A build whose adapter is gone by the time the request runs asks nothing and decides the page. */
+    @Test
+    public void aBuildWhoseAdapterIsGoneAsksNothing() {
+        shortPage();
+        HomeNextPage.Build build = new HomeNextPage.Build(new Object());
+        build.feed = feed;
+        build.adapter.clear();
+        HomeNextPage.askIfShort(build);
+        assertTrue(asks.isEmpty());
+        assertEquals(HomeNextPage.shortPage, HomeNextPage.decided);
+    }
+
     /** A page of Home's response holding items of [kinds], read through the filter and homeItem as Home's parser does. */
     private static void homePage(FeedSuggestionsTest.Kind... kinds) {
         FeedSuggestions.homePageStarts();

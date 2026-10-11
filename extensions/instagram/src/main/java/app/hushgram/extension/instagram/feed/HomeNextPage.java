@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.feed;
 
 import androidx.annotation.Nullable;
 
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -90,13 +91,17 @@ public final class HomeNextPage {
     /** The build of Home's list running on this thread, until it hands over its feed in {@link #feedRead}. */
     private static final ThreadLocal<Build> BUILDING = new ThreadLocal<>();
 
-    /** One build of Home's list: its adapter, and the feed it reads its "no next page" flag from. */
+    /**
+     * One build of Home's list: its adapter, and the feed it reads its "no next page" flag from. The
+     * adapter is held weakly: a build that never reaches its feed stays on its thread until the next
+     * one, and mustn't keep Home's fragment alive meanwhile.
+     */
     static final class Build {
-        final Object adapter;
+        final WeakReference<Object> adapter;
         @Nullable volatile Object feed;
 
         Build(Object adapter) {
-            this.adapter = adapter;
+            this.adapter = new WeakReference<>(adapter);
         }
     }
 
@@ -156,6 +161,15 @@ public final class HomeNextPage {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home short page", failure);
         }
+    }
+
+    /**
+     * Called by {@link FeedSuggestions#homePageParsed} for a page of Home's response with no items.
+     * It still answers a request made here, so the next short page starts a chain of its own instead
+     * of continuing this one. Never throws.
+     */
+    static void emptyPageParsed() {
+        waitingForOurs = false;
     }
 
     /**
@@ -230,7 +244,8 @@ public final class HomeNextPage {
                 Logger.printDebug(() -> "Home next page: a list paging " + source + ", which isn't For you, doesn't ask");
                 return;
             }
-            Object policy = policies.apply(build.adapter);
+            Object adapter = build.adapter.get();
+            Object policy = adapter == null ? null : policies.apply(adapter);
             if (policy == null) {
                 decided = page;
                 return;
