@@ -30,6 +30,8 @@ import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -539,6 +541,18 @@ public final class MessagesLock {
         try {
             View decor = activity.getWindow().getDecorView();
             ViewGroup window = (ViewGroup) decor;
+            if (!switchedOn() && !ChatLocks.any() && !anyCover(window)) {
+                // Nothing to cover and nothing to take down. Before every frame, all that's left
+                // is learning which chat is open for Lock a chat, and that walks the whole window,
+                // so it waits IDLE_LOOK_MS between looks instead of running on each draw.
+                long now = SystemClock.elapsedRealtime();
+                if (now - idleLookedAt < IDLE_LOOK_MS) {
+                    keepOutOfRecents(activity, false);
+                    if (askedAt == 0) askedThisTime = false;
+                    return;
+                }
+                idleLookedAt = now;
+            }
             boolean lock = locked();
             boolean whole = wholeApp();
             // A chat on the list is covered by itself, whether or not the messages are locked.
@@ -622,6 +636,18 @@ public final class MessagesLock {
         return true;
     }
 
+    /** How long a screen with nothing locked and no cover up goes between looks for an open chat. */
+    static final long IDLE_LOOK_MS = 500;
+    private static long idleLookedAt = Long.MIN_VALUE / 2;
+
+    /** Whether [window] has a cover at all, shown or not. */
+    private static boolean anyCover(ViewGroup window) {
+        for (int i = window.getChildCount() - 1; i >= 0; i--) {
+            if (window.getChildAt(i) instanceof Cover) return true;
+        }
+        return false;
+    }
+
     /** [window]'s cover for [name]'s screen, if it has one. */
     private static Cover cover(ViewGroup window, String name) {
         for (int i = window.getChildCount() - 1; i >= 0; i--) {
@@ -689,6 +715,9 @@ public final class MessagesLock {
         return list;
     }
 
+    /** Resource ids by name, misses included: they don't change while the process runs, and this is asked before every frame. */
+    private static final Map<String, Integer> IDS = new java.util.concurrent.ConcurrentHashMap<>();
+
     static int id(Context context, String name) {
         if (APP.equals(name)) return android.R.id.content;
         Map<String, Integer> forTests = idsForTests;
@@ -696,7 +725,12 @@ public final class MessagesLock {
             Integer id = forTests.get(name);
             return id == null ? 0 : id;
         }
-        return context.getResources().getIdentifier(name, "id", context.getPackageName());
+        Integer known = IDS.get(name);
+        if (known == null) {
+            known = context.getResources().getIdentifier(name, "id", context.getPackageName());
+            IDS.put(name, known);
+        }
+        return known;
     }
 
     /**
@@ -783,10 +817,20 @@ public final class MessagesLock {
 
         TextView unlock = new TextView(activity);
         unlock.setText(L10n.t("Unlock"));
-        unlock.setTextColor(Color.rgb(0, 149, 246));
+        // Instagram's blue reads on black, but on white it's about 3:1, so a darker blue takes over there.
+        unlock.setTextColor(dark ? Color.rgb(0, 149, 246) : Color.rgb(0, 100, 224));
         unlock.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         unlock.setGravity(Gravity.CENTER);
         unlock.setPadding(dp(activity, 24), dp(activity, 12), dp(activity, 24), dp(activity, 12));
+        // A finger's worth of height, and a button to a screen reader and a keyboard.
+        unlock.setMinHeight(dp(activity, 48));
+        unlock.setFocusable(true);
+        unlock.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        });
         unlock.setOnClickListener(v -> ask(activity, null));
         column.addView(unlock, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -1010,6 +1054,7 @@ public final class MessagesLock {
         secured.clear();
         asker = MessagesLock::askPhone;
         idsForTests = null;
+        idleLookedAt = Long.MIN_VALUE / 2;
         ChatLocks.resetForTests();
     }
 }

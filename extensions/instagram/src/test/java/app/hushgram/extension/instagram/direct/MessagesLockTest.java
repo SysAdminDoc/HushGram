@@ -24,7 +24,9 @@ import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
 import android.os.SystemClock;
 import android.service.notification.StatusBarNotification;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -381,6 +383,19 @@ public class MessagesLockTest {
                 unlock.getMeasuredWidth() > unlock.getPaddingLeft() + unlock.getPaddingRight());
         assertTrue("the title is cut off", title.getLayout().getHeight()
                 <= title.getMeasuredHeight() - title.getPaddingTop() - title.getPaddingBottom());
+
+        // A finger's worth of height, words that read against the cover, and a button to a keyboard.
+        assertTrue("the Unlock link is " + unlock.getMeasuredHeight() + "px tall, under 48dp", unlock.getMeasuredHeight() >= icon);
+        int behind = ((ColorDrawable) cover.getBackground()).getColor();
+        double contrast = contrast(unlock.getCurrentTextColor(), behind);
+        assertTrue("the Unlock link reads at " + contrast + ":1 on the cover, under 4.5:1", contrast >= 4.5);
+        assertTrue(unlock.isFocusable());
+    }
+
+    /** WCAG's contrast ratio between two opaque colors. */
+    private static double contrast(int one, int other) {
+        double a = Color.luminance(one) + 0.05, b = Color.luminance(other) + 0.05;
+        return Math.max(a, b) / Math.min(a, b);
     }
 
     private static void collectTexts(View view, List<TextView> texts) {
@@ -892,11 +907,17 @@ public class MessagesLockTest {
         header.addView(title, new FrameLayout.LayoutParams(300, 60));
         fragment.addView(header, 0, new android.widget.LinearLayout.LayoutParams(300, 60));
         layout(activity);
+        // With nothing locked and no cover up, the chat is looked at every IDLE_LOOK_MS, not every frame.
+        SystemClock.sleep(MessagesLock.IDLE_LOOK_MS);
         MessagesLock.check(activity);
         assertEquals("a message was taken while the header was empty",
                 ChatList.placeholder(ALICE), ChatLocks.lastOpened().name);
 
         title.setText("Alice Smith");
+        MessagesLock.check(activity);
+        assertEquals("the window was walked again within half a second of the last look",
+                ChatList.placeholder(ALICE), ChatLocks.lastOpened().name);
+        SystemClock.sleep(MessagesLock.IDLE_LOOK_MS);
         MessagesLock.check(activity);
         assertEquals("Alice Smith", ChatLocks.lastOpened().name);
     }

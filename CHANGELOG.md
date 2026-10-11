@@ -125,6 +125,8 @@ Every HushGram release, newest first.
 
 * **Instagram:** When a part of a patch fails on a type it didn't expect, the diagnostic report now names both types, so a report shows exactly which piece broke instead of only saying it failed.
 
+* **Instagram - Lock your messages:** The cover's Unlock link is darker on a light screen so it's easier to read, has a full finger's worth of height to tap, and reads as a button to screen readers. With no lock on, the check for which chat is open runs twice a second instead of on every frame.
+
 * **Instagram:** The diagnostic report has a Stories tray reel types line that counts each kind of card the stories row loads, by Instagram's own name for it. A report from an account that gets a card none of the switches cover yet, like the Music for you card in #111, shows which kind it is, so a switch can take out that card and nothing else.
 
 * **Instagram - Hide suggested posts:** Hide suggested posts' Hide shopping switch now also takes shop tiles out of Explore. A shop's tile is the one with the shop's name over a few of its posts, and the block of the grid holding it goes with it, since Instagram doesn't draw a block with a gap in it. The rest of Explore stays, and with the switch off shop tiles come back on Explore's next load.

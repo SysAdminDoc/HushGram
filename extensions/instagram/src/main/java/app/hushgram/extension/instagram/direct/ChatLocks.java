@@ -154,24 +154,50 @@ public final class ChatLocks {
 
     // ---------------------------------------------------------------- the list
 
+    /** The list as last parsed, with the text it came from, so a frame's worth of asks parse it once. */
+    private static final class Parsed {
+        final String raw;
+        final List<Chat> chats;
+
+        Parsed(String raw, List<Chat> chats) {
+            this.raw = raw;
+            this.chats = chats;
+        }
+    }
+
+    private static volatile Parsed parsed;
+
     /** The chats on the list, oldest first. */
     public static List<Chat> chats() {
+        return new ArrayList<>(kept());
+    }
+
+    /** The list as stored, parsed again only when its text changed; callers never change it. */
+    private static List<Chat> kept() {
         try {
-            if (Utils.settingsReady()) return ChatList.parse(Settings.LOCKED_CHATS.get());
+            if (Utils.settingsReady()) {
+                String raw = Settings.LOCKED_CHATS.get();
+                Parsed kept = parsed;
+                if (kept == null || !kept.raw.equals(raw)) {
+                    kept = new Parsed(raw, ChatList.parse(raw));
+                    parsed = kept;
+                }
+                return kept.chats;
+            }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, LIST, t);
         }
-        return new ArrayList<>();
+        return java.util.Collections.emptyList();
     }
 
     /** Any chat is on the list. */
     public static boolean any() {
-        return !chats().isEmpty();
+        return !kept().isEmpty();
     }
 
     /** The chat with [id] is on the list. */
     public static boolean listed(String id) {
-        return ChatList.contains(chats(), id);
+        return ChatList.contains(kept(), id);
     }
 
     /** Puts a chat on the list, or renames it there. */
