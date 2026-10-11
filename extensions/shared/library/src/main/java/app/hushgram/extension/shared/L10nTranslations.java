@@ -200,8 +200,8 @@ public final class L10nTranslations {
                 "Zeigt Folgt dir oder Folgt dir nicht neben dem Namen im Profil einer Person, hinter den Pronomen, falls angegeben. Es erscheint erst etwas, wenn Instagram es gepr\u00fcft hat.");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "F\u00fcgt dem Men\u00fc auf dem Profil einer Person Profilbild speichern hinzu. Speichert das Bild in der gr\u00f6\u00dften Gr\u00f6\u00dfe, die Instagram hat.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "F\u00fcgt dem Men\u00fc eines ausgew\u00e4hlten Kommentars Speichern hinzu, wenn der Kommentar ein eigenes Foto hat. Speichert die gr\u00f6\u00dfte Version, die Instagram gesendet hat.");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "F\u00fcgt dem Men\u00fc eines ausgew\u00e4hlten Kommentars Speichern hinzu, wenn der Kommentar ein eigenes Foto oder GIF hat. Speichert die gr\u00f6\u00dfte Version, die Instagram gesendet hat.");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "F\u00fcgt dem Men\u00fc, das beim Gedr\u00fcckthalten einer Sprachnachricht in einem Chat erscheint, Speichern hinzu. Speichert die Aufnahme als Audiodatei. Eine Nachricht, die nur einmal abgespielt werden soll, bekommt es nie.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
@@ -1837,8 +1837,8 @@ public final class L10nTranslations {
                 "A\u00f1ade Te sigue o No te sigue junto al nombre en el perfil de alguien, despu\u00e9s de sus pronombres si los tiene. No se muestra nada hasta que Instagram lo haya comprobado.");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "A\u00f1ade Guardar foto del perfil al men\u00fa del perfil de otra persona. Guarda su foto en el tama\u00f1o m\u00e1s grande que tenga Instagram.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "A\u00f1ade Guardar al men\u00fa de un comentario seleccionado cuando el comentario tiene su propia foto. Guarda el tama\u00f1o m\u00e1s grande que envi\u00f3 Instagram.");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "A\u00f1ade Guardar al men\u00fa de un comentario seleccionado cuando el comentario tiene su propia foto o GIF. Guarda el tama\u00f1o m\u00e1s grande que envi\u00f3 Instagram.");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "A\u00f1ade Guardar al men\u00fa que aparece al mantener pulsado un mensaje de voz en un chat. Guarda la grabaci\u00f3n como archivo de audio. Uno enviado para escucharse una sola vez nunca lo tiene.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
@@ -3474,8 +3474,8 @@ public final class L10nTranslations {
                 "Menambahkan Mengikuti kamu atau Tidak mengikuti kamu di samping nama di profil seseorang, setelah kata ganti mereka jika ada. Tidak ada yang muncul sampai Instagram memeriksanya.");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "Menambahkan Simpan foto profil ke menu di profil seseorang. Menyimpan fotonya dalam ukuran terbesar yang dimiliki Instagram.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki fotonya sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki foto atau GIF sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "Menambahkan Simpan ke menu yang muncul saat Anda menahan pesan suara di chat. Menyimpan rekaman sebagai file audio. Pesan yang dikirim untuk diputar sekali tidak pernah mendapatkannya.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
@@ -5111,8 +5111,8 @@ public final class L10nTranslations {
                 "\uc0c1\ub300\ubc29\uc758 \ud504\ub85c\ud544\uc5d0\uc11c \uc774\ub984 \uc606\uc5d0 \u2018\ub098\ub97c \ud314\ub85c\uc6b0\ud558\uace0 \uc788\uc74c\u2019 \ub610\ub294 \u2018\ub098\ub97c \ud314\ub85c\uc6b0\ud558\uc9c0 \uc54a\uc74c\u2019\uc744 \ud45c\uc2dc\ud569\ub2c8\ub2e4. \ub300\uba85\uc0ac\ub97c \uc124\uc815\ud55c \uacbd\uc6b0 \ub300\uba85\uc0ac \ub4a4\uc5d0 \ud45c\uc2dc\ub429\ub2c8\ub2e4. Instagram\uc774 \ud655\uc778\uc744 \uc644\ub8cc\ud558\uae30 \uc804\uc5d0\ub294 \uc544\ubb34\uac83\ub3c4 \ud45c\uc2dc\ub418\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "\ub2e4\ub978 \uc0ac\ub78c \ud504\ub85c\ud544\uc758 \uba54\ub274\uc5d0 \ud504\ub85c\ud544 \uc0ac\uc9c4 \uc800\uc7a5\uc744 \ucd94\uac00\ud569\ub2c8\ub2e4. Instagram\uc5d0 \uc788\ub294 \uac00\uc7a5 \ud070 \ud06c\uae30\ub85c \uc0ac\uc9c4\uc744 \uc800\uc7a5\ud569\ub2c8\ub2e4.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "\uc0ac\uc9c4\uc774 \ucca8\ubd80\ub41c \ub313\uae00 \uba54\ub274\uc5d0 \uc800\uc7a5 \uc635\uc158\uc744 \ucd94\uac00\ud569\ub2c8\ub2e4. \uc800\uc7a5\ud560 \ub54c\ub294 Instagram\uc5d0\uc11c \uc804\uc1a1\ud55c \uc0ac\uc9c4 \uc911 \uac00\uc7a5 \ud070 \ud574\uc0c1\ub3c4\uc758 \uc774\ubbf8\uc9c0\ub97c \uc800\uc7a5\ud569\ub2c8\ub2e4");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "\uc0ac\uc9c4\uc774\ub098 GIF\uac00 \ucca8\ubd80\ub41c \ub313\uae00 \uba54\ub274\uc5d0 \uc800\uc7a5 \uc635\uc158\uc744 \ucd94\uac00\ud569\ub2c8\ub2e4. \uc800\uc7a5\ud560 \ub54c\ub294 Instagram\uc5d0\uc11c \uc804\uc1a1\ud55c \uac83 \uc911 \uac00\uc7a5 \ud070 \ud06c\uae30\ub97c \uc800\uc7a5\ud569\ub2c8\ub2e4");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "\ucc44\ud305\uc5d0\uc11c \uc74c\uc131 \uba54\uc2dc\uc9c0\ub97c \uae38\uac8c \ub204\ub974\uba74 \ub098\uc624\ub294 \uba54\ub274\uc5d0 \uc800\uc7a5\uc744 \ucd94\uac00\ud569\ub2c8\ub2e4. \ub179\uc74c\uc744 \uc624\ub514\uc624 \ud30c\uc77c\ub85c \uc800\uc7a5\ud569\ub2c8\ub2e4. \ud55c \ubc88\ub9cc \uc7ac\uc0dd\ub418\ub3c4\ub85d \ubcf4\ub0b8 \uba54\uc2dc\uc9c0\uc5d0\ub294 \ub098\uc624\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
@@ -6748,8 +6748,8 @@ public final class L10nTranslations {
                 "Adiciona Segue voc\u00ea ou N\u00e3o segue voc\u00ea ao lado do nome no perfil de algu\u00e9m, depois dos pronomes, se a pessoa tiver definido. Nada aparece at\u00e9 o Instagram verificar.");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "Adiciona Salvar foto do perfil ao menu no perfil de algu\u00e9m. Salva a foto no maior tamanho que o Instagram tiver.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "Adiciona Salvar ao menu de um coment\u00e1rio selecionado quando o coment\u00e1rio tem a pr\u00f3pria foto. Salva o maior tamanho que o Instagram enviou.");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "Adiciona Salvar ao menu de um coment\u00e1rio selecionado quando o coment\u00e1rio tem a pr\u00f3pria foto ou GIF. Salva o maior tamanho que o Instagram enviou.");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "Adiciona Salvar ao menu que aparece ao segurar uma mensagem de voz em um chat. Salva a grava\u00e7\u00e3o como arquivo de \u00e1udio. Uma enviada para ser ouvida uma vez nunca recebe essa op\u00e7\u00e3o.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",
@@ -8385,8 +8385,8 @@ public final class L10nTranslations {
                 "Birinin profilinde ad\u0131n\u0131n yan\u0131na, zamirleri varsa onlardan sonra, Seni takip ediyor ya da Seni takip etmiyor ekler. Instagram kontrol edene kadar hi\u00e7bir \u015fey g\u00f6r\u00fcnmez.");
         table.put("Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.",
                 "Birinin profilindeki men\u00fcye Profil foto\u011fraf\u0131n\u0131 kaydet se\u00e7ene\u011fini ekler. Foto\u011fraf\u0131 Instagram'daki en b\u00fcy\u00fck boyutta kaydeder.");
-        table.put("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.",
-                "Kendi foto\u011fraf\u0131 olan se\u00e7ili bir yorumun men\u00fcs\u00fcne Kaydet se\u00e7ene\u011fini ekler. Instagram'\u0131n g\u00f6nderdi\u011fi en b\u00fcy\u00fck boyutu kaydeder.");
+        table.put("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.",
+                "Kendi foto\u011fraf\u0131 veya GIF'i olan se\u00e7ili bir yorumun men\u00fcs\u00fcne Kaydet se\u00e7ene\u011fini ekler. Instagram'\u0131n g\u00f6nderdi\u011fi en b\u00fcy\u00fck boyutu kaydeder.");
         table.put("Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.",
                 "Bir sohbette sesli mesaja bas\u0131l\u0131 tuttu\u011funda a\u00e7\u0131lan men\u00fcye Kaydet ekler. Kayd\u0131 ses dosyas\u0131 olarak kaydeder. Bir kez dinlenmek \u00fczere g\u00f6nderilenlerde hi\u00e7 g\u00f6r\u00fcnmez.");
         table.put("Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.",

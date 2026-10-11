@@ -2416,7 +2416,7 @@
     },
     {
       "name": "Save comment photo",
-      "description": "Adds Save to the menu on a comment that has its own photo, saving the largest size Instagram sent. Starts off. Turn it on in HushGram settings > Comments.",
+      "description": "Adds Save to the menu on a comment that has its own photo or GIF, saving the largest size Instagram sent. Starts off. Turn it on in HushGram settings > Comments.",
       "category": "Downloads",
       "use": true,
       "dependencies": [

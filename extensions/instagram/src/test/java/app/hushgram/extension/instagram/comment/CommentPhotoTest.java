@@ -24,6 +24,7 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowToast;
+import app.hushgram.extension.instagram.download.CommentPhotoDownload;
 import app.hushgram.extension.instagram.download.MediaSave;
 import app.hushgram.extension.instagram.download.PostDetails;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -41,9 +42,11 @@ public class CommentPhotoTest {
     private final List<?> stock = Collections.singletonList("Report");
     private final FakeNative nativeRows = new FakeNative();
     private final List<List<MediaSave.Rendition>> queued = new ArrayList<>();
+    private final List<CommentPhotoDownload.Snapshot.Format> formats = new ArrayList<>();
     private final List<PostDetails> named = new ArrayList<>();
     private final CommentPhoto.Save save = (context, snapshot, details) -> {
-        queued.add(snapshot);
+        queued.add(snapshot.sizes);
+        formats.add(snapshot.format);
         named.add(details);
     };
     private Context context;
@@ -231,7 +234,6 @@ public class CommentPhotoTest {
         List<Step> steps = Arrays.asList(
                 new Step("not a selected comment", 1, reads -> reads.isSelected = false),
                 new Step("no raw comment", 2, reads -> reads.rawAnswer = null),
-                new Step("comment GIF", 3, reads -> reads.gifAnswer = new Object()),
                 new Step("no media_comment_info", 4, reads -> reads.infoAnswer = null),
                 new Step("no media in media_comment_info", 5, reads -> reads.mediaAnswer = null),
                 new Step("media_type 2", 7, reads -> reads.kindAnswer = 2),
@@ -239,16 +241,144 @@ public class CommentPhotoTest {
                 new Step("media_type 0", 7, reads -> reads.kindAnswer = 0),
                 new Step("media_type other", 7, reads -> reads.kindAnswer = 10),
                 new Step("media_type other", 7, reads -> reads.kindAnswer = -1),
-                new Step("media_type other", 7, reads -> reads.kindAnswer = "1"),
-                new Step("media GIF", 8, reads -> reads.mediaGifAnswer = new Object()));
+                new Step("media_type other", 7, reads -> reads.kindAnswer = "1"));
         for (Step step : steps) {
             HookStatus.clear();
             FakeReads reads = new FakeReads();
             step.breaks.accept(reads);
-            assertNull(step.reason, CommentPhoto.photoMedia(reads.comment, reads));
+            assertNull(step.reason, CommentPhoto.carried(reads.comment, reads));
             assertEquals(step.reason, READS.subList(0, step.reads), reads.made);
             assertEquals(step.reason, counted(step.reason + " 1"), HookStatus.report());
         }
+    }
+
+    /** One case where the comment carries a GIF: the reads it takes and what the report counts. */
+    private static final class GifCase {
+        final String name;
+        final List<String> reads;
+        final String counts;
+        final boolean found;
+        final Consumer<FakeReads> makes;
+        GifCase(String name, List<String> reads, String counts, boolean found, Consumer<FakeReads> makes) {
+            this.name = name;
+            this.reads = reads;
+            this.counts = counts;
+            this.found = found;
+            this.makes = makes;
+        }
+    }
+
+    /**
+     * A GIF the comment carries itself, or one its media carries, typed as a photo or untyped, is
+     * counted where it was found and read as a GIF, never as a photo or a video. A GIF sticker, or
+     * an is_sticker that isn't plainly false, gets nothing.
+     */
+    @Test public void aGifTheCommentOrItsMediaCarriesIsReadAsAGifUnlessItsASticker() {
+        List<String> own = Arrays.asList("selected", "raw", "gif", "gifSticker");
+        List<String> typed = Arrays.asList("selected", "raw", "gif", "info", "media", "kind", "photoKind", "mediaGif", "gifSticker");
+        List<String> untyped = Arrays.asList("selected", "raw", "gif", "info", "media", "kind", "mediaGif", "gifSticker");
+        List<GifCase> cases = Arrays.asList(
+                new GifCase("the comment's own GIF", own, "comment GIF 1", true, reads -> reads.gifAnswer = reads.gif),
+                new GifCase("an is_sticker of false", own, "comment GIF 1", true, reads -> {
+                    reads.gifAnswer = reads.gif;
+                    reads.stickerAnswer = false;
+                }),
+                new GifCase("a typed media's GIF", typed, "media GIF 1", true, reads -> reads.mediaGifAnswer = reads.gif),
+                new GifCase("an untyped media's GIF, before its video", untyped, "media GIF 1", true, reads -> {
+                    reads.kindAnswer = null;
+                    reads.videoVersionsAnswer = Collections.singletonList(new Object());
+                    reads.mediaGifAnswer = reads.gif;
+                }),
+                new GifCase("a GIF sticker", own, "comment GIF 1, GIF sticker 1", false, reads -> {
+                    reads.gifAnswer = reads.gif;
+                    reads.stickerAnswer = true;
+                }),
+                new GifCase("a media's GIF sticker", typed, "media GIF 1, GIF sticker 1", false, reads -> {
+                    reads.mediaGifAnswer = reads.gif;
+                    reads.stickerAnswer = true;
+                }),
+                new GifCase("an is_sticker of another type", own, "comment GIF 1, GIF sticker 1", false, reads -> {
+                    reads.gifAnswer = reads.gif;
+                    reads.stickerAnswer = "false";
+                }));
+        for (GifCase gif : cases) {
+            HookStatus.clear();
+            FakeReads reads = new FakeReads();
+            gif.makes.accept(reads);
+            CommentPhoto.Carried carried = CommentPhoto.carried(reads.comment, reads);
+            if (gif.found) {
+                assertNotNull(gif.name, carried);
+                assertSame(gif.name, reads.gif, carried.gif);
+                assertNull(gif.name, carried.photo);
+            } else {
+                assertNull(gif.name, carried);
+            }
+            assertEquals(gif.name, gif.reads, reads.made);
+            assertEquals(gif.name, counted(gif.counts), HookStatus.report());
+        }
+    }
+
+    /**
+     * A GIF's files are read Instagram's own copy first, then Giphy's, each set's one rendition as
+     * plain values. A missing set or rendition is left out, and a value of another type reads as missing.
+     */
+    @Test public void aGifsFilesAreReadInstagramsOwnCopyFirstAsPlainValues() {
+        FakeReads reads = new FakeReads();
+        List<CommentPhotoDownload.GifFile> files = CommentPhoto.gifFiles(reads.gif, reads);
+        assertEquals(Arrays.asList("gifProxied", "gifImages", "gifRendition", "gifUrl", "gifWebp", "gifMp4", "gifWidth",
+                "gifHeight", "gifRendition", "gifUrl", "gifWebp", "gifMp4", "gifWidth", "gifHeight"), reads.made);
+        assertEquals(2, files.size());
+        HookStatus.clear();
+        CommentPhotoDownload.Snapshot kept = CommentPhotoDownload.gif(files);
+        assertEquals(CommentPhotoDownload.Snapshot.Format.GIF, kept.format);
+        assertEquals("only Instagram's own copy is on Meta's servers", 1, kept.sizes.size());
+        assertEquals("https://scontent.cdninstagram.com/proxied.gif", kept.sizes.get(0).url);
+        assertEquals(200, kept.sizes.get(0).width);
+        assertEquals(150, kept.sizes.get(0).height);
+
+        reads.made.clear();
+        reads.proxiedAnswer = null;
+        reads.imagesRendition = null;
+        assertTrue(CommentPhoto.gifFiles(reads.gif, reads).isEmpty());
+        assertEquals(Arrays.asList("gifProxied", "gifImages", "gifRendition"), reads.made);
+
+        reads = new FakeReads();
+        reads.imagesAnswer = null;
+        reads.urlAnswer = 7;
+        reads.widthAnswer = "200";
+        reads.heightAnswer = 150L;
+        files = CommentPhoto.gifFiles(reads.gif, reads);
+        assertEquals(1, files.size());
+        HookStatus.clear();
+        kept = CommentPhotoDownload.gif(files);
+        assertEquals("a url that isn't text is no GIF, so the WebP is kept", CommentPhotoDownload.Snapshot.Format.WEBP, kept.format);
+        assertEquals("https://scontent.cdninstagram.com/proxied.webp", kept.sizes.get(0).url);
+        assertEquals(0, kept.sizes.get(0).width);
+        assertEquals(0, kept.sizes.get(0).height);
+    }
+
+    private static CommentPhotoDownload.Snapshot gif(String name) {
+        return CommentPhotoDownload.gif(Collections.singletonList(new CommentPhotoDownload.GifFile(
+                "https://scontent.cdninstagram.com/" + name + ".gif", null, null, 200, 150)));
+    }
+
+    /** A GIF comment's row saves the GIF it was shown with, and the same menu again keeps that row. */
+    @Test public void aGifRowSavesTheGifItWasShownWithAndARepeatedMenuKeepsIt() {
+        CommentPhotoDownload.Snapshot shown = gif("first");
+        List<?> rows = CommentPhoto.rows(stock, shown, context, nativeRows, save);
+        assertEquals(2, rows.size());
+        assertSame(stock.get(0), rows.get(0));
+        assertSame(rows, CommentPhoto.rows(rows, gif("first"), context, nativeRows, save));
+        List<?> photo = CommentPhoto.rows(rows, photo("first"), context, nativeRows, save);
+        assertEquals("a photo replaces the GIF's row", 2, photo.size());
+        List<?> changed = CommentPhoto.rows(photo, gif("second"), context, nativeRows, save);
+        assertEquals(2, changed.size());
+        assertNull(((Row) rows.get(1)).callback.invoke());
+        assertNull(((Row) changed.get(1)).callback.invoke());
+        assertEquals(Arrays.asList(CommentPhotoDownload.Snapshot.Format.GIF, CommentPhotoDownload.Snapshot.Format.GIF), formats);
+        assertEquals("https://scontent.cdninstagram.com/first.gif", queued.get(0).get(0).url);
+        assertEquals("https://scontent.cdninstagram.com/second.gif", queued.get(1).get(0).url);
+        assertEquals(3, nativeRows.created);
     }
 
     /** Without media_type the reads go on to the GIF and the video, never to the photo kind. */
@@ -269,12 +399,13 @@ public class CommentPhotoTest {
             FakeReads reads = new FakeReads();
             reads.kindAnswer = null;
             still.accept(reads);
-            assertSame(reads.media, CommentPhoto.photoMedia(reads.comment, reads));
+            CommentPhoto.Carried carried = CommentPhoto.carried(reads.comment, reads);
+            assertSame(reads.media, carried.photo);
+            assertNull(carried.gif);
             assertEquals(UNTYPED_READS, reads.made);
             assertEquals(counted(CommentPhoto.NO_KIND_STILL + " 1"), HookStatus.report());
         }
         List<Step> refused = Arrays.asList(
-                new Step("media GIF", 7, reads -> reads.mediaGifAnswer = new Object()),
                 new Step("no media_type, has video", 8, reads -> reads.videoVersionsAnswer = Collections.singletonList(new Object())),
                 new Step("no media_type, has video", 8, reads -> reads.videoVersionsAnswer = new Object()),
                 new Step("no media_type, has video", 9, reads -> reads.videoDurationAnswer = 12.5),
@@ -285,7 +416,7 @@ public class CommentPhotoTest {
             FakeReads reads = new FakeReads();
             reads.kindAnswer = null;
             step.breaks.accept(reads);
-            assertNull(step.reason, CommentPhoto.photoMedia(reads.comment, reads));
+            assertNull(step.reason, CommentPhoto.carried(reads.comment, reads));
             assertEquals(step.reason, UNTYPED_READS.subList(0, step.reads), reads.made);
             assertEquals(step.reason, counted(step.reason + " 1"), HookStatus.report());
         }
@@ -297,15 +428,19 @@ public class CommentPhotoTest {
         HookStatus.clear();
         FakeReads reads = new FakeReads();
         reads.kindAnswer = 2;
-        assertNull(CommentPhoto.photoMedia(reads.comment, reads));
+        reads.mediaGifAnswer = reads.gif;
+        assertNull(CommentPhoto.carried(reads.comment, reads));
         assertFalse(reads.made.contains("videoVersions") || reads.made.contains("videoDuration"));
+        assertFalse("a video's GIF isn't read either", reads.made.contains("mediaGif"));
         assertEquals(counted("media_type 2 1"), HookStatus.report());
     }
 
     @Test public void aPhotoIsReadInTheBridgesOldOrderAndLeavesItsCountToTheSizes() {
         HookStatus.clear();
         FakeReads reads = new FakeReads();
-        assertSame(reads.media, CommentPhoto.photoMedia(reads.comment, reads));
+        CommentPhoto.Carried carried = CommentPhoto.carried(reads.comment, reads);
+        assertSame(reads.media, carried.photo);
+        assertNull(carried.gif);
         assertEquals(READS, reads.made);
         assertTrue("the sizes read counts a found photo", HookStatus.report().isEmpty());
     }
@@ -382,6 +517,35 @@ public class CommentPhotoTest {
         public Object author(Object r) { made.add("author"); assertSame(raw, r); return authorAnswer; }
         public Object createdAt(Object r) { made.add("createdAt"); assertSame(raw, r); return createdAnswer; }
         public String username(Object user) { made.add("username"); assertEquals("user", user); return "stevi.ous"; }
+
+        // A GIF's model: Instagram's own copy of its images, whose one rendition answers with the
+        // values below, and Giphy's set, whose rendition lists Giphy's addresses.
+        final Object gif = new Object(), proxied = new Object(), images = new Object();
+        final Object proxiedRendition = new Object(), giphyRendition = new Object();
+        Object stickerAnswer, proxiedAnswer = proxied, imagesAnswer = images, imagesRendition = giphyRendition;
+        Object urlAnswer = "https://scontent.cdninstagram.com/proxied.gif";
+        Object webpAnswer = "https://scontent.cdninstagram.com/proxied.webp";
+        Object mp4Answer = "https://scontent.cdninstagram.com/proxied.mp4";
+        Object widthAnswer = 200, heightAnswer = 150;
+        public Object gifSticker(Object g) { made.add("gifSticker"); assertSame(gif, g); return stickerAnswer; }
+        public Object gifProxied(Object g) { made.add("gifProxied"); assertSame(gif, g); return proxiedAnswer; }
+        public Object gifImages(Object g) { made.add("gifImages"); assertSame(gif, g); return imagesAnswer; }
+        public Object gifRendition(Object set) {
+            made.add("gifRendition");
+            if (set == proxied) return proxiedRendition;
+            assertSame(images, set);
+            return imagesRendition;
+        }
+        public Object gifUrl(Object r) { made.add("gifUrl"); return giphy(r) ? "https://media.giphy.com/media/a/200.gif" : urlAnswer; }
+        public Object gifWebp(Object r) { made.add("gifWebp"); return giphy(r) ? "https://media.giphy.com/media/a/200.webp" : webpAnswer; }
+        public Object gifMp4(Object r) { made.add("gifMp4"); return giphy(r) ? "https://media.giphy.com/media/a/200.mp4" : mp4Answer; }
+        public Object gifWidth(Object r) { made.add("gifWidth"); return giphy(r) ? 200 : widthAnswer; }
+        public Object gifHeight(Object r) { made.add("gifHeight"); return giphy(r) ? 150 : heightAnswer; }
+        private boolean giphy(Object rendition) {
+            if (rendition == giphyRendition) return true;
+            assertSame(proxiedRendition, rendition);
+            return false;
+        }
     }
 
     static final class Row {
@@ -394,10 +558,11 @@ public class CommentPhotoTest {
         int inspected;
         boolean fail, failRow, nullRow, failDetails;
         PostDetails details = PostDetails.NONE;
-        @SuppressWarnings("unchecked") public List<MediaSave.Rendition> photo(Object comment) {
+        @SuppressWarnings("unchecked") public CommentPhotoDownload.Snapshot media(Object comment) {
             inspected++;
             if (fail) throw new IllegalStateException("native photo getter failed");
-            return comment instanceof List ? (List<MediaSave.Rendition>) comment : null;
+            if (comment instanceof CommentPhotoDownload.Snapshot) return (CommentPhotoDownload.Snapshot) comment;
+            return comment instanceof List ? CommentPhotoDownload.Snapshot.photo((List<MediaSave.Rendition>) comment) : null;
         }
         public PostDetails details(Object comment) {
             if (failDetails) throw new IllegalStateException("native author getter failed");

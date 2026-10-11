@@ -61,8 +61,10 @@ public class CommentPhotoSaveTest {
     private MediaSaveTest.Gallery gallery;
     private final ByteArrayOutputStream published = new ByteArrayOutputStream();
     private final CountDownLatch release = new CountDownLatch(1);
+    private final ByteArrayOutputStream publishedVideo = new ByteArrayOutputStream();
     private final Set<File> oldFiles = new HashSet<>();
     private File legacy;
+    private File legacyMovies;
 
     @Before public void setup() throws Exception {
         context = RuntimeEnvironment.getApplication();
@@ -85,8 +87,12 @@ public class CommentPhotoSaveTest {
         gallery = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
         Shadows.shadowOf(context.getContentResolver()).registerOutputStream(
                 ContentUris.withAppendedId(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, 1), published);
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(gallery.videoUri(1), publishedVideo);
         legacy = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "Instagram");
-        if (legacy.isDirectory()) oldFiles.addAll(Arrays.asList(Objects.requireNonNull(legacy.listFiles())));
+        legacyMovies = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Instagram");
+        for (File folder : new File[]{legacy, legacyMovies}) {
+            if (folder.isDirectory()) oldFiles.addAll(Arrays.asList(Objects.requireNonNull(folder.listFiles())));
+        }
         SaveLeftovers.forgetSweepForTests();
     }
 
@@ -108,12 +114,19 @@ public class CommentPhotoSaveTest {
         NativePhoto.videos = null;
         NativePhoto.author = null;
         NativePhoto.written = null;
+        NativePhoto.gifOnComment = false;
+        NativePhoto.sticker = null;
+        NativePhoto.gifFile = null;
+        NativePhoto.webpFile = null;
+        NativePhoto.mp4File = null;
         Settings.SAVE_NAME_BY_POST.resetToDefault();
         HookStatus.clear();
         Utils.awaitBackgroundTasksForTests();
         SaveLeftovers.forgetSweepForTests();
-        File[] files = legacy.listFiles();
-        if (files != null) for (File file : files) if (!oldFiles.contains(file)) assertTrue(file.delete());
+        for (File folder : new File[]{legacy, legacyMovies}) {
+            File[] files = folder.listFiles();
+            if (files != null) for (File file : files) if (!oldFiles.contains(file)) assertTrue(file.delete());
+        }
     }
 
     private static byte[] body() {
@@ -286,12 +299,125 @@ public class CommentPhotoSaveTest {
         clean();
     }
 
+    private static byte[] gifBody() {
+        byte[] bytes = new byte[4096];
+        byte[] head = {'G', 'I', 'F', '8', '9', 'a'};
+        System.arraycopy(head, 0, bytes, 0, head.length);
+        return bytes;
+    }
+
+    private static byte[] mp4Body() {
+        byte[] bytes = new byte[4096];
+        byte[] head = {0, 0, 0, 24, 'f', 't', 'y', 'p', 'm', 'p', '4', '2'};
+        System.arraycopy(head, 0, bytes, 0, head.length);
+        return bytes;
+    }
+
+    /** Opens the menu on a comment's own GIF, which reads as [counted] on the report. */
+    private Row gifMenu(String counted) {
+        NativePhoto.selected = new Object();
+        NativePhoto.gifOnComment = true;
+        List<?> stock = Collections.singletonList(new Object());
+        HookStatus.clear();
+        List<?> rows = CommentPhoto.rows(stock, NativePhoto.selected, context);
+        assertEquals(2, rows.size());
+        assertSame(stock.get(0), rows.get(0));
+        assertEquals("opening the menu starts nothing", 0, MediaSave.savesInFlight());
+        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO
+                + ": invoked 1, 0 found, 0 missing. Counted: " + counted), HookStatus.report());
+        return (Row) rows.get(1);
+    }
+
+    private List<File> savedIn(File folder) {
+        List<File> saved = new ArrayList<>();
+        File[] files = folder.listFiles();
+        if (files != null) for (File file : files) if (!oldFiles.contains(file)) saved.add(file);
+        return saved;
+    }
+
+    /**
+     * A comment's GIF saves as a .gif from Instagram's own copy, the one address the model lists on
+     * Meta's servers. Giphy's larger copy is never fetched, nor the same GIF's WebP or MP4.
+     */
+    @Test public void aCommentGifSavesInstagramsOwnGifFileAsAGif() throws Exception {
+        server.serve("/proxied.gif", "image/gif", gifBody());
+        NativePhoto.gifFile = server.origin() + "/proxied.gif";
+        NativePhoto.webpFile = server.origin() + "/proxied.webp";
+        NativePhoto.mp4File = server.origin() + "/proxied.mp4";
+        Row row = gifMenu("comment GIF 1, GIF found 1");
+        NativePhoto.gifOnComment = false;
+        assertNull(row.callback.invoke());
+        waitForSave();
+        assertEquals(1, server.hits("/proxied.gif"));
+        assertEquals(0, server.hits("/proxied.webp"));
+        assertEquals(0, server.hits("/proxied.mp4"));
+        if (Build.VERSION.SDK_INT == 28) {
+            List<File> saved = savedIn(legacy);
+            assertEquals(1, saved.size());
+            assertTrue(saved.get(0).getName(), saved.get(0).getName().endsWith(".gif"));
+            assertArrayEquals(gifBody(), java.nio.file.Files.readAllBytes(saved.get(0).toPath()));
+            assertTrue(savedIn(legacyMovies).isEmpty());
+        } else {
+            assertEquals(1, gallery.rows.size());
+            ContentValues values = gallery.rows.values().iterator().next();
+            assertEquals("image/gif", values.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+            assertTrue(values.getAsString(MediaStore.MediaColumns.DISPLAY_NAME).endsWith(".gif"));
+            assertArrayEquals(gifBody(), published.toByteArray());
+        }
+        clean();
+    }
+
+    /** A GIF Instagram only lists as an MP4 saves that MP4 as a video, in the videos folder. */
+    @Test public void aCommentGifWithOnlyAnMp4SavesItAsAVideo() throws Exception {
+        server.serve("/proxied.mp4", "video/mp4", mp4Body());
+        NativePhoto.mp4File = server.origin() + "/proxied.mp4";
+        Row row = gifMenu("comment GIF 1, GIF found 1");
+        assertNull(row.callback.invoke());
+        waitForSave();
+        assertEquals(1, server.hits("/proxied.mp4"));
+        if (Build.VERSION.SDK_INT == 28) {
+            List<File> saved = savedIn(legacyMovies);
+            assertEquals(1, saved.size());
+            assertTrue(saved.get(0).getName(), saved.get(0).getName().endsWith(".mp4"));
+            assertTrue(savedIn(legacy).isEmpty());
+        } else {
+            assertEquals(1, gallery.rows.size());
+            ContentValues values = gallery.rows.values().iterator().next();
+            assertEquals("video/mp4", values.getAsString(MediaStore.MediaColumns.MIME_TYPE));
+            assertTrue(values.getAsString(MediaStore.MediaColumns.DISPLAY_NAME).endsWith(".mp4"));
+            assertArrayEquals(mp4Body(), publishedVideo.toByteArray());
+        }
+        clean();
+    }
+
+    /** A GIF sticker, and a GIF with no file on Meta's servers, get no Save row and fetch nothing. */
+    @Test public void aGifStickerAndAGiphyOnlyGifGetNoRow() {
+        List<?> stock = Collections.singletonList(new Object());
+        NativePhoto.selected = new Object();
+        NativePhoto.gifOnComment = true;
+        NativePhoto.gifFile = server.origin() + "/sticker.gif";
+        NativePhoto.sticker = true;
+        HookStatus.clear();
+        assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
+        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO
+                + ": invoked 1, 0 found, 0 missing. Counted: comment GIF 1, GIF sticker 1"), HookStatus.report());
+
+        NativePhoto.sticker = false;
+        NativePhoto.gifFile = null;
+        HookStatus.clear();
+        assertSame(stock, CommentPhoto.rows(stock, NativePhoto.selected, context));
+        assertEquals(Collections.singletonList(FamilyNames.COMMENT_PHOTO + ": invoked 1, 0 found, 0 missing. Counted: "
+                + "comment GIF 1, GIF refused (its host is not one of Meta's media servers) 1"), HookStatus.report());
+        assertEquals(0, server.hits("/sticker.gif"));
+        assertEquals(0, MediaSave.savesInFlight());
+    }
+
     static final class Row {
         final Function0<?> callback;
         Row(Object callback) { this.callback = (Function0<?>) callback; }
     }
 
-    /** The patched native reads, answering for one selected comment's own photo only. */
+    /** The patched native reads, answering for one selected comment's own photo or GIF only. */
     @Implements(value = CommentPhotoNative.class, isInAndroidSdk = false)
     public static class NativePhoto {
         static Object selected;
@@ -300,10 +426,36 @@ public class CommentPhotoSaveTest {
         static List<?> videos;
         static String author;
         static Long written;
+        /** Whether the comment carries a GIF, whose own copy lists these files and Giphy's a larger set. */
+        static boolean gifOnComment;
+        static Object sticker;
+        static String gifFile, webpFile, mp4File;
         private static final Object RAW = new Object(), INFO = new Object();
+        private static final Object GIF = new Object(), PROXIED = new Object(), GIPHY = new Object();
+        private static final Object PROXIED_FILES = new Object(), GIPHY_FILES = new Object();
         @Implementation protected static int selected(Object comment) { return comment != null && comment == selected ? 1 : 0; }
         @Implementation protected static Object raw(Object comment) { return RAW; }
-        @Implementation protected static Object gif(Object raw) { return null; }
+        @Implementation protected static Object gif(Object raw) { return raw == RAW && gifOnComment ? GIF : null; }
+        @Implementation protected static Object gifSticker(Object gif) { return gif == GIF ? sticker : null; }
+        @Implementation protected static Object gifProxied(Object gif) { return gif == GIF ? PROXIED : null; }
+        @Implementation protected static Object gifImages(Object gif) { return gif == GIF ? GIPHY : null; }
+        @Implementation protected static Object gifRendition(Object images) {
+            return images == PROXIED ? PROXIED_FILES : images == GIPHY ? GIPHY_FILES : null;
+        }
+        @Implementation protected static Object gifUrl(Object files) {
+            return files == PROXIED_FILES ? gifFile : files == GIPHY_FILES ? "https://media.giphy.com/media/a/giphy.gif" : null;
+        }
+        @Implementation protected static Object gifWebp(Object files) {
+            return files == PROXIED_FILES ? webpFile : files == GIPHY_FILES ? "https://media.giphy.com/media/a/giphy.webp" : null;
+        }
+        @Implementation protected static Object gifMp4(Object files) {
+            return files == PROXIED_FILES ? mp4File : files == GIPHY_FILES ? "https://media.giphy.com/media/a/giphy.mp4" : null;
+        }
+        @Implementation protected static Object gifWidth(Object files) { return size(files, 200, 480); }
+        @Implementation protected static Object gifHeight(Object files) { return size(files, 150, 360); }
+        private static Integer size(Object files, int proxied, int giphy) {
+            return files == PROXIED_FILES ? Integer.valueOf(proxied) : files == GIPHY_FILES ? Integer.valueOf(giphy) : null;
+        }
         @Implementation protected static Object author(Object raw) { return raw == RAW ? author : null; }
         @Implementation protected static Object createdAt(Object raw) { return raw == RAW ? written : null; }
         @Implementation protected static Object info(Object raw) { return raw == RAW ? INFO : null; }

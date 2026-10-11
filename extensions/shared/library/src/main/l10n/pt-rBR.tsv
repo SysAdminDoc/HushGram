@@ -377,7 +377,7 @@ Adds Copy username to a selected comment's menu, for the account that wrote it.	
 Comment copied	Comentário copiado
 Couldn't copy comment	Não foi possível copiar o comentário
 Save comment photo	Salvar foto do comentário
-Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.	Adiciona Salvar ao menu de um comentário selecionado quando o comentário tem a própria foto. Salva o maior tamanho que o Instagram enviou.
+Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Adiciona Salvar ao menu de um comentário selecionado quando o comentário tem a própria foto ou GIF. Salva o maior tamanho que o Instagram enviou.
 Export overrides	Exportar valores personalizados
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Salva seus overrides (mudanças nas configurações ocultas do Instagram) para esta versão exata do Instagram.
 Validate an overrides file	Validar um arquivo de valores personalizados

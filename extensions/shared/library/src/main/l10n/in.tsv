@@ -377,7 +377,7 @@ Adds Copy username to a selected comment's menu, for the account that wrote it.	
 Comment copied	Komentar disalin
 Couldn't copy comment	Tidak dapat menyalin komentar
 Save comment photo	Simpan foto komentar
-Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.	Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki fotonya sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.
+Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Menambahkan Simpan ke menu komentar yang dipilih jika komentar memiliki foto atau GIF sendiri. Menyimpan ukuran terbesar yang dikirim Instagram.
 Export overrides	Ekspor nilai pengganti
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Menyimpan override kamu (perubahan pada pengaturan tersembunyi Instagram) untuk versi Instagram yang persis ini.
 Validate an overrides file	Validasi berkas nilai pengganti

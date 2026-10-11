@@ -36,13 +36,14 @@ internal const val SAVE_ACTION = "SaveMedia"
 
 /**
  * The calls the photo bridges make on the selected comment, each a public getter proved to read the
- * comment's own media_comment_info, never its parent post, and the PHOTO kind's value.
+ * comment's own media_comment_info, never its parent post, and the PHOTO kind's value. [gifModel]
+ * reads the files of the comment's own GIF, when the build's GIF model could be told.
  */
 internal data class CommentPhotoPlan(
     val surface: CommentSurface, val gif: MethodReference, val info: MethodReference, val media: MethodReference,
     val kind: MethodReference, val mediaGif: MethodReference, val videoVersions: MethodReference,
     val videoDuration: MethodReference, val photo: Int, val icon: Int, val label: Int, val images: () -> Unit,
-    val author: CommentAuthor? = null,
+    val author: CommentAuthor? = null, val gifModel: CommentGifPlan? = null,
 )
 
 /**
@@ -122,7 +123,7 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
         refuse("tree comment media is stored from something other than its media field")
     }
 
-    // GIFs and anything that isn't a still photo get no row.
+    // A GIF is saved from its own model's files, and anything else that isn't a still photo gets no row.
     val gif = raw.methods.filter { it.parameterTypes.isEmpty() && it.returnType == GIPHY && AccessFlags.ABSTRACT.isSet(it.accessFlags) }
         .one("raw comment's GIF getter")
     if (!gif.matches(hashGetter(pando, "giphy_media_info", GIPHY))) refuse("raw comment's GIF getter reads another field")
@@ -150,7 +151,7 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
     validateActionRow(PHOTO_ROW, PHOTO_NATIVE)
     val images = imageBridges(PHOTO_PATCH)
     CommentPhotoPlan(surface, gif, info, media, kind, mediaGif, videoVersions, videoDuration, photo, icon, label, images,
-        commentAuthor(raw, pando))
+        commentAuthor(raw, pando), commentGifOrNull(classes))
 }
 
 /**
@@ -231,6 +232,8 @@ internal fun BytecodePatchContext.applyCommentPhoto(plan: CommentPhotoPlan) = di
         read("createdAt", "invoke-interface", author.createdAt)
         author.username()
     }
+    // Each GIF read takes what the read before it answered, on the interface that answer is typed as.
+    plan.gifModel?.reads?.forEach { (name, getter) -> read(name, "invoke-interface", getter) }
     replace(reads.getValue("photoKind"), 1, """
         const v0, ${plan.photo}
         return v0
@@ -253,7 +256,7 @@ internal val PHOTO_READS: List<Pair<String, Pair<List<String>, String>>> = listO
     "author" to (listOf(OBJECT) to OBJECT),
     "createdAt" to (listOf(OBJECT) to OBJECT),
     "photoKind" to (emptyList<String>() to "I"),
-)
+) + GIF_READS.map { it to (listOf(OBJECT) to OBJECT) }
 
 private const val DOUBLE = "Ljava/lang/Double;"
 private const val LONG = "Ljava/lang/Long;"
@@ -275,7 +278,7 @@ private fun Method.loads(literal: Int) = code().any {
 }
 
 /** The one getter on [type] for the tree field [field], held as the hash of its name. */
-private fun hashGetter(type: ClassDef, field: String, returns: String?): Method =
+internal fun hashGetter(type: ClassDef, field: String, returns: String?): Method =
     type.methods.filter { method -> method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) &&
         (returns == null || method.returnType == returns) && method.loads(field.hashCode())
     }.one("$field getter on ${type.type}")

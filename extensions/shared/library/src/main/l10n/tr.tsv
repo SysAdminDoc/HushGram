@@ -377,7 +377,7 @@ Adds Copy username to a selected comment's menu, for the account that wrote it.	
 Comment copied	Yorum kopyalandı
 Couldn't copy comment	Yorum kopyalanamadı
 Save comment photo	Yorum fotoğrafını kaydet
-Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.	Kendi fotoğrafı olan seçili bir yorumun menüsüne Kaydet seçeneğini ekler. Instagram'ın gönderdiği en büyük boyutu kaydeder.
+Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Kendi fotoğrafı veya GIF'i olan seçili bir yorumun menüsüne Kaydet seçeneğini ekler. Instagram'ın gönderdiği en büyük boyutu kaydeder.
 Export overrides	Geçersiz kılmaları dışa aktar
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Override'larını (Instagram'ın gizli ayarlarında yaptığın değişiklikler) tam olarak bu Instagram sürümü için kaydeder.
 Validate an overrides file	Bir geçersiz kılma dosyasını doğrula

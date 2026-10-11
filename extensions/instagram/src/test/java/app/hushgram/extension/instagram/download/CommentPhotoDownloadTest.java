@@ -183,4 +183,102 @@ public class CommentPhotoDownloadTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertNull(ShadowToast.getTextOfLatestToast());
     }
+
+    private static final String GIF = "https://scontent.cdninstagram.com/g.gif";
+    private static final String WEBP = "https://scontent.cdninstagram.com/g.webp";
+    private static final String MP4 = "https://scontent.cdninstagram.com/g.mp4";
+
+    private static CommentPhotoDownload.GifFile file(String gif, String webp, String mp4) {
+        return new CommentPhotoDownload.GifFile(gif, webp, mp4, 200, 150);
+    }
+
+    /** A GIF file on Meta's servers comes first, then an animated WebP, then an MP4, each kept as listed. */
+    @Test public void aGifIsKeptAsAGifFileThenAWebPThenAnMp4OnMetasServersOnly() {
+        HookStatus.clear();
+        CommentPhotoDownload.Snapshot kept = CommentPhotoDownload.gif(Arrays.asList(
+                file("https://media.giphy.com/g.gif", "https://media.giphy.com/g.webp", "https://media.giphy.com/g.mp4"),
+                file(GIF, WEBP, MP4),
+                new CommentPhotoDownload.GifFile("https://scontent.fbcdn.net/large.gif", null, null, 480, 360)));
+        assertEquals(CommentPhotoDownload.Snapshot.Format.GIF, kept.format);
+        assertEquals(2, kept.sizes.size());
+        assertEquals(GIF, kept.sizes.get(0).url);
+        assertEquals(200, kept.sizes.get(0).width);
+        assertEquals(150, kept.sizes.get(0).height);
+        assertEquals("https://scontent.fbcdn.net/large.gif", kept.sizes.get(1).url);
+        assertEquals(480, kept.sizes.get(1).width);
+
+        kept = CommentPhotoDownload.gif(Arrays.asList(file(null, WEBP, MP4), file("", null, null), null));
+        assertEquals(CommentPhotoDownload.Snapshot.Format.WEBP, kept.format);
+        assertEquals(Collections.singletonList(WEBP), urls(kept));
+
+        kept = CommentPhotoDownload.gif(Collections.singletonList(
+                file("https://media.giphy.com/g.gif", "http://scontent.fbcdn.net/g.webp", MP4)));
+        assertEquals(CommentPhotoDownload.Snapshot.Format.MP4, kept.format);
+        assertEquals(Collections.singletonList(MP4), urls(kept));
+        assertEquals("a kept file counts no refusal", counted("GIF found 3"), HookStatus.report());
+        HookStatus.clear();
+    }
+
+    private static List<String> urls(CommentPhotoDownload.Snapshot snapshot) {
+        List<String> urls = new ArrayList<>();
+        for (MediaSave.Rendition size : snapshot.sizes) urls.add(size.url);
+        return urls;
+    }
+
+    /** No file on Meta's servers is no GIF to save, counted by why once per read, never by address. */
+    @Test public void aGifWithNoFileOnMetasServersCountsWhyOnceAndNamesNoHost() {
+        HookStatus.clear();
+        assertNull(CommentPhotoDownload.gif(null));
+        assertNull(CommentPhotoDownload.gif(Collections.emptyList()));
+        assertNull(CommentPhotoDownload.gif(Arrays.asList(null, file(null, "", null))));
+        assertEquals(counted("no GIF file 3"), HookStatus.report());
+
+        HookStatus.clear();
+        assertNull(CommentPhotoDownload.gif(Arrays.asList(
+                file("https://media.giphy.com/g.gif", "https://media.giphy.com/g.webp", "https://media.giphy.com/g.mp4"),
+                file("http://scontent.fbcdn.net/g.gif", null, "file:///data/user/0/com.instagram.android/cache/pending.mp4"),
+                file(null, "pending upload", null))));
+        List<String> report = HookStatus.report();
+        assertEquals(counted("GIF refused (its host is not one of Meta's media servers) 1, GIF refused (it is not HTTPS) 1, "
+                + "GIF refused (it is not a well-formed address) 1"), report);
+        assertEquals(report.get(0), DiagnosticRedactor.redact(report.get(0)));
+        assertFalse(report.get(0).contains("giphy") || report.get(0).contains("fbcdn") || report.get(0).contains("pending"));
+        HookStatus.clear();
+    }
+
+    @Test public void aSnapshotIsADetachedCopyComparedByKindAndAddress() {
+        assertNull(CommentPhotoDownload.Snapshot.photo(null));
+        assertNull(CommentPhotoDownload.Snapshot.photo(Collections.emptyList()));
+        List<MediaSave.Rendition> source = new ArrayList<>(Collections.singletonList(new MediaSave.Rendition(GIF, 200, 150, 0)));
+        CommentPhotoDownload.Snapshot photo = CommentPhotoDownload.Snapshot.photo(source);
+        source.clear();
+        assertEquals(1, photo.sizes.size());
+        assertThrows(UnsupportedOperationException.class, () -> photo.sizes.clear());
+
+        HookStatus.clear();
+        CommentPhotoDownload.Snapshot gif = CommentPhotoDownload.gif(Collections.singletonList(file(GIF, null, null)));
+        assertFalse("the same address as a photo isn't the same save", gif.sameAs(photo));
+        assertTrue(gif.sameAs(CommentPhotoDownload.gif(Collections.singletonList(file(GIF, null, null)))));
+        assertFalse(gif.sameAs(CommentPhotoDownload.gif(Collections.singletonList(
+                new CommentPhotoDownload.GifFile(GIF, null, null, 400, 300)))));
+        assertFalse(gif.sameAs(CommentPhotoDownload.gif(Arrays.asList(file(GIF, null, null), file(GIF, null, null)))));
+        assertFalse(gif.sameAs(null));
+        HookStatus.clear();
+    }
+
+    @Test public void aGifSaveThatCannotStartSaysSoAndNeverThrows() {
+        CommentPhotoDownload.save(context, (CommentPhotoDownload.Snapshot) null, PostDetails.NONE);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
+        ShadowToast.reset();
+        HookStatus.clear();
+        CommentPhotoDownload.Snapshot gif = CommentPhotoDownload.gif(Collections.singletonList(file(GIF, null, null)));
+        CommentPhotoDownload.Snapshot mp4 = CommentPhotoDownload.gif(Collections.singletonList(file(null, null, MP4)));
+        CommentPhotoDownload.save(null, gif, null);
+        CommentPhotoDownload.save(null, mp4, null);
+        CommentPhotoDownload.save(null, (CommentPhotoDownload.Snapshot) null, null);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertNull(ShadowToast.getTextOfLatestToast());
+        HookStatus.clear();
+    }
 }

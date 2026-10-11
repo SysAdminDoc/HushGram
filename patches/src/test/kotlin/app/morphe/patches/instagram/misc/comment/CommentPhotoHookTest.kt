@@ -45,6 +45,9 @@ class CommentPhotoHookTest {
             assertEquals(1, plan.photo)
             assertEquals(0x7f080789, plan.icon)
             assertEquals(0x7f130789, plan.label)
+            val gif = plan.gifModel ?: error("$salt: the comment GIF's model wasn't read")
+            assertEquals(GIF_READS, gif.reads.map { it.first })
+            assertEquals(GIF_KEYS.map { "${salt}_$it" }, gif.reads.map { it.second.name })
             val unchangedTypes = native.map { it.type }.filter { it != plan.surface.renderer.definingClass }
             val unchanged = CommentWorld.snapshot(patch, unchangedTypes)
             patch.applyCommentPhoto(plan)
@@ -134,6 +137,89 @@ class CommentPhotoHookTest {
         }
     }
 
+    /**
+     * A comment GIF's model that can't be read safely leaves Save comment photo going in for photos,
+     * with the GIF bridges as the extension wrote them, so they answer null and a GIF gets no row.
+     */
+    @Test fun aGifModelThatCantBeReadLeavesThePhotoWiredAndTheGifBridgesAnsweringNull() {
+        val cases = mapOf(
+            "no GIF model" to null,
+            "tree reads another key" to GifWorld(treeKeys = mapOf("url" to "still_url")),
+            "is_sticker read from another key" to GifWorld(treeKeys = mapOf("is_sticker" to "is_hidden")),
+            "two keys share a parsed field" to GifWorld(sharedField = "webp"),
+            "a second tree class" to GifWorld(trees = 2),
+            "rendition is no longer an interface" to GifWorld(renditionInterface = false),
+        )
+        for ((case, gif) in cases) {
+            val native = CommentWorld.nativeClasses("NoGif", photo = PhotoWorld(gif = gif))
+            val patch = PatchContexts.of(native + extension())
+            val stubs = gifBridges(patch)
+            val plan = patch.findCommentPhoto()
+            assertNull(case, plan.gifModel)
+            val failure = runCatching { discovering(PHOTO_PATCH) { commentGif(native.associateBy { it.type }) } }.exceptionOrNull()
+            assertTrue("$case: $failure", failure?.message?.startsWith("Save comment photo: ") == true)
+            patch.applyCommentPhoto(plan)
+            assertPhotoWiring(patch, plan)
+            assertEquals(case, stubs, gifBridges(patch))
+        }
+    }
+
+    private fun gifBridges(patch: BytecodePatchContext) = patch.mutableClassDefBy(PHOTO_NATIVE).methods
+        .filter { it.name in GIF_READS }.associate { method -> method.name to method.code().map { it.opcode } }
+
+    /**
+     * Every 450 build has the comment GIF model the bridges read: three public interfaces with one
+     * tree-backed and one parsed class each, every getter proved by the key its tree reads and the
+     * field its parsed class returns, whatever the build renamed it to.
+     */
+    @Test fun everyBuildHasTheCommentGifModelTheGifBridgesRead() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
+            Fixtures.otherBuilds()
+        assertEquals("the seven 450 builds", 7, bundles.size)
+        val checked = mutableListOf<String>()
+        for (bundle in bundles) {
+            val label = if (bundle.extension == "apk") bundle.parentFile.name else bundle.name
+            val classes = gifFixture(bundle)
+            val plan = discovering(PHOTO_PATCH) { commentGif(classes) }
+            val keys = GIF_KEYS.zip(plan.reads.map { it.second })
+            assertEquals(label, listOf(GIPHY, GIPHY, GIPHY, GIF_IMAGES, GIF_RENDITION, GIF_RENDITION, GIF_RENDITION,
+                GIF_RENDITION, GIF_RENDITION), keys.map { it.second.definingClass })
+            assertEquals(label, listOf("Ljava/lang/Boolean;", GIF_IMAGES, GIF_IMAGES, GIF_RENDITION, STRING, STRING, STRING,
+                INTEGER, INTEGER), keys.map { it.second.returnType })
+            for ((key, getter) in keys) {
+                val tree = classes.values.single { getter.definingClass in it.interfaces && treeBacked(it, classes) }
+                assertTrue("$label: $key", tree.methods.single { it.matches(getter) }.code()
+                    .any { it is NarrowLiteralInstruction && it.narrowLiteral == key.hashCode() })
+            }
+            checked += label
+        }
+        assertEquals(7, checked.distinct().size)
+    }
+
+    /**
+     * The comment GIF model's classes in [bundle]: its three interfaces, every class implementing
+     * one, and the tree classes' superclasses up to Pando's tree, in two passes over the dex files.
+     */
+    private fun gifFixture(bundle: File): Map<String, ClassDef> {
+        val models = setOf(GIPHY, GIF_IMAGES, GIF_RENDITION)
+        val pool = linkedMapOf<String, ClassDef>()
+        val parents = mutableMapOf<String, String>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (type in dex.classes) {
+                type.superclass?.let { parents[type.type] = it }
+                if (type.type in models || type.interfaces.any(models::contains)) pool[type.type] = ImmutableClassDef.of(type)
+            }
+        }
+        val chain = mutableSetOf<String>()
+        for (type in pool.values) {
+            var parent = type.superclass
+            while (parent != null && chain.add(parent)) parent = parents[parent]
+        }
+        pool.putAll(FixtureDex.classes(bundle, chain - pool.keys))
+        return pool
+    }
+
     @Test fun everyDeclaredFixtureSuppliesTheCommentsOwnPhotoAndInstagramsSaveAction() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
@@ -161,6 +247,7 @@ class CommentPhotoHookTest {
                 assertEquals(MEDIA, plan.media.returnType)
                 assertEquals(plan.surface.raw, plan.info.definingClass)
                 assertEquals(plan.surface.raw, plan.gif.definingClass)
+                assertNotNull("${bundle.name}: the comment GIF's model wasn't read", plan.gifModel)
                 assertNotEquals(plan.icon, plan.label)
                 // Who wrote the comment and when, for the save's name: read through the raw comment's
                 // interface, each proved on its tree-backed class by the key it reads.
@@ -238,6 +325,22 @@ class CommentPhotoHookTest {
         assertEquals(plan.photo, (kind[0] as NarrowLiteralInstruction).narrowLiteral)
         for (call in listOf(plan.gif, plan.info, plan.media, plan.kind, plan.mediaGif, plan.videoVersions, plan.videoDuration)) {
             assertEquals("$call is read once", 1, native.sumOf { method -> method.code().count { it.call()?.toString() == call.toString() } })
+        }
+        // A GIF's reads go in only once its whole model was proved; otherwise each stub answers null.
+        val gif = plan.gifModel
+        for ((index, name) in GIF_READS.withIndex()) {
+            val code = read(name)
+            if (gif == null) {
+                assertNotEquals(name, Opcode.CHECK_CAST, code.first().opcode)
+                assertTrue(name, code.none { it.call() != null })
+                continue
+            }
+            val getter = gif.reads[index].second
+            assertEquals(name, listOf(Opcode.CHECK_CAST, Opcode.INVOKE_INTERFACE, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+                code.map { it.opcode })
+            assertEquals(name, getter.definingClass, (code[0].reference() as TypeReference).type)
+            assertEquals(name, getter.toString(), code[1].call().toString())
+            assertEquals("$getter is read once", 1, native.sumOf { method -> method.code().count { it.call()?.toString() == getter.toString() } })
         }
         assertTrue("the old all-in-one bridge is gone", native.none { it.name == "photoMedia" })
         val factory = native.single { it.name == "newRow" }.code()
@@ -331,6 +434,8 @@ class CommentPhotoHookTest {
             method.code().any { it is NarrowLiteralInstruction && it.narrowLiteral == "media_type".hashCode() }
         }.flatMap { method -> method.code().mapNotNull { it.call() }.filter { it.parameters() == listOf(INTEGER) } }
             .map { it.returnType })
+        // A comment GIF's model: its interfaces, the classes implementing them, and the trees' superclasses.
+        gifFixture(bundle).forEach { (type, classDef) -> pool.putIfAbsent(type, classDef) }
         return pool.values.toList()
     }
 }

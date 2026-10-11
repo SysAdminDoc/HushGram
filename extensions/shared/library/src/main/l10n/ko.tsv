@@ -378,7 +378,7 @@ Adds Copy username to a selected comment's menu, for the account that wrote it.	
 Comment copied	댓글이 복사됨
 Couldn't copy comment	댓글을 복사할 수 없습니다
 Save comment photo	댓글 사진 저장
-Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.	사진이 첨부된 댓글 메뉴에 저장 옵션을 추가합니다. 저장할 때는 Instagram에서 전송한 사진 중 가장 큰 해상도의 이미지를 저장합니다
+Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	사진이나 GIF가 첨부된 댓글 메뉴에 저장 옵션을 추가합니다. 저장할 때는 Instagram에서 전송한 것 중 가장 큰 크기를 저장합니다
 Export overrides	재정의 내보내기
 Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	이 Instagram 버전에 맞춰 오버라이드(Instagram 숨겨진 설정의 변경 사항)를 저장합니다.
 Validate an overrides file	재정의 파일 유효성 검사

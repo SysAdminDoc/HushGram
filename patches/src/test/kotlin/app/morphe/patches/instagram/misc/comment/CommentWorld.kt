@@ -46,7 +46,27 @@ internal data class PhotoWorld(
     val pooledSave: Boolean = false,
     val saves: Int = 1,
     val foreignMediaStore: Boolean = false,
+    val gif: GifWorld? = GifWorld(),
 )
+
+/**
+ * A comment GIF's model in [CommentWorld]: three public interfaces, each with one tree-backed class
+ * whose getters hold the hash of their key and one parsed class whose getters return a field. Each
+ * refusal case changes one thing.
+ */
+internal data class GifWorld(
+    /** A key whose tree getter holds another key's hash instead, by key. */
+    val treeKeys: Map<String, String> = emptyMap(),
+    /** A key whose parsed getter returns the url's field rather than its own. */
+    val sharedField: String? = null,
+    /** How many tree-backed classes each interface has. */
+    val trees: Int = 1,
+    val renditionInterface: Boolean = true,
+)
+
+/** The keys of a comment GIF's model, in the order the GIF bridges read them. */
+internal val GIF_KEYS = listOf("is_sticker", "first_party_cdn_proxied_images", "images", "fixed_height",
+    "url", "webp", "mp4", "width", "height")
 
 /**
  * A small renamed Instagram: the selected comment, its raw and parsed models, the JSON reader, the
@@ -387,7 +407,43 @@ internal object CommentWorld {
                     return-void
                 """))),
             clazz("Ltest/CopyBase;", methods = listOf(constructor("Ltest/CopyBase;", listOf(OBJECT, "I", "I", "Z"), "return-void"))),
-        ) + (photo?.let { photoParts(it, salt, json, reader) } ?: emptyList())
+        ) + (photo?.let { photoParts(it, salt, json, reader) } ?: emptyList()) +
+            (photo?.gif?.let { gifParts(it, salt) } ?: emptyList())
+    }
+
+    /**
+     * A comment GIF's model, renamed per [salt]: a getter per key on each interface, named
+     * "<salt>_<key>", a tree class reading each key by its hash, and a parsed class returning a field.
+     */
+    private fun gifParts(gif: GifWorld, salt: String): List<ClassDef> {
+        fun t(name: String) = "Ltest/$salt$name;"
+        val models = listOf(
+            GIPHY to listOf("is_sticker" to "Ljava/lang/Boolean;", "first_party_cdn_proxied_images" to GIF_IMAGES,
+                "images" to GIF_IMAGES),
+            GIF_IMAGES to listOf("fixed_height" to GIF_RENDITION),
+            GIF_RENDITION to listOf("url" to STRING, "webp" to STRING, "mp4" to STRING, "width" to INTEGER, "height" to INTEGER))
+        return models.flatMapIndexed { index, (model, keys) ->
+            val isInterface = model != GIF_RENDITION || gif.renditionInterface
+            val parsed = t("GifParsed$index")
+            fun name(key: String) = "${salt}_$key"
+            val shape = clazz(model, flags = if (isInterface) iface else public, methods = keys.map { (key, returns) ->
+                ImmutableMethod(model, name(key), emptyList(), returns, iface, null, null, null)
+            })
+            val trees = List(gif.trees) { copy ->
+                val tree = t("GifTree$index$copy")
+                clazz(tree, superclass = t("TreeBase"), interfaces = listOf(model), methods = keys.map { (key, returns) ->
+                    method(tree, name(key), emptyList(), returns, 2, public,
+                        "const v0, ${(gif.treeKeys[key] ?: key).hashCode()}\nconst/4 v0, 0x0\nreturn-object v0")
+                })
+            }
+            val fields = keys.map { (key, returns) -> ImmutableField(parsed, "f_$key", returns, public, null, null, null) }
+            val reads = keys.map { (key, returns) ->
+                val from = if (key == gif.sharedField) "url" else key
+                method(parsed, name(key), emptyList(), returns, 2, public,
+                    "iget-object v0, p0, $parsed->f_$from:$returns\nreturn-object v0")
+            }
+            listOf(shape, clazz(parsed, interfaces = listOf(model), fields = fields, methods = reads)) + trees
+        }
     }
 
     fun clazz(type: String, flags: Int = public, superclass: String = OBJECT,

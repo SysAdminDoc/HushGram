@@ -913,7 +913,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (build.contains(PatchFamily.COMMENT_PHOTO)) {
                 comments.addPreference(toggle(context, Settings.SAVE_COMMENT_PHOTOS, L10n.t("Save comment photo"),
-                        L10n.t("Adds Save to a selected comment's menu when the comment has its own photo. Saves the largest size Instagram sent.")));
+                        L10n.t("Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.")));
             }
             if (build.contains(PatchFamily.HIDE_COMMENTS)) {
                 comments.addPreference(toggle(context, Settings.HIDE_COMMENTS, L10n.t("Hide comments"),
