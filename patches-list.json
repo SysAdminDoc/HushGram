@@ -1969,6 +1969,43 @@
       "options": []
     },
     {
+      "name": "Long press to zoom",
+      "description": "Press and hold a photo in a feed to see it twice as big around your finger, and let go to close it. Pinch to zoom still works. While its switch is on, it takes the place of Instagram's own long press on a photo. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "450.0.0.50.77"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "450.0.0.50.77",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385611438
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Loop a story",
       "description": "Plays a story again from the start when it ends, instead of moving on to the next one. Tap or swipe to move on. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",

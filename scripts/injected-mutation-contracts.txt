@@ -1399,3 +1399,12 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySound;->startWithSound(
 # that loads the volume key handler's crash string. Left out, feed videos start as Instagram's own settings
 # say; twice or elsewhere, it isn't the call the patch wrote.
 once-call Lapp/hushgram/extension/instagram/feed/FeedSound;->startWithSound(Ljava/lang/Object;)I in instance (Lcom/instagram/feed/media/Media;L*;L*;L*;IIIZZZ)V class-holding feed_video_crash_when_adjusting_volume
+# Long press to zoom (#63): the feed media touch helper hands every touch on a post's frame to the
+# extension first, in its one instance (MotionEvent) boolean method, the one of that shape reading
+# the helper's GestureDetector field. Left out, the zoom never learns where the finger went down;
+# twice or elsewhere, it isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->touch(Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding LX/07AW;->A08:Landroid/view/GestureDetector;
+once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->touch(Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding LX/07AW;->A08:Landroid/view/GestureDetector;
+# Its gesture listener's long press, the one instance (float, float) void method writing the
+# helper's press time, asks once whether the zoom takes the press. Field names are pinned 450 data.
+once-call Lapp/hushgram/extension/instagram/feed/LongPressZoom;->press(Landroid/view/View;Ljava/lang/Object;)I in instance (FF)V holding LX/07AW;->A00:J

@@ -439,8 +439,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
         boolean feedSound = build.contains(PatchFamily.FEED_SOUND);
+        boolean longPressZoom = build.contains(PatchFamily.LONG_PRESS_ZOOM);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound ? category(screen, L10n.t("Feed")) : null;
+                || askLike || askRefresh || postTime || hiddenLikes || backHome || feedSound || longPressZoom
+                ? category(screen, L10n.t("Feed")) : null;
         if (following) {
             feed.addPreference(toggle(context, Settings.START_ON_FOLLOWING, L10n.t("Start Home on Following"),
                     L10n.t("Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to "
@@ -536,6 +538,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             feed.addPreference(toggle(context, Settings.START_FEED_VIDEOS_WITH_SOUND, L10n.t("Start feed videos with sound"),
                     L10n.t("The first video on Home plays with its sound on, the same as tapping its speaker. Your "
                             + "phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.")));
+        }
+        if (longPressZoom) {
+            feed.addPreference(toggle(context, Settings.LONG_PRESS_TO_ZOOM, L10n.t("Long press a photo to zoom"),
+                    L10n.t("Press and hold a photo in a feed to see it twice as big around your finger, and slide to "
+                            + "look around. Let go to close it. While this is on, it takes the place of Instagram's own "
+                            + "long press on a photo.")));
         }
 
         if (build.contains(PatchFamily.META_AI)) {

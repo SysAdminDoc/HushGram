@@ -212,6 +212,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_feed_videos_with_sound", FALSE);
 
     /**
+     * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
+     * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
+     * Off to start.
+     */
+    public static final BooleanSetting LONG_PRESS_TO_ZOOM =
+            new BooleanSetting("hushgram_long_press_to_zoom", FALSE);
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */
