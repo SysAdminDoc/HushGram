@@ -117,9 +117,14 @@ public class CategoryPagesSettingsTest {
         assertTrue(shown(Preference.class).isEmpty());
         assertTrue(shown(PreferenceCategory.class).containsAll(
                 List.of("Settings entry", "Ads and privacy", "Feed", "Notifications", "Pause and diagnostics")));
+        // The switch the long list shows says the same as the button did, so a tap on it changes the view.
+        SwitchPreference pages = (SwitchPreference) page.findPreference(Settings.CATEGORY_PAGES.key);
+        assertSame(pages, page.getPreferenceScreen().findPreference(Settings.CATEGORY_PAGES.key));
+        assertFalse(pages.isChecked());
         tap(button);
         assertTrue(Settings.CATEGORY_PAGES.savedValue());
         assertTrue(shown(Preference.class).contains("Feed"));
+        assertTrue(pages.isChecked());
     }
 
     @Test public void offTheCategoriesStayOneList() throws Exception {
