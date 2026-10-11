@@ -107,9 +107,12 @@ public final class OverrideExchange {
                 JSONObject nativeValues = parse(nativeBytes);
                 // App data outlives an update, so the store may hold overrides a build before this
                 // one wrote. No typed writer reaches those, so they're counted and left as they are.
+                // The snapshot keeps only what fits: a config this build lacks with nothing under it
+                // counts as nothing left out, but the strict check a change or an import goes
+                // through would refuse it, so it stays out of the overrides the snapshot carries.
                 JSONObject fitting = new JSONObject();
                 leftOut = checkOverrides(nativeValues, this, null, false, true, fitting).leftOut;
-                overrides = leftOut == 0 ? nativeValues.toString() : fitting.toString();
+                overrides = fitting.toString();
                 JSONArray held = nativeValues.optJSONArray(EXPERIMENTS);
                 experiments = held == null ? "[]" : held.toString();
             } catch (Exception failure) { throw invalid(); }

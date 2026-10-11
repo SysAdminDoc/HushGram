@@ -105,6 +105,28 @@ public class OverrideExchangeTest {
         assertEquals(0, snapshot(NATIVE).leftOut());
     }
 
+    /**
+     * A config this build doesn't know with nothing under it (Instagram leaves an empty list when a
+     * config's last override goes, and an update can drop the config) counts as nothing left out,
+     * yet it isn't this build's to carry: the export leaves it out, and the document a change builds
+     * from the snapshot still passes the strict check an import runs. Before, the snapshot kept the
+     * store's text whole whenever nothing was counted, so Export wrote a file Import refused and
+     * every Recommended flags change failed on such a store.
+     */
+    @Test public void anUnknownConfigWithNothingUnderItStaysOutOfTheSnapshot() throws Exception {
+        String[] stores = {"{\"999:\":[]}", "{\"123:other\":[]}", "{\"123:config\":[\"0: enabled: true\"],\"999:\":[]}"};
+        for (String store : stores) {
+            OverrideExchange.Snapshot held = snapshot(bytes(store));
+            assertEquals(store, 0, held.leftOut());
+            JSONObject exported = new JSONObject(new String(OverrideExchange.export(held), StandardCharsets.UTF_8));
+            assertTrue(store, !exported.getJSONObject("overrides").has("999:") && !exported.getJSONObject("overrides").has("123:other"));
+            int fits = store.contains("enabled") ? 1 : 0;
+            assertEquals(store, fits, OverrideExchange.validate(OverrideExchange.export(held), held).fits);
+            byte[] changed = OverrideExchange.withOverrides(held, Collections.singletonMap(OverrideExchange.key(123, 0), "false"));
+            assertEquals(store, 1, OverrideExchange.validate(changed, held).fits);
+        }
+    }
+
     @Test public void exactHostSchemaAndEnvelopeAreRequiredDuringValidation() throws Exception {
         OverrideExchange.Snapshot current = snapshot(NATIVE);
         byte[] file = OverrideExchange.export(current);
