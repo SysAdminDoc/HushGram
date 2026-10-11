@@ -8,11 +8,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
 import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 
 /** The colour and size choices Glass tab bar makes from Instagram's bar colour and the screen's width. */
 @RunWith(RobolectricTestRunner.class)
@@ -184,5 +189,58 @@ public class GlassTabBarTest {
         // The short pulse is short and clearly felt, not a long weak buzz.
         assertTrue(GlassTabBar.Haptics.SHORT_MS >= 3 && GlassTabBar.Haptics.SHORT_MS <= 10);
         assertTrue(GlassTabBar.Haptics.SHORT_AMPLITUDE > 100 && GlassTabBar.Haptics.SHORT_AMPLITUDE <= 255);
+    }
+
+    /**
+     * Where the tabs swipe sideways, Home's pager is the content's sibling with the bar's height as its
+     * bottom margin. Floating, it runs down behind the pill like the content's own screens; a sibling
+     * that isn't the pager, and a margin that isn't the bar's height, are left alone.
+     */
+    @Test
+    public void homesSwipePagerBesideTheContentRunsBehindThePillToo() {
+        Context context = RuntimeEnvironment.getApplication();
+        FrameLayout holder = new FrameLayout(context);
+        FrameLayout content = new FrameLayout(context);
+        View screen = withMargin(new View(context), 126);
+        View hiddenBar = withMargin(new View(context), 0);
+        content.addView(screen);
+        content.addView(hiddenBar);
+        View pager = withMargin(new View(context), 126);
+        pager.setId(0x7f0b0001);
+        View other = withMargin(new View(context), 126);
+        other.setId(0x7f0b0002);
+        holder.addView(content);
+        holder.addView(pager);
+        holder.addView(other);
+
+        GlassTabBar.screensAboveTheBar(content, 0x7f0b0001, 126, 0);
+
+        assertEquals("the content's screen", 0, margin(screen));
+        assertEquals("a screen Instagram already let run down", 0, margin(hiddenBar));
+        assertEquals("Home's swipe pager", 0, margin(pager));
+        assertEquals("another sibling", 126, margin(other));
+
+        View tallerPager = withMargin(new View(context), 126);
+        tallerPager.setId(0x7f0b0003);
+        holder.addView(tallerPager);
+        GlassTabBar.screensAboveTheBar(content, 0x7f0b0003, 126, 150);
+        assertEquals("not floating, the pager stops at a taller pill's top", 150, margin(tallerPager));
+        assertEquals("a margin already changed stays", 0, margin(pager));
+
+        View noPager = withMargin(new View(context), 126);
+        holder.addView(noPager);
+        GlassTabBar.screensAboveTheBar(content, 0, 126, 0);
+        assertEquals("no pager id, no sibling touched", 126, margin(noPager));
+    }
+
+    private static View withMargin(View view, int bottom) {
+        ViewGroup.MarginLayoutParams params = new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        params.bottomMargin = bottom;
+        view.setLayoutParams(params);
+        return view;
+    }
+
+    private static int margin(View view) {
+        return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
     }
 }

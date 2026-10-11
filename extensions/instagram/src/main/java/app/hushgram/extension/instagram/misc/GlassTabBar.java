@@ -93,6 +93,8 @@ public final class GlassTabBar {
     static final String TAB_BAR = "tab_bar";
     static final String TAB_BAR_SHADOW = "tab_bar_shadow";
     static final String CONTENT = "layout_container_main";
+    /** Home's pager on an account whose tabs swipe sideways. It sits beside the content, not in it. */
+    static final String SWIPE_PAGER = "swipeable_tab_view_pager";
 
     private static final java.util.HashMap<String, Integer> IDS = new java.util.HashMap<>();
 
@@ -105,6 +107,29 @@ public final class GlassTabBar {
                 IDS.put(name, found);
             }
             return found;
+        }
+    }
+
+    /**
+     * Each child of [content], and the sibling of [content] whose id is [pager] (0 for none), whose
+     * bottom margin is [barHeight] gets [wanted] in its place. Any other margin is left alone.
+     */
+    static void screensAboveTheBar(ViewGroup content, int pager, int barHeight, int wanted) {
+        for (int i = 0; i < content.getChildCount(); i++) aboveTheBar(content.getChildAt(i), barHeight, wanted);
+        if (pager == 0 || !(content.getParent() instanceof ViewGroup)) return;
+        ViewGroup holder = (ViewGroup) content.getParent();
+        for (int i = 0; i < holder.getChildCount(); i++) {
+            View sibling = holder.getChildAt(i);
+            if (sibling.getId() == pager) aboveTheBar(sibling, barHeight, wanted);
+        }
+    }
+
+    private static void aboveTheBar(View screen, int barHeight, int wanted) {
+        if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
+        ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) screen.getLayoutParams();
+        if (margins.bottomMargin == barHeight) {
+            margins.bottomMargin = wanted;
+            screen.setLayoutParams(margins);
         }
     }
 
@@ -486,21 +511,14 @@ public final class GlassTabBar {
          * did, by a bottom margin as tall as that bar. The pill is taller, so a reel's seek bar and the
          * bottom of every other screen would run in under it. Any child of the content with exactly that
          * margin gets the pill's height instead, and none at all while the content runs behind the bar. A
-         * margin of anything else, such as 0 while Instagram hides its bar, is left alone.
+         * margin of anything else, such as 0 while Instagram hides its bar, is left alone. Where the tabs
+         * swipe sideways, Home's pager is the content's sibling, beside the bar, and gets the same.
          */
         private void keepScreensAboveTheBar(ViewGroup content, @Nullable ViewGroup.LayoutParams params) {
             if (originalBarHeight <= 0 || params == null || params.height <= 0) return;
             int wanted = floating ? 0 : params.height;
             if (wanted == originalBarHeight) return;
-            for (int i = 0; i < content.getChildCount(); i++) {
-                View screen = content.getChildAt(i);
-                if (!(screen.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) continue;
-                ViewGroup.MarginLayoutParams margins = (ViewGroup.MarginLayoutParams) screen.getLayoutParams();
-                if (margins.bottomMargin == originalBarHeight) {
-                    margins.bottomMargin = wanted;
-                    screen.setLayoutParams(margins);
-                }
-            }
+            screensAboveTheBar(content, id(content.getContext(), SWIPE_PAGER), originalBarHeight, wanted);
         }
 
         @Override public boolean onPreDraw() {
