@@ -184,7 +184,8 @@ def corpus(root: Path) -> tuple[str, str, list[re.Pattern]]:
                 texts.append(literal_text(run.group(0)) or "")
     for table in sorted((root / TABLES).glob("*.tsv")):
         for line in table.read_text(encoding="utf-8").splitlines():
-            texts += [cell.replace("\n", "\n").replace("\t", "\t") for cell in line.split("\t")]
+            # A table cell writes a newline or a tab as the two characters backslash-n or backslash-t.
+            texts += [cell.replace("\\n", "\n").replace("\\t", "\t") for cell in line.split("\t")]
     patterns = []
     for value in texts:
         if FORMAT.search(value.replace("%%", "")) and len(FORMAT.sub("", value).strip()) >= MIN_FIXED:
@@ -246,7 +247,11 @@ def found_in(value: str, joined: str, numbers: str, patterns: list[re.Pattern]) 
 def stale_texts(root: Path) -> list[str]:
     joined, numbers, patterns = corpus(root)
     stale = []
-    for path in sorted((root / SETTINGS_TESTS).glob("*Test.java")):
+    tests = sorted((root / SETTINGS_TESTS).glob("*Test.java"))
+    if not tests:
+        # Nothing to check would pass for the wrong reason, so a moved folder is a failure too.
+        return [f"{SETTINGS_TESTS} holds no *Test.java to check"]
+    for path in tests:
         for line, value in expected_texts(path):
             if not found_in(value, joined, numbers, patterns):
                 shown = value if len(value) <= 80 else value[:77] + "..."

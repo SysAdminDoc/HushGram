@@ -79,6 +79,7 @@ function Stop-Preflight([string]$Reason) {
 
 Start-Step 'the checkout'
 $dirty = @(& git -C $Root status --porcelain --untracked-files=no)
+if ($LASTEXITCODE -ne 0) { Stop-Preflight "git status failed with exit code $LASTEXITCODE, so the tree can't be called clean" }
 if ($dirty.Count -gt 0) { Stop-Preflight "uncommitted changes to tracked files, the first $("$($dirty[0])".Trim())" }
 $branch = "$(& git -C $Root rev-parse --abbrev-ref HEAD)".Trim()
 if ($branch -ne 'main') { Stop-Preflight "the checkout is on $branch, and releases are cut on main" }

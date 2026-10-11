@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Composition fixtures did not compile.' }
 & $Java '-cp' "$DesktopJar$([IO.Path]::PathSeparator)$classes" 'CompositionFixture' $classes $scratch
 if ($LASTEXITCODE -ne 0) { throw 'Composition fixture creation failed.' }
 $manifest = Join-Path $scratch 'AndroidManifest.xml'
-[IO.File]::WriteAllText($manifest, '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.instagram.android" android:versionCode="385511871" android:versionName="449.0.0.52.84"><uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36"/><application android:label="Composition fixture"/></manifest>')
+[IO.File]::WriteAllText($manifest, '<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.instagram.android" android:versionCode="385611438" android:versionName="450.0.0.50.77"><uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36"/><application android:label="Composition fixture"/></manifest>')
 $apk = Join-Path $scratch 'stock.apk'
 & $Aapt2 'link' '-o' $apk '--manifest' $manifest '-I' $AndroidJar
 if ($LASTEXITCODE -ne 0) { throw 'Native fixture manifest did not compile.' }
@@ -201,11 +201,11 @@ Check 'selected bundles are immutable local snapshots' {
     Assert ((Get-FileHash -LiteralPath $copy.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $r.Report.sources[0].identity.sha256) 'Snapshot identity differs from the selected bytes.'
 }
 if ($HushBundle -and $PikoBundle -and $FailureLog -and $OriginalApk) {
-    Check 'actual Piko439 and HushGram449 are refused before original APK mutation' {
+    Check 'actual Piko439 and HushGram450 are refused before original APK mutation' {
         $before = (Get-FileHash -LiteralPath $OriginalApk -Algorithm SHA256).Hash
         $names = @('Disable analytics', 'Remove build expired popup', 'View stories anonymously')
         $r = Run-Sources @((Selection $HushBundle $names), (Selection $PikoBundle $names)) -InputApk $OriginalApk -Log $FailureLog
-        Refused $r '*Piko*439.0.0.37.89*384510827*not 449.0.0.52.84*385511871*'
+        Refused $r '*Piko*439.0.0.37.89*384510827*not 450.0.0.50.77*385611438*'
         Assert ($r.Report.failures.Count -eq 3) 'The three reported failures were not inspected.'
         foreach ($failure in $r.Report.failures) {
             Assert ($failure.dependencyOwner.name -ceq 'Piko' -and $failure.initializer -like '*NativeSwitchInitializer') 'A reported Piko initializer was mislabeled.'
@@ -217,7 +217,7 @@ if ($HushBundle -and $PikoBundle -and $FailureLog -and $OriginalApk) {
     }
 }
 if ($HushBundle -and $OriginalApk) {
-    Check 'all actual HushGram patches allow a compatible native addon on original449' {
+    Check 'all actual HushGram patches allow a compatible native addon on original450' {
         $before = (Get-FileHash -LiteralPath $OriginalApk -Algorithm SHA256).Hash
         $r = Run-Sources @((Selection $HushBundle @('*')), $addon) -InputApk $OriginalApk
         Assert ($r.Exit -eq 0 -and $r.Report.patching.valid) $r.Text
@@ -228,7 +228,7 @@ if ($HushBundle -and $OriginalApk) {
         $out = Get-ChildItem -LiteralPath $r.Directory -Recurse -Filter 'patched-unsigned.apk' -File | Select-Object -First 1
         & $Java '-cp' "$DesktopJar$([IO.Path]::PathSeparator)$classes" 'CompositionFixture' 'assert' $out.FullName 'Lapp/hushgram/fixture/addon/Bridge;'
         Assert ($LASTEXITCODE -eq 0) 'Actual HushGram composition skipped native addon merge/initializer/finalizer.'
-        Assert ((Get-FileHash -LiteralPath $OriginalApk -Algorithm SHA256).Hash -ceq $before) 'Actual composition changed original449.'
+        Assert ((Get-FileHash -LiteralPath $OriginalApk -Algorithm SHA256).Hash -ceq $before) 'Actual composition changed original450.'
     }
 }
 Assert ((Get-FileHash -LiteralPath $apk -Algorithm SHA256).Hash -ceq $originalHash) 'A native composition changed its input fixture.'

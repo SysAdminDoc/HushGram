@@ -131,10 +131,11 @@ def read_validation(validation: str) -> str:
     return lines[0]
 
 
-def read_patches(path: pathlib.Path) -> set[str] | None:
-    """The patch names of patches-list.json, or None when the file isn't there."""
+def read_patches(path: pathlib.Path) -> set[str]:
+    """The patch names of patches-list.json. A missing file stops the run: without it a bullet scoped
+    to a patch that doesn't exist would pass unseen."""
     if not path.is_file():
-        return None
+        raise NotesError(f"{path.name} isn't beside the CHANGELOG, so the patch scopes can't be checked")
     document = json.loads(path.read_text(encoding="utf-8"))
     return {patch["name"] for patch in document["patches"]}
 
