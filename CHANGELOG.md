@@ -94,6 +94,8 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram - HushGram settings:** A settings export that hits an unexpected error now ends with Couldn't export HushGram settings, instead of staying on Exporting HushGram settings and blocking import and export until Instagram restarts. Recommended flags handles that kind of error the same way, so it tells you, puts the switch back and lets you try again.
+
 * **Instagram - Hide suggested posts:** With Hide suggested posts on, Home's For you feed no longer grows one post at a time. On an account where most of each page Instagram sends is suggestions, hiding them left a single post with the loading row right under it, and Instagram only asks for more once you scroll down to that row. Now, when a page comes back with fewer than five posts left after hiding, HushGram asks for the next page as soon as that page is shown, the same way the loading row would, and keeps going for up to three short pages in a row. It never asks while a page is still loading or after the feed has run out. Following and Favorites page the way they did, and the card at the end of the feed still shows. Your diagnostic report counts each time it asks (asked for the next page after a short page). Reported in #52.
 
 * **Instagram - See who a story mentions:** The label now shows on stories Instagram loaded from its older format. Those stories hold their mentions in a different kind of object than the one the patch expected, so the patch failed on every story that mentioned someone and the label never appeared. It reads the account the way both kinds allow now.

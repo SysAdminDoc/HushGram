@@ -2081,16 +2081,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 page = RecommendedFlags.load(activity);
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Recommended flags couldn't read the overrides");
+            } finally {
+                // An Error past the catch is a failed read too, so it says so and frees the override rows.
+                RecommendedFlags.Page loaded = page;
+                Utils.runOnMainThread(() -> {
+                    if (loaded == null) {
+                        Utils.showToastLong(L10n.t("Couldn't read Instagram's overrides. Open settings from Home while signed in."));
+                    } else {
+                        showRecommendedFlags(loaded);
+                    }
+                });
+                configurationFinished();
             }
-            RecommendedFlags.Page loaded = page;
-            Utils.runOnMainThread(() -> {
-                if (loaded == null) {
-                    Utils.showToastLong(L10n.t("Couldn't read Instagram's overrides. Open settings from Home while signed in."));
-                } else {
-                    showRecommendedFlags(loaded);
-                }
-            });
-            configurationFinished();
         })) {
             changingOverrides = false;
             showConfiguration();
@@ -2171,7 +2173,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(false);
         if (!Utils.runOnBackgroundThread(() -> {
             boolean held = false;
-            String message;
+            String message = L10n.t("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.");
             try {
                 OverrideImport.Result result = RecommendedFlags.set(activity, flag, wanted);
                 held = result.outcome == OverrideImport.Outcome.APPLIED || result.outcome == OverrideImport.Outcome.UNCHANGED;
@@ -2189,15 +2191,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Recommended flag change failed before native mutation");
                 message = L10n.t("Couldn't change that setting. Open settings from Home while signed in. Nothing changed.");
+            } finally {
+                // An Error past the catches keeps the failure message, puts the radio back and frees the rows.
+                boolean kept = held;
+                Utils.showToastLong(message);
+                Utils.runOnMainThread(() -> {
+                    if (kept) group.setTag(wanted);
+                    else revertRecommendedFlag(group, previous);
+                    for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
+                });
+                configurationFinished();
             }
-            boolean kept = held;
-            Utils.showToastLong(message);
-            Utils.runOnMainThread(() -> {
-                if (kept) group.setTag(wanted);
-                else revertRecommendedFlag(group, previous);
-                for (RadioGroup each : groups) for (int i = 0; i < each.getChildCount(); i++) each.getChildAt(i).setEnabled(true);
-            });
-            configurationFinished();
         })) {
             changingOverrides = false;
             showConfiguration();
@@ -2289,6 +2293,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 Logger.printInfo(() -> "Configuration export failed");
                 ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."));
                 Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
+            } finally {
+                // An Error past the catch still ends the export, or every settings action stays busy until a restart.
+                if (ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't export HushGram settings. Try another file."))) {
+                    Utils.showToastLong(L10n.t("Couldn't export HushGram settings. Try another file."));
+                }
             }
         })) {
             ExportStatus.CONFIGURATION.finish(token, L10n.t("Couldn't start that. Try again."));
