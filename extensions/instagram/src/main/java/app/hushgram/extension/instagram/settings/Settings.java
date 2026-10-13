@@ -384,6 +384,14 @@ public class Settings extends BaseSettings {
     /** When the wait after too many wrong PINs ends, in wall clock milliseconds. Left out of a backup. */
     public static final LongSetting LOCK_PIN_WAIT_UNTIL = new LongSetting("hushgram_lock_pin_wait_until", 0L, false, false);
 
+    /**
+     * The text of messages other people send is kept on this phone, and the ones they later delete
+     * are listed in HushGram's settings ({@link app.hushgram.extension.instagram.direct.SavedMessages}).
+     * Starts on once the patch is picked.
+     */
+    public static final BooleanSetting SAVE_DELETED_MESSAGES =
+            new BooleanSetting("hushgram_save_deleted_messages", TRUE);
+
     static {
         // The locks keep answering what you chose while HushGram is paused or in safe mode, so
         // neither one, nor the marker file that pauses it from outside, gets around them.
@@ -940,6 +948,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting FOLLOWING_NOT_BACK_FIRST =
             new BooleanSetting("hushgram_following_not_back_first", FALSE);
+
+    /**
+     * Saves your own Followers list each time you scroll it to the end, and keeps who is missing from
+     * the next one ({@link app.hushgram.extension.instagram.profile.Unfollowers}). Starts on once the
+     * patch is picked. Read each time Instagram builds or binds the rows of a follow list.
+     */
+    public static final BooleanSetting TRACK_UNFOLLOWERS =
+            new BooleanSetting("hushgram_track_unfollowers", TRUE);
 
     /**
      * Suggested for you and the Discover people button on profiles

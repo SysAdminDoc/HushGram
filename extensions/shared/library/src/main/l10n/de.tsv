@@ -1015,3 +1015,22 @@ Clear download history	Download-Verlauf löschen
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	Vergisst alles, was sich Bereits Gespeichertes überspringen gemerkt hat, für alle deine Konten. Deine gespeicherten Dateien bleiben.
 Download history cleared.	Download-Verlauf gelöscht.
 Couldn't clear the download history. Try again.	Der Download-Verlauf konnte nicht gelöscht werden. Versuch es noch einmal.
+Clear all	Alle löschen
+Deleted messages	Gelöschte Nachrichten
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Speichert den Text von Nachrichten, die andere dir senden, auf diesem Handy und markiert die gelöschten. Nichts verlässt das Handy, und es wird nur Text gespeichert.
+Messages other people deleted after this phone saved them. Tap to read them.	Nachrichten, die andere gelöscht haben, nachdem dieses Handy sie gespeichert hatte. Tippe, um sie zu lesen.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Noch wurde nichts gelöscht. Eine Nachricht erscheint hier, sobald die sendende Person sie löscht, falls dieses Handy sie schon gesehen hatte.
+Save deleted messages	Gelöschte Nachrichten speichern
+Saved messages cleared.	Gespeicherte Nachrichten gelöscht.
+Sender	Absender
+Track who unfollows you	Verfolge, wer dir entfolgt
+Saves your own Followers list each time you scroll it to the end, and lists who is missing from the next one. Nothing leaves this phone.	Speichert deine eigene Follower-Liste, sobald du sie bis zum Ende scrollst, und listet auf, wer in der nächsten fehlt. Nichts verlässt dieses Telefon.
+Unfollowers	Entfolger
+People who stopped following you since this phone last saved your followers. Tap to see them.	Personen, die dir nicht mehr folgen, seit dieses Telefon deine Follower zuletzt gespeichert hat. Tippen zum Ansehen.
+%1$s followers saved on %2$s.	%1$s Follower gespeichert am %2$s.
+Nobody has unfollowed you yet. Scroll your Followers list to the end again later and HushGram will compare it with this one.	Bisher hat dir niemand entfolgt. Scrolle deine Follower-Liste später erneut bis zum Ende, dann vergleicht HushGram sie mit dieser.
+Open your own Followers list and scroll to the end to save it. HushGram compares it with the next one you scroll to the end of.	Öffne deine eigene Follower-Liste und scrolle bis zum Ende, um sie zu speichern. HushGram vergleicht sie mit der nächsten, die du bis zum Ende scrollst.
+Saved followers cleared.	Gespeicherte Follower gelöscht.
+HushGram saved your %1$s followers and will tell you who unfollows.	HushGram hat deine %1$s Follower gespeichert und sagt dir, wer entfolgt.
+%1$s unfollowed you.	%1$s folgt dir nicht mehr.
+Unfollowed you: %1$s	Nicht mehr gefolgt: %1$s

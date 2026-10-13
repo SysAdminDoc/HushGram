@@ -1015,3 +1015,22 @@ Clear download history	Borrar el historial de descargas
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	Olvida todo lo que recuerda Omitir lo que ya está guardado, en todas tus cuentas. Tus archivos guardados se quedan.
 Download history cleared.	Historial de descargas borrado.
 Couldn't clear the download history. Try again.	No se pudo borrar el historial de descargas. Inténtalo de nuevo.
+Clear all	Borrar todo
+Deleted messages	Mensajes eliminados
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Guarda en este teléfono el texto de los mensajes que te envían otras personas y marca los que eliminan. Nada sale del teléfono y solo se guarda texto.
+Messages other people deleted after this phone saved them. Tap to read them.	Mensajes que otras personas eliminaron después de que este teléfono los guardara. Toca para leerlos.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Todavía no se ha eliminado nada. Un mensaje aparece aquí cuando quien lo envió lo elimina, si este teléfono ya lo había visto.
+Save deleted messages	Guardar mensajes eliminados
+Saved messages cleared.	Mensajes guardados borrados.
+Sender	Remitente
+Track who unfollows you	Seguir quién te deja de seguir
+Saves your own Followers list each time you scroll it to the end, and lists who is missing from the next one. Nothing leaves this phone.	Guarda tu propia lista de seguidores cada vez que la recorres hasta el final y muestra quién falta en la siguiente. Nada sale de este teléfono.
+Unfollowers	Dejaron de seguirte
+People who stopped following you since this phone last saved your followers. Tap to see them.	Personas que dejaron de seguirte desde que este teléfono guardó tus seguidores por última vez. Toca para verlas.
+%1$s followers saved on %2$s.	%1$s seguidores guardados el %2$s.
+Nobody has unfollowed you yet. Scroll your Followers list to the end again later and HushGram will compare it with this one.	Nadie te ha dejado de seguir todavía. Recorre tu lista de seguidores hasta el final más adelante y HushGram la comparará con esta.
+Open your own Followers list and scroll to the end to save it. HushGram compares it with the next one you scroll to the end of.	Abre tu propia lista de seguidores y desplázate hasta el final para guardarla. HushGram la compara con la próxima que recorras hasta el final.
+Saved followers cleared.	Seguidores guardados borrados.
+HushGram saved your %1$s followers and will tell you who unfollows.	HushGram guardó tus %1$s seguidores y te dirá quién deja de seguirte.
+%1$s unfollowed you.	%1$s dejó de seguirte.
+Unfollowed you: %1$s	Dejaron de seguirte: %1$s

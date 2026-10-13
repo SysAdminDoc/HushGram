@@ -1014,3 +1014,22 @@ Clear download history	다운로드 기록 지우기
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	이미 저장한 항목 건너뛰기가 기억한 내용을 모든 계정에서 지웁니다. 저장된 파일은 그대로 남습니다.
 Download history cleared.	다운로드 기록을 지웠습니다.
 Couldn't clear the download history. Try again.	다운로드 기록을 지우지 못했습니다. 다시 시도하세요.
+Clear all	모두 지우기
+Deleted messages	삭제된 메시지
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	다른 사람이 보낸 메시지의 텍스트를 이 휴대폰에 보관하고, 삭제된 메시지를 표시합니다. 휴대폰 밖으로 나가는 것은 없으며 텍스트만 보관합니다.
+Messages other people deleted after this phone saved them. Tap to read them.	이 휴대폰이 저장한 뒤 다른 사람이 삭제한 메시지입니다. 눌러서 읽어 보세요.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	아직 삭제된 항목이 없습니다. 이 휴대폰이 이미 본 메시지를 보낸 사람이 삭제하면 여기에 표시됩니다.
+Save deleted messages	삭제된 메시지 저장
+Saved messages cleared.	저장된 메시지를 지웠습니다.
+Sender	보낸 사람
+Track who unfollows you	언팔로우한 사람 추적
+Saves your own Followers list each time you scroll it to the end, and lists who is missing from the next one. Nothing leaves this phone.	내 팔로워 목록을 끝까지 스크롤할 때마다 저장하고, 다음 목록에서 사라진 사람을 알려 줍니다. 아무것도 이 휴대전화 밖으로 나가지 않습니다.
+Unfollowers	언팔로워
+People who stopped following you since this phone last saved your followers. Tap to see them.	이 휴대전화가 마지막으로 팔로워를 저장한 이후 나를 팔로우 취소한 사람입니다. 눌러서 확인하세요.
+%1$s followers saved on %2$s.	팔로워 %1$s명을 %2$s에 저장했습니다.
+Nobody has unfollowed you yet. Scroll your Followers list to the end again later and HushGram will compare it with this one.	아직 아무도 언팔로우하지 않았습니다. 나중에 팔로워 목록을 끝까지 다시 스크롤하면 HushGram이 이 목록과 비교합니다.
+Open your own Followers list and scroll to the end to save it. HushGram compares it with the next one you scroll to the end of.	내 팔로워 목록을 열어 끝까지 스크롤해 저장하세요. HushGram은 다음에 끝까지 스크롤한 목록과 비교합니다.
+Saved followers cleared.	저장된 팔로워를 지웠습니다.
+HushGram saved your %1$s followers and will tell you who unfollows.	HushGram이 팔로워 %1$s명을 저장했으며 누가 언팔로우하는지 알려 드립니다.
+%1$s unfollowed you.	%1$s님이 나를 언팔로우했습니다.
+Unfollowed you: %1$s	언팔로우: %1$s

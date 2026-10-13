@@ -1015,3 +1015,22 @@ Clear download history	İndirme geçmişini sil
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	Zaten kaydedilenleri atla özelliğinin hatırladığı her şeyi tüm hesapların için unutur. Kaydettiğin dosyalar yerinde kalır.
 Download history cleared.	İndirme geçmişi silindi.
 Couldn't clear the download history. Try again.	İndirme geçmişi silinemedi. Tekrar dene.
+Clear all	Tümünü temizle
+Deleted messages	Silinen mesajlar
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Başkalarının sana gönderdiği mesajların metnini bu telefonda saklar ve sildiklerini işaretler. Hiçbir şey telefondan çıkmaz ve yalnızca metin saklanır.
+Messages other people deleted after this phone saved them. Tap to read them.	Bu telefon kaydettikten sonra başkalarının sildiği mesajlar. Okumak için dokun.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Henüz hiçbir şey silinmedi. Bu telefon bir mesajı daha önce görmüşse, gönderen kişi sildiğinde mesaj burada görünür.
+Save deleted messages	Silinen mesajları kaydet
+Saved messages cleared.	Kayıtlı mesajlar temizlendi.
+Sender	Gönderen
+Track who unfollows you	Seni takipten çıkanları izle
+Saves your own Followers list each time you scroll it to the end, and lists who is missing from the next one. Nothing leaves this phone.	Kendi takipçi listeni her sonuna kadar kaydırdığında kaydeder ve sonrakinde eksik olanları listeler. Hiçbir şey bu telefondan çıkmaz.
+Unfollowers	Takibi bırakanlar
+People who stopped following you since this phone last saved your followers. Tap to see them.	Bu telefon takipçilerini en son kaydettiğinden beri seni takip etmeyi bırakanlar. Görmek için dokun.
+%1$s followers saved on %2$s.	%1$s takipçi %2$s tarihinde kaydedildi.
+Nobody has unfollowed you yet. Scroll your Followers list to the end again later and HushGram will compare it with this one.	Henüz kimse seni takipten çıkmadı. Takipçi listeni daha sonra tekrar sonuna kadar kaydır, HushGram bununla karşılaştıracak.
+Open your own Followers list and scroll to the end to save it. HushGram compares it with the next one you scroll to the end of.	Kendi takipçi listeni aç ve kaydetmek için sonuna kadar kaydır. HushGram bunu sonuna kadar kaydırdığın bir sonrakiyle karşılaştırır.
+Saved followers cleared.	Kaydedilen takipçiler silindi.
+HushGram saved your %1$s followers and will tell you who unfollows.	HushGram %1$s takipçini kaydetti ve kimin takibi bıraktığını söyleyecek.
+%1$s unfollowed you.	%1$s seni takip etmeyi bıraktı.
+Unfollowed you: %1$s	Takibi bıraktı: %1$s
