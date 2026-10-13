@@ -1,4 +1,4 @@
-`<div align="center">
+<div align="center">
 
   <img src="assets/readme-hero.png" alt="HushGram. Keep the moments. Cut the noise." width="900">
 
@@ -235,4 +235,4 @@ Instagram, Facebook, and Meta are trademarks of Meta Platforms, Inc. HushGram is
   <a href="https://ko-fi.com/X8K126YVER">
     <img src="https://storage.ko-fi.com/cdn/kofi2.png?v=3" height="42" alt="Support HushGram on Ko-fi">
   </a>
-</p>`
+</p>
