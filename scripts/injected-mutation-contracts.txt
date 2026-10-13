@@ -1660,3 +1660,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQua
 # keep an empty strip where each hidden bar was; once or elsewhere, a height stays kept.
 # FullScreenBarsHookTest finds both stores in all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->barHeight(I)I in instance (Landroid/view/View;L*;)L*; sites 2 holding Status\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X Nab\sbar\sheight:\sold=%d\snew=%d,\sActivity=%s\sRetryCount=%d\sisFullScreenFlagSet=%b\swindowFlags=0x%X
+
+# Save deleted messages hands each parsed direct message, and each real-time one, to SavedMessages
+# right before it's returned, and tells it the id of a message Instagram hides, at the start of the
+# one method holding the hide-by-id message. The JSON parser is the one method holding the four
+# keys below, the real-time method the one holding both postprocess strings, and each is hooked at
+# the return of the message's own register; a real-time message has two such returns, so its rule
+# is shared. Left out, nothing is saved; elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding item_id hide_in_thread thread_key client_context
+shared-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;)L*; holding DirectMessage.postprocess.%s Encountered\sDirectMessage\swith\snull\stype
+start-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance (Lcom/instagram/model/direct/DirectThreadKey;Ljava/lang/String;Ljava/lang/String;)V holding Both\smessage\sID\sand\sclient\scontext\sis\snull.

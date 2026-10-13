@@ -25,6 +25,8 @@ class DefaultSelectionPolicyTest {
         "Open developer options" to "A developer tool for overriding Instagram's server flags, where a " +
             "wrong flag breaks parts of the app.",
         "Pure black dark mode" to "Rewrites Instagram's colors when you patch, with no switch to turn it off.",
+        "Save deleted messages" to "Keeps the text of other people's messages on the phone, which is a " +
+            "choice to make, so it stays out of the default selection until picked.",
         "View DM photos and videos anonymously" to "A test feature until the sender's side is checked " +
             "with two accounts.",
     )
