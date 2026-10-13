@@ -76,6 +76,8 @@ import java.util.regex.Pattern;
 import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
+import app.hushgram.extension.instagram.direct.SavedMessages;
+import app.hushgram.extension.instagram.profile.Unfollowers;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.PinLock;
@@ -647,6 +649,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
+                || build.contains(PatchFamily.DELETED_MESSAGES)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
@@ -722,6 +725,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 messages.addPreference(changePinRow(context));
                 messages.addPreference(lockedChatsRow(context));
                 messages.addPreference(hiddenChatsRow(context));
+            }
+            if (build.contains(PatchFamily.DELETED_MESSAGES)) {
+                messages.addPreference(toggle(context, Settings.SAVE_DELETED_MESSAGES, L10n.t("Save deleted messages"),
+                        L10n.t("Keeps the text of messages other people send you on this phone, and marks the ones "
+                                + "they delete. Nothing leaves the phone, and only text is kept.")));
+                messages.addPreference(deletedMessagesRow(context));
             }
         }
 
@@ -1055,6 +1064,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     profiles.addPreference(toggle(context, Settings.FOLLOWING_NOT_BACK_FIRST, L10n.t("Put accounts that don't follow you back first"),
                             L10n.t("On your own Following list, moves the accounts that don't follow you back to the top and "
                                     + "keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.")));
+                    profiles.addPreference(toggle(context, Settings.TRACK_UNFOLLOWERS, L10n.t("Track who unfollows you"),
+                            L10n.t("Saves your own Followers list each time you scroll it to the end, and lists who is "
+                                    + "missing from the next one. Nothing leaves this phone.")));
+                    profiles.addPreference(unfollowersRow(context));
                 }
             }
             if (build.contains(PatchFamily.PROFILE_SUGGESTIONS)) {
@@ -4697,6 +4710,124 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             showAllText(view);
             ScreenColors.intro(view);
         }
+    }
+
+    /** Opens the list of messages other people deleted after this phone saved them. */
+    private Row deletedMessagesRow(Context context) {
+        Row row = new Row(context);
+        row.setKey("hushgram_deleted_messages");
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Deleted messages"));
+        row.setSummary(L10n.t("Messages other people deleted after this phone saved them. Tap to read them."));
+        row.setOnPreferenceClickListener(preference -> {
+            showDeletedMessages();
+            return true;
+        });
+        return row;
+    }
+
+    private void showDeletedMessages() {
+        if (getActivity() == null) return;
+        Utils.runOnBackgroundThread(() -> {
+            java.util.List<SavedMessages.Entry> found = SavedMessages.deleted();
+            Utils.runOnMainThread(() -> showDeleted(found));
+        });
+    }
+
+    private void showDeleted(java.util.List<SavedMessages.Entry> found) {
+        Context context = getActivity();
+        if (context == null || getView() == null) return;
+        StringBuilder lines = new StringBuilder();
+        java.text.DateFormat format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT,
+                L10n.locale(context));
+        for (SavedMessages.Entry entry : found) {
+            lines.append(format.format(new Date(entry.sentAt > 0 ? entry.sentAt : entry.deletedAt)))
+                    .append("  \u00b7  ").append(L10n.t("Sender")).append(' ')
+                    .append(entry.sender == null ? "?" : entry.sender).append('\n')
+                    .append(entry.body).append("\n\n");
+        }
+        TextView text = new TextView(context);
+        text.setText(found.isEmpty()
+                ? L10n.t("Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, "
+                        + "if this phone had already seen it.")
+                : lines.toString().trim());
+        text.setTextIsSelectable(true);
+        int pad = Math.round(16 * context.getResources().getDisplayMetrics().density);
+        text.setPadding(pad, pad, pad, pad);
+        text.setTextColor(ScreenColors.DEFAULT.summary);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(text);
+        show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Deleted messages"))
+                .setView(scroll)
+                .setPositiveButton(L10n.t("Close"), null)
+                .setNegativeButton(L10n.t("Clear all"), (dialog, which) -> Utils.runOnBackgroundThread(() -> {
+                    SavedMessages.clear();
+                    Utils.showToastShort(L10n.t("Saved messages cleared."));
+                })));
+    }
+
+    /** Opens the list of people who stopped following you since this phone last saved your followers. */
+    private Row unfollowersRow(Context context) {
+        Row row = new Row(context);
+        row.setKey("hushgram_unfollowers");
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Unfollowers"));
+        row.setSummary(L10n.t("People who stopped following you since this phone last saved your followers. Tap to see them."));
+        row.setOnPreferenceClickListener(preference -> {
+            showUnfollowers();
+            return true;
+        });
+        return row;
+    }
+
+    private void showUnfollowers() {
+        if (getActivity() == null) return;
+        Utils.runOnBackgroundThread(() -> {
+            java.util.List<Unfollowers.Entry> found = Unfollowers.left();
+            long[] saved = Unfollowers.saved();
+            Utils.runOnMainThread(() -> showLeft(found, saved));
+        });
+    }
+
+    private void showLeft(java.util.List<Unfollowers.Entry> found, long[] saved) {
+        Context context = getActivity();
+        if (context == null || getView() == null) return;
+        java.text.DateFormat format = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT,
+                L10n.locale(context));
+        StringBuilder lines = new StringBuilder();
+        if (saved[0] > 0) {
+            lines.append(L10n.f("%1$s followers saved on %2$s.", String.valueOf(saved[0]),
+                    format.format(new Date(saved[1])))).append("\n\n");
+        }
+        if (found.isEmpty()) {
+            lines.append(saved[0] > 0
+                    ? L10n.t("Nobody has unfollowed you yet. Scroll your Followers list to the end again later and "
+                            + "HushGram will compare it with this one.")
+                    : L10n.t("Open your own Followers list and scroll to the end to save it. HushGram compares it "
+                            + "with the next one you scroll to the end of."));
+        } else {
+            for (Unfollowers.Entry entry : found) {
+                lines.append(entry.username == null ? entry.id : "@" + entry.username)
+                        .append("  \u00b7  ").append(format.format(new Date(entry.leftAt))).append('\n');
+            }
+        }
+        TextView text = new TextView(context);
+        text.setText(lines.toString().trim());
+        text.setTextIsSelectable(true);
+        int pad = Math.round(16 * context.getResources().getDisplayMetrics().density);
+        text.setPadding(pad, pad, pad, pad);
+        text.setTextColor(ScreenColors.DEFAULT.summary);
+        ScrollView scroll = new ScrollView(context);
+        scroll.addView(text);
+        show(new AlertDialog.Builder(context)
+                .setTitle(L10n.t("Unfollowers"))
+                .setView(scroll)
+                .setPositiveButton(L10n.t("Close"), null)
+                .setNegativeButton(L10n.t("Clear all"), (dialog, which) -> Utils.runOnBackgroundThread(() -> {
+                    Unfollowers.clear();
+                    Utils.showToastShort(L10n.t("Saved followers cleared."));
+                })));
     }
 
     /** A row of text, which a screen reader calls a button when a tap does something. */

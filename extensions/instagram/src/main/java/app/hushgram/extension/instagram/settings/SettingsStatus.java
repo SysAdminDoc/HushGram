@@ -100,6 +100,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean deletedMessages() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

@@ -191,6 +191,7 @@ public final class FollowingList {
      * Never throws.
      */
     public static void row(Object binder, int position, View row, Object user) {
+        Unfollowers.rowBound(binder, row, user, PATCHED);
         row(binder, row, user, PATCHED, FollowingList::switchedOn);
     }
 
@@ -272,6 +273,7 @@ public final class FollowingList {
     public static Object ordered(Object users, Object list) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (Unfollowers.on() && list != null) Unfollowers.loaded(users, list, PATCHED, orderBinder(list));
             if (!orderSwitchedOn()) return users;
             return ordered(users, list, orderBinder(list), PATCHED, FollowingList::orderSwitchedOn);
         } catch (Throwable failure) {

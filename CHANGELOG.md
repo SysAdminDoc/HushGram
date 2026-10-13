@@ -8,6 +8,8 @@ Every HushGram release, newest first.
 
 #### Features
 
+* **Instagram - Show if a profile follows you (fork build):** New switch, Track who unfollows you, with an Unfollowers row beside it. Each time you scroll your own Followers list to its end, HushGram saves it on the phone, and when the next one is missing someone it tells you who and keeps them in the Unfollowers list, with the date. The first scan only saves your followers. A list far shorter than the saved one is taken as one you didn't scroll through and left alone. It starts on, and nothing leaves the phone.
+* **Instagram - Save deleted messages (fork build):** New opt-in patch. It keeps the text of messages other people send you on this phone and marks the ones they later delete, with a Deleted messages row under Messages in HushGram settings to read them. Nothing leaves the phone and only text is kept. It has its own switch in HushGram settings.
 * **Instagram - HushGram settings:** Long-press the Instagram logo at the top of your feed to open HushGram settings. A tap on the logo still does what Instagram made it do, and the long press works while HushGram is paused. Where Instagram has a long press of its own on the logo, Instagram's comes first. The icon shortcut and the row in Settings and activity still open them too.
 
 * **Instagram - Install next to Instagram:** New Mark the icon option, off by default. It puts a small HushGram badge on the second Instagram's home screen icon, and on the other icons Instagram lets you pick. Asked for in #145.
