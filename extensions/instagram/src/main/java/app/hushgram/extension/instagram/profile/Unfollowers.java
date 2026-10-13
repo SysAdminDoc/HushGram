@@ -55,6 +55,10 @@ public final class Unfollowers {
 
     /** How long the list has to sit at its end, with no more accounts arriving, before it counts as read. */
     static final long SETTLE_MS = 2500;
+    /** How many quiet waits in a row a list needs before it is taken as read when its header gives no count. */
+    static final int QUIET_WAITS = 3;
+    /** A scan with fewer than this share of the count in the list's header isn't taken as the whole list. */
+    static final double HEADER_SHARE = 0.97;
     /** A scan with fewer than this share of the saved followers isn't taken as the whole list. */
     static final double COMPLETE_SHARE = 0.5;
     /** Below this many saved followers a short scan is believed, since losing most of a few is possible. */
@@ -67,6 +71,10 @@ public final class Unfollowers {
     /** What an Instagram username looks like, which tells it from a name or a label on a row. */
     private static final Pattern USERNAME = Pattern.compile("[A-Za-z0-9._]{1,30}");
 
+    /** "1,072 followers": a plain count, since an abbreviated one like 12.5K can't be compared. */
+    private static final Pattern HEADER =
+            Pattern.compile("([0-9][0-9.,\u00a0\u202f ]*)\\s+followers?", Pattern.CASE_INSENSITIVE);
+
     private static final String DATABASE = "hushgram_followers.db";
 
     private static final Object LOCK = new Object();
@@ -76,6 +84,7 @@ public final class Unfollowers {
     private static boolean settling;
     private static int generation;
     /** The last account the list has loaded, and whether its row has been drawn: the list has been scrolled to its end. */
+    private static WeakReference<View> lastRow = new WeakReference<>(null);
     private static String lastId;
     private static boolean lastShown;
     private static volatile Store store;
@@ -126,6 +135,21 @@ public final class Unfollowers {
     /** Whether a scan of [found] accounts is too short beside [saved] saved ones to be the whole list. */
     static boolean incomplete(int saved, int found) {
         return saved >= GUARD_FROM && found < saved * COMPLETE_SHARE;
+    }
+
+    /** The count in a header like "1,072 followers", or -1 when the text isn't one, or the count is abbreviated. */
+    static int headerCount(@Nullable CharSequence text) {
+        if (text == null) return -1;
+        java.util.regex.Matcher match = HEADER.matcher(text.toString().trim());
+        if (!match.matches()) return -1;
+        String digits = match.group(1).replaceAll("[^0-9]", "");
+        if (digits.isEmpty() || digits.length() > 9) return -1;
+        return Integer.parseInt(digits);
+    }
+
+    /** Whether [found] accounts is the whole list the header counts [total] of: true when the header gave none. */
+    static boolean complete(int found, int total) {
+        return total <= 0 || found >= total * HEADER_SHARE;
     }
 
     /** Whether the list is one of your own Followers lists: its kind is one and you own it. */
@@ -209,11 +233,12 @@ public final class Unfollowers {
                 // arrives within the wait and starts it over.
                 if (!id.equals(lastId)) return;
                 lastShown = true;
+                lastRow = new WeakReference<>(row);
                 if (settling) return;
                 settling = true;
                 mine = generation;
             }
-            Utils.runOnMainThreadDelayed(() -> settle(mine), SETTLE_MS);
+            Utils.runOnMainThreadDelayed(() -> settle(mine, 1), SETTLE_MS);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, ROW, failure);
         }
@@ -238,27 +263,73 @@ public final class Unfollowers {
     }
 
     /**
-     * The wait is over. Reads the scan if nothing arrived since it began and the list's last account is
-     * on screen, and otherwise waits again, or stops when the end isn't on screen.
+     * The wait is over. Reads the scan when nothing arrived since it began, the list's last account is on
+     * screen, and the list holds the count its header gives, or, when the header gives none, when
+     * {@link #QUIET_WAITS} waits in a row passed with nothing arriving. Otherwise waits again.
      */
-    private static void settle(int started) {
+    private static void settle(int started, int quiet) {
         Map<String, String> read = null;
-        int next = -1;
+        boolean again = false;
+        int next = started;
+        int waits = quiet;
+        int total = headerCount(lastRow.get());
         synchronized (LOCK) {
             if (started != generation) {
+                again = true;
                 next = generation;
+                waits = 1;
+            } else if (!lastShown) {
+                settling = false;
+            } else if (total > 0 ? !complete(scan.size(), total) : quiet < QUIET_WAITS) {
+                // More is on its way: a page is loading, or the header says accounts are still to come.
+                again = true;
+                waits = quiet + 1;
             } else {
                 settling = false;
-                if (lastShown) read = new LinkedHashMap<>(scan);
+                read = new LinkedHashMap<>(scan);
             }
         }
-        if (next >= 0) {
-            final int again = next;
-            Utils.runOnMainThreadDelayed(() -> settle(again), SETTLE_MS);
+        if (again) {
+            final int generationNow = next;
+            final int count = waits;
+            Utils.runOnMainThreadDelayed(() -> settle(generationNow, count), SETTLE_MS);
         } else if (read != null && !read.isEmpty()) {
             final Map<String, String> finished = read;
             Utils.runOnBackgroundThread(() -> commit(finished));
         }
+    }
+
+    /** The count in the list's header, found from any of its views, or -1. */
+    private static int headerCount(@Nullable View row) {
+        try {
+            if (row == null) return -1;
+            return findCount(row.getRootView(), 0);
+        } catch (Throwable failure) {
+            return -1;
+        }
+    }
+
+    private static int findCount(View view, int depth) {
+        if (depth > 14) return -1;
+        if (view.getVisibility() == View.VISIBLE) {
+            CharSequence text = view instanceof TextView ? ((TextView) view).getText() : null;
+            int count = headerCount(text);
+            if (count < 0) count = headerCount(view.getContentDescription());
+            boolean leaf = !(view instanceof ViewGroup) || ((ViewGroup) view).getChildCount() == 0;
+            if (count < 0 && leaf && view.isClickable()) {
+                android.view.accessibility.AccessibilityNodeInfo info = view.createAccessibilityNodeInfo();
+                if (info != null) count = headerCount(info.getText());
+            }
+            if (count >= 0) return count;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                int count = findCount(group.getChildAt(i), depth + 1);
+                if (count >= 0) return count;
+            }
+        }
+        return -1;
     }
 
     /** Compares a finished scan with the saved followers, keeps what changed and says so. Off the main thread. */

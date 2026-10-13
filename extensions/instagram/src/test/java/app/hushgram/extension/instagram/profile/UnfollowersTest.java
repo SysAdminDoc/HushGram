@@ -81,6 +81,25 @@ public class UnfollowersTest {
     }
 
     @Test
+    public void theHeaderCountIsReadFromAPlainNumber() {
+        assertEquals(1072, Unfollowers.headerCount("1,072 followers"));
+        assertEquals(1072, Unfollowers.headerCount(" 1.072 Followers "));
+        assertEquals(1, Unfollowers.headerCount("1 follower"));
+        assertEquals(-1, Unfollowers.headerCount("12.5K followers"));
+        assertEquals(-1, Unfollowers.headerCount("929 following"));
+        assertEquals(-1, Unfollowers.headerCount("Followers"));
+        assertEquals(-1, Unfollowers.headerCount((CharSequence) null));
+    }
+
+    @Test
+    public void aListIsCompleteOnlyOnceItHoldsTheCountItsHeaderGives() {
+        assertFalse(Unfollowers.complete(925, 1072));
+        assertTrue(Unfollowers.complete(1072, 1072));
+        assertTrue(Unfollowers.complete(1050, 1072));
+        assertTrue("without a count there is nothing to compare", Unfollowers.complete(5, -1));
+    }
+
+    @Test
     public void theSettleWaitIsLongerThanAPageTakesToArriveButNotAnnoying() {
         assertTrue(Unfollowers.SETTLE_MS >= 1500 && Unfollowers.SETTLE_MS <= 5000);
     }
