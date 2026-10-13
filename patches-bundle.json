@@ -1,7 +1,7 @@
 {
   "created_at": "2026-10-13T11:02:41",
   "description": "Unofficial fork build of HushGram 0.0.10 for Instagram 450.0.0.50.77 (com.instagram.android) with 102 patches: everything in upstream's main plus one of its own, Save deleted messages (keeps the text of messages people delete on this phone; off until you pick it), and a Track who unfollows you switch under Show if a profile follows you. It hasn't been through upstream's release checks. Read Before you sign in in the README first. Patch the arm64-v8a build of Instagram 450.0.0.50.77, version code 385611438, and keep the manager's signing key so a new build installs over the old one and you stay signed in.",
-  "download_url": "https://github.com/sherifrahim/HushGram/releases/download/v0.0.10-fork.2/patches-0.0.10.mpp",
+  "download_url": "https://github.com/sherifrahim/HushGram/releases/download/v0.0.10-fork.3/patches-0.0.10.mpp",
   "signature_download_url": "",
   "version": "0.0.10"
 }
