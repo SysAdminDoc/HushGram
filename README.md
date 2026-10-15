@@ -20,7 +20,7 @@
 
 </div>
 
-# 👋🧩 HushGram Patches
+# 🧩 HushGram Patches
 
 ## ❓ About
 
@@ -74,11 +74,54 @@ Morphe Manager signs the patched Instagram with a key stored on your device. And
 
 Back up the key after your first patch. In Morphe Manager, open **Settings → System → Import & export → Signing key**, choose **Export**, and store `Morphe.keystore` somewhere private. Anyone who obtains the key may be able to sign an APK that Android accepts as an update. On a new device, import the same key before patching. If you lose it or use a different key, you may need to uninstall the existing patched app, which deletes its local data and signs you out. See Morphe's [Backup and keystore guide](https://github.com/MorpheApp/morphe-manager/blob/main/docs/backup-and-keystore.md).
 
+### Settings
+
+Open HushGram settings by tapping it at the top of Instagram's **Settings and activity** menu. A long press on the Instagram logo at the top of the feed may also open it. From the home screen, long-press Instagram's app icon and choose **HushGram settings** when that shortcut is available.
+
+The settings screen groups controls into categories such as Ads and privacy, Feed, Meta AI, Explore, Messages, Reels, Stories, Playback, Sharing, Comments, Profiles, Layout, Tab bar, Notifications, Storage, Downloads, Battery, Updates, and Developer. The controls shown depend on which patches you selected.
+
+- **Pause** disables features controlled by switches without discarding your choices. Changes applied at patch time, such as removing the advertising ID, remain in the APK.
+- **Ghost mode** toggles a group of privacy controls together; each control can also be managed individually.
+- **Downloads** are saved to the relevant media folders. The exact folder depends on the download type and Android version.
+- **Settings backup** exports settings to a JSON file. It does not include accounts, signing keys, or playback history.
+- **Pause and diagnostics** can copy a quick report or save a fuller report locally. Review diagnostic text for private information before sharing it.
+- **Developer** exposes Instagram's developer and MetaConfig tools. Incorrect server-flag changes can break parts of the app until reset.
+
+If Instagram crashes within a minute of starting three times in a row, HushGram pauses itself. Re-patch or disable the patch responsible before enabling it again.
+
+### Troubleshooting
+
+- **Can't find settings:** Try the Instagram app-icon shortcut or the entry at the top of **Settings and activity**. If the entry is missing, refresh the source in Manager and patch again.
+- **Switches do nothing:** Refreshing a source only downloads patch definitions. To add a patch to the installed app, patch and install again. Some settings require an Instagram restart.
+- **Package conflict or “App not installed”:** Android will not update an app signed with a different key. Use the original signing key or uninstall the differently signed app first. Uninstalling removes local app data.
+- **Unsupported Version:** Morphe Manager may recognize only the configured build number even when other listed variants can patch. Check the build number in [Supported Instagram builds](#supported-instagram-builds). Other versions have not been verified here.
+- **Patching stops on one patch:** Confirm the Instagram build is supported and try with HushGram as the only enabled patch source. If the error persists, open an issue with the patch name, Manager version, and error text.
+- **Instagram closes before settings can open:** Create an empty file named `hushgram-safe-mode` in `Android/data/com.instagram.android/files`. HushGram should start paused until the file is removed.
+- **The Play Store keeps offering an update:** Open Instagram's Play Store page, tap the three-dot menu, and disable **Enable auto update**. The optional **Change version code** patch can stop update offers, but read its warning before selecting it.
+
+### Supported Instagram builds
+
+| Field | Value |
+|---|---|
+| Package | `com.instagram.android` |
+| Version | `451.0.0.53.80` |
+| `arm64-v8a` builds | `385713073` (the build Manager is configured to recognize), `385713078`, `385713082`, `385713109`, `385713116` |
+| x86 / x86_64 builds | `385713117` (x86), `385713111` and `385713118` (x86_64), for Chromebooks and emulators |
+| Minimum Android version | Android 9 (API 28) |
+| Download source | [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) |
+
+Other Instagram versions have not been verified here. Meta can publish different APKs under one version name, so check the build number as well.
+
+Meta signs genuine Instagram builds with one of two certificates. Morphe Manager warns before patching an APK signed with a different key. To check a base APK, run `apksigner verify --print-certs` from Android's build tools and compare the SHA-256 certificate digest:
+
+```text
+5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305  Instagram Inc. (checked by Android 7 to 12L)
+3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014  Meta Platforms Inc. (checked by Android 13 and newer)
+```
+
 ## 🩹 Patches list
 
-HushGram provides **105 patches** for `com.instagram.android`, checked against Instagram `451.0.0.53.80`. Morphe Manager's simple mode includes 100 patches; five additional patches require Expert mode. Most patches expose their options through HushGram settings. A few apply changes as soon as they are included in the patched APK.
-
-<!-- PATCHES_START EXPANDED -->
+<!-- PATCHES_START -->
 
 #### The patch list is generated automatically when the release workflow creates a release.
 
@@ -202,52 +245,9 @@ The following table documents the features currently described by this README. F
 
 The patches with a switch keep their controls in **HushGram settings**, so Morphe Manager includes the settings support whenever one of those patches is selected. The following patches apply their changes during patching and do not have a normal feature switch: HushGram settings, Restore trust on re-signed builds, Remove the advertising ID, Start on x86 devices, Change version code, Install next to Instagram, and Pure black dark mode.
 
-### Settings
+## Contributing
 
-Open HushGram settings by tapping it at the top of Instagram's **Settings and activity** menu. A long press on the Instagram logo at the top of the feed may also open it. From the home screen, long-press Instagram's app icon and choose **HushGram settings** when that shortcut is available.
-
-The settings screen groups controls into categories such as Ads and privacy, Feed, Meta AI, Explore, Messages, Reels, Stories, Playback, Sharing, Comments, Profiles, Layout, Tab bar, Notifications, Storage, Downloads, Battery, Updates, and Developer. The controls shown depend on which patches you selected.
-
-- **Pause** disables features controlled by switches without discarding your choices. Changes applied at patch time, such as removing the advertising ID, remain in the APK.
-- **Ghost mode** toggles a group of privacy controls together; each control can also be managed individually.
-- **Downloads** are saved to the relevant media folders. The exact folder depends on the download type and Android version.
-- **Settings backup** exports settings to a JSON file. It does not include accounts, signing keys, or playback history.
-- **Pause and diagnostics** can copy a quick report or save a fuller report locally. Review diagnostic text for private information before sharing it.
-- **Developer** exposes Instagram's developer and MetaConfig tools. Incorrect server-flag changes can break parts of the app until reset.
-
-If Instagram crashes within a minute of starting three times in a row, HushGram pauses itself. Re-patch or disable the patch responsible before enabling it again.
-
-### Troubleshooting
-
-- **Can't find settings:** Try the Instagram app-icon shortcut or the entry at the top of **Settings and activity**. If the entry is missing, refresh the source in Manager and patch again.
-- **Switches do nothing:** Refreshing a source only downloads patch definitions. To add a patch to the installed app, patch and install again. Some settings require an Instagram restart.
-- **Package conflict or “App not installed”:** Android will not update an app signed with a different key. Use the original signing key or uninstall the differently signed app first. Uninstalling removes local app data.
-- **Unsupported Version:** Morphe Manager may recognize only the configured build number even when other listed variants can patch. Check the build number in [Supported Instagram builds](#supported-instagram-builds). Other versions have not been verified here.
-- **Patching stops on one patch:** Confirm the Instagram build is supported and try with HushGram as the only enabled patch source. If the error persists, open an issue with the patch name, Manager version, and error text.
-- **Instagram closes before settings can open:** Create an empty file named `hushgram-safe-mode` in `Android/data/com.instagram.android/files`. HushGram should start paused until the file is removed.
-- **The Play Store keeps offering an update:** Open Instagram's Play Store page, tap the three-dot menu, and disable **Enable auto update**. The optional **Change version code** patch can stop update offers, but read its warning before selecting it.
-
-### Supported Instagram builds
-
-| Field | Value |
-|---|---|
-| Package | `com.instagram.android` |
-| Version | `451.0.0.53.80` |
-| `arm64-v8a` builds | `385713073` (the build Manager is configured to recognize), `385713078`, `385713082`, `385713109`, `385713116` |
-| x86 / x86_64 builds | `385713117` (x86), `385713111` and `385713118` (x86_64), for Chromebooks and emulators |
-| Minimum Android version | Android 9 (API 28) |
-| Download source | [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) |
-
-Other Instagram versions have not been verified here. Meta can publish different APKs under one version name, so check the build number as well.
-
-Meta signs genuine Instagram builds with one of two certificates. Morphe Manager warns before patching an APK signed with a different key. To check a base APK, run `apksigner verify --print-certs` from Android's build tools and compare the SHA-256 certificate digest:
-
-```text
-5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305  Instagram Inc. (checked by Android 7 to 12L)
-3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014  Meta Platforms Inc. (checked by Android 13 and newer)
-```
-
-## 🚀 Getting development started
+### Getting development started
 
 Start with the [Morphe development documentation](https://github.com/MorpheApp/morphe-documentation/blob/main/docs/morphe-development/README.md) and the [patcher environment setup guide](https://github.com/MorpheApp/morphe-patcher/blob/main/docs/2_1_setup.md#-prepare-the-environment).
 
@@ -255,7 +255,7 @@ Development requires JDK 17 or newer, the Android SDK, and a GitHub token with `
 
 Before making changes, review [CONTRIBUTING.md](CONTRIBUTING.md), the repository's issue templates under `.github/ISSUE_TEMPLATE`, and the source/provenance records described below.
 
-## 🧑‍💻 Dev usage
+### 🧑‍💻 Dev usage
 
 - **Make development changes on the `dev` branch** and follow the workflow documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 - Use semantic commit messages. The project uses `feat:` and `fix:` for user-facing changes and `chore:` for maintenance that should not create a user-facing changelog entry.
@@ -273,7 +273,7 @@ Before making changes, review [CONTRIBUTING.md](CONTRIBUTING.md), the repository
 - `sources/instagram-sources.json`, `provenance.json`, and `NOTICE` document code provenance, licences, and required notices.
 - `patches-list.json` is the generated patch catalog. `patches-bundle.json` is the Morphe source index and changes through the release workflow.
 
-## 🤓 Tips
+### 🤓 Tips
 
 - Read the [Morphe patcher documentation](https://github.com/MorpheApp/morphe-patcher/blob/main/docs/1_patcher_intro.md) for patch and fingerprint examples.
 - Verify downloads using the release's `SHA256SUMS.txt`. Each release includes hashes for the `.mpp` bundle, SBOM (`.cdx.json`), and release receipt. Download the checksum file and bundle from the same release, then run:
@@ -289,7 +289,7 @@ Before making changes, review [CONTRIBUTING.md](CONTRIBUTING.md), the repository
 - Translations are stored as UTF-8 TSV files under `extensions/shared/library/src/main/l10n`. The scripts `scripts/crowdin-l10n.py`, `scripts/sync-l10n.py`, and `scripts/gen-l10n.py` support worksheet preparation, import, and class generation. They require Python 3.12 or newer; see [docs/translations.md](docs/translations.md).
 - Review [docs/sources.md](docs/sources.md) and [sources/instagram-sources.json](sources/instagram-sources.json) for patch-source details and licence records.
 
-### Where the patches come from
+#### Where the patches come from
 
 | Source | What came from it |
 |---|---|
