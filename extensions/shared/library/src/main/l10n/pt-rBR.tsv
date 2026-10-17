@@ -1,40 +1,40 @@
 # Brazilian Portuguese for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 2x speed for videos in the feed	Velocidade 2x para vídeos do feed
-Adds a shortcut to your saved posts in the Explore tab.	Adiciona um atalho para suas publicações salvas na aba Explorar.
+Adds a shortcut to your saved posts in the Explore tab.	Adiciona um atalho para acessar suas publicações salvas na aba Explorar.
 Adds a speed choice to the menu on a reel.	Adiciona uma opção de velocidade ao menu de um reel.
-Adds the option to put a new story in a Highlight as you post it.	Adiciona a opção de colocar um story novo em um destaque ao publicá-lo.
-Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Pede ao Instagram que mantenha mais detalhes ao preparar um story. Os servidores do Instagram ainda comprimem o que recebem.
+Adds the option to put a new story in a Highlight as you post it.	Permite adicionar um story aos destaques no momento da publicação.
+Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Solicita ao Instagram que preserve mais detalhes ao processar um story. Ainda assim, os servidores do Instagram comprimem o conteúdo recebido.
 Blurred background on story reposts	Fundo desfocado em reposts de stories
-Choose Off to hide the suggested accounts that show before you type a search.	Escolha Desativado para ocultar as contas sugeridas que aparecem antes de você digitar uma busca.
-Choose Off to remove the brightness boost on reels and videos on HDR screens.	Escolha Desativado para remover o aumento de brilho em reels e vídeos em telas HDR.
-Choose Off to show your recent searches instead of AI suggestions.	Escolha Desativado para mostrar suas buscas recentes em vez de sugestões de IA.
-Choose Off to stop photos from being shown at full HDR brightness.	Escolha Desativado para que as fotos não sejam exibidas com todo o brilho HDR.
-Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Não foi possível alterar essa configuração. Abra as configurações pelo Início com a conta conectada. Nada foi alterado.
-Couldn't read Instagram's overrides. Open settings from Home while signed in.	Não foi possível ler os valores personalizados do Instagram. Abra as configurações pelo Início com a conta conectada.
+Choose Off to hide the suggested accounts that show before you type a search.	Selecione Desativado para ocultar as contas sugeridas que aparecem antes de você começar a pesquisar.
+Choose Off to remove the brightness boost on reels and videos on HDR screens.	Selecione Desativado para remover o brilho extra dos reels e vídeos em telas HDR.
+Choose Off to show your recent searches instead of AI suggestions.	Selecione Desativado para mostrar suas pesquisas recentes em vez das sugestões de IA.
+Choose Off to stop photos from being shown at full HDR brightness.	Selecione Desativado para impedir que as fotos sejam exibidas com o brilho HDR máximo.
+Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Não foi possível alterar essa configuração. Abra as configurações pela tela inicial enquanto estiver conectado à sua conta. Nenhuma alteração foi feita.
+Couldn't read Instagram's overrides. Open settings from Home while signed in.	Não foi possível ler as substituições do Instagram. Abra as configurações pela tela inicial enquanto estiver conectado à sua conta.
 Edit a story after posting	Editar um story depois de publicar
 Enlarge profile photos	Ampliar fotos de perfil
 Extra-bright HDR video	Vídeo HDR extra brilhante
-Fills the space behind a reposted reel, post or story with a blur.	Preenche o espaço atrás de um reel, publicação ou story repostado com desfoque.
-Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	O Instagram desliga a rolagem automática toda vez que inicia. Ativado mantém do jeito que você deixou.
+Fills the space behind a reposted reel, post or story with a blur.	Preenche com um fundo desfocado o espaço ao redor de um reel, publicação ou story compartilhado novamente.
+Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	O Instagram desativa a rolagem automática sempre que é iniciado. Ative esta opção para manter a configuração escolhida.
 Instagram's own	Padrão do Instagram
 Keep Reels auto scroll between sessions	Manter a rolagem automática do Reels entre sessões
 Leave a Close Friends list	Sair de uma lista de Melhores amigos
 Lets you change a story for a short while after you post it.	Permite alterar um story por pouco tempo depois de publicá-lo.
 Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Permite tocar em uma foto de perfil para vê-la maior, com uma configuração em Privacidade da conta.
 Meta AI suggestions in search	Sugestões da Meta AI na busca
-Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Chaves com nome para algumas configurações ocultas do Instagram, como o novo estilo de stories. Cada uma pode ficar no padrão do Instagram, Ativada ou Desativada. Seus valores personalizados atuais são salvos antes para a restauração.
+Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Opções identificadas por nome para algumas configurações ocultas do Instagram, como o novo estilo dos stories. Cada opção pode usar o padrão do Instagram ou ficar ativada ou desativada. As substituições atuais são salvas antes para que possam ser restauradas.
 New like animations	Novas animações de curtida
 New story fonts and animations	Novas fontes e animações de stories
 New story timestamp style	Novo estilo de horário nos stories
 On	Ativado
-Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Escolha o padrão do Instagram, Ativado ou Desativado. Reinicie o Instagram depois de uma mudança.
+Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Escolha entre o padrão do Instagram, Ativado e Desativado. Reinicie o Instagram depois de alterar a opção.
 Playback speed in the Reels menu	Velocidade de reprodução no menu do Reels
 Post a story straight to Highlights	Publicar um story direto nos destaques
-Press and hold a reel to open a menu with playback speed.	Pressione e segure um reel para abrir um menu com a velocidade de reprodução.
-Press and hold the edge of a video in your feed to watch it at double speed.	Pressione e segure a borda de um vídeo do feed para assisti-lo em velocidade dobrada.
-Press and hold the like button on a story to pick an emoji reaction.	Pressione e segure o botão de curtir em um story para escolher uma reação com emoji.
-Press and hold the paper plane on a story to send it.	Pressione e segure o avião de papel em um story para enviá-lo.
+Press and hold a reel to open a menu with playback speed.	Mantenha um reel pressionado para abrir o menu de velocidade de reprodução.
+Press and hold the edge of a video in your feed to watch it at double speed.	Mantenha pressionada a borda de um vídeo no feed para assisti-lo em velocidade 2x.
+Press and hold the like button on a story to pick an emoji reaction.	Mantenha o botão Curtir de um story pressionado para escolher uma reação com emoji.
+Press and hold the paper plane on a story to send it.	Mantenha pressionado o ícone de avião de papel em um story para enviá-lo.
 Preview of disappearing photos in Messages	Prévia de fotos temporárias nas Mensagens
 Quick emoji reactions on stories	Reações rápidas com emoji nos stories
 Quick speed menu in Reels	Menu rápido de velocidade no Reels
@@ -44,7 +44,7 @@ Redesigned notification settings	Configurações de notificação redesenhadas
 Redesigned story viewer list	Lista de visualizações de stories redesenhada
 Saved button in Explore	Botão de salvos no Explorar
 Saved. Restart Instagram to apply it.	Salvo. Reinicie o Instagram para aplicar.
-Send stories with a long press	Enviar stories com um toque longo
+Send stories with a long press	Enviar stories com um toque e segure
 Set another way right now.	No momento está definido de outra forma.
 Shows a blurred preview of a disappearing photo or video in a chat.	Mostra uma prévia desfocada de uma foto ou vídeo temporário em uma conversa.
 Shows usernames in place of display names in chats and notifications.	Mostra nomes de usuário no lugar de nomes de exibição em conversas e notificações.
@@ -52,13 +52,13 @@ Suggested accounts in search	Contas sugeridas na busca
 Tap the Close Friends icon on someone's story to remove yourself from their list.	Toque no ícone de Melhores amigos no story de alguém para sair da lista dessa pessoa.
 That's already how it is. Nothing changed.	Já está assim. Nada foi alterado.
 The newer animations when you like a post, and the emoji ones on stories.	As animações novas ao curtir uma publicação e as de emoji nos stories.
-The newer layout of the Explore tab.	O layout mais novo da aba Explorar.
-The newer layout of the notification settings.	O layout mais novo das configurações de notificação.
-The newer list of who viewed and replied to your story.	A lista mais nova de quem viu e respondeu ao seu story.
-The newer look for the "posted ... ago" label on stories.	O visual mais novo do rótulo "publicado há ..." nos stories.
+The newer layout of the Explore tab.	O novo layout da aba Explorar.
+The newer layout of the notification settings.	O novo layout das configurações de notificações.
+The newer list of who viewed and replied to your story.	A nova lista de pessoas que visualizaram e responderam ao seu story.
+The newer look for the "posted ... ago" label on stories.	O novo estilo do indicador de tempo de publicação nos stories.
 The newer text fonts, animations and effects in the story editor.	As fontes, animações e efeitos de texto mais novos no editor de stories.
-This Instagram version has none of these switches.	Esta versão do Instagram não tem nenhuma destas chaves.
-Turn on Allow importing overrides first. These switches use the same path.	Ative primeiro Permitir importar valores personalizados. Estas chaves usam o mesmo caminho.
+This Instagram version has none of these switches.	Esta versão do Instagram não oferece nenhuma dessas opções.
+Turn on Allow importing overrides first. These switches use the same path.	Ative primeiro a opção Permitir importar substituições. Essas opções usam o mesmo caminho.
 Ultra HDR photos	Fotos Ultra HDR
 Upload stories at higher quality	Enviar stories em qualidade mais alta
 Usernames in Messages and notifications	Nomes de usuário nas Mensagens e nas notificações
@@ -74,7 +74,7 @@ Back	Voltar
 Before you sign in	Antes de entrar
 Cancel	Cancelar
 Clear diagnostic data	Limpar dados de diagnóstico
-Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copie um relatório rápido ou salve o completo em %1$s. Links, IDs, cookies e dados de login ficam de fora. Confira se há outro texto privado antes de compartilhar.
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copie um relatório rápido ou salve o completo em %1$s. Links, IDs, cookies e dados de acesso ficam de fora. Confira se há outro texto privado antes de compartilhar.
 Copy a short report to the clipboard.	Copie um relatório curto para a área de transferência.
 Copy quick report	Copiar relatório rápido
 Copying to the gallery	Copiando para a galeria
@@ -88,10 +88,10 @@ Diagnostic report copied to the clipboard.	Relatório de diagnóstico copiado pa
 Disable analytics	Desativar análises
 Download failed	Falha no download
 Downloading	Baixando
-Empties the activity log that a diagnostic report would include.	Esvazia o registro de atividade que um relatório de diagnóstico incluiria.
-Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Todas as opções, exceto Registro de depuração, funcionam como se estivessem desativadas, e o que foi definido ao aplicar os patches permanece ativo. Suas configurações não são alteradas.
+Empties the activity log that a diagnostic report would include.	Limpa o registro de atividades que seria incluído no relatório de diagnóstico.
+Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Todas as opções, exceto Registro de depuração, passam a funcionar como se estivessem desativadas. As alterações aplicadas durante a instalação dos patches continuam em vigor, e suas configurações são preservadas.
 Export diagnostic report	Exportar relatório de diagnóstico
-From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	A partir da próxima abertura, todas as opções, menos o Registro de depuração, funcionam como se estivessem desligadas. O que foi definido ao aplicar os patches continua ativo, e suas escolhas ficam salvas.
+From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Na próxima inicialização, todas as opções, exceto Registro de depuração, funcionarão como se estivessem desativadas. As alterações feitas ao aplicar os patches continuarão em vigor, e suas escolhas permanecerão salvas.
 Full report saved to %1$s	Relatório completo salvo em %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, com os avisos dos projetos em que o HushGram se baseia
 Gray out stories you've watched	Deixar em cinza os Stories que você já viu
@@ -107,13 +107,13 @@ HushGram settings couldn't open	Não foi possível abrir as configurações do H
 HushGram settings are locked	As configurações do HushGram estão bloqueadas
 HushGram turns back on when Instagram restarts.	O HushGram será reativado quando o Instagram for reiniciado.
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	O Instagram fechou com erro ou travou no primeiro minuto após iniciar, três vezes seguidas, então o HushGram foi pausado automaticamente.
-Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	O Instagram para de mostrar a tela que diz que esta versão é antiga demais. Uma versão com patches não se atualiza sozinha, então isso a mantém utilizável.
-Instagram's own checks of who signed the app keep passing on this patched build.	As verificações do próprio Instagram sobre quem assinou o app continuam passando nesta versão com patch.
+Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Impede que o Instagram mostre o aviso de que a versão está desatualizada. Como uma versão modificada não recebe atualizações automaticamente, isso ajuda a continuar usando-a.
+Instagram's own checks of who signed the app keep passing on this patched build.	Esta versão modificada continua passando pelas verificações do Instagram sobre a assinatura do aplicativo.
 Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Impede o Instagram de enviar relatórios de uso e de falhas para o Instagram e o Facebook. Reinicie o Instagram para ver a mudança.
 Joining the picture and sound	Juntando a imagem e o som
 Licenses	Licenças
 Link expired. Reopen the item and try again.	Link expirado. Reabra o item e tente novamente.
-Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ninguém fora da Meta sabe o que faz uma conta ser suspensa. Um Instagram com patch não passa na verificação do Google de que veio da Play Store, e nenhum patch muda isso. Se você prefere não arriscar sua conta, teste primeiro com uma reserva. Instalar atualizações por cima com a mesma chave de assinatura mantém os dados do Instagram e o seu login. Em um celular com root, uma instalação Root Mount mantém o login que você já tem.
+Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	Ninguém fora da Meta sabe exatamente quais fatores levam à suspensão de uma conta. Uma versão modificada do Instagram não passa na verificação do Google que confirma se o app veio da Play Store, e nenhum patch altera isso. Se não quiser arriscar sua conta principal, teste primeiro com uma conta secundária. Instalar uma atualização por cima usando a mesma chave de assinatura preserva os dados do Instagram e sua sessão. Em um celular com root, a instalação pelo Root Mount também preserva a sessão atual.
 No app on this phone can open the link. The address is %1$s.	Nenhum aplicativo neste dispositivo consegue abrir o link. O endereço é %1$s.
 Not saved: that isn't an Instagram photo or video	Não salvo: isso não é uma foto nem um vídeo do Instagram
 Not saved: the file is over 512 MB	Não foi salvo: o arquivo tem mais de 512 MB
@@ -121,7 +121,7 @@ OK	OK
 Pause HushGram	Pausar o HushGram
 Pause and diagnostics	Pausa e diagnóstico
 Instagram accepts this build	O Instagram aceita esta versão
-Record patch activity and show errors for a bug report. Leave off during normal use.	Registra a atividade dos patches e mostra os erros para um relatório de problema. Mantenha desativado durante o uso normal.
+Record patch activity and show errors for a bug report. Leave off during normal use.	Registra a atividade dos patches e mostra os erros para um relatório de erro. Mantenha desativado durante o uso normal.
 Remove build expired popup	Remover aviso de versão expirada
 Retry	Tentar novamente
 Sanitize sharing links	Limpar links compartilhados
@@ -143,7 +143,7 @@ Settings couldn't refresh completely. Reopen settings and try again.	Não foi po
 Source code and issues	Código-fonte e relatos de problemas
 Hides sponsored posts, reels and stories. No empty gap is left where an ad would have been.	Esconde posts, reels e stories patrocinados. Não sobra espaço vazio onde o anúncio estaria.
 Stays in while paused	O que continua ativo na pausa
-Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Tira as marcações de rastreamento dos links que você copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O link continua abrindo o mesmo post, reel ou perfil.
+Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	Remove os parâmetros de rastreamento dos links que você copia ou compartilha e abre links da bio sem o rastreador de cliques do Instagram. O destino continua sendo a mesma publicação, reel ou perfil.
 Tap to hide this.	Toque para ocultar isto.
 Couldn't hide this notice. Try again.	Não foi possível ocultar este aviso. Tente novamente.
 Tap to turn it back on.	Toque para reativar.
@@ -157,25 +157,25 @@ Try again, or go back to Instagram.	Tente novamente ou volte para o Instagram.
 Updates	Atualizações
 Version	Versão
 Version %1$s for Instagram %2$s	Versão %1$s para o Instagram %2$s
-While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Enquanto você assiste anonimamente, um Story que você já viu fica cinza e vai para o fim da fila, só neste celular. O Instagram continua sem saber que você viu.
+While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Enquanto você visualiza stories anonimamente, os que já foram vistos ficam acinzentados e vão para o fim da lista — somente neste celular. O Instagram não recebe a informação de que você os visualizou.
 You paused HushGram.	Você pausou o HushGram.
 the re-signed build fix	a correção para versão reassinada
 Don't send reel watch history	Não enviar o histórico de reels assistidos
-Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	O Instagram deixa de saber quais reels você assistiu e até onde foi. Ele usa isso para escolher seus Reels. Reels já assistidos podem voltar.
+Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	Impede que o Instagram registre quais reels você assistiu e até que ponto. Esses dados são usados para recomendar conteúdo no Reels, então vídeos já vistos podem voltar a aparecer.
 Reels	Reels
 Stop Story auto-advance	Parar o avanço automático dos stories
 A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.	Um story que terminou fica na tela até você tocar ou deslizar. Desative para usar o tempo do Instagram.
 Loop a story	Repetir um story
-A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.	Um story recomeça do início quando termina, até você tocar ou deslizar para seguir. Anúncios continuam passando. Com Parar o avanço automático dos stories ligado também, os stories se repetem.
+A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.	Quando um story termina, ele recomeça automaticamente até você tocar na tela ou deslizar para avançar. Os anúncios continuam avançando normalmente. Se Parar o avanço automático dos stories também estiver ativado, os stories ficarão em repetição.
 Show a story's exact time	Mostrar o horário exato de um story
-A story's header shows its time the way the choice below says, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.	O cabeçalho de um story mostra o horário do jeito que a opção abaixo indica, em vez de há quanto tempo. Segue o idioma do seu celular e a configuração de 12 ou 24 horas.
+A story's header shows its time the way the choice below says, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.	O cabeçalho do story mostra o horário conforme a opção selecionada abaixo, em vez de indicar há quanto tempo foi publicado. O formato segue o idioma do celular e a configuração de 12 ou 24 horas.
 How the time shows	Como o horário aparece
 Date and time	Data e horário
 Time left	Tempo restante
 Time posted	Horário da postagem
 The date and time the story was posted, like Oct 2, 3:45 PM.	A data e o horário em que o story foi postado, como 2 de out., 15:45.
-How long until the story expires, like 18h 14m left. Older stories show the date and time.	Quanto falta para o story expirar, como faltam 18 h 14 min. Stories mais antigos mostram a data e o horário.
-Only the time the story was posted, like 3:45 PM. Stories posted before today show the date and time.	Só o horário em que o story foi postado, como 15:45. Stories postados antes de hoje mostram a data e o horário.
+How long until the story expires, like 18h 14m left. Older stories show the date and time.	Mostra quanto tempo falta para o story expirar, por exemplo, “18 h 14 min”. Para stories mais antigos, mostra a data e o horário da publicação.
+Only the time the story was posted, like 3:45 PM. Stories posted before today show the date and time.	Mostra apenas o horário da publicação, por exemplo, 15:45. Para stories publicados antes de hoje, mostra a data e o horário.
 Turn on Show a story's exact time to use this choice.	Ative Mostrar o horário exato de um story para usar esta opção.
 %1$dh %2$dm left	faltam %1$d h %2$d min
 %1$dm left	faltam %1$d min
@@ -820,7 +820,7 @@ Puts a download icon under Save beside a reel, so one tap saves it the way Downl
 Nothing to download on this post	Nada para baixar nesta publicação
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	Segurar para baixar
-Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Segure dois dedos parados sobre a foto ou o vídeo de uma publicação do feed, ou sobre um reel, e o que está embaixo deles é salvo, igual a Baixar no menu. O toque longo de um dedo do Instagram continua como era. Precisa de Baixar vídeos do feed ou Baixar fotos do feed, e de Baixar nos reels para reels.
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	Segure dois dedos parados sobre a foto ou o vídeo de uma publicação do feed, ou sobre um reel, e o que está embaixo deles é salvo, igual a Baixar no menu. O toque e segure de um dedo do Instagram continua como era. Precisa de Baixar vídeos do feed ou Baixar fotos do feed, e de Baixar nos reels para reels.
 # context: Downloads list under Hold to download; how many fingers the hold takes
 Fingers	Dedos
 # context: Downloads list under Hold to download; how long the fingers stay down before it saves
@@ -981,7 +981,7 @@ The first video on Home plays with its sound on, the same as tapping its speaker
 Tap a feed video to pause it	Tocar em um vídeo do feed para pausar
 Tap the video playing in a feed to pause it in place instead of opening it in Reels. Ads keep Instagram's own tap.	Toque no vídeo que está tocando em um feed para pausar em vez de abri-lo no Reels. Os anúncios continuam com o toque do próprio Instagram.
 Long press a photo to zoom	Toque e segure uma foto para ampliar
-Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Toque e segure uma foto em um feed para vê-la duas vezes maior em volta do seu dedo, e deslize para explorar. Solte para fechar. Enquanto isso estiver ativado, substitui o toque longo do próprio Instagram em uma foto.
+Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Toque e segure uma foto em um feed para vê-la duas vezes maior em volta do seu dedo, e deslize para explorar. Solte para fechar. Enquanto isso estiver ativado, substitui o toque e segure do próprio Instagram em uma foto.
 Keep the zoom open	Manter o zoom aberto
 The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	O zoom continua aberto quando você solta. Arraste para olhar em volta, faça o gesto de pinça para ampliar de 1x a 4x e toque ou pressione Voltar para fechar.
 # context: what TalkBack reads for the zoomed photo left open over the feed
