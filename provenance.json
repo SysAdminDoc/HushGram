@@ -228,6 +228,7 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/location/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/profile/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/profile/**",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/settings/FollowersScreen.java",
         "patches/src/main/kotlin/app/morphe/patches/instagram/reels/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/reels/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/feed/**",

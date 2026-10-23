@@ -1168,3 +1168,61 @@ Puts a music icon beside a reel. Tap it and the Reels tab skips other reels usin
 Hidden sounds	Gizli sesler
 The sounds you hid with the music icon. Uncheck one to see its reels again.	Müzik simgesiyle gizlediğin sesler. Reel'lerini yeniden görmek için birinin işaretini kaldır.
 No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Henüz gizli ses yok. Reels'i sese göre gizle'yi aç, sonra bir reel'in yanındaki müzik simgesine dokun.
+1 unfollowed you	1 kişi seni takipten çıktı
+%1$d unfollowed you	%1$d kişi seni takipten çıktı
+Follower history	Takipçi geçmişi
+Unfollowers	Takipten çıkanlar
+Who left your Followers list, found by HushGram's follower history	HushGram'ın takipçi geçmişinin bulduğu, Takipçiler listenden ayrılanlar
+%1$s unfollowed you	%1$s seni takipten çıktı
+1 person unfollowed you	1 kişi seni takipten çıktı
+%1$d people unfollowed you	%1$d kişi seni takipten çıktı
+Check now couldn't find your followers count.	Şimdi kontrol et takipçi sayını bulamadı.
+Check now couldn't open your Followers list.	Şimdi kontrol et Takipçiler listeni açamadı.
+Instagram showed %1$d of your %2$d followers, too few to compare. Try again later.	Instagram %2$d takipçinden yalnızca %1$d tanesini gösterdi, karşılaştırmak için çok az. Daha sonra tekrar dene.
+Check now ran out of time before your Followers list finished loading.	Şimdi kontrol et, Takipçiler listen yüklenmeyi bitirmeden süresi doldu.
+Check now stopped: your Followers list closed.	Şimdi kontrol et durdu: Takipçiler listen kapandı.
+Check now stopped: your Followers list stopped loading.	Şimdi kontrol et durdu: Takipçiler listen yüklenmeyi bıraktı.
+followers at the last check	son kontroldeki takipçi
+unfollowed	takipten çıktı
+followed again	yeniden takip etti
+new	yeni
+Check now	Şimdi kontrol et
+Export	Dışa aktar
+Reading…	Okunuyor…
+Not checked yet	Henüz kontrol edilmedi
+Last checked\n%1$s	Son kontrol\n%1$s
+Tap Check now, or scroll your own Followers list to the end. That first look is the starting point, and anyone who leaves after it shows up here.	Şimdi kontrol et'e dokun veya kendi Takipçiler listeni sonuna kadar kaydır. Bu ilk bakış başlangıç noktasıdır ve ondan sonra ayrılan herkes burada görünür.
+Nothing here with this filter.	Bu filtreyle burada bir şey yok.
+No changes yet. Each time you check, anyone who left or joined shows up here.	Henüz değişiklik yok. Her kontrol ettiğinde ayrılan veya katılan herkes burada görünür.
+Checked just now. No one left or joined since the check before.	Az önce kontrol edildi. Önceki kontrolden beri kimse ayrılmadı veya katılmadı.
+1 unfollowed	1 takipten çıktı
+%1$d unfollowed	%1$d takipten çıktı
+1 followed again	1 yeniden takip etti
+%1$d followed again	%1$d yeniden takip etti
+1 new	1 yeni
+%1$d new	%1$d yeni
+Checked just now: %1$s.	Az önce kontrol edildi: %1$s.
+All %1$d	Tümü %1$d
+Unfollowed %1$d	Takipten çıkanlar %1$d
+You follow them %1$d	Takip ettiklerin %1$d
+Followed again %1$d	Yeniden takip edenler %1$d
+New %1$d	Yeni %1$d
+Unfollowed you	Seni takipten çıktı
+Followed you again	Seni yeniden takip etti
+Started following you	Seni takip etmeye başladı
+between %1$s and %2$s	%1$s ile %2$s arasında
+by %1$s	%1$s itibarıyla
+You follow them	Takip ediyorsun
+Copied %1$s	%1$s kopyalandı
+Turn on Recent unfollowers in HushGram settings > Profiles first.	Önce HushGram ayarları > Profiller'de Son takipten çıkanlar'ı aç.
+Check now needs Instagram's main screen. Open your profile and try again.	Şimdi kontrol et, Instagram'ın ana ekranına ihtiyaç duyar. Profilini aç ve tekrar dene.
+Checking your followers…	Takipçilerin kontrol ediliyor…
+Export needs Android 10 or newer.	Dışa aktarma için Android 10 veya daha yenisi gerekir.
+Saved to Download/HushGram/%1$s	Şuraya kaydedildi: Download/HushGram/%1$s
+Couldn't save the follower history.	Takipçi geçmişi kaydedilemedi.
+today, %1$s	bugün, %1$s
+yesterday, %1$s	dün, %1$s
+Follower history button	Takipçi geçmişi düğmesi
+Puts a button under the counts on your own profile that opens the follower history and says how many people left since you last looked.	Kendi profilindeki sayıların altına takipçi geçmişini açan ve son baktığından beri kaç kişinin ayrıldığını gösteren bir düğme koyar.
+Notify me when someone unfollows	Biri takipten çıkınca bana bildir
+When a look at your whole Followers list finds someone gone, a notification says who. Tapping it opens the follower history.	Takipçiler listenin tamamına bakıldığında biri eksikse, bir bildirim kim olduğunu söyler. Dokununca takipçi geçmişi açılır.

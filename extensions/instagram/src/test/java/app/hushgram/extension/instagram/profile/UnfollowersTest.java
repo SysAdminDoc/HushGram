@@ -81,7 +81,7 @@ public class UnfollowersTest {
     }
 
     private final List<Map<String, String>> kept = new ArrayList<>();
-    private final Unfollowers.Keeper keeper = (viewer, followers, when) -> kept.add(followers);
+    private final Unfollowers.Keeper keeper = (viewer, followers, following, count, when) -> kept.add(followers);
     private Context context;
 
     @Before
