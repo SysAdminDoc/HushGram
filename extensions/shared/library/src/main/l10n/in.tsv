@@ -1168,3 +1168,61 @@ Puts a music icon beside a reel. Tap it and the Reels tab skips other reels usin
 Hidden sounds	Suara tersembunyi
 The sounds you hid with the music icon. Uncheck one to see its reels again.	Suara yang kamu sembunyikan dengan ikon musik. Hapus centang salah satunya untuk melihat reel-nya lagi.
 No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Belum ada suara yang disembunyikan. Aktifkan Sembunyikan reel menurut suara, lalu ketuk ikon musik di samping reel.
+1 unfollowed you	1 berhenti mengikutimu
+%1$d unfollowed you	%1$d berhenti mengikutimu
+Follower history	Riwayat pengikut
+Unfollowers	Berhenti mengikuti
+Who left your Followers list, found by HushGram's follower history	Siapa yang keluar dari daftar Pengikutmu, ditemukan oleh riwayat pengikut HushGram
+%1$s unfollowed you	%1$s berhenti mengikutimu
+1 person unfollowed you	1 orang berhenti mengikutimu
+%1$d people unfollowed you	%1$d orang berhenti mengikutimu
+Check now couldn't find your followers count.	Periksa sekarang tidak menemukan jumlah pengikutmu.
+Check now couldn't open your Followers list.	Periksa sekarang tidak bisa membuka daftar Pengikutmu.
+Instagram showed %1$d of your %2$d followers, too few to compare. Try again later.	Instagram menampilkan %1$d dari %2$d pengikutmu, terlalu sedikit untuk dibandingkan. Coba lagi nanti.
+Check now ran out of time before your Followers list finished loading.	Periksa sekarang kehabisan waktu sebelum daftar Pengikutmu selesai dimuat.
+Check now stopped: your Followers list closed.	Periksa sekarang berhenti: daftar Pengikutmu ditutup.
+Check now stopped: your Followers list stopped loading.	Periksa sekarang berhenti: daftar Pengikutmu berhenti memuat.
+followers at the last check	pengikut pada pemeriksaan terakhir
+unfollowed	berhenti mengikuti
+followed again	mengikuti lagi
+new	baru
+Check now	Periksa sekarang
+Export	Ekspor
+Reading…	Membaca…
+Not checked yet	Belum diperiksa
+Last checked\n%1$s	Terakhir diperiksa\n%1$s
+Tap Check now, or scroll your own Followers list to the end. That first look is the starting point, and anyone who leaves after it shows up here.	Ketuk Periksa sekarang, atau gulir daftar Pengikut milikmu sampai akhir. Tampilan pertama itu menjadi titik awal, dan siapa pun yang pergi setelahnya muncul di sini.
+Nothing here with this filter.	Tidak ada apa pun dengan filter ini.
+No changes yet. Each time you check, anyone who left or joined shows up here.	Belum ada perubahan. Setiap kali kamu memeriksa, siapa pun yang pergi atau bergabung muncul di sini.
+Checked just now. No one left or joined since the check before.	Baru saja diperiksa. Tidak ada yang pergi atau bergabung sejak pemeriksaan sebelumnya.
+1 unfollowed	1 berhenti mengikuti
+%1$d unfollowed	%1$d berhenti mengikuti
+1 followed again	1 mengikuti lagi
+%1$d followed again	%1$d mengikuti lagi
+1 new	1 baru
+%1$d new	%1$d baru
+Checked just now: %1$s.	Baru saja diperiksa: %1$s.
+All %1$d	Semua %1$d
+Unfollowed %1$d	Berhenti mengikuti %1$d
+You follow them %1$d	Kamu ikuti %1$d
+Followed again %1$d	Mengikuti lagi %1$d
+New %1$d	Baru %1$d
+Unfollowed you	Berhenti mengikutimu
+Followed you again	Mengikutimu lagi
+Started following you	Mulai mengikutimu
+between %1$s and %2$s	antara %1$s dan %2$s
+by %1$s	sebelum %1$s
+You follow them	Kamu mengikutinya
+Copied %1$s	%1$s disalin
+Turn on Recent unfollowers in HushGram settings > Profiles first.	Aktifkan Berhenti mengikuti baru-baru ini di Pengaturan HushGram > Profil terlebih dahulu.
+Check now needs Instagram's main screen. Open your profile and try again.	Periksa sekarang membutuhkan layar utama Instagram. Buka profilmu dan coba lagi.
+Checking your followers…	Memeriksa pengikutmu…
+Export needs Android 10 or newer.	Ekspor membutuhkan Android 10 atau yang lebih baru.
+Saved to Download/HushGram/%1$s	Disimpan ke Download/HushGram/%1$s
+Couldn't save the follower history.	Tidak bisa menyimpan riwayat pengikut.
+today, %1$s	hari ini, %1$s
+yesterday, %1$s	kemarin, %1$s
+Follower history button	Tombol riwayat pengikut
+Puts a button under the counts on your own profile that opens the follower history and says how many people left since you last looked.	Menaruh tombol di bawah angka di profilmu sendiri yang membuka riwayat pengikut dan menunjukkan berapa orang yang pergi sejak terakhir kamu melihat.
+Notify me when someone unfollows	Beri tahu saat seseorang berhenti mengikuti
+When a look at your whole Followers list finds someone gone, a notification says who. Tapping it opens the follower history.	Saat pemeriksaan seluruh daftar Pengikutmu menemukan seseorang hilang, notifikasi memberi tahu siapa. Mengetuknya membuka riwayat pengikut.

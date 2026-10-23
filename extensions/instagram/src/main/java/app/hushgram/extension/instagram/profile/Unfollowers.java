@@ -136,6 +136,12 @@ public final class Unfollowers {
 
         @Nullable
         String username(Object user);
+
+        /** Whether you follow [user], as the row says, or null when it doesn't. */
+        @Nullable
+        default Boolean following(Object user) {
+            return null;
+        }
     }
 
     static final Parts PATCHED = new Parts() {
@@ -183,20 +189,52 @@ public final class Unfollowers {
         public String username(Object user) {
             return Unfollowers.username(user);
         }
+
+        @Override
+        public Boolean following(Object user) {
+            return FriendshipStatus.friendshipFollowing(user);
+        }
     };
 
-    /** What a list taken is handed to: written off the main thread on the phone, at once in tests. */
+    /**
+     * What a list taken is handed to, with whether you follow each account and the profile's
+     * follower count: written off the main thread on the phone, at once in tests.
+     */
     interface Keeper {
-        void keep(String viewer, Map<String, String> followers, long when);
+        void keep(String viewer, Map<String, String> followers, Map<String, Boolean> following, int count, long when);
     }
 
-    private static final Keeper STORED = (viewer, followers, when) -> {
+    /**
+     * How long a whole list has to stay as it is before it's kept. At the end of a long list
+     * Instagram builds the rows more than once: a list of 1,150 that a moment later held all 1,157
+     * was kept first and named 7 people as gone (S23 Ultra, 2026-10-23).
+     */
+    static final long SETTLE_MS = 2500;
+
+    /** The newest whole list waiting to settle, by account. Main thread only. */
+    private static final Map<String, Runnable> settling = new HashMap<>();
+
+    private static final Keeper STORED = (viewer, followers, following, count, when) -> {
         Context context = Utils.getContext();
         if (context == null) return;
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-        if (!Utils.runOnBackgroundThread(() -> take(application, viewer, followers, when))) {
-            forgetTaken(viewer);
+        Runnable keep = new Runnable() {
+            @Override
+            public void run() {
+                synchronized (settling) {
+                    // A newer list came in meanwhile, and it waits in turn.
+                    if (settling.get(viewer) != this) return;
+                    settling.remove(viewer);
+                }
+                if (!Utils.runOnBackgroundThread(() -> take(application, viewer, followers, following, count, when))) {
+                    forgetTaken(viewer);
+                }
+            }
+        };
+        synchronized (settling) {
+            settling.put(viewer, keep);
         }
+        Utils.runOnMainThreadDelayed(keep, SETTLE_MS);
     };
 
     /**
@@ -218,25 +256,33 @@ public final class Unfollowers {
             if (!(kind instanceof Enum) || !FOLLOWERS_KIND.equals(((Enum<?>) kind).name())) return false;
             String viewer = parts.viewer(binder);
             if (viewer == null || viewer.isEmpty() || !viewer.equals(parts.owner(binder))) return false;
-            // Only a list with nothing more to load, and never on a guess.
-            if (!Boolean.FALSE.equals(parts.hasMore(list))) return false;
+            Boolean more = parts.hasMore(list);
             List<?> loaded = (List<?>) users;
             Object account = parts.ownerAccount(list);
             Integer count = account == null ? null : parts.followerCount(account);
+            // Check now scrolls this list while it's your own Followers list and has more to load.
+            FollowersCheck.ownFollowers(more, loaded.size(), count);
+            // Only a list with nothing more to load, and never on a guess.
+            if (!Boolean.FALSE.equals(more)) return false;
             if (count == null || !full(loaded.size(), count)) {
                 Logger.printDebug(() -> "Recent unfollowers: " + loaded.size() + " of " + count + " followers loaded, not taken");
                 return false;
             }
             Map<String, String> followers = new LinkedHashMap<>();
+            Map<String, Boolean> following = new HashMap<>();
             for (Object user : loaded) {
                 String id = parts.id(user);
                 // A row that can't be told apart makes the whole list untrustworthy.
                 if (id == null || id.isEmpty()) return false;
                 String name = parts.username(user);
                 followers.put(id, name == null ? "" : name);
+                Boolean follow = parts.following(user);
+                if (follow != null) following.put(id, follow);
             }
-            if (!firstTake(viewer, followers)) return false;
-            keeper.keep(viewer, followers, now);
+            // A rebuild of the list taken already isn't taken again, unless Check now asked for it.
+            if (!firstTake(viewer, followers) && !FollowersCheck.running()) return false;
+            FollowersCheck.handedOver();
+            keeper.keep(viewer, followers, following, count, now);
             return true;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, SEEN, failure);
@@ -301,12 +347,24 @@ public final class Unfollowers {
         return new Record(new LinkedHashMap<>(followers), when, left);
     }
 
-    /** Compares the list taken with the one kept for [viewer], and keeps the result. Never throws. */
+    /** {@link #take} for a list whose rows said nothing about whether you follow them. */
     public static void take(Context application, String viewer, Map<String, String> followers, long when) {
+        take(application, viewer, followers, Collections.emptyMap(), followers.size(), when);
+    }
+
+    /**
+     * Compares the list taken with the one kept for [viewer], keeps the result and adds the check to
+     * the follower history ({@link FollowerHistory}), whose changes then go to the screen or the
+     * notification ({@link FollowersCheck#taken}). Never throws.
+     */
+    public static void take(Context application, String viewer, Map<String, String> followers,
+                            Map<String, Boolean> following, int count, long when) {
+        FollowerHistory.Change change = null;
         synchronized (LOCK) {
             try {
                 Record before = read(file(application, hash(viewer)));
                 Record after = compare(before, followers, when);
+                change = FollowerHistory.record(application, viewer, before, followers, following, count, when);
                 write(file(application, hash(viewer)), after);
                 writeLast(application, hash(viewer));
                 int listed = after.left.size();
@@ -316,6 +374,7 @@ public final class Unfollowers {
                 HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, SAVE, failure);
             }
         }
+        if (change != null) FollowersCheck.taken(application, change);
     }
 
     /**
@@ -437,6 +496,12 @@ public final class Unfollowers {
         try (Writer out = new OutputStreamWriter(new FileOutputStream(last), StandardCharsets.UTF_8)) {
             out.write(hash);
         }
+    }
+
+    /** The hash naming the last account whose list was taken, or null. */
+    @Nullable
+    static String lastHash(Context application) throws IOException {
+        return readLast(application);
     }
 
     @Nullable

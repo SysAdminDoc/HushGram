@@ -2893,7 +2893,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         Row row = new Row(context);
         row.setKey(UNFOLLOWERS_ROW);
         row.setPersistent(false);
-        row.setSelectable(false);
+        // A tap opens the follower history over these settings, and Back comes back here.
+        row.setSelectable(true);
+        row.setOnPreferenceClickListener(p -> {
+            Activity activity = activityOf(p.getContext());
+            if (activity != null) FollowersScreen.show(activity);
+            return true;
+        });
         row.setTitle(L10n.t("Who unfollowed you"));
         row.setSummary(L10n.t("Reading the list…"));
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;

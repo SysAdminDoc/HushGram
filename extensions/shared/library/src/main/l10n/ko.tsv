@@ -1167,3 +1167,61 @@ Puts a music icon beside a reel. Tap it and the Reels tab skips other reels usin
 Hidden sounds	숨긴 사운드
 The sounds you hid with the music icon. Uncheck one to see its reels again.	음악 아이콘으로 숨긴 사운드입니다. 체크를 해제하면 그 사운드의 릴스가 다시 보입니다.
 No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	아직 숨긴 사운드가 없습니다. 사운드별로 릴스 숨기기를 켠 다음 릴스 옆의 음악 아이콘을 탭하세요.
+1 unfollowed you	1명이 언팔로우함
+%1$d unfollowed you	%1$d명이 언팔로우함
+Follower history	팔로워 기록
+Unfollowers	언팔로우
+Who left your Followers list, found by HushGram's follower history	HushGram의 팔로워 기록이 찾은, 내 팔로워 목록에서 떠난 사람
+%1$s unfollowed you	%1$s님이 나를 언팔로우했습니다
+1 person unfollowed you	1명이 나를 언팔로우했습니다
+%1$d people unfollowed you	%1$d명이 나를 언팔로우했습니다
+Check now couldn't find your followers count.	지금 확인이 팔로워 수를 찾지 못했습니다.
+Check now couldn't open your Followers list.	지금 확인이 팔로워 목록을 열지 못했습니다.
+Instagram showed %1$d of your %2$d followers, too few to compare. Try again later.	Instagram이 팔로워 %2$d명 중 %1$d명만 보여줘서 비교하기에 너무 적습니다. 나중에 다시 시도하세요.
+Check now ran out of time before your Followers list finished loading.	팔로워 목록을 다 불러오기 전에 지금 확인 시간이 다 됐습니다.
+Check now stopped: your Followers list closed.	지금 확인 중지됨: 팔로워 목록이 닫혔습니다.
+Check now stopped: your Followers list stopped loading.	지금 확인 중지됨: 팔로워 목록 로딩이 멈췄습니다.
+followers at the last check	마지막 확인 때의 팔로워
+unfollowed	언팔로우
+followed again	다시 팔로우
+new	새 팔로워
+Check now	지금 확인
+Export	내보내기
+Reading…	읽는 중…
+Not checked yet	아직 확인 안 함
+Last checked\n%1$s	마지막 확인\n%1$s
+Tap Check now, or scroll your own Followers list to the end. That first look is the starting point, and anyone who leaves after it shows up here.	지금 확인을 누르거나 내 팔로워 목록을 끝까지 스크롤하세요. 그 첫 확인이 시작점이 되고, 그 후에 떠나는 사람은 여기에 표시됩니다.
+Nothing here with this filter.	이 필터에 해당하는 항목이 없습니다.
+No changes yet. Each time you check, anyone who left or joined shows up here.	아직 변경 사항이 없습니다. 확인할 때마다 떠나거나 새로 들어온 사람이 여기에 표시됩니다.
+Checked just now. No one left or joined since the check before.	방금 확인했습니다. 지난 확인 이후 떠나거나 새로 들어온 사람이 없습니다.
+1 unfollowed	1명 언팔로우
+%1$d unfollowed	%1$d명 언팔로우
+1 followed again	1명 다시 팔로우
+%1$d followed again	%1$d명 다시 팔로우
+1 new	새 팔로워 1명
+%1$d new	새 팔로워 %1$d명
+Checked just now: %1$s.	방금 확인함: %1$s.
+All %1$d	전체 %1$d
+Unfollowed %1$d	언팔로우 %1$d
+You follow them %1$d	내가 팔로우 중 %1$d
+Followed again %1$d	다시 팔로우 %1$d
+New %1$d	새 팔로워 %1$d
+Unfollowed you	나를 언팔로우함
+Followed you again	나를 다시 팔로우함
+Started following you	나를 팔로우하기 시작함
+between %1$s and %2$s	%1$s~%2$s 사이
+by %1$s	%1$s까지
+You follow them	내가 팔로우 중
+Copied %1$s	%1$s 복사됨
+Turn on Recent unfollowers in HushGram settings > Profiles first.	먼저 HushGram 설정 > 프로필에서 최근 언팔로우를 켜세요.
+Check now needs Instagram's main screen. Open your profile and try again.	지금 확인은 Instagram 메인 화면에서만 됩니다. 내 프로필을 열고 다시 시도하세요.
+Checking your followers…	팔로워 확인 중…
+Export needs Android 10 or newer.	내보내기는 Android 10 이상이 필요합니다.
+Saved to Download/HushGram/%1$s	Download/HushGram/%1$s에 저장됨
+Couldn't save the follower history.	팔로워 기록을 저장하지 못했습니다.
+today, %1$s	오늘, %1$s
+yesterday, %1$s	어제, %1$s
+Follower history button	팔로워 기록 버튼
+Puts a button under the counts on your own profile that opens the follower history and says how many people left since you last looked.	내 프로필의 숫자 아래에 팔로워 기록을 여는 버튼을 넣고, 마지막으로 본 이후 몇 명이 떠났는지 알려줍니다.
+Notify me when someone unfollows	누군가 언팔로우하면 알림
+When a look at your whole Followers list finds someone gone, a notification says who. Tapping it opens the follower history.	전체 팔로워 목록을 확인했을 때 사라진 사람이 있으면 알림으로 누구인지 알려줍니다. 알림을 누르면 팔로워 기록이 열립니다.

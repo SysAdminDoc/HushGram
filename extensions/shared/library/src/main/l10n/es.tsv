@@ -1168,3 +1168,61 @@ Puts a music icon beside a reel. Tap it and the Reels tab skips other reels usin
 Hidden sounds	Sonidos ocultos
 The sounds you hid with the music icon. Uncheck one to see its reels again.	Los sonidos que ocultaste con el icono de música. Desmarca uno para volver a ver sus reels.
 No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Aún no hay sonidos ocultos. Activa Ocultar reels por sonido y luego toca el icono de música junto a un reel.
+1 unfollowed you	1 dejó de seguirte
+%1$d unfollowed you	%1$d dejaron de seguirte
+Follower history	Historial de seguidores
+Unfollowers	Dejaron de seguirte
+Who left your Followers list, found by HushGram's follower history	Quién salió de tu lista de seguidores, según el historial de seguidores de HushGram
+%1$s unfollowed you	%1$s dejó de seguirte
+1 person unfollowed you	1 persona dejó de seguirte
+%1$d people unfollowed you	%1$d personas dejaron de seguirte
+Check now couldn't find your followers count.	Comprobar ahora no encontró tu número de seguidores.
+Check now couldn't open your Followers list.	Comprobar ahora no pudo abrir tu lista de seguidores.
+Instagram showed %1$d of your %2$d followers, too few to compare. Try again later.	Instagram mostró %1$d de tus %2$d seguidores, muy pocos para comparar. Vuelve a intentarlo más tarde.
+Check now ran out of time before your Followers list finished loading.	Comprobar ahora se quedó sin tiempo antes de que tu lista de seguidores terminara de cargar.
+Check now stopped: your Followers list closed.	Comprobar ahora se detuvo: se cerró tu lista de seguidores.
+Check now stopped: your Followers list stopped loading.	Comprobar ahora se detuvo: tu lista de seguidores dejó de cargar.
+followers at the last check	seguidores en la última comprobación
+unfollowed	dejaron de seguirte
+followed again	volvieron a seguirte
+new	nuevos
+Check now	Comprobar ahora
+Export	Exportar
+Reading…	Leyendo…
+Not checked yet	Sin comprobar todavía
+Last checked\n%1$s	Última comprobación\n%1$s
+Tap Check now, or scroll your own Followers list to the end. That first look is the starting point, and anyone who leaves after it shows up here.	Toca Comprobar ahora o desplaza tu propia lista de seguidores hasta el final. Ese primer vistazo es el punto de partida, y quien se vaya después aparecerá aquí.
+Nothing here with this filter.	No hay nada con este filtro.
+No changes yet. Each time you check, anyone who left or joined shows up here.	Aún no hay cambios. Cada vez que compruebes, aquí aparecerá quien se fue o se unió.
+Checked just now. No one left or joined since the check before.	Comprobado ahora mismo. Nadie se fue ni se unió desde la comprobación anterior.
+1 unfollowed	1 dejó de seguirte
+%1$d unfollowed	%1$d dejaron de seguirte
+1 followed again	1 volvió a seguirte
+%1$d followed again	%1$d volvieron a seguirte
+1 new	1 nuevo
+%1$d new	%1$d nuevos
+Checked just now: %1$s.	Comprobado ahora mismo: %1$s.
+All %1$d	Todos %1$d
+Unfollowed %1$d	Dejaron de seguirte %1$d
+You follow them %1$d	Los sigues %1$d
+Followed again %1$d	Volvieron a seguirte %1$d
+New %1$d	Nuevos %1$d
+Unfollowed you	Dejó de seguirte
+Followed you again	Volvió a seguirte
+Started following you	Empezó a seguirte
+between %1$s and %2$s	entre el %1$s y el %2$s
+by %1$s	hasta el %1$s
+You follow them	Lo sigues
+Copied %1$s	Se copió %1$s
+Turn on Recent unfollowers in HushGram settings > Profiles first.	Primero activa Dejaron de seguirte en Configuración de HushGram > Perfiles.
+Check now needs Instagram's main screen. Open your profile and try again.	Comprobar ahora necesita la pantalla principal de Instagram. Abre tu perfil y vuelve a intentarlo.
+Checking your followers…	Comprobando tus seguidores…
+Export needs Android 10 or newer.	Exportar requiere Android 10 o posterior.
+Saved to Download/HushGram/%1$s	Se guardó en Download/HushGram/%1$s
+Couldn't save the follower history.	No se pudo guardar el historial de seguidores.
+today, %1$s	hoy, %1$s
+yesterday, %1$s	ayer, %1$s
+Follower history button	Botón del historial de seguidores
+Puts a button under the counts on your own profile that opens the follower history and says how many people left since you last looked.	Pone un botón debajo de los números de tu propio perfil que abre el historial de seguidores y dice cuántas personas se fueron desde la última vez que miraste.
+Notify me when someone unfollows	Avisarme cuando alguien deje de seguirme
+When a look at your whole Followers list finds someone gone, a notification says who. Tapping it opens the follower history.	Cuando una revisión de tu lista de seguidores completa encuentra que falta alguien, una notificación dice quién. Al tocarla se abre el historial de seguidores.

@@ -80,6 +80,8 @@ import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRest
 public final class SettingsEntry {
     public static final String EXTRA_OPEN_SETTINGS = "app.hushgram.extension.instagram.OPEN_SETTINGS";
     static final String SHORTCUT_ID = "hushgram_settings";
+    /** The follower history's launcher shortcut, there while Recent unfollowers is on. */
+    static final String FOLLOWERS_SHORTCUT_ID = "hushgram_followers";
 
     /** Exported, and what every launcher alias of Instagram's targets. A manifest name is kept. */
     static final String MAIN_ACTIVITY = "com.instagram.mainactivity.InstagramMainActivity";
@@ -113,6 +115,8 @@ public final class SettingsEntry {
      * moves to a screen in front, and dropped by the next request or the person closing it.
      */
     private static volatile String requestedPage;
+    /** Whether the pending request is for the follower history rather than the settings. */
+    private static volatile boolean followersRequested;
     /** The long label last pushed, or found already on the shortcut, in this process. */
     private static volatile String publishedLabel;
     /** A check of the shortcut's place is waiting for the background thread. */
@@ -190,6 +194,7 @@ public final class SettingsEntry {
             String longLabel = L10n.t(app, "HushGram settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
+            syncFollowersShortcut(app, manager);
             if (!Settings.SETTINGS_SHORTCUT.get()) {
                 removeShortcut(manager);
                 return;
@@ -218,6 +223,7 @@ public final class SettingsEntry {
             }
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
+            syncFollowersShortcut(app, manager);
             // Switched off, Instagram's calls neither bring it back nor rank it.
             if (!Settings.SETTINGS_SHORTCUT.get()) {
                 removeShortcut(manager);
@@ -271,6 +277,41 @@ public final class SettingsEntry {
         if (ours(manager) == null) return;
         manager.removeDynamicShortcuts(Collections.singletonList(SHORTCUT_ID));
         Logger.printInfo(() -> "Settings entry: launcher shortcut removed, its switch is off");
+    }
+
+    /**
+     * Puts the follower history's shortcut, Who unfollowed you, second among the launcher icon's
+     * while Recent unfollowers is on, and takes it out while it's off. Instagram's own stay.
+     */
+    static void syncFollowersShortcut(Context app, ShortcutManager manager) {
+        try {
+            ShortcutInfo existing = null;
+            for (ShortcutInfo each : manager.getDynamicShortcuts()) {
+                if (FOLLOWERS_SHORTCUT_ID.equals(each.getId())) existing = each;
+            }
+            if (!Settings.TRACK_UNFOLLOWERS.get() || !PatchFamily.unfollowersInBuild()) {
+                if (existing != null) manager.removeDynamicShortcuts(Collections.singletonList(FOLLOWERS_SHORTCUT_ID));
+                return;
+            }
+            String longLabel = L10n.t(app, "Who unfollowed you");
+            if (existing != null && existing.getRank() <= 1 && longLabel.contentEquals(existing.getLongLabel())) return;
+            ShortcutInfo shortcut = new ShortcutInfo.Builder(app, FOLLOWERS_SHORTCUT_ID)
+                    .setShortLabel(L10n.t(app, "Unfollowers"))
+                    .setLongLabel(longLabel)
+                    .setIcon(Icon.createWithAdaptiveBitmap(shortcutIcon()))
+                    .setIntent(FollowersScreen.intent(app))
+                    .setRank(1)
+                    .build();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                manager.pushDynamicShortcut(shortcut);
+            } else {
+                manager.removeDynamicShortcuts(Collections.singletonList(FOLLOWERS_SHORTCUT_ID));
+                manager.addDynamicShortcuts(Collections.singletonList(shortcut));
+            }
+            Logger.printInfo(() -> "Settings entry: follower history shortcut published");
+        } catch (Exception ex) {
+            Logger.printException(() -> "Settings entry: could not publish the follower history shortcut", ex);
+        }
     }
 
     /** The HushGram shortcut among the dynamic ones, or null. */
@@ -578,6 +619,12 @@ public final class SettingsEntry {
      * @return whether the screen is showing (or already was) over this activity.
      */
     public static boolean open(Activity activity) {
+        if (openPending && followersRequested) {
+            if (!FollowersScreen.show(activity)) return false;
+            followersRequested = false;
+            ShortcutCover.off("the follower history opened");
+            return true;
+        }
         // Only a pending request carries a page; a tap on Instagram's own settings row doesn't.
         return open(activity, openPending ? requestedPage : null);
     }
@@ -731,6 +778,7 @@ public final class SettingsEntry {
      * does, so it opens over the first Instagram screen that can show it.
      */
     static void reopenOn(String page) {
+        followersRequested = false;
         requestedPage = page;
         closedByUser = false;
         requestedAt = SystemClock.elapsedRealtime();
@@ -744,6 +792,7 @@ public final class SettingsEntry {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
         if (!closedByUser && ((host != null && host.get() == activity)
                 || (openPending && SystemClock.elapsedRealtime() - requestedAt <= REQUEST_LIFETIME_MS))) return true;
+        followersRequested = false;
         requestedPage = null;
         closedByUser = false;
         requestedAt = SystemClock.elapsedRealtime();
@@ -761,8 +810,20 @@ public final class SettingsEntry {
 
     /** Whether [intent] is the launcher shortcut's, which is then a pending request. */
     private static boolean noteIntent(Intent intent) {
+        if (intent != null && intent.getBooleanExtra(FollowersScreen.EXTRA_OPEN_FOLLOWERS, false)) {
+            intent.removeExtra(FollowersScreen.EXTRA_OPEN_FOLLOWERS);
+            requestedPage = null;
+            followersRequested = true;
+            closedByUser = false;
+            requestedAt = SystemClock.elapsedRealtime();
+            openPending = true;
+            themeRetryPending = false;
+            Logger.printInfo(() -> "Follower history requested by its shortcut or notification");
+            return true;
+        }
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
+            followersRequested = false;
             requestedPage = null;
             requestedAt = SystemClock.elapsedRealtime();
             openPending = true;

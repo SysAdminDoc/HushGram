@@ -71,6 +71,7 @@ public final class FriendshipStatus {
     public static void besidePronouns(Object slot, Object header) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (ownProfile(slot, header)) return;
             Relation relation = relation(header);
             if (relation == null && !FriendshipChip.anyShown()) return;
             View view = slotView(slot);
@@ -94,6 +95,11 @@ public final class FriendshipStatus {
     public static void inPlaceOfPronouns(Object slot, Object header) {
         try {
             HookStatus.invoked(FamilyNames.FRIENDSHIP_STATUS);
+            if (ownProfile(slot, header)) {
+                // Asking for the slot's view can put it in place, so it's hidden again as Instagram left it.
+                setSlotVisibility(slot, View.GONE);
+                return;
+            }
             Relation relation = relation(header);
             if (relation == null && !FriendshipChip.anyShown()) return;
             View view = slotView(slot);
@@ -111,6 +117,22 @@ public final class FriendshipStatus {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "profile header", failure);
         }
+    }
+
+    /**
+     * On your own profile, hands the header to the follower history's button ({@link FollowersChip})
+     * and to Check now ({@link FollowersCheck}), and answers true, since the follows-you label never
+     * goes on your own. On anyone else's, or before the profile's user is loaded, false.
+     */
+    static boolean ownProfile(Object slot, Object header) {
+        if (!Utils.settingsReady()) return false;
+        Object user = profileUser(header);
+        if (user == null || !isViewer(header, user)) return false;
+        View view = slotView(slot);
+        if (view == null) return true;
+        FollowersChip.ownProfile(view, view instanceof TextView ? (TextView) view : null);
+        FollowersCheck.ownProfile(view);
+        return true;
     }
 
     /**
