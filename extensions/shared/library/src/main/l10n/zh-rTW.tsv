@@ -1,0 +1,1235 @@
+# Traditional Chinese (Taiwan) for HushGram: the English key, a tab, the translation. One row per string.
+# After editing, run python scripts/gen-l10n.py from the repository root.
+# Copyright 2026 HushGram contributors. GPL-3.0-only.
+# https://github.com/SysAdminDoc/HushGram
+# Reference: piko-instagram-en-zh-TW.md (432 English/Traditional Chinese pairs, 2026-10-24).
+# Reference upstream: https://github.com/crimera/piko (GPL-3.0).
+%1$s of %2$s	%1$s / %2$s
+%1$s so far	目前共 %1$s
+%1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s。這是在套用修補程式時設定的，暫停也無法停用。若要確認是否由此造成，請重新套用修補程式並排除此項。
+%1$s. They were set when you patched, so Pause can't turn them off. To rule one out, patch again and leave out the patch in brackets after it.	%1$s。這些是在套用修補程式時設定的，暫停也無法停用。若要排查其中一項，請重新套用修補程式，並排除該項後方括號內的修補程式。
+A diagnostic report is already being saved.	已有診斷報告正在儲存。
+A file named %1$s in %2$s paused HushGram.	%2$s 中名為 %1$s 的檔案使 HushGram 暫停。
+About	關於
+Add the source to saved photos	在儲存的照片中加入來源資訊
+Ads and privacy	廣告與隱私
+Back	返回
+Before you sign in	登入之前
+Cancel	取消
+Clear diagnostic data	清除診斷資料
+Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	複製簡要報告，或將完整報告儲存至 %1$s。報告不含連結、ID、Cookie 與登入資訊。分享前，請確認是否還有其他私人文字。
+Copy a short report to the clipboard.	將簡要報告複製到剪貼簿。
+Copy quick report	複製簡要報告
+Copying to the gallery	正在複製到相簿
+Couldn't put back the diagnostic data. Try again.	無法還原診斷資料，請再試一次。
+Couldn't start the report export. Try again shortly.	無法開始匯出報告，請稍後再試。
+Couldn't turn HushGram back on. Try again.	無法重新啟用 HushGram，請再試一次。
+Debug logging	偵錯記錄
+Diagnostic data cleared. Tap again to put it back.	已清除診斷資料。再次點擊即可還原。
+Diagnostic data put back.	已還原診斷資料。
+Diagnostic report copied to the clipboard.	已將診斷報告複製到剪貼簿。
+Download failed	下載失敗
+Downloading	下載中
+Empties the activity log that a diagnostic report would include.	清空診斷報告會包含的活動記錄。
+Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了「偵錯記錄」以外，所有開關都會視為關閉；套用修補程式時的變更仍會保留。您儲存的設定不會改變。
+Export diagnostic report	匯出診斷報告
+From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，您選擇的設定也會繼續儲存。
+Lock these settings	鎖定這些設定
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
+Ask to unlock	請求解鎖
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	這些設定已鎖定。點擊開始等待 %1$s，之後會開放設定 10 分鐘。
+Unlock asked	已請求解鎖
+These settings open at %1$s, for 10 minutes.	這些設定將於 %1$s 開放 10 分鐘。
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	這些設定將於 %1$s 開放 10 分鐘。點擊可取消等待。
+Stop the wait	取消等待
+Keep waiting	繼續等待
+Wait stopped. These settings stay locked.	已取消等待。這些設定仍維持鎖定。
+Settings are open	設定已開放
+They lock again at %1$s. Tap to lock them now or turn the lock off.	將於 %1$s 重新鎖定。點擊可立即鎖定或停用鎖定功能。
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d 小時
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d 小時
+Turn the lock off	停用鎖定
+Settings locked	設定已鎖定
+Lock turned off	已停用鎖定
+These settings are locked. Ask to unlock first.	這些設定已鎖定，請先請求解鎖。
+Full report saved to %1$s	已將完整報告儲存至 %1$s
+GPL-3.0, with the notices of the projects this is built on	GPL-3.0，以及本專案所採用專案的聲明
+Gray out stories you've watched	將已看過的限時動態顯示為灰色
+Hide ads	隱藏廣告
+How far a photo or video you're saving has got, with a button to cancel it	顯示照片或影片的儲存進度，並提供取消按鈕
+HushGram %1$s on Instagram %2$s	HushGram %1$s，Instagram %2$s
+HushGram is on	HushGram 已啟用
+HushGram is paused	HushGram 已暫停
+HushGram pauses when Instagram restarts.	重新啟動 Instagram 後，HushGram 將會暫停。
+HushGram saves	HushGram 儲存項目
+HushGram settings	HushGram 設定
+HushGram settings couldn't open	無法開啟 HushGram 設定
+HushGram settings are locked	HushGram 設定已鎖定
+HushGram turns back on when Instagram restarts.	重新啟動 Instagram 後，HushGram 將會重新啟用。
+Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram 連續三次在啟動後一分鐘內當機或無回應，因此 HushGram 已自動暫停。
+Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	不再顯示 Instagram 版本過舊的畫面。修補過的版本不會自行更新，此功能可讓它繼續使用。
+Instagram's own checks of who signed the app keep passing on this patched build.	讓修補過的版本繼續通過 Instagram 本身對應用程式簽署者的檢查。
+Joining the picture and sound	正在合併影像與聲音
+Licenses	授權條款
+Link expired. Reopen the item and try again.	連結已過期。請重新開啟該項目後再試一次。
+Nobody outside Meta knows what gets an account suspended. A patched Instagram can't pass Google's check that it came from the Play Store, and no patch changes that. If you'd rather not risk your account, try a spare one first. Installing updates over the top with the same signing key keeps Instagram's data and your sign-in. On a rooted phone, a Root Mount install keeps the sign-in you already have.	除了 Meta，沒有人知道哪些行為會導致帳號停權。修補過的 Instagram 無法通過 Google 對 Play 商店來源的檢查，也沒有任何修補程式能改變這點。若不想讓帳號承擔風險，可以先使用備用帳號。同一簽署金鑰的更新可直接覆蓋安裝，保留 Instagram 資料與登入狀態。已取得 Root 權限的手機可透過 Root Mount 安裝，保留既有登入狀態。
+No app on this phone can open the link. The address is %1$s.	手機上沒有可開啟此連結的應用程式。網址為 %1$s。
+Not saved: that isn't an Instagram photo or video	未儲存：這不是 Instagram 照片或影片
+Not saved: the file is over 512 MB	未儲存：檔案超過 512 MB
+OK	確認
+Pause HushGram	暫停 HushGram
+Pause and diagnostics	暫停與診斷
+Instagram accepts this build	讓 Instagram 接受此版本
+Record patch activity and show errors for a bug report. Leave off during normal use.	記錄修補程式活動並顯示錯誤，以供回報問題。平常使用時請保持關閉。
+Remove build expired popup	移除版本過期提示
+Retry	重試
+Sanitize sharing links	淨化分享連結
+Save canceled	已取消儲存
+Save full report	儲存完整報告
+Save the full report in %1$s.	將完整報告儲存至 %1$s。
+Saved to %1$s	已儲存至 %1$s
+Saved to %1$s in lower quality than on Instagram	已儲存至 %1$s，畫質低於 Instagram 上的版本
+Saved to the gallery	已儲存至相簿
+Saved to the gallery in lower quality than on Instagram	已儲存至相簿，畫質低於 Instagram 上的版本
+Saved. Restart Instagram to apply this change.	已儲存。請重新啟動 Instagram 以套用變更。
+Saving a photo	正在儲存照片
+Saving a video	正在儲存影片
+Saving...	儲存中…
+Saving... You can cancel from Downloads in HushGram settings.	儲存中…您可以從 HushGram 設定中的「下載」取消。
+Set when you patched	套用修補程式時設定
+Settings couldn't open	無法開啟設定
+Settings couldn't refresh completely. Reopen settings and try again.	設定未能完整重新整理，請重新開啟設定後再試一次。
+Source code and issues	原始碼與問題回報
+Hides sponsored posts, reels and stories. No empty gap is left where an ad would have been.	隱藏贊助貼文、Reels 和限時動態，原本顯示廣告的位置不會留下空白。
+Stays in while paused	暫停時仍生效
+Removes tracking tags from links you copy or share, and opens bio links without Instagram's click tracker. The link still opens the same post, reel or profile.	移除複製或分享連結中的追蹤標記，並略過 Instagram 的點擊追蹤器開啟個人簡介連結。連結仍會開啟相同的貼文、Reel 或個人檔案。
+Tap to hide this.	點擊即可隱藏。
+Couldn't hide this notice. Try again.	無法隱藏此通知，請再試一次。
+Tap to turn it back on.	點擊即可重新啟用。
+The diagnostic report couldn't be saved yet. Try again in a moment.	目前還無法儲存診斷報告，請稍後再試。
+The diagnostic report couldn't be saved. Try again.	無法儲存診斷報告，請再試一次。
+The file %1$s couldn't be removed. Delete it from %2$s to turn HushGram back on.	無法移除檔案 %1$s。請從 %2$s 刪除它，以重新啟用 HushGram。
+The setting couldn't finish updating. Its saved value is shown.	未能完成更新設定，目前顯示的是已儲存的值。
+There's no diagnostic data to clear.	沒有可清除的診斷資料。
+There's no diagnostic data to put back.	沒有可還原的診斷資料。
+Try again, or go back to Instagram.	請再試一次，或返回 Instagram。
+Updates	更新
+Version	版本
+Version %1$s for Instagram %2$s	版本 %1$s，適用於 Instagram %2$s
+While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	匿名觀看時，已看過的限時動態會變成灰色並移到橫列末端，僅在這支手機上生效。Instagram 仍不會得知您已觀看。
+Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	將發文帳號、貼文日期及貼文連結寫入儲存照片的詳細資料，也就是相簿或 exiftool 可讀取的 EXIF。僅適用於 JPEG 照片，且只會寫入儲存時可取得的資訊。照片本身不會改變。
+You paused HushGram.	您已暫停 HushGram。
+the re-signed build fix	重新簽署版本修正
+Don't send reel watch history	不傳送 Reels 觀看記錄
+Stops telling Instagram which reels you watched or how far you got. Instagram uses that to pick your Reels. Watched reels may come back.	不再向 Instagram 回報您看過哪些 Reels 或觀看進度。Instagram 會用這些資料推薦 Reels，因此已看過的 Reels 可能再次出現。
+Reels	Reels
+Stop Story auto-advance	停用自動切換限時動態
+A finished story stays on screen until you tap or swipe. Turn this off for Instagram's timing.	限時動態播放結束後會停留在畫面上，直到您點擊或滑動。關閉後會使用 Instagram 原本的切換時間。
+Loop a story	循環播放限時動態
+A story plays again from the start when it ends, until you tap or swipe to move on. Ads still move on. With Stop Story auto-advance on too, stories loop.	限時動態播放結束後會從頭重播，直到您點擊或滑動切換。廣告仍會自動切換。同時啟用「停用自動切換限時動態」時，仍會循環播放。
+Show a story's exact time	顯示限時動態的確切時間
+A story's header shows its time the way the choice below says, instead of how long ago. It follows your phone's language and 12 or 24-hour setting.	限時動態頂端會依下方選項顯示時間，取代多久以前發佈的文字。使用手機的語言與 12 或 24 小時制設定。
+How the time shows	時間顯示方式
+Date and time	日期與時間
+Time left	剩餘時間
+Time posted	發佈時間
+The date and time the story was posted, like Oct 2, 3:45 PM.	限時動態發佈的日期與時間，例如 10 月 2 日下午 3:45。
+How long until the story expires, like 18h 14m left. Older stories show the date and time.	距離限時動態過期的時間，例如剩餘 18 小時 14 分鐘。較舊的限時動態則顯示日期與時間。
+Only the time the story was posted, like 3:45 PM. Stories posted before today show the date and time.	僅顯示限時動態發佈的時間，例如下午 3:45。今天之前發佈的限時動態則顯示日期與時間。
+Turn on Show a story's exact time to use this choice.	請啟用「顯示限時動態的確切時間」以使用此選項。
+%1$dh %2$dm left	剩餘 %1$d 小時 %2$d 分鐘
+%1$dm left	剩餘 %1$d 分鐘
+1m left	剩餘 1 分鐘
+Stories	限時動態
+Hide Reels in the feed	隱藏動態首頁中的 Reels
+The rows of suggested reels between posts in your home feed. A reel someone you follow posts stays.	隱藏動態首頁貼文之間的推薦 Reels 橫列。已追蹤帳號發佈的 Reel 仍會保留。
+Hide the Follow button	隱藏追蹤按鈕
+The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	隱藏 Reel 創作者旁的「追蹤」與「訂閱」按鈕。個人檔案中的按鈕仍會保留。
+Hide promotion buttons on reels	隱藏 Reels 推廣按鈕
+Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live badges and state-controlled media labels stay.	隱藏推廣 Edits、範本、Meta AI 和 Ray-Ban Meta 眼鏡的按鈕。直播徽章與國營媒體標籤仍會保留。
+Hide friends' activity and comment previews	隱藏好友活動與留言預覽
+The bubbles of friends who liked or commented, the Followed by and Liked by lines with their faces, the comment shown under a reel and the row of friends who saw it. Comments are still a tap away.	隱藏按讚或留言好友的泡泡、附有頭像的追蹤與按讚資訊、Reel 下方的留言預覽，以及看過該 Reel 的好友橫列。仍可點擊查看留言。
+Downloads	下載
+Save videos other apps can open	儲存其他應用程式可開啟的影片
+For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	適用於 WhatsApp、CapCut 和 InShot 等影片編輯器，以及播放儲存影片時沒有聲音的相簿或播放器。可能會降低畫質。
+Convert to keep the full size	轉換格式以保留完整尺寸
+Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.	以完整尺寸儲存其他應用程式可開啟的影片。若 Instagram 僅提供 VP9 或 AV1，會在手機上轉換為 H.264，而非儲存較小的版本。處理較慢，超過 3 分鐘的影片仍會儲存較小的版本。
+Converting to H.264	正在轉換為 H.264
+Download quality	下載畫質
+Best	最佳
+Smallest	最小
+Each video saves at the best quality Instagram offers for it.	每部影片皆以 Instagram 提供的最佳畫質儲存。
+Each video saves at its lowest quality, for the smallest file.	每部影片皆以最低畫質儲存，讓檔案最小。
+Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	每部影片會以 %1$s 或最接近且較低的畫質儲存。若沒有這麼低的畫質，則使用最接近且較高的畫質。
+Save folder	儲存資料夾
+Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	選擇 Movies 與 Pictures 底下的資料夾名稱。無效字元會替換為底線。留空則使用預設資料夾 %1$s。
+Save	儲存
+Folder name	資料夾名稱
+Folder set to %1$s.	資料夾已設為 %1$s。
+Video file name	影片檔名
+%1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s 代表儲存日期與時間，%2$s 代表影片在 Instagram 上的編號，%3$s 代表發佈者，%4$s 代表發佈日期。無法取得的資訊會略過；若名稱未包含這些項目，則會加入日期。資料夾內已有相同名稱時，會在結尾加上儲存時間。無效字元會替換為底線。留空則使用預設值 %5$s。
+File name	檔案名稱
+File name set to %1$s.	檔案名稱已設為 %1$s。
+Videos go to %1$s and photos to %2$s.	影片儲存至 %1$s，照片儲存至 %2$s。
+Example without post details	不含貼文資訊的範例
+Cancel saving this video	取消儲存此影片
+Cancel saving this photo	取消儲存此照片
+Download on reels	Reels 下載選項
+Adds Download to every reel's more menu, saved at your download quality. Off or paused, Instagram's own menu returns.	在每則 Reel 的更多選單中新增「下載」，並依下載畫質設定儲存。關閉或暫停後會還原 Instagram 原本的選單。
+Videos are named %1$s. Photos are always named %2$s followed by the date and time.	影片檔名為 %1$s。照片一律以 %2$s 加上日期與時間命名。
+Download	下載
+Download as video	下載為影片
+Download as photo	下載為照片
+Download on stories	限時動態下載選項
+Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	在任何人的限時動態選單中新增「下載」，照片與影片皆適用，並依下載畫質設定儲存。關閉或暫停後會還原 Instagram 原本的選單。
+Upload stories at full quality	以完整畫質上傳限時動態
+Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	影片限時動態會以 1080p 與較高位元率上傳，等同啟用 Instagram 的「以最高畫質上傳」。Instagram 伺服器仍會將影片縮小為 720p，因此觀眾看到的差異不大。照片限時動態的上傳尺寸原本就大於 Instagram 保留的尺寸。
+Download feed videos	下載動態首頁影片
+Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	在動態首頁的影片貼文選單中新增「下載」，使用下方的畫質設定。關閉或暫停後會還原 Instagram 原本的選單。
+Playback	播放
+Tap to play	點擊播放
+Videos wait for your tap where the choice below says. Feed videos show a play button, as they do when you use less mobile data.	下方選擇的位置會等待您點擊才播放影片。動態首頁影片會顯示播放按鈕，如同啟用節省行動數據時一樣。
+Where videos wait	等待點擊的位置
+Everywhere	所有位置
+Everywhere but Reels	Reels 以外的位置
+Only in Reels	僅 Reels
+Feed videos, reels and stories all wait for your tap.	動態首頁影片、Reels 和限時動態皆等待您點擊才播放。
+Feed videos and stories wait for your tap. Reels play as you swipe to them.	動態首頁影片與限時動態會等待您點擊。Reels 則在滑動至該影片時播放。
+Reels wait for your tap. Feed videos and stories play as Instagram plays them.	Reels 會等待您點擊。動態首頁影片與限時動態則依 Instagram 原本的方式播放。
+Turn on Tap to play to use this choice.	請啟用「點擊播放」以使用此選項。
+Resume long videos	繼續播放長影片
+Videos and reels over two minutes pick up where you left off. Seek to start elsewhere. Live videos and ads start as usual.	超過兩分鐘的影片與 Reels 會從上次離開的位置繼續播放。可拖曳進度列改從其他位置開始。直播與廣告仍會照常播放。
+Default playback quality	預設播放畫質
+Videos, reels and stories play at the quality below, starting with the next one you open.	從下一部開啟的影片開始，影片、Reels 和限時動態會以下方畫質播放。
+Playback quality	播放畫質
+Auto	自動
+Data saver	節省數據
+Up to %1$s	最高 %1$s
+Highest	最高
+Instagram picks the quality as each video plays, from your connection.	Instagram 會在播放每部影片時，依連線狀況選擇畫質。
+Videos play at the lowest quality Instagram offers for each.	每部影片皆以 Instagram 提供的最低畫質播放。
+Videos play at the best quality up to %1$s that Instagram offers for each, or the closest above.	每部影片皆以 Instagram 提供、不超過 %1$s 的最佳畫質播放；若無符合項目，則使用最接近且較高的畫質。
+Videos play at the highest quality Instagram offers for each.	每部影片皆以 Instagram 提供的最高畫質播放。
+View stories anonymously	匿名觀看限時動態
+Instagram isn't told which stories you watch, so you stay off their viewer lists. Replying or reacting still shows you, and stories you've watched keep showing as new.	不讓 Instagram 得知您觀看了哪些限時動態，因此您不會出現在觀看者名單中。回覆或傳送心情回應仍會顯示您，且已看過的限時動態仍會顯示為未觀看。
+Advertising ID removed	已移除廣告 ID
+Instagram can't read your phone's advertising ID or tell Android's ad services which ads you saw or tapped. The permissions for them are gone from this build.	Instagram 無法讀取手機的廣告 ID，也無法向 Android 廣告服務回報您看過或點擊過哪些廣告。此版本已移除相關權限。
+the removed advertising ID permissions	已移除的廣告 ID 權限
+Turn off double tap to like	停用雙擊按讚
+A double tap on a post or reel no longer likes it or shows a heart. A single tap and the Like button work as before.	雙擊貼文或 Reel 不再按讚或顯示愛心。單擊與按讚按鈕仍會照常運作。
+On posts	貼文
+A double tap on a post doesn't like it. Turn this off to keep double tap to like on posts.	雙擊貼文不會按讚。關閉此選項可保留貼文雙擊按讚功能。
+On reels	Reels
+A double tap on a reel doesn't like it. Turn this off to keep double tap to like on reels.	雙擊 Reel 不會按讚。關閉此選項可保留 Reels 雙擊按讚功能。
+Hide the Reels tab	隱藏 Reels 分頁
+Takes Reels off the tab bar. Reels in your feed and reels people send you still open. Restart Instagram to see the change.	從分頁列移除 Reels。動態首頁與他人傳送的 Reels 仍可開啟。請重新啟動 Instagram 以套用變更。
+Show the Reels tab	顯示 Reels 分頁
+Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.	若 Instagram 未在您的分頁列顯示 Reels，則將其加回。同時啟用「隱藏 Reels 分頁」時，會優先隱藏。請重新啟動 Instagram 以套用變更。
+Show the Messages tab	顯示私訊分頁
+Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order can move it. Restart Instagram to see the change.	若 Instagram 未在您的分頁列顯示私訊，則將其加入個人檔案之前。可透過「分頁順序」移動。請重新啟動 Instagram 以套用變更。
+Hide the Messages tab	隱藏私訊分頁
+Takes the Messages button off the tab bar. A Messages button on Home's header still opens your chats, and so do notifications.	從分頁列移除私訊按鈕。仍可透過首頁頂端的私訊按鈕或通知開啟聊天。
+Show the Activity tab	顯示動態分頁
+Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can move it, and Hide notifications on Home's header takes the heart away. Restart Instagram to see the change.	在分頁列的個人檔案之前加入「動態」，即愛心按鈕開啟的畫面。可透過「分頁順序」移動；「隱藏首頁頂端的通知」會移除愛心按鈕。請重新啟動 Instagram 以套用變更。
+Keep the reel speed	保留 Reels 播放速度
+Keep a seek bar	保持顯示進度列
+Instagram's seek bar stays under every reel, short ones too, with the time played and the reel's length above it. Ads keep Instagram's own rules.	每則 Reel 下方都會保留 Instagram 的進度列，短片也適用，並在上方顯示已播放時間與影片長度。廣告仍依 Instagram 原本的規則運作。
+Keep auto scroll on	保持自動捲動
+Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after you leave Reels, until you turn it off.	在 Reels 開啟 Instagram 的自動捲動後，即使重新啟動或離開 Reels 仍會保持開啟，直到您將其關閉。
+Move on when a reel ends	Reel 結束後播放下一則
+When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.	Reel 結束後會切換至下一則，而非重播。使用 Instagram 本身的自動捲動，即使帳號未提供此功能也適用。啟用期間，Instagram 的「自動捲動」開關無法將其關閉。請重新啟動 Instagram 以套用變更。
+Stop Reels scrolling	停用 Reels 捲動
+A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	在 Reels 滑動不再切換至下一則，下拉也不會載入新影片。已開啟的 Reel 仍會播放。請重新啟動 Instagram 以套用變更。
+Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	將 Reel 鎖定為 2 倍速（按住邊緣後向下滑動），之後的 Reels 也會以 2 倍速播放。滑動解除鎖定，或按住邊緣後放開，即可恢復正常速度。
+Open links in external browser	在外部瀏覽器中開啟連結
+Web links you tap open in your usual browser, without Instagram's click tracker. Instagram pages and ads still open in the app.	點擊的網頁連結會在慣用瀏覽器開啟，略過 Instagram 的點擊追蹤器。Instagram 頁面與廣告仍在應用程式內開啟。
+Feed	動態首頁
+Hide suggested accounts	隱藏建議帳號
+Hide paid partnership Reels	隱藏付費合作 Reels
+Hides the rows of accounts, shops and hashtags Instagram suggests you follow.	隱藏 Instagram 建議追蹤的帳號、商店與主題標籤橫列。
+Hide suggested posts	隱藏推薦貼文
+Hides posts and reels from accounts you don't follow, marked Suggested for you. Posts from accounts you follow stay.	隱藏未追蹤帳號發佈、標示為「為你推薦」的貼文與 Reels。已追蹤帳號的貼文仍會保留。
+Hide Threads posts	隱藏 Threads 貼文
+Hides the posts, accounts and communities from Threads that Instagram mixes into your feed.	隱藏 Instagram 在動態首頁中插入的 Threads 貼文、帳號與社群。
+Stop swipe to create	停用滑動建立
+Full resolution photos	完整解析度照片
+Loads photos in your feed, carousels and opened posts at the largest size Instagram offers. This can use more data.	以 Instagram 提供的最大尺寸載入動態首頁、輪播貼文及已開啟貼文中的照片。可能會使用更多數據。
+A sideways swipe on Home no longer opens the camera. The + button and every other way into the camera still work.	在首頁左右滑動不再開啟相機。+ 按鈕及其他開啟相機的方式仍可使用。
+Meta AI	Meta AI
+Hide Meta AI in search and Home's bar	隱藏搜尋與首頁列中的 Meta AI
+Gives Search and your messages a plain search bar and removes Meta AI's buttons, follow-up bar and inbox row. Restart Instagram to see the change.	讓搜尋與私訊使用一般搜尋列，並移除 Meta AI 按鈕、追問列與收件匣橫列。請重新啟動 Instagram 以套用變更。
+Hide Meta AI posts	隱藏 Meta AI 貼文
+Hides Meta AI's videos, chats and pictures of you that Instagram puts in your home feed.	隱藏 Instagram 放在動態首頁中的 Meta AI 影片、聊天與您的生成圖片。
+Hide About this reel	隱藏「關於這則 Reel」
+Removes the summary, Sources and Ask Meta AI box from a reel's more menu. In your feed the audio row goes too. Other options stay.	從 Reel 的更多選單移除摘要、「來源」與「詢問 Meta AI」區塊。動態首頁中的音訊列也會移除。其他選項仍會保留。
+Hide Ask Meta AI in About this reel	隱藏「關於這則 Reel」中的「詢問 Meta AI」
+About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.	保留「關於這則 Reel」的摘要與「來源」，僅移除下方的「詢問 Meta AI」區塊。
+Hide Meta AI in the share sheet	隱藏分享表單中的 Meta AI
+Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.	從分享表單底部橫列移除 Meta AI。部分帳號會顯示為 Muse。
+Hide the Muse card	隱藏 Muse 卡片
+Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.	從首頁與個人檔案移除「認識 Muse」卡片及其「試用 Muse」按鈕。其他卡片仍會保留。
+Hide the Muse button on your profile	隱藏個人檔案上的 Muse 按鈕
+Removes the Muse button from the top bar of your profile. Your username and the menu stay.	從個人檔案頂端列移除 Muse 按鈕。使用者名稱與選單仍會保留。
+Hide Blend on reels	隱藏 Reels 上的 Blend
+Removes the Blend invite button from reels. Everything else on a reel stays.	移除 Reels 上的 Blend 邀請按鈕。Reel 上的其他內容仍會保留。
+Explore	探索
+Hide the Explore grid	隱藏探索網格
+Hides the grid of posts and reels under the Search tab's bar. Search, recent searches and results stay.	隱藏搜尋分頁搜尋列下方的貼文與 Reels 網格。搜尋、最近搜尋與搜尋結果仍會保留。
+Hide suggested accounts in search	隱藏搜尋中的建議帳號
+Leaves the Suggested for you accounts out of what shows when you tap the search bar. Recent searches stay.	點擊搜尋列時，不再顯示「為你推薦」的帳號。最近搜尋仍會保留。
+Messages	私訊
+Hide the notes row	隱藏筆記橫列
+Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	移除私訊頂端的筆記橫列，包括其中的地圖泡泡。聊天、搜尋與陌生訊息仍會保留。
+Hide the search bar in Messages	隱藏私訊中的搜尋列
+Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.	移除私訊頂端的搜尋列與篩選按鈕，也會移除 Meta AI 列。聊天、筆記與陌生訊息仍會保留。
+Hide Instants	隱藏 Instants
+Removes the stack of Instants (quick photos from friends) from your messages. Restart Instagram to see the change.	移除私訊中的 Instants 照片堆疊（好友的即拍照片）。請重新啟動 Instagram 以套用變更。
+Read messages without the seen receipt	匿名查看私訊
+Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	開啟聊天時不會讓對方知道您已讀，您仍可看到對方的已讀狀態。若要讓某個聊天知道您已讀，請在私訊中長按該聊天並點擊「標示為已讀」。
+Keep chats unread here	在此保留聊天未讀狀態
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	在這支手機上，開啟過的聊天仍會維持未讀，直到您長按並點擊「標示為已讀」。新收到的訊息也會維持未讀。關閉後，即使重新整理私訊，開啟過的聊天仍會維持已讀，直到收到新訊息。
+# context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
+Marked as read	已標示為已讀
+Couldn't mark as read	無法標示為已讀
+Hide that you're typing	隱藏「正在輸入…」狀態
+People you're chatting with don't see the typing dots while you write, and you still see theirs.	輸入訊息時，聊天對象不會看到正在輸入的提示，您仍可看到對方的提示。
+Hide your active status	隱藏上線狀態
+People don't see Active now for you while you use Instagram, and you still see when they're active. It takes effect the next time you come back to Instagram.	使用 Instagram 時，其他人不會看到您「目前在線上」，您仍可看到他人的上線狀態。下次返回 Instagram 時生效。
+Start Home on Following	首頁預設顯示追蹤中
+Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to switch. Restart Instagram to see the change.	開啟首頁時顯示已追蹤帳號的貼文，而非「為你推薦」。點擊首頁頂端即可切換。請重新啟動 Instagram 以套用變更。
+Hide suggested stories	隱藏推薦限時動態
+Hides stories from accounts you don't follow, and accounts Instagram suggests, in the row at the top of Home. Stories from accounts you follow stay.	隱藏首頁頂端橫列中來自未追蹤帳號的限時動態，以及 Instagram 建議的帳號。已追蹤帳號的限時動態仍會保留。
+Hide the Stories tray	隱藏限時動態橫幅
+Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.	移除首頁頂端整列限時動態，包括「你的限時動態」。仍可從個人檔案或訊息開啟限時動態。
+Hide the Music for you card	隱藏「為你推薦的音樂」卡片
+Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.	不讓 Instagram 的「為你推薦的音樂」卡片出現在觀看中的限時動態之間。限時動態本身仍會保留。
+Hide Suggested for you between stories	隱藏限時動態之間的「為你推薦」
+Leaves out the Suggested for you cards of accounts to follow that Instagram puts between the stories you tap through. The stories themselves stay.	移除瀏覽限時動態時，Instagram 在中間插入的「為你推薦」追蹤帳號卡片。限時動態本身仍會保留。
+Hide Add Yours cards between stories	隱藏限時動態之間的「換你了」卡片
+Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	移除瀏覽限時動態時，Instagram 在中間插入的「換你了」卡片，例如「熱門換你了」與「加入熱門換你了」。限時動態本身仍會保留。
+Download feed photos	下載動態首頁照片
+The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	在照片貼文與目前顯示照片的輪播貼文中加入相同的「下載」選項。以 Instagram 提供的最大尺寸儲存。
+the start-up fix for x86 devices	x86 裝置啟動修正
+# context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
+Pure black dark mode	AMOLED 純黑模式
+Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	將 Instagram 深色模式的近黑灰色改為純黑，底部滑出的選單也適用。按鈕仍保留原本的灰色。
+the pure black dark mode	純黑深色模式
+No Play Store updates	停用 Play 商店更新
+Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play 不會再為此版本提供 Meta 的更新。若要恢復一般 Instagram，請先解除安裝此版本，這會刪除手機上的 Instagram 資料。之後的 HushGram 版本也需套用「變更版本號碼」，否則無法覆蓋安裝。
+the raised version code	提高版本號碼
+Sharing	分享
+Hide group buttons	隱藏群組按鈕
+Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	從分享表單移除「新群組」與將所選對象組成群組傳送的按鈕。「分別傳送」仍會保留，也仍可從私訊建立群組。
+Story ring size	限時動態光圈尺寸
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	首頁頂端限時動態橫列的光圈會使用下方尺寸，未觀看限時動態的光圈則使用下方顏色。請重新啟動 Instagram 以套用變更。
+Ring size	光圈尺寸
+Instagram's size	Instagram 預設尺寸
+The rings are the size Instagram picks for your screen.	光圈使用 Instagram 依螢幕選擇的尺寸。
+The rings are %1$s of the size Instagram picks for your screen.	光圈尺寸為 Instagram 依螢幕選擇尺寸的 %1$s。
+# context: Stories list under Story ring size; it picks the color of the ring around a story you haven't watched
+Ring color	光圈顏色
+Instagram's colors	Instagram 預設顏色
+# context: two more colors in the Ring color list, beside Purple, Red and Orange
+Blue	藍色
+Gold	金色
+Hide the Repost button	隱藏轉發按鈕
+Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	移除貼文與 Reels 的轉發按鈕及次數，避免誤將內容轉發給追蹤者。仍可透過分享將貼文或 Reel 傳送給他人。
+Layout	版面配置
+Remove the empty space at the bottom	移除底部空白區域
+Removes the empty gap under Instagram's tab bar that appears when your phone hides its navigation bar or Instagram is in a pop-up window. Restart Instagram to see the change.	移除手機隱藏導覽列或 Instagram 以彈出式視窗顯示時，分頁列下方出現的空白。請重新啟動 Instagram 以套用變更。
+Only accounts you follow	僅顯示已追蹤的帳號
+Removes For you from the choices at the top of Home, so it stays on Following or Favorites. Needs Start Home on Following. Restart Instagram to see the change.	移除首頁頂端的「為你推薦」選項，讓首頁維持「追蹤中」或「最愛」。需啟用「首頁預設顯示追蹤中」。請重新啟動 Instagram 以套用變更。
+Instagram logo on Home	首頁顯示 Instagram 標誌
+Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.	在首頁頂端保留 Instagram 標誌，取代動態名稱。點擊即可切換動態。需啟用「首頁預設顯示追蹤中」。請重新啟動 Instagram 以套用變更。
+Profiles	個人檔案
+Show if a profile follows you	顯示帳號是否已追蹤您
+Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	在他人個人檔案的名稱旁新增「已追蹤你」或「未追蹤你」；若有設定代名詞，會顯示在代名詞之後。Instagram 完成查詢前不會顯示。
+Mark who doesn't follow you back	標示未回追的帳號
+On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	在您的追蹤中名單內，於未回追帳號的名稱後方新增「未追蹤你」。Instagram 完成查詢前不會顯示。
+Put accounts that don't follow you back first	優先顯示未回追的帳號
+On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.	在您的追蹤中名單內，將未回追帳號移至頂端，各組內仍維持 Instagram 原本的順序。尚未完成查詢的帳號會留在下方。
+Follows you	已追蹤你
+Doesn't follow you	未追蹤你
+Hide suggested people	隱藏推薦用戶
+Takes Suggested for you and the Discover people button off profiles, yours included. Bios, counts, posts and follower lists stay.	從個人檔案移除「為你推薦」與「探索用戶」按鈕，自己的個人檔案也適用。個人簡介、各項數量、貼文與追蹤者名單仍會保留。
+Hide Suggested for you on follow lists	隱藏追蹤名單中的「為你推薦」
+Leaves the Suggested for you section off the followers, following and mutual lists, and the Suggested tab off other people's follow lists. Every account in the lists stays.	移除追蹤者、追蹤中與共同追蹤名單的「為你推薦」區塊，以及他人追蹤名單中的推薦分頁。名單內的帳號仍會保留。
+Hide Complete your profile	隱藏「完善個人檔案」
+Takes the Complete your profile cards, like Add bio and Find people to follow, off your own profile. Your bio, counts and posts stay.	移除自己個人檔案上的「完善個人檔案」卡片，例如「新增個人簡介」與「尋找追蹤對象」。個人簡介、各項數量與貼文仍會保留。
+Hide People you don't follow back	隱藏「你未回追的用戶」
+Takes the People you don't follow back section off the bottom of your notifications. Notifications about new followers stay.	移除通知底部的「你未回追的用戶」區塊。新追蹤者通知仍會保留。
+Hide suggestions in notifications	隱藏通知中的推薦內容
+Takes rows that only suggest something off your notifications, like a thread from an account you don't follow or someone you might know. Likes, comments, mentions and new followers stay.	移除通知中僅用來推薦內容的橫列，例如未追蹤帳號的串文或您可能認識的人。按讚、留言、提及與新追蹤者通知仍會保留。
+Hide Featured in notifications	隱藏通知中的精選內容
+Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	移除通知頂端的精選區塊，也就是 Instagram 挑選給您的貼文與串文。下方內容仍會保留。
+Hide highlights	隱藏限時動態精選
+Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	移除個人檔案的限時動態精選橫列，自己的個人檔案也適用。個人簡介、各項數量與貼文仍會保留，限時動態中的「新增至精選」也不受影響。
+Hide the Threads button	隱藏 Threads 按鈕
+Takes the Threads button off the top of profiles, yours included. The menu and the other buttons stay where they were.	移除個人檔案頂端的 Threads 按鈕，自己的個人檔案也適用。選單與其他按鈕仍會保留在原位。
+Show profile posts as a list	以清單顯示個人檔案貼文
+Opening someone's profile takes you on to their posts as a scrolling list of full posts. Go Back for the grid. Your own profile keeps its grid.	開啟他人個人檔案時，直接以可捲動的完整貼文清單顯示。返回即可查看網格。自己的個人檔案仍使用網格。
+The cards of people and creators to follow that Instagram puts between reels. Every reel still plays.	隱藏 Instagram 在 Reels 之間插入的推薦用戶與創作者卡片。每則 Reel 仍會播放。
+Leaves out reels with a Paid partnership label, and reels Instagram marks as boosted. Ads have their own switch.	隱藏標示「付費合作夥伴」或 Instagram 標記為加強推廣的 Reels。廣告另有獨立開關。
+Turn on Start Home on Following to use this choice.	請啟用「首頁預設顯示追蹤中」以使用此選項。
+Turn on Story ring size to use this choice.	請啟用「限時動態光圈尺寸」以使用此選項。
+Turn on Default playback quality to use this choice.	請啟用「預設播放畫質」以使用此選項。
+Updating remembered positions...	正在更新記住的播放位置…
+Undo cleared positions	復原清除播放位置
+Clear remembered positions	清除記住的播放位置
+Undo is available until %1$s.	可在 %1$s 前復原。
+HushGram remembers where you stopped in up to 200 videos for 30 days. Tap to clear them from this device.	HushGram 最多會記住 200 部影片的停止位置，保留 30 天。點擊即可從此裝置清除。
+Remembered playback positions restored.	已還原記住的播放位置。
+Undo has expired.	復原期限已過。
+You cleared the remembered playback positions.	您已清除記住的播放位置。
+Couldn't update the remembered playback positions.	無法更新記住的播放位置。
+Settings backup	設定備份
+Export HushGram settings	匯出 HushGram 設定
+Choose a file for your installed patches' settings. Accounts and history stay on this device.	選擇檔案以儲存已安裝修補程式的設定。帳號與記錄仍留在此裝置上。
+Import HushGram settings	匯入 HushGram 設定
+Choose a settings file. All valid choices apply together, and ones this version doesn't know are skipped. The Undo row shows how long you can undo.	選擇設定檔案。所有有效選項會一併套用，此版本不認得的選項則會略過。「復原」列會顯示可復原的期限。
+Undo settings import	復原設定匯入
+Undo is available until %1$s. Restarting Instagram discards Undo.	可在 %1$s 前復原。重新啟動 Instagram 後將無法復原。
+No settings import to undo.	沒有可復原的設定匯入。
+This phone has no file picker. Your settings haven't changed.	這支手機沒有檔案選擇器。您的設定未變更。
+Couldn't use that settings file. Your settings haven't changed.	無法使用此設定檔案。您的設定未變更。
+HushGram settings exported.	已匯出 HushGram 設定。
+Couldn't export HushGram settings. Try another file.	無法匯出 HushGram 設定，請嘗試其他檔案。
+Settings restored.	已還原設定。
+Imported %1$d settings. Skipped %2$d that this version doesn't know.	已匯入 %1$d 項設定，略過此版本不認得的 %2$d 項設定。
+Imported %1$d settings.	已匯入 %1$d 項設定。
+Lock switches stay as they are until you change them here.	鎖定開關會維持原狀，直到您在此變更。
+Restart Instagram to apply these choices.	請重新啟動 Instagram 以套用這些選項。
+Couldn't save the settings. The previous values were restored.	無法儲存設定，已還原先前的值。
+Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	未能完整復原設定，請確認顯示的值。復原機會已使用。
+Couldn't save or fully restore the settings. Check the shown values and try Undo.	無法儲存或完整還原設定。請確認顯示的值，並嘗試復原。
+Couldn't start that. Try again.	無法開始，請再試一次。
+A save stopped. Reopen the media and save again.	一項儲存作業已停止。請重新開啟媒體後再次儲存。
+%1$d saves stopped. Reopen the media and save again.	%1$d 項儲存作業已停止。請重新開啟媒體後再次儲存。
+A save was interrupted	一項儲存作業遭到中斷
+%1$d saves were interrupted	%1$d 項儲存作業遭到中斷
+Reopen the media and save again.	請重新開啟媒體後再次儲存。
+Search settings	搜尋設定
+Clear search	清除搜尋
+No matching settings	沒有符合的設定
+Try another word. Settings only appear for patches included in this install.	請嘗試其他字詞。僅會顯示此安裝版本包含的修補程式設定。
+Save all	儲存全部
+Saving a carousel	正在儲存輪播貼文
+Cancel saving this carousel	取消儲存此輪播貼文
+Page %1$d of %2$d	第 %1$d 頁，共 %2$d 頁
+Not saved: a carousel can have at most %1$d pages	未儲存：輪播貼文最多只能有 %1$d 頁
+Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	已取消輪播貼文儲存。已儲存 %1$d 頁，失敗 %2$d 頁，略過 %3$d 頁。
+Saved %1$d. Failed %2$d. Skipped %3$d.	已儲存 %1$d 頁，失敗 %2$d 頁，略過 %3$d 頁。
+%1$d saved in lower quality than on Instagram.	其中 %1$d 頁的儲存畫質低於 Instagram 上的版本。
+Last carousel save	上次輪播貼文儲存結果
+Comments	留言
+Copy comment	複製留言
+Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	在所選留言的選單中新增「複製」，複製原始文字並保留換行。
+Copy without the @names at the start	複製時移除開頭的 @名稱
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	若留言以 @名稱 開頭（多數回覆皆如此），複製時會將其略過。Instagram 中的留言不會改變。
+Copy the commenter's username	複製留言者的使用者名稱
+Adds Copy username to a selected comment's menu, for the account that wrote it.	在所選留言的選單中新增「複製使用者名稱」，複製發表該留言的帳號名稱。
+Comment copied	已複製留言
+Couldn't copy comment	無法複製留言
+Save comment photo	儲存留言照片
+Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	若留言含有自己的照片或 GIF，則在所選留言的選單中新增「儲存」。以 Instagram 傳送的最大尺寸儲存。
+# context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
+Mark as seen button	標記為已讀按鈕
+Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	匿名觀看時，在每則限時動態頂端新增眼睛按鈕。點擊即可讓您出現在該則限時動態的觀看者名單中，其他限時動態仍維持匿名。
+Mark as seen	標記為已讀
+Marked as seen. Tap again to undo.	已標記為已讀。再次點擊即可復原。
+Marked as seen and sent	已標記為已讀並送出
+View DM photos and videos anonymously	匿名檢視私訊照片與影片
+Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	不讓對方知道您已開啟只能看一次的照片與影片。觀看後仍會消失。此為測試功能，預設關閉。
+Restored %1$d settings. Kept %2$d newer choices.	已還原 %1$d 項設定，保留較新的 %2$d 項選擇。
+Preparing diagnostic report...	正在準備診斷報告…
+Saving diagnostic report...	正在儲存診斷報告…
+Diagnostic report saved.	已儲存診斷報告。
+Choose a file for the settings export.	請選擇匯出設定的檔案。
+Exporting HushGram settings...	正在匯出 HushGram 設定…
+Settings export canceled.	已取消匯出設定。
+Round handle on the seek bar	進度列圓形拖曳鈕
+Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	在進度列新增可拖曳的白色圓形拖曳鈕。廣告仍使用原本的進度列。
+Bigger seek bar on reels	加大 Reels 進度列
+Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	加粗進度列，加入白色圓形拖曳鈕與上方時間，並以柔和的深色漸層為背景，讓任何影片上都清楚可見。拖曳即可跳轉，也會保留短 Reels 的進度列。
+Seek bar like DM videos	使用私訊影片樣式的進度列
+Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar is on too, this look wins. It also keeps the bar on short reels.	讓 Reels 使用聊天影片的進度列：播放時由灰轉白的細線，搭配大型白色圓形拖曳鈕，上方顯示時間。拖曳即可跳轉。同時啟用「加大 Reels 進度列」時，會優先使用此樣式。也會保留短 Reels 的進度列。
+Blur the bars around a reel	模糊 Reel 周圍的留白
+A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. Open Reels again after a change.	未填滿螢幕的 Reel 會在上下顯示自身的模糊影像，取代黑邊；分頁列下方與時鐘後方也會顯示模糊的 Reel。變更後請重新開啟 Reels。
+# Chosen navigation long-press settings entry. Account tab availability varies.
+Settings entry	設定入口
+Open settings with a tab long press	長按分頁開啟設定
+Choose a tab	選擇分頁
+Home	首頁
+Search	搜尋
+Profile	個人檔案
+Create (+)	建立（+）
+Camera	相機
+Activity	動態
+Creator tools	創作者工具
+Home feed picker	首頁動態選擇器
+Custom tab	自訂分頁
+Off	關閉
+Tab long presses keep Instagram's own action. Choose one to open HushGram instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟 HushGram。
+Long press %1$s to open HushGram instead of that tab's usual action. Normal taps and other tabs stay the same. Only tabs your account shows can be used.	長按 %1$s 會開啟 HushGram，取代該分頁原本的操作。一般點擊與其他分頁不受影響。僅可使用帳號有顯示的分頁。
+A sideways swipe no longer moves you between Home, Reels and the other main tabs. Tap the tab bar instead. Stop swipe to create covers the camera.	左右滑動不再切換首頁、Reels 與其他主要分頁，請改點擊分頁列。相機則由「停用滑動建立」控制。
+Ask for larger photos	要求更大尺寸的照片
+Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	刻意清空動態首頁，只顯示限時動態橫列，下方不顯示內容。個人檔案、探索與 Reels 仍會顯示貼文。變更後請下拉重新整理首頁。
+Hide the home feed	隱藏動態首頁內容
+On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. This uses more data. Restart Instagram to see the change.	在螢幕寬度低於 1440 像素的手機上，向 Instagram 要求適合更寬螢幕的照片。會使用更多數據。請重新啟動 Instagram 以套用變更。
+Full size covers	完整尺寸封面
+Reel covers and grid pictures come at full size, so Download cover saves a picked cover at full size too. Grids use a lot more data. Restart Instagram to see the change.	以完整尺寸載入 Reel 封面與網格圖片，因此「下載封面」也能以完整尺寸儲存選定的封面。網格會使用更多數據。請重新啟動 Instagram 以套用變更。
+Stop swiping between tabs	停用滑動切換分頁
+%d notifications	%d 則通知
+1 hour	1 小時
+1 minute	1 分鐘
+15 minutes	15 分鐘
+5 minutes	5 分鐘
+A group for each kind of notification, such as comments or messages, in place of one group.	依留言、私訊等通知類型各自分組，而非全部放在同一組。
+After 1 hour	1 小時後
+After 1 minute	1 分鐘後
+After 15 minutes	15 分鐘後
+After 5 minutes	5 分鐘後
+All of Instagram stays covered until your fingerprint, face or screen lock says it's you, your messages too.	Instagram 的所有畫面（包括私訊）都會被遮住，直到透過指紋、臉部或螢幕鎖定驗證身分。
+Group by type	依類型分組
+Group notifications	通知分組
+Hide shopping	隱藏購物內容
+Hide surveys	隱藏問卷
+Hide the caught up card	隱藏「已看完最新貼文」卡片
+Hides the card after the posts from accounts you follow that says you've seen the latest ones, and its Older posts link. When Home has no new posts at all, the card stays. Pull down on Home to refresh after changing it.	隱藏已追蹤帳號貼文之後的「已看完最新貼文」卡片與「較舊貼文」連結。若首頁完全沒有新貼文，仍會保留此卡片。變更後請下拉重新整理首頁。
+Instagram is locked	Instagram 已鎖定
+Instagram locks as soon as you leave it or the screen turns off.	離開 Instagram 或關閉螢幕後會立即鎖定。
+Instagram locks once you've been away from it for %1$s.	離開 Instagram %1$s 後會鎖定。
+Lock again	重新鎖定
+Lock all of Instagram	鎖定整個 Instagram
+Lock your messages	鎖定私訊
+New message	新訊息
+Notifications	通知
+Puts every notification from Instagram in one group that shows how many it holds, so they don't fill your notification shade. Tapping one still opens it.	將所有 Instagram 通知合併為一組並顯示數量，避免佔滿通知欄。點擊通知仍可開啟對應內容。
+Right away	立即
+Set a screen lock on your phone so HushGram can lock Instagram.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定 Instagram。
+Set a screen lock on your phone so HushGram can lock your messages.	請先在手機上設定螢幕鎖定，HushGram 才能鎖定私訊。
+Hides the cards between posts that ask you to rate what you saw.	隱藏貼文之間請您評價所看內容的卡片。
+Hides the rows of products to shop and live shopping that Instagram puts between posts, and the shop tiles in Explore. Posts with tagged products don't show the shopping bag.	隱藏 Instagram 在貼文之間插入的商品與直播購物橫列，以及探索中的商店方塊。標註商品的貼文也不會顯示購物袋。
+Unlock	解鎖
+Unlock Instagram	解鎖 Instagram
+Unlock your messages	解鎖您的訊息
+Your inbox and chats stay covered until your fingerprint, face or screen lock says it's you. Message notifications say only that a message came.	收件匣與聊天會被遮住，直到透過指紋、臉部或螢幕鎖定驗證身分。私訊通知只會顯示收到新訊息。
+Your messages are locked	您的私訊已鎖定
+Allow screenshots	允許截圖
+Couldn't change every Ghost mode switch. Check them below.	無法變更所有幽靈模式開關，請在下方確認。
+Couldn't change every Ghost mode switch. Open HushGram settings to check them.	無法變更所有幽靈模式開關，請開啟 HushGram 設定確認。
+Don't report screenshots	不回報截圖
+Ghost mode	幽靈模式
+Ghost mode is off, and so is each of its switches.	幽靈模式與其所有開關皆已關閉。
+Ghost mode is on, and so is each of its switches.	幽靈模式與其所有開關皆已開啟。
+Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Instagram 不會偵測到您截圖，因此不會通知傳送限時照片或影片的人。截圖仍會照常儲存。
+Keep in chat	保留在聊天室
+Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	觀看直播時，您不會出現在直播主的觀看者名單中，對方也不會知道您正在觀看。留言或傳送心情回應仍會顯示您。您看到的觀看人數將停止更新，直播結束後也可能持續顯示為直播中，直到您離開。
+Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	允許在 Instagram 原本禁止的畫面截圖與錄影，例如會消失的照片與影片。若不想讓傳送者收到通知，也請啟用「不回報截圖」。
+Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	一次開啟或關閉隱藏您活動的開關，例如「匿名觀看限時動態」與「隱藏『正在輸入…』狀態」。每項功能仍保留獨立開關。
+View live anonymously	匿名觀看直播
+Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	以只能看一次或可重播方式傳送的照片與影片會保留在聊天室，讓您再次開啟。已載入的內容請重新開啟聊天以更新。
+Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	在「下載」下方新增「下載封面」，以最大尺寸儲存 Reel 播放前顯示的靜態圖片。
+Adds Download audio under Download. It saves the sound of the reel as an audio file.	在「下載」下方新增「下載音訊」，將 Reel 的聲音儲存為音訊檔案。
+After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	觀看 20 則 Reels 後會停用 Reels 滑動，直到 Instagram 在背景停留 15 分鐘。從訊息或貼文開啟的 Reel 仍會播放。
+Find the reel you came from	尋找剛才的 Reel
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	從 Reel 開啟創作者個人檔案，再開啟其 Reels 分頁時，會捲動至該 Reel 並短暫加框標示。照片 Reel 會在貼文中尋找。「停止尋找」會在目前位置結束搜尋。
+Wait for a tap to find it	點擊後才尋找
+When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	若第一個畫面沒有該 Reel，個人檔案會顯示「尋找 Reel」按鈕，而非自動捲動。
+Find the reel	尋找 Reel
+Stop looking	停止尋找
+Couldn't find the reel you came from	找不到剛才的 Reel
+That's a trial reel, so it isn't on their profile	這是試用 Reel，因此不會出現在對方的個人檔案上
+Clear saved copies now	立即清除儲存的副本
+Clear the media cache	清除媒體快取
+Couldn't clear the saved copies. Try again.	無法清除儲存的副本，請再試一次。
+Don't save recent searches	不儲存最近搜尋
+Download cover	下載封面
+Download audio	下載音訊
+Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	點擊 Reel、動態首頁貼文或限時動態的「下載」，會開啟包含連結的分享表單，以便傳送給 Seal 等下載器。「儲存全部」與其他儲存選項仍會在此儲存。
+Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.	每次儲存時，會在儲存資料夾內建立以發文帳號命名的子資料夾。若無法取得發文帳號，則直接留在儲存資料夾中。
+Folder per account	按帳號分類資料夾
+Freed %1$s.	已釋出 %1$s。
+HDR photos and reels stop brightening the screen above everything else. They show at the same brightness as the rest of Instagram.	HDR 照片與 Reels 不再讓螢幕亮度高於其他內容，而是與 Instagram 其他部分維持相同亮度。
+Tells Instagram your phone is at %1$s.	向 Instagram 回報手機位於 %1$s。
+Tells Instagram your phone is at the place set below, for the location sticker, nearby places and maps. Photos keep their own places.	向 Instagram 回報手機位於下方設定的位置，供位置貼圖、附近地點與地圖使用。照片本身的位置不會改變。
+No place set. Until there is one, Instagram is told 0, 0 while Spoof location is on.	尚未設定位置。啟用「偽裝位置」期間，未設定前會向 Instagram 回報 0, 0。
+Only on mobile data	僅限行動數據
+Loads smaller photos and starts videos, reels and stories at the lowest quality. Grid thumbnails stay as they are. It takes priority over Full resolution photos and the quality above.	載入較小的照片，並以最低畫質開始播放影片、Reels 與限時動態。網格縮圖不變。此設定優先於「完整解析度照片」與上方的畫質設定。
+Place	位置
+Send downloads to another app	將下載傳送至其他應用程式
+Send to	傳送至
+Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	已傳送至其他應用程式。若要改在此儲存，請關閉「下載」中的「將下載傳送至其他應用程式」。
+Spoof location	偽裝位置
+Stop after 20 reels	觀看 20 則 Reels 後停止
+Take a scroll break	捲動休息時間
+# context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
+After %1$d minutes	%1$d 分鐘後
+Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	已關閉。可在使用首頁、Reels 與探索一段時間後，遮住這些分頁 5 分鐘。
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	在首頁、Reels 與探索分頁使用 %1$d 分鐘後，會顯示休息畫面並遮住這些分頁 5 分鐘。私訊、個人檔案與分頁列仍可使用。
+Time for a break	該休息一下了
+Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	倒數結束後，首頁、Reels 與探索會重新開放。私訊與個人檔案仍可使用。
+# context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
+Time for a break. Home, Reels and Explore open again in %1$s.	該休息一下了。首頁、Reels 與探索將在 %1$s 後重新開放。
+Storage	儲存空間
+That isn't a place. Type a latitude and a longitude with a comma between them.	這不是有效的位置。請輸入緯度與經度，並以逗號分隔。
+That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	已觀看 %1$d 則 Reels。Instagram 在背景停留 %2$d 分鐘之前，將停用 Reels 滑動。
+The latitude and the longitude in degrees, with a comma between them, like 40.758, -73.9855. North and east are positive, south and west negative. A map app shows both when you press and hold a spot.	以度為單位輸入緯度與經度，並以逗號分隔，例如 40.758, -73.9855。北緯與東經為正，南緯與西經為負。在地圖應用程式中長按地點即可查看兩者。
+Turn off HDR brightness boosts	停用 HDR 亮度提升
+What you open from search stays out of Recent, in the app and on Instagram's side. Searches already there stay until you clear them.	從搜尋開啟的內容不會加入最近搜尋，應用程式與 Instagram 端皆適用。既有搜尋記錄會保留，直到您清除。
+Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi 不受影響。關閉此選項可在所有網路節省數據。
+Hide comments	隱藏留言
+Hide memories and recaps	隱藏回憶與回顧
+Hide story rewinds	隱藏限時動態往事回顧
+Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	首頁頂端的限時動態橫列將不載入任何內容，包括您自己的限時動態；個人檔案的精選也會保持空白，以節省數據。仍可點擊個人檔案或聊天中的光圈開啟限時動態。
+Open categories as pages	以獨立頁面開啟分類
+Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	設定會顯示分類清單，點擊後在獨立頁面開啟該分類。搜尋仍會涵蓋所有分類。
+Hide the HushGram row in Instagram's menu	隱藏 Instagram 選單中的 HushGram 項目
+Settings shortcut on the app icon	應用程式圖示的設定捷徑
+Open settings from the logo	從標誌開啟設定
+Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	在長按 Instagram 圖示顯示的選單中加入 HushGram 設定。關閉後會從該選單移除。
+A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	長按首頁頂端的 Instagram 標誌即可開啟這些設定。關閉後，長按會恢復 Instagram 原本的操作。
+The last way into these settings stays on.	最後一個設定入口會維持啟用。
+No other way into HushGram is on, so the row stays in Instagram's menu.	目前未啟用其他 HushGram 入口，因此 Instagram 選單中的項目會保留。
+Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	啟用其他 HushGram 入口時，Instagram 的「設定和動態」畫面會隱藏 HushGram 項目。關閉所有其他入口後，此項目會重新出現。
+Stop loading stories and highlights	停止載入限時動態與精選
+Takes the Comment button and the comment count off the posts in your feed.	移除動態首頁貼文的留言按鈕與留言數。
+# context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
+Hide the emoji row	隱藏表情符號列
+Takes the row of quick emoji off above the comment box. The box itself stays.	移除留言輸入框上方的快速表情符號列，輸入框本身仍會保留。
+Open comments without the keyboard	開啟留言時不彈出鍵盤
+Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	開啟留言時不顯示鍵盤。點擊留言輸入框或「回覆」仍會彈出鍵盤。
+# context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.
+Hide Follow on posts	隱藏貼文上的追蹤按鈕
+Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	移除動態首頁貼文頂端的「追蹤」與「訂閱」按鈕。名稱、時間與選單仍會保留。
+Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	移除首頁頂端限時動態橫列中，Instagram 產生的回憶、回顧、追蹤週年紀念與生日卡片。使用者發佈的限時動態仍會保留。
+Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	隱藏首頁頂端限時動態橫列中，重新呈現舊精選的往事回顧卡片。
+A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	雙擊留言不會按讚。預設關閉，因此留言會保留雙擊按讚功能，直到您啟用此選項。
+On messages	訊息
+A double tap on a message in a chat doesn't react to it. Starts off. A long press still shows the reactions.	雙擊聊天中的訊息不會傳送心情回應。預設關閉。長按仍會顯示心情回應選項。
+Hide the Share button	隱藏分享按鈕
+On comments	留言
+Takes the Share button and its count off the posts in your feed and off reels.	移除動態首頁貼文與 Reels 的分享按鈕及次數。
+Ask before a call	撥打電話前詢問
+Call	撥打
+Change the like animation	更改「按讚」動畫
+Deletes the saved photos Instagram keeps to show again, whatever their size, and the saved videos the next time it starts.	刪除 Instagram 保留供再次顯示的所有尺寸照片副本，並在下次啟動時刪除儲存的影片副本。
+Freed %1$s. The videos go the next time Instagram starts.	已釋出 %1$s。影片將在下次啟動 Instagram 時清除。
+Like animation	按讚動畫
+Links keep instagram.com.	連結維持使用 instagram.com。
+Links to instagram.com go out on %1$s.	instagram.com 的連結會改用 %1$s 分享。
+Links to instagram.com that you copy or share go out on this domain instead, for a site that shows Instagram posts and reels in chat apps. Type the domain alone, like example.com. Leave it blank to keep instagram.com.	複製或分享 instagram.com 連結時，改用此網域，以便透過其他網站在聊天應用程式中顯示 Instagram 貼文與 Reels。僅輸入網域，例如 example.com。留空則保留 instagram.com。
+Pick an animation. Until you do, the heart stays Instagram's.	請選擇動畫。選擇前，愛心會維持 Instagram 原本的樣式。
+Sharing domain	分享網域
+Start a video call?	要開始視訊通話嗎？
+Start a voice call?	要開始語音通話嗎？
+Tapping a call button in a chat asks first, so a stray tap doesn't ring anyone. Call starts it, Cancel doesn't.	點擊聊天中的通話按鈕時先詢問，避免誤觸撥號。「撥打」會開始通話，「取消」則不會。
+That isn't a domain. Type one like example.com, or leave it blank.	這不是有效的網域。請輸入 example.com 之類的網域，或留空。
+The heart plays %1$s when you double tap a post.	雙擊貼文時，愛心會播放 %1$s。
+The heart that pops up when you double tap a post plays the animation you pick below. They're animations Instagram made for its Rings creators.	雙擊貼文時彈出的愛心會播放下方選擇的動畫。這些是 Instagram 為 Rings 創作者製作的動畫。
+Turn on Change the like animation to use this choice.	請啟用「更改『按讚』動畫」以使用此選項。
+When Instagram has more than 500 MB of saved photos and videos, deletes the photos as you leave it and the videos the next time it starts. Your sign-in, drafts and settings stay.	Instagram 儲存的照片與影片超過 500 MB 時，會在離開應用程式時刪除照片，並於下次啟動時刪除影片。登入狀態、草稿與設定仍會保留。
+Ask before a like	按讚前詢問
+Ask before a refresh	重新整理前詢問
+Continue	繼續
+Like or unlike this post?	要對這則貼文按讚或收回讚嗎？
+Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.	下拉重新整理首頁、Reels 或其他清單前先詢問。取消會保留畫面上的內容。
+Refresh	重新整理
+Refresh this list?	要重新整理此清單嗎？
+Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.	透過貼文下方的按讚按鈕按讚或收回讚前先詢問，避免誤觸。雙擊則不會詢問。
+Adds a row next to Download on a reel and a feed video that plays it in an app you pick, such as VLC. The player streams it from Instagram's servers.	在 Reel 與動態首頁影片的「下載」旁新增選項，使用您選擇的應用程式（例如 VLC）播放。播放器會從 Instagram 伺服器串流播放。
+Couldn't open another player	無法開啟其他播放器
+No app on this phone can play this video	手機上沒有可播放此影片的應用程式
+Open in another player	在其他播放器中開啟
+Open with	使用以下方式開啟
+This video has no file another player can open	此影片沒有其他播放器可開啟的檔案
+Name saves by account and post time	按帳號與發佈時間命名
+Names each photo and video for the account that posted it and when, like username_20261005_143012, so an account's saves sort by date. A carousel page gets its number on the end. Takes the place of the video file name. A save that doesn't know who posted or when keeps its usual name.	以發佈帳號與時間為每張照片及影片命名，例如 username_20261005_143012，讓同一帳號的儲存項目依日期排序。輪播頁面會在結尾加入頁碼。此設定會取代影片檔名設定。若無法取得發佈者或時間，則保留原本的命名方式。
+Save profile picture	儲存個人檔案相片
+Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	在他人個人檔案的選單中新增「儲存個人檔案相片」，以 Instagram 提供的最大尺寸儲存。
+Show a post's exact time	顯示貼文的確切時間
+Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	顯示貼文與留言的發佈時間，例如 10 月 2 日下午 3:45，取代多久以前的文字。變更後載入的貼文才會顯示。
+Show a reel's exact time	顯示 Reel 的確切時間
+Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. A change shows from the next reel.	在創作者名稱下方顯示 Reel 的發佈日期與時間，例如 10 月 2 日下午 3:45。變更會從下一則 Reel 開始顯示。
+Show seconds in a reel's time	在 Reel 時間中顯示秒數
+Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.	在 Reel 的時間中加入秒數，例如 10 月 2 日下午 3:45:30。
+Show like counts the poster hid	顯示發文者隱藏的按讚數
+Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	發文者隱藏貼文或 Reel 的按讚數時，只要 Instagram 仍傳送此數字就會顯示；若未傳送則不變。變更後載入的貼文才會顯示。
+Back leaves Home as it is	返回時保留首頁狀態
+Back on Home leaves Instagram without first scrolling the feed to the top and reloading it.	在首頁按返回會直接離開 Instagram，不再先將動態捲回頂端並重新載入。
+By @%1$s	發佈者：@%1$s
+Close	關閉
+Copy media link	複製媒體連結
+Couldn't copy the media link	無法複製媒體連結
+Details	詳細資料
+Details in a post's menu	貼文選單中的詳細資料
+Media ID %1$s	媒體 ID %1$s
+Media link	媒體連結
+Media link copied	已複製媒體連結
+No direct link for this one	此項目沒有直接連結
+Posted %1$s	發佈於 %1$s
+Size %1$d × %2$d	尺寸 %1$d × %2$d
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	在動態首頁貼文或 Reel 的選單中新增「詳細資料」，顯示發佈時間、發佈者、媒體 ID 與下載儲存的尺寸，並提供複製檔案連結、使用者名稱與說明文字的按鈕。
+Caption	說明文字
+Caption copied	已複製說明文字
+Copy caption	複製說明文字
+Copy caption without hashtags	複製說明文字並移除主題標籤
+Copy username	複製使用者名稱
+Couldn't copy the caption	無法複製說明文字
+Couldn't copy the username	無法複製使用者名稱
+Media link is the %1$d × %2$d file	媒體連結指向 %1$d × %2$d 的檔案
+Username	使用者名稱
+Username copied	已複製使用者名稱
+Adds Save to the menu you get by holding a voice message in a chat. Saves the recording as an audio file. One sent to be played once never gets it.	在聊天中長按語音訊息的選單內新增「儲存」，將錄音儲存為音訊檔案。只能播放一次的語音不會提供此選項。
+Cancel saving this voice message	取消儲存此語音訊息
+Download voice messages	下載語音訊息
+Following each other	互相追蹤中
+Hide the comment bar on reposted reels	隱藏轉發 Reels 的留言列
+Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	改在個人檔案的貼文、追蹤者與追蹤中數量下方，以標籤顯示追蹤狀態。若您也追蹤對方，會顯示「互相追蹤中」。
+Saving a voice message	正在儲存語音訊息
+Show it as a chip	以標籤顯示
+Follow label	追蹤狀態標籤
+Under the counts	各項數量下方
+Small, under the picture	相片下方的小型標籤
+The chip sits under the posts, followers and following counts.	標籤位於貼文、追蹤者與追蹤中數量下方。
+A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	較小的標籤，置中於個人檔案相片下方。若該處沒有空間，則改放在各項數量下方。
+Turn on Show it as a chip to use this choice.	請啟用「以標籤顯示」以使用此選項。
+The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	隱藏從個人檔案轉發分頁開啟的 Reel 下方的「新增留言」列。仍可透過留言按鈕開啟留言。
+Hide the comment bar on all reels	隱藏所有 Reels 的留言列
+The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	隱藏每則 Reel 下方的「新增留言」列，包括 Reels 分頁中的影片。仍可透過留言按鈕開啟留言。
+Adds Copy username and Copy bio to the menu on someone's profile. Each copies the text exactly as the account has it.	在他人個人檔案的選單中新增「複製使用者名稱」與「複製個人簡介」，依帳號原文完整複製。
+Adds View profile picture to the menu on someone's profile. Opens their picture full screen at the largest size Instagram has, with pinch zoom and a Save button.	在他人個人檔案的選單中新增「檢視個人檔案相片」，以 Instagram 提供的最大尺寸全螢幕開啟，支援雙指縮放並提供儲存按鈕。
+Bio	個人簡介
+Bio copied	已複製個人簡介
+Copy bio	複製個人簡介
+Copy username and bio	複製使用者名稱與個人簡介
+Profile extras button	個人檔案額外選項按鈕
+Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	在個人檔案的三點按鈕旁新增按鈕，開啟 HushGram 的個人檔案操作。三點選單中的選項仍會保留。
+HushGram profile actions	HushGram 個人檔案操作
+Nothing to do for this profile	此個人檔案沒有可用的操作
+Couldn't copy the bio	無法複製個人簡介
+Couldn't open the picture	無法開啟相片
+Profile picture	個人檔案相片
+View profile picture	檢視個人檔案相片
+Hide carousels	隱藏輪播貼文
+Hide photos	隱藏照片
+Hide videos	隱藏影片
+Removes every single-photo post from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	移除首頁所有單張照片貼文，包括已追蹤帳號的貼文。變更後請下拉重新整理首頁。
+Removes every single-video post and reel from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	移除首頁所有單部影片貼文與 Reels，包括已追蹤帳號的內容。變更後請下拉重新整理首頁。
+Removes every post with more than one photo or video from Home, even from accounts you follow. Pull down on Home to refresh after changing it.	移除首頁所有包含多張照片或多部影片的貼文，包括已追蹤帳號的貼文。變更後請下拉重新整理首頁。
+Hide posts you've liked	隱藏已按讚的貼文
+Removes posts you've already liked from Home and Following. A post you like now stays until you pull down on Home to refresh.	從首頁與追蹤中移除您已按讚的貼文。剛按讚的貼文會保留，直到您下拉重新整理首頁。
+Hidden accounts	隱藏的帳號
+Takes posts by the accounts you pick out of Home and Following. Each account you sign in to keeps its own list.	從首頁與追蹤中移除所選帳號的貼文。每個登入帳號都有各自的名單。
+No accounts are hidden yet. Add a username to take that account's posts out of Home and Following.	尚未隱藏任何帳號。新增使用者名稱，即可從首頁與追蹤中移除該帳號的貼文。
+Add a username	新增使用者名稱
+Hide their posts	隱藏對方的貼文
+Posts from @%1$s are hidden	已隱藏 @%1$s 的貼文
+Posts from @%1$s are hidden from Home and Following	已從首頁與追蹤中隱藏 @%1$s 的貼文
+Posts from @%1$s show again	已重新顯示 @%1$s 的貼文
+A username is up to 30 letters, numbers, dots and underscores	使用者名稱最多可含 30 個字母、數字、句點與底線
+# context: a row in a post's menu that puts the post's author on Hidden accounts
+Hide posts from this account	隱藏此帳號的貼文
+Couldn't hide this account	無法隱藏此帳號
+%1$d mentions	%1$d 個提及
+%1$s, see who this story mentions	%1$s，查看此限時動態提及的帳號
+1 mention	1 個提及
+A story's header says how many accounts it mentions, even when the mention is hidden. Tap that for the list, and tap someone to open their profile.	限時動態頂端會顯示提及的帳號數量，即使提及被隱藏也適用。點擊可查看名單，再點擊帳號即可開啟個人檔案。
+Mentioned in this story	此限時動態提及的帳號
+See who a story mentions	檢視限時動態提及
+Shows every emoji in Google's style instead of your phone's own. Restart Instagram to see the change.	將所有表情符號改為 Google 樣式，取代手機原本的樣式。請重新啟動 Instagram 以套用變更。
+Google's emoji everywhere	全部使用 Google 表情符號
+# context: Layout switch; it turns Instagram's blue into a color picked in the row under it
+Accent color	強調色
+Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	將 Instagram 追蹤按鈕、連結等處的藍色改為下方選擇的顏色。請重新啟動 Instagram 以套用變更。
+# context: Layout list under Accent color; its choices are Instagram blue and the colors below
+Color	顏色
+Instagram blue	Instagram 藍
+# context: the colors in the Accent color list, each one the blue on buttons and links turns into
+Purple	紫色
+Pink	粉紅色
+Red	紅色
+Orange	橘色
+Green	綠色
+Teal	藍綠色
+# context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
+HushGram launch screen	HushGram 啟動畫面
+Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	在 Android 13 以上版本，將 Instagram 啟動畫面的標誌改為 HushGram。下次啟動時顯示。
+# context: Downloads switch under Download feed videos; it adds Download cover to a feed video post's menu
+Download video covers	下載影片封面
+Adds Download cover to the menu of a feed post with a video, and of a carousel showing one. It saves the still picture shown before the video plays, at its largest size.	在動態首頁影片貼文與目前顯示影片的輪播貼文選單中新增「下載封面」，以最大尺寸儲存影片播放前的靜態圖片。
+# context: Downloads switch under the feed video and photo downloads; it puts a Download icon in a feed post's action row beside Save
+Download button on feed posts	貼文下載按鈕
+Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	在貼文下方儲存按鈕的左側加入下載圖示，點擊即可儲存，不必開啟選單。輪播貼文會詢問儲存目前頁面或全部頁面。
+Download button on reels	Reels 下載按鈕
+Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	在 Reel 旁的儲存按鈕下方加入下載圖示，點擊即可執行與選單中「下載」相同的操作。需啟用「Reels 下載選項」。
+Nothing to download on this post	此貼文沒有可下載的內容
+# context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
+Hold to download	長按下載
+Hold two fingers still on a feed post's picture or video, or on a reel, and it saves what's under them, the same as Download in the menu. Instagram's one-finger long press stays as it was. Needs Download feed videos or photos, and Download on reels for reels.	將兩指停留在動態首頁貼文的圖片、影片或 Reel 上，即可儲存手指下方的內容，等同選單中的「下載」。Instagram 的單指長按不受影響。需啟用「下載動態首頁影片」或「下載動態首頁照片」；Reels 則需啟用「Reels 下載選項」。
+# context: Downloads list under Hold to download; how many fingers the hold takes
+Fingers	手指數量
+# context: Downloads list under Hold to download; how long the fingers stay down before it saves
+Hold time	長按時間
+Two fingers	兩指
+Three fingers	三指
+Half a second	半秒
+1 second	1 秒
+1.5 seconds	1.5 秒
+On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	在此 Instagram 版本上，已涵蓋 %1$d 條路徑，共 %2$d 條。其餘路徑列於診斷報告。
+Hide suggested accounts in Messages	隱藏私訊中的建議帳號
+Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	移除私訊底部 Instagram 建議的帳號。聊天與追蹤邀請仍會保留。請重新啟動 Instagram 以套用變更。
+A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	在點擊或滑動切換畫面時，標示每滑過一個分頁就會輕震一次，讓觸覺回饋跟隨分頁列。
+Blur behind the tab bar	模糊分頁列後方內容
+Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	在 Android 12 以上版本模糊膠囊後方的內容。關閉時，膠囊使用霧面色調。
+Slide across the tabs	滑動選擇分頁
+Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. It works with or without Glass tab bar. Restart Instagram after changing it.	將手指放在分頁列上左右滑動，標示會跟隨手指，放開後開啟下方的分頁。點擊與長按分頁的操作不變，無論是否啟用「玻璃分頁列」都可使用。變更後請重新啟動 Instagram。
+Liquid glass look	液態玻璃外觀
+Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	將膠囊與標示變得更圓，並將搜尋放入獨立的玻璃圓圈。向下捲動清單時，分頁列會縮成目前分頁與搜尋，除非已啟用「捲動時隱藏分頁列」。變更後請重新啟動 Instagram。
+Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	將 Instagram 分頁列改為浮動的圓角玻璃膠囊，並標示目前分頁。變更後請重新啟動 Instagram。
+Glass tab bar	玻璃分頁列
+Haptics on the tab bar	分頁列觸覺回饋
+Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	首頁、Reels 與其他分頁的內容會延伸到膠囊後方，讓玻璃能模糊實際內容。
+Show content behind the tab bar	在分頁列後方顯示內容
+Tab bar	分頁列
+Saved	已儲存
+Saved tab on your profile	個人檔案的已儲存分頁
+Adds a bookmark to the tabs on your own profile that opens Saved. Restart Instagram after changing it.	在自己的個人檔案分頁中加入書籤，開啟「已儲存」。變更後請重新啟動 Instagram。
+Battery	電池
+Stop the background heartbeat	停用背景存活回報
+Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram 每隔一兩分鐘就會喚醒手機，即使螢幕關閉也一樣，目的只是記錄自己仍在執行。此選項會停止該行為。訊息、通知與畫面上的功能不受影響。
+Stop the analytics upload alarm	停用分析資料上傳鬧鐘
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram 會設定鬧鐘，在五分鐘後喚醒手機並傳送使用事件。此選項會停用該鬧鐘，事件改在下次使用應用程式時傳送。
+Haptic style	觸覺回饋樣式
+Short tick	短震
+System tick	系統震動
+Soft tick	輕震
+Full tick	完整震動
+# context: Locked chats under Messages, the cover and the ask for one chat locked on its own, and the toasts after checking a chat in the list
+This chat is locked	此聊天已鎖定
+Unlock this chat	解鎖此聊天
+Locked chats	已鎖定的聊天
+Lock single chats. A locked chat asks for your fingerprint, face or screen lock each time you open it, and its notifications say only that a message came.	鎖定個別聊天。每次開啟時，都會要求指紋、臉部或螢幕鎖定驗證；通知只會顯示收到新訊息。
+Open a chat in Instagram, then come back here to lock it.	先在 Instagram 開啟聊天，再回到此處鎖定。
+%1$s (opened last)	%1$s（最近開啟）
+%1$s is locked	已鎖定 %1$s
+%1$s is unlocked	已解鎖 %1$s
+Chat %1$s	聊天 %1$s
+# context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
+Hidden chats	已隱藏的聊天
+Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	隱藏個別聊天。隱藏的聊天會從收件匣移除，也不會發出通知，直到您在此重新顯示。
+Open a chat in Instagram, then come back here to hide it.	先在 Instagram 開啟聊天，再回到此處隱藏。
+%1$s is hidden	已隱藏 %1$s
+%1$s is shown again	已重新顯示 %1$s
+Pick the playback quality with a tab long press	長按分頁選擇播放畫質
+Tab long presses keep Instagram's own action. Choose one to pick the playback quality instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為選擇播放畫質。
+Long press %1$s to pick the playback quality instead of that tab's usual action. Normal taps and other tabs stay the same. Needs Default playback quality on. If the same tab opens HushGram, that comes first.	長按 %1$s 會選擇播放畫質，取代該分頁原本的操作。一般點擊與其他分頁不受影響。需啟用「預設播放畫質」。若同一分頁也用來開啟 HushGram，會優先開啟 HushGram。
+Playback quality: %1$s. The next video you open uses it.	播放畫質：%1$s。下一部開啟的影片會使用此畫質。
+Couldn't save the playback quality. Open HushGram settings to set it.	無法儲存播放畫質，請開啟 HushGram 設定進行設定。
+Support HushGram	支持 HushGram
+Hide the Home tab	隱藏首頁分頁
+Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	從分頁列移除首頁。原本開啟首頁的位置會改為開啟「啟動分頁」，因此請選擇分頁列上首頁以外的分頁，否則首頁仍會保留。請重新啟動 Instagram 以套用變更。
+Hide the Search tab	隱藏搜尋分頁
+Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.	從分頁列移除搜尋並收起空白。請重新啟動 Instagram 以套用變更。
+Hide the Create tab	隱藏建立分頁
+Takes Create off the tab bar and closes up the gap. Restart Instagram to see the change.	從分頁列移除建立並收起空白。請重新啟動 Instagram 以套用變更。
+Hide the Profile tab	隱藏個人檔案分頁
+Takes Profile off the tab bar. Your profile still opens from other places in the app. Restart Instagram to see the change.	從分頁列移除個人檔案。仍可從應用程式的其他位置開啟個人檔案。請重新啟動 Instagram 以套用變更。
+Hide Create on Home's header	隱藏首頁頂端的建立按鈕
+Takes the plus button off the top of Home and closes up the gap. The Create tab and swiping to create are separate. Restart Instagram to see the change.	移除首頁頂端的加號按鈕並收起空白。建立分頁與滑動建立另有獨立設定。請重新啟動 Instagram 以套用變更。
+Hide notifications on Home's header	隱藏首頁頂端的通知
+Takes the heart off the top of Home and closes up the gap. Alerts still arrive. Restart Instagram to see the change.	移除首頁頂端的愛心按鈕並收起空白。通知仍會送達。請重新啟動 Instagram 以套用變更。
+Ghost mode button on Home's header	首頁頂端的幽靈模式按鈕
+Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	在首頁頂端加入幽靈按鈕；有私訊按鈕時放在旁邊，沒有時則放在按鈕列末端。點擊即可開啟或關閉幽靈模式。請重新啟動 Instagram 以套用變更。
+Search button on Home's header	首頁頂端的搜尋按鈕
+Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too. Restart Instagram to see the change.	在首頁頂端加入放大鏡，與搜尋分頁一樣可開啟搜尋。隱藏搜尋分頁時也可使用。請重新啟動 Instagram 以套用變更。
+Messages button on Home's header	首頁頂端的私訊按鈕
+Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	當 Instagram 將私訊移到分頁列時，在首頁頂端加入私訊按鈕。點擊後如同私訊分頁一樣開啟私訊。請重新啟動 Instagram 以套用變更。
+# context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
+To open Messages here, turn on Show the Messages tab and restart.	若要在此開啟私訊，請啟用「顯示私訊分頁」並重新啟動。
+Restart Instagram to put Messages on your tab bar.	請重新啟動 Instagram，將私訊加入分頁列。
+Center the logo on Home's header	將首頁頂端標誌置中
+Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	將 Instagram 標誌置於首頁頂端中央，即使隱藏或新增頂端按鈕也適用。該處顯示的動態名稱也會置中。請重新啟動 Instagram 以套用變更。
+Center the name on profiles	將個人檔案名稱置中
+Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	將使用者名稱置於個人檔案頂端列中央，自己與他人的個人檔案皆適用。按鈕仍留在原位。
+Center titles on other screens	將其他畫面的標題置中
+Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.	在兩側按鈕允許的空間內，將通知等其他畫面的頂端標題置中。按鈕仍留在原位。
+Search isn't on your tab bar, so this button can't open it here.	搜尋不在分頁列上，因此此按鈕無法在這裡開啟搜尋。
+To open Search here, turn off Hide the Search tab and restart.	若要在此開啟搜尋，請關閉「隱藏搜尋分頁」並重新啟動。
+Restart Instagram to bring Search back to your tab bar.	請重新啟動 Instagram，將搜尋加回分頁列。
+Tab order	分頁順序
+The tab bar keeps Instagram's order.	分頁列維持 Instagram 原本的順序。
+Tabs go in this order: %1$s. Restart Instagram to see the change.	分頁順序：%1$s。請重新啟動 Instagram 以套用變更。
+Show and reorder tabs	顯示與排列分頁
+Drag to move %1$s	拖曳以移動 %1$s
+Reset	重設
+Create	建立
+Start tab	啟動分頁
+Instagram opens the way it always has, which can be Reels if you left it there.	Instagram 依原本的方式開啟；若上次停留在 Reels，也可能直接開啟 Reels。
+Instagram opens on Home when you start it from its icon, even if you left it on Reels. A notification or a link still opens what it's for. Restart Instagram to see the change.	從圖示啟動 Instagram 時一律開啟首頁，即使上次停留在 Reels。通知與連結仍會開啟對應內容。請重新啟動 Instagram 以套用變更。
+Always Home	一律開啟首頁
+Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	從圖示啟動 Instagram 時開啟 %1$s。通知與連結仍會開啟對應內容。若該分頁不在分頁列上，則開啟首頁。請重新啟動 Instagram 以套用變更。
+A tap on a reel	點擊 Reel 的操作
+Pause	暫停
+Mute	靜音
+Instagram's default	Instagram 預設
+A tap on a reel pauses it, and another tap plays it again.	點擊 Reel 即可暫停，再次點擊即可繼續播放。
+A tap on a playing reel turns its sound off or on and keeps it playing. A reel that's paused still plays on a tap.	點擊播放中的 Reel 會切換靜音並繼續播放。已暫停的 Reel 仍會在點擊後播放。
+A tap on a reel does what Instagram does.	點擊 Reel 時使用 Instagram 原本的操作。
+Keep reels muted on the volume keys	按音量鍵時保持 Reels 靜音
+Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	音量加鍵仍會提高手機音量，但已靜音的 Reel 會維持靜音，直到您取消靜音。
+Start stories with sound	限時動態預設開啟聲音
+Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	開啟限時動態時會啟用聲音，等同點擊 Instagram 的喇叭按鈕。仍受手機鈴聲與音量設定影響，因此靜音或音量調低時仍不會出聲。
+Stop swipe up to reply	停用上滑回覆
+A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	在他人的限時動態向上滑動不再開啟回覆框與心情回應。請點擊「傳送訊息」回覆。
+# context: toast when Download all is tapped while another post is still saving; it waits its turn
+Queued. It starts once the post before it is saved.	已加入佇列，前一則貼文儲存完成後會開始。
+# context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
+Not saved: %1$d posts are already waiting	未儲存：已有 %1$d 則貼文正在等待
+Show all settings as a list	以清單顯示所有設定
+Show settings by category	依分類顯示設定
+Tab bar opacity	分頁列不透明度
+Tab bar height	分頁列高度
+Clearest	最透明
+Clear	透明
+Frosted	霧面
+Standard	標準
+Blur strength	模糊強度
+# context: a blur strength step of the tab bar
+Light	輕微
+Strong	強烈
+Compact	緊湊
+Tall	加高
+Tab bar corners	分頁列圓角
+Rounder	更圓
+Fully round	全圓角
+Space under the tab bar	分頁列下方間距
+A little more	稍多
+More	更多
+Hide the tab bar as you scroll	捲動時隱藏分頁列
+Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, or changing tab brings it back. Restart Instagram after changing it.	向下捲動清單時，膠囊會滑出畫面；向上捲動、回到頂端或切換分頁時會重新出現。變更後請重新啟動 Instagram。
+Hide the tab bar on Reels	在 Reels 隱藏分頁列
+# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+Never	永不
+# context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
+After %1$d seconds	%1$d 秒後
+# context: summary of the Hide the tab bar on Reels row while its choice is Never
+Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	永不隱藏。選擇時間後，Reel 播放達指定時間且未觸碰畫面時，膠囊就會滑出畫面。變更後請重新啟動 Instagram。
+# context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
+On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	在 Reels 中，未觸碰畫面 %1$d 秒後膠囊會滑出畫面。點擊螢幕底部邊緣、切換分頁或按返回即可重新顯示。變更後請重新啟動 Instagram。
+Start feed videos with sound	動態首頁影片預設開啟聲音
+The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	首頁第一部影片會開啟聲音播放，等同點擊喇叭按鈕。仍受手機鈴聲與音量設定影響，因此靜音或音量調低時仍不會出聲。
+Tap a feed video to pause it	點擊動態首頁影片以暫停
+Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it again to play it. Ads keep Instagram's own tap.	點擊動態中播放的影片會直接暫停，而非在 Reels 中開啟；再次點擊即可播放。廣告仍使用 Instagram 原本的點擊操作。
+Long press a photo to zoom	長按照片放大
+Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	長按動態中的照片，即可在手指周圍放大為兩倍，滑動可查看其他區域，放開即關閉。啟用時會取代 Instagram 原本的照片長按操作。
+Keep the zoom open	保持放大畫面
+The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x to 4x, and tap or press Back to close it.	放開手指後仍維持放大。拖曳可查看其他區域，雙指可在 1 至 4 倍間縮放，點擊或按返回即可關閉。
+# context: what TalkBack reads for the zoomed photo left open over the feed
+Zoomed photo	放大的照片
+Full screen Reels	全螢幕 Reels
+Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	顯示 Reels 時隱藏狀態列與導覽列。從邊緣向內滑動可短暫顯示。返回與鍵盤仍可照常使用。
+Full screen Home	全螢幕首頁
+Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	顯示首頁時隱藏狀態列與導覽列。從邊緣向內滑動可短暫顯示。
+Full screen Messages	全螢幕私訊
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	顯示私訊或聊天時隱藏狀態列與導覽列。從邊緣向內滑動可短暫顯示。返回與鍵盤仍可照常使用。
+Hide Notes on profile pictures	隱藏個人檔案相片上的筆記
+Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	移除個人檔案相片上的筆記泡泡，自己的也適用。私訊中的筆記不受影響。
+# context: the line that opens a category's page in HushGram settings, under the page title
+How you open HushGram, and how this screen is laid out.	設定 HushGram 的開啟方式與此畫面的排列方式。
+Hide ads and share less about yourself with Instagram.	隱藏廣告，並減少向 Instagram 分享個人資訊。
+Choose what Home shows and how it behaves.	選擇首頁顯示的內容與操作方式。
+Take Meta AI out of search, your feed, reels and profiles.	從搜尋、動態、Reels 與個人檔案移除 Meta AI。
+Tidy up the Search tab and what it remembers.	整理搜尋分頁與它保留的記錄。
+Keep your chats private and your inbox clear of extras.	保護聊天隱私，並移除收件匣中的額外內容。
+Choose what reels show, and how they play and scroll.	選擇 Reels 顯示的內容、播放與捲動方式。
+Choose which stories you see and what people see you do.	選擇觀看哪些限時動態，以及他人能看到您的哪些活動。
+Choose how videos start, sound and look.	選擇影片的播放方式、聲音與畫質。
+Take buttons you don't use off posts and the share sheet.	移除貼文與分享表單中用不到的按鈕。
+Copy, save or hide comments.	複製、儲存或隱藏留言。
+See who follows you back, and clear extras off profiles.	查看誰回追了您，並移除個人檔案的額外內容。
+Change how Instagram looks, from its colors to its emoji.	變更 Instagram 外觀，從顏色到表情符號皆可調整。
+Pick your tabs, their order and how the bar looks.	選擇分頁、排列順序與分頁列外觀。
+Group Instagram's notifications so they don't pile up.	將 Instagram 通知分組，避免堆滿通知欄。
+Keep Instagram's saved photos and videos from filling your phone.	避免 Instagram 儲存的照片與影片佔滿手機。
+Save photos, videos and more, and choose where they go.	儲存照片、影片等內容，並選擇儲存位置。
+Stop background work Instagram doesn't need.	停止 Instagram 不必要的背景工作。
+Stop Instagram from saying this version is too old.	不再讓 Instagram 顯示版本過舊的提示。
+Chosen when you patched, so Pause leaves them on. Patch again to change them.	這些項目在套用修補程式時決定，暫停時仍會啟用。若要變更，請重新套用修補程式。
+Save your HushGram choices to a file, or bring them back.	將 HushGram 設定儲存為檔案，或從檔案還原。
+Your version, the source code and licenses.	查看版本、原始碼與授權條款。
+Open settings with a long press on your profile's menu	長按個人檔案選單開啟設定
+A long press on the menu button, the three lines at the top right of your own profile, opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same.	長按自己個人檔案右上角的三條線選單按鈕，即可開啟 HushGram。點擊仍會開啟 Instagram 選單，其他人的個人檔案不受影響。
+Hide the top bar on the Reels tab	隱藏 Reels 分頁頂端列
+Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	移除 Reels 分頁頂端的整列內容，包括 Reels 標題、相機按鈕與 Instagram 放在該處的其他項目。從個人檔案、貼文或聊天開啟的 Reels 仍會保留頂端列。相機仍可從首頁開啟。
+Hide the Create button on reels	隱藏 Reels 上的建立按鈕
+Takes the plus button that opens the camera off the top of reels, on the Reels tab and everywhere else, and closes up the gap. The rest of the bar stays.	移除 Reels 頂端用來開啟相機的加號按鈕並收起空白，Reels 分頁與其他位置皆適用。頂端列的其他內容仍會保留。
+Hide Your algorithm on reels	隱藏 Reels 上的「你的演算法」
+Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	移除 Reels 分頁頂端的「你的演算法」按鈕並收起空白。頂端列的其他內容仍會保留。
+Hide the Friends tab on Reels	隱藏 Reels 的好友分頁
+Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	移除 Reels 分頁頂端的「好友」分頁，其中包含您追蹤的人分享的 Reels。「Reels」仍會保留在原位。
+Hide the Save button on reels	隱藏 Reels 上的儲存按鈕
+Burn-in guard	防烙印保護
+Dim when idle	閒置時淡化
+Dim when idle and shift	閒置時淡化並位移
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	在 Reels 畫面中，未操作的按鈕、說明文字與列會淡化。觸碰其中一項即可恢復顯示。
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	在 Reels 畫面中，未操作的按鈕、說明文字與列會淡化，畫面也會每兩分鐘位移一次。觸碰其中一項即可恢復顯示。
+Dim after	淡化延遲
+At once	立即
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	點擊影片、雙擊按讚，以及儲存與下載不算觸碰操作，因此按鈕會維持淡化。
+Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	已關閉。可在未觸碰畫面時淡化 Reel 按鈕，避免 OLED 螢幕烙印。
+Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	移除 Reel 旁按鈕列中的儲存按鈕與下方數量。動態首頁貼文的儲存按鈕仍會保留。
+Keep clear mode on	保持清爽模式
+Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	在 Reel 啟用 Instagram 的清爽模式後，後續 Reels 也會以此模式開啟。手動離開清爽模式後，後續 Reels 會重新顯示按鈕。
+Unlock with	解鎖方式
+Phone lock	手機鎖定
+HushGram PIN	HushGram PIN 碼
+A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	使用在此設定的 PIN 碼解鎖私訊，取代螢幕鎖定。PIN 碼無法復原，只能透過清除 Instagram 儲存空間來移除。
+Your fingerprint, face or screen lock unlocks your messages.	使用指紋、臉部或螢幕鎖定解鎖私訊。
+Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	設定或變更 4 至 8 位數的 PIN 碼。僅保留在此手機上，不會包含在備份中。
+PIN saved.	已儲存 PIN 碼。
+PIN	PIN 碼
+Enter your PIN	輸入 PIN 碼
+Forgot PIN?	忘記 PIN 碼？
+Wrong PIN. Try again.	PIN 碼錯誤，請再試一次。
+Too many tries. Wait %1$d seconds.	嘗試次數過多，請等待 %1$d 秒。
+New PIN	新 PIN 碼
+Confirm PIN	確認 PIN 碼
+Set a PIN	設定 PIN 碼
+Use 4 to 8 digits.	請使用 4 至 8 位數字。
+The PINs don't match.	兩次輸入的 PIN 碼不相符。
+Couldn't save the PIN.	無法儲存 PIN 碼。
+The PIN can't be recovered. To remove it, clear Instagram's storage in Android's app settings. That signs you out and resets HushGram's settings. A saved settings backup brings the rest back, but not the PIN.	PIN 碼無法復原。若要移除，請在 Android 應用程式設定中清除 Instagram 的儲存空間。這會將您登出並重設 HushGram 設定。已儲存的設定備份可還原其他設定，但不包含 PIN 碼。
+Open app info	開啟應用程式資訊
+Hide 'Are you interested?' bubbles	隱藏「感興趣嗎？」泡泡
+Hides the bubble under a post that asks 'Are you interested in this post?' with Not interested and Interested buttons. Nothing is answered for you.	隱藏貼文下方詢問「你對這則貼文感興趣嗎？」的泡泡及「不感興趣」、「感興趣」按鈕。不會代您作答。
+Show when someone was last active	顯示最後上線時間
+Under a name in your messages and in a chat, the exact time they were last on, like Active at 3:42 PM, replaces Active 3h ago. Active now stays as it is.	在私訊與聊天的名稱下方，以確切的最後上線時間取代多久以前上線，例如以「下午 3:42 上線」取代「3 小時前上線」。「目前在線上」維持原樣。
+Active at %1$s	%1$s 上線
+Active yesterday at %1$s	昨天 %1$s 上線
+Active %1$s at %2$s	%1$s %2$s 上線
+Rounded corners on posts	貼文圓角
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	將首頁與追蹤中貼文的照片、影片與輪播頁面改為圓角。變更後捲動到的貼文才會顯示。限時動態、個人檔案、探索與 Reels 不變。
+Corner size	圓角大小
+Large	大
+Small	小
+# context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
+HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.	Instagram 啟動時持續當機，因此 HushGram 已自動暫停。所有開關會維持停用，直到您在 HushGram 設定中重新啟用。
+# context: a toast when a save couldn't reach Instagram's servers or the connection dropped
+Download failed. Check your connection and try again.	下載失敗，請檢查連線後再試一次。
+# context: a toast when a save arrived incomplete or couldn't be written to the phone
+Download didn't finish. Check your connection and free storage, then try again.	下載未完成，請檢查連線與可用儲存空間後再試一次。
+Some changes apply when Instagram restarts. Tap to restart it now.	部分變更會在重新啟動 Instagram 後生效。點擊即可立即重新啟動。
+A save or an export is still running. Restart once it's done.	仍有儲存或匯出作業進行中，請待完成後再重新啟動。
+Couldn't restart Instagram. Close it and open it again.	無法重新啟動 Instagram，請關閉後再次開啟。
+Already saved. Download again within 30 seconds for a copy.	已儲存過。若要另存副本，請在 30 秒內再次下載。
+Already saved %1$d. Download again within 30 seconds for those.	已有 %1$d 項儲存過。若要再次儲存這些項目，請在 30 秒內再次下載。
+Skip what's already saved	略過已儲存的內容
+Remembers what you save while it's on, so a post, carousel page, reel or story isn't saved twice. Save all skips the pages you already have. Download again within 30 seconds to save another copy. A file you deleted or moved saves again.	啟用時會記住儲存過的內容，避免重複儲存貼文、輪播頁面、Reel 或限時動態。「儲存全部」會略過已有的頁面。在 30 秒內再次下載即可另存副本。已刪除或移動的檔案則會重新儲存。
+Clear download history	清除下載記錄
+Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	清除所有帳號中「略過已儲存的內容」記住的項目。已儲存的檔案仍會保留。
+Download history cleared.	已清除下載記錄。
+Couldn't clear the download history. Try again.	無法清除下載記錄，請再試一次。
+Loading the picture...	正在載入圖片…
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	回報問題
+Opens a GitHub report with your versions and settings filled in. Add what happened.	開啟已填入版本與設定的 GitHub 問題回報，請補充發生的情況。
+# context: the settings row under Search, and the title of its dialog of one-tap choices
+Quick setups	快速設定
+Turn on a set of switches in one tap, or put every switch back the way it started. Press and hold to hide this row.	點一下即可啟用一組開關，或將所有開關還原為初始狀態。長按可隱藏此列。
+# context: row on Settings backup that hides or shows the Quick setups row on the home page, and its two summaries
+Quick setups on the home page	設定首頁的快速設定
+Shown. Tap to hide it.	已顯示。點擊即可隱藏。
+Hidden. Tap to show it again.	已隱藏。點擊即可重新顯示。
+# context: toast after a long press hides Quick setups; the page named is Settings backup
+Quick setups hidden. Bring it back from %1$s.	已隱藏快速設定，可從 %1$s 重新顯示。
+# context: a Quick setups choice that hides ads, suggestions and promotions
+Quiet	清靜
+# context: a Quick setups choice that turns on the privacy switches
+Privacy	隱私
+# context: a Quick setups choice that puts every switch back the way it started
+Back to defaults	還原預設值
+Hides ads, suggested accounts and posts, surveys and promotions.	隱藏廣告、建議帳號、推薦貼文、問卷與推廣內容。
+Hides your seen receipts, typing and active status. Allows screenshots and stops link tracking and usage reports.	隱藏已讀標記、正在輸入與上線狀態。允許截圖，並停用連結追蹤與使用情況回報。
+Puts every switch back the way it started. Your locks stay as they are.	將所有開關還原為初始狀態。鎖定設定維持不變。
+# context: toast after a Quick setups choice changed exactly one switch
+Changed %1$d setting	已變更 %1$d 項設定
+# context: the same toast for any other count, zero included; %1$d is how many
+Changed %1$d settings	已變更 %1$d 項設定
+Hide the reply bar on reels from chats	隱藏從聊天開啟的 Reels 回覆列
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	隱藏從聊天開啟的 Reel 下方的回覆框、心情回應與加號按鈕。聊天本身的訊息輸入框仍會保留。
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	字型
+# context: the three choices in the Font list
+Instagram's font	Instagram 字型
+Your phone's font	手機字型
+A font file	字型檔案
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Instagram 原本的字型。也可選擇手機字型或 .ttf、.otf 檔案。請重新啟動 Instagram 以套用變更。
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram 文字使用手機字型。請重新啟動 Instagram 以套用變更。
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram 文字使用所選字型檔案。再次選擇即可變更檔案。請重新啟動 Instagram 以套用變更。
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	HushGram 無法使用此字型檔案，您的字型未變更。
+Font saved. Restart Instagram to see it.	已儲存字型。請重新啟動 Instagram 以套用。
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	無法載入字型檔案，因此顯示 Instagram 字型。請在 HushGram 設定 > 版面配置中重新選擇。
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	隱藏標示為 AI 的 Reels
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	略過帶有 Instagram 原生 AI 標籤的 Reels。沒有該標籤的 Reel 仍會保留，即使內容由 AI 製作。
+# context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
+Save every page without asking	直接儲存所有頁面
+On a carousel, the download icon saves all of its pages at once instead of asking.	在輪播貼文點擊下載圖示時，直接儲存所有頁面，不再詢問。
+# context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
+Hide reels by caption words	依說明文字隱藏 Reels
+Also on Home	同時套用至首頁
+Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	也略過首頁中說明文字包含清單字詞或片語的貼文。變更後請下拉重新整理首頁。
+Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	略過 Reels 分頁中說明文字包含下方清單字詞或片語的 Reels。您自行開啟的 Reel 仍會播放。
+Blocked words	封鎖字詞
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	以逗號或換行分隔字詞或片語。不區分大小寫，也可使用主題標籤。
+No words yet	尚無字詞
+%1$d word	%1$d 個字詞
+%1$d words	%1$d 個字詞
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	顯示 Reel 發佈至今的時間
+Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	在時間下方另外顯示發佈至今的天數、時數與分鐘數，例如 1 天 2 小時 5 分鐘前。
+%1$s ago	%1$s前
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	最近取消追蹤者
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	每次將自己的追蹤者名單捲到底時，會與上次比較並列出離開的人。不會向 Instagram 額外要求資料，名單也只保留在手機上。
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	誰取消追蹤了您
+Reading the list…	正在讀取名單…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	目前沒有可比較的資料。啟用「最近取消追蹤者」後，開啟自己的追蹤者名單並捲到底。下次再這麼做時，少掉的帳號會顯示在此。
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	上次完整讀取於 %1$s。
+No one has left since then.	自上次以來，沒有人離開。
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	帳號 %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s，於 %2$s 發現已取消追蹤
+Only the newest 50 are shown.	僅顯示最新的 50 筆。
+Clear unfollower list	清除取消追蹤者名單
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	清除所有帳號儲存的追蹤者名單，以及上方列出的所有人。
+Unfollower list cleared.	已清除取消追蹤者名單。
+Couldn't clear the unfollower list. Try again.	無法清除取消追蹤者名單，請再試一次。
+Hide Messages on Home's header	隱藏首頁頂端的私訊
+Takes Instagram's Messages button off the top of Home, for when Messages is on your tab bar too. Restart Instagram to see the change.	私訊已在分頁列上時，可移除首頁頂端的 Instagram 私訊按鈕。請重新啟動 Instagram 以套用變更。
+Bars to hide	要隱藏的系統列
+Both bars	兩者皆隱藏
+The status bar only	僅狀態列
+The navigation bar only	僅導覽列
+Full screen Reels and Home hide the status bar and the navigation bar.	全螢幕 Reels 與首頁會隱藏狀態列和導覽列。
+Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	全螢幕 Reels 與首頁僅隱藏頂端狀態列，導覽列仍會保留。
+Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	全螢幕 Reels 與首頁僅隱藏底部導覽列，狀態列仍會保留。
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	請啟用「全螢幕 Reels」、「全螢幕首頁」或「全螢幕私訊」以使用此選項。
+Choose carousel pages	選擇輪播頁面
+Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	在輪播貼文選單的「儲存全部」下方與下載圖示中新增「選擇頁面」。勾選所需頁面後，只會依序儲存這些頁面。
+Choose pages	選擇頁面
+Page %1$d, video	第 %1$d 頁，影片
+Page %1$d, photo	第 %1$d 頁，照片
+Left out by your download switches	依您的下載開關設定略過
+No pages chosen	尚未選擇頁面
+Not saved: the screen closed	未儲存：畫面已關閉
+Not saved: the account changed	未儲存：帳號已切換
+Wait after auto scroll	自動捲動後等待點擊
+A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Instagram 自動捲動切換到的 Reel 也會等待您點擊才播放。關閉時，自動捲動會連續播放 Reels。
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	隱藏限時動態上的追蹤按鈕
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	移除未追蹤帳號限時動態頂端的追蹤按鈕。名稱、時間與選單仍會保留。
+# context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
+Stay dim when I tap	點擊時保持淡化
+Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	防烙印保護淡化按鈕後，無論在 Reels 點擊或滑動什麼，按鈕都會維持淡化，下一則 Reel 也一樣。按鈕仍可操作，離開 Reels 後會恢復顯示。
+# context: Profiles: switches next to Hide the Threads button. Create is the plus at the top of your own profile (#254); Share profile and Edit profile are Instagram's own button names (#253)
+Hide the Create button	隱藏建立按鈕
+Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	移除自己個人檔案頂端用來建立貼文的加號。其他按鈕仍留在原位。
+Hide Share profile	隱藏分享個人檔案
+Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	移除個人檔案上的「分享個人檔案」按鈕，並將「編輯個人檔案」加寬以填滿空間。
+# context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
+Keep the pill full size	保持膠囊完整大小
+Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	向下捲動清單時，液態膠囊會維持原樣，所有分頁皆保留在原位。變更後請重新啟動 Instagram。
+# context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names
+All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	全部。點擊可排除部分開關，幽靈模式會保留這些開關原本的設定。
+%1$s. The others stay as you set them.	%1$s。其他開關會保留您原本的設定。
+Switches Ghost mode turns	幽靈模式控制的開關
+Ghost mode needs at least one switch to turn.	幽靈模式至少需要控制一個開關。
+# context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
+Turn Ghost mode on or off with a tab long press	長按分頁切換幽靈模式
+Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	長按分頁會保留 Instagram 原本的操作。選擇一個分頁，改為開啟或關閉幽靈模式。
+Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	長按 %1$s 會開啟或關閉幽靈模式，取代該分頁原本的操作，並以短暫提示顯示切換結果。一般點擊與其他分頁不受影響。若同一分頁也用來開啟 HushGram 或選擇播放畫質，會優先執行那些操作。
+Buttons on the share sheet	分享表單按鈕
+Every button under the people on the share sheet shows. Untick the ones you don't use.	分享表單中聯絡人下方的所有按鈕皆會顯示。取消勾選用不到的按鈕。
+Left off the share sheet: %1$s.	分享表單中已隱藏：%1$s。
+Show all	顯示全部
+Add to story	新增至限時動態
+Share to	分享至
+Copy link	複製連結
+QR code	QR 碼
+WhatsApp status	WhatsApp 狀態
+Reply to author	回覆作者
+Watch on TV	在電視上觀看
+Download profile card	下載個人檔案卡片
+Add to channel	新增至頻道
+WhatsApp	WhatsApp
+SMS	簡訊
+Messenger	Messenger
+Facebook	Facebook
+Snapchat	Snapchat
+X	X
+Threads	Threads
+LINE	LINE
+KakaoTalk	KakaoTalk
+Discord	Discord
+Band	Band
+# context: Tabs on your profile and Tabs on other profiles rows under Profiles, one for the signed-in account's own profile and one for everyone else's; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on your profile	自己個人檔案的分頁
+Tabs on other profiles	他人個人檔案的分頁
+Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.	自己的個人檔案會顯示所有分頁。取消勾選不想顯示的分頁，貼文網格一律保留。
+Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.	他人的個人檔案會顯示所有分頁。取消勾選不想顯示的分頁，貼文網格一律保留。
+Left off your profile: %1$s. The grid of posts stays.	您的個人檔案中已隱藏：%1$s。貼文網格仍會保留。
+Left off other profiles: %1$s. The grid of posts stays.	他人的個人檔案中已隱藏：%1$s。貼文網格仍會保留。
+Reposts	轉發
+Tagged	被標註
+# context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
+Show all recent searches	顯示所有最近搜尋
+Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	在搜尋列下方列出所有最近搜尋，而非僅前幾筆。「查看全部」與每列的 x 仍可照常使用。
+Hide the call buttons in chats	隱藏聊天中的通話按鈕
+Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	移除聊天頂端的語音與視訊通話按鈕，名稱仍保有顯示空間。關閉後，下次開啟聊天就會恢復。
+Buttons in the message box	訊息輸入框按鈕
+Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	訊息輸入框中的所有按鈕皆會顯示。取消勾選用不到的按鈕，文字輸入框與傳送按鈕一律保留。
+Left off the message box: %1$s. The text box and Send stay.	訊息輸入框中已隱藏：%1$s。文字輸入框與傳送按鈕仍會保留。
+Gallery	相簿
+Stickers	貼圖
+Voice message	語音訊息
+Not interested button on reels	Reels 的不感興趣按鈕
+Puts a Not interested icon beside a reel, so one tap does what Not interested in its menu does.	在 Reel 旁加入不感興趣圖示，點擊即可執行與選單中「不感興趣」相同的操作。
+Not interested	不感興趣
+Block button on reels	Reels 的封鎖按鈕
+Puts a Block icon beside someone else's reel. A tap opens Instagram's own block screen for that account, so you still confirm it there.	在他人的 Reel 旁加入封鎖圖示。點擊會開啟 Instagram 原本的帳號封鎖畫面，仍需在該處確認。
+Block	封鎖
+Swipe left to open the profile	左滑開啟個人檔案
+A left swipe on a reel opens the creator's profile, like Instagram used to. Tap Friends at the top to reach your friends' reels.	在 Reel 向左滑動會開啟創作者的個人檔案，如同 Instagram 以前的操作。點擊頂端「好友」可查看好友的 Reels。
+Hide this sound	隱藏此音訊
+Showing reels with %1$s again	已重新顯示使用 %1$s 的 Reels
+Hiding reels with %1$s	已隱藏使用 %1$s 的 Reels
+%1$s by %2$s	%1$s，演出者：%2$s
+this sound	此音訊
+Hide reels by sound	依音訊隱藏 Reels
+Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that sound. Tap it again to bring them back.	在 Reel 旁加入音樂圖示。點擊後，Reels 分頁會略過使用相同音訊的其他 Reels；再次點擊即可恢復。
+Hidden sounds	隱藏的音訊
+The sounds you hid with the music icon. Uncheck one to see its reels again.	您透過音樂圖示隱藏的音訊。取消勾選即可重新顯示使用該音訊的 Reels。
+No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	尚未隱藏任何音訊。請啟用「依音訊隱藏 Reels」，再點擊 Reel 旁的音樂圖示。
+# context: read aloud after a settings row's name when a dot marks it as added since the settings were last opened
+New	新增項目
+App icon	應用程式圖示
+Instagram on black	黑底 Instagram
+Instagram on plum	梅紫底 Instagram
+Instagram's own	Instagram 原版
+Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	Instagram 原版。選擇其他圖示，可變更主畫面與應用程式抽屜中的圖示。
+%1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s。離開 Instagram 後即會顯示。若主畫面的圖示消失，請從應用程式抽屜重新加入。
+the home screen icon you picked	您選擇的主畫面圖示
+# context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
+Logo and titles at the start	將標誌與標題靠起始側對齊
+Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	將 Instagram 標誌與各列標題移至列的起始側，如同 Instagram 以前的排列方式。若 Instagram 將它們置中，可啟用此選項。此設定優先於上方的置中開關。請重新啟動 Instagram 以套用首頁變更。
