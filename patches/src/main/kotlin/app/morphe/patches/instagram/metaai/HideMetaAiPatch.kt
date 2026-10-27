@@ -122,7 +122,7 @@ val hideMetaAiPatch = bytecodePatch(
         val blend = findBlendVisibilityCheck()
         filterParsedFeedItems(PATCH, META_AI_FILTER, META_AI_UNITS)
         answerSearchFlagReads(reads)
-        dropFollowUpBar(followUp)
+        followUp?.let(::dropFollowUpBar)
         // After the pills' check, which comes later in the same method, so this site hasn't moved.
         dropFollowUpBarStub(followUpStub)
         foldSummaryRows(summaryRows)
@@ -271,7 +271,7 @@ internal class HookSite(
  * inflated where the finder looks, and only when the view it searches was last set by an
  * iget-object, as 385611440's bar is.
  */
-internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
+internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite? {
     val (classDef, method) = followUpSetup()
     val where = "${classDef.type}->${method.name}"
     val code = method.implementation!!.instructions.toList()
@@ -316,7 +316,12 @@ internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
         return code.getOrNull(inflate + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
             code.getOrNull(inflate + 2)?.opcode == Opcode.IPUT_OBJECT
     }
-    val bars = lookups.filter(::plainView).ifEmpty { lookups }
+    val plain = lookups.filter(::plainView)
+    // 32-bit builds hand the bar to a static (View, int) helper that inflates it and answers a
+    // plain View, so the only ViewStub lookups left here are the pills' two ViewSwitchers. The
+    // bar's stub is hooked where it is found, in findFollowUpBarStub, instead.
+    if (plain.isEmpty() && lookups.isNotEmpty()) return null
+    val bars = plain.ifEmpty { lookups }
     val lookup = bars.singleOrNull() ?: refuse("$where looks up a stub to inflate ${bars.size} times, not once")
     val site = (lookup - 1 downTo maxOf(0, lookup - CHECK_WITHIN))
         .firstOrNull { code[it].methodReference()?.toString() == FIND_VIEW }

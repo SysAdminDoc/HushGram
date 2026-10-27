@@ -12,7 +12,7 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesCalling
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -20,6 +20,7 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireFreeAt
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
@@ -115,7 +116,7 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
     handler.requireParameterIntact(PATCH, 1, listOf(factoryAt))
     val nativeCallback = classDefByOrNull(factoryRef.returnType) ?: refuse("native response callback class is missing")
     val success = nativeCallback.methods.filter { method ->
-        method.visualCode().any { it.visualString() == SUCCESS_ANCHOR } &&
+        method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == SUCCESS_ANCHOR } } &&
             method.returnType == "V" && !AccessFlags.STATIC.isSet(method.accessFlags)
     }.one("native success callback")
     val successCode = success.visualCode()
@@ -174,29 +175,42 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
         factory.requireParameterIntact(PATCH, 1, listOf(forwardAt))
     }
 
-    val registry = classesHolding(VISUAL_MUTATION).flatMap { it.methods }.filter { method ->
+    val registry = classesLoadingString(VISUAL_MUTATION).flatMap { it.methods }.filter { method ->
         val body = method.visualCode()
-        body.any { it.visualString() == VISUAL_MUTATION } && body.any {
+        body.indices.any { stringLoadedAt(body, it) == VISUAL_MUTATION } && body.any {
             it.opcode == Opcode.SGET_OBJECT && it.field()?.definingClass == handler.definingClass
         }
     }.one("visual handler registration")
     requireRegistration(registry, handler.definingClass) { classDefByOrNull(it) }
-    val selector = (classDefByOrNull(handler.parameterTypes[2].toString())?.methods ?: emptyList()).filter { method ->
-        method.definingClass == handler.parameterTypes[2].toString() && method.returnType == STRING &&
-            method.visualCode().any { it.visualString() == VISUAL_MUTATION }
-    }.one("visual mutation name selector")
+    val base = handler.parameterTypes[2].toString()
+    fun selectorIn(owner: String) = (classDefByOrNull(owner)?.methods ?: emptyList()).filter { method ->
+        method.definingClass == owner && method.returnType == STRING &&
+            method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == VISUAL_MUTATION } }
+    }
+    // 32-bit builds override the name in the concrete mutation class, while the handler takes its base.
+    val selector = listOf(mutation, base).distinct().firstNotNullOfOrNull { owner -> selectorIn(owner).singleOrNull() }
+        ?: refuse("expected one visual mutation name selector, found ${listOf(mutation, base).distinct().sumOf { selectorIn(it).size }}")
     val selected = selector.visualCode()
-    val marker = selected.indices.filter { selected[it].visualString() == VISUAL_MUTATION }.one("visual mutation name")
-    if (marker < 2 || selected[marker - 2].opcode != Opcode.INSTANCE_OF || selected[marker - 2].type() != mutation ||
+    val marker = selected.indices.filter { stringLoadedAt(selected, it) == VISUAL_MUTATION }.one("visual mutation name")
+    // A concrete mutation overrides the name by returning it directly; its base does the class checks.
+    val directReturn = selected.getOrNull(marker + 1)
+    val directAfter = selected.getOrNull(marker + 2)
+    val direct = marker <= 1 && (
+        directReturn?.opcode == Opcode.RETURN_OBJECT &&
+            (selected[marker] as OneRegisterInstruction).registerA == (directReturn as OneRegisterInstruction).registerA ||
+        directReturn?.opcode == Opcode.MOVE_RESULT_OBJECT && directAfter?.opcode == Opcode.RETURN_OBJECT &&
+            (directReturn as OneRegisterInstruction).registerA == (directAfter as OneRegisterInstruction).registerA
+    )
+    if (!direct && (marker < 2 || selected[marker - 2].opcode != Opcode.INSTANCE_OF || selected[marker - 2].type() != mutation ||
         (selected[marker - 2] as TwoRegisterInstruction).registerB != selector.localRegisterCount() ||
         selected[marker - 1].opcode != Opcode.IF_EQZ ||
         (selected[marker - 1] as OneRegisterInstruction).registerA != (selected[marker - 2] as TwoRegisterInstruction).registerA ||
         selected.getOrNull(marker + 1)?.opcode != Opcode.RETURN_OBJECT ||
-        (selected[marker] as OneRegisterInstruction).registerA != (selected[marker + 1] as OneRegisterInstruction).registerA
+        (selected[marker] as OneRegisterInstruction).registerA != (selected[marker + 1] as OneRegisterInstruction).registerA)
     ) refuse("visual mutation name is not selected by its own class")
 
-    val dispatch = classesHolding(DISPATCH_ANCHOR).flatMap { it.methods }.filter { it.visualCode().any { ins -> ins.visualString() == DISPATCH_ANCHOR } &&
-        it.parameterTypes.map(Any::toString) == listOf(handler.parameterTypes[2].toString()) && it.returnType == "Z"
+    val dispatch = classesLoadingString(DISPATCH_ANCHOR).flatMap { it.methods }.filter { method -> method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == DISPATCH_ANCHOR } } &&
+        method.parameterTypes.map(Any::toString) == listOf(handler.parameterTypes[2].toString()) && method.returnType == "Z"
     }.one("native mutation dispatcher")
     // 450 dispatches through a static (UserSession, mutation) helper that only looks up the
     // session's manager and hands it the mutation it was given.
@@ -231,9 +245,9 @@ internal fun BytecodePatchContext.findVisualSeen(): VisualSeenTargets {
 }
 
 /** The registry's visual descriptor must use the provider that actually returns this handler. */
-private fun requireRegistration(registry: Method, handler: String, classes: (String) -> ClassDef?) {
+private fun BytecodePatchContext.requireRegistration(registry: Method, handler: String, classes: (String) -> ClassDef?) {
     val code = registry.visualCode()
-    val marker = code.indices.filter { code[it].visualString() == VISUAL_MUTATION }.one("registry's visual name")
+    val marker = code.indices.filter { stringLoadedAt(code, it) == VISUAL_MUTATION }.one("registry's visual name")
     val providerAt = marker - 5
     if (providerAt < 0 || code[providerAt].opcode != Opcode.SGET_OBJECT || code[providerAt].field()?.definingClass != handler ||
         code[providerAt + 1].opcode != Opcode.NEW_INSTANCE || code[providerAt + 2].opcode != Opcode.INVOKE_DIRECT ||

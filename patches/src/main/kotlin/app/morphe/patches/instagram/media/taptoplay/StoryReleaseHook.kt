@@ -10,6 +10,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -22,7 +23,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 internal const val RESUME_HELD_STORY = "$TAP_TO_PLAY->resumeHeldStory(ILjava/lang/Object;)Z"
@@ -99,7 +99,7 @@ internal fun BytecodePatchContext.findStoryRelease(grootType: String): StoryRele
         ?: refuse("$REEL_VIEWER_FRAGMENT has no $VIDEO_PLAYER_FIELD field")
 
     fun callOn(strings: List<String>, parameters: List<String>, what: String): String {
-        val holders = fragment.methods.filter { method -> method.strings().containsAll(strings) }
+        val holders = fragment.methods.filter { method -> strings.all { loadsString(method, it) } }
         val holder = holders.singleOrNull() ?: refuse("expected one $REEL_VIEWER_FRAGMENT method holding $strings, found ${holders.size}")
         val calls = holder.code().mapNotNull { it.methodReference() }.filter {
             it.definingClass == playerInterface && it.returnType == "V" && it.parameterTypes.map(Any::toString) == parameters
@@ -165,11 +165,6 @@ private fun BytecodePatchContext.mutable(method: Method): MutableMethod =
     }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
-
-private fun Method.strings(): Set<String> = code().mapNotNull { instruction ->
-    if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) null
-    else ((instruction as ReferenceInstruction).reference as StringReference).string
-}.toSet()
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 

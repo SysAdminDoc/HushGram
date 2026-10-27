@@ -11,10 +11,11 @@ import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCallingInto
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireFreeAt
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -121,26 +122,29 @@ internal fun BytecodePatchContext.findThreadSeen(): ThreadSeenTargets {
     }
 
     val base = handler.parameterTypes[2].toString()
-    val selector = (classDefByOrNull(base)?.methods ?: emptyList()).filter { method ->
-        method.definingClass == base && method.returnType == JAVA_STRING &&
-            method.visualCode().any { it.visualString() == THREAD_SEEN_MUTATION }
-    }.one("receipt mutation name selector")
+    fun selectorIn(owner: String) = (classDefByOrNull(owner)?.methods ?: emptyList()).filter { method ->
+        method.definingClass == owner && method.returnType == JAVA_STRING &&
+            method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == THREAD_SEEN_MUTATION } }
+    }
+    // 32-bit builds override the name in the concrete mutation class, while the handler takes its base.
+    val selector = listOf(mutation, base).distinct().firstNotNullOfOrNull { owner -> selectorIn(owner).singleOrNull() }
+        ?: refuse("expected one receipt mutation name selector, found ${listOf(mutation, base).distinct().sumOf { selectorIn(it).size }}")
     requireSelected(selector, mutation)
 
-    val registry = classesHolding(THREAD_SEEN_MUTATION).flatMap { it.methods }.filter { method ->
+    val registry = classesLoadingString(THREAD_SEEN_MUTATION).flatMap { it.methods }.filter { method ->
         val body = method.visualCode()
-        body.any { it.visualString() == THREAD_SEEN_MUTATION } &&
+        body.indices.any { stringLoadedAt(body, it) == THREAD_SEEN_MUTATION } &&
             body.any { it.opcode == Opcode.SGET_OBJECT && it.field()?.definingClass == handler.definingClass }
     }.one("receipt handler registration")
     requireBinding(registry, handler.definingClass) { classDefByOrNull(it) }
 
-    val dispatch = classesHolding(DISPATCH_ANCHOR).flatMap { it.methods }.filter { method ->
-        method.visualCode().any { it.visualString() == DISPATCH_ANCHOR } &&
+    val dispatch = classesLoadingString(DISPATCH_ANCHOR).flatMap { it.methods }.filter { method ->
+        method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == DISPATCH_ANCHOR } } &&
             method.parameterTypes.map(Any::toString) == listOf(base) && method.returnType == "Z"
     }.one("native mutation dispatcher")
-    val creator = classesHolding(THREAD_SEEN_KEY).flatMap { it.methods }.filter { method ->
+    val creator = classesLoadingString(THREAD_SEEN_KEY).flatMap { it.methods }.filter { method ->
         val body = method.visualCode()
-        body.any { it.visualString() == THREAD_SEEN_KEY } &&
+        body.indices.any { stringLoadedAt(body, it) == THREAD_SEEN_KEY } &&
             body.any { it.opcode == Opcode.NEW_INSTANCE && it.type() == mutation }
     }.one("live receipt sender")
     val created = creator.visualCode()
@@ -215,9 +219,18 @@ private fun Instruction.writes(register: Int): Boolean {
 }
 
 /** The selector names the receipt for its own class and nothing else, as the visual receipt's does. */
-private fun requireSelected(selector: Method, mutation: String) {
+private fun BytecodePatchContext.requireSelected(selector: Method, mutation: String) {
     val selected = selector.visualCode()
-    val marker = selected.indices.filter { selected[it].visualString() == THREAD_SEEN_MUTATION }.one("receipt mutation name")
+    val marker = selected.indices.filter { stringLoadedAt(selected, it) == THREAD_SEEN_MUTATION }.one("receipt mutation name")
+    // A concrete mutation overrides the name by returning it directly; its base does the class checks.
+    val returned = selected.getOrNull(marker + 1)
+    val after = selected.getOrNull(marker + 2)
+    if (marker <= 1 && (
+        returned?.opcode == Opcode.RETURN_OBJECT &&
+            (selected[marker] as OneRegisterInstruction).registerA == (returned as OneRegisterInstruction).registerA ||
+        returned?.opcode == Opcode.MOVE_RESULT_OBJECT && after?.opcode == Opcode.RETURN_OBJECT &&
+            (returned as OneRegisterInstruction).registerA == (after as OneRegisterInstruction).registerA
+    )) return
     if (marker < 2 || selected[marker - 2].opcode != Opcode.INSTANCE_OF || selected[marker - 2].type() != mutation ||
         (selected[marker - 2] as TwoRegisterInstruction).registerB != selector.localRegisterCount() ||
         selected[marker - 1].opcode != Opcode.IF_EQZ ||
@@ -232,9 +245,9 @@ private fun requireSelected(selector: Method, mutation: String) {
  * class, and that provider must build this handler. Registers are followed, not counted, since the
  * entries around it differ in how many values they load.
  */
-private fun requireBinding(registry: Method, handler: String, classes: (String) -> ClassDef?) {
+private fun BytecodePatchContext.requireBinding(registry: Method, handler: String, classes: (String) -> ClassDef?) {
     val code = registry.visualCode()
-    val marker = code.indices.filter { code[it].visualString() == THREAD_SEEN_MUTATION }.one("registry's receipt name")
+    val marker = code.indices.filter { stringLoadedAt(code, it) == THREAD_SEEN_MUTATION }.one("registry's receipt name")
     val describedAt = marker + 2
     val described = code.getOrNull(describedAt)
     if (code.getOrNull(marker + 1)?.opcode != Opcode.NEW_INSTANCE || described?.opcode != Opcode.INVOKE_DIRECT) {

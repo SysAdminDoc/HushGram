@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -75,47 +76,75 @@ internal fun BytecodePatchContext.findFeedSubscribe(): FeedSubscribeSite? {
     }
     val click = clicks.singleOrNull()?.type ?: refuse("expected one subscription click owned by the feed header")
     val code = header.code()
-    val create = code.indices.singleOrNull { code[it].opcode == Opcode.NEW_INSTANCE && code[it].reference()?.toString() == click }
-        ?: refuse("expected one subscription click built by the feed header")
-    val constructors = (create + 1 until minOf(code.size, create + 22)).filter { at ->
-        val call = code[at].reference() as? MethodReference
-        call?.name == "<init>" && call.returnType == "V" && call.parameterTypes.size == 6 &&
-            call.parameterTypes.first().toString() == "Landroid/view/View\$OnClickListener;" &&
-            call.parameterTypes.takeLast(2).map(CharSequence::toString) == listOf("Ljava/lang/String;", "Z")
+    // 32-bit builds share one switch listener between several header buttons and choose the
+    // subscription case by an int argument; the button is still gated by a state boolean read
+    // right before its branch. The dedicated click 64-bit builds use is tried first.
+    fun sharedFeedSubscribe(): FeedSubscribeSite {
+        val marker = code.indices.firstOrNull { stringLoadedAt(code, it) == FEED_HEADER_STATE }
+            ?: refuse("expected the feed header to load its state name")
+        val state = (marker + 1 until minOf(code.size, marker + 8)).mapNotNull { at ->
+            code[at].takeIf { it.opcode == Opcode.CHECK_CAST }?.let { (it as ReferenceInstruction).reference.toString() }
+        }.firstOrNull() ?: refuse("expected the feed header to cast its state")
+        fun shareCheck(create: Int): FeedSubscribeSite? {
+            for (at in create - 1 downTo maxOf(0, create - 40)) {
+                val branch = code[at]
+                if (branch.opcode != Opcode.IF_EQZ) continue
+                val read = code.getOrNull(at - 1) ?: continue
+                val field = (read as? ReferenceInstruction)?.reference as? FieldReference ?: continue
+                if (read.opcode != Opcode.IGET_BOOLEAN || field.type != "Z" || field.definingClass != state) continue
+                return FeedSubscribeSite(header, at, (branch as OneRegisterInstruction).registerA, field.toString())
+            }
+            return null
+        }
+        return code.indices.filter { code[it].opcode == Opcode.NEW_INSTANCE && code[it].reference()?.toString() == click }
+            .firstNotNullOfOrNull(::shareCheck)
+            ?: refuse("expected one native eligibility branch omitting only Subscribe")
     }
-    val constructor = constructors.singleOrNull() ?: refuse("expected one subscription button after its click")
-    val button = (code[constructor].reference() as MethodReference).definingClass
-    val made = (create + 1 until constructor).singleOrNull {
-        code[it].opcode == Opcode.NEW_INSTANCE && (code[it].reference() as? TypeReference)?.type == button
-    } ?: refuse("expected the subscription button's own new instance")
-    val result = (code[made] as OneRegisterInstruction).registerA
-    val flow = try { ControlFlow.of(header) } catch (failure: IllegalArgumentException) {
-        refuse("unreadable feed header control flow: ${failure.message}")
-    }
-    val checks = (maxOf(1, create - 18) until create - 1).filter { at ->
-        val read = code[at] as? TwoRegisterInstruction ?: return@filter false
-        val field = code[at].reference() as? FieldReference ?: return@filter false
-        val state = code[at - 1] as? TwoRegisterInstruction ?: return@filter false
-        val stateField = code[at - 1].reference() as? FieldReference ?: return@filter false
-        val branch = code[at + 1] as? OneRegisterInstruction ?: return@filter false
-        if (code[at].opcode != Opcode.IGET_BOOLEAN || field.type != "Z" ||
-            code[at - 1].opcode != Opcode.IGET_OBJECT || state.registerA != read.registerB || stateField.type != field.definingClass ||
-            code[at + 1].opcode != Opcode.IF_EQZ || branch.registerA != read.registerA) return@filter false
-        val stateClass = classDefByOrNull(field.definingClass) ?: return@filter false
-        if (stateClass.fields.count { it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags) } != 2) return@filter false
-        val skip = flow.normal[at + 1].singleOrNull { it != at + 2 } ?: return@filter false
-        val zero = code[skip]
-        zero.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST) &&
-            (zero as OneRegisterInstruction).registerA == result && (zero as NarrowLiteralInstruction).narrowLiteral == 0 &&
-            code.getOrNull(skip + 1)?.opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) &&
-            flow.normal[skip + 1].singleOrNull() == constructor + 1
-    }
-    val check = checks.singleOrNull() ?: refuse("expected one native eligibility branch omitting only Subscribe")
+    val classic = runCatching {
+        val create = code.indices.singleOrNull { code[it].opcode == Opcode.NEW_INSTANCE && code[it].reference()?.toString() == click }
+            ?: refuse("expected one subscription click built by the feed header")
+        val constructors = (create + 1 until minOf(code.size, create + 22)).filter { at ->
+            val call = code[at].reference() as? MethodReference
+            call?.name == "<init>" && call.returnType == "V" && call.parameterTypes.size == 6 &&
+                call.parameterTypes.first().toString() == "Landroid/view/View\$OnClickListener;" &&
+                call.parameterTypes.takeLast(2).map(CharSequence::toString) == listOf("Ljava/lang/String;", "Z")
+        }
+        val constructor = constructors.singleOrNull() ?: refuse("expected one subscription button after its click")
+        val button = (code[constructor].reference() as MethodReference).definingClass
+        val made = (create + 1 until constructor).singleOrNull {
+            code[it].opcode == Opcode.NEW_INSTANCE && (code[it].reference() as? TypeReference)?.type == button
+        } ?: refuse("expected the subscription button's own new instance")
+        val result = (code[made] as OneRegisterInstruction).registerA
+        val flow = try { ControlFlow.of(header) } catch (failure: IllegalArgumentException) {
+            refuse("unreadable feed header control flow: ${failure.message}")
+        }
+        val checks = (maxOf(1, create - 18) until create - 1).filter { at ->
+            val read = code[at] as? TwoRegisterInstruction ?: return@filter false
+            val field = code[at].reference() as? FieldReference ?: return@filter false
+            val state = code[at - 1] as? TwoRegisterInstruction ?: return@filter false
+            val stateField = code[at - 1].reference() as? FieldReference ?: return@filter false
+            val branch = code[at + 1] as? OneRegisterInstruction ?: return@filter false
+            if (code[at].opcode != Opcode.IGET_BOOLEAN || field.type != "Z" ||
+                code[at - 1].opcode != Opcode.IGET_OBJECT || state.registerA != read.registerB || stateField.type != field.definingClass ||
+                code[at + 1].opcode != Opcode.IF_EQZ || branch.registerA != read.registerA) return@filter false
+            val stateClass = classDefByOrNull(field.definingClass) ?: return@filter false
+            if (stateClass.fields.count { it.type == "Z" && !AccessFlags.STATIC.isSet(it.accessFlags) } != 2) return@filter false
+            val skip = flow.normal[at + 1].singleOrNull { it != at + 2 } ?: return@filter false
+            val zero = code[skip]
+            zero.opcode in setOf(Opcode.CONST_4, Opcode.CONST_16, Opcode.CONST) &&
+                (zero as OneRegisterInstruction).registerA == result && (zero as NarrowLiteralInstruction).narrowLiteral == 0 &&
+                code.getOrNull(skip + 1)?.opcode in setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32) &&
+                flow.normal[skip + 1].singleOrNull() == constructor + 1
+        }
+        val check = checks.singleOrNull() ?: refuse("expected one native eligibility branch omitting only Subscribe")
+        FeedSubscribeSite(header, check + 1, (code[check] as OneRegisterInstruction).registerA, code[check].reference().toString())
+    }.getOrNull()
+    val site = classic ?: sharedFeedSubscribe()
     val hookOwner = classDefByOrNull(FEED_SUBSCRIBE.substringBefore("->")) ?: refuse("missing Subscribe extension")
     if (hookOwner.methods.none {
         it.toString() == FEED_SUBSCRIBE && AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
     }) refuse("missing public static $FEED_SUBSCRIBE")
-    return FeedSubscribeSite(header, check + 1, (code[check] as OneRegisterInstruction).registerA, code[check].reference().toString())
+    return site
 }
 
 internal fun BytecodePatchContext.hideFeedSubscribe(site: FeedSubscribeSite) {

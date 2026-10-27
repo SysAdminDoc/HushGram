@@ -100,7 +100,7 @@ internal class SwipeReplySites(
     val sheet: Int,
     val listeners: Int,
     val listenerManager: MethodReference,
-    val composer: String,
+    val composers: List<String>,
     val composerMethod: String,
 )
 
@@ -197,21 +197,22 @@ internal fun BytecodePatchContext.findSwipeReply(): SwipeReplySites {
                 method.code().any { it.reference() == REQUEST_FOCUS }
         }
     }
-    val composer = composers.singleOrNull()
-        ?: refuse("expected one $listener focusing a text box when the story is swiped up, found ${composers.size}")
-    val composerAt = "${composer.definingClass}->${composer.name}"
-    if (composer.code().any { it.reference() == KEEPS_SWIPE }) refuse("$composerAt already calls $KEEPS_SWIPE")
-    // Only the swipe reaches it, through the listener manager; a direct call could be a tap the guard would stop.
-    val direct = classesCalling(composer.definingClass, composer.name).filter { classDef ->
-        classDef.methods.any { method ->
-            method.code().any { val called = it.method(); called != null && called.definingClass == composer.definingClass && called.name == composer.name }
+    if (composers.isEmpty()) refuse("expected at least one $listener focusing a text box when the story is swiped up")
+    composers.forEach { composer ->
+        val composerAt = "${composer.definingClass}->${composer.name}"
+        if (composer.code().any { it.reference() == KEEPS_SWIPE }) refuse("$composerAt already calls $KEEPS_SWIPE")
+        // Only the swipe reaches it, through the listener manager; a direct call could be a tap the guard would stop.
+        val direct = classesCalling(composer.definingClass, composer.name).filter { classDef ->
+            classDef.methods.any { method ->
+                method.code().any { val called = it.method(); called != null && called.definingClass == composer.definingClass && called.name == composer.name }
+            }
         }
+        if (direct.isNotEmpty()) refuse("expected only the swipe to reach $composerAt, ${direct.joinToString { it.type }} calls it too")
+        if (0 in composer.jumpTargets()) refuse("a branch in $composerAt lands on its first instruction, where the guard goes")
     }
-    if (direct.isNotEmpty()) refuse("expected only the swipe to reach $composerAt, ${direct.joinToString { it.type }} calls it too")
-    if (0 in composer.jumpTargets()) refuse("a branch in $composerAt lands on its first instruction, where the guard goes")
     if (sheet in gesture.jumpTargets()) refuse("a branch in $where lands on the reply sheet's source, where the guard goes")
 
-    return SwipeReplySites(gesture.definingClass, gesture.name, sheet, listeners, manager, composer.definingClass, composer.name)
+    return SwipeReplySites(gesture.definingClass, gesture.name, sheet, listeners, manager, composers.map { it.definingClass }, composerMethod = composers.first().name)
 }
 
 /**
@@ -222,21 +223,23 @@ internal fun BytecodePatchContext.findSwipeReply(): SwipeReplySites {
  * reads afterwards on either way on.
  */
 internal fun BytecodePatchContext.hookSwipeReply(sites: SwipeReplySites) {
-    val composer = mutableClassDefBy(sites.composer).methods.single {
-        it.name == sites.composerMethod && it.parameterTypes.isEmpty() && it.returnType == "Z"
+    sites.composers.forEach { composerType ->
+        val composer = mutableClassDefBy(composerType).methods.single {
+            it.name == sites.composerMethod && it.parameterTypes.isEmpty() && it.returnType == "Z"
+        }
+        composer.requireLocals(PATCH, 1)
+        composer.addInstructionsWithLabels(
+            0,
+            """
+                invoke-static { }, $KEEPS_SWIPE
+                move-result v0
+                if-nez v0, :instagram
+                const/4 v0, 0x0
+                return v0
+            """,
+            ExternalLabel("instagram", composer.getInstruction(0)),
+        )
     }
-    composer.requireLocals(PATCH, 1)
-    composer.addInstructionsWithLabels(
-        0,
-        """
-            invoke-static { }, $KEEPS_SWIPE
-            move-result v0
-            if-nez v0, :instagram
-            const/4 v0, 0x0
-            return v0
-        """,
-        ExternalLabel("instagram", composer.getInstruction(0)),
-    )
 
     val gesture: MutableMethod = mutableClassDefBy(sites.delegate).methods.single {
         it.name == sites.gesture && it.parameters() == GESTURE_PARAMETERS
