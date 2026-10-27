@@ -45,10 +45,10 @@ internal const val STORY_ITEM = "Lcom/instagram/model/reels/ReelItem;"
 /**
  * The server flag that has a story header format the time with a second relative formatter
  * instead of asking the story item for its label. Read once on 450, in the header's builder.
- * 452 renumbered it from 451's 0x81148e00016ba5 and inlined the header into a bigger builder;
+ * 452 renumbered it from 451's 0x81148e00016ba5, and 453 from 452's 0x81147a00016b22, and inlined the header into a bigger builder;
  * the read still sits right before the relative formatter, with the label asked when it says no.
  */
-internal const val RELATIVE_HEADER_FLAG = 0x81147a00016b22L
+internal const val RELATIVE_HEADER_FLAG = 0x81145900016bdaL
 
 private const val STRING = "Ljava/lang/String;"
 

@@ -26,7 +26,7 @@ internal const val SUMMARY_CARD = "$EXTENSION_PACKAGE/metaai/MetaAi;->summaryCar
  * kinds of search results row Meta AI's summary card is built in. The same ids in all three 452
  * builds (aapt2), unchanged from 451 (450 had 0x7f0e0b28 and 0x7f0e100e), so read them again each update.
  */
-internal val SUMMARY_LAYOUTS = listOf(0x7f0e0b37, 0x7f0e1024)
+internal val SUMMARY_LAYOUTS = listOf(0x7f0e0b31, 0x7f0e1020)
 
 private const val INFLATER = "Landroid/view/LayoutInflater;"
 private const val GROUP = "Landroid/view/ViewGroup;"

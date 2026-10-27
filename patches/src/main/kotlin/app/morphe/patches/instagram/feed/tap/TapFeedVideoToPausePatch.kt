@@ -252,9 +252,14 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
             it.parameterTypes.map(Any::toString) == parameters.toList()
     }
-    val presses = instanceVoid(VIEW, MEDIA, point, state)
+    val presses = handlerClass.methods.filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
+            it.parameterTypes.map(Any::toString).let { parameters ->
+                parameters == listOf(VIEW, MEDIA, point, state) || parameters == listOf(VIEW, MEDIA, point, state, "I")
+            }
+    }
     val press = presses.singleOrNull()
-        ?: refuse("expected one press entry ($VIEW, $MEDIA, $point, $state) in ${handler.definingClass}, found ${presses.size}")
+        ?: refuse("expected one press entry ($VIEW, $MEDIA, $point, $state[, int]) in ${handler.definingClass}, found ${presses.size}")
     val releases = instanceVoid(MEDIA, point, state, "Z")
     val release = releases.singleOrNull()
         ?: refuse("expected one press release ($MEDIA, $point, $state, boolean) in ${handler.definingClass}, found ${releases.size}")

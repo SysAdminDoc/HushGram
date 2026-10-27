@@ -28,11 +28,11 @@ internal const val HIDE_INSTANTS = "$EXTENSION_PACKAGE/direct/Instants;->hide()Z
 
 /**
  * The two rollout flags Instagram 450's Instants check reads. Either one gives the account Instants.
- * 452 renumbered both (451 had 0x8105b600001a75 and 0x810cce0000474e); the check reading them is
+ * 452 renumbered both (451 had 0x8105b600001a75 and 0x810cce0000474e), and 453 did again from 452's 0x8105ae00001a0a and 0x810cbc0000466e; the check reading them is
  * the same method, instruction for instruction.
  */
-internal const val INSTANTS_FLAG = 0x8105ae00001a0aL
-internal const val INSTANTS_SECOND_FLAG = 0x810cbc0000466eL
+internal const val INSTANTS_FLAG = 0x8105a0000019ceL
+internal const val INSTANTS_SECOND_FLAG = 0x810ca900004675L
 
 /** The check's shape: static, (UserSession, boolean that logs an exposure), answering a boolean. */
 internal val GATE_PARAMETERS = listOf("Lcom/instagram/common/session/UserSession;", "Z")

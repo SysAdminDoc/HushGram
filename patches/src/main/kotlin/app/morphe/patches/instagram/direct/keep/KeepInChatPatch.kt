@@ -225,7 +225,7 @@ internal class SentMessage(
     val viewMode: FieldReference,
     val reader: Int,
     val readerClass: String,
-    val session: FieldReference,
+    val session: FieldReference?,
 )
 
 /**
@@ -338,9 +338,13 @@ internal fun BytecodePatchContext.findSentMessage(mediaParse: MutableMethod, vie
         instruction.opcode == Opcode.IGET_OBJECT && (instruction as TwoRegisterInstruction).registerB == reader &&
             ((instruction as ReferenceInstruction).reference as FieldReference).type == USER_SESSION
     }.map { (it as ReferenceInstruction).reference as FieldReference }.distinct()
+    // 453's parser is no longer handed an account holder; the extension then falls back to the one
+    // account earlier readers had, as it already does for a reader with no account.
     val session = sessions.singleOrNull()
-        ?: refuse("the message parser reads ${sessions.size} accounts from its reader, not one")
-    if (session.definingClass !in ancestors(readerClass)) refuse("the reader's account is in ${session.definingClass}, which the reader $readerClass isn't")
+    if (sessions.size > 1) refuse("the message parser reads ${sessions.size} accounts from its reader, not one")
+    if (session != null && session.definingClass !in ancestors(readerClass)) {
+        refuse("the reader's account is in ${session.definingClass}, which the reader $readerClass isn't")
+    }
     val userSession = classDefByOrNull(USER_SESSION) ?: refuse("there's no $USER_SESSION")
     if (userSession.fields.none { it.name == "userId" && it.type == STRING }) refuse("$USER_SESSION has no userId")
 
@@ -393,20 +397,24 @@ internal fun BytecodePatchContext.keepSentMediaAsSent(found: SentMessage) {
             return-object p0
         """,
     )
-    // A reader with no account answers null on a path of its own.
-    viewerId.addInstructions(
-        0,
-        """
-            check-cast p0, ${found.readerClass}
-            iget-object p0, p0, ${found.session}
-            if-nez p0, :account
-            const/4 p0, 0x0
-            return-object p0
-            :account
-            iget-object p0, p0, $USER_ID
-            return-object p0
-        """,
-    )
+    // A reader with no account answers null on a path of its own; 453's parser has no account at all.
+    if (found.session == null) {
+        viewerId.addInstructions(0, "const/4 p0, 0x0\nreturn-object p0")
+    } else {
+        viewerId.addInstructions(
+            0,
+            """
+                check-cast p0, ${found.readerClass}
+                iget-object p0, p0, ${found.session}
+                if-nez p0, :account
+                const/4 p0, 0x0
+                return-object p0
+                :account
+                iget-object p0, p0, $USER_ID
+                return-object p0
+            """,
+        )
+    }
     visualMedia.addInstructions(
         0,
         """

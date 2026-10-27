@@ -152,7 +152,7 @@ internal fun BytecodePatchContext.findStorySoundSite(): StorySoundSite {
     }
     val setterMethod = classDefBy(stateType).methods.singleOrNull {
         it.name == setter.name && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(Any::toString) == listOf("Z")
+            it.parameterTypes.map(Any::toString).let { it == listOf("Z") || it == listOf("Z", "Z") }
     }
     val getterMethod = classDefBy(stateType).methods.singleOrNull {
         it.name == getter.name && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
@@ -164,12 +164,12 @@ internal fun BytecodePatchContext.findStorySoundSite(): StorySoundSite {
         refuse("$where can't reach the audio state $stateType from the story viewer")
     }
 
-    val scratch = onCreate.freeLocalsAt(PATCH, index, 3)
+    val scratch = onCreate.freeLocalsAt(PATCH, index, 4)
     val onPause = viewer.lifecycle("onPause")
     val onResume = viewer.lifecycle("onResume")
     return StorySoundSite(
         onCreate, index, session, factory, getter, setter, scratch,
-        onPause, onPause.freeLocalsAt(PATCH, 0, 3), onResume, onResume.freeLocalsAt(PATCH, 0, 2),
+        onPause, onPause.freeLocalsAt(PATCH, 0, 4), onResume, onResume.freeLocalsAt(PATCH, 0, 3),
     )
 }
 
@@ -238,8 +238,8 @@ private fun BytecodePatchContext.findAudioState(): Triple<MethodReference, Metho
             flip?.opcode != Opcode.XOR_INT_LIT8 || (flip as NarrowLiteralInstruction).narrowLiteral != 1 ||
             (flip as TwoRegisterInstruction).registerB != answer.registerA ||
             code.getOrNull(at + 5)?.opcode != Opcode.INVOKE_VIRTUAL || sets?.definingClass != stateType || sets.returnType != "V" ||
-            sets.parameterTypes.map(Any::toString) != listOf("Z") ||
-            setsCall == null || setsCall.registerCount != 2 || state == null || setsCall.registerC != state.registerA ||
+            sets.parameterTypes.map(Any::toString).let { it != listOf("Z") && it != listOf("Z", "Z") } ||
+            setsCall == null || setsCall.registerCount !in 2..3 || state == null || setsCall.registerC != state.registerA ||
             setsCall.registerD != (flip as TwoRegisterInstruction).registerA
         ) {
             continue
@@ -278,7 +278,12 @@ private fun BytecodePatchContext.requireViewerReadsIt(factory: MethodReference) 
  * Anything missing along the way, no yes or no session, goes on to Instagram's own code.
  */
 internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
-    val (flag, state, viewer) = site.scratch
+    fun setter(state: Int, value: Int, extra: Int) = if (site.setter.parameterTypes.size == 2) {
+        "const/4 v$extra, 0x0\n                invoke-virtual { v$state, v$value, v$extra }, ${site.setter}"
+    } else {
+        "invoke-virtual { v$state, v$value }, ${site.setter}"
+    }
+    val (flag, state, viewer, setterExtra) = site.scratch
     mutable(site.onCreate).apply {
         addInstructionsWithLabels(
             site.index,
@@ -296,12 +301,12 @@ internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
                 move-object/from16 v$viewer, p0
                 invoke-static { v$viewer, v$flag }, $OPENED
                 const/4 v$flag, 1
-                invoke-virtual { v$state, v$flag }, ${site.setter}
+                ${setter(state, flag, setterExtra)}
             """,
             ExternalLabel("stock", getInstruction(site.index)),
         )
     }
-    val (pFlag, pState, pViewer) = site.pauseScratch
+    val (pFlag, pState, pViewer, pSetterExtra) = site.pauseScratch
     mutable(site.onPause).apply {
         addInstructionsWithLabels(
             0,
@@ -321,12 +326,12 @@ internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
                 move-result v$pFlag
                 if-eqz v$pFlag, :stock
                 const/4 v$pFlag, 0
-                invoke-virtual { v$pState, v$pFlag }, ${site.setter}
+                ${setter(pState, pFlag, pSetterExtra)}
             """,
             ExternalLabel("stock", getInstruction(0)),
         )
     }
-    val (rFlag, rState) = site.resumeScratch
+    val (rFlag, rState, rSetterExtra) = site.resumeScratch
     mutable(site.onResume).apply {
         addInstructionsWithLabels(
             0,
@@ -340,7 +345,7 @@ internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
                 invoke-static { v$rState }, ${site.factory}
                 move-result-object v$rState
                 const/4 v$rFlag, 1
-                invoke-virtual { v$rState, v$rFlag }, ${site.setter}
+                ${setter(rState, rFlag, rSetterExtra)}
             """,
             ExternalLabel("stock", getInstruction(0)),
         )

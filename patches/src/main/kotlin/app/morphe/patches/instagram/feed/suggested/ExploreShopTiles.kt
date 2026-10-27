@@ -8,10 +8,12 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.explore.PAGING_TOKEN
 import app.morphe.patches.instagram.explore.SECTIONS
 import app.morphe.patches.instagram.explore.findExploreParser
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -111,16 +113,20 @@ internal fun BytecodePatchContext.findExploreShopSections(): ExploreShopSections
     } catch (moved: PatchException) {
         refuse("Explore's page parser can't be told (${moved.message})")
     }
-    val pageMethod = classDefBy(page.type).methods.single {
-        it.name == "unsafeParseFromJson" && it.parameterTypes.map(CharSequence::toString) == page.parameters
-    }
+    // 453 reads the keys in a static helper instead of unsafeParseFromJson, so find the method that
+    // holds them rather than assuming the return method does.
+    val pageMethod = classDefBy(page.type).methods.singleOrNull {
+        loadsString(it, SECTIONS) && loadsString(it, PAGING_TOKEN)
+    } ?: refuse("${page.type} has no method reading $SECTIONS and $PAGING_TOKEN")
     val pageCode = pageMethod.implementation!!.instructions.toList()
     val key = pageCode.indices.firstOrNull { stringLoadedAt(pageCode, it) == SECTIONS }
         ?: refuse("${page.type} doesn't read $SECTIONS")
     val stored = (key + 1 until pageCode.size).firstOrNull { at ->
         pageCode[at].opcode == Opcode.IPUT_OBJECT && pageCode[at].field() == page.sections.toString()
     } ?: refuse("${page.type} never keeps its sections")
-    val parsers = (key + 1 until stored).mapNotNull { at ->
+    // 453 writes the list at a label after the other cases, so stop at the next key's case instead.
+    val nextKey = (key + 1 until pageCode.size).firstOrNull { stringLoadedAt(pageCode, it) != null } ?: stored
+    val parsers = (key + 1 until nextKey).mapNotNull { at ->
         val read = pageCode[at]
         if (read.opcode != Opcode.SGET_OBJECT) return@mapNotNull null
         val instance = (read as ReferenceInstruction).reference as FieldReference

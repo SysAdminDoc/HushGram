@@ -24,6 +24,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -31,6 +32,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 
 private const val PATCH = "Hide the Explore grid"
@@ -103,17 +105,18 @@ internal class ExploreParser(
 )
 
 /**
- * Finds the one `unsafeParseFromJson` loading [SECTIONS] and [PAGING_TOKEN], and in it the fields
- * the page's sections and its two "more" flags are read into. Either key may be loaded itself or
- * asked of a Redex string pool: 451's 385713109 and 385713111 pool [SECTIONS] and the other builds
- * load it themselves. Fails when there isn't exactly one such parser, or it reads them some other
- * way, since that's an update this patch hasn't seen.
+ * Finds the one method loading [SECTIONS] and [PAGING_TOKEN], and in it the fields the page's
+ * sections and its two "more" flags are read into. 453 moves the keys out of `unsafeParseFromJson`
+ * into a static field reader it calls, so the keys and the page's return may be in different
+ * methods: the page is the one `unsafeParseFromJson` of the same class makes and hands back.
+ * Either key may be loaded itself or asked of a Redex string pool: 451's 385713109 and 385713111
+ * pool [SECTIONS] and the other builds load it themselves. Fails when there isn't exactly one such
+ * parser, or it reads them some other way, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
     val found = mutableListOf<Pair<String, Method>>()
     classesLoadingString(PAGING_TOKEN).forEach { classDef ->
         classDef.methods.forEach { method ->
-            if (method.name != "unsafeParseFromJson") return@forEach
             if (loadsString(method, SECTIONS) && loadsString(method, PAGING_TOKEN)) found += classDef.type to method
         }
     }
@@ -134,20 +137,56 @@ internal fun BytecodePatchContext.findExploreParser(): ExploreParser {
         return field to (write as TwoRegisterInstruction).registerB
     }
 
-    val (sections, register) = fieldAfter(SECTIONS, Opcode.IPUT_OBJECT, "Ljava/util/List;")
+    // 453 hands the parsed list to the page at the label its loop branches to, after the other keys'
+    // cases, so the first field write after the key is the next case's. Find the list write through
+    // the loop's own exit branch instead; older builds write it straight after the key.
+    fun sectionsField(): Pair<FieldReference, Int> {
+        val at = code.indices.firstOrNull { stringLoadedAt(code, it) == SECTIONS } ?: refuse("$where doesn't read $SECTIONS")
+        val next = code.indices.firstOrNull { it > at && stringLoadedAt(code, it) != null } ?: code.size
+        val listAt = (at until next).firstOrNull {
+            code[it].opcode == Opcode.NEW_INSTANCE &&
+                ((code[it] as ReferenceInstruction).reference as TypeReference).type == "Ljava/util/ArrayList;"
+        }
+        if (listAt != null) {
+            val listRegister = (code[listAt] as OneRegisterInstruction).registerA
+            val writes = (at until next).mapNotNull { branch ->
+                if (code[branch] !is OffsetInstruction) return@mapNotNull null
+                val target = code.target(branch)
+                val write = code.getOrNull(target) ?: return@mapNotNull null
+                val field = (write as? ReferenceInstruction)?.reference as? FieldReference ?: return@mapNotNull null
+                if (write.opcode == Opcode.IPUT_OBJECT && field.type == "Ljava/util/List;" &&
+                    (write as TwoRegisterInstruction).registerA == listRegister
+                ) field to write.registerB else null
+            }.distinctBy { it.first.toString() }
+            writes.singleOrNull()?.let { return it }
+        }
+        return fieldAfter(SECTIONS, Opcode.IPUT_OBJECT, "Ljava/util/List;")
+    }
+
+    val (sections, pageOn) = sectionsField()
     val page = sections.definingClass
     val (moreAvailable, moreOn) = fieldAfter(MORE_AVAILABLE, Opcode.IPUT_BOOLEAN, "Z")
     val (autoLoadMore, autoOn) = fieldAfter(AUTO_LOAD_MORE, Opcode.IPUT_BOOLEAN, "Z")
     for ((field, on) in listOf(moreAvailable to moreOn, autoLoadMore to autoOn)) {
-        if (field.definingClass != page || on != register) refuse("$where writes ${field.name} on something other than its page")
+        if (field.definingClass != page || on != pageOn) refuse("$where writes ${field.name} on something other than its page")
     }
-    val returns = code.withIndex().filter {
+
+    val hook = classDefBy(type).methods.singleOrNull {
+        it.name == "unsafeParseFromJson" && it.implementation != null
+    } ?: refuse("$type has no unsafeParseFromJson")
+    val hookCode = hook.implementation!!.instructions.toList()
+    val made = hookCode.indices.filter { at ->
+        hookCode[at].opcode == Opcode.NEW_INSTANCE &&
+            ((hookCode[at] as ReferenceInstruction).reference as TypeReference).type == page
+    }.singleOrNull() ?: refuse("$type->unsafeParseFromJson doesn't make one $page")
+    val register = (hookCode[made] as OneRegisterInstruction).registerA
+    val returns = hookCode.withIndex().filter {
         it.value.opcode == Opcode.RETURN_OBJECT && (it.value as OneRegisterInstruction).registerA == register
     }
-    val returnAt = returns.singleOrNull()?.index ?: refuse("$where hands its page back ${returns.size} times, expected once")
-    if (register > 15) refuse("$where keeps its page in v$register, out of reach of a field write")
+    val returnAt = returns.singleOrNull()?.index ?: refuse("$type->unsafeParseFromJson hands its page back ${returns.size} times, expected once")
+    if (register > 15) refuse("$type->unsafeParseFromJson keeps its page in v$register, out of reach of a field write")
     return ExploreParser(
-        type, method.parameterTypes.map(CharSequence::toString), page, register, returnAt,
+        type, hook.parameterTypes.map(CharSequence::toString), page, register, returnAt,
         sections, moreAvailable, autoLoadMore,
     )
 }
@@ -306,5 +345,11 @@ private fun Instruction.calls(method: MethodReference) =
 private fun Method.strings(): Set<String> = implementation?.instructions
     ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
     ?.toSet() ?: emptySet()
+
+private fun List<Instruction>.target(index: Int): Int {
+    val address = IntArray(size + 1)
+    forEachIndexed { i, instruction -> address[i + 1] = address[i] + instruction.codeUnits }
+    return address.indexOf(address[index] + (this[index] as OffsetInstruction).codeOffset)
+}
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")

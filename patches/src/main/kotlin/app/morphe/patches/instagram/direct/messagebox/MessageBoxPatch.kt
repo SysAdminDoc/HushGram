@@ -47,7 +47,7 @@ internal val BOX_BUTTON_NAMES = listOf("GALLERY", "STICKER", "VOICE_MESSAGE")
  * Instagram 452's row_thread_composer_button_gallery, row_thread_composer_button_sticker and
  * row_thread_composer_voice ids, in the order of [BOX_BUTTON_NAMES]. The same in all three 452 builds (aapt2).
  */
-internal val BOX_BUTTON_IDS = listOf(0x7f0b3891, 0x7f0b389b, 0x7f0b38b5)
+internal val BOX_BUTTON_IDS = listOf(0x7f0b384d, 0x7f0b3857, 0x7f0b3859)
 
 /**
  * Leaves the gallery, sticker and voice message buttons off the message box of a chat, as the user
@@ -90,7 +90,7 @@ internal class MessageBoxSite(
     val returnAt: Int,
     val gallery: FieldReference,
     val sticker: FieldReference,
-    val voice: FieldReference,
+    val voice: FieldReference?,
 )
 
 /**
@@ -108,7 +108,9 @@ internal fun BytecodePatchContext.findMessageBox(): MessageBoxSite {
         }
     }
     val buttons = enums.singleOrNull() ?: refuse("${enums.size} message box button enums, not one")
-    val loading = BOX_BUTTON_IDS.map { id -> classesLoading(id.toLong()).mapTo(HashSet()) { it.type } }
+    // 453's holder still finds the gallery and sticker views but no longer looks up the voice one;
+    // its show-or-hide method still covers VOICE_MESSAGE, which is enough to hide it.
+    val loading = BOX_BUTTON_IDS.take(2).map { id -> classesLoading(id.toLong()).mapTo(HashSet()) { it.type } }
     val holders = classesLoading(BOX_BUTTON_IDS.first().toLong()).filter { candidate -> loading.all { candidate.type in it } }
         .filter { candidate -> candidate.methods.any { it.name == "<init>" && boxLookups(candidate.type, it) != null } }
     val holder = holders.singleOrNull() ?: refuse("${holders.size} message box holders, not one")
@@ -156,7 +158,7 @@ internal fun BytecodePatchContext.hideMessageBoxButtons(site: MessageBoxSite) {
         """
             iget-object v0, p0, ${site.gallery.definingClass}->${site.gallery.name}:${site.gallery.type}
             iget-object v1, p0, ${site.sticker.definingClass}->${site.sticker.name}:${site.sticker.type}
-            iget-object p1, p0, ${site.voice.definingClass}->${site.voice.name}:${site.voice.type}
+            ${site.voice?.let { "iget-object p1, p0, ${it.definingClass}->${it.name}:${it.type}" } ?: "const/4 p1, 0x0"}
             invoke-static { v0, v1, p1 }, $CREATED_HOOK
         """,
     )
@@ -174,11 +176,11 @@ internal fun BytecodePatchContext.hideMessageBoxButtons(site: MessageBoxSite) {
  * constructor isn't that. Each id is loaded once, handed to the view lookup, and the result stored
  * straight into a View field of [owner] on the holder itself.
  */
-private fun boxLookups(owner: String, constructor: Method): Triple<FieldReference, FieldReference, FieldReference>? {
+private fun boxLookups(owner: String, constructor: Method): Triple<FieldReference, FieldReference, FieldReference?>? {
     val code = boxCode(constructor)
     val self = (constructor.implementation?.registerCount ?: return null) -
         constructor.parameterTypes.sumOf { if (it == "J" || it == "D") 2 else 1 } - 1
-    val fields = BOX_BUTTON_IDS.map { id ->
+    fun fieldOf(id: Int): FieldReference? {
         val loads = code.indices.filter { (code[it] as? NarrowLiteralInstruction)?.narrowLiteral == id }
         val load = loads.singleOrNull() ?: return null
         val call = (code.getOrNull(load + 1) as? ReferenceInstruction)?.reference as? MethodReference
@@ -189,9 +191,12 @@ private fun boxLookups(owner: String, constructor: Method): Triple<FieldReferenc
             result?.opcode != Opcode.MOVE_RESULT_OBJECT || store?.opcode != Opcode.IPUT_OBJECT || field == null ||
             (store as TwoRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA ||
             store.registerB != self || field.definingClass != owner || field.type != VIEW) return null
-        field
+        return field
     }
-    return if (fields.toSet().size == 3) Triple(fields[0], fields[1], fields[2]) else null
+    val gallery = fieldOf(BOX_BUTTON_IDS[0]) ?: return null
+    val sticker = fieldOf(BOX_BUTTON_IDS[1]) ?: return null
+    if (gallery == sticker) return null
+    return Triple(gallery, sticker, fieldOf(BOX_BUTTON_IDS[2]))
 }
 
 /**

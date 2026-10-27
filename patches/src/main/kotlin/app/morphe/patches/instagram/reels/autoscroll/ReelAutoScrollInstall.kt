@@ -124,14 +124,20 @@ internal fun BytecodePatchContext.findScrollerInstall(isActive: Method): Scrolle
     val read = reads.singleOrNull() ?: refuseInstall("${builder.installText()} reads ${offered.installText()} ${reads.size} times, expected once")
     val result = code.getOrNull(read + 1) as? OneRegisterInstruction
     val branch = code.getOrNull(read + 2) as? OneRegisterInstruction
-    if (result == null || branch == null || result.opcode != Opcode.MOVE_RESULT || branch.opcode != Opcode.IF_EQZ ||
-        branch.registerA != result.registerA
+    if (result == null || branch == null || result.opcode != Opcode.MOVE_RESULT ||
+        (branch.opcode != Opcode.IF_EQZ && branch.opcode != Opcode.IF_NEZ) || branch.registerA != result.registerA
     ) {
         refuseInstall("${builder.installText()} doesn't branch on ${offered.installText()}'s answer right after reading it at instruction $read")
     }
     val flow = ControlFlow.of(builder)
     val skipsTo = flow.normal[read + 2].first()
-    if (create !in read + 3 until skipsTo) {
+    val buildsWhenTrue = branch.opcode == Opcode.IF_NEZ
+    if (buildsWhenTrue && skipsTo > create) {
+        refuseInstall(
+            "the branch at instruction ${read + 2} of ${builder.installText()} goes to $skipsTo, before the place $scroller is built, instruction $create",
+        )
+    }
+    if (!buildsWhenTrue && create !in read + 3 until skipsTo) {
         refuseInstall(
             "the branch at instruction ${read + 2} of ${builder.installText()} goes to $skipsTo and doesn't skip the place $scroller is built, instruction $create",
         )

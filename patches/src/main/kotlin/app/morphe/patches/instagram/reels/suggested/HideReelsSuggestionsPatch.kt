@@ -103,13 +103,14 @@ internal object FriendsTabPageFingerprint : Fingerprint(
 /**
  * The Reels viewer's binder dispatch for one clips item and its position, answering the binder:
  * the one method taking an object and an int, answering an object, that compares a netego unit's
- * type with both [CREATORS_TO_FOLLOW] and [FRIENDS_TO_FOLLOW].
+ * type with [CREATORS_TO_FOLLOW]. 452 compared [FRIENDS_TO_FOLLOW] in the same method; 453 leaves
+ * that name to the unit type enum and handles it elsewhere, so it isn't required here.
  */
 internal object NetegoDispatchFingerprint : Fingerprint(
     returnType = "L",
     parameters = listOf("L", "I"),
-    filters = listOf(string(FRIENDS_TO_FOLLOW)),
-    custom = { method, _ -> method.holdsString(CREATORS_TO_FOLLOW) && method.holdsString(FRIENDS_TO_FOLLOW) },
+    filters = listOf(string(CREATORS_TO_FOLLOW)),
+    custom = { method, _ -> method.holdsString(CREATORS_TO_FOLLOW) },
 )
 
 /**
@@ -148,7 +149,7 @@ internal fun BytecodePatchContext.findReelsSuggestions(): ReelsSuggestionSites {
     if (!itemType.startsWith("L") || classDefByOrNull(itemType) == null) refuse("$where answers $itemType, which isn't a class of the app")
     requireOneKindField(PATCH, itemType, SUGGESTED_KINDS)
 
-    val dispatch = uniqueMethod(PATCH, "Reels binder dispatch comparing $CREATORS_TO_FOLLOW and $FRIENDS_TO_FOLLOW", NetegoDispatchFingerprint)
+    val dispatch = uniqueMethod(PATCH, "Reels binder dispatch comparing $CREATORS_TO_FOLLOW", NetegoDispatchFingerprint)
     if (dispatch.parameterTypes.first().toString() != itemType) {
         refuse("the Reels binder dispatch ${dispatch.definingClass}->${dispatch.name} doesn't take a $itemType")
     }

@@ -145,7 +145,6 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
     }
 
     val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
-    if (AccessFlags.STATIC.isSet(viewer.accessFlags)) refuse("${viewer.definingClass}->${viewer.name} is static")
     val code = viewer.instructions()
     val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }

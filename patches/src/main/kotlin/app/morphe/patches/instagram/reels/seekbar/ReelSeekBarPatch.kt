@@ -51,16 +51,16 @@ internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-// 451: 0x82091900291476. 452 moved it to 0x82090f00291471 (config index -10, slot -5); same three readers.
-internal const val ORGANIC_MIN_SECONDS = 0x82090f00291471L
+// 451: 0x82091900291476. 452 moved it to 0x82090f00291471, and 453 to 0x8208fe00291415 (config index -10, slot -5); same three readers.
+internal const val ORGANIC_MIN_SECONDS = 0x8208fe00291415L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
  * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, read by the same seek bar row state.
-internal const val ORGANIC_LAZY = 0x81090f00103271L
+// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259, read by the same seek bar row state.
+internal const val ORGANIC_LAZY = 0x8108fe00103259L
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */
@@ -231,8 +231,8 @@ internal fun BytecodePatchContext.findBindSite(row: Method, lazy: FlagLoad): Bin
     val code = binder.implementation!!.instructions.toList()
     val tagAt = tagged.second
     val view = code[tagAt].arguments().first()
-    if (view < binder.localRegisterCount()) refuse("$where tags a view of its own, not the one it's handed")
-    // The case runs from where the handed view is cast to where the next case casts it again.
+    // 453 copies the handed view into a local before its case, so the register needn't be a parameter;
+    // the case still starts where that local is cast and ends where the next case casts it again.
     fun castsView(at: Int) = code[at].opcode == Opcode.CHECK_CAST && (code[at] as OneRegisterInstruction).registerA == view
     val start = (tagAt downTo 0).firstOrNull(::castsView) ?: 0
     val end = (tagAt + 1 until code.size).firstOrNull(::castsView) ?: code.size

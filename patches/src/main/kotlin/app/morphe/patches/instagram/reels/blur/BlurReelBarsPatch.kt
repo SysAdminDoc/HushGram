@@ -22,7 +22,6 @@ import app.morphe.patches.instagram.reels.scrolling.ReelsViewerSetupFingerprint
 import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -93,7 +92,6 @@ internal fun BytecodePatchContext.findReelPagerStore(): ReelPagerStore {
     }
 
     val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
-    if (AccessFlags.STATIC.isSet(viewer.accessFlags)) refuse("${viewer.definingClass}->${viewer.name} is static")
     val code = viewer.instructions()
     val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }

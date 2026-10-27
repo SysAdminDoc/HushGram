@@ -46,8 +46,9 @@ internal const val FOLLOW_UP_BAR = "$META_AI->followUpBar(Landroid/view/View;)La
 internal const val FOLLOW_UP_STUB = "$META_AI->followUpStub(Landroid/view/View;)Landroid/view/View;"
 internal const val HOME_BUTTON = "$META_AI->homeButton(Ljava/lang/String;)Ljava/lang/String;"
 
-/** Home's top bar setup holds both on 449, and its Meta AI button is the second one's case. */
-internal val HOME_BAR_SETUP = listOf("MainFeedActionBarDelegate:configureActionBar", "meta_ai")
+/** Home's top bar setup holds the trace; 453 names Meta AI's button "hatch", older builds "meta_ai". */
+internal val HOME_BAR_SETUP = listOf("MainFeedActionBarDelegate:configureActionBar")
+internal val HOME_BUTTON_NAMES = listOf("meta_ai", "hatch")
 private const val ITERATOR_NEXT = "Ljava/util/Iterator;->next()Ljava/lang/Object;"
 private const val STRING_LENGTH = "Ljava/lang/String;->length()I"
 private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
@@ -76,7 +77,7 @@ private const val VIEW = "Landroid/view/View;"
  * puts a Meta AI chats ("hatch") button in Home's top bar when the server's list has no messages
  * button, and the same item in the bar's settings list.
  */
-internal val SEARCH_FLAGS = listOf(0x81067100111e9fL, 0x81040c0006109dL, 0x81040a001b1093L, 0x81168700017258L)
+internal val SEARCH_FLAGS = listOf(0x81066200111e66L, 0x81040000061068L, 0x8103fe001b105eL, 0x81166400017394L)
 
 /** The Search tab's flag, which the search results page reads too (#152). */
 internal val RESULTS_FLAG = SEARCH_FLAGS[0]
@@ -125,7 +126,7 @@ val hideMetaAiPatch = bytecodePatch(
         // After the pills' check, which comes later in the same method, so this site hasn't moved.
         dropFollowUpBarStub(followUpStub)
         foldSummaryRows(summaryRows)
-        dropHomeButton(homeButtons)
+        homeButtons?.let(::dropHomeButton)
         holdComposerButtons(composer)
         holdOptionalInboxRow(inbox)
         dropAboutSummary(about)
@@ -304,7 +305,19 @@ internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite {
             searchesAField(index)
     }
     val lookups = if (code.indices.any(::staticLookup)) statics else inlined
-    val lookup = lookups.singleOrNull() ?: refuse("$where looks up a stub to inflate ${lookups.size} times, not once")
+    // 453 inflates three stubs here: the follow-up bar, which is kept as a plain View, and two
+    // ViewSwitcher stubs that are cast. Keep the one whose inflated view is stored as it is.
+    fun plainView(index: Int): Boolean {
+        val ready = if (code.indices.any(::staticLookup)) index + 1 else index + 2
+        val stub = (code[ready] as OneRegisterInstruction).registerA
+        val inflate = (ready + 1..minOf(code.lastIndex, ready + CHECK_WITHIN)).firstOrNull {
+            code[it].methodReference()?.toString() == INFLATE && code[it].arguments() == listOf(stub)
+        } ?: return false
+        return code.getOrNull(inflate + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            code.getOrNull(inflate + 2)?.opcode == Opcode.IPUT_OBJECT
+    }
+    val bars = lookups.filter(::plainView).ifEmpty { lookups }
+    val lookup = bars.singleOrNull() ?: refuse("$where looks up a stub to inflate ${bars.size} times, not once")
     val site = (lookup - 1 downTo maxOf(0, lookup - CHECK_WITHIN))
         .firstOrNull { code[it].methodReference()?.toString() == FIND_VIEW }
         ?.let { find -> stubCheck(where, code, find, lookup) }
@@ -413,20 +426,29 @@ internal fun BytecodePatchContext.findFollowUpBarStub(): HookSite {
     fun inflates(index: Int): Boolean {
         val call = code[index].methodReference() ?: return false
         return (code[index].opcode == Opcode.INVOKE_STATIC || code[index].opcode == Opcode.INVOKE_STATIC_RANGE) &&
-            call.returnType == VIEW && call.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "I")
+            (call.returnType == VIEW || call.returnType == VIEW_STUB) &&
+            call.parameterTypes.map(CharSequence::toString) == listOf(VIEW, "I")
     }
-    val finds = code.indices.filter { find ->
+    fun inflateAt(find: Int): Int? {
         val result = code.getOrNull(find + 1)
         val test = code.getOrNull(find + 2)
         val searched = code[find].arguments()
-        if (code[find].methodReference()?.toString() != FIND_VIEW || searched.size != 2) return@filter false
-        if (result?.opcode != Opcode.MOVE_RESULT_OBJECT || test?.opcode != Opcode.IF_EQZ) return@filter false
-        if ((test as OneRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA) return@filter false
+        if (code[find].methodReference()?.toString() != FIND_VIEW || searched.size != 2) return null
+        if (result?.opcode != Opcode.MOVE_RESULT_OBJECT || test?.opcode != Opcode.IF_EQZ) return null
+        if ((test as OneRegisterInstruction).registerA != (result as OneRegisterInstruction).registerA) return null
         val inflate = (find + 3..minOf(code.lastIndex, find + 2 + INFLATE_WITHIN)).firstOrNull { inflates(it) }
-            ?: return@filter false
-        code[inflate].arguments() == searched && (find + 3 until inflate).none { at -> searched.any { code[at].writes(it) } }
+            ?: return null
+        if (code[inflate].arguments() != searched || (find + 3 until inflate).any { at -> searched.any { code[at].writes(it) } }) return null
+        return inflate
     }
-    val find = finds.singleOrNull() ?: refuse("$where finds and inflates a stub of its page ${finds.size} times, not once")
+    val finds = code.indices.filter { inflateAt(it) != null }
+    // 453 also sets up two ViewSwitcher stubs in this method; the bar's inflated view is kept as a plain View.
+    val plain = finds.filter { find ->
+        val inflate = inflateAt(find) ?: return@filter false
+        code.getOrNull(inflate + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT && code.getOrNull(inflate + 2)?.opcode == Opcode.IPUT_OBJECT
+    }
+    val candidates = plain.ifEmpty { finds }
+    val find = candidates.singleOrNull() ?: refuse("$where finds and inflates a stub of its page ${candidates.size} times, not once")
     val flow = ControlFlow.of(method)
     val jumpedTo = code.indices.any { from ->
         (flow.normal[from].filter { it != from + 1 } + flow.exceptional[from]).contains(find + 2)
@@ -464,7 +486,7 @@ internal fun BytecodePatchContext.dropFollowUpBarStub(stub: HookSite) {
  * built without that button. Another loop in the method, over the names the bar ended up with, casts
  * them without the null test.
  */
-internal fun BytecodePatchContext.findHomeButtonNames(): HookSite {
+internal fun BytecodePatchContext.findHomeButtonNames(): HookSite? {
     val setups = mutableListOf<Pair<ClassDef, Method>>()
     classesHolding(*HOME_BAR_SETUP.toTypedArray()).forEach { classDef ->
         classDef.methods.forEach { method ->
@@ -491,10 +513,12 @@ internal fun BytecodePatchContext.findHomeButtonNames(): HookSite {
     val register = (code[cast] as OneRegisterInstruction).registerA
     val comparedToMetaAi = code.indices.any { index ->
         val name = ((code[index] as? ReferenceInstruction)?.reference as? StringReference)?.string
-        name == "meta_ai" && code.getOrNull(index + 1)?.methodReference()?.toString() == STRING_EQUALS &&
+        name in HOME_BUTTON_NAMES && code.getOrNull(index + 1)?.methodReference()?.toString() == STRING_EQUALS &&
             code[index + 1].arguments() == listOf(register, (code[index] as OneRegisterInstruction).registerA)
     }
-    if (!comparedToMetaAi) refuse("$where never compares the name it takes with \"meta_ai\"")
+    // 453 builds the button in a branch its own flag read guards instead of comparing a server name;
+    // answering that read (SEARCH_FLAGS' fourth) is what leaves the button out, so no name hook here.
+    if (!comparedToMetaAi) return null
     return HookSite(
         classDef.type, method.name, method.parameterTypes.map(CharSequence::toString), method.returnType,
         cast, register,

@@ -62,7 +62,7 @@ internal const val USER_DETAIL = "Lcom/instagram/profile/fragment/UserDetailFrag
  * Instagram 452's id/profile_header_create_button (0x7f0b309c on 451), the view id of the plus on your own profile,
  * the same in all three 452 builds (aapt2).
  */
-internal const val CREATE_BUTTON_ID = 0x7f0b30b9
+internal const val CREATE_BUTTON_ID = 0x7f0b3077
 
 /** The events only the Threads chip under a profile's bio logs, loaded by its constructor. */
 internal const val BANNER_TAP = "tap_threads_banner"

@@ -26,7 +26,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val INBOX_ROW = "$EXTENSION_PACKAGE/metaai/MetaAi;->inboxRow(Ljava/lang/Object;)Ljava/lang/Object;"
-internal const val INBOX_ROW_RENDER_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRow (HatchInboxRow.kt:45)"
+internal const val INBOX_ROW_RENDER_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRow (HatchInboxRow.kt:48)"
 internal const val INBOX_ROW_ITEM_MARKER = "instagram.features.direct.inbox.feature.hatchinboxrow.ui.HatchInboxRowItem.<init>.<anonymous> (HatchInboxRowItem.kt:12)"
 internal const val INBOX_SECTION_MARKER = "No section generator found for section type "
 
@@ -60,7 +60,7 @@ internal fun BytecodePatchContext.findOptionalInboxRow(): InboxRowSite {
     val candidates = classesHolding(INBOX_SECTION_MARKER).filter { owner -> owner.methods.any { method ->
         method.rowCode().any { it.rowString() == INBOX_SECTION_MARKER }
     } }.flatMap { owner ->
-        owner.methods.mapNotNull { method -> optionalInboxRead(method, model)?.let { read ->
+        owner.methods.mapNotNull { method -> (optionalInboxRead(method, model) ?: simpleInboxRead(method, model))?.let { read ->
             InboxRowSite(owner.type, method.name, method.parameterTypes.map(CharSequence::toString), read,
                 (method.rowCode()[read] as OneRegisterInstruction).registerA, model)
         } }
@@ -78,6 +78,21 @@ internal fun BytecodePatchContext.holdOptionalInboxRow(site: InboxRowSite) {
         move-result-object v${site.register}
         check-cast v${site.register}, ${site.model}
     """)
+}
+
+
+/** 453's simpler optional read: the model field, then a null test that skips the row. */
+private fun simpleInboxRead(method: Method, model: String): Int? {
+    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "Z" ||
+        method.parameterTypes.size != 4 || method.parameterTypes.any { !it.startsWith("L") }) return null
+    val code = method.rowCode()
+    val read = code.indices.filter { code[it].opcode == Opcode.IGET_OBJECT && code[it].rowField()?.type == model }.singleOrNull()
+        ?: return null
+    val test = code.getOrNull(read + 1)
+    if (test?.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != (code[read] as OneRegisterInstruction).registerA) {
+        return null
+    }
+    return read
 }
 
 private fun optionalInboxRead(method: Method, model: String): Int? {

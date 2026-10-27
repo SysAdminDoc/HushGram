@@ -35,7 +35,7 @@ private const val CONFIGS = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsa
  * Messages on it and a sideways swipe between every tab. Only two methods load it: the gate the
  * patch hooks, which reads it as a boolean, and one that reads a string from it.
  */
-internal const val NEW_TAB_BAR_FLAG = 0x2081080a00102a78L
+internal const val NEW_TAB_BAR_FLAG = 0x208102ea00060a8dL
 
 /**
  * Picks the tab bar, newer or classic, instead of leaving it to Instagram (#356). Included in the

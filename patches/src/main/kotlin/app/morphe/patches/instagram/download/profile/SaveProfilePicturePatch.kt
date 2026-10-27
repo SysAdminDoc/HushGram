@@ -113,12 +113,20 @@ private fun refuse(why: String): Nothing = throw PatchException("$PROFILE_PICTUR
  * hold the profile's account and the context the sheet is shown with. [free] are two locals
  * nothing reads after [index].
  */
+internal class AccountSource(val field: FieldReference?, val getter: MethodReference?) {
+    fun load(destination: Int, owner: Int): String = if (field != null) {
+        "iget-object v$destination, v$owner, $field"
+    } else {
+        "invoke-static { v$owner }, $getter\n                move-result-object v$destination"
+    }
+}
+
 internal class ProfileMenuSite(
     val name: String,
     val index: Int,
     val sheet: Int,
     val owner: Int,
-    val user: FieldReference,
+    val user: AccountSource,
     val context: FieldReference,
     val free: List<Int>,
 )
@@ -136,7 +144,7 @@ internal class ProfilePopupSite(
     val list: Int,
     val context: Int,
     val owner: Int,
-    val user: FieldReference,
+    val user: AccountSource,
     val free: Int,
     val item: String,
     val fields: List<String>,
@@ -224,7 +232,13 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
         val helper = classDefByOrNull(context.definingClass) ?: refuse("the \"$name\" helper ${context.definingClass} isn't in the app")
         if (helper.originalName() != name) refuse("${helper.type} isn't the helper named \"$name\"")
         val users = helper.fields.filter { it.type == USER && !AccessFlags.STATIC.isSet(it.accessFlags) }
-        val user = users.singleOrNull() ?: refuse("expected one account field on the \"$name\" helper, found ${users.size}")
+        val getters = helper.methods.filter {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == USER &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(helper.type)
+        }
+        val user = users.singleOrNull()?.let { AccountSource(it, null) }
+            ?: getters.singleOrNull()?.let { AccountSource(null, it) }
+            ?: refuse("expected one account field or static getter on the \"$name\" helper, found ${users.size} fields and ${getters.size} getters")
         val free = method.freeLocalsAt(PROFILE_PICTURE_PATCH, index, 2)
         ProfileMenuSite(name, index, sheet, owner, user, context, free)
     }
@@ -439,7 +453,7 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
             menus.method.addInstructions(
                 index,
                 """
-                    iget-object v${popup.free}, v${popup.owner}, ${popup.user}
+                    ${popup.user.load(popup.free, popup.owner)}
                     invoke-static { v${popup.list}, v${popup.free}, v${popup.context} }, $OFFER_POPUP
                 """,
             )
@@ -449,7 +463,7 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
         menus.method.addInstructions(
             index,
             """
-                iget-object v$user, v${site.owner}, ${site.user}
+                ${site.user.load(user, site.owner)}
                 iget-object v$context, v${site.owner}, ${site.context}
                 invoke-static { v${site.sheet}, v$user, v$context }, $OFFER_PICTURE
             """,

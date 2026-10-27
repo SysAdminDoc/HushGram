@@ -33,7 +33,7 @@ internal val COMPOSER_BUTTON_NAMES = listOf("META_AI_DISCOVERY", "META_AI_INVOCA
  * Instagram 452's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
  * three 452 builds (aapt2). They didn't move from 451; 450 had them at 0x7f0b386b to 0x7f0b386d.
  */
-internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b38a6, 0x7f0b38a7, 0x7f0b38a8)
+internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3862, 0x7f0b3863, 0x7f0b3864)
 private const val VIEW = "Landroid/view/View;"
 private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 

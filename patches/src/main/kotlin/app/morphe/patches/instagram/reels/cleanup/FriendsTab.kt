@@ -30,7 +30,7 @@ internal const val TAB_LAYOUT = "Lcom/google/android/material/tabs/TabLayout;"
  * Instagram 452's drawable/empty_social_facepile, the icon the Friends tab starts with before its
  * faces load, the same in all four 452 builds (aapt2).
  */
-internal const val FRIENDS_TAB_ICON = 0x7f0806a5
+internal const val FRIENDS_TAB_ICON = 0x7f0806a8
 
 internal const val FRIENDS_TAB_HOOK = "$EXTENSION_PACKAGE/reels/ReelsTopBar;->friendsTab(Landroid/view/View;)V"
 
@@ -96,13 +96,15 @@ private fun BytecodePatchContext.siteAt(method: Method, code: List<Instruction>,
         val add = code[later]
         val called = ((add as? ReferenceInstruction)?.reference as? MethodReference) ?: return@any false
         add.opcode == Opcode.INVOKE_VIRTUAL && called.definingClass == TAB_LAYOUT &&
-            called.parameterTypes.map(Any::toString) == listOf(tabType) && called.returnType == "V" &&
-            (add as FiveRegisterInstruction).registerD == tab
+            called.parameterTypes.map(Any::toString).let { it == listOf(tabType) || it == listOf(tabType, "Z") } &&
+            called.returnType == "V" && (add as FiveRegisterInstruction).registerD == tab
     }
     if (!adds) return null
     // A jump to the setter or the read could arrive holding something else in those registers.
     val jumps = method.jumpTargets()
-    if (at + 1 in jumps || at + 2 in jumps) {
+    // 453 jumps to the read itself when a condition leaves out the icon, which still reads the
+    // same tab's view, so only a jump past the setter would land between the icon and its view.
+    if (at + 1 in jumps) {
         throw PatchException("$PATCH: something jumps into the Friends tab's icon and view in ${method.definingClass}->${method.name}")
     }
     return FriendsTabSite(method, at + 2, tab, read.registerA)

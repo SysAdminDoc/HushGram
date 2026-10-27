@@ -101,9 +101,13 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val modelField = models.singleOrNull() ?: refuse("expected one $USER_DETAIL_MODEL field on the profile screen, found ${models.size}")
     if (!AccessFlags.PUBLIC.isSet(modelField.accessFlags)) refuse("the profile screen's ${modelField.name} isn't public, so the hook can't read it")
     val model = classDefByOrNull(USER_DETAIL_MODEL) ?: refuse("this Instagram build has no $USER_DETAIL_MODEL")
+    // 453 keeps the account in the model's live data rather than a field; the extension reads either
+    // a field, a static getter, or the live data's wrapped user, so only a field is checked here.
     val users = model.fields.filter { it.type == USER && !AccessFlags.STATIC.isSet(it.accessFlags) }
-    val userField = users.singleOrNull() ?: refuse("expected one $USER field on the profile screen's model, found ${users.size}")
-    if (!AccessFlags.PUBLIC.isSet(userField.accessFlags)) refuse("the model's ${userField.name} isn't public, so the hook can't read it")
+    if (users.size > 1) refuse("expected at most one $USER field on the profile screen's model, found ${users.size}")
+    users.singleOrNull()?.let { field ->
+        if (!AccessFlags.PUBLIC.isSet(field.accessFlags)) refuse("the model's ${field.name} isn't public, so the hook can't read it")
+    }
 
     val parameters = binder.parameterTypes.map { it.toString() }
     val ties = classesCalling(bar.type, binder.name, parameters, binder.returnType).filter { it.type != bar.type }.flatMap { owner ->

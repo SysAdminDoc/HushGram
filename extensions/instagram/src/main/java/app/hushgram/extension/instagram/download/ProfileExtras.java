@@ -132,11 +132,58 @@ public final class ProfileExtras {
     static Object accountOf(Object screen) {
         try {
             Object model = fieldOfType(screen, SCREEN_MODEL);
-            return model == null ? null : fieldOfType(model, USER_TYPE);
+            if (model == null) return null;
+            Object field = fieldOfType(model, USER_TYPE);
+            if (field != null) return field;
+            Object getter = getterOf(model, USER_TYPE);
+            return getter != null ? getter : liveUser(model);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account read", failure);
             return null;
         }
+    }
+
+
+    /** The account wrapped in the model's live data, by reflecting the value and its fields. */
+    private static Object liveUser(Object model) throws Exception {
+        for (Class<?> type = model.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
+            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+                Object value;
+                try {
+                    field.setAccessible(true);
+                    value = field.get(model);
+                } catch (Throwable ignored) {
+                    continue;
+                }
+                if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean) continue;
+                for (Class<?> valueType = value.getClass(); valueType != null && valueType != Object.class; valueType = valueType.getSuperclass()) {
+                    for (java.lang.reflect.Field held : valueType.getDeclaredFields()) {
+                        if (java.lang.reflect.Modifier.isStatic(held.getModifiers())) continue;
+                        try {
+                            held.setAccessible(true);
+                            Object candidate = held.get(value);
+                            if (candidate != null && candidate.getClass().getName().equals(USER_TYPE)) return candidate;
+                        } catch (Throwable ignored) {
+                            // The live value's other fields aren't the account.
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    /** The model's static getter taking itself and answering the account, by type; null when missing. */
+    private static Object getterOf(Object holder, String typeName) throws Exception {
+        Class<?> holderType = holder.getClass();
+        for (java.lang.reflect.Method method : holderType.getDeclaredMethods()) {
+            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers()) || method.getReturnType().getName().equals(typeName) == false) continue;
+            Class<?>[] parameters = method.getParameterTypes();
+            if (parameters.length != 1 || parameters[0] != holderType) continue;
+            method.setAccessible(true);
+            return method.invoke(null, holder);
+        }
+        return null;
     }
 
     private static Object fieldOfType(Object holder, String typeName) throws IllegalAccessException {

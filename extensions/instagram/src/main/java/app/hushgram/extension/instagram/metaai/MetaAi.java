@@ -73,7 +73,7 @@ public final class MetaAi {
             "VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FEED_UNIT", "MEMU_IN_FEED_UNIT")));
 
     /** The name Home's top bar list gives Meta AI's button on 449. */
-    static final String HOME_BUTTON = "meta_ai";
+    static final java.util.Set<String> HOME_BUTTONS = new java.util.LinkedHashSet<>(java.util.Arrays.asList("meta_ai", "hatch"));
 
     /** The three Meta AI buttons in Instagram's native message composer button enum. */
     static final Set<String> COMPOSER_BUTTONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -217,7 +217,7 @@ public final class MetaAi {
      * is on, and the name otherwise, or when anything goes wrong. Never throws.
      */
     public static String homeButton(String name) {
-        if (!HOME_BUTTON.equals(name)) return name;
+        if (!HOME_BUTTONS.contains(name)) return name;
         try {
             HookStatus.invoked(FamilyNames.META_AI);
             if (!Utils.settingsReady() || !Settings.HIDE_META_AI_SEARCH.get()) return name;

@@ -65,17 +65,19 @@ internal fun BytecodePatchContext.findStoryMidcards(): StoryMidcards {
             it.isStatic() && it.parameters() == listOf(INTEGER) && it.returnType == STRING && loadsString(it, SUGGESTED_USERS_MIDCARD)
         }
     }
-    val mapper = mappers.singleOrNull() ?: refuse("expected one static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\", found ${mappers.size}")
-    val mapperAt = "${mapper.definingClass}->${mapper.name}"
-
-    val reels = classesCalling(mapper.definingClass, mapper.name).flatMap { classDef ->
-        classDef.methods.filter { method ->
-            val parameters = method.parameters()
-            method.name == "<init>" && parameters.size == 4 && parameters[0].startsWith("L") &&
-                parameters.drop(1) == listOf(INTEGER, LIST, LIST) && method.calls().any { it.matches(mapper) }
+    if (mappers.isEmpty()) refuse("expected a static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\", found none")
+    val built = mappers.mapNotNull { mapper ->
+        val reels = classesCalling(mapper.definingClass, mapper.name).flatMap { classDef ->
+            classDef.methods.filter { method ->
+                val parameters = method.parameters()
+                method.name == "<init>" && parameters.size == 4 && parameters[0].startsWith("L") &&
+                    parameters.drop(1) == listOf(INTEGER, LIST, LIST) && method.calls().any { it.matches(mapper) }
+            }
         }
+        reels.singleOrNull()?.let { mapper to it }
     }
-    val reel = reels.singleOrNull() ?: refuse("expected one reel constructor (Object, Integer, List, List) asking $mapperAt, found ${reels.size}")
+    val (mapper, reel) = built.singleOrNull()
+        ?: refuse("expected one static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, List, List) asking it, found ${built.size}")
     val reelAt = "${reel.definingClass}-><init>(${reel.parameters().joinToString("")})"
 
     val adders = classesCalling(reel.definingClass, "<init>").filterNot { it.type.startsWith(EXTENSION_ROOT) }.flatMap { classDef ->

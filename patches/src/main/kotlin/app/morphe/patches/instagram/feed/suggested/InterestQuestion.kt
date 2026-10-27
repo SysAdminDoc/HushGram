@@ -96,8 +96,21 @@ internal fun BytecodePatchContext.findInterestQuestion(): InterestQuestion {
             if (HOME_MODULE in names && OLDER_MODULE in names) found += method to code
         }
     }
-    val (method, code) = found.singleOrNull()
-        ?: refuse("expected one row builder holding $HOME_MODULE and $OLDER_MODULE, found ${found.size}")
+    // 453 has another adapter that checks the same two module names for a different row; the
+    // question's builder is the one that reads a post's question right before the name.
+    val candidates = found.filter { (_, code) ->
+        code.indices.any { at ->
+            stringLoadedAt(code, at) == HOME_MODULE && at >= 5 &&
+                (code[at - 5] as? ReferenceInstruction)?.reference.let {
+                    it is MethodReference && it.definingClass == MEDIA && it.parameterTypes.isEmpty() &&
+                        it.returnType.startsWith("L")
+                } &&
+                code[at - 4].opcode == Opcode.MOVE_RESULT_OBJECT && code[at - 3].opcode == Opcode.IF_EQZ &&
+                code[at - 2].opcode == Opcode.INVOKE_INTERFACE
+        }
+    }
+    val (method, code) = candidates.singleOrNull()
+        ?: refuse("expected one row builder holding $HOME_MODULE and $OLDER_MODULE, found ${candidates.size} of ${found.size}")
     val where = "${method.definingClass}->${method.name}"
     val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
     fun targetOf(at: Int): Int {
