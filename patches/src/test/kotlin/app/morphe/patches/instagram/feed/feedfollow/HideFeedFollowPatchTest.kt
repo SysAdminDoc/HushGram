@@ -185,10 +185,10 @@ class HideFeedFollowPatchTest {
     }
 
     private val subscribeBuilds = mapOf(
-        "385811005" to NativeSubscribe("LX/05iY;", "LX/06jT;", "LX/09cW;", "LX/02VD;", 0x7f13804f),
-        "385811006" to NativeSubscribe("LX/04rS;", "LX/05sU;", "LX/08zX;", "LX/0AOZ;", 0x7f13804d),
-        "385811007" to NativeSubscribe("LX/04sb;", "LX/05uF;", "LX/06Lf;", "LX/0ANc;", 0x7f13804f),
-        "385811008" to NativeSubscribe("LX/04rS;", "LX/05sU;", "LX/08zX;", "LX/0AOX;", 0x7f13804d),
+        "385914282" to NativeSubscribe("LX/05iY;", "LX/06jT;", "LX/09cW;", "LX/02VD;", 0x7f13804f),
+        "385914283" to NativeSubscribe("LX/04rS;", "LX/05sU;", "LX/08zX;", "LX/0AOZ;", 0x7f13804d),
+        "385914284" to NativeSubscribe("LX/04sb;", "LX/05uF;", "LX/06Lf;", "LX/0ANc;", 0x7f13804f),
+        "385914285" to NativeSubscribe("LX/04rS;", "LX/05sU;", "LX/08zX;", "LX/0AOX;", 0x7f13804d),
     )
 
     private val FEED_BUTTON = "$EXTENSION_PACKAGE/feed/FeedFollowButton;"

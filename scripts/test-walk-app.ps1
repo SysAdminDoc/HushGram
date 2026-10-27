@@ -85,7 +85,7 @@ function Set-WalkFixtureBundle([string]$Identity = $script:fixtureIdentity, [str
     })
 }
 function Set-WalkFixtureApk([string]$Identity = $script:fixtureIdentity, [string]$Payload = 'original APK resources',
-    [string]$Package = 'com.instagram.android', [string]$VersionName = '452.1.0.53.64', [string]$VersionCode = '385811006') {
+    [string]$Package = 'com.instagram.android', [string]$VersionName = '453.0.0.55.79', [string]$VersionCode = '385914283') {
     $facts = @{ package = $Package; versionName = $VersionName; versionCode = $VersionCode } | ConvertTo-Json -Compress
     [byte[]]$dex = @([byte]0xff, [byte]0, [byte]0x80) + [Text.Encoding]::ASCII.GetBytes("dex`n035`0$Identity`0")
     New-WalkFixtureArchive $script:fixtureApk ([ordered]@{ 'AndroidManifest.xml' = $facts; 'classes.dex' = $dex
@@ -97,14 +97,14 @@ function Set-WalkFixtureCatalog([switch]$ChangeVersionCode,
     $script:fixtureCatalogDocument = [pscustomobject]@{ version = 'v0.0.99'; patches = @(
         foreach ($name in $names) {
             [pscustomobject]@{ name = $name; dependencies = @('BytecodePatch')
-                compatiblePackages = [pscustomobject]@{ 'com.instagram.android' = @('452.1.0.53.64') }
+                compatiblePackages = [pscustomobject]@{ 'com.instagram.android' = @('453.0.0.55.79') }
                 compatibility = @([pscustomobject]@{ packageName = 'com.instagram.android'; targets = @(
-                    [pscustomobject]@{ version = '452.1.0.53.64'; versionCodes = [pscustomobject]@{ ARM64_V8A = 385811006 } }) }) }
+                    [pscustomobject]@{ version = '453.0.0.55.79'; versionCodes = [pscustomobject]@{ ARM64_V8A = 385914283 } }) }) }
         }) }
     Write-WalkFixtureJson $script:fixtureCatalog $script:fixtureCatalogDocument
 }
 function Set-WalkFixtureReport([object[]]$Names = @('Hide ads', 'HushGram settings', 'BytecodePatch')) {
-    $script:fixtureReportDocument = [pscustomobject]@{ success = $true; packageName = 'com.instagram.android'; packageVersion = '452.1.0.53.64'
+    $script:fixtureReportDocument = [pscustomobject]@{ success = $true; packageName = 'com.instagram.android'; packageVersion = '453.0.0.55.79'
         appliedPatches = @($Names | ForEach-Object { [pscustomobject]@{ name = $_ } }); failedPatches = @()
         stepResults = @([pscustomobject]@{ name = 'patch'; success = $true }, [pscustomobject]@{ name = 'write'; success = $true }) }
     Write-WalkFixtureJson $script:fixtureReport $script:fixtureReportDocument
@@ -162,7 +162,7 @@ function Test-WalkArtifactFixture {
     $script:fixtureReportDocument.appliedPatches[0].name = 1
     Write-WalkFixtureJson $script:fixtureReport $script:fixtureReportDocument; Set-WalkFixtureRecord
     Assert-WalkRefused { Get-WalkFixtureBinding } '*selection is malformed*'
-    foreach ($code in @('385811008','2147483647')) {
+    foreach ($code in @('385914285','2147483647')) {
         Reset-WalkArtifactFixture
         Set-WalkFixtureApk -VersionCode $code; Set-WalkFixtureRecord
         Assert-WalkRefused { Get-WalkFixtureBinding } '*not an exact package and build*'
@@ -172,12 +172,12 @@ function Test-WalkArtifactFixture {
     Set-WalkFixtureReport -Names @('Hide ads','HushGram settings','BytecodePatch','Change version code')
     Set-WalkFixtureApk -VersionCode '2147483647'; Set-WalkFixtureRecord
     Assert-WalkTest ((Get-WalkFixtureBinding).target.versionCode -ceq '2147483647') 'The authorized changed output code was refused.'
-    foreach ($code in @('2147483646','385811006')) {
+    foreach ($code in @('2147483646','385914283')) {
         Set-WalkFixtureApk -VersionCode $code; Set-WalkFixtureRecord
         Assert-WalkRefused { Get-WalkFixtureBinding } '*not an exact package and build*'
     }
-    Set-WalkFixtureApk -VersionName '452.1.0.53.65' -VersionCode '2147483647'
-    $script:fixtureReportDocument.packageVersion = '452.1.0.53.65'
+    Set-WalkFixtureApk -VersionName '453.0.0.55.80' -VersionCode '2147483647'
+    $script:fixtureReportDocument.packageVersion = '453.0.0.55.80'
     Write-WalkFixtureJson $script:fixtureReport $script:fixtureReportDocument; Set-WalkFixtureRecord
     Assert-WalkRefused { Get-WalkFixtureBinding } '*not an exact package and build*'
     Reset-WalkArtifactFixture

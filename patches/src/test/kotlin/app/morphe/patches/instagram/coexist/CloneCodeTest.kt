@@ -16,7 +16,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The code half on every build of Instagram 452. Each build names its own package by the same
+ * The code half on every build of Instagram 453.0.0.55.79. Each build names its own package by the same
  * uses, Redex's names aside, and every use that means the running app moves while the rest stay.
  */
 class CloneCodeTest {
@@ -24,10 +24,10 @@ class CloneCodeTest {
 
     /** The const-string loads of an authority each build has, and the loads of Instagram's package that stay. */
     private val authorityLoads = mapOf(
-        "385811006" to 32, "385811005" to 34, "385811007" to 34, "385811008" to 32,
+        "385914283" to 32, "385914282" to 34, "385914284" to 34, "385914285" to 32,
     )
     private val keptLoads = mapOf(
-        "385811006" to 87, "385811005" to 87, "385811007" to 86, "385811008" to 87,
+        "385914283" to 87, "385914282" to 87, "385914284" to 86, "385914285" to 87,
     )
     private val uses = mapOf(
         SelfUse.INLINED to 4, SelfUse.PACKAGE_MANAGER to 6, SelfUse.OWN_INTENT to 9,
@@ -37,7 +37,7 @@ class CloneCodeTest {
 
     /** Google Play's uses, the one count that differs by build: R8 keeps more or fewer of its helpers in each. */
     private val googlePlayUses = mapOf(
-        "385811006" to 8, "385811005" to 10, "385811007" to 8, "385811008" to 8,
+        "385914283" to 8, "385914282" to 10, "385914284" to 8, "385914285" to 8,
     )
 
     /** The uses in classes Redex leaves named, the same in every build. */
@@ -64,7 +64,7 @@ class CloneCodeTest {
         for ((build, file) in builds) {
             val authorities = readCloneManifest(CloneFixtures.manifest(file)).authorities
             val classes = CloneFixtures.classes(file, authorities)
-            if (build == "385811006") {
+            if (build == "385914283") {
                 val withoutAnswer = PatchContexts.of(classes).planClone(clone, authorities)
                 val refusal = assertThrows(PatchException::class.java) { withoutAnswer.requireComplete() }
                 assertTrue(refusal.message, refusal.message!!.contains("OwnPackage.name()"))

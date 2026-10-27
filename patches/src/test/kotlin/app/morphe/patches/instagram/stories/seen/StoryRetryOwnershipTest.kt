@@ -264,7 +264,7 @@ class StoryRetryOwnershipTest {
 
     companion object {
         private val declaredNative by lazy {
-            Fixtures.files { it.name == "instagram-452.1.0.53.64-385811006.apks" }
+            Fixtures.files { it.name == "instagram-453.0.0.55.79-385914283.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNative by lazy {

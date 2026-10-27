@@ -107,7 +107,7 @@ class NativeShowReelTimeTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385811006, 385811005, 385811007, 385811008)
+        val BUILDS = listOf(385914283, 385914282, 385914284, 385914285)
 
         /** The Reels item converter's marker, by the name the others are found by. */
         val CONVERTER = PURGE_MARKER.find(TO_CLIPS_ITEM)!!.groupValues[1]

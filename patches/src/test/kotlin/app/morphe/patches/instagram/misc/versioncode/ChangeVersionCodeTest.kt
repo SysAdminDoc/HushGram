@@ -191,12 +191,12 @@ class ChangeVersionCodeTest {
     }
 
     /**
-     * The armeabi-v7a and x86 builds (385811005 and 385811007) have minSdk 26 where the arm64 and x86_64 builds have 28,
+     * The armeabi-v7a and x86 builds (385914282 and 385914284) have minSdk 26 where the arm64 and x86_64 builds have 28,
      * so their crash reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads
      * versionCode from the same PackageInfo instead. That's Instagram's own code too, one more own read.
      * The declared arm64 build is the .apks bundle, the others are folders named by version code.
      */
-    private fun hasPre28Fallback(label: String) = label.substringAfterLast('-') in setOf("385811005", "385811007")
+    private fun hasPre28Fallback(label: String) = label.substringAfterLast('-') in setOf("385914282", "385914284")
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))

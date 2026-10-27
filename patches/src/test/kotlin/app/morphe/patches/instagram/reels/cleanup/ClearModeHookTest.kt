@@ -399,7 +399,7 @@ class ClearModeHookTest {
         val methods = holders.flatMap { it.methods }
         if (methods.count { CLEAR_MODE_ENABLE in it.markers() } > 1) {
             // 452.1's x86 build inlines the turn-on into its callers: Clean up Reels goes in without Keep clear mode on there.
-            assertTrue("$label: only the x86 build inlines the turn-on", label.endsWith("-385811007"))
+            assertTrue("$label: only the x86 build inlines the turn-on", label.endsWith("-385914284"))
             val context = PatchContexts.of((holders + ExtensionDex.classDef(CLEAR_MODE)).distinctBy { it.type })
             assertNull("$label: Keep clear mode on is left out", context.findClearModeWhereItFits())
             return

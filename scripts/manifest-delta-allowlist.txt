@@ -32,7 +32,7 @@ permission-removed android.permission.ACCESS_ADSERVICES_ATTRIBUTION
 # answer the real one. scripts/verify-injected-registers.ps1 also reads this line: a patched build
 # with this code still counts as the same build as Meta's.
 version-code 2147483647
-# The extension uses Android 9 APIs. Builds 385811005/007 start at API 26 and are raised to 28.
+# The extension uses Android 9 APIs. Builds 385914282/385914284 start at API 26 and are raised to 28.
 # Assert-HushgramRuntimeFloor checks every output, including builds already at API 28 or higher.
 min-sdk 28
 #

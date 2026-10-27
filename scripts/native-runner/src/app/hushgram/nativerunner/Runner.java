@@ -61,15 +61,15 @@ public final class Runner extends Instrumentation {
     // extension first in the write request's six-argument constructor.
     private static final String PRESENCE_MODEL = "com.facebook.presence.model.upi.";
     private static final String[] PRESENCE_STATUSES = {"ACTIVE", "IDLE", "OFFLINE", "DISABLED"};
-    // Each declared 452 build's view-once receipt names, found with DexProbe from the handler's
+    // Each declared 453.0.0.55.79 build's view-once receipt names, found with DexProbe from the handler's
     // endpoint and raven_media strings: the build, the visual and voice handlers, their shared
     // method, the visual and voice mutations, the mutation base, its analytics extras and the
     // completion interface. A set is used only once Instagram's own code agrees with it.
     private static final String[][] VISUAL_NAMES = {
-            {"385811006", "X.04wm", "X.04wp", "Gxe", "X.0KN3", "X.0KMW", "X.0999", "X.08hM", "X.0Wom"},
-            {"385811005", "X.05eb", "X.05ef", "Gxn", "X.0J1i", "X.0J1O", "X.0682", "X.08wE", "X.0VAA"},
-            {"385811007", "X.04xq", "X.04xt", "Gxt", "X.0KP3", "X.0KOW", "X.0974", "X.08iU", "X.0Wa2"},
-            {"385811008", "X.04wm", "X.04wp", "Gxd", "X.0KM6", "X.0KM1", "X.0997", "X.08hM", "X.0Wnn"},
+            {"385914283", "X.04wm", "X.04wp", "Gxe", "X.0KN3", "X.0KMW", "X.0999", "X.08hM", "X.0Wom"},
+            {"385914282", "X.05eb", "X.05ef", "Gxn", "X.0J1i", "X.0J1O", "X.0682", "X.08wE", "X.0VAA"},
+            {"385914284", "X.04xq", "X.04xt", "Gxt", "X.0KP3", "X.0KOW", "X.0974", "X.08iU", "X.0Wa2"},
+            {"385914285", "X.04wm", "X.04wp", "Gxd", "X.0KM6", "X.0KM1", "X.0997", "X.08hM", "X.0Wnn"},
     };
     private static final String VISUAL_MUTATION = "send_visual_item_seen_marker";
     private static final String VOICE_MUTATION = "send_voice_item_seen_marker";

@@ -301,7 +301,7 @@ class GitHubNotesTests(unittest.TestCase):
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
     def build(self, section, summary=None, checked=None):
-        return notes.build_github_notes(section, self.VALIDATION, "452.1.0.53.64", "2.0.0", {"Hide Meta AI"},
+        return notes.build_github_notes(section, self.VALIDATION, "453.0.0.55.79", "2.0.0", {"Hide Meta AI"},
                                         summary, checked)
 
     def test_layout(self):
@@ -316,7 +316,7 @@ class GitHubNotesTests(unittest.TestCase):
             f"The [changelog]({notes.REPO_URL}/blob/main/CHANGELOG.md) has every earlier release too.",
             "How to update",
             "1. Update Morphe Manager to 2.0.0 or newer, then refresh the HushGram source.\n"
-            f"2. Patch Instagram `452.1.0.53.64`. [Supported Instagram builds]({notes.REPO_URL}#supported-instagram-builds) "
+            f"2. Patch Instagram `453.0.0.55.79`. [Supported Instagram builds]({notes.REPO_URL}#supported-instagram-builds) "
             "lists the builds that work.\n"
             "3. Install over your current patched Instagram with the manager's existing signing key. Keep that key so "
             "updates keep working.",

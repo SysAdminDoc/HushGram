@@ -186,8 +186,8 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (bundle.name == "instagram-452.1.0.53.64-385811006.apks") {
-                    // Where it lands on 452's declared build, read off the dex by hand.
+                if (bundle.name == "instagram-453.0.0.55.79-385914283.apks") {
+                    // Where it lands on 453's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
                     assertEquals(
                         DECLARED_SITES,
@@ -261,7 +261,7 @@ class DownloadVoiceMessagesHookTest {
 
     private companion object {
         /**
-         * On 452.1's 385811006: the builder and the ask before the offer, the saver's entry and its
+         * On 453.0.0.55.79's 385914283: the builder and the ask before the offer, the saver's entry and its
          * first two reads, then the audio bridge's reads and the view mode bridge's. 452 moved the
          * builder from a lambda's invoke (451's 0909) into the static 0899.A0K, the only caller of
          * the ask 0WoA.AZZ, and the message is now 08Ai.
