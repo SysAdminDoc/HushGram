@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -312,16 +313,31 @@ private fun BytecodePatchContext.findProfilePopup(
     val item = classDefByOrNull(items.single())!!
     val fields = popupItemFields(item)
 
-    // The context was read off the newer helper, which holds the account too.
+    // The context was read off the newer helper, which holds the account too. Other branches
+    // write the same register, so only writes that can reach the pop-up list count.
+    val flow = ControlFlow.of(method)
+    val predecessors = HashMap<Int, MutableList<Int>>()
+    for (from in code.indices) {
+        (flow.normal[from] + flow.exceptional[from]).filter { it in code.indices }.forEach { to ->
+            predecessors.getOrPut(to) { mutableListOf() } += from
+        }
+    }
+    val reachesList = HashSet<Int>().apply {
+        val pending = ArrayDeque<Int>()
+        add(index); pending += index
+        while (pending.isNotEmpty()) {
+            predecessors[pending.removeFirst()].orEmpty().forEach { from -> if (add(from)) pending += from }
+        }
+    }
     val read = (init - 1 downTo 0).firstOrNull { at ->
-        code[at].opcode == Opcode.IGET_OBJECT && (code[at] as TwoRegisterInstruction).registerA == context &&
+        at in reachesList && code[at].opcode == Opcode.IGET_OBJECT && (code[at] as TwoRegisterInstruction).registerA == context &&
             code[at].field()?.toString() == newer.context.toString()
     } ?: refuse("the pop-up list's context isn't read off the newer helper")
     val owner = (code[read] as TwoRegisterInstruction).registerB
     if (owner > 15 || owner == list || owner == popup) refuse("the newer helper's register is over v15 or reused at the pop-up list")
     val overwritten = (read + 1 until index).filter { at ->
         val written = (code[at] as? OneRegisterInstruction)?.registerA
-        code[at].opcode.setsRegister() && written != null &&
+        at in reachesList && code[at].opcode.setsRegister() && written != null &&
             (written == owner || written == context || (code[at].opcode.setsWideRegister() && (written + 1 == owner || written + 1 == context)))
     }
     if (overwritten.isNotEmpty()) refuse("the newer helper or the popup's context is overwritten before the pop-up list gets its items")

@@ -53,6 +53,18 @@ internal object AppCompatibilities {
     const val INSTAGRAM_TARGET_VERSION_CODE_X86 = 385914284
     const val INSTAGRAM_TARGET_VERSION_CODE_X86_64 = 385914285
 
+    /**
+     * The other uploads of [INSTAGRAM_TARGET_VERSION] seen on APKMirror: 385914229, 385914230,
+     * 385914231, 385914237, 385914243 and 385914272. They are the same release for another ABI,
+     * screen density or upload date. A target with no version code accepts any of them; the main
+     * target keeps the four per-ABI codes Manager uses to offer the right download.
+     */
+    private val INSTAGRAM_ANY_BUILD_TARGET = AppTarget(
+        version = INSTAGRAM_TARGET_VERSION,
+        versionCodes = null,
+        minSdk = INSTAGRAM_TARGET_MIN_SDK,
+    )
+
     /** Each declared ABI's build of [INSTAGRAM_TARGET_VERSION]. */
     val INSTAGRAM_TARGET_VERSION_CODES = mapOf(
         SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE,
@@ -67,20 +79,25 @@ internal object AppCompatibilities {
     /** Every ABI loading HushGram's extensions needs Android 9 APIs. */
     const val INSTAGRAM_RUNTIME_MIN_SDK = 28
 
-    fun instagram(): Array<Compatibility> = arrayOf(
-        Compatibility(
+    /**
+     * One compatibility per build of the same version: the patcher refuses two targets for one
+     * version in a single compatibility, while Manager answers each compatibility separately and
+     * accepts the app when any of them supports its code.
+     */
+    fun instagram(): Array<Compatibility> {
+        val main = AppTarget(
+            version = INSTAGRAM_TARGET_VERSION,
+            versionCodes = INSTAGRAM_TARGET_VERSION_CODES,
+            minSdk = INSTAGRAM_TARGET_MIN_SDK,
+        )
+        fun compatibility(target: AppTarget) = Compatibility(
             name = "Instagram",
             packageName = INSTAGRAM_PACKAGE,
             apkFileType = ApkFileType.APK,
             appIconColor = INSTAGRAM_COLOR,
             signatures = setOf(INSTAGRAM_SIGNER_SHA256, META_ROTATED_SIGNER_SHA256),
-            targets = listOf(
-                AppTarget(
-                    version = INSTAGRAM_TARGET_VERSION,
-                    versionCodes = INSTAGRAM_TARGET_VERSION_CODES,
-                    minSdk = INSTAGRAM_TARGET_MIN_SDK,
-                ),
-            ),
-        ),
-    )
+            targets = listOf(target),
+        )
+        return arrayOf(compatibility(main), compatibility(INSTAGRAM_ANY_BUILD_TARGET))
+    }
 }

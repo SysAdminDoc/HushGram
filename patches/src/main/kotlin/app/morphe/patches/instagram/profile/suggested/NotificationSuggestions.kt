@@ -74,7 +74,7 @@ internal class NotificationRowSite(
 )
 
 /** The reply parser's adds of a parsed row to its lists: its class, parameters, and each null check's index and register. */
-internal class NotificationListSite(val type: String, val parameters: List<String>, val checks: List<Pair<Int, Int>>)
+internal class NotificationListSite(val type: String, val parameters: List<String>, val checks: List<Pair<Int, Int>>, val rowParser: String)
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
@@ -202,7 +202,7 @@ internal fun BytecodePatchContext.findNotificationLists(rows: NotificationRowSit
         if (at + 3 in targets) refuse("$where jumps to the null check at ${at + 3}")
         at + 3 to (moved as OneRegisterInstruction).registerA
     }
-    return NotificationListSite(reply.definingClass, reply.parameterTypes.map(CharSequence::toString), checks)
+    return NotificationListSite(reply.definingClass, reply.parameterTypes.map(CharSequence::toString), checks, rows.type)
 }
 
 /**
@@ -214,11 +214,25 @@ internal fun BytecodePatchContext.keepNotificationRows(site: NotificationListSit
     val method = mutableClassDefBy(site.type).methods.single {
         it.name == PARSE && it.returnType == OBJECT && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }
-    for ((at, register) in site.checks.sortedByDescending { it.first }) {
-        val check = method.implementation!!.instructions[at]
-        if (check.opcode != Opcode.IF_EQZ || (check as OneRegisterInstruction).registerA != register) {
-            refuse("${site.type}->$PARSE changed before its lists could be hooked")
-        }
+    // Other hooks may have inserted instructions in this parser since the lists were found.
+    val code = method.implementation!!.instructions.toList()
+    val checks = code.indices.mapNotNull { at ->
+        val load = code.getOrNull(at) ?: return@mapNotNull null
+        val field = (load as? ReferenceInstruction)?.reference as? FieldReference
+        if (load.opcode != Opcode.SGET_OBJECT || field?.definingClass != site.rowParser || field.type != site.rowParser) return@mapNotNull null
+        val instance = (load as OneRegisterInstruction).registerA
+        val parse = code.getOrNull(at + 1) ?: return@mapNotNull null
+        val call = parse.reference() as? MethodReference
+        if (parse.opcode != Opcode.INVOKE_VIRTUAL || call?.name != PARSE_PARSER || call.returnType != OBJECT ||
+            (parse as FiveRegisterInstruction).registerC != instance) return@mapNotNull null
+        val moved = code.getOrNull(at + 2) ?: return@mapNotNull null
+        val check = code.getOrNull(at + 3) ?: return@mapNotNull null
+        if (moved.opcode != Opcode.MOVE_RESULT_OBJECT || check.opcode != Opcode.IF_EQZ ||
+            (check as OneRegisterInstruction).registerA != (moved as OneRegisterInstruction).registerA) return@mapNotNull null
+        at + 3 to (moved as OneRegisterInstruction).registerA
+    }
+    if (checks.size != site.checks.size) refuse("${site.type}->$PARSE changed before its lists could be hooked: found ${checks.size} checks, expected ${site.checks.size}")
+    for ((at, register) in checks.sortedByDescending { it.first }) {
         method.addInstructions(
             at,
             """

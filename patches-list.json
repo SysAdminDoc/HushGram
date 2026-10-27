@@ -41,6 +41,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -79,6 +96,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -121,6 +155,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -159,6 +210,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -201,6 +269,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -239,6 +324,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -281,6 +383,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -319,6 +438,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -361,6 +497,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -399,6 +552,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -441,6 +611,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -481,6 +668,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -519,6 +723,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -563,6 +784,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -601,6 +839,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -643,6 +898,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -683,6 +955,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -721,6 +1010,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -764,6 +1070,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -802,6 +1125,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -845,6 +1185,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -883,6 +1240,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -925,6 +1299,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -963,6 +1354,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1005,6 +1413,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1043,6 +1468,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1085,6 +1527,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1123,6 +1582,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1165,6 +1641,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1203,6 +1696,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1245,6 +1755,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1283,6 +1810,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1325,6 +1869,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1363,6 +1924,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1405,6 +1983,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1443,6 +2038,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1485,6 +2097,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1523,6 +2152,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1565,6 +2211,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1603,6 +2266,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1645,6 +2325,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1683,6 +2380,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1725,6 +2439,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1763,6 +2494,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1805,6 +2553,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1843,6 +2608,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1885,6 +2667,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -1923,6 +2722,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -1965,6 +2781,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2003,6 +2836,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2045,6 +2895,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2083,6 +2950,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2125,6 +3009,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2163,6 +3064,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2205,6 +3123,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2243,6 +3178,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2285,6 +3237,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2323,6 +3292,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2365,6 +3351,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2403,6 +3406,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2446,6 +3466,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2483,6 +3520,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2523,6 +3577,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2593,6 +3664,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2631,6 +3719,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2673,6 +3778,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2711,6 +3833,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2753,6 +3892,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2791,6 +3947,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2833,6 +4006,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2871,6 +4061,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2913,6 +4120,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -2951,6 +4175,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -2994,6 +4235,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3032,6 +4290,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3075,6 +4350,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3115,6 +4407,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3153,6 +4462,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3196,6 +4522,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3234,6 +4577,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3276,6 +4636,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3314,6 +4691,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3356,6 +4750,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3394,6 +4805,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3436,6 +4864,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3474,6 +4919,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3516,6 +4978,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3554,6 +5033,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3596,6 +5092,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3634,6 +5147,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3676,6 +5206,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3714,6 +5261,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3756,6 +5320,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3794,6 +5375,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3836,6 +5434,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3874,6 +5489,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3916,6 +5548,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -3954,6 +5603,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -3996,6 +5662,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4034,6 +5717,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4076,6 +5776,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4114,6 +5831,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4156,6 +5890,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4194,6 +5945,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4236,6 +6004,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4274,6 +6059,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4316,6 +6118,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4354,6 +6173,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4396,6 +6232,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4434,6 +6287,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4476,6 +6346,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4514,6 +6401,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4556,6 +6460,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4594,6 +6515,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4636,6 +6574,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4674,6 +6629,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }
@@ -4716,6 +6688,23 @@
               }
             }
           ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
+            }
+          ]
         }
       ],
       "options": []
@@ -4754,6 +6743,23 @@
                 "X86": 385914284,
                 "X86_64": 385914285
               }
+            }
+          ]
+        },
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.55.79",
+              "experimental": false,
+              "versionCodes": null
             }
           ]
         }

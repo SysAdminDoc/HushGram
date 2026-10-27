@@ -254,7 +254,12 @@ internal fun MutableMethod.ownSuperCallIndex(): Int {
         val end = own.firstOrNull { it > at } ?: minOf(code.size, at + 1 + FINISH_WINDOW)
         code.subList(at + 1, end).none { it.methodReferenceOrNull()?.toString() == FINISH }
     }
-    return starts.singleOrPatchException("$PATCH: $definingClass->$name's call to super.$name")
+    // 453's 320dpi build also calls super on its hand-off path with a null Bundle. Keep the call
+    // that passes the method's own parameters, which is the one that starts the browser.
+    val ownParameters = if (starts.size < 2) starts else starts.filter { at ->
+        runCatching { superCallParameters(at, parameterTypes.size + 1) }.isSuccess
+    }
+    return ownParameters.singleOrPatchException("$PATCH: $definingClass->$name's call to super.$name")
 }
 
 private const val FINISH = "Landroid/app/Activity;->finish()V"

@@ -20,6 +20,7 @@ import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -34,7 +35,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
@@ -211,10 +211,10 @@ private fun BytecodePatchContext.builderOf(method: Method, model: String, row: S
 }
 
 /** The row field the row's toString appends right after it appends [LABEL_TEXT]. It has to hold a FbtModel. */
-private fun titleField(row: ClassDef): FieldReference {
+private fun BytecodePatchContext.titleField(row: ClassDef): FieldReference {
     val code = row.methods.single { it.name == "toString" && it.parameterTypes.isEmpty() }.implementation!!.instructions.toList()
-    val label = code.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == LABEL_TEXT }
-    if (label < 0) refuse("${row.type}'s toString loads no \"$LABEL_TEXT\"")
+    val label = code.indices.firstOrNull { stringLoadedAt(code, it) == LABEL_TEXT }
+        ?: refuse("${row.type}'s toString loads no \"$LABEL_TEXT\"")
     val append = code.drop(label + 1).firstOrNull { (it as? ReferenceInstruction)?.reference?.toString() == APPEND_OBJECT }
         as? FiveRegisterInstruction ?: refuse("${row.type}'s toString appends nothing after \"$LABEL_TEXT\"")
     val reads = code.take(label).filter { read ->
