@@ -53,6 +53,8 @@ private val cloneManifestPatch = resourcePatch {
         val marks = markRequest
         renameRequest = null
         markRequest = null
+        // ARSCLib reads values by filename, so the label belongs in strings.xml.
+        document("res/values/strings.xml").use { addCloneLabel(it, label) }
         document("AndroidManifest.xml").use { renameManifest(it, clone, label) }
         if (marks != null) markCloneIcons(marks)
     }
