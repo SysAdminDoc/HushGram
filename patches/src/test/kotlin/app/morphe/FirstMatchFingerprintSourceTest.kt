@@ -65,19 +65,18 @@ class FirstMatchFingerprintSourceTest {
             names.size >= fewestCredibleFingerprints,
         )
 
-        // Counted, so an allowed read covers the one place it was allowed for and not a second copy.
-        val found = firstMatches(texts).groupingBy { it }.eachCount()
+        val found = firstMatches(texts)
         assertEquals(
             "these take a fingerprint's first match, which turns a retarget that gives it a second " +
                 "into a silent wrong hook. Use uniqueMethod, or matchAllOrNull and choose, or allow the " +
                 "read here with why it can only find one method",
             emptyList<String>(),
-            found.filter { (read, count) -> read !in allowed || count > 1 }.map { (read, count) -> "$read x$count" }.sorted(),
+            offenders(found, allowed.keys),
         )
         assertEquals(
             "these allowed reads aren't in the sources any more, so take them off the list",
             emptyList<String>(),
-            (allowed.keys - found.keys).sorted(),
+            (allowed.keys - found.toSet()).sorted(),
         )
     }
 
@@ -116,7 +115,23 @@ class FirstMatchFingerprintSourceTest {
             ),
             firstMatches(mapOf("Fingerprints.kt" to declares, "Uses.kt" to uses)).sorted(),
         )
+        // An allowed read covers the one place it was allowed for, not a second copy of it.
+        assertEquals(
+            listOf("Uses.kt: FooFingerprint.method x2", "Uses.kt: barFingerprint.classDefOrNull x1"),
+            offenders(
+                listOf("Uses.kt: FooFingerprint.method", "Uses.kt: FooFingerprint.method", "Uses.kt: barFingerprint.classDefOrNull"),
+                setOf("Uses.kt: FooFingerprint.method"),
+            ),
+        )
+        assertEquals(emptyList<String>(), offenders(listOf("Uses.kt: FooFingerprint.method"), setOf("Uses.kt: FooFingerprint.method")))
     }
+
+    /** The reads in [found] that aren't allowed, or are allowed but turn up more than once, with their counts. */
+    private fun offenders(found: List<String>, allowedReads: Set<String>): List<String> =
+        found.groupingBy { it }.eachCount()
+            .filter { (read, count) -> read !in allowedReads || count > 1 }
+            .map { (read, count) -> "$read x$count" }
+            .sorted()
 
     /** Each first-match read in [sources], as "file: receiver.read", file by file. */
     private fun firstMatches(sources: Map<String, String>): List<String> {
