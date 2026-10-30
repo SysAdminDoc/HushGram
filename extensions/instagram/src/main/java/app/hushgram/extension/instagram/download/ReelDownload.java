@@ -624,17 +624,31 @@ public final class ReelDownload {
     /**
      * Download audio on [media]: the best audio track its manifest lists, saved on its own as an
      * audio file the way a voice message is (#216). A reel with no manifest, or one whose manifest
-     * has no audio track, a reel with no sound, saves nothing.
+     * has no audio track, a reel with no sound, saves nothing. The track is saved as it is, never
+     * re-encoded, so a sound other than AAC-LC or HE-AAC is kept and its line says why.
      */
     static boolean saveAudio(Context context, Object media) {
         String manifest = InstagramMedia.dashManifest(media);
         DashManifest.Track track = manifest == null ? null : DashManifest.bestAudio(DashManifest.parse(manifest));
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel audio tapped: "
-                + (manifest == null ? "no manifest" : track == null ? "no audio track" : track.codecs + ", " + track.bandwidth + " b/s"));
+                + (manifest == null ? "no manifest" : track == null ? "no audio track"
+                    : track.codecs + ", " + track.bandwidth + " b/s" + soundNote(track)));
         if (track == null) return false;
         boolean started = MediaSave.saveAudio(context, track.url, details(media));
         if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_AUDIO);
         return started;
+    }
+
+    /**
+     * What Download audio's line adds when [track] isn't AAC-LC or HE-AAC. {@link DashManifest#bestAudio}
+     * takes such a track only when the manifest offers neither, and some players can't play it.
+     * Instagram's is xHE-AAC ({@code mp4a.40.42}), which a video save's line names the same way.
+     */
+    private static String soundNote(DashManifest.Track track) {
+        if (DashManifest.compatibleAudioRank(track) > 0) return "";
+        String sound = track.codecs.trim().equals("mp4a.40.42") ? "xHE-AAC" : track.codecs.trim();
+        return ", the sound is " + sound + " because the manifest offers no AAC-LC or HE-AAC, and some players can't play "
+            + sound + ", saving it as it is";
     }
 
     /**

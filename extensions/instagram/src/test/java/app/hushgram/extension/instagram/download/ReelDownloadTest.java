@@ -34,6 +34,7 @@ import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 /** What the reel menu's hooks answer, and what a tap on Download does with them. */
 @RunWith(RobolectricTestRunner.class)
@@ -407,6 +408,54 @@ public class ReelDownloadTest {
         Shadows.shadowOf(Looper.getMainLooper()).idle();
         assertEquals("Download failed", String.valueOf(ShadowToast.getTextOfLatestToast()));
         assertFalse(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved audio 2"));
+    }
+
+    /** [WITH_SOUND] with its sound tracks swapped for [sounds], each "codecs bandwidth name". */
+    private static String withSounds(String... sounds) {
+        StringBuilder tracks = new StringBuilder("<AdaptationSet mimeType=\"audio/mp4\">");
+        for (String sound : sounds) {
+            String[] parts = sound.split(" ");
+            tracks.append("<Representation codecs=\"").append(parts[0]).append("\" bandwidth=\"").append(parts[1])
+                .append("\"><BaseURL>https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/").append(parts[2])
+                .append(".mp4?oh=1&amp;oe=2</BaseURL></Representation>");
+        }
+        return WITH_SOUND.replaceAll("<AdaptationSet mimeType=\"audio/mp4\">.*?</AdaptationSet>", tracks + "</AdaptationSet>");
+    }
+
+    /** The diagnostic line Download audio wrote for one tap on [manifest]'s reel, after its save ends. */
+    private static String audioLine(String manifest, Activity activity) throws InterruptedException {
+        Item.manifest = manifest;
+        LogBufferManager.clearLogBuffer();
+        assertTrue(ReelDownload.save(Ours.HUSHGRAM_DOWNLOAD_AUDIO, new Object(), activity));
+        long deadline = System.currentTimeMillis() + 10_000;
+        while (MediaSave.savesInFlight() > 0 && System.currentTimeMillis() < deadline) Thread.sleep(20);
+        for (String line : LogBufferManager.buildExportText().split("\n")) {
+            if (line.contains("reel audio tapped: ")) return line.substring(line.indexOf("reel audio tapped: "));
+        }
+        return "no reel audio line";
+    }
+
+    /**
+     * Download audio takes AAC-LC over HE-AAC and xHE-AAC whatever their bitrates, and HE-AAC over
+     * xHE-AAC, saving the file as it is with nothing to add. With only xHE-AAC listed it still saves
+     * it, since that's the reel's sound, and the line says why some players can't play it.
+     */
+    @Test
+    @Config(shadows = Item.class)
+    public void downloadAudioPrefersAacLcAndSaysWhyItKeepsXheAac() throws Exception {
+        refuseEveryFetch();
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        HookStatus.clear();
+
+        assertEquals("reel audio tapped: mp4a.40.2, 96000 b/s",
+                audioLine(withSounds("mp4a.40.42 200000 xhe", "mp4a.40.5 160000 he", "mp4a.40.2 96000 lc"), activity));
+        assertEquals("reel audio tapped: mp4a.40.5, 64000 b/s",
+                audioLine(withSounds("mp4a.40.42 200000 xhe", "mp4a.40.5 64000 he"), activity));
+        assertEquals("reel audio tapped: mp4a.40.42, 120000 b/s, the sound is xHE-AAC because the manifest offers no "
+                + "AAC-LC or HE-AAC, and some players can't play xHE-AAC, saving it as it is",
+                audioLine(withSounds("mp4a.40.42 39000 xhe39", "mp4a.40.42 120000 xhe120"), activity));
+        // Clearing the log clears the counts too, so this one is the xHE-AAC save's.
+        assertTrue(String.valueOf(HookStatus.report()), String.valueOf(HookStatus.report()).contains("saved audio 1"));
     }
 
     /** Download cover saves the reel's picture, and our Download row saves its video. */
