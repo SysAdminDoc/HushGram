@@ -36,6 +36,7 @@ final class FeedCategory {
         boolean tabSwipe = build.contains(PatchFamily.TAB_SWIPE);
         boolean askLike = build.contains(PatchFamily.ASK_BEFORE_LIKE);
         boolean askRefresh = build.contains(PatchFamily.ASK_BEFORE_REFRESH);
+        boolean saveTray = build.contains(PatchFamily.SAVE_TRAY);
         boolean postTime = build.contains(PatchFamily.POST_TIME);
         boolean hiddenLikes = build.contains(PatchFamily.HIDDEN_LIKE_COUNTS);
         boolean backHome = build.contains(PatchFamily.BACK_LEAVES_HOME);
@@ -48,7 +49,7 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
-                || askLike || askRefresh || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
+                || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
                 || roundedCorners
                 || fullScreen || feedFollow
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
@@ -137,6 +138,11 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.ASK_BEFORE_REFRESH, L10n.t("Ask before a refresh"),
                     L10n.t("Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on "
                             + "screen.")));
+        }
+        if (saveTray) {
+            feed.addPreference(toggle(context, Settings.SKIP_COLLECTIONS_TRAY, L10n.t("Skip the collections tray"),
+                    L10n.t("Saving a post or reel shows Instagram's Saved message instead of the tray that asks you "
+                            + "to start a collection.")));
         }
         if (backHome) {
             feed.addPreference(toggle(context, Settings.BACK_LEAVES_HOME, L10n.t("Back leaves Home as it is"),

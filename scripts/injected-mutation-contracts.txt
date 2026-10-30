@@ -2041,6 +2041,14 @@ once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->listener(Landr
 # inbox pull with this layout, so left out, a pull there never asks. AskBeforeRefreshHookTest checks
 # where it lands on each declared build.
 once-call Lapp/hushgram/extension/instagram/feed/RefreshConfirm;->pull(Landroid/view/View;Ljava/lang/Object;)Ljava/lang/Object; in instance (LX/*;)V holding Lcom/instagram/ui/widget/refresh/RefreshableNestedScrollingParent;->A0P:Z LX/*;->A00:D
+# Skip the collections tray (piko #2210) asks SaveTray.skip first thing in the check that decides
+# whether a save opens the collections tray (0BWA.A04 on 453, the one instance (UserSession) boolean
+# method loading the collab collection nux count), and answers false on a yes. 453's 385914510 asks
+# a string pool for that name (0Ae4.A04 there), so the rules read pooled loads too. Left out, a save
+# still opens the tray; twice or elsewhere, it isn't the check the patch wrote.
+# SkipCollectionsTrayHookTest checks where it lands on each declared build and every other one.
+start-call Lapp/hushgram/extension/instagram/feed/SaveTray;->skip()Z in instance (Lcom/instagram/common/session/UserSession;)Z pooled holding direct_collab_collection_feed_creation_nux_impression_count
+once-call Lapp/hushgram/extension/instagram/feed/SaveTray;->skip()Z in instance (Lcom/instagram/common/session/UserSession;)Z pooled holding direct_collab_collection_feed_creation_nux_impression_count
 # Save profile picture hands ProfilePicture.offer the sheet, the account and the context right
 # before each of the profile menu's two sheets is shown (09D9.A02 on 450), the one method loading
 # both helper names. Left out, the menu never gets the row; a third call, or one elsewhere, isn't

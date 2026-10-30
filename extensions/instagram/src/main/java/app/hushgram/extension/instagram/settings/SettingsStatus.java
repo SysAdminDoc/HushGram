@@ -506,6 +506,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Skip the collections tray patch. */
+    public static boolean saveTray() {
+        return false;
+    }
+
     /** Rewritten by the Show a post's exact time patch. */
     public static boolean postTime() {
         return false;

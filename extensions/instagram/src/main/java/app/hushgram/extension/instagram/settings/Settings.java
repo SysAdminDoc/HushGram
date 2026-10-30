@@ -599,6 +599,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_REFRESH = new BooleanSetting("hushgram_ask_before_refresh", FALSE);
 
     /**
+     * Saving a post or reel shows the Saved message instead of the tray that asks you to start a
+     * collection, which Instagram shows some accounts on every save (piko #2210,
+     * {@link app.hushgram.extension.instagram.feed.SaveTray}). Off to start.
+     */
+    public static final BooleanSetting SKIP_COLLECTIONS_TRAY =
+            new BooleanSetting("hushgram_skip_collections_tray", FALSE);
+
+    /**
      * The Mark as seen button in the story viewer's header
      * ({@link app.hushgram.extension.instagram.stories.StorySeenButton}). Off to start. A story you
      * tap it on is sent as seen while the rest stay held back. Read each time a story is shown and
