@@ -80,6 +80,15 @@ class GlassTabBarHookTest {
         assertEquals(listOf(wrong), ViewIdFixture.missing(table, listOf(ids.first(), wrong)))
     }
 
+    /** Only a whole id counts: the start of tab_bar_shadow is no id, though every byte of it is in the table. */
+    @Test
+    fun aPieceOfALongerIdIsMissing() {
+        val shadow = ExtensionDex.stringConstant(glass, "TAB_BAR_SHADOW")
+        val piece = shadow.dropLast(1)
+        val table = ViewIdFixture.resourceTable(Fixtures.otherBuilds().first())
+        assertEquals(listOf(piece), ViewIdFixture.missing(table, listOf(shadow, piece)))
+    }
+
     private fun declares(bundle: File, label: String) {
         assertEquals("$label: ids the build doesn't declare", emptyList<String>(), ViewIdFixture.missing(ViewIdFixture.resourceTable(bundle), ids))
     }
