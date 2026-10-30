@@ -7,15 +7,23 @@ package app.morphe.patches.instagram.feed.savetray
 import app.morphe.ExtensionDex
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -68,6 +76,78 @@ class SkipCollectionsTrayHookTest {
         assertTrue(refusal.message.orEmpty(), refusal.message.orEmpty().contains("expected exactly one $TRAY_CHECK"))
     }
 
+    @Test
+    fun aStaticMethodLoadingTheNameIsNotTheCheck() {
+        val context = PatchContexts.of(listOf(
+            classDef(CHECK_OWNER, trayMethod(CHECK_OWNER, "A04")),
+            classDef(HELPER_OWNER, trayMethod(HELPER_OWNER, "A00", static = true)),
+        ))
+        val found = context.findTrayCheck()
+        assertEquals("$CHECK_OWNER->A04", "${found.definingClass}->${found.name}")
+    }
+
+    @Test
+    fun twoChecksFailThePatch() {
+        val context = PatchContexts.of(listOf(
+            classDef(CHECK_OWNER, trayMethod(CHECK_OWNER, "A04")),
+            classDef(HELPER_OWNER, trayMethod(HELPER_OWNER, "A00")),
+        ))
+        val message = assertThrows(PatchException::class.java) { context.findTrayCheck() }.message.orEmpty()
+        assertTrue(message, "$CHECK_OWNER->A04" in message && "$HELPER_OWNER->A00" in message)
+    }
+
+    @Test
+    fun aJumpBackToTheStartFailsThePatchBeforeAnythingChanges() {
+        val check = MutableMethod(trayMethod(CHECK_OWNER, "A04", body = """
+            :again
+            const-string v0, "$TRAY_COUNT"
+            if-eqz p1, :again
+            const/4 v0, 0x1
+            return v0
+        """))
+        val before = check.implementation!!.instructions.map { it.opcode }
+        val message = assertThrows(PatchException::class.java) { check.skipTray() }.message.orEmpty()
+        assertTrue(message, message.contains("jumps back to its start"))
+        assertEquals("nothing went in", before, check.implementation!!.instructions.map { it.opcode })
+    }
+
+    @Test
+    fun aCheckWithNoLocalRegisterFailsThePatch() {
+        val check = MutableMethod(trayMethod(CHECK_OWNER, "A04", registers = 2, body = """
+            const-string p1, "$TRAY_COUNT"
+            const/4 p0, 0x0
+            return p0
+        """))
+        val message = assertThrows(PatchException::class.java) { check.skipTray() }.message.orEmpty()
+        assertTrue(message, message.contains("0 local register(s), needs 1"))
+    }
+
+    /** A (UserSession)Z method loading [TRAY_COUNT], the tray check's shape. */
+    private fun trayMethod(
+        owner: String,
+        name: String,
+        static: Boolean = false,
+        registers: Int = 3,
+        body: String = """
+            const-string v0, "$TRAY_COUNT"
+            const/4 v0, 0x1
+            return v0
+        """,
+    ): Method {
+        val flags = AccessFlags.PUBLIC.value or if (static) AccessFlags.STATIC.value else AccessFlags.FINAL.value
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                owner, name, listOf(ImmutableMethodParameter(SESSION, null, null)), "Z", flags, null, null,
+                ImmutableMethodImplementation(registers, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.trimIndent())
+        return ImmutableMethod.of(mutable)
+    }
+
+    private fun classDef(type: String, method: Method): ClassDef =
+        ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, emptyList(), listOf(method))
+
     private fun builds(bundle: File, label: String) {
         // classesLoading carries the classes asking a string pool for the name, as 385914510's check does.
         val holders = FixtureDex.classesLoading(bundle, TRAY_COUNT).distinctBy { it.type }
@@ -99,4 +179,10 @@ class SkipCollectionsTrayHookTest {
     }
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    private companion object {
+        const val SESSION = "Lcom/instagram/common/session/UserSession;"
+        const val CHECK_OWNER = "LX/0BWA;"
+        const val HELPER_OWNER = "LX/0Hlp;"
+    }
 }

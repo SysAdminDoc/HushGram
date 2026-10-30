@@ -22,6 +22,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import com.android.tools.smali.dexlib2.AccessFlags
 
 internal const val SKIP_TRAY = "$EXTENSION_PACKAGE/feed/SaveTray;->skip()Z"
 internal const val SAVE_TRAY_PATCH = "Skip the collections tray"
@@ -30,15 +31,17 @@ internal const val TRAY_COUNT = "direct_collab_collection_feed_creation_nux_impr
 
 /**
  * Instagram's check of whether a save opens the tray that asks you to start a collection: the one
- * (UserSession) boolean method loading [TRAY_COUNT]. It answers yes on a server switch, or while the
- * count of times the tray has shown stays under a server limit, and reads that count under this
- * name. On 453 Reels' save button and Feed's take the tray when it's yes and show the Saved message
- * when it's no. 453's 385914510 asks a string pool for the name, so it's found by what it loads
- * rather than by a fingerprint's string. None or more than one stops the patch.
+ * (UserSession) boolean instance method loading [TRAY_COUNT]. It answers yes on a server switch, or
+ * while the count of times the tray has shown stays under a server limit, and reads that count under
+ * this name. On 453 Reels' save button and Feed's take the tray when it's yes and show the Saved
+ * message when it's no. 453's 385914510 asks a string pool for the name, so it's found by what it
+ * loads rather than by a fingerprint's string. A static method of the same shape is some other
+ * reader of the count. None or more than one stops the patch.
  */
 internal fun BytecodePatchContext.findTrayCheck(): MutableMethod {
     val found = classesLoadingString(TRAY_COUNT).flatMap { it.methods }.filter { method ->
-        method.returnType == "Z" && method.parameterTypes.map(Any::toString) == listOf("Lcom/instagram/common/session/UserSession;") &&
+        !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "Z" &&
+            method.parameterTypes.map(Any::toString) == listOf("Lcom/instagram/common/session/UserSession;") &&
             loadsString(method, TRAY_COUNT)
     }
     val check = found.singleOrNull() ?: throw PatchException(

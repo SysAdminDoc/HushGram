@@ -338,5 +338,8 @@ public class NeutralDefaultsSettingsTest {
         assertFalse(ReelDeclutter.hideFollowButton());
         assertFalse(app.hushgram.extension.instagram.reels.DoubleTapLike.holdBackPost());
         assertTrue(app.hushgram.extension.instagram.media.TapToPlay.autoplayAllowed(true));
+        assertFalse("a save still opens Instagram's collections tray", app.hushgram.extension.instagram.feed.SaveTray.skip());
+        assertFalse("a reel keeps Instagram's crop", app.hushgram.extension.instagram.reels.ReelFill.fit());
+        assertFalse("a reel keeps Instagram's crop", app.hushgram.extension.instagram.reels.ReelFill.fill(10f));
     }
 }
