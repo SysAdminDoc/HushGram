@@ -2800,9 +2800,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
-     * What unlocks the messages: the phone's lock or a HushGram PIN. Choosing the PIN asks for one
-     * first when none is set, and a change while the messages are locked asks the current lock, so
-     * the choice can't be used to get around it.
+     * What unlocks the messages: the phone's lock, a HushGram PIN, or on Android 11 and up the
+     * fingerprint or face alone. Choosing the PIN asks for one first when none is set, choosing the
+     * fingerprint or face is refused while the phone has none, and a change while the messages are
+     * locked asks the current lock, so the choice can't be used to get around it.
      */
     static UnlockWithRow unlockWithRow(Context context) {
         UnlockWithRow row = new UnlockWithRow(context);
@@ -2810,13 +2811,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setTitle(L10n.t("Unlock with"));
         row.setDialogTitle(L10n.t("Unlock with"));
         row.setNegativeButtonText(L10n.t("Cancel"));
-        row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN")});
-        row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()});
+        if (Build.VERSION.SDK_INT >= 30) {
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN"), L10n.t("Fingerprint or face only")});
+            row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name(), UnlockWith.BIOMETRICS.name()});
+        } else {
+            row.setEntries(new CharSequence[]{L10n.t("Phone lock"), L10n.t("HushGram PIN")});
+            row.setEntryValues(new CharSequence[]{UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()});
+        }
         row.setValue(Settings.UNLOCK_WITH.savedValue().name());
         row.setOnPreferenceChangeListener((preference, value) -> {
+            UnlockWith target = UnlockWith.PIN.name().equals(value) ? UnlockWith.PIN
+                    : UnlockWith.BIOMETRICS.name().equals(value) ? UnlockWith.BIOMETRICS : UnlockWith.PHONE_LOCK;
+            if (target == UnlockWith.BIOMETRICS && !MessagesLock.biometricsReady(preference.getContext())) {
+                Utils.showToastLong(L10n.t("Add a fingerprint or face in your phone's settings first."));
+                return false;
+            }
             Activity activity = activityOf(preference.getContext());
             if (activity == null) return !PinLock.protects();
-            UnlockWith target = UnlockWith.PIN.name().equals(value) ? UnlockWith.PIN : UnlockWith.PHONE_LOCK;
             UnlockWithRow unlockRow = (UnlockWithRow) preference;
             Runnable change = () -> {
                 if (!allowMutation(unlockRow, true)) return;
@@ -6384,6 +6395,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         void showSummary() {
             setSummary(UnlockWith.PIN.name().equals(getValue())
                     ? L10n.t("A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.")
+                    : UnlockWith.BIOMETRICS.name().equals(getValue())
+                    ? L10n.t("Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.")
                     : L10n.t("Your fingerprint, face or screen lock unlocks your messages."));
         }
 

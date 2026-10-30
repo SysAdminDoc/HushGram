@@ -21,6 +21,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
 import android.os.SystemClock;
@@ -46,6 +47,8 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.Shadows;
+import org.robolectric.shadow.api.Shadow;
+import org.robolectric.shadows.ShadowBiometricManager;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -792,6 +795,95 @@ public class MessagesLockTest {
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE));
+    }
+
+    /** Fingerprint or face only leaves the PIN, pattern and password out of the prompt; the phone's lock keeps them. */
+    @Test
+    public void fingerprintOrFaceOnlyLeavesTheScreenLockOutOfThePrompt() {
+        assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK, MessagesLock.authenticators(true));
+        assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+                MessagesLock.authenticators(false));
+    }
+
+    /** With a fingerprint or face set up, Fingerprint or face only asks for it alone. */
+    @Test
+    @Config(sdk = 37)
+    public void anEnrolledFingerprintOrFaceIsAskedAlone() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            biometrics.setCanAuthenticate(true);
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            assertTrue(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+            assertFalse("the phone's lock still offers the PIN", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /**
+     * None enrolled, or no sensor at all: the phone's lock asks as before, so taking every
+     * fingerprint and face off the phone after choosing them never shuts you out.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void withNoFingerprintOrFaceTheScreenLockAsksAgain() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED);
+            assertFalse("none enrolled", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            biometrics.setAuthenticatorType(0);
+            biometrics.setCanAuthenticate(false);
+            assertFalse("no sensor", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** Android 9 and 10 ask through the phone's own check, which can't leave the PIN out. */
+    @Test
+    @Config(sdk = 28)
+    public void beforeAndroid11TheScreenLockAlwaysAsks() {
+        Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+        assertFalse(MessagesLock.biometricsReady(RuntimeEnvironment.getApplication()));
+        assertFalse(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+    }
+
+    /**
+     * With the phone's lock, anything but your cancel goes on to its own check. With Fingerprint or
+     * face only, a short lockout or a timeout waits for the next try, and only a fingerprint or face
+     * that can't be used any more lets the screen lock in.
+     */
+    @Test
+    public void fingerprintOrFaceOnlyWaitsOutAShortLockout() {
+        assertTrue(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, false, true));
+        assertTrue(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT, false, true));
+        assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, true, true));
+        assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT, true, true));
+        for (int gone : new int[]{BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, BiometricPrompt.BIOMETRIC_ERROR_NO_BIOMETRICS,
+                BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT}) {
+            assertTrue("error " + gone, MessagesLock.phoneCheckAfter(gone, true, true));
+        }
+        for (boolean only : new boolean[]{false, true}) {
+            assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED, only, true));
+            assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_CANCELED, only, true));
+        }
+    }
+
+    /** An error that arrives after Instagram left never opens the phone's check over another app. */
+    @Test
+    public void noPhoneCheckOnceInstagramHasLeft() {
+        for (int code : new int[]{BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT,
+                BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, BiometricPrompt.BIOMETRIC_ERROR_VENDOR}) {
+            assertFalse("phone's lock, error " + code, MessagesLock.phoneCheckAfter(code, false, false));
+            assertFalse("fingerprint or face only, error " + code, MessagesLock.phoneCheckAfter(code, true, false));
+        }
+    }
+
+    private static ShadowBiometricManager biometrics() {
+        return Shadow.extract(RuntimeEnvironment.getApplication().getSystemService(BiometricManager.class));
     }
 
     private static final String ALICE = "340282366841710300949128111";

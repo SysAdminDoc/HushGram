@@ -1008,6 +1008,9 @@ Phone lock	Kunci ponsel
 HushGram PIN	PIN HushGram
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	PIN yang kamu atur di sini membuka kunci pesanmu, menggantikan kunci layar. PIN tidak bisa dipulihkan, hanya bisa dihapus dengan menghapus penyimpanan Instagram.
 Your fingerprint, face or screen lock unlocks your messages.	Sidik jari, wajah, atau kunci layar ponselmu membuka kunci pesanmu.
+Fingerprint or face only	Hanya sidik jari atau wajah
+Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	Hanya sidik jari atau wajahmu yang membuka kunci pesanmu. Jika ponsel belum menyiapkan keduanya, kunci layarmu yang membukanya.
+Add a fingerprint or face in your phone's settings first.	Tambahkan sidik jari atau wajah di pengaturan ponselmu dulu.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	Atur atau ubah PIN 4 sampai 8 angka. PIN tetap di ponsel ini dan tidak ikut dalam cadangan.
 PIN saved.	PIN disimpan.
 PIN	PIN

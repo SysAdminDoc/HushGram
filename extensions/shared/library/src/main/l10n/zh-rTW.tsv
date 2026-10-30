@@ -1006,6 +1006,9 @@ Phone lock	手機鎖定
 HushGram PIN	HushGram PIN 碼
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	使用在此設定的 PIN 碼解鎖私訊，取代螢幕鎖定。PIN 碼無法復原，只能透過清除 Instagram 儲存空間來移除。
 Your fingerprint, face or screen lock unlocks your messages.	使用指紋、臉部或螢幕鎖定解鎖私訊。
+Fingerprint or face only	僅限指紋或臉部
+Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	只有指紋或臉部能解鎖私訊。手機若尚未設定任何一種，則由螢幕鎖定解鎖。
+Add a fingerprint or face in your phone's settings first.	請先在手機設定中新增指紋或臉部。
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	設定或變更 4 至 8 位數的 PIN 碼。僅保留在此手機上，不會包含在備份中。
 PIN saved.	已儲存 PIN 碼。
 PIN	PIN 碼

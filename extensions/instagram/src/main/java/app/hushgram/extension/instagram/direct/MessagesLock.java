@@ -1036,7 +1036,8 @@ public final class MessagesLock {
      * and read its answer through a small headless fragment: Android 10's prompt in the app's window
      * can't be trusted to offer the PIN on a phone with no fingerprint or face, and Android 9's
      * can't at all. An ask that fails for any reason but your cancel goes to the phone's own check,
-     * so there's always a way in.
+     * so there's always a way in. Unlock with's Fingerprint or face only leaves the PIN, pattern and
+     * password out of the prompt while the phone has a fingerprint or face to ask.
      */
     private static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
         KeyguardManager keyguard = activity.getSystemService(KeyguardManager.class);
@@ -1072,10 +1073,12 @@ public final class MessagesLock {
 
     @RequiresApi(30)
     private static void prompt(Activity activity, KeyguardManager keyguard, Runnable confirmed, Runnable notConfirmed) {
+        boolean biometricsOnly = biometricsOnly(activity);
         BiometricPrompt.Builder builder = new BiometricPrompt.Builder(activity)
                 .setTitle(askTitle())
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK
-                        | BiometricManager.Authenticators.DEVICE_CREDENTIAL);
+                .setAllowedAuthenticators(authenticators(biometricsOnly));
+        // A prompt without the phone's lock must have a button to say no with.
+        if (biometricsOnly) builder.setNegativeButton(L10n.t("Cancel"), activity.getMainExecutor(), (dialog, which) -> notConfirmed.run());
         builder.build().authenticate(new CancellationSignal(), activity.getMainExecutor(),
                 new BiometricPrompt.AuthenticationCallback() {
                     @Override
@@ -1086,7 +1089,7 @@ public final class MessagesLock {
 
                     @Override
                     public void onAuthenticationError(int code, CharSequence message) {
-                        if (cancelledByYou(code) || activity.isFinishing()) {
+                        if (activity.isFinishing() || !phoneCheckAfter(code, biometricsOnly, started > 0)) {
                             notConfirmed.run();
                             return;
                         }
@@ -1108,6 +1111,47 @@ public final class MessagesLock {
         // A prompt that takes the phone's own lock has no button to say no with, only a cancel.
         return code == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
                 || code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED;
+    }
+
+    /**
+     * Whether a prompt that ended with [code] goes on to the phone's own check. Not after your
+     * cancel, and not once Instagram has left the screen: the check would open over whatever is
+     * there, and the lock asks again when Instagram comes back (audit A3). With Fingerprint or face
+     * only, a short lockout or a timeout waits for the next try instead, since the phone's check
+     * would let the PIN in after all. Anything that means the fingerprint or face can't be used
+     * (none left, a permanent lockout, no sensor) still goes on, so you're never shut out.
+     */
+    static boolean phoneCheckAfter(int code, boolean biometricsOnly, boolean inFront) {
+        if (cancelledByYou(code) || !inFront) return false;
+        return !biometricsOnly || (code != BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT
+                && code != BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT);
+    }
+
+    /** What the prompt takes: the fingerprint or face, and the phone's lock unless [biometricsOnly]. */
+    static int authenticators(boolean biometricsOnly) {
+        int biometrics = BiometricManager.Authenticators.BIOMETRIC_WEAK;
+        return biometricsOnly ? biometrics : biometrics | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    }
+
+    /**
+     * Whether the next ask leaves the phone's lock out: Unlock with says Fingerprint or face only
+     * and the phone has one to ask. Removing them all turns the phone's lock back on by itself.
+     */
+    static boolean biometricsOnly(Context context) {
+        return Utils.settingsReady() && Settings.UNLOCK_WITH.get() == UnlockWith.BIOMETRICS && biometricsReady(context);
+    }
+
+    /** Whether the phone can ask for a fingerprint or face, the same ones the lock's prompt takes. */
+    public static boolean biometricsReady(Context context) {
+        if (Build.VERSION.SDK_INT < 30) return false;
+        try {
+            BiometricManager biometrics = context.getSystemService(BiometricManager.class);
+            return biometrics != null && biometrics.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+                    == BiometricManager.BIOMETRIC_SUCCESS;
+        } catch (Throwable t) {
+            Logger.printException(() -> "Lock your messages: could not ask whether a fingerprint or face is set up", t);
+            return false;
+        }
     }
 
     private static String askTitle() {

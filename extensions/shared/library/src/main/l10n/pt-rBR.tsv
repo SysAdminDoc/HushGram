@@ -1008,6 +1008,9 @@ Phone lock	Bloqueio do celular
 HushGram PIN	PIN do HushGram
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	Um PIN que você define aqui desbloqueia suas mensagens no lugar do bloqueio de tela. Ele não pode ser recuperado, só removido limpando o armazenamento do Instagram.
 Your fingerprint, face or screen lock unlocks your messages.	A digital, o rosto ou o bloqueio de tela do celular desbloqueia suas mensagens.
+Fingerprint or face only	Só digital ou rosto
+Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	Só sua digital ou seu rosto desbloqueiam suas mensagens. Se o celular não tiver nenhum configurado, o bloqueio de tela desbloqueia.
+Add a fingerprint or face in your phone's settings first.	Primeiro adicione uma digital ou seu rosto nas configurações do celular.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	Defina ou troque o PIN de 4 a 8 dígitos. Ele fica só neste celular e não vai para o backup.
 PIN saved.	PIN salvo.
 PIN	PIN

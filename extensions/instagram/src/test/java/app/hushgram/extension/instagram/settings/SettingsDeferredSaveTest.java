@@ -8,8 +8,10 @@ import static org.junit.Assert.*;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.hardware.biometrics.BiometricManager;
 import android.widget.EditText;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import org.junit.After;
@@ -19,9 +21,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowAlertDialog;
+import org.robolectric.shadows.ShadowBiometricManager;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -88,6 +93,56 @@ public class SettingsDeferredSaveTest {
             assertEquals(UnlockWith.PIN, Setting.preferences.getEnum(Settings.UNLOCK_WITH.key, UnlockWith.PHONE_LOCK));
             assertEquals(UnlockWith.PIN.name(), row.getValue());
         }
+    }
+
+    /**
+     * Fingerprint or face only is refused, with the reason, while the phone has none set up, and
+     * saved once it has one. Its summary says the screen lock takes over if they're removed.
+     */
+    @Config(sdk = 37)
+    @Test public void fingerprintOrFaceOnlyWaitsForOneToBeSetUp() {
+        ShadowBiometricManager biometrics = Shadow.extract(
+                RuntimeEnvironment.getApplication().getSystemService(BiometricManager.class));
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            HushgramPreferenceFragment.UnlockWithRow row = unlockWith(host);
+            assertEquals(Arrays.asList(UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name(), UnlockWith.BIOMETRICS.name()),
+                    Arrays.asList(row.getEntryValues()));
+
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED);
+            assertFalse(row.getOnPreferenceChangeListener().onPreferenceChange(row, UnlockWith.BIOMETRICS.name()));
+            ShadowLooper.idleMainLooper();
+            assertEquals("Add a fingerprint or face in your phone's settings first.", ShadowToast.getTextOfLatestToast());
+            assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
+
+            biometrics.setAuthenticatorType(0);
+            row.getOnPreferenceChangeListener().onPreferenceChange(row, UnlockWith.BIOMETRICS.name());
+            ShadowLooper.idleMainLooper();
+            assertEquals(UnlockWith.BIOMETRICS, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.BIOMETRICS.name(), row.getValue());
+            assertEquals("Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.",
+                    String.valueOf(row.getSummary()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** Android 9 and 10 can't leave the screen lock out, so the row offers only the first two. */
+    @Config(sdk = 28)
+    @Test public void beforeAndroid11ThereAreTwoChoices() {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            assertEquals(Arrays.asList(UnlockWith.PHONE_LOCK.name(), UnlockWith.PIN.name()),
+                    Arrays.asList(unlockWith(host).getEntryValues()));
+        }
+    }
+
+    private static HushgramPreferenceFragment.UnlockWithRow unlockWith(ActivityController<Activity> host) {
+        HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(host);
+        HushgramPreferenceFragment.UnlockWithRow row =
+                (HushgramPreferenceFragment.UnlockWithRow) page.findPreference(Settings.UNLOCK_WITH.key);
+        assertNotNull(row);
+        return row;
     }
 
     private static AlertDialog choosePin(HushgramPreferenceFragment.UnlockWithRow row) {
