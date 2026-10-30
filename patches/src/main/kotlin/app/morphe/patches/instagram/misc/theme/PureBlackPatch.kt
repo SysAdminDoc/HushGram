@@ -97,6 +97,36 @@ internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
 
 /**
+ * The color [INSTAGRAM_LAUNCH_THEME] gives Android 12's launch screen, the backdrop of its icon and
+ * the bars, #ff1a1a1a in the dark theme on 453 (#410). The splash Instagram draws itself after it
+ * already takes bds_black in the dark theme.
+ */
+internal const val SPLASH_BACKGROUND_COLOR = "@color/ig_splash_screen_background"
+
+/** Whether a decoded values folder is the dark theme's, like values-night or values-night-v31. */
+internal fun isNightValues(name: String) = "night" in name.split('-')
+
+/**
+ * Points each item of [INSTAGRAM_LAUNCH_THEME] that names [SPLASH_BACKGROUND_COLOR] at
+ * [PURE_BLACK_COLOR] in one decoded styles.xml, and answers how many it changed. Only night
+ * folders' files get here, so the light launch screen keeps its white. Before Android 12 the launch
+ * screen is a drawable of its own, which keeps its gray.
+ */
+internal fun blackenLaunchScreen(styles: Document): Int {
+    val list = styles.getElementsByTagName("style")
+    var changed = 0
+    for (style in (0 until list.length).map { list.item(it) as Element }) {
+        if (style.getAttribute("name") != INSTAGRAM_LAUNCH_THEME) continue
+        val items = style.getElementsByTagName("item")
+        (0 until items.length).map { items.item(it) as Element }.filter { it.textContent.trim() == SPLASH_BACKGROUND_COLOR }.forEach {
+            it.textContent = PURE_BLACK_COLOR
+            changed++
+        }
+    }
+    return changed
+}
+
+/**
  * Points each of [BLACK_BACKGROUNDS] that a style in one decoded styles.xml sets to
  * [PRISM_BLACK_COLOR] at [PURE_BLACK_COLOR] instead, and answers the styles it changed.
  */
@@ -190,9 +220,11 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 
 /**
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
- * [blackenSheets] owns and the story viewer [blackenStories] owns. Only the styles files that name
- * [PRISM_BLACK_COLOR] are opened: document() writes its file back, and the patcher re-encodes every
- * file written. The sheets' and stories' styles sit in the file the palettes are in.
+ * [blackenSheets] owns, the story viewer [blackenStories] owns and the dark launch screen
+ * [blackenLaunchScreen] owns. Only the styles files that name [PRISM_BLACK_COLOR], and the night
+ * ones naming [SPLASH_BACKGROUND_COLOR], are opened: document() writes its file back, and the
+ * patcher re-encodes every file written. The sheets' and stories' styles sit in the file the
+ * palettes are in.
  */
 internal fun ResourcePatchContext.blackenThemes() {
     // Patcher 2.0 decodes only the files a patch asks for.
@@ -208,11 +240,21 @@ internal fun ResourcePatchContext.blackenThemes() {
     val backgrounds = mutableListOf<String>()
     val sheets = mutableListOf<String>()
     val stories = mutableListOf<String>()
-    values.filter { File(it, "styles.xml").let { file -> file.isFile && PRISM_BLACK_COLOR in file.readText() } }.forEach { directory ->
+    val launchScreens = mutableListOf<String>()
+    values.forEach { directory ->
+        val file = File(directory, "styles.xml")
+        if (!file.isFile) return@forEach
+        val text = file.readText()
+        val palettes = PRISM_BLACK_COLOR in text
+        val launch = isNightValues(directory.name) && SPLASH_BACKGROUND_COLOR in text
+        if (!palettes && !launch) return@forEach
         document("res/${directory.name}/styles.xml").use { styles ->
-            backgrounds += blackenStyles(styles)
-            sheets += blackenSheets(styles)
-            stories += blackenStories(styles)
+            if (palettes) {
+                backgrounds += blackenStyles(styles)
+                sheets += blackenSheets(styles)
+                stories += blackenStories(styles)
+            }
+            if (launch && blackenLaunchScreen(styles) > 0) launchScreens += directory.name
         }
     }
     val missing = DARK_PALETTES - backgrounds.toSet()
@@ -223,11 +265,14 @@ internal fun ResourcePatchContext.blackenThemes() {
     if (gray.isNotEmpty()) throw PatchException("$PATCH: ${gray.joinToString()} no longer set $SHEET_BACKGROUND")
     val grayStories = DARK_STORIES - stories.toSet()
     if (grayStories.isNotEmpty()) throw PatchException("$PATCH: ${grayStories.joinToString()} no longer set $STORY_BACKGROUND")
+    if (launchScreens.none { "v31" in it.split('-') }) {
+        throw PatchException("$PATCH: the dark $INSTAGRAM_LAUNCH_THEME for Android 12 no longer names $SPLASH_BACKGROUND_COLOR")
+    }
 }
 
 /**
- * A resource patch, for the themes the View screens, the sheets, the story viewer and the status
- * bar read. Only the colors and styles files are decoded.
+ * A resource patch, for the themes the View screens, the sheets, the story viewer, the status bar
+ * and the launch screen read. Only the colors and styles files are decoded.
  */
 private val pureBlackStylesPatch = resourcePatch {
     execute {
@@ -261,6 +306,8 @@ val pureBlackPatch = bytecodePatch(
         // The comments sheet's gray is its host's own background, not a theme color (#108).
         blackenCommentsScreens(findCommentsScreens())
         blackenCommentsSheet(findBottomSheetHooks())
+        // A story opened on Prism's black for a moment before the black (#360).
+        blackenStoryBackdrops(findStoryBackdrops())
         enableStatus("pureBlack")
     }
 }

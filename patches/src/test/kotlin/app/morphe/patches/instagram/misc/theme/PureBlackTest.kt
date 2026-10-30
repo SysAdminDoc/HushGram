@@ -10,6 +10,7 @@ import app.morphe.patcher.Patcher
 import app.morphe.patcher.PatcherConfig
 import app.morphe.patcher.PatcherContext
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
 import app.morphe.patcher.resource.ResourceMode
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
@@ -21,12 +22,15 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
@@ -195,6 +199,42 @@ class PureBlackTest {
     }
 
     /**
+     * The dark launch theme's gray goes pure black wherever it names the splash color (#410), its
+     * icon and branding stay, and another style naming the same color is left alone.
+     */
+    @Test
+    fun theDarkLaunchScreenGetsPureBlack() {
+        val styles = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            """
+                <resources>
+                    <style name="$INSTAGRAM_LAUNCH_THEME" parent="Theme.Instagram">
+                        <item name="android:windowSplashScreenBackground">$SPLASH_BACKGROUND_COLOR</item>
+                        <item name="android:windowSplashScreenAnimatedIcon">@drawable/instagram_padded</item>
+                        <item name="android:windowSplashScreenBrandingImage">@drawable/from_meta_gradient_padded</item>
+                        <item name="android:windowSplashScreenIconBackgroundColor">$SPLASH_BACKGROUND_COLOR</item>
+                    </style>
+                    <style name="Theme.Instagram.Other">
+                        <item name="android:windowBackground">$SPLASH_BACKGROUND_COLOR</item>
+                    </style>
+                </resources>
+            """.trimIndent().byteInputStream(),
+        )
+
+        assertEquals(2, blackenLaunchScreen(styles))
+
+        val items = styles.getElementsByTagName("item").let { list ->
+            (0 until list.length).map { list.item(it) as Element }.map { it.textContent }
+        }
+        assertEquals(
+            listOf(PURE_BLACK_COLOR, "@drawable/instagram_padded", "@drawable/from_meta_gradient_padded", PURE_BLACK_COLOR, SPLASH_BACKGROUND_COLOR),
+            items,
+        )
+        assertEquals("a second pass finds nothing", 0, blackenLaunchScreen(styles))
+        assertTrue(isNightValues("values-night") && isNightValues("values-night-v31"))
+        assertTrue("the light theme's folders", listOf("values", "values-v31", "values-ne").none(::isNightValues))
+    }
+
+    /**
      * On every build of Instagram 452, decoded as Manager decodes it: the three dark styles hold
      * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171) and lose it to
      * pure black, and every other style that sets a sheet's color, the light theme's among them,
@@ -246,8 +286,22 @@ class PureBlackTest {
                         before.filterKeys { it in dark },
                     )
                     assertTrue("$code: the light theme sets a sheet's color", light in before)
+                    val darkLaunch = "values-night-v31/$INSTAGRAM_LAUNCH_THEME"
+                    val lightLaunch = "values-v31/$INSTAGRAM_LAUNCH_THEME"
+                    val launchBefore = attributeColors(res, "windowSplashScreenBackground")
+                    assertEquals("$code: the launch screen's color", SPLASH_BACKGROUND_COLOR, launchBefore[darkLaunch])
+                    assertEquals("$code: the light launch screen's color", SPLASH_BACKGROUND_COLOR, launchBefore[lightLaunch])
 
                     context.blackenThemes()
+
+                    val launchAfter = attributeColors(res, "windowSplashScreenBackground")
+                    assertEquals("$code: the dark launch screen (#410)", PURE_BLACK_COLOR, launchAfter[darkLaunch])
+                    assertEquals("$code: the light launch screen", SPLASH_BACKGROUND_COLOR, launchAfter[lightLaunch])
+                    assertEquals(
+                        "$code: the dark launch icon's backdrop",
+                        PURE_BLACK_COLOR,
+                        attributeColors(res, "windowSplashScreenIconBackgroundColor")[darkLaunch],
+                    )
 
                     val after = attributeColors(res, SHEET_BACKGROUND)
                     assertEquals("$code: the dark sheets", dark.associateWith { PURE_BLACK_COLOR }, after.filterKeys { it in dark })
@@ -318,6 +372,58 @@ class PureBlackTest {
     }
 
     /**
+     * The getColor the story animator stores in its black backdrop field loads black instead (#360);
+     * a getColor into another field and the same shape in a class without the animator's tag stay.
+     */
+    @Test
+    fun theStoryBackdropGetsPureBlack() {
+        val story = "Lfixture/StoryAnimator;"
+        val other = "Lfixture/OtherViewer;"
+        fun body(type: String, tag: Boolean) = """
+            ${if (tag) "const-string v0, \"$STORY_ANIMATOR_TAG\"" else "const/4 v0, 0x0"}
+            const/high16 v0, -0x1000000
+            iput v0, v5, $type->backdrop:I
+            const v0, 0x7f0602c1
+            invoke-virtual { v4, v0 }, Landroid/content/Context;->getColor(I)I
+            move-result v0
+            iput v0, v5, $type->backdrop:I
+            invoke-virtual { v4, v0 }, Landroid/content/Context;->getColor(I)I
+            move-result v1
+            iput v1, v5, $type->tint:I
+            return-void
+        """
+        val patch = PatchContexts.of(listOf(classDef(story, body(story, true)), classDef(other, body(other, false))))
+
+        val found = patch.findStoryBackdrops()
+        assertEquals(listOf(5), found.map { it.index })
+        patch.blackenStoryBackdrops(found)
+
+        val code = patch.code(story)
+        assertEquals(Opcode.INVOKE_VIRTUAL, code[4].opcode)
+        assertEquals(Opcode.CONST_HIGH16, code[5].opcode)
+        assertEquals(0, (code[5] as OneRegisterInstruction).registerA)
+        assertEquals(PURE_BLACK.toInt(), (code[5] as WideLiteralInstruction).wideLiteral.toInt())
+        assertEquals(Opcode.IPUT, code[6].opcode)
+        assertEquals("the tint keeps its color", Opcode.MOVE_RESULT, code[8].opcode)
+        assertEquals("a class without the tag", Opcode.MOVE_RESULT, patch.code(other)[5].opcode)
+    }
+
+    /** No getColor into the black field means an update the patch hasn't seen, so it fails. */
+    @Test
+    fun aStoryAnimatorWithoutItsGetColorFails() {
+        val story = "Lfixture/StoryAnimator;"
+        val patch = PatchContexts.of(listOf(classDef(story, """
+            const-string v0, "$STORY_ANIMATOR_TAG"
+            const/high16 v0, -0x1000000
+            iput v0, v5, $story->backdrop:I
+            return-void
+        """)))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findStoryBackdrops() }
+        assertTrue(failure.message!!, "no getColor reaches $story->backdrop" in failure.message!!)
+    }
+
+    /**
      * In each declared build, both Compose palettes lose Prism's black without touching unrelated
      * owners. 449's second palette (GRAY_1600) colors the Direct inbox and Activity (#51, #58).
      */
@@ -341,13 +447,18 @@ class PureBlackTest {
 
     private fun builds(bundle: File, label: String) {
         val classes = mutableListOf<ClassDef>()
+        val animators = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
                 if (classDef.methods.any { it.implementation?.instructions?.any(::isPrismBlack) == true }) {
                     classes += ImmutableClassDef.of(classDef)
                 }
+                if (classDef.methods.any { it.implementation?.instructions?.any(::logsStoryAnimatorTag) == true }) {
+                    animators += ImmutableClassDef.of(classDef)
+                }
             }
         }
+        storyBackdropsGoBlack(animators, label)
         val patch = PatchContexts.of(classes)
 
         val changed = patch.blackenLiterals()
@@ -365,6 +476,27 @@ class PureBlackTest {
                 patch.classDefBy(classDef.type).methods.any { method ->
                     method.implementation?.instructions?.any(::isPrismBlack) == true
                 })
+        }
+    }
+
+    private fun logsStoryAnimatorTag(instruction: Instruction) =
+        ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_ANIMATOR_TAG
+
+    /**
+     * The build's story animator stores two getColor results in its black backdrop field (the
+     * viewer's two binds), and both load black once patched (#360).
+     */
+    private fun storyBackdropsGoBlack(animators: List<ClassDef>, label: String) {
+        val patch = PatchContexts.of(animators)
+        val found = patch.findStoryBackdrops()
+        assertEquals("${label}: the story animator's getColor backdrops", 2, found.size)
+        patch.blackenStoryBackdrops(found)
+        found.forEach { backdrop ->
+            val code = patch.classDefBy(backdrop.type).methods.single {
+                it.name == backdrop.method.name && it.parameterTypes.map(Any::toString) == backdrop.method.parameterTypes.map(Any::toString)
+            }.implementation!!.instructions.toList()
+            assertEquals("${label}: ${backdrop.method.name} loads black", Opcode.CONST_HIGH16, code[backdrop.index].opcode)
+            assertEquals(PURE_BLACK.toInt(), (code[backdrop.index] as WideLiteralInstruction).wideLiteral.toInt())
         }
     }
 
