@@ -34,6 +34,7 @@ import app.morphe.patches.instagram.explore.recent.showAllRecentSearchesPatch
 import app.morphe.patches.instagram.feed.back.backLeavesHomePatch
 import app.morphe.patches.instagram.feed.place.keepHomePlacePatch
 import app.morphe.patches.instagram.feed.commentkeyboard.commentKeyboardPatch
+import app.morphe.patches.instagram.feed.captions.hideCaptionsPatch
 import app.morphe.patches.instagram.feed.comments.hideCommentsPatch
 import app.morphe.patches.instagram.feed.emojirow.hideCommentEmojiRowPatch
 import app.morphe.patches.instagram.feed.feedfollow.hideFeedFollowPatch
@@ -177,6 +178,7 @@ class DefaultCatalogTest {
         hideCommentsPatch,
         hideCommentEmojiRowPatch,
         hideFeedFollowPatch,
+        hideCaptionsPatch,
         hideExploreGridPatch,
         hideFeedReelsPatch,
         hideHighlightsPatch,

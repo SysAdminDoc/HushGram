@@ -1333,3 +1333,5 @@ Download button on stories	限時動態的下載按鈕
 Puts a Download button at the top of a story, beside the three dots. One tap saves the photo or video in front, the same as Download in the menu.	在限時動態頂端的三個點旁加入下載按鈕。點一下就能儲存目前的相片或影片，與選單中的下載相同。
 Start reels muted	Reels 預設靜音
 Every reel starts silent, wherever you open it from. The volume keys or the speaker icon unmute it. Wins over Start reels with sound.	無論從哪裡開啟，每則 Reels 都會靜音開始。音量鍵或喇叭圖示可取消靜音。優先於「Reels 預設開啟聲音」。
+Hide captions	隱藏說明文字
+Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	移除動態貼文與 Reels 上的說明文字。貼文會保留，留言頁面頂端仍會顯示。

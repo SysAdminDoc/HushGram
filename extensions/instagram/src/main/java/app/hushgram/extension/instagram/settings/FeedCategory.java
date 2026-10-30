@@ -18,6 +18,7 @@ import android.preference.PreferenceScreen;
 import java.util.Set;
 
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
@@ -48,10 +49,11 @@ final class FeedCategory {
         boolean roundedCorners = build.contains(PatchFamily.ROUNDED_POST_CORNERS);
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
+        boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
                 || roundedCorners
-                || fullScreen || feedFollow
+                || fullScreen || feedFollow || hideCaptions
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -214,6 +216,12 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.HIDE_FEED_FOLLOW, L10n.t("Hide Follow on posts"),
                     L10n.t("Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.")),
                     FeedFollowButton::switchChanged));
+        }
+        if (hideCaptions) {
+            feed.addPreference(onFlip(toggle(context, Settings.HIDE_CAPTIONS, L10n.t("Hide captions"),
+                    L10n.t("Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet "
+                            + "still shows it.")),
+                    HideCaptions::switchChanged));
         }
     }
 }

@@ -89,7 +89,8 @@
           "Long press to zoom",
           "Rounded post corners",
           "Full screen Reels and Home",
-          "Hide Follow on feed posts"
+          "Hide Follow on feed posts",
+          "Hide captions"
         ]
       },
       "anchors": [

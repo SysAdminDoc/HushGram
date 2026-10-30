@@ -354,6 +354,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean hideCaptions() {
+        return false;
+    }
+
     public static boolean followingFeed() {
         return false;
     }

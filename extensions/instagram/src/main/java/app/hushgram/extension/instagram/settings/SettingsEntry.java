@@ -42,6 +42,7 @@ import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
@@ -155,6 +156,7 @@ public final class SettingsEntry {
         ProfileSaved.install(context);
         CommentEmojiRow.install(context);
         FeedFollowButton.install(context);
+        HideCaptions.install(context);
         FollowingFeed.install(context);
         ReelCorners.install(context);
         StoryCorners.install(context);

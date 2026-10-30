@@ -1709,6 +1709,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_FEED_FOLLOW =
             new BooleanSetting("hushgram_hide_feed_follow", FALSE);
 
+    /**
+     * The caption on feed posts and in the Reels viewer
+     * ({@link app.hushgram.extension.instagram.feed.HideCaptions}). Read before each frame of a
+     * resumed screen, so it needs no restart. Off to start.
+     */
+    public static final BooleanSetting HIDE_CAPTIONS =
+            new BooleanSetting("hushgram_hide_captions", FALSE);
+
     /** The Follow button beside a reel's author in the Reels viewer. Off to start. */
     public static final BooleanSetting HIDE_REEL_FOLLOW_BUTTON =
             new BooleanSetting("hushgram_hide_reel_follow_button", FALSE);

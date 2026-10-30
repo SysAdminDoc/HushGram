@@ -102,6 +102,7 @@ public final class FamilyNames {
     public static final String COMMENT_EMOJI_ROW = "Hide the comment emoji row";
     public static final String COMMENT_KEYBOARD = "Open comments without the keyboard";
     public static final String FEED_FOLLOW = "Hide Follow on feed posts";
+    public static final String HIDE_CAPTIONS = "Hide captions";
     public static final String REEL_DECLUTTER = "Clean up Reels";
     public static final String REEL_DOWNLOAD = "Download any reel";
     public static final String DOUBLE_TAP_LIKE = "Turn off double tap to like";
