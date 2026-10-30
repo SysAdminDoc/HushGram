@@ -248,8 +248,8 @@ internal fun BytecodePatchContext.findFeedTap(): FeedTap {
 
     // A press held past the hold delay: the class's one (View, Media, point, state) entry and its one
     // (Media, point, state, boolean) release, 00G1.A06 and 00G1.A09 on 451's 385713073. On 453 the
-    // entry takes the post's holder before the state too, 01Bc.A05 on 385914283; the class's
-    // (View, Media, point, state, int) method there is the double-tap like, which isn't a press.
+    // entry takes the post's holder before the state too, 01Bd.A05 on 385914557; the class's
+    // (View, Media, point, state, int) method there, A07, is the double-tap like, which isn't a press.
     fun instanceVoid(vararg parameters: String) = handlerClass.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.implementation != null &&
             it.parameterTypes.map(Any::toString) == parameters.toList()

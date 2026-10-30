@@ -127,7 +127,7 @@ internal fun BytecodePatchContext.findThreadSeen(): ThreadSeenTargets {
             method.visualCode().let { code -> code.indices.any { stringLoadedAt(code, it) == THREAD_SEEN_MUTATION } }
     }
     // 32-bit builds override the name in the concrete mutation class, while the handler takes its base.
-    // 453's 385914282 overrides it one class further down, in the final class under the one it casts to.
+    // Some 453 builds override it one class further down, in the final class under the one it casts to.
     fun under(type: String) = generateSequence(classDefByOrNull(type)?.superclass) { classDefByOrNull(it)?.superclass }.take(8).any { it == mutation }
     val owners = (listOf(mutation, base) + classesLoadingString(THREAD_SEEN_MUTATION).map { it.type }.filter(::under)).distinct()
     val selector = owners.firstNotNullOfOrNull { owner -> selectorIn(owner).singleOrNull() }

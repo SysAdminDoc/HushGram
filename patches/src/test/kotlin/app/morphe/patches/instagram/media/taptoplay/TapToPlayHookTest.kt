@@ -487,7 +487,7 @@ class TapToPlayHookTest {
                 FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
                 listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
                 reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
-                // 385914282 asks Redex's string pool for the story viewer's resume strings.
+                // Some builds ask Redex's string pool for the story viewer's resume strings.
                 FixtureDex.withStringPools(bundle, viewer) +
                 ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
             ).distinctBy { it.type }

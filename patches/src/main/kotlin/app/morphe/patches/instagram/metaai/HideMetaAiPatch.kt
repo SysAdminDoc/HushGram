@@ -324,7 +324,7 @@ internal fun BytecodePatchContext.findFollowUpBarCheck(): HookSite? {
         val result = code.getOrNull(inflate + 1) ?: return null
         if (result.opcode != Opcode.MOVE_RESULT_OBJECT) return null
         val view = (result as OneRegisterInstruction).registerA
-        // 453's 32-bit 385914282 checks the view isn't null with a message first: a const-string of
+        // Some 453 builds check the view isn't null with a message first: a const-string of
         // the message into another register, then a static void call handed the view and it.
         var next = inflate + 2
         val message = code.getOrNull(next)

@@ -46,7 +46,7 @@ internal const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageId
 
 /**
  * The server flag behind Instagram's own chat reels test. On 453 it's read once, in a test taking
- * the session and answering it (LX/01Oo;->A00 on 385914285, LX/01PZ;->A00 on 385914282, an instance
+ * the session and answering it (LX/01On;->A00 on 385914557, LX/01PZ;->A00 on 385914556, an instance
  * method of a singleton), which the opener of a reel shared in a chat asks before it hands the chat's
  * other shared reels to the Reels viewer, and which the chat and the Reels viewer ask too. 452.1's
  * was 0x81155f00006ed0.
@@ -54,20 +54,20 @@ internal const val MESSAGE_ID = "Lcom/instagram/model/direct/messageid/MessageId
 internal const val CHAT_REELS_FLAG = 0x81153c00006fb6L
 
 /**
- * The trace name of the Reels viewer's dual paging request (LX/0Dyx;->A03 on 385914285, LX/0Fit;->A03
- * on 385914282), which pages a source with two sides: a chat's own shared reels and, after them,
+ * The trace name of the Reels viewer's dual paging request (LX/0Dyz;->A03 on 385914557, LX/0Fit;->A03
+ * on 385914556), which pages a source with two sides: a chat's own shared reels and, after them,
  * Instagram's suggested ones. Only that request loads it.
  */
 internal const val DUAL_PAGING = "AbstractPaginatingClipsItemsFetcher.makeDualPaginationRequest"
 
 /**
  * What the source of a chat's reels asks the server for to page the chat's own shared reels
- * (LX/0Mfh;->BYn on 385914285, LX/0Mkl;->BYs on 385914282). Only that method loads it.
+ * (LX/0Mes;->BYn on 385914557, LX/0Mkk;->BYs on 385914556). Only that method loads it.
  */
 internal const val CHAT_REELS_PATH = "clips/direct_thread_clips/"
 
 /**
- * What the Reels viewer's request for more reels past the ones it holds logs (LX/02HP;->A1R on 453).
+ * What the Reels viewer's request for more reels past the ones it holds logs (LX/02HQ;->A1Q on 453's 385914557).
  * Opened from a chat with the chain, the viewer holds the chat's reels and this request asks the
  * default source, or Instagram's prefetched Reels, for suggested ones. Only that request loads it.
  */
@@ -83,7 +83,7 @@ internal const val STOP_CACHED = "$CHAT_REELS->stopCached(Ljava/lang/Object;)Z"
 
 /**
  * The trace name of the Reels viewer's insert of a reel Instagram keeps cached for the Reels tab
- * (LX/04HZ;->A0A on 453's 385914283, in ClipsViewerFlashMediaController). As a viewer nears its last
+ * (LX/04HZ;->A0A on 453's 385914557, in ClipsViewerFlashMediaController). As a viewer nears its last
  * reel the controller puts a cached one after it, without asking the server, which is where the
  * suggested reels after a chat's own come from. Only that insert loads it.
  */
@@ -95,7 +95,7 @@ internal const val VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;
 internal const val PLACEHOLDER = "$CHAT_REELS->placeholder(Ljava/lang/Object;I)Z"
 
 /**
- * The trace name of the Reels viewer adapter's add of reels (LX/045b;->A0a on 453's 385914283,
+ * The trace name of the Reels viewer adapter's add of reels (LX/044l;->A0a on 453's 385914557,
  * ClipsViewerAdapter.addClipsItems). With its flag set it puts Instagram's loading placeholder, a
  * gray reel, after the reels it adds, for the next ones to replace. With the viewer's other ways to
  * more reels stopped nothing replaces it, so a chat's reels end on it. Only that add loads it.
@@ -379,7 +379,7 @@ internal class Placeholders(val add: MutableMethod, val shimmer: MutableMethod, 
  * add is the one method loading [ADD_REELS], an instance method handed reels and a flag and returning
  * nothing, with two locals for the hook and nothing jumping to its first instruction. It reads one
  * [VIEWER_CONFIG] field of its own class and one [VIEWER_SOURCE] field of the config. The placeholder
- * (LX/045b;->A0X on 385914283) is the one instance method of the same class handed a position that
+ * (LX/044l;->A0X on 385914557) is the one instance method of the same class handed a position that
  * calls the add, with a local and nothing jumping to its first instruction. Fails when any of it
  * isn't so.
  */

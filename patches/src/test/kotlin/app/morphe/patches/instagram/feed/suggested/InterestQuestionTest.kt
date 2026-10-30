@@ -193,7 +193,7 @@ class InterestQuestionTest {
         val before = context.mutableClassDefBy(found.type).methods.single {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
         }.implementation!!.instructions.toList()
-        // 453's builds place the add differently (411 on 385914282 and 385914283), so its shape is checked, not its index.
+        // 453's builds place the add differently, so its shape is checked, not its index.
         assertEquals("$label: the row type's load", Opcode.SGET_OBJECT, before[found.rowAt].opcode)
         assertEquals("$label: the row type", found.rowType, before[found.rowAt].reference().toString())
         assertTrue("$label: the builder's return", before[found.endAt].opcode in setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_OBJECT))

@@ -97,7 +97,7 @@ class HideCommentEmojiRowPatchTest {
     fun eachBuildSkipsTheStripWhenAsked() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        assertEquals("every ${Fixtures.VERSION} build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->

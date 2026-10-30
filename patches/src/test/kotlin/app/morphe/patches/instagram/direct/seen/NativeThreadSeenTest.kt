@@ -130,7 +130,7 @@ class NativeThreadSeenTest {
             // 453's 32-bit build names the chat receipt's mutation in its concrete class.
             val mutation = (handler.visualCode().first().visualReference() as? TypeReference)?.type
             if (mutation != null && mutation !in classes) classes += FixtureDex.classes(bundle, setOf(mutation))
-            // 385914282 overrides it a class further down, so the classes naming it come with their supers.
+            // Some builds override it a class further down, so the classes naming it come with their supers.
             FixtureDex.forEach(bundle) { dex ->
                 if (dex.stringSection.any { it == THREAD_SEEN_MUTATION }) for (candidate in dex.classes) {
                     if (candidate.type !in classes && candidate.methods.any { m -> m.visualCode().any { it.visualString() == THREAD_SEEN_MUTATION } }) {

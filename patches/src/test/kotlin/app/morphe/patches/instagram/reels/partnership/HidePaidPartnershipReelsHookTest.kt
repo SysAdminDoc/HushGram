@@ -326,7 +326,7 @@ class HidePaidPartnershipReelsHookTest {
             // 451's Redex inlines getClipsTabContainerModule into its callers, so its names are those of every marked copy.
             val container = markedBy(TAB_CONTAINER_MODULE).flatMap { method -> method.code().mapNotNull { it.string() } }.filter { it.startsWith("clips_viewer_") }
             assertTrue("${bundle.name}: the tab container answers no name", container.isNotEmpty())
-            // 453's builds don't all offer the same lanes (385914283 has no blend lane), so the list may name
+            // 453's builds don't all offer the same lanes (some have no blend lane), so the list may name
             // a lane this build doesn't offer, as long as it's one of the viewer's sources here.
             assertEquals("${bundle.name}: the Reels tab's module names", lanes + container, tabModules.intersect(lanes + container))
             for (extra in tabModules - lanes - container) {

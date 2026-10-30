@@ -187,7 +187,7 @@ internal fun BytecodePatchContext.findStorySeek(): StorySeekSites {
     val resumes = viewer.methods.filter { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && AccessFlags.PUBLIC.isSet(method.accessFlags) &&
             method.returnType == "V" && method.parameterTypes.isEmpty() && loadsString(method, RESUME) &&
-            // 453's 32-bit 385914282 asks Redex's string pool for it, a static (int)String call.
+            // Some 453 builds ask Redex's string pool for it, a static (int)String call.
             method.code().mapNotNull { it.method() }.filterNot { it.parameterTypes.map(Any::toString) == listOf("I") && it.returnType == STRING }
                 .map(Any::toString) == listOf(resumer.reference())
     }

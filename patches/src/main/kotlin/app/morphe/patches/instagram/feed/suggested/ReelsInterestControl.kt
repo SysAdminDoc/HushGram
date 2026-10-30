@@ -61,9 +61,9 @@ internal class ReelsInterestControl(
  * controls component. It reads the reel's own on-impression control (the wrapped
  * clips_on_impression_control model), or keeps the fallback when there is none, and stores what it
  * ends up with in the one field of the component of the fallback's type. The component
- * (ClipsRankingControlsComponent) draws an empty box when that field is null. On 453's 385914285
- * that's LX/08YT;->A02(LX/09WW;LX/06C6;)LX/0D3V; storing v13 into LX/0D3V;->A0A at instruction 57,
- * and the same place and register in the other three builds. Anything else is an update this patch
+ * (ClipsRankingControlsComponent) draws an empty box when that field is null. On 453's 385914557
+ * that's LX/08YW;->A02(LX/09Wo;LX/06CH;)LX/0D5R; storing v13 into LX/0D5R;->A0A at instruction 57,
+ * and 385914556 stores the same register at the same instruction. Anything else is an update this patch
  * hasn't seen, and it stops.
  */
 internal fun BytecodePatchContext.findReelsInterestControl(): ReelsInterestControl {

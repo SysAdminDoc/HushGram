@@ -161,7 +161,7 @@ class HideSearchSuggestionsHookTest {
         assertEquals("$what: the branch tests the answer", answer, (code[call + 2] as OneRegisterInstruction).registerA)
         val recents = code.indexOfFirst { it.string() == SHOW_MORE_RECENTS }
         val suggested = code.indexOfFirst { it.string() == NULL_STATE_SUGGESTED }
-        // 453's 385914283 builds the recents outside the section, which then holds no Show more row.
+        // Some 453 builds put the recents outside the section, which then holds no Show more row.
         assertTrue("$what: recents built before the hook", recents < call)
         assertTrue("$what: suggested names after the hook", suggested > call + 2)
     }

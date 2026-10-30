@@ -49,8 +49,8 @@ internal const val REQUEST_FOCUS = "Landroid/view/View;->requestFocus()Z"
 
 /**
  * Strings the story reply composer's class loads in every 453 build. 453 has a second listener
- * focusing a text box, the Live viewer's comment box (inlined into the listener on 385914282 and
- * 385914284, a forward to IgLiveViewerPageViewHolder's controller on the others), which loads none.
+ * focusing a text box, the Live viewer's comment box (inlined into the listener on some builds, a
+ * forward to IgLiveViewerPageViewHolder's controller on others), which loads none.
  */
 internal val COMPOSER_MARKERS = listOf("fragment_paused", "ig4a-instagram-schema")
 
