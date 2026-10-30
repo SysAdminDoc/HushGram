@@ -15,10 +15,14 @@ GPL-3.0-only.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
+import json
 import pathlib
 import re
 import sys
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -303,6 +307,31 @@ class RefusalTests(unittest.TestCase):
         with self.assertRaises(notes.NotesError) as error:
             notes.check_scopes(found, {"Hide Meta AI"}, patch_scopes=False)
         self.assertIn("name the patch in the text", str(error.exception))
+
+
+class CheckCommandTests(unittest.TestCase):
+    """release_notes.py --check, which hands --version to the patch scope rule."""
+
+    def check(self, *version):
+        changelog = "# Changelog\n\n## Unreleased\n" + "".join(
+            f"{RefusalTests.OLD_SECTION}\n## {heading}\n" for heading in ("0.0.18 (2026-11-01)", "0.0.17 (2026-10-28)"))
+        changelog += RefusalTests.OLD_SECTION
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder)
+            (path / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
+            (path / "patches-list.json").write_text(json.dumps({"patches": [{"name": "Hide Meta AI"}]}), encoding="utf-8")
+            said = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(said):
+                code = notes.main(["--changelog", str(path / "CHANGELOG.md"), "--check", *version])
+        return code, said.getvalue()
+
+    def test_version_picks_the_scope_rule(self):
+        self.assertEqual(self.check("--version", "0.0.17"), (0, ""))
+        for version in (("--version", "0.0.18"), ()):
+            with self.subTest(version):
+                code, said = self.check(*version)
+                self.assertEqual(code, 1)
+                self.assertIn("name the patch in the text", said)
 
 
 class GitHubNotesTests(unittest.TestCase):
