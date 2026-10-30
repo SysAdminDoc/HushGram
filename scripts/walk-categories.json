@@ -90,7 +90,8 @@
           "Rounded post corners",
           "Full screen Reels and Home",
           "Hide Follow on feed posts",
-          "Hide captions"
+          "Hide captions",
+          "Keep Home's top bar"
         ]
       },
       "anchors": [

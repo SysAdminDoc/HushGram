@@ -50,10 +50,11 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
+        boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
                 || roundedCorners
-                || fullScreen || feedFollow || hideCaptions
+                || fullScreen || feedFollow || hideCaptions || homeTopBar
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -222,6 +223,11 @@ final class FeedCategory {
                     L10n.t("Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet "
                             + "still shows it.")),
                     HideCaptions::switchChanged));
+        }
+        if (homeTopBar) {
+            feed.addPreference(toggle(context, Settings.KEEP_HOME_TOP_BAR, L10n.t("Keep Home's top bar"),
+                    L10n.t("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, "
+                            + "instead of sliding them away.")));
         }
     }
 }

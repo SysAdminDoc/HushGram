@@ -363,6 +363,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean homeTopBar() {
+        return false;
+    }
+
     public static boolean followingFeed() {
         return false;
     }

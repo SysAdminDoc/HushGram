@@ -2573,6 +2573,45 @@
       ]
     },
     {
+      "name": "Keep Home's top bar",
+      "description": "Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Keep Reels auto scroll on",
       "description": "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, until you turn it off yourself. It can also move on to the next reel when one ends on accounts where Instagram doesn't offer auto scroll. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",

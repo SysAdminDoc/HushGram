@@ -1735,6 +1735,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CAPTIONS =
             new BooleanSetting("hushgram_hide_captions", FALSE);
 
+    /**
+     * Home's header staying in place while the feed scrolls
+     * ({@link app.hushgram.extension.instagram.feed.HomeTopBar}). Home hands its header to the
+     * scroll controller as it opens, so the restart card comes up. Off to start.
+     */
+    public static final BooleanSetting KEEP_HOME_TOP_BAR =
+            new BooleanSetting("hushgram_keep_home_top_bar", FALSE, true);
+
     /** The Follow button beside a reel's author in the Reels viewer. Off to start. */
     public static final BooleanSetting HIDE_REEL_FOLLOW_BUTTON =
             new BooleanSetting("hushgram_hide_reel_follow_button", FALSE);

@@ -171,6 +171,7 @@ public enum PatchFamily {
     COMMENT_KEYBOARD(FamilyNames.COMMENT_KEYBOARD, "commentKeyboard", null, Settings.COMMENT_KEYBOARD_DOWN),
     FEED_FOLLOW(FamilyNames.FEED_FOLLOW, "feedFollow", null, Settings.HIDE_FEED_FOLLOW),
     HIDE_CAPTIONS(FamilyNames.HIDE_CAPTIONS, "hideCaptions", null, Settings.HIDE_CAPTIONS),
+    HOME_TOP_BAR(FamilyNames.HOME_TOP_BAR, "homeTopBar", null, Settings.KEEP_HOME_TOP_BAR),
     REEL_DECLUTTER(FamilyNames.REEL_DECLUTTER, "reelDeclutter", null, Settings.HIDE_REEL_FOLLOW_BUTTON,
             Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.HIDE_REEL_COMMENT_BAR,
             Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, Settings.HIDE_REEL_REPLY_BAR, Settings.HIDE_REELS_TOP_BAR,
