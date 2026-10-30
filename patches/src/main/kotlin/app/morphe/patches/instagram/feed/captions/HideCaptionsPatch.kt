@@ -16,11 +16,13 @@ internal const val HIDE_CAPTIONS_STATUS = "hideCaptions"
 /**
  * Takes the caption off feed posts and reels (#395). See HideCaptions in the extension.
  *
- * It changes no Instagram code. The extension sets the two caption hosts gone before a frame shows
- * them, found by the ids Instagram's own layout gives them, so the rows around them close up. The
- * application-start hook the settings patch already writes starts the watching, so this patch only
- * switches the status method on, and the settings screen then offers the switch. In the default
- * selection with its switch off.
+ * Instagram 453 draws a feed post's caption as a declarative component with no view of its own, so
+ * the patch asks the extension at the start of the caption's render and a yes draws nothing (see
+ * [findFeedCaption]). A reel's caption is a view, which the extension sets gone before a frame
+ * shows it, found by the id Instagram's own layout gives it, so the rows around it close up. The
+ * application-start hook the settings patch already writes starts that watching. The patch switches
+ * the status method on, and the settings screen then offers the switch. In the default selection
+ * with its switch off.
  */
 @Suppress("unused")
 val hideCaptionsPatch = bytecodePatch(
@@ -34,6 +36,7 @@ val hideCaptionsPatch = bytecodePatch(
 
     execute {
         requireStatusMethod(HIDE_CAPTIONS_STATUS)
+        findFeedCaption().write(this)
         enableStatus(HIDE_CAPTIONS_STATUS)
     }
 }

@@ -1036,7 +1036,8 @@ tasks.register("verifyAndroidBoundaries") {
                 "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.HideCaptionsTest" to listOf(
-                "offToStartLeavesCaptionsAlone", "onHidesBothCaptionsAndLeavesTheRest", "pausedReadsAsOff"
+                "offToStartLeavesCaptionsAlone", "onHidesBothCaptionsAndLeavesTheRest", "pausedReadsAsOff",
+                "withTheSwitchOnAFeedCaptionIsLeftOutAndCounted", "offPausedAndUnreadyDrawTheFeedCaption"
             ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.settings.HideCaptionsSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAndHonorsPause"

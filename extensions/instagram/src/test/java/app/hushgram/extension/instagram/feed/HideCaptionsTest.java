@@ -163,4 +163,36 @@ public class HideCaptionsTest {
         assertEquals(View.VISIBLE, postCaption.getVisibility());
         assertEquals(View.VISIBLE, reelCaption.getVisibility());
     }
+
+    /** 453's feed caption is a component with no view: its render asks, and each yes is counted. */
+    @Test
+    public void withTheSwitchOnAFeedCaptionIsLeftOutAndCounted() {
+        Settings.HIDE_CAPTIONS.save(true);
+
+        assertTrue(HideCaptions.hideFeedCaption());
+        assertTrue(HideCaptions.hideFeedCaption());
+
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(HideCaptions.COUNT_HIDDEN + " 2"));
+        assertTrue(HookStatus.missing(FamilyNames.HIDE_CAPTIONS).toString(),
+                HookStatus.missing(FamilyNames.HIDE_CAPTIONS).isEmpty());
+    }
+
+    @Test
+    public void offPausedAndUnreadyDrawTheFeedCaption() {
+        assertFalse("off to start", HideCaptions.hideFeedCaption());
+
+        Settings.HIDE_CAPTIONS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", HideCaptions.hideFeedCaption());
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", HideCaptions.hideFeedCaption()));
+
+        assertTrue("on again once resumed and ready", HideCaptions.hideFeedCaption());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(HideCaptions.COUNT_HIDDEN + " 1"));
+    }
 }
