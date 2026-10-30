@@ -46,6 +46,7 @@ class StoryMidcardsHookTest {
     private val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
     private val reelInit = "$reel-><init>(Lfixture/Owner;$integer$list$list)V"
     private val mapperRef = "$names->A00($integer)Ljava/lang/String;"
+    private val helperRef = "Lfixture/MidcardHelper;->A1I($session$integer${list}I)V"
 
     /** The hook the patch writes is in the StoriesTray the bundle ships, public and static. */
     @Test
@@ -58,7 +59,9 @@ class StoryMidcardsHookTest {
 
     /**
      * Each adder asks right after each build, with the type the reel took, and answers false or null
-     * on a yes. The code rebuilding reels from their ids, which takes no list, stays as it was.
+     * on a yes. An adder handing the type to a helper that builds and adds the reel, as the x86
+     * 453.0.0.57.79 build does for two midcards, asks right before that call instead. The helper
+     * itself, and the code rebuilding reels from their ids, which takes no list, stay as they were.
      */
     @Test
     fun eachAdderAsksRightAfterItsBuild() {
@@ -67,8 +70,12 @@ class StoryMidcardsHookTest {
         val midcards = context.findStoryMidcards()
         assertEquals(mapperRef, midcards.mapper.toString())
         assertEquals(reelInit, midcards.reel.toString())
+        assertEquals(listOf(helperRef), midcards.helpers.map { it.toString() })
         assertEquals(
-            listOf("Lfixture/SuggestedUsersAdder;->A03", "Lfixture/SuggestedUsersAsync;->A01", "Lfixture/TwoCards;->A00"),
+            listOf(
+                "Lfixture/SuggestedUsersAdder;->A03", "Lfixture/SuggestedUsersAsync;->A01", "Lfixture/Trending;->A00",
+                "Lfixture/TrendingRange;->A00", "Lfixture/TwoCards;->A00",
+            ),
             midcards.adders.map { "${it.type}->${it.name}" }.sorted(),
         )
 
@@ -77,8 +84,24 @@ class StoryMidcardsHookTest {
         assertHooked("sync", context.mutableClassDefBy("Lfixture/SuggestedUsersAdder;").methods.single(), Opcode.RETURN, builds = 1)
         assertHooked("async", context.mutableClassDefBy("Lfixture/SuggestedUsersAsync;").methods.single(), Opcode.RETURN_OBJECT, builds = 1)
         assertHooked("two builds", context.mutableClassDefBy("Lfixture/TwoCards;").methods.single(), Opcode.RETURN, builds = 2)
-        val rebuild = context.mutableClassDefBy("Lfixture/Rebuild;").methods.single()
-        assertEquals("the rebuild changed", classes.single { it.type == "Lfixture/Rebuild;" }.methods.single().code().map { it.opcode }, rebuild.code().map { it.opcode })
+        assertHooked("helper call", context.mutableClassDefBy("Lfixture/Trending;").methods.single(), Opcode.RETURN, builds = 0, helpers = listOf(helperRef), calls = 1)
+        assertHooked("helper range call", context.mutableClassDefBy("Lfixture/TrendingRange;").methods.single(), Opcode.RETURN_OBJECT, builds = 0, helpers = listOf(helperRef), calls = 1)
+        for (type in listOf("Lfixture/Rebuild;", "Lfixture/MidcardHelper;")) {
+            val after = context.mutableClassDefBy(type).methods.single()
+            assertEquals("$type changed", classes.single { it.type == type }.methods.single().code().map { it.opcode }, after.code().map { it.opcode })
+        }
+    }
+
+    /** Before a helper call the type is the call's Integer operand, and the borrowed local is one the call doesn't read. */
+    @Test
+    fun theHelperCallsTypeIsItsIntegerOperand() {
+        val context = PatchContexts.of(classes())
+        context.hideStoryMidcards(context.findStoryMidcards())
+        val code = context.mutableClassDefBy("Lfixture/Trending;").methods.single().code()
+        val call = code.indexOfFirst { it.referenceText() == helperRef }
+        // The fixture's call is {p0, v0, p1, p2} with v0 the type; v1 holds the true it answers and v2 is unused.
+        assertEquals(0, (code[call - 7] as RegisterRangeInstruction).startRegister)
+        assertEquals(2, (code[call - 6] as OneRegisterInstruction).registerA)
     }
 
     /** The register the hook borrows is one nothing reads afterwards, never the reel or the list. */
@@ -109,7 +132,9 @@ class StoryMidcardsHookTest {
             classes(name = "story_interstitial_something_else") to "expected a static (Integer)String holding \"$SUGGESTED_USERS_MIDCARD\", found none",
             classes(reelNames = false) to "holding \"$SUGGESTED_USERS_MIDCARD\" with one reel constructor (Object, Integer, List, List) asking it, found 0",
             classes(adders = false) to "nothing taking a list builds a midcard with $reel-><init>",
-            classes(repository = "Lfixture/SomeOtherRepository;") to "none of the 3 midcard adder(s) asks $SUGGESTED_USERS_REPOSITORY",
+            classes(repository = "Lfixture/SomeOtherRepository;") to "none of the 5 midcard adder(s) asks $SUGGESTED_USERS_REPOSITORY",
+            // A check put in front of a call something jumps to would be skipped on that path.
+            classes(helperJump = true) to "Lfixture/Trending;->A00 jumps straight to its midcard helper call",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -131,6 +156,7 @@ class StoryMidcardsHookTest {
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
         assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        val hooksByBuild = linkedMapOf<String, Int>()
         for (bundle in bundles) {
             val holders = linkedMapOf<String, ClassDef>()
             val namers = HashSet<String>()
@@ -155,16 +181,26 @@ class StoryMidcardsHookTest {
                     }
                 }
             }
+            // The static void methods building a reel, which some builds outline a midcard build into.
+            val outlined = HashSet<String>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
-                    val builds = classDef.methods.any { m ->
+                    val builders = classDef.methods.filter { m ->
                         m.code().any { instruction ->
                             instruction.methodReference()?.let {
                                 it.definingClass in reels && it.name == "<init>" && it.parameterTypes.drop(1).map(CharSequence::toString) == listOf(integer, list, list)
                             } == true
                         }
                     }
-                    if (builds && classDef.type !in holders) holders[classDef.type] = ImmutableClassDef.of(classDef)
+                    if (builders.isNotEmpty() && classDef.type !in holders) holders[classDef.type] = ImmutableClassDef.of(classDef)
+                    builders.filter { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" }
+                        .forEach { outlined += "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})V" }
+                }
+            }
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    val calls = classDef.methods.any { m -> m.code().any { it.referenceText() in outlined } }
+                    if (calls && classDef.type !in holders) holders[classDef.type] = ImmutableClassDef.of(classDef)
                 }
             }
             val context = PatchContexts.of(holders.values)
@@ -175,12 +211,20 @@ class StoryMidcardsHookTest {
             assertTrue("${bundle.name}: the namer ${midcards.mapper}", midcards.mapper.definingClass in namers)
             assertTrue("${bundle.name}: the reel ${midcards.reel}", midcards.reel.definingClass in reels)
             val reelText = midcards.reel.toString()
+            val helpers = midcards.helpers.map { it.toString() }
+            assertTrue("${bundle.name}: a helper that isn't a static void reel builder in $helpers", outlined.containsAll(helpers))
+            var hooks = 0
             for (site in midcards.adders) {
                 val before = holders.getValue(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
                 val after = context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
                 val answer = if (after.returnType == "Z") Opcode.RETURN else Opcode.RETURN_OBJECT
-                assertHooked("${bundle.name}: ${site.type}->${site.name}", after, answer, before.code().count { it.referenceText() == reelText }, midcards.mapper.toString(), reelText)
+                val builds = before.code().count { it.referenceText() == reelText }
+                val calls = before.code().count { it.referenceText() in helpers }
+                assertHooked("${bundle.name}: ${site.type}->${site.name}", after, answer, builds, midcards.mapper.toString(), reelText, helpers, calls)
+                hooks += builds + calls
             }
+            // Keyed by folder as well, since every declared build but one is a base.apk.
+            hooksByBuild["${bundle.parentFile.name}/${bundle.name}"] = hooks
             // On 451 that's eight adders, the async suggested users one among them, answering an object.
             val answers = midcards.adders.map { site ->
                 holders.getValue(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }.returnType == "Z"
@@ -188,45 +232,78 @@ class StoryMidcardsHookTest {
             assertTrue("${bundle.name}: no boolean adder in ${midcards.adders.map { "${it.type}->${it.name}" }}", true in answers)
             assertTrue("${bundle.name}: no adder answering an object in ${midcards.adders.map { "${it.type}->${it.name}" }}", false in answers)
         }
+        // Every build of a version is the same code compiled its own way, so each one hides as many
+        // midcards. A build that inlines or outlines a midcard where the others don't shows up here.
+        assertEquals("the midcard checks in each build: $hooksByBuild", 1, hooksByBuild.values.toSet().size)
     }
 
     /**
-     * Right after each call to the reel constructor: the namer handed the type the reel took, its
-     * answer handed to the hook, and on a yes a zero answered, false or null.
+     * Right after each call to the reel constructor, and right before each call to one of [helpers]:
+     * the namer handed the type the reel takes, its answer handed to the hook, and on a yes a zero
+     * answered, false or null.
      */
-    private fun assertHooked(what: String, method: Method, answer: Opcode, builds: Int, mapper: String = mapperRef, reelText: String = reelInit) {
+    private fun assertHooked(
+        what: String,
+        method: Method,
+        answer: Opcode,
+        builds: Int,
+        mapper: String = mapperRef,
+        reelText: String = reelInit,
+        helpers: List<String> = emptyList(),
+        calls: Int = 0,
+    ) {
         val code = method.code()
         val at = code.indices.filter { code[it].referenceText() == reelText }
+        val helped = code.indices.filter { code[it].referenceText() in helpers }
         assertEquals("$what: builds", builds, at.size)
-        assertEquals("$what: hooks", builds, code.count { it.referenceText() == STORY_MIDCARD })
+        assertEquals("$what: helper calls", calls, helped.size)
+        assertEquals("$what: hooks", builds + calls, code.count { it.referenceText() == STORY_MIDCARD })
         for (build in at) {
             val type = when (val call = code[build]) {
                 is FiveRegisterInstruction -> call.registerE
                 is RegisterRangeInstruction -> call.startRegister + 2
                 else -> error("$what: ${call.opcode}")
             }
-            assertEquals("$what: the namer", Opcode.INVOKE_STATIC_RANGE, code[build + 1].opcode)
-            assertEquals("$what: the namer", mapper, code[build + 1].referenceText())
-            assertEquals("$what: the type", type, (code[build + 1] as RegisterRangeInstruction).startRegister)
-            assertEquals("$what: the name", Opcode.MOVE_RESULT_OBJECT, code[build + 2].opcode)
-            val free = (code[build + 2] as OneRegisterInstruction).registerA
-            assertEquals("$what: the hook", STORY_MIDCARD, code[build + 3].referenceText())
-            assertEquals("$what: what it's handed", free, (code[build + 3] as RegisterRangeInstruction).startRegister)
-            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[build + 4].opcode)
-            assertEquals("$what: the answer's register", free, (code[build + 4] as OneRegisterInstruction).registerA)
-            assertEquals("$what: the check", Opcode.IF_EQZ, code[build + 5].opcode)
-            assertEquals("$what: Instagram's code", 5, (code[build + 5] as OffsetInstruction).codeOffset)
-            assertEquals("$what: no card", 0, (code[build + 6] as NarrowLiteralInstruction).narrowLiteral)
-            assertEquals("$what: answered", answer, code[build + 7].opcode)
-            assertEquals("$what: answered", free, (code[build + 7] as OneRegisterInstruction).registerA)
+            assertCheck(what, code, build + 1, type, answer, mapper)
         }
+        for (call in helped) {
+            val instruction = code[call]
+            val operand = instruction.methodReference()!!.parameterTypes.map(CharSequence::toString)
+                .takeWhile { it != integer }.sumOf { if (it == "J" || it == "D") 2 else 1 }
+            val type = when (instruction) {
+                is FiveRegisterInstruction -> listOf(instruction.registerC, instruction.registerD, instruction.registerE, instruction.registerF, instruction.registerG)[operand]
+                is RegisterRangeInstruction -> instruction.startRegister + operand
+                else -> error("$what: ${instruction.opcode}")
+            }
+            assertCheck(what, code, call - 7, type, answer, mapper)
+        }
+    }
+
+    /** The seven instructions from [start]: the namer handed [type], the hook asked, and [answer] on a yes. */
+    private fun assertCheck(what: String, code: List<Instruction>, start: Int, type: Int, answer: Opcode, mapper: String) {
+        assertEquals("$what: the namer", Opcode.INVOKE_STATIC_RANGE, code[start].opcode)
+        assertEquals("$what: the namer", mapper, code[start].referenceText())
+        assertEquals("$what: the type", type, (code[start] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: the name", Opcode.MOVE_RESULT_OBJECT, code[start + 1].opcode)
+        val free = (code[start + 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the hook", STORY_MIDCARD, code[start + 2].referenceText())
+        assertEquals("$what: what it's handed", free, (code[start + 2] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[start + 3].opcode)
+        assertEquals("$what: the answer's register", free, (code[start + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the check", Opcode.IF_EQZ, code[start + 4].opcode)
+        assertEquals("$what: Instagram's code", 5, (code[start + 4] as OffsetInstruction).codeOffset)
+        assertEquals("$what: no card", 0, (code[start + 5] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$what: answered", answer, code[start + 6].opcode)
+        assertEquals("$what: answered", free, (code[start + 6] as OneRegisterInstruction).registerA)
     }
 
     /**
      * Shaped like 451's: a static namer of midcard types holding [name], a reel constructor asking it
      * with the type it takes, and the adders. One adds the Suggested for you page after asking
      * [repository] and answers whether it did, one answers the card or null, one builds two cards
-     * (one with a range call), and a rebuild of reels from their ids takes no list.
+     * (one with a range call), and a rebuild of reels from their ids takes no list. Two more hand
+     * the type to a static helper that builds the card and adds it, shaped like the x86 build's
+     * `0C4G.A1I`, one with a range call; with [helperJump] something jumps straight to the first's call.
      */
     private fun classes(
         name: String = SUGGESTED_USERS_MIDCARD,
@@ -234,6 +311,7 @@ class StoryMidcardsHookTest {
         reelNames: Boolean = true,
         adders: Boolean = true,
         repository: String = SUGGESTED_USERS_REPOSITORY,
+        helperJump: Boolean = false,
     ): List<ClassDef> {
         val namer = method(names, "A00", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
         val second = method(names, "A01", listOf(integer), "Ljava/lang/String;", 1, static, "const-string v0, \"$name\"\nreturn-object v0")
@@ -302,6 +380,47 @@ class StoryMidcardsHookTest {
                 return-void
             """,
         )
+        val helper = method(
+            "Lfixture/MidcardHelper;", "A1I", listOf(session, integer, list, "I"), "V", 2, static,
+            """
+                new-instance v0, $reel
+                const/4 v1, 0x0
+                invoke-direct {v0, v1, p1, v1, v1}, $reelInit
+                invoke-interface {p2, p3, v0}, $list->add(ILjava/lang/Object;)V
+                return-void
+            """,
+        )
+        val trending = method(
+            "Lfixture/Trending;", "A00", listOf(session, list, "I"), "Z", 3, static,
+            """
+                if-nez p2, :add
+                const/4 v0, 0x0
+                return v0
+                :add
+                const/4 v1, 0x1
+                sget-object v0, $types->A03:$integer
+            """ + (if (helperJump) "if-eqz p2, :call\nsget-object v0, $types->A04:$integer\n:call\n" else "") +
+                """
+                invoke-static {p0, v0, p1, p2}, $helperRef
+                return v1
+            """,
+        )
+        val trendingRange = method(
+            "Lfixture/TrendingRange;", "A00", listOf(session, list, "I"), "Lfixture/Pair;", 5, static,
+            """
+                if-nez p2, :add
+                const/4 v0, 0x0
+                return-object v0
+                :add
+                move-object v0, p0
+                sget-object v1, $types->A04:$integer
+                move-object v2, p1
+                move v3, p2
+                invoke-static/range {v0 .. v3}, $helperRef
+                new-instance v0, Lfixture/Pair;
+                return-object v0
+            """,
+        )
         return listOfNotNull(
             classDef(names, if (twoMappers) listOf(namer, second) else listOf(namer)),
             classDef(reel, listOf(init)),
@@ -309,6 +428,9 @@ class StoryMidcardsHookTest {
             if (adders) classDef("Lfixture/SuggestedUsersAsync;", listOf(async)) else null,
             if (adders) classDef("Lfixture/TwoCards;", listOf(two)) else null,
             classDef("Lfixture/Rebuild;", listOf(rebuild)),
+            classDef("Lfixture/MidcardHelper;", listOf(helper)),
+            if (adders) classDef("Lfixture/Trending;", listOf(trending)) else null,
+            if (adders) classDef("Lfixture/TrendingRange;", listOf(trendingRange)) else null,
         )
     }
 
