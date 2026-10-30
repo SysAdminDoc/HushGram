@@ -10,14 +10,18 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -29,8 +33,10 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
@@ -43,16 +49,19 @@ import java.io.File
 
 /**
  * View live anonymously: the live heartbeat manager's tick asks the extension first, right where it
- * asks for a viewer's or guest's heartbeat, and returns as if it were done while the switch is on.
- * Anything the patch can't tell apart fails it before an instruction changes.
+ * asks for a viewer's or guest's heartbeat, passing the live's broadcast id, and returns as if it
+ * were done while the switch is on. The live viewer's header hands its root view to the Mark as seen
+ * button (#412). Anything the patch can't tell apart fails it before an instruction changes.
  */
 class ViewLiveAnonymouslyHookTest {
     @Test
-    fun theHookIsInTheExtension() {
-        val declared = ExtensionDex.classDef(LIVE_SEEN).methods
-            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
-            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("hold is not in the extension: $declared", HOLD_LIVE_HEARTBEAT.substringAfter("->") in declared)
+    fun theHooksAreInTheExtension() {
+        for (hook in listOf(HOLD_LIVE_HEARTBEAT, BIND_LIVE_SEEN_BUTTON)) {
+            val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
+                .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+                .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
 
     @Test
@@ -60,10 +69,33 @@ class ViewLiveAnonymouslyHookTest {
         val context = PatchContexts.of(listOf(heartbeat(), manager()))
         val site = context.findViewerHeartbeat()
         assertEquals("the call", 1, site.call)
+        assertEquals("the broadcast id, the call's fourth register", 4, site.broadcast)
         assertEquals("the free local", 0, site.register)
         holdViewerHeartbeat(site)
         val tick = context.mutableClassDefBy(MANAGER).methods.single { it.name == "tick" }
-        assertHooked("stand-ins", tick.instructions(), tick.implementation!!.instructions.toList())
+        assertHooked("stand-ins", tick.instructions(), tick.implementation!!.instructions.toList(), broadcast = 4)
+    }
+
+    @Test
+    fun theHeaderHandsItsRootViewToTheButtonLast() {
+        val context = PatchContexts.of(listOf(header(), header(HOST, menu = false)))
+        val site = context.findLiveHeader()
+        assertEquals(HEADER, site.constructor.definingClass)
+        assertEquals("the return", 5, site.end)
+        bindLiveSeenButton(site)
+        assertBound("stand-ins", context.mutableClassDefBy(HEADER).methods.single { it.name == "<init>" }.instructions(), 5, 3)
+        assertEquals("the host's header stays", header(HOST, menu = false).methods.single().instructions().map(::text),
+            context.mutableClassDefBy(HOST).methods.single().instructions().map(::text))
+    }
+
+    @Test
+    fun aMissingDoubledOrUnsafeHeaderFailsThePatch() {
+        refusesHeader("found 0", listOf(header(menu = false)))
+        refusesHeader("found 0", listOf(header(close = false)))
+        refusesHeader("found 0", listOf(header(rootFirst = false)))
+        refusesHeader("found 2", listOf(header(), header(HOST)))
+        refusesHeader("one return in the live header constructor, found 2", listOf(header(returns = 2)))
+        refusesHeader("writes over parameter 0 (v3)", listOf(header(reusesRoot = true)))
     }
 
     @Test
@@ -84,7 +116,10 @@ class ViewLiveAnonymouslyHookTest {
         refuses("needs 1", listOf(heartbeat(), manager(busy = true)))
     }
 
-    /** In each declared build: the manager's one tick, asking the extension right before the viewer's heartbeat. */
+    /**
+     * In each declared build: the manager's one tick, asking the extension with the broadcast id right
+     * before the viewer's heartbeat, and the live viewer's header binding the button.
+     */
     @Test
     fun eachDeclaredBuildHoldsTheViewerHeartbeat() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -108,15 +143,44 @@ class ViewLiveAnonymouslyHookTest {
             FixtureDex.classes(bundle, setOf(LIVE_HEARTBEAT_MANAGER)).values).distinctBy { it.type }
         val context = PatchContexts.of(classes)
         val site = context.findViewerHeartbeat()
-        val original = text(site.tick.instructions()[site.call])
+        val original = site.tick.instructions()[site.call]
+        val broadcast = when (original) {
+            is FiveRegisterInstruction -> original.registerF
+            else -> (original as RegisterRangeInstruction).startRegister + 3
+        }
         holdViewerHeartbeat(site)
         val code = site.tick.instructions()
-        assertHooked(label, code, site.tick.implementation!!.instructions.toList(), site.call)
-        assertEquals("${label}: the heartbeat call stays", original, text(code[site.call + 3]))
+        assertHooked(label, code, site.tick.implementation!!.instructions.toList(), broadcast, site.call)
+        assertEquals("${label}: the heartbeat call stays", text(original), text(code[site.call + 3]))
         val calls = context.mutableClassDefBy(LIVE_HEARTBEAT_MANAGER).methods.sumOf { method ->
             method.instructions().count { (it as? ReferenceInstruction)?.reference?.toString() == HOLD_LIVE_HEARTBEAT }
         }
         assertEquals("${label}: hold calls in the manager", 1, calls)
+        bindsTheButton(bundle, label)
+    }
+
+    /** Every class loading the menu's id, as the patcher's literal index would pick them, and the one header binding the button. */
+    private fun bindsTheButton(bundle: File, label: String) {
+        val loading = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val loads = classDef.methods.any { method ->
+                    method.implementation?.instructions?.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == LIVE_HEADER_OPTIONS } == true
+                }
+                if (loads) loading += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of(loading)
+        val site = context.findLiveHeader()
+        val root = site.constructor.parameterRegisterNumber(0)
+        bindLiveSeenButton(site)
+        assertBound(label, site.constructor.instructions(), site.end, root)
+        val binds = loading.sumOf { classDef ->
+            context.mutableClassDefBy(classDef.type).methods.sumOf { method ->
+                method.instructions().count { (it as? ReferenceInstruction)?.reference?.toString() == BIND_LIVE_SEEN_BUTTON }
+            }
+        }
+        assertEquals("${label}: button binds", 1, binds)
     }
 
     /** The patch refuses for the reason given, and nothing has changed. */
@@ -131,9 +195,35 @@ class ViewLiveAnonymouslyHookTest {
         }
     }
 
-    /** The guard sits right before the heartbeat call and jumps to the tick's plain return. */
-    private fun assertHooked(what: String, code: List<Instruction>, built: List<Instruction>, call: Int = 1) {
+    /** The header patch refuses for the reason given, and nothing has changed. */
+    private fun refusesHeader(reason: String, classes: List<ClassDef>) {
+        val context = PatchContexts.of(classes)
+        val before = classes.associate { it.type to it.methods.map { method -> method.instructions().map(::text) } }
+        val refusal = assertThrows(PatchException::class.java) { bindLiveSeenButton(context.findLiveHeader()) }
+        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains(reason))
+        for (classDef in classes) {
+            val after = context.mutableClassDefBy(classDef.type).methods.map { method -> method.instructions().map(::text) }
+            assertEquals("${classDef.type} changed", before.getValue(classDef.type), after)
+        }
+    }
+
+    /** The constructor's last act before its return: the root view, still in [root], goes to the button. */
+    private fun assertBound(what: String, code: List<Instruction>, end: Int, root: Int) {
+        val bind = code[end]
+        assertEquals("$what: the bind", Opcode.INVOKE_STATIC_RANGE, bind.opcode)
+        assertEquals("$what: the bind", BIND_LIVE_SEEN_BUTTON, (bind as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the root view", root, (bind as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: one register", 1, bind.registerCount)
+        assertEquals("$what: then the return", Opcode.RETURN_VOID, code[end + 1].opcode)
+        assertEquals("$what: one return", 1, code.count { it.opcode == Opcode.RETURN_VOID })
+    }
+
+    /** The guard sits right before the heartbeat call, reads the broadcast id, and jumps to the tick's plain return. */
+    private fun assertHooked(what: String, code: List<Instruction>, built: List<Instruction>, broadcast: Int, call: Int = 1) {
         assertEquals("$what: the guard", HOLD_LIVE_HEARTBEAT, (code[call] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the guard's form", Opcode.INVOKE_STATIC_RANGE, code[call].opcode)
+        assertEquals("$what: the broadcast id", broadcast, (code[call] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: one register", 1, (code[call] as RegisterRangeInstruction).registerCount)
         assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[call + 1].opcode)
         assertEquals("$what: the branch", Opcode.IF_NEZ, code[call + 2].opcode)
         assertTrue("$what: the heartbeat call follows",
@@ -157,7 +247,36 @@ class ViewLiveAnonymouslyHookTest {
         const val HEARTBEAT = "Lfixture/ViewerHeartbeat;"
         const val MANAGER = LIVE_HEARTBEAT_MANAGER
         const val UNIT = "Lfixture/Unit;"
+        const val HEADER = "Lfixture/LiveHeader;"
+        const val HOST = "Lfixture/HostHeader;"
         val BEAT_PARAMETERS = listOf("Lfixture/Tick;", INTEGER, STRING, "Lfixture/Continuation;")
+        val FIND_VIEW = ImmutableMethodReference(VIEW, "findViewById", listOf("I"), VIEW)
+
+        /**
+         * Shaped like the live header's constructor, (root view, session): it looks up the menu and
+         * the close button under the root, in v3, and returns. [menu] and [close] drop a lookup,
+         * [rootFirst] moves the root to the second parameter, [returns] adds a branch to a second
+         * return, and [reusesRoot] puts the session in the root's register before returning.
+         */
+        fun header(type: String = HEADER, menu: Boolean = true, close: Boolean = true, rootFirst: Boolean = true,
+                   returns: Int = 1, reusesRoot: Boolean = false): ClassDef {
+            val root = if (rootFirst) 3 else 4
+            val code = mutableListOf<ImmutableInstruction>(
+                ImmutableInstruction35c(Opcode.INVOKE_DIRECT, 1, 2, 0, 0, 0, 0,
+                    ImmutableMethodReference(OBJECT, "<init>", emptyList(), "V")),
+            )
+            for ((wanted, id) in listOf(menu to LIVE_HEADER_OPTIONS, close to LIVE_HEADER_CLOSE)) {
+                if (!wanted) continue
+                code += ImmutableInstruction31i(Opcode.CONST, 0, id)
+                code += ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 2, root, 0, 0, 0, 0, FIND_VIEW)
+            }
+            if (reusesRoot) code += ImmutableInstruction12x(Opcode.MOVE_OBJECT, 3, 4)
+            if (returns == 2) code += ImmutableInstruction21t(Opcode.IF_EQZ, 4, 3)
+            repeat(returns) { code += ImmutableInstruction10x(Opcode.RETURN_VOID) }
+            val parameters = if (rootFirst) listOf(VIEW, "Lfixture/Session;") else listOf("Lfixture/Session;", VIEW)
+            val init = method(type, "<init>", parameters, "V", AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, 5, code)
+            return ImmutableClassDef(type, AccessFlags.PUBLIC.value, OBJECT, null, null, null, null, listOf(init))
+        }
 
         fun method(type: String, name: String, parameters: List<String>, returnType: String, access: Int, registers: Int,
                    code: List<ImmutableInstruction>) = ImmutableMethod(type, name,

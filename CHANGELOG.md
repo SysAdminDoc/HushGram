@@ -31,6 +31,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Hide the Reels tab` adds `Settings button on Home's header` under Tab bar. A gear at the top of Home opens HushGram settings with one tap. Starts off. Asked for in #404.
 * **Instagram:** `Download any story` adds `Download button on stories` under Stories. A button at the top of a story, beside the three dots, saves the photo or video in front with one tap. Starts off. Asked for in #400.
 * **Instagram:** `Start reels with sound` adds `Start reels muted` under Playback. Every reel starts silent, wherever you open it from, and the volume keys or the speaker icon unmute it. Off to start. Asked for in #342.
+* **Instagram:** `View live anonymously` adds `Mark as seen button on lives` under Stories. While you watch a live anonymously, an eye at the top beside the three dots puts you on that live's viewer list when you tap it. Every other live keeps you hidden. Starts off. Asked for in #412.
 
 ### Bug Fixes
 

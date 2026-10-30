@@ -135,6 +135,9 @@ final class StoriesCategory {
         if (build.contains(PatchFamily.LIVE_SEEN)) {
             stories.add(toggle(context, Settings.VIEW_LIVE_ANONYMOUSLY, L10n.t("View live anonymously"),
                     L10n.t("Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.")));
+            stories.add(toggle(context, Settings.MARK_LIVE_SEEN, L10n.t("Mark as seen button on lives"),
+                    L10n.t("Adds an eye button to the top of a live while you watch anonymously. Tap it to show up on "
+                            + "that live's viewer list. Other lives stay hidden.")));
         }
         if (build.contains(PatchFamily.STORY_DOWNLOAD)) {
             stories.add(toggle(context, Settings.DOWNLOAD_STORIES, L10n.t("Download on stories"),

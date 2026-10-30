@@ -35,12 +35,16 @@ public class LiveSeenTest {
         throw new IllegalStateException("settings went away");
     };
 
+    private static final String LIVE = "17841400000000001";
+    private static final String OTHER = "17841400000000002";
+
     @Before
     public void enable() {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.VIEW_LIVE_ANONYMOUSLY.save(true);
         HookStatus.clear();
+        LiveSeen.resetForTests();
     }
 
     @After
@@ -49,11 +53,13 @@ public class LiveSeenTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        LiveSeen.resetForTests();
     }
 
     @Test
     public void withTheSwitchOnTheViewerHeartbeatIsHeld() {
-        assertTrue(LiveSeen.hold());
+        assertTrue(LiveSeen.hold(LIVE));
+        assertTrue(LiveSeen.hold(null));
         assertTrue(HookStatus.missing(FamilyNames.LIVE_SEEN).toString(), HookStatus.missing(FamilyNames.LIVE_SEEN).isEmpty());
     }
 
@@ -61,21 +67,67 @@ public class LiveSeenTest {
     public void offPausedUnreadyAndThrowingLeaveItToInstagram() {
         Settings.VIEW_LIVE_ANONYMOUSLY.resetToDefault();
         assertFalse(Settings.VIEW_LIVE_ANONYMOUSLY.get());
-        assertFalse(LiveSeen.hold());
+        assertFalse(LiveSeen.hold(LIVE));
         Settings.VIEW_LIVE_ANONYMOUSLY.save(true);
 
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse(LiveSeen.hold());
+        assertFalse(LiveSeen.hold(LIVE));
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
 
-        SettingsContextRule.withoutContext(() -> assertFalse(LiveSeen.hold()));
-        assertTrue(LiveSeen.hold());
+        SettingsContextRule.withoutContext(() -> assertFalse(LiveSeen.hold(LIVE)));
+        assertTrue(LiveSeen.hold(LIVE));
 
-        assertFalse(LiveSeen.hold(THROWS));
+        assertFalse(LiveSeen.hold(LIVE, THROWS));
         String missing = HookStatus.missing(FamilyNames.LIVE_SEEN).toString();
         assertTrue(missing, missing.contains("'" + LiveSeen.SWITCH + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    /** #412: a tap lets the live on screen through from its next heartbeat, and only that live. */
+    @Test
+    public void aMarkedLiveSendsItsHeartbeatAndTheOthersStayHeld() {
+        assertTrue(LiveSeen.hold(LIVE));
+        assertFalse(LiveSeen.markedNow());
+        LiveSeen.mark();
+        assertTrue(LiveSeen.markedNow());
+        assertFalse(LiveSeen.hold(LIVE));
+        assertFalse(LiveSeen.hold(LIVE));
+
+        LiveSeen.opened();
+        assertFalse("a new live starts unmarked", LiveSeen.markedNow());
+        assertTrue(LiveSeen.hold(OTHER));
+        assertFalse(LiveSeen.markedNow());
+
+        LiveSeen.opened();
+        assertFalse("the mark lasts while Instagram is open", LiveSeen.hold(LIVE));
+        assertTrue(LiveSeen.markedNow());
+    }
+
+    @Test
+    public void aTapBeforeAnyHeartbeatMarksTheNextLiveSeen() {
+        LiveSeen.opened();
+        LiveSeen.mark();
+        assertTrue(LiveSeen.markedNow());
+        assertTrue("an id-less heartbeat can't take the mark", LiveSeen.hold(null));
+        assertFalse(LiveSeen.hold(LIVE));
+        assertTrue(LiveSeen.hold(OTHER));
+
+        LiveSeen.opened();
+        LiveSeen.mark();
+        LiveSeen.opened();
+        assertTrue("opening another live drops a waiting tap", LiveSeen.hold(OTHER));
+    }
+
+    @Test
+    public void withTheSwitchOffAMarkChangesNothing() {
+        assertTrue(LiveSeen.hold(LIVE));
+        LiveSeen.mark();
+        Settings.VIEW_LIVE_ANONYMOUSLY.resetToDefault();
+        assertFalse(LiveSeen.hold(OTHER));
+        Settings.VIEW_LIVE_ANONYMOUSLY.save(true);
+        assertTrue(LiveSeen.hold(OTHER));
+        assertFalse(LiveSeen.hold(LIVE));
     }
 }

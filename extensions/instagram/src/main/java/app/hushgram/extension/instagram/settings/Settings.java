@@ -655,6 +655,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting VIEW_LIVE_ANONYMOUSLY = new BooleanSetting("hushgram_view_live_anonymously", FALSE);
 
     /**
+     * The Mark as seen button in the live viewer's header
+     * ({@link app.hushgram.extension.instagram.stories.LiveSeenButton}, #412). Off to start. A live
+     * you tap it on lists you as a viewer while the rest stay hidden. Read each time a live opens.
+     */
+    public static final BooleanSetting MARK_LIVE_SEEN = new BooleanSetting("hushgram_mark_live_seen", FALSE);
+
+    /**
      * The rows of suggested reels between posts in the home feed, and the other feed units that
      * open the Reels viewer. A reel someone you follow posts is a post and stays. Off to start.
      */

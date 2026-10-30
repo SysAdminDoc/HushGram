@@ -207,12 +207,16 @@ first-call Lapp/hushgram/extension/instagram/direct/HiddenChats;->redraw(Ljava/l
 # first or right after Tap to play's TapClock, and keeps the second tap of a double tap on Messages
 # from Instagram. Left out, the switch shows but a double tap only opens Messages (#358).
 once-call Lapp/hushgram/extension/instagram/direct/HiddenChatsTap;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
-# View live anonymously asks LiveSeen.hold() first where the live heartbeat manager's tick asks for
-# a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450, the request
-# adding live_with_eligibility), and the tick returns its plain result while the switch is on. The
-# host's own heartbeat (0hJm.A00 straight from the tick) is left alone. Left out, the host's viewer
-# list shows you; twice or elsewhere, it isn't the hook.
-once-call Lapp/hushgram/extension/instagram/stories/LiveSeen;->hold()Z in static (LX/*;Lcom/instagram/video/live/mvvm/model/repository/core/IgLiveHeartbeatManager;LX/*;)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine
+# View live anonymously asks LiveSeen.hold(broadcast id) first where the live heartbeat manager's
+# tick asks for a viewer's or guest's heartbeat (IgLiveHeartbeatManager.A00 calling 036w.A00 on 450,
+# the request adding live_with_eligibility), and the tick returns its plain result while the switch
+# is on and the live isn't marked. The host's own heartbeat (0hJm.A00 straight from the tick) is left
+# alone. Left out, the host's viewer list shows you; twice or elsewhere, it isn't the hook.
+once-call Lapp/hushgram/extension/instagram/stories/LiveSeen;->hold(Ljava/lang/String;)Z in static (LX/*;Lcom/instagram/video/live/mvvm/model/repository/core/IgLiveHeartbeatManager;LX/*;)Ljava/lang/Object; holding call\sto\s'resume'\sbefore\s'invoke'\swith\scoroutine
+# Its Mark as seen button (#412) is bound at the end of the live viewer header's constructor (0RbX on
+# 453), the one looking up both iglive_header_options and iglive_header_close. Left out, the switch
+# shows but no eye appears on a live.
+once-call Lapp/hushgram/extension/instagram/stories/LiveSeenButton;->bind(Landroid/view/View;)V in instance (Landroid/view/View;*)V holding const:0x7f0b1f5f const:0x7f0b1f57
 # Keep in chat hands the view mode the parser of a photo or video message's media reads ("once",
 # "replayable" or "permanent") and the media that will hold it to KeepInChat.viewMode() right before
 # it stores it (06Oo's unsafeParseFromJson on 450, storing 04h5.A0A). The voice message parser (04q2

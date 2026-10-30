@@ -72,7 +72,7 @@ public enum PatchFamily {
             Settings.ROUNDED_REEL_CORNERS, Settings.ROUNDED_STORY_CORNERS, Settings.PEEK_CAROUSEL_PAGES),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null, Settings.VIEW_STORIES_ANONYMOUSLY,
             Settings.MARK_STORIES_SEEN, Settings.GRAY_OUT_WATCHED_STORIES),
-    LIVE_SEEN(FamilyNames.LIVE_SEEN, "liveSeen", null, Settings.VIEW_LIVE_ANONYMOUSLY),
+    LIVE_SEEN(FamilyNames.LIVE_SEEN, "liveSeen", null, Settings.VIEW_LIVE_ANONYMOUSLY, Settings.MARK_LIVE_SEEN),
     DM_MEDIA_SEEN(FamilyNames.DM_MEDIA_SEEN, "visualSeen", null, Settings.VIEW_DM_MEDIA_ANONYMOUSLY),
     SPOOF_LOCATION(FamilyNames.SPOOF_LOCATION, "spoofLocation", null, Settings.SPOOF_LOCATION),
     THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
