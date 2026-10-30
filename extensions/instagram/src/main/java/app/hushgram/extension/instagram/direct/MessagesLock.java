@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.BooleanSupplier;
 
 import androidx.annotation.RequiresApi;
 
@@ -1074,43 +1075,76 @@ public final class MessagesLock {
     @RequiresApi(30)
     private static void prompt(Activity activity, KeyguardManager keyguard, Runnable confirmed, Runnable notConfirmed) {
         boolean biometricsOnly = biometricsOnly(activity);
+        promptFor(activity, biometricsOnly, notConfirmed).authenticate(new CancellationSignal(), activity.getMainExecutor(),
+                answer(activity, biometricsOnly, MessagesLock::inFront, confirmed, notConfirmed,
+                        () -> phoneCheck(activity, keyguard, confirmed, notConfirmed)));
+    }
+
+    /** One ask's prompt: the phone's lock in it, or with [biometricsOnly] a Cancel button in its place. */
+    @RequiresApi(30)
+    static BiometricPrompt promptFor(Activity activity, boolean biometricsOnly, Runnable notConfirmed) {
         BiometricPrompt.Builder builder = new BiometricPrompt.Builder(activity)
                 .setTitle(askTitle())
                 .setAllowedAuthenticators(authenticators(biometricsOnly));
         // A prompt without the phone's lock must have a button to say no with.
         if (biometricsOnly) builder.setNegativeButton(L10n.t("Cancel"), activity.getMainExecutor(), (dialog, which) -> notConfirmed.run());
-        builder.build().authenticate(new CancellationSignal(), activity.getMainExecutor(),
-                new BiometricPrompt.AuthenticationCallback() {
-                    @Override
-                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                        confirmed.run();
-                        refresh(activity);
-                    }
-
-                    @Override
-                    public void onAuthenticationError(int code, CharSequence message) {
-                        if (activity.isFinishing() || !phoneCheckAfter(code, biometricsOnly, started > 0)) {
-                            notConfirmed.run();
-                            return;
-                        }
-                        try {
-                            phoneCheck(activity, keyguard, confirmed, notConfirmed);
-                        } catch (Throwable t) {
-                            HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
-                            notConfirmed.run();
-                        }
-                    }
-                });
+        return builder.build();
     }
+
+    /**
+     * What the prompt's answer does: a match unlocks, and an error goes on to [phoneCheck] only when
+     * [phoneCheckAfter] says so with Instagram still [inFront]. When Fingerprint or face only waits
+     * out a short lockout or a timeout, the system's own words say why the messages stay covered.
+     */
+    @RequiresApi(30)
+    static BiometricPrompt.AuthenticationCallback answer(Activity activity, boolean biometricsOnly, BooleanSupplier inFront,
+            Runnable confirmed, Runnable notConfirmed, Runnable phoneCheck) {
+        return new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                confirmed.run();
+                refresh(activity);
+            }
+
+            @Override
+            public void onAuthenticationError(int code, CharSequence message) {
+                boolean front = inFront.getAsBoolean() && !activity.isFinishing();
+                if (!phoneCheckAfter(code, biometricsOnly, front)) {
+                    if (front && biometricsOnly && !cancelledByYou(code) && message != null && message.length() > 0) {
+                        Utils.showToastLong(message.toString());
+                    }
+                    notConfirmed.run();
+                    return;
+                }
+                try {
+                    phoneCheck.run();
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
+                    notConfirmed.run();
+                }
+            }
+        };
+    }
+
+    /** Whether an Instagram activity is on the screen, so a phone check would open over Instagram. */
+    static boolean inFront() {
+        return started > 0;
+    }
+
+    /**
+     * The framework's BIOMETRIC_ERROR_NEGATIVE_BUTTON, which it keeps hidden. It calls the Cancel
+     * button's listener instead, but some phones report the tap as this error as well.
+     */
+    static final int NEGATIVE_BUTTON = 13;
 
     /**
      * A prompt that ended because you closed it, as opposed to one that couldn't ask (no usable
      * sensor, a lockout, a vendor error), which goes on to the phone's own check.
      */
     static boolean cancelledByYou(int code) {
-        // A prompt that takes the phone's own lock has no button to say no with, only a cancel.
         return code == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
-                || code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED;
+                || code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED
+                || code == NEGATIVE_BUTTON;
     }
 
     /**
@@ -1141,16 +1175,28 @@ public final class MessagesLock {
         return Utils.settingsReady() && Settings.UNLOCK_WITH.get() == UnlockWith.BIOMETRICS && biometricsReady(context);
     }
 
-    /** Whether the phone can ask for a fingerprint or face, the same ones the lock's prompt takes. */
+    /**
+     * Whether the phone can ask for a fingerprint or face, the same ones the lock's prompt takes. A
+     * lockout counts: Android 16 phones with Identity Check report one in place of SUCCESS (both a
+     * short and a permanent one, as the hidden BiometricManager.BIOMETRIC_ERROR_LOCKOUT, which is
+     * BiometricPrompt's 7), and the PIN must not take over during a short one. The prompt itself
+     * tells the two apart, and a permanent one still goes on to the phone's check.
+     */
     public static boolean biometricsReady(Context context) {
-        if (Build.VERSION.SDK_INT < 30) return false;
+        int state = biometricsState(context);
+        return state == BiometricManager.BIOMETRIC_SUCCESS || state == BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT;
+    }
+
+    /** BiometricManager's answer for the fingerprint or face the prompt takes; no hardware before Android 11 or on a failure. */
+    public static int biometricsState(Context context) {
+        if (Build.VERSION.SDK_INT < 30) return BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE;
         try {
             BiometricManager biometrics = context.getSystemService(BiometricManager.class);
-            return biometrics != null && biometrics.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
-                    == BiometricManager.BIOMETRIC_SUCCESS;
+            return biometrics == null ? BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
+                    : biometrics.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK);
         } catch (Throwable t) {
             Logger.printException(() -> "Lock your messages: could not ask whether a fingerprint or face is set up", t);
-            return false;
+            return BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE;
         }
     }
 

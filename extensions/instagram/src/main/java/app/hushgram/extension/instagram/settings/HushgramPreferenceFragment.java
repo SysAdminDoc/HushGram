@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.hardware.biometrics.BiometricManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Build;
@@ -2823,7 +2824,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             UnlockWith target = UnlockWith.PIN.name().equals(value) ? UnlockWith.PIN
                     : UnlockWith.BIOMETRICS.name().equals(value) ? UnlockWith.BIOMETRICS : UnlockWith.PHONE_LOCK;
             if (target == UnlockWith.BIOMETRICS && !MessagesLock.biometricsReady(preference.getContext())) {
-                Utils.showToastLong(L10n.t("Add a fingerprint or face in your phone's settings first."));
+                Utils.showToastLong(noBiometrics(MessagesLock.biometricsState(preference.getContext())));
                 return false;
             }
             Activity activity = activityOf(preference.getContext());
@@ -2843,6 +2844,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             return false;
         });
         return row;
+    }
+
+    /** Why Fingerprint or face only can't be chosen, from BiometricManager's [state]. */
+    static String noBiometrics(int state) {
+        if (state == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED) {
+            return L10n.t("Add a fingerprint or face in your phone's settings first.");
+        }
+        if (state == BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE) {
+            return L10n.t("This phone has no fingerprint or face unlock to use.");
+        }
+        return L10n.t("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.");
     }
 
     /** The row that sets or changes the HushGram PIN; changing it while locked asks the current lock first. */
@@ -6388,7 +6400,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
         @Override
         public void setValue(String value) {
-            super.setValue(value);
+            // Before Android 11 the phone's lock asks whatever was saved, so the row says so.
+            super.setValue(Build.VERSION.SDK_INT < 30 && UnlockWith.BIOMETRICS.name().equals(value) ? UnlockWith.PHONE_LOCK.name() : value);
             showSummary();
         }
 

@@ -792,6 +792,7 @@ public class MessagesLockTest {
     public void onlyYourCancelEndsAnAsk() {
         assertTrue(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED));
         assertTrue(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_CANCELED));
+        assertTrue("Cancel reported as an error", MessagesLock.cancelledByYou(MessagesLock.NEGATIVE_BUTTON));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE));
@@ -869,6 +870,89 @@ public class MessagesLockTest {
         for (boolean only : new boolean[]{false, true}) {
             assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED, only, true));
             assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_CANCELED, only, true));
+            assertFalse(MessagesLock.phoneCheckAfter(MessagesLock.NEGATIVE_BUTTON, only, true));
+        }
+    }
+
+    /**
+     * Android 16 with Identity Check reports a lockout where it used to say SUCCESS. It still counts
+     * as set up, so a short lockout can't hand the ask to the PIN. A sensor that's busy doesn't.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void aLockedOutFingerprintOrFaceStillCounts() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT);
+            assertTrue(MessagesLock.biometricsReady(RuntimeEnvironment.getApplication()));
+            assertTrue(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE);
+            assertEquals(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE, MessagesLock.biometricsState(RuntimeEnvironment.getApplication()));
+            assertFalse(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** The prompt Fingerprint or face only builds takes no PIN and has a Cancel button; the phone's lock has neither. */
+    @Test
+    @Config(sdk = 37)
+    public void theFingerprintOrFacePromptHasItsOwnCancel() {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup()) {
+            BiometricPrompt alone = MessagesLock.promptFor(host.get(), true, () -> { });
+            assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK, alone.getAllowedAuthenticators());
+            assertEquals("Cancel", String.valueOf(alone.getNegativeButtonText()));
+            BiometricPrompt phoneLock = MessagesLock.promptFor(host.get(), false, () -> { });
+            assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+                    phoneLock.getAllowedAuthenticators());
+            assertNull(phoneLock.getNegativeButtonText());
+        }
+    }
+
+    /**
+     * The prompt's answer: a match unlocks, an error with Instagram gone leaves the cover and opens
+     * nothing (audit A3), one in front goes on to the phone's check, and Fingerprint or face only
+     * says why it waits out a short lockout.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void thePromptsAnswerOpensThePhoneCheckOnlyOverInstagram() {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup()) {
+            int[] confirmed = new int[1];
+            int[] notConfirmed = new int[1];
+            int[] phoneChecks = new int[1];
+            assertFalse("no Instagram activity is started", MessagesLock.inFront());
+            MessagesLock.answer(host.get(), false, MessagesLock::inFront, () -> confirmed[0]++, () -> notConfirmed[0]++,
+                    () -> phoneChecks[0]++).onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            assertEquals(0, phoneChecks[0]);
+            assertEquals(1, notConfirmed[0]);
+
+            BiometricPrompt.AuthenticationCallback phoneLock = MessagesLock.answer(host.get(), false, () -> true,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            phoneLock.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, "Busy");
+            assertEquals(1, phoneChecks[0]);
+            phoneLock.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED, "Cancelled");
+            assertEquals(1, phoneChecks[0]);
+            assertEquals(2, notConfirmed[0]);
+            phoneLock.onAuthenticationSucceeded(null);
+            assertEquals(1, confirmed[0]);
+
+            BiometricPrompt.AuthenticationCallback alone = MessagesLock.answer(host.get(), true, () -> true,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            alone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, "Too many attempts. Try again later.");
+            ShadowLooper.idleMainLooper();
+            assertEquals(1, phoneChecks[0]);
+            assertEquals(3, notConfirmed[0]);
+            assertEquals("Too many attempts. Try again later.", ShadowToast.getTextOfLatestToast());
+            int toasts = ShadowToast.shownToastCount();
+            alone.onAuthenticationError(MessagesLock.NEGATIVE_BUTTON, "Cancel");
+            ShadowLooper.idleMainLooper();
+            assertEquals("your Cancel needs no reason", toasts, ShadowToast.shownToastCount());
+            assertEquals(1, phoneChecks[0]);
+            alone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            assertEquals("a fingerprint or face that can't be used lets the screen lock in", 2, phoneChecks[0]);
         }
     }
 

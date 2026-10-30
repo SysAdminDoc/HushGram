@@ -483,9 +483,10 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_double_tap_hidden_chats", FALSE);
 
     /**
-     * What unlocks the messages: the phone's lock, or a HushGram PIN
-     * ({@link app.hushgram.extension.instagram.direct.PinLock}). It isn't a switch, and a backup
-     * leaves it out, since a restored choice of PIN would have no PIN behind it.
+     * What unlocks the messages: the phone's lock, a HushGram PIN
+     * ({@link app.hushgram.extension.instagram.direct.PinLock}), or on Android 11 and up the
+     * fingerprint or face alone. It isn't a switch, and a backup leaves it out, since a restored
+     * choice of PIN would have no PIN behind it.
      */
     public static final EnumSetting<app.hushgram.extension.instagram.direct.UnlockWith> UNLOCK_WITH =
             new EnumSetting<>("hushgram_unlock_with", app.hushgram.extension.instagram.direct.UnlockWith.PHONE_LOCK,

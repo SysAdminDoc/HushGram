@@ -9,10 +9,13 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.hardware.biometrics.BiometricManager;
+import android.hardware.biometrics.BiometricPrompt;
 import android.widget.EditText;
+import android.widget.ListView;
 
 import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -115,6 +118,11 @@ public class SettingsDeferredSaveTest {
             assertEquals("Add a fingerprint or face in your phone's settings first.", ShadowToast.getTextOfLatestToast());
             assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
             assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
+            // The same choice tapped in the row's own list, which saves only what the listener lets through.
+            pick(row, UnlockWith.BIOMETRICS);
+            assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.PHONE_LOCK, Setting.preferences.getEnum(Settings.UNLOCK_WITH.key, UnlockWith.PHONE_LOCK));
+            assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
 
             biometrics.setAuthenticatorType(0);
             row.getOnPreferenceChangeListener().onPreferenceChange(row, UnlockWith.BIOMETRICS.name());
@@ -126,6 +134,64 @@ public class SettingsDeferredSaveTest {
         } finally {
             ShadowBiometricManager.reset();
         }
+    }
+
+    /**
+     * The refusal names the reason: no sensor at all, or a phone that won't allow it right now. A
+     * lockout is no reason to refuse, since the fingerprint or face is still set up.
+     */
+    @Config(sdk = 37)
+    @Test public void fingerprintOrFaceOnlyRefusalSaysWhy() {
+        ShadowBiometricManager biometrics = Shadow.extract(
+                RuntimeEnvironment.getApplication().getSystemService(BiometricManager.class));
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            HushgramPreferenceFragment.UnlockWithRow row = unlockWith(host);
+            biometrics.setCanAuthenticate(false);
+            pick(row, UnlockWith.BIOMETRICS);
+            assertEquals("This phone has no fingerprint or face unlock to use.", ShadowToast.getTextOfLatestToast());
+
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE);
+            pick(row, UnlockWith.BIOMETRICS);
+            assertEquals("Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.",
+                    ShadowToast.getTextOfLatestToast());
+            assertEquals(UnlockWith.PHONE_LOCK, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
+
+            biometrics.setAuthenticatorType(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT);
+            pick(row, UnlockWith.BIOMETRICS);
+            assertEquals(UnlockWith.BIOMETRICS, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.BIOMETRICS.name(), row.getValue());
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** Fingerprint or face only saved where Android can't leave the PIN out shows as the phone's lock, which is what asks. */
+    @Config(sdk = 28)
+    @Test public void beforeAndroid11ASavedFingerprintChoiceShowsAsThePhoneLock() {
+        Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup().visible()) {
+            HushgramPreferenceFragment.UnlockWithRow row = unlockWith(host);
+            assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
+            assertEquals("Your fingerprint, face or screen lock unlocks your messages.", String.valueOf(row.getSummary()));
+        }
+    }
+
+    /** Opens the row's list and taps [choice] in it, the way a person picks one. */
+    private static void pick(HushgramPreferenceFragment.UnlockWithRow row, UnlockWith choice) {
+        row.showDialog(null);
+        // The list's show handler drops pending dismisses, so it has to run before the tap does.
+        ShadowLooper.idleMainLooper();
+        AlertDialog list = (AlertDialog) row.getDialog();
+        assertNotNull(list);
+        ListView items = list.getListView();
+        int at = Arrays.asList(row.getEntryValues()).indexOf(choice.name());
+        assertTrue(items.performItemClick(items.getAdapter().getView(at, null, items), at, items.getItemIdAtPosition(at)));
+        // The tap posts its dismiss to the list's window, which only attaches once a frame has run.
+        ShadowLooper.idleMainLooper(1, TimeUnit.SECONDS);
+        assertFalse("the list stayed open after its tap", list.isShowing());
+        assertNull(row.getDialog());
     }
 
     /** Android 9 and 10 can't leave the screen lock out, so the row offers only the first two. */

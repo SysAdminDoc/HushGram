@@ -1009,6 +1009,8 @@ Your fingerprint, face or screen lock unlocks your messages.	使用指紋、臉�
 Fingerprint or face only	僅限指紋或臉部
 Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	只有指紋或臉部能解鎖私訊。手機若尚未設定任何一種，則由螢幕鎖定解鎖。
 Add a fingerprint or face in your phone's settings first.	請先在手機設定中新增指紋或臉部。
+This phone has no fingerprint or face unlock to use.	這支手機沒有可用的指紋或臉部解鎖。
+Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.	手機目前不允許 HushGram 使用你的指紋或臉部。請檢查手機的指紋和臉部設定。
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	設定或變更 4 至 8 位數的 PIN 碼。僅保留在此手機上，不會包含在備份中。
 PIN saved.	已儲存 PIN 碼。
 PIN	PIN 碼
