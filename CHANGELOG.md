@@ -12,7 +12,7 @@ Every HushGram release, newest first.
 * **Instagram:** In `Download any video`, Copy media link under Details now says the link stops working after a few days, since Instagram's file addresses expire. Asked for in #364.
 * **Instagram:** `Download any video` adds `Never save AV1 video` under Downloads, for a phone that plays AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9, or at its largest H.264 size. Starts off. Asked for in #379 and #348.
 * **Instagram:** `Seek bar on feed videos` is a new patch. A bar along the bottom of the video playing in your feed lets you drag to any point in it. The switch is under Feed and starts off. Asked for in #389.
-* **Instagram:** In `Glass tab bar`, `Blur strength` and `Tab bar opacity` under Tab bar are sliders now, up to 48 dp and 150 percent, and the pill follows as you drag. Both start at the old look, and older backups restore. Asked for in #391.
+* **Instagram:** In `Glass tab bar`, `Blur strength` and `Tab bar opacity` under Tab bar are sliders (2 to 48 dp, 0 to 150 percent), and the pill follows as you drag. Both start at the old look. Older backups still restore. Asked for in #391.
 * **Instagram:** When Instagram crashes in the first minute after it opens, HushGram now keeps what crashed, and the diagnostics report you save from `HushGram settings` includes it. Turn on Debug logging to keep later crashes too.
 * **Instagram:** `Group Instagram's notifications` adds `Mute notification types` under Notifications. It stops the types you tick, like the betting and promo pushes Instagram's own notification settings can't turn off, and works with grouping off. Nothing's muted to start.
 
