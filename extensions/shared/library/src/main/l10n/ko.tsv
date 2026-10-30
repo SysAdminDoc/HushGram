@@ -15,6 +15,8 @@ Asks Android to run Instagram at your screen's fastest refresh rate, at the same
 Back	뒤로
 Before you sign in	로그인 전에 읽어보세요
 Cancel	취소
+Chat saved in Downloads/HushGram.	Download/HushGram에 저장했어요.
+Chat saved in the app's Download folder.	앱의 Download 폴더에 저장했어요.
 Clear diagnostic data	진단 데이터 지우기
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	간단한 보고서를 복사하거나 전체 보고서를 %1$s에 저장하세요. 링크, ID, 쿠키, 로그인 정보는 제외됩니다. 공유하기 전에 다른 개인 정보가 없는지 확인하세요.
 Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다
@@ -22,6 +24,7 @@ Copy quick report	빠른 보고서 복사
 Copying to the gallery	갤러리에 복사하는 중
 Couldn't find this chat's messages.	채팅 메시지를 찾지 못했어요.
 Couldn't put back the diagnostic data. Try again.	진단 데이터를 복원할 수 없습니다. 다시 시도하세요
+Couldn't save the chat.	채팅을 저장하지 못했어요.
 Couldn't start the report export. Try again shortly.	보고서 내보내기를 시작할 수 없습니다. 잠시 후 다시 시도하세요
 Couldn't turn HushGram back on. Try again.	HushGram을 다시 활성화할 수 없습니다. 다시 시도하세요
 Debug logging	디버그 로그
@@ -32,6 +35,8 @@ Download failed	다운로드 실패
 Downloading	다운로드하는 중
 Empties the activity log and any kept crash that a diagnostic report would include.	진단 보고서에 포함될 활동 기록과 저장된 충돌 기록을 비웁니다.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	모든 스위치는 디버그 로깅을 제외하고 활성화된 것처럼 작동하며, 패치할 때 설정되어 있던 상태가 그대로 유지됩니다. 현재 설정은 변경되지 않습니다
+Export a chat as text	채팅을 텍스트로 내보내기
+Export chat	채팅 내보내기
 Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
 Here it is.	여기예요.
@@ -42,8 +47,10 @@ Loading older messages.	이전 메시지를 불러오는 중입니다.
 Loading older messages. %1$d message so far.	이전 메시지를 불러오는 중입니다. 지금까지 %1$d개입니다.
 Loading older messages. %1$d messages so far.	이전 메시지를 불러오는 중입니다. 지금까지 %1$d개입니다.
 Lock these settings	이 설정 잠그기
+Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	채팅 이름을 길게 누르고 채팅 내보내기를 고르세요. 채팅 전체가 다운로드의 HushGram 폴더에 텍스트 파일로 저장되며, 메시지 한 개가 한 줄입니다.
 Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	채팅 이름을 길게 누르고 첫 메시지로 이동 또는 날짜로 이동을 고르세요. 채팅이 이전 메시지를 스스로 불러오며, 개수와 취소 버튼이 표시됩니다.
 Mark a chat seen when you reply	답장하면 채팅을 읽음으로 표시
+No messages found to save.	저장할 메시지가 없어요.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청
 Saved to %1$s in lower quality because storage is low	저장 공간이 부족해 %1$s에 낮은 화질로 저장했습니다
@@ -134,6 +141,7 @@ Version	버전
 Version %1$s for Instagram %2$s	Instagram %2$s용 버전 %1$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	스토리를 몰래 보는 동안 이미 본 스토리가 회색으로 바뀌고 줄의 맨 끝으로 이동합니다. 이 변화는 이 휴대폰에서만 보이며, Instagram에는 여전히 시청 사실이 전달되지 않습니다
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	저장한 사진의 세부 정보, 즉 갤러리나 exiftool이 읽는 EXIF에 게시한 계정과 게시 날짜, 게시물 링크를 기록합니다. JPEG 사진만 해당하며, 저장이 아는 정보만 기록합니다. 사진 자체는 바뀌지 않습니다.
+You	나
 You paused HushGram.	HushGram이 일시 정지되었습니다
 the re-signed build fix	다시 서명된 빌드 수정
 Don't send reel watch history	릴스 시청 기록 전송하지 않기

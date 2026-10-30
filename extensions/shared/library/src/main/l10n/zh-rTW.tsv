@@ -19,6 +19,8 @@ Asks Android to run Instagram at your screen's fastest refresh rate, at the same
 Back	返回
 Before you sign in	登入之前
 Cancel	取消
+Chat saved in Downloads/HushGram.	聊天已存到下載/HushGram。
+Chat saved in the app's Download folder.	聊天已存到應用程式的下載資料夾。
 Clear diagnostic data	清除診斷資料
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	複製簡要報告，或將完整報告儲存至 %1$s。報告不含連結、ID、Cookie 與登入資訊。分享前，請確認是否還有其他私人文字。
 Copy a short report to the clipboard.	將簡要報告複製到剪貼簿。
@@ -26,6 +28,7 @@ Copy quick report	複製簡要報告
 Copying to the gallery	正在複製到相簿
 Couldn't find this chat's messages.	找不到這個聊天的訊息。
 Couldn't put back the diagnostic data. Try again.	無法還原診斷資料，請再試一次。
+Couldn't save the chat.	無法儲存聊天。
 Couldn't start the report export. Try again shortly.	無法開始匯出報告，請稍後再試。
 Couldn't turn HushGram back on. Try again.	無法重新啟用 HushGram，請再試一次。
 Debug logging	偵錯記錄
@@ -36,6 +39,8 @@ Download failed	下載失敗
 Downloading	下載中
 Empties the activity log and any kept crash that a diagnostic report would include.	清空診斷報告會包含的活動記錄與已保存的當機記錄。
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了「偵錯記錄」以外，所有開關都會視為關閉；套用修補程式時的變更仍會保留。您儲存的設定不會改變。
+Export a chat as text	將聊天匯出為文字
+Export chat	匯出聊天
 Export diagnostic report	匯出診斷報告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，您選擇的設定也會繼續儲存。
 Here it is.	就在這裡。
@@ -46,8 +51,10 @@ Loading older messages.	正在載入較舊的訊息。
 Loading older messages. %1$d message so far.	正在載入較舊的訊息。目前 %1$d 則。
 Loading older messages. %1$d messages so far.	正在載入較舊的訊息。目前 %1$d 則。
 Lock these settings	鎖定這些設定
+Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	長按聊天名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。
 Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	長按聊天名稱，選擇「跳到第一則訊息」或「跳到某個日期」。聊天會自動載入較舊的訊息，並顯示數量和取消按鈕。
 Mark a chat seen when you reply	回覆時將聊天標示為已讀
+No messages found to save.	沒有可儲存的訊息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
 Ask to unlock	請求解鎖
 Saved to %1$s in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到 %1$s
@@ -138,6 +145,7 @@ Version	版本
 Version %1$s for Instagram %2$s	版本 %1$s，適用於 Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	匿名觀看時，已看過的限時動態會變成灰色並移到橫列末端，僅在這支手機上生效。Instagram 仍不會得知您已觀看。
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	將發文帳號、貼文日期及貼文連結寫入儲存照片的詳細資料，也就是相簿或 exiftool 可讀取的 EXIF。僅適用於 JPEG 照片，且只會寫入儲存時可取得的資訊。照片本身不會改變。
+You	你
 You paused HushGram.	您已暫停 HushGram。
 the re-signed build fix	重新簽署版本修正
 Don't send reel watch history	不傳送 Reels 觀看記錄

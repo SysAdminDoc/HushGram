@@ -14,6 +14,8 @@ Asks Android to run Instagram at your screen's fastest refresh rate, at the same
 Back	Indietro
 Before you sign in	Prima di accedere
 Cancel	Annulla
+Chat saved in Downloads/HushGram.	Chat salvata in Download/HushGram.
+Chat saved in the app's Download folder.	Chat salvata nella cartella Download dell'app.
 Clear diagnostic data	Cancella i dati diagnostici
 Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-in details are left out. Check it for other private text before you share it.	Copia un report rapido o salva quello completo in %1$s. Link, ID, cookie e dati di accesso sono esclusi. Controllalo per altro testo privato prima di condividerlo.
 Copy a short report to the clipboard.	Copia un report breve negli appunti.
@@ -21,6 +23,7 @@ Copy quick report	Copia report rapido
 Copying to the gallery	Copia nella galleria
 Couldn't find this chat's messages.	Messaggi della chat non trovati.
 Couldn't put back the diagnostic data. Try again.	Impossibile ripristinare i dati diagnostici. Riprova.
+Couldn't save the chat.	Chat non salvata.
 Couldn't start the report export. Try again shortly.	Impossibile avviare l'esportazione del report. Riprova tra poco.
 Couldn't turn HushGram back on. Try again.	Impossibile riattivare HushGram. Riprova.
 Debug logging	Log di debug
@@ -31,6 +34,8 @@ Download failed	Download non riuscito
 Downloading	Download in corso
 Empties the activity log and any kept crash that a diagnostic report would include.	Svuota il registro attività e l'eventuale arresto anomalo salvato che includerebbe un report diagnostico.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Tutti gli interruttori tranne Log di debug agiscono come se fossero off, e ciò che è stato impostato durante la patch resta attivo. Le tue impostazioni restano invariate.
+Export a chat as text	Esporta una chat come testo
+Export chat	Esporta chat
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.
 Here it is.	Eccolo.
@@ -41,8 +46,10 @@ Loading older messages.	Caricamento dei messaggi più vecchi.
 Loading older messages. %1$d message so far.	Caricamento dei messaggi più vecchi. Finora %1$d messaggio.
 Loading older messages. %1$d messages so far.	Caricamento dei messaggi più vecchi. Finora %1$d messaggi.
 Lock these settings	Blocca queste impostazioni
+Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Tieni premuto il nome di una chat e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio.
 Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Tieni premuto il nome di una chat e scegli Vai al primo messaggio o Vai a una data. La chat carica da sola i messaggi più vecchi, con un conteggio e un pulsante Annulla.
 Mark a chat seen when you reply	Segna una chat come vista quando rispondi
+No messages found to save.	Nessun messaggio da salvare.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
 Ask to unlock	Chiedi di sbloccare
 Saved to %1$s in lower quality because storage is low	Salvato in %1$s con qualità inferiore perché lo spazio è quasi esaurito
@@ -133,6 +140,7 @@ Version	Versione
 Version %1$s for Instagram %2$s	Versione %1$s per Instagram %2$s
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Mentre guardi in modo anonimo, una storia che hai visto diventa grigia e passa in fondo alla fila, solo su questo telefono. Instagram non viene comunque informato che l'hai vista.
 Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Scrive nei dettagli di una foto salvata l'account che ha pubblicato, la data del post e un link al post, i dati EXIF che una galleria o exiftool leggono. Solo foto JPEG, e solo ciò che il salvataggio conosce. L'immagine stessa non cambia.
+You	Tu
 You paused HushGram.	Hai messo in pausa HushGram.
 the re-signed build fix	la correzione per la build firmata di nuovo
 Don't send reel watch history	Non inviare la cronologia dei reel guardati

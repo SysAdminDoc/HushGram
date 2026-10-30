@@ -55,6 +55,12 @@ public class ChatPagerTest {
             scrolledTo = position;
         }
 
+        int scrolledToNewest;
+
+        @Override public void toNewest() {
+            scrolledToNewest++;
+        }
+
         long timeOfMessage(int index) {
             return 1_700_000_000_000L + (long) index * 86_400_000L;
         }
@@ -128,6 +134,17 @@ public class ChatPagerTest {
         run(loader);
         assertEquals(-2, chat.scrolledTo);
         assertEquals(0, loader.loaded());
+    }
+
+    /** An export reads the whole chat, then leaves the list at the new end instead of on the first message (#247). */
+    @Test public void anExportLoadsEverythingAndPutsTheListBackAtTheNewEnd() {
+        FakeChat chat = new FakeChat(60, 20, 20);
+        ChatPager.Loader loader = new ChatPager.Loader(chat, 0, 3, false);
+        run(loader);
+        assertEquals(60, chat.shown);
+        assertEquals(60, chat.entries().size());
+        assertEquals("no jump to the first message", -2, chat.scrolledTo);
+        assertEquals(1, chat.scrolledToNewest);
     }
 
     @Test public void aFinishedLoaderStaysFinished() {

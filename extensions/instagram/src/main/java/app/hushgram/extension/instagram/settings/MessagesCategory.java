@@ -129,6 +129,9 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.JUMP_IN_CHAT, L10n.t("Jump to the first message or a date"),
                         L10n.t("Long press a chat's name and pick Jump to the first message or Jump to a date. The "
                                 + "chat loads its older messages on its own, with a count and a Cancel button.")));
+                messages.addPreference(toggle(context, Settings.EXPORT_CHAT, L10n.t("Export a chat as text"),
+                        L10n.t("Long press a chat's name and pick Export chat. The whole chat is saved as a text file "
+                                + "in Downloads, HushGram folder, one line per message.")));
             }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),

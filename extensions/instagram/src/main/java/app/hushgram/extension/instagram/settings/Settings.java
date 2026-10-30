@@ -579,6 +579,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting JUMP_IN_CHAT = new BooleanSetting("hushgram_jump_in_chat", FALSE);
 
     /**
+     * Long pressing a chat's name offers Export chat, which loads the whole chat and saves it as a
+     * text file in Downloads, HushGram folder ({@link app.hushgram.extension.instagram.direct.ChatExport}, #247).
+     * Off to start.
+     */
+    public static final BooleanSetting EXPORT_CHAT = new BooleanSetting("hushgram_export_chat", FALSE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */

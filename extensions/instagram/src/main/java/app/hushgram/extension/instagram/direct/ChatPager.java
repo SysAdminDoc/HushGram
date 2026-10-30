@@ -39,6 +39,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  */
 public final class ChatPager {
     static final String PAGER = "chat pager";
+    private static final int ACTION_FIRST = 0;
+    private static final int ACTION_DATE = 1;
+    private static final int ACTION_EXPORT = 2;
     /** How often the list is scrolled to its old end and looked at again. */
     static final long TICK_MS = 450;
     /** Looks with nothing new in a row before the chat counts as fully loaded. */
@@ -67,6 +70,9 @@ public final class ChatPager {
 
         /** Scrolls the list to a row. */
         void scrollTo(int position);
+
+        /** Scrolls the list back to its new end, where a chat is read from. */
+        void toNewest();
     }
 
     /** The paging itself: one {@link #tick} per look, no views and no clock. */
@@ -79,12 +85,19 @@ public final class ChatPager {
         private boolean done;
         private boolean reachedDate;
         private int loaded;
+        private final boolean scroll;
 
         /** [target] is a time in milliseconds, or 0 to go to the very first message. */
         Loader(Source source, long target, int stallLimit) {
+            this(source, target, stallLimit, true);
+        }
+
+        /** With [scroll] false the loader ends where the list is, and an export puts it back at the new end. */
+        Loader(Source source, long target, int stallLimit, boolean scroll) {
             this.source = source;
             this.target = target;
             this.stallLimit = stallLimit;
+            this.scroll = scroll;
         }
 
         /** Looks once. True while more should be loaded, false when the jump is over. */
@@ -108,6 +121,10 @@ public final class ChatPager {
 
         private boolean finish(List<ChatHistory.Entry> entries) {
             done = true;
+            if (!scroll) {
+                source.toNewest();
+                return false;
+            }
             int position = ChatHistory.positionFor(entries, target);
             if (position >= 0) source.scrollTo(position);
             else source.toOldest();
@@ -152,7 +169,15 @@ public final class ChatPager {
     }
 
     static boolean wanted() {
+        return jumpWanted() || exportWanted();
+    }
+
+    static boolean jumpWanted() {
         return Utils.settingsReady() && Settings.JUMP_IN_CHAT.get();
+    }
+
+    static boolean exportWanted() {
+        return Utils.settingsReady() && Settings.EXPORT_CHAT.get();
     }
 
     private static void tryAttach(final Object fragment, final int tries) {
@@ -210,12 +235,27 @@ public final class ChatPager {
             if (activity == null) return false;
             final View root = viewOf(fragment);
             if (root == null) return false;
-            final String[] labels = {L10n.t("Jump to the first message"), L10n.t("Jump to a date")};
+            final List<String> labels = new ArrayList<>();
+            final List<Integer> actions = new ArrayList<>();
+            if (jumpWanted()) {
+                labels.add(L10n.t("Jump to the first message"));
+                actions.add(ACTION_FIRST);
+                labels.add(L10n.t("Jump to a date"));
+                actions.add(ACTION_DATE);
+            }
+            if (exportWanted()) {
+                labels.add(L10n.t("Export chat"));
+                actions.add(ACTION_EXPORT);
+            }
+            if (labels.isEmpty()) return false;
+            final String name = title instanceof TextView ? String.valueOf(((TextView) title).getText()) : "";
             new AlertDialog.Builder(activity)
-                    .setItems(labels, new DialogInterface.OnClickListener() {
+                    .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface dialog, int which) {
-                            if (which == 0) start(activity, root, 0);
-                            else pickDate(activity, root);
+                            int action = actions.get(which);
+                            if (action == ACTION_FIRST) start(activity, root, 0, null);
+                            else if (action == ACTION_DATE) pickDate(activity, root);
+                            else start(activity, root, 0, name);
                         }
                     }).show();
             return true;
@@ -232,7 +272,7 @@ public final class ChatPager {
                 Calendar chosen = Calendar.getInstance();
                 chosen.clear();
                 chosen.set(year, month, day, 0, 0, 0);
-                start(activity, root, Math.max(1, chosen.getTimeInMillis()));
+                start(activity, root, Math.max(1, chosen.getTimeInMillis()), null);
             }
         }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
         dialog.getDatePicker().setMaxDate(now.getTimeInMillis());
@@ -247,7 +287,8 @@ public final class ChatPager {
         return null;
     }
 
-    private static void start(Activity activity, View root, long target) {
+    /** [exportName] is the chat's name when the whole chat is to be saved as text, null for a jump. */
+    private static void start(Activity activity, View root, long target, String exportName) {
         Run old = running;
         if (old != null) old.stop();
         View list = ListSource.find(root);
@@ -255,7 +296,7 @@ public final class ChatPager {
             Utils.showToastShort(L10n.t("Couldn't find this chat's messages."));
             return;
         }
-        Run run = new Run(activity, new ListSource(list), target);
+        Run run = new Run(activity, new ListSource(list), target, exportName);
         running = run;
         run.begin();
     }
@@ -266,14 +307,16 @@ public final class ChatPager {
         private final Loader loader;
         private final Source source;
         private final long target;
+        private final String exportName;
         private AlertDialog dialog;
         private boolean stopped;
 
-        Run(Activity activity, Source source, long target) {
+        Run(Activity activity, Source source, long target, String exportName) {
             this.activity = activity;
             this.source = source;
             this.target = target;
-            this.loader = new Loader(source, target, STALL_LOOKS);
+            this.exportName = exportName;
+            this.loader = new Loader(source, target, STALL_LOOKS, exportName == null);
         }
 
         void begin() {
@@ -329,6 +372,10 @@ public final class ChatPager {
                     return;
                 }
                 stop();
+                if (exportName != null) {
+                    export(activity.getApplicationContext(), exportName, source.entries());
+                    return;
+                }
                 Utils.showToastShort(target > 0 && !loader.reachedDate()
                         ? L10n.t("That's as far back as this chat goes.")
                         : L10n.t("Here it is."));
@@ -337,6 +384,33 @@ public final class ChatPager {
                 stop();
             }
         }
+    }
+
+    /** Writes the loaded chat out as text, off the main thread, and says where it went. */
+    static void export(final Context context, String title, List<ChatHistory.Entry> entries) {
+        if (entries.isEmpty()) {
+            Utils.showToastShort(L10n.t("No messages found to save."));
+            return;
+        }
+        final String text = ChatHistory.document(entries, title, L10n.t("You"));
+        final String name = ChatExport.fileName(title, System.currentTimeMillis());
+        Utils.runOnBackgroundThread(new Runnable() {
+            @Override public void run() {
+                final boolean saved = ChatExport.save(context, name, text);
+                Utils.runOnMainThread(new Runnable() {
+                    @Override public void run() {
+                        if (!saved) {
+                            Utils.showToastShort(L10n.t("Couldn't save the chat."));
+                            return;
+                        }
+                        Utils.showToastShort(ChatExport.appFolderOnly()
+                                ? L10n.t("Chat saved in the app's Download folder.")
+                                : L10n.t("Chat saved in Downloads/HushGram."));
+                        Utils.showToastShort(name);
+                    }
+                });
+            }
+        });
     }
 
     /** The chat's RecyclerView, driven by reflection: the extension has no androidx dependency. */
@@ -433,6 +507,16 @@ public final class ChatPager {
                 }
             }
             return 0;
+        }
+
+        @Override public void toNewest() {
+            try {
+                int count = count();
+                if (count <= 0) return;
+                scrollTo(oldestEnd(count) == 0 ? count - 1 : 0);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+            }
         }
 
         @Override public void scrollTo(int position) {
