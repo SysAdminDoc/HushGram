@@ -587,6 +587,10 @@ if ($searchGitLab) {
                 $projectId = [string]$item.project_id
                 if (-not $projects.ContainsKey($projectId)) {
                     $project = Invoke-SourceRequest -Uri "https://gitlab.com/api/v4/projects/$projectId" -Auth gitlab
+                    # A project that's gone or private drops its hit; one a limit kept unread fails the search.
+                    if ($project.Limited) {
+                        throw "GitLab was still rate limiting this address (HTTP $($project.Status)) when it looked up project $projectId; audit again once it resets"
+                    }
                     $projects[$projectId] = if ($project.Status -eq 200) {
                         ConvertTo-SourceKey ('https://gitlab.com/' + (ConvertFrom-SourceJson -Text $project.Content -What "GitLab project $projectId").path_with_namespace)
                     } else { $null }

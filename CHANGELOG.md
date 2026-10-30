@@ -33,7 +33,7 @@ Every HushGram release, newest first.
 * **Tooling:** The native runner reads the user limit the way Android 17 prints it, "Maximum supported switchable users", so it runs on an API 37 emulator. It used to stop there, saying the device takes one user.
 * **Tooling:** The release check reads an index description naming only the Instagram build as the published release's facts, still under that version's heading. A retarget held at the published version used to fail every push.
 * **Tooling:** The release check holds a published receipt to the coverage census its own commit reviewed. Once a retarget replaced the old build's entry, the shipped receipt read as uncertified and the check failed on every push.
-* **Tooling:** The source audit reports a source it couldn't read past a rate limit as unread. A GitLab limit that outlasted its waits used to be reported as the repository being gone.
+* **Tooling:** The source audit reports a source it couldn't read past a rate limit as unread, and fails GitLab code search when a limit keeps a hit's project unread. Both used to be treated as gone.
 
 ### Improvements
 

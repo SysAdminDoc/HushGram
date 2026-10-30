@@ -417,6 +417,8 @@ function New-FakeAnswers {
         gammaLicense = @{ Status = 200; Content = (@{ file_name = 'LICENSE'; content = $licenseBase64 } | ConvertTo-Json) }
         gammaBranches = @{ Status = 200; Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}}]" }
         gammaForks = @{ Status = 200; Content = '[]' }
+        gitlabHits = @()
+        gitlabProject = @{ Status = 200; Content = '{"path_with_namespace":"fixture-group/gamma-patches"}' }
         repoMeta = @{ Status = 200; Content = '{"full_name":"newcomer/ig-patches","license":{"spdx_id":"MIT"},"fork":false,"archived":false,"pushed_at":"2026-09-20T00:00:00Z","description":"Instagram patches"}' }
         oldNameMeta = @{ Status = 200; Content = '{"full_name":"fixture-owner/alpha-patches","fork":false,"archived":false}' }
     }
@@ -479,6 +481,12 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/files/LICENSE\?ref=main$' { $answer = $a.gammaLicense; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/branches\?per_page=100&page=1$' { $answer = $a.gammaBranches; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/forks\?per_page=100&page=1$' { $answer = $a.gammaForks; break }
+            '^https://gitlab\.com/api/v4/search\?scope=blobs&search=([^&]+)&per_page=100&page=1$' {
+                $items = if ([Uri]::UnescapeDataString($Matches[1]) -eq '"com.instagram.android"') { @($a.gitlabHits) } else { @() }
+                $answer = @{ Status = 200; Content = (ConvertTo-Json -InputObject @($items) -Depth 8) }
+                break
+            }
+            '^https://gitlab\.com/api/v4/projects/\d+$' { $answer = $a.gitlabProject; break }
             '^https://api\.github\.com/repos/(newcomer/ig-patches|clone/alpha-clone)$' { $answer = $a.repoMeta; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-old$' { $answer = $a.oldNameMeta; break }
         }
@@ -486,7 +494,11 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         if ($answer.Status -ne 200) {
             $failure = New-Object System.Exception "Response status code does not indicate success: $($answer.Status)."
             Add-Member -InputObject $failure -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $answer.Status })
-            throw $failure
+            if (-not $answer.Body) { throw $failure }
+            # A body comes back as the error's details, where Invoke-WebRequest puts what the forge said.
+            $record = New-Object System.Management.Automation.ErrorRecord $failure, 'WebCmdletWebResponseException', 'InvalidOperation', $null
+            $record.ErrorDetails = New-Object System.Management.Automation.ErrorDetails ([string]$answer.Body)
+            throw $record
         }
         return [pscustomobject]@{ StatusCode = 200; Content = [string]$answer.Content }
     }
@@ -640,6 +652,53 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4) `
         'The rate-limited source was not asked four times before the audit gave up on it.'
     Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A rate-limited audit changed the ledger.'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitHub answers its secondary limit with a 403 that says so in the body, and that one is waited
+    # out the same way. A 403 that names no limit is a repository gone private, asked once.
+    $fakeForge.Answers.alphaRepo = @{ Status = 403; Content = $null
+        Body = '{"message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again.","documentation_url":"https://docs.github.com/rest"}' }
+    $forbiddenRun = Invoke-Audit
+    $forbiddenFindings = @($forbiddenRun.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($forbiddenRun.ExitCode -eq 1 -and @($forbiddenRun.Report.findings | Where-Object {
+                $_.kind -eq 'source-failed' -and $_.detail -like '*alpha-patches could not be read*rate limiting*HTTP 403*' }).Count -eq 1) `
+        "A GitHub source behind a secondary limit was not reported unread (exit $($forbiddenRun.ExitCode)): $forbiddenFindings"
+    Assert-True (@($forbiddenRun.Report.findings | Where-Object { $_.kind -eq 'repository-gone' }).Count -eq 0) "A source behind a 403 limit was reported gone: $forbiddenFindings"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://api.github.com/repos/fixture-owner/alpha-patches' }).Count -eq 4) `
+        'The source behind a 403 limit was not asked four times before the audit gave up on it.'
+    $fakeForge.Answers.alphaRepo = @{ Status = 403; Content = $null; Body = '{"message":"Repository access blocked"}' }
+    Assert-Drift 'repository-gone' '*alpha-patches*HTTP 403*' 'A GitHub source that answers 403 without naming a limit'
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://api.github.com/repos/fixture-owner/alpha-patches' }).Count -eq 1) `
+        'A 403 that names no limit was waited out as one.'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitLab code search looks each hit's project up. A project that's gone drops its hit; one a
+    # limit kept unread fails the search instead of quietly shrinking it.
+    $env:GITLAB_TOKEN = 'fixture-gitlab-' + [guid]::NewGuid().ToString('N')
+    try {
+        $fakeForge.Answers.gitlabHits = @(@{ project_id = 4242; path = 'patches/Gamma.kt' })
+        $searched = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searched.ExitCode -eq 0 -and $searched.Said -like '*GitLab code search: 1 hits in 1 projects*') `
+            "GitLab code search did not read the gamma project's hit: $($searched.Said)"
+        Reset-FixtureLedger
+        $fakeForge.Answers.gitlabProject = @{ Status = 404; Content = $null }
+        $dropped = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($dropped.ExitCode -eq 0 -and $dropped.Said -like '*GitLab code search: 0 hits in 0 projects*') `
+            "A hit in a project that's gone was not dropped: $($dropped.Said)"
+        Reset-FixtureLedger
+        $fakeForge.Answers.gitlabProject = @{ Status = 429; Content = $null }
+        $searchLimited = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searchLimited.ExitCode -eq 1 -and @($searchLimited.Report.findings | Where-Object {
+                    $_.kind -eq 'source-failed' -and $_.detail -like '*GitLab code search could not be read*rate limiting*HTTP 429*project 4242*' }).Count -eq 1) `
+            ("A project lookup behind a rate limit did not fail GitLab code search (exit $($searchLimited.ExitCode)): " +
+                (@($searchLimited.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+        Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/4242' }).Count -eq 4) `
+            'The rate-limited project lookup was not asked four times before the search gave up on it.'
+        Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A search a limit cut short changed the ledger.'
+    } finally {
+        $env:GITLAB_TOKEN = $null
+        Reset-FixtureLedger
+    }
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.alphaRepo.Content = $fakeForge.Answers.alphaRepo.Content.Replace('"archived":false', '"archived":true')
