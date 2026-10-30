@@ -211,6 +211,16 @@ public final class GlassTabBar {
      * over Home, and the slot kept there was a blank band under the reel (#347).
      */
     static boolean reelsKeepTheSlot(View bar, int reelsTab) {
+        return reelsKeepTheSlot(bar, reelsTab, false);
+    }
+
+    /**
+     * {@link #reelsKeepTheSlot(View, int)}, except that a bar the Reels auto-hide ({@link GlassReelsHide}) has
+     * slid all the way off, [slidOff], gives its slot to the reel: the slot kept under it was a black band
+     * where the pill had been (#335). The slot comes back as the bar starts to return.
+     */
+    static boolean reelsKeepTheSlot(View bar, int reelsTab, boolean slidOff) {
+        if (slidOff) return false;
         if (bar.getVisibility() == View.VISIBLE) return true;
         if (reelsTab == 0 || !(bar instanceof ViewGroup)) return false;
         ViewGroup tabs = (ViewGroup) bar;
@@ -1865,11 +1875,13 @@ public final class GlassTabBar {
          * {@link #REELS_LOOK_MS}, and at once when the margin they want changes, so a viewer is never left
          * a frame at a size Instagram's own layout just gave it. Where Instagram hides the bar outside the
          * Reels tab, as over a reel opened from a feed post, the viewers get Instagram's 0 back
-         * ({@link #reelsKeepTheSlot}, #347).
+         * ({@link #reelsKeepTheSlot}, #347), and where an auto-hide has the pill all the way off, so the
+         * reel runs to the bottom while the pill is away (#335).
          */
         private void keepReelsAboveTheSlot(View holder, long now) {
             if (originalBarHeight <= 0) return;
-            int wanted = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB))
+            int wanted = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB),
+                    scrollHide != null && scrollHide.isOffScreen())
                     ? reelsMargin(barHeightPx(height, originalBarHeight, density) + lift) : 0;
             if (wanted == reelsWanted && now - reelsLookedAt < REELS_LOOK_MS) return;
             reelsLookedAt = now;

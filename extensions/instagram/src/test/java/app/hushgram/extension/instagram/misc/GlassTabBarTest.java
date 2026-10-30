@@ -2454,6 +2454,27 @@ public class GlassTabBarTest {
     }
 
     /**
+     * #335: with the Reels auto-hide holding the pill all the way off, the reel gets the slot's space
+     * instead of a black band, in the Reels tab and wherever else the slot would be kept.
+     */
+    @Test
+    public void reelsGiveUpTheSlotWhileTheAutoHideHasThePillOff() {
+        Context context = RuntimeEnvironment.getApplication();
+        int reelsTab = 0x7f0b0c68;
+        FrameLayout bar = new FrameLayout(context);
+        View reels = new View(context);
+        reels.setId(reelsTab);
+        bar.addView(reels);
+        reels.setSelected(true);
+
+        assertTrue("pill showing", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, false));
+        assertFalse("pill slid all the way off", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, true));
+        bar.setVisibility(View.GONE);
+        assertTrue("a paused reel's hidden bar still keeps it (#221)", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, false));
+        assertFalse(GlassTabBar.reelsKeepTheSlot(bar, reelsTab, true));
+    }
+
+    /**
      * #221: what's raised clear of a floating pill is the child of a reel's layer of controls that holds
      * the caption or the seek bar, as in Instagram 451's Reels, never the layer or the reel, so the video,
      * stickers and play button stay where they are. The footer under the viewer (#260) is found apart
