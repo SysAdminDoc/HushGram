@@ -2867,6 +2867,20 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         Reset-FactsFile 'README.md'
     }
 
+    # A retarget held at the published version: the index description names the build it shipped
+    # for and no count. The lenient check the hook runs takes that as the published facts, and a
+    # release writing its own index can't.
+    Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace('Validation: ', 'Built for Instagram 448.0.0.1.1. Validation: ') }
+    try {
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*source $versionHere has an unreleased catalog while the working index remains on its published facts*") `
+            "The lenient check refused a held retarget whose index names only the published build: $said"
+        Assert-Throws { Invoke-Facts } '*bundle description target version*' `
+            'The strict check accepted an index naming a build the source no longer targets.'
+    } finally {
+        Reset-FactsFile 'patches-bundle.json'
+    }
+
     # A dead link: the address has every right shape and names a release nobody published. GitHub
     # answers 404 for it; a stand-in for the request does here, so the case needs no network.
     & {

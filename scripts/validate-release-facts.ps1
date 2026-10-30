@@ -315,10 +315,12 @@ $descriptionTargetVersion = $targetVersion
 if ($hasIndex) {
 $bundleVersion = [string]$bundle.version
 $publishedFacts = Get-DescriptionFacts -Text ([string]$bundle.description) -Source 'The patches-bundle.json description'
+# Either fact the description names is enough. It has named no count since 0.0.9, so a retarget
+# held at the published version read as this release's own index and was refused.
 $publishedFactsDifferAtSameVersion = $AllowPublishedIndexLag -and
     $bundleVersion -eq $releaseVersion -and
-    $null -ne $publishedFacts.PatchCount -and $null -ne $publishedFacts.TargetVersion -and
-    ($publishedFacts.PatchCount -ne $patchCount -or $publishedFacts.TargetVersion -ne $targetVersion)
+    (($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) -or
+        ($null -ne $publishedFacts.TargetVersion -and $publishedFacts.TargetVersion -ne $targetVersion))
 $indexLagsSource = $bundleVersion -ne $releaseVersion -or $publishedFactsDifferAtSameVersion
 if ($indexLagsSource) {
     if (-not $AllowPublishedIndexLag) {
