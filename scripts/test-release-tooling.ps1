@@ -1280,6 +1280,46 @@ Set-Content -LiteralPath $Result -Value $lines
         $factsSource -notmatch 'Read-ManifestDeltaAllowlist') `
         'validate-release-facts.ps1 no longer holds the receipt to the allowlist its own commit carried.'
 
+    # The coverage census, the same way. A retarget replaces the old build's entry, and the shipped
+    # receipt for that build read as uncertified on every push after it. A commit with no census,
+    # or no commit, gets the working one, the first with a note, and a census at the commit that
+    # isn't strict JSON says where it is.
+    $censusFile = Join-Path $toolchainRoot 'scripts/patch-coverage-expectations.json'
+    function Save-FixtureCensus([string]$Text) {
+        [System.IO.File]::WriteAllText($censusFile, $Text, (New-Object System.Text.UTF8Encoding($false)))
+        Invoke-FixtureGit -Root $toolchainRoot -Arguments @('add', '-A') | Out-Null
+        Invoke-FixtureGit -Root $toolchainRoot -Arguments @('commit', '-m', 'census', '--quiet') | Out-Null
+        return "$(Invoke-FixtureGit -Root $toolchainRoot -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+    }
+    function Get-FixtureCensus([string]$Build) {
+        return ('{"schemaVersion": 1, "fixtures": [{"package": "com.example", "versionName": "' + $Build +
+            '", "versionCode": "1", "families": []}]}' + "`n")
+    }
+    $censusReleased = Save-FixtureCensus (Get-FixtureCensus '1.0.0')
+    $censusNow = Save-FixtureCensus (Get-FixtureCensus '1.0.1')
+    $atCensusRelease = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $censusReleased
+    Assert-True ([string]@($atCensusRelease.Policy.fixtures)[0].versionName -eq '1.0.0' -and
+        $atCensusRelease.Note -like "*coverage census at its own commit $($censusReleased.Substring(0, 8))*") `
+        "The receipt was not held to the coverage census its own commit carried: $($atCensusRelease.Note)"
+    $atCensusHead = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $censusNow
+    Assert-True ([string]@($atCensusHead.Policy.fixtures)[0].versionName -eq '1.0.1' -and $null -eq $atCensusHead.Note) `
+        "A census the working tree still holds as committed reported a difference: $($atCensusHead.Note)"
+    $atNoCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $releaseCommitSha
+    Assert-True ($null -eq $atNoCensus.Policy -and $atNoCensus.Note -like '*has no reviewed coverage census*') `
+        "A commit with no census did not fall back to the working one, saying so: $($atNoCensus.Note)"
+    $noCommitCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit ''
+    Assert-True ($null -eq $noCommitCensus.Policy -and $null -eq $noCommitCensus.Note) `
+        'A receipt naming no commit was not held quietly to the working census.'
+    $brokenCensus = Save-FixtureCensus '{"schemaVersion": 1, "schemaVersion": 1}'
+    Assert-Throws { Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $brokenCensus } `
+        "*coverage census at $($brokenCensus.Substring(0, 8)) is not strict JSON*" `
+        'A census at the receipt''s commit that reads two ways was read without complaint.'
+    $receiptSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'release-receipt.ps1') -Raw
+    Assert-True ($factsSource -match '\$resolvedCoverage = Resolve-ReceiptCoveragePolicy -Root \$rootPath -Commit \$receiptCommit' -and
+        $factsSource -match '-CoveragePolicy \$resolvedCoverage\.Policy' -and
+        $receiptSource -match '-VersionCode \$target\.source\.versionCode `\s+-Policy \$CoveragePolicy') `
+        'validate-release-facts.ps1 no longer holds the receipt to the coverage census its own commit carried.'
+
     # The receipt schema, read the same way: out of scripts/release-receipt.ps1 at the receipt's
     # commit. A release cut before the SBOM is held to schema 1 and says so, one cut since to this
     # checkout's schema, one from a newer checkout is refused rather than misread, and a commit

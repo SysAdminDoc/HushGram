@@ -491,6 +491,45 @@ function Resolve-ReceiptManifestAllowlist {
     return [pscustomobject]@{ Entries = $atCommit; Note = $note }
 }
 
+function Resolve-ReceiptCoveragePolicy {
+    <#
+    .SYNOPSIS
+        The reviewed coverage census a receipt is held to: the one its own commit carried.
+    .DESCRIPTION
+        patch-coverage-expectations.json names the exact Instagram builds whose coverage was
+        reviewed, and a retarget replaces the old build's entry. Read from the working tree, the
+        published receipt for the replaced build read as uncertified on every push after the
+        retarget. On a release push the receipt's commit is the release commit, so the census is
+        the one the tree carries and nothing is relaxed. A commit with no census, and a receipt
+        naming no commit, get $null, which Test-TargetCoverage reads as the working census, the
+        first with a note. Answers @{ Policy; Note }.
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$Root,
+        [string]$Commit
+    )
+
+    if ($Commit -notmatch '^[0-9a-f]{40}$') { return [pscustomobject]@{ Policy = $null; Note = $null } }
+    $short = $Commit.Substring(0, 8)
+    $path = 'scripts/patch-coverage-expectations.json'
+    $kind = "$(Invoke-RepoGit -Root $Root -Arguments @('cat-file', '-t', "${Commit}:$path") | Select-Object -First 1)".Trim()
+    if ($kind -ne 'blob') {
+        return [pscustomobject]@{ Policy = $null
+            Note = "commit $short has no reviewed coverage census, so the receipt is held to the working one" }
+    }
+    $atCommit = (@(Invoke-RepoGit -Root $Root -Arguments @('show', "${Commit}:$path")) -join "`n").Trim()
+    try { $policy = ConvertFrom-PatchJson $atCommit }
+    catch { throw "The reviewed coverage census at $short is not strict JSON: $($_.Exception.Message)" }
+    $workingPath = Join-Path $Root $path
+    $working = if (Test-Path -LiteralPath $workingPath -PathType Leaf) {
+        ((Get-Content -LiteralPath $workingPath -Raw) -replace '\r\n', "`n").Trim()
+    }
+    $note = if ($atCommit -ceq $working) { $null } else {
+        "the receipt is held to the coverage census at its own commit $short, which differs from the working one"
+    }
+    return [pscustomobject]@{ Policy = $policy; Note = $note }
+}
+
 function Get-ChangelogVersions {
     <#
     .SYNOPSIS
@@ -925,6 +964,9 @@ function Test-ReleaseReceipt {
         [System.Collections.IDictionary]$ExpectedPackageVersionCodes,
         [string]$BundlePath,
         [string[]]$ApprovedManifestDelta = @(),
+        # The reviewed coverage census its own commit carried (Resolve-ReceiptCoveragePolicy).
+        # Without it the working census is read.
+        [object]$CoveragePolicy,
         # When the commit the receipt names was made, read out of git by the caller. Without it
         # the receipt's commit and its timestamp are only checked against each other, which any
         # receipt agrees with, including one left over from an earlier release.
@@ -1174,7 +1216,8 @@ function Test-ReleaseReceipt {
                 return Fail "The receipt records no typed target coverage for $label."
             }
             $coverageVerdict = Test-TargetCoverage -Coverage @($coverageProperty.Value) -Names $ExpectedPatchNames `
-                -Package $target.source.package -VersionName $target.source.versionName -VersionCode $target.source.versionCode
+                -Package $target.source.package -VersionName $target.source.versionName -VersionCode $target.source.versionCode `
+                -Policy $CoveragePolicy
             if (-not $coverageVerdict.Valid -or $reviewedProperty.Value -ne $coverageVerdict.Reviewed -or
                 ($atDeclaredVersion -and -not $coverageVerdict.Reviewed)) {
                 return Fail "The receipt target coverage for $label is not certified: $($coverageVerdict.Reason)"

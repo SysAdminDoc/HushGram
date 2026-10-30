@@ -1205,6 +1205,9 @@ function Test-ReleaseReceiptHere {
         -WorkingPath (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt')
     if ($resolvedAllowlist.Note) { Write-Host "[release] $($resolvedAllowlist.Note)" }
     $approvedDelta = @($resolvedAllowlist.Entries)
+    # And the coverage census it reviewed: a retarget replaces the old build's entry.
+    $resolvedCoverage = Resolve-ReceiptCoveragePolicy -Root $rootPath -Commit $receiptCommit
+    if ($resolvedCoverage.Note) { Write-Host "[release] $($resolvedCoverage.Note)" }
     $receiptTarget = Get-PatchTarget -PatchList $resolvedList.PatchList
     # From schema 2 a receipt names the release SBOM, and which schema is read at the receipt's own
     # commit, so a release cut before there was an SBOM is read as it was written.
@@ -1248,7 +1251,7 @@ function Test-ReleaseReceiptHere {
         -ExpectedManagerFloor $expectedToolchain.ManagerFloor `
         -ExpectedPackageName $receiptTarget.PackageName -ExpectedPackageVersions $receiptTarget.PackageVersions `
         -ExpectedPackageVersionCodes $receiptTarget.PackageVersionCodes `
-        -BundlePath $BundleForComparison -ApprovedManifestDelta $approvedDelta `
+        -BundlePath $BundleForComparison -ApprovedManifestDelta $approvedDelta -CoveragePolicy $resolvedCoverage.Policy `
         -ActualCommitTimestamp $actualEpoch -ExpectedCommit $expectedCommit `
         -ExpectedSchemaVersion $schema.Version -SbomPath $sbomForComparison
     if (-not $receiptCheck.Valid) {
