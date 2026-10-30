@@ -8,6 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.SwitchPreference;
 import java.util.EnumSet;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,7 +46,9 @@ public class CommentPhotoSettingsTest {
         if (controller != null) controller.close();
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
+        PatchFamily.commentGifReplyForTests = null;
         Settings.SAVE_COMMENT_PHOTOS.resetToDefault();
+        Settings.REPLY_WITH_COMMENT_GIFS.resetToDefault();
         Settings.COPY_COMMENTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -99,5 +102,29 @@ public class CommentPhotoSettingsTest {
         Settings.SAVE_COMMENT_PHOTOS.save(true);
         Settings.COPY_COMMENTS.save(false);
         assertTrue(Settings.SAVE_COMMENT_PHOTOS.get());
+    }
+    /** #402: the GIF reply sits right under Save comment photo, off to start, with a switch of its own. */
+    @Test public void theGifReplySwitchSitsUnderSaveAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.COMMENT_PHOTO));
+        SwitchPreference photo = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key);
+        SwitchPreference reply = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REPLY_WITH_COMMENT_GIFS.key);
+        assertNotNull(reply);
+        assertEquals("Reply with a comment's GIF", reply.getTitle().toString());
+        assertSame(photo.getParent(), reply.getParent());
+        assertFalse(reply.isChecked());
+        assertFalse(Settings.REPLY_WITH_COMMENT_GIFS.get());
+        assertEquals(Settings.REPLY_WITH_COMMENT_GIFS, PatchFamily.COMMENT_PHOTO.switches.get(1));
+        Settings.REPLY_WITH_COMMENT_GIFS.save(true);
+        assertFalse("Save stays its own switch", Settings.SAVE_COMMENT_PHOTOS.get());
+    }
+    /** A build whose GIF reply didn't go in keeps Save and doesn't offer a switch that does nothing. */
+    @Test public void aBuildWithoutTheGifReplyKeepsSaveWithoutTheSecondSwitch() throws Exception {
+        PatchFamily.commentGifReplyForTests = false;
+        open(EnumSet.of(PatchFamily.COMMENT_PHOTO));
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.SAVE_COMMENT_PHOTOS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.REPLY_WITH_COMMENT_GIFS.key));
+        List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_PHOTO), false);
+        assertTrue(report.toString(), report.contains("  Reply with a comment's GIF: not in this build "
+                + "(the comment screen's Reply or GIF send didn't match)"));
     }
 }

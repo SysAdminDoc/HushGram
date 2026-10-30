@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -249,6 +250,9 @@ class CommentPhotoHookTest {
                 assertEquals(plan.surface.raw, plan.gif.definingClass)
                 assertNotNull("${bundle.name}: the comment GIF's model wasn't read", plan.gifModel)
                 assertNotEquals(plan.icon, plan.label)
+                // #402: Reply with a comment's GIF, labelled with the quick reply bar's own GIF button.
+                val gifReply = plan.gifReply ?: error("${bundle.name}: the comment screen's Reply or GIF send wasn't found")
+                GIF_BUTTONS[version]?.let { assertEquals("${bundle.name}: GIF button's icon and label", it, gifReply.icon to gifReply.label) }
                 // Who wrote the comment and when, for the save's name: read through the raw comment's
                 // interface, each proved on its tree-backed class by the key it reads.
                 val author = plan.author ?: error("${bundle.name}: the comment's author and time weren't found")
@@ -359,6 +363,7 @@ class CommentPhotoHookTest {
         for (name in listOf("imageVersions", "imageCandidates", "candidateUrl", "candidateWidth", "candidateHeight")) {
             assertEquals(name, Opcode.CHECK_CAST, images.single { it.name == name }.code().first().opcode)
         }
+        assertGifReplyWiring(patch, plan)
     }
 
     private fun renderer(patch: BytecodePatchContext, surface: CommentSurface) =
@@ -366,8 +371,63 @@ class CommentPhotoHookTest {
 
     private fun stubs(patch: BytecodePatchContext, type: String) = CommentWorld.snapshot(patch, listOf(type))
 
+    /**
+     * The GIF reply goes in whole or not at all: the selection hands over the screen, the comment it
+     * resolved and both IDs right after resolving it, and every bridge calls what discovery proved.
+     */
+    private fun assertGifReplyWiring(patch: BytecodePatchContext, plan: CommentPhotoPlan) {
+        val bridges = patch.mutableClassDefBy(GIF_REPLY_NATIVE).methods
+        fun read(name: String) = bridges.single { it.name == name }.code()
+        val reply = plan.gifReply
+        if (reply == null) {
+            val select = patch.commentSelect()
+            val code = patch.mutableClassDefBy(select.definingClass).methods.single { it.matches(select) }.code()
+            assertTrue("no selection hook without the GIF reply", code.none { it.call()?.toString() == GIF_REPLY_SELECTING })
+            assertEquals("the GIF reply's bridges stay stubs", stubs(PatchContexts.of(extension()), GIF_REPLY_NATIVE),
+                stubs(patch, GIF_REPLY_NATIVE))
+            return
+        }
+        val select = patch.mutableClassDefBy(reply.select.definingClass).methods.single { it.matches(reply.select) }.code()
+        val hook = select.indices.single { select[it].call()?.toString() == GIF_REPLY_SELECTING }
+        assertEquals("the hook follows the comment the selection resolved", reply.hookAt + 4, hook)
+        assertEquals(Opcode.MOVE_RESULT_OBJECT, select[reply.hookAt - 1].opcode)
+        val copies = select.subList(reply.hookAt, hook)
+        assertEquals(List(4) { Opcode.MOVE_OBJECT_FROM16 }, copies.map { it.opcode })
+        assertEquals(reply.registers, copies.map { (it as TwoRegisterInstruction).registerB })
+        assertEquals(reply.spares, copies.map { (it as TwoRegisterInstruction).registerA })
+        assertEquals(reply.spares, select[hook].arguments())
+        val screen = reply.select.definingClass
+        assertEquals(listOf(screen, screen), listOf(reply.reply, reply.send).map { it.definingClass })
+        val replies = read("reply")
+        assertEquals(listOf(Opcode.CONST_4, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID), replies.map { it.opcode })
+        assertEquals(reply.reply.toString(), replies[2].call().toString())
+        val target = read("target")
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
+            Opcode.RETURN_OBJECT), target.map { it.opcode })
+        assertEquals(reply.composer.toString(), target[1].field().toString())
+        assertEquals(reply.target.toString(), target[3].call().toString())
+        assertEquals(reply.composer.type, reply.target.definingClass)
+        // Only a comment's GIF is converted; anything else answers null before a call is made.
+        val info = read("info")
+        assertEquals(listOf(Opcode.INSTANCE_OF, Opcode.IF_EQZ, Opcode.CHECK_CAST), info.take(3).map { it.opcode })
+        assertEquals(GIPHY, (info[0].reference() as TypeReference).type)
+        assertEquals(listOf(reply.toHelper, reply.toInfo).map { it.toString() }, info.mapNotNull { it.call()?.toString() })
+        assertEquals(reply.send.parameters()[1], reply.toInfo.returnType)
+        val send = read("send")
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID),
+            send.map { it.opcode })
+        assertEquals(reply.send.toString(), send[3].call().toString())
+        assertEquals(plan.surface.rowConstructor.definingClass, patch.mutableClassDefBy(GIF_REPLY_ROW).superclass)
+        assertEquals(listOf(reply.icon, reply.label),
+            read("newRow").filter { it.opcode == Opcode.CONST }.map { (it as NarrowLiteralInstruction).narrowLiteral })
+        assertTrue(read("callback").any { it.opcode == Opcode.INSTANCE_OF && (it.reference() as? TypeReference)?.type == GIF_REPLY_ROW })
+        assertNotEquals("its own label, not Save's", plan.label, reply.label)
+        assertNotEquals("its own icon, not Save's", plan.icon, reply.icon)
+    }
+
     private fun extension() = listOf(COMMENT_NATIVE, COPY_ROW, COMMENT_COPY, COMMENT_ACTIONS,
-        PHOTO_NATIVE, PHOTO_ROW, COMMENT_PHOTO, INSTAGRAM_MEDIA).map(ExtensionDex::classDef)
+        PHOTO_NATIVE, PHOTO_ROW, COMMENT_PHOTO, INSTAGRAM_MEDIA, GIF_REPLY_NATIVE, GIF_REPLY_ROW, COMMENT_GIF_REPLY)
+        .map(ExtensionDex::classDef)
 
     /**
      * The fixture classes both families read, without holding a whole APK: the classes holding each
@@ -436,6 +496,18 @@ class CommentPhotoHookTest {
             .map { it.returnType })
         // A comment GIF's model: its interfaces, the classes implementing them, and the trees' superclasses.
         gifFixture(bundle).forEach { (type, classDef) -> pool.putIfAbsent(type, classDef) }
+        // The GIF reply: the quick reply bar its label and icon come from, the comment screen's Reply
+        // target and GIF send, and what a comment's GIF is converted through before it's sent.
+        scan { type -> type.methods.any { method -> method.strings().any { it.startsWith(REPLY_BAR) } } }
+        val screen = pool.getValue(select.definingClass)
+        load((screen.methods.flatMap { it.parameters() } + screen.fields.map { it.type }).filter { it.startsWith("L") })
+        load(pool.getValue(GIPHY).methods.map { it.returnType }.filter { it.startsWith("L") })
+        load(references(listOf(screen)))
         return pool.values.toList()
+    }
+
+    private companion object {
+        /** Instagram's GIF icon and its GIF label on the quick reply bar, read from the declared build's resources. */
+        val GIF_BUTTONS = mapOf("453.0.0.57.79" to (0x7f0825e8 to 0x7f136e2a))
     }
 }

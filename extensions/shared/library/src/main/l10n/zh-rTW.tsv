@@ -448,6 +448,9 @@ Comment copied	已複製留言
 Couldn't copy comment	無法複製留言
 Save comment photo	儲存留言照片
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	若留言含有自己的照片或 GIF，則在所選留言的選單中新增「儲存」。以 Instagram 傳送的最大尺寸儲存。
+Reply with a comment's GIF	用留言的 GIF 回覆
+When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	留言含有 GIF 時，其選單會多出 GIF 回覆，將同一個 GIF 以動畫形式作為你的回覆傳回。
+Couldn't reply with this GIF	無法用這個 GIF 回覆
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	標記為已讀按鈕
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	匿名觀看時，在每則限時動態頂端新增眼睛按鈕。點擊即可讓您出現在該則限時動態的觀看者名單中，其他限時動態仍維持匿名。

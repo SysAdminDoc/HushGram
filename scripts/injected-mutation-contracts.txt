@@ -1593,6 +1593,13 @@ once-call Lapp/hushgram/extension/instagram/comment/CommentActions;->rows(Ljava/
 # on the 450 fixture.
 once-call Lapp/hushgram/extension/instagram/comment/CommentAuthor;->label(Landroid/content/Context;ILjava/lang/Object;)Ljava/lang/String; in instance (L*;L*;L*;Ljava/util/List;F)V class-holding select_comment_screen_comment_unselect_tap_
 
+# Save comment photo's Reply with a comment's GIF (#402) hands CommentGifReply the comment screen,
+# the comment its long press resolved and the two IDs it resolved it from, right after the resolve
+# in the selection (0HpM.GH9 on 453), before the menu is built. Left out, no GIF row is added;
+# twice or elsewhere, it isn't the hook the patch wrote. CommentPhotoHookTest checks where it lands
+# on the 453 fixture.
+once-call Lapp/hushgram/extension/instagram/comment/CommentGifReply;->selecting(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V in instance (Ljava/lang/String;Ljava/lang/String;FZ)V holding select_comment_screen_comment_select_tap_
+
 # Hide suggested people on profiles hands the action row's show flag for its inline row of
 # suggestions to ProfileSuggestions right after the read, and the person-plus button to it right
 # after Instagram sets the button up, both in the one method loading the binder message below

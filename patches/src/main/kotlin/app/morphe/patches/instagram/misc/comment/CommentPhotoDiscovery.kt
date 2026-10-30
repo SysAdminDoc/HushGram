@@ -37,13 +37,14 @@ internal const val SAVE_ACTION = "SaveMedia"
 /**
  * The calls the photo bridges make on the selected comment, each a public getter proved to read the
  * comment's own media_comment_info, never its parent post, and the PHOTO kind's value. [gifModel]
- * reads the files of the comment's own GIF, when the build's GIF model could be told.
+ * reads the files of the comment's own GIF, when the build's GIF model could be told, and [gifReply]
+ * sends a comment's GIF back as a reply, when the comment screen's Reply and GIF send could be.
  */
 internal data class CommentPhotoPlan(
     val surface: CommentSurface, val gif: MethodReference, val info: MethodReference, val media: MethodReference,
     val kind: MethodReference, val mediaGif: MethodReference, val videoVersions: MethodReference,
     val videoDuration: MethodReference, val photo: Int, val icon: Int, val label: Int, val images: () -> Unit,
-    val author: CommentAuthor? = null, val gifModel: CommentGifPlan? = null,
+    val author: CommentAuthor? = null, val gifModel: CommentGifPlan? = null, val gifReply: GifReplyPlan? = null,
 )
 
 /**
@@ -150,7 +151,7 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
     validateActionRow(PHOTO_ROW, PHOTO_NATIVE)
     val images = imageBridges(PHOTO_PATCH)
     CommentPhotoPlan(surface, gif, info, media, kind, mediaGif, videoVersions, videoDuration, photo, icon, label, images,
-        commentAuthor(raw, pando), commentGifOrNull(classes))
+        commentAuthor(raw, pando), commentGifOrNull(classes), gifReplyOrNull(surface, classes))
 }
 
 /**
@@ -238,6 +239,7 @@ internal fun BytecodePatchContext.applyCommentPhoto(plan: CommentPhotoPlan) = di
         return v0
     """)
     applyActionRow(surface, PHOTO_ROW, PHOTO_NATIVE, plan.icon, plan.label)
+    plan.gifReply?.let { applyGifReply(surface, it) }
     plan.images()
 }
 

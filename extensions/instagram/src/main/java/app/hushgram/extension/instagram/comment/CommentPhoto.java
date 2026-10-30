@@ -211,29 +211,40 @@ public final class CommentPhoto {
      * decides whether there is a picture to save.
      */
     static Carried carried(Object comment, PhotoReads reads) {
-        if (!reads.selected(comment)) return refused(NOT_SELECTED);
+        return carried(comment, reads, true);
+    }
+
+    /** The selected comment's own GIF, or null, read without counting: Save's read already counted it. */
+    static Object gif(Object comment) {
+        Carried carried = carried(comment, READS, false);
+        return carried == null ? null : carried.gif;
+    }
+
+    /** [carried], with each step counted only when [count] says so. */
+    static Carried carried(Object comment, PhotoReads reads, boolean count) {
+        if (!reads.selected(comment)) return refused(NOT_SELECTED, count);
         Object raw = reads.raw(comment);
-        if (raw == null) return refused(NO_RAW);
+        if (raw == null) return refused(NO_RAW, count);
         Object gif = reads.gif(raw);
-        if (gif != null) return gif(gif, COMMENT_GIF, reads);
+        if (gif != null) return gif(gif, COMMENT_GIF, reads, count);
         Object info = reads.info(raw);
-        if (info == null) return refused(NO_INFO);
+        if (info == null) return refused(NO_INFO, count);
         Object media = reads.media(info);
-        if (media == null) return refused(NO_MEDIA);
+        if (media == null) return refused(NO_MEDIA, count);
         Object kind = reads.kind(media);
         if (kind == null) {
             Object mediaGif = reads.mediaGif(media);
-            if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads);
-            if (hasVideo(reads, media)) return refused(NO_KIND_VIDEO);
-            HookStatus.counted(FamilyNames.COMMENT_PHOTO, NO_KIND_STILL);
+            if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads, count);
+            if (hasVideo(reads, media)) return refused(NO_KIND_VIDEO, count);
+            if (count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, NO_KIND_STILL);
             return new Carried(media, null);
         }
         int value = kind instanceof Integer ? (Integer) kind : -1;
         if (value != reads.photoKind()) {
-            return refused(value >= 0 && value < KINDS_NAMED ? "media_type " + value : "media_type other");
+            return refused(value >= 0 && value < KINDS_NAMED ? "media_type " + value : "media_type other", count);
         }
         Object mediaGif = reads.mediaGif(media);
-        if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads);
+        if (mediaGif != null) return gif(mediaGif, MEDIA_GIF, reads, count);
         return new Carried(media, null);
     }
 
@@ -241,10 +252,10 @@ public final class CommentPhoto {
      * [gif], counted at [where] it was found, unless it's a sticker: an is_sticker of anything but
      * false or nothing keeps it out, counted as one.
      */
-    private static Carried gif(Object gif, String where, PhotoReads reads) {
-        HookStatus.counted(FamilyNames.COMMENT_PHOTO, where);
+    private static Carried gif(Object gif, String where, PhotoReads reads, boolean count) {
+        if (count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, where);
         Object sticker = reads.gifSticker(gif);
-        if (sticker != null && !Boolean.FALSE.equals(sticker)) return refused(GIF_STICKER);
+        if (sticker != null && !Boolean.FALSE.equals(sticker)) return refused(GIF_STICKER, count);
         return new Carried(null, gif);
     }
 
@@ -283,8 +294,8 @@ public final class CommentPhoto {
         return duration != null && !(duration instanceof Number && ((Number) duration).doubleValue() <= 0);
     }
 
-    private static <T> T refused(String step) {
-        HookStatus.counted(FamilyNames.COMMENT_PHOTO, step);
+    private static <T> T refused(String step, boolean count) {
+        if (count) HookStatus.counted(FamilyNames.COMMENT_PHOTO, step);
         return null;
     }
 

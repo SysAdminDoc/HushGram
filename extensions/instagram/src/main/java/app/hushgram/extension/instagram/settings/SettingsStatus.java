@@ -328,6 +328,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Reply with a comment's GIF, Save comment photo's second switch, which a build can lack. */
+    public static boolean commentGifReply() {
+        return false;
+    }
+
     /** Rewritten by the Save profile picture patch. */
     public static boolean profilePicture() {
         return false;

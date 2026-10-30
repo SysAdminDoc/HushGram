@@ -22,6 +22,12 @@ import app.morphe.patches.shared.compat.AppCompatibilities
  * and Giphy's, each with a GIF, WebP and MP4 address; the bridges read those as they are, and the
  * extension keeps only the ones on Meta's servers. The row shares the renderer's one call with Copy
  * comment and has its own row type, so either patch works alone or with the other.
+ *
+ * Its second switch, Reply with a comment's GIF (#402), adds a GIF row to a comment carrying a GIF.
+ * The comment screen's selection hands the extension the screen and the two IDs it resolved the
+ * comment from, and the row runs the screen's own Reply on them, then its GIF send with the comment's
+ * GIF, so the reply goes up animated like one picked in Instagram's GIF search. A build where those
+ * can't be told still gets Save, without the switch.
  */
 @Suppress("unused")
 val saveCommentPhotoPatch = bytecodePatch(
@@ -29,7 +35,8 @@ val saveCommentPhotoPatch = bytecodePatch(
     description = "Adds Save to the menu on a comment that has its own photo or GIF, saving the largest size " +
         "Instagram sent. A GIF is saved as a .gif in Pictures/Instagram, taken from Instagram's own copy, not " +
         "Giphy. If Instagram lists only an animated WebP or an MP4 for it, you get that file instead, and an MP4 " +
-        "goes in Movies/Instagram like a video. Starts off. Turn it on in HushGram settings > Comments.",
+        "goes in Movies/Instagram like a video. It can also add a GIF reply to a comment with a GIF, sending " +
+        "that same GIF back as your reply. Starts off. Turn it on in HushGram settings > Comments.",
     default = true,
 ) {
     category("Downloads")
@@ -37,8 +44,10 @@ val saveCommentPhotoPatch = bytecodePatch(
     compatibleWith(*AppCompatibilities.instagram())
     execute {
         requireStatusMethod("commentPhoto")
+        requireStatusMethod(GIF_REPLY_STATUS)
         val photo = findCommentPhoto()
         applyCommentPhoto(photo)
         enableStatus("commentPhoto")
+        if (photo.gifReply != null) enableStatus(GIF_REPLY_STATUS)
     }
 }

@@ -444,6 +444,9 @@ Comment copied	댓글이 복사됨
 Couldn't copy comment	댓글을 복사할 수 없습니다
 Save comment photo	댓글 사진 저장
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	사진이나 GIF가 첨부된 댓글 메뉴에 저장 옵션을 추가합니다. 저장할 때는 Instagram에서 전송한 것 중 가장 큰 크기를 저장합니다
+Reply with a comment's GIF	댓글의 GIF로 답글 달기
+When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	댓글에 GIF가 있으면 메뉴에 GIF 답글이 추가되어 같은 GIF를 움직이는 그대로 답글로 보냅니다
+Couldn't reply with this GIF	이 GIF로 답글을 달지 못했습니다
 Mark as seen button	읽음으로 표시 버튼 추가
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	 스토리를 몰래 보는 동안 각 스토리 상단에 눈 모양 버튼을 추가합니다. 이 버튼을 누르면 해당 스토리의 조회자 목록에 내 계정이 표시됩니다. 다른 스토리는 계속 익명으로 유지됩니다
 Mark as seen	읽음으로 표시

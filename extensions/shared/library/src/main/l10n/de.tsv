@@ -443,6 +443,9 @@ Comment copied	Kommentar kopiert
 Couldn't copy comment	Kommentar konnte nicht kopiert werden
 Save comment photo	Kommentarfoto speichern
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Fügt dem Menü eines ausgewählten Kommentars Speichern hinzu, wenn der Kommentar ein eigenes Foto oder GIF hat. Speichert die größte Version, die Instagram gesendet hat.
+Reply with a comment's GIF	Mit dem GIF eines Kommentars antworten
+When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Hat ein Kommentar ein GIF, bekommt sein Menü eine GIF-Antwort, die genau dieses GIF animiert als deine Antwort zurückschickt.
+Couldn't reply with this GIF	Mit diesem GIF konnte nicht geantwortet werden
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Schaltfläche Als gesehen markieren
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Fügt oben in jeder Story eine Augen-Schaltfläche hinzu, während du Stories anonym ansiehst. Tippe darauf, um in der Zuschauerliste dieser Story zu erscheinen. Die anderen Stories bleiben verborgen.

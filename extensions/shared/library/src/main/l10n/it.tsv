@@ -443,6 +443,9 @@ Comment copied	Commento copiato
 Couldn't copy comment	Impossibile copiare il commento
 Save comment photo	Salva la foto del commento
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Aggiunge Salva al menu di un commento selezionato quando il commento ha una foto o una GIF. Salva la dimensione più grande inviata da Instagram.
+Reply with a comment's GIF	Rispondi con la GIF di un commento
+When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply, animated.	Quando un commento ha una GIF, il suo menu ottiene una risposta GIF che rimanda la stessa GIF come tua risposta, animata.
+Couldn't reply with this GIF	Impossibile rispondere con questa GIF
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Pulsante Segna come visto
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Aggiunge un pulsante a forma di occhio in cima a ogni storia mentre guardi in modo anonimo. Toccalo per comparire nell'elenco di chi ha visto quella storia. Le altre storie restano nascoste.

@@ -164,10 +164,7 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
     if (COMMENT_ACTIONS !in classes) refuse("missing extension boundary $COMMENT_ACTIONS")
     fun clazz(type: String) = classes[type] ?: refuse("missing native class $type")
     fun methods() = classes.values.asSequence().flatMap { it.methods.asSequence() }
-    val select = classesHolding(COMMENT_SELECT).asSequence().flatMap { it.methods.asSequence() }.filter {
-        COMMENT_SELECT in it.strings() && it.publicInstance() &&
-            it.returnType == "V" && it.parameters() == listOf(STRING, STRING, "F", "Z")
-    }.toList().one("selected-comment anchor")
+    val select = commentSelect()
     val selectedType = selectionType(select)
     val model = clazz(selectedType)
     requirePublic(model)
@@ -293,6 +290,13 @@ internal fun actionResources(action: ClassDef, classes: Map<String, ClassDef>): 
     if (icon ushr 24 != 0x7f || label ushr 24 != 0x7f || icon == label) refuse("$what resources are invalid")
     return icon to label
 }
+
+/** The comment screen's long press on a comment, handed the two IDs it resolves the comment from. */
+internal fun BytecodePatchContext.commentSelect(): Method =
+    classesHolding(COMMENT_SELECT).asSequence().flatMap { it.methods.asSequence() }.filter {
+        COMMENT_SELECT in it.strings() && it.publicInstance() &&
+            it.returnType == "V" && it.parameters() == listOf(STRING, STRING, "F", "Z")
+    }.toList().one("selected-comment anchor")
 
 /** The selected comment, as resolved by the controller for the two comment IDs. */
 internal fun selectionType(select: Method): String = select.code().mapNotNull { it.call() }.filter {

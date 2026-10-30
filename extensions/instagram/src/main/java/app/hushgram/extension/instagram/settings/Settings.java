@@ -1641,6 +1641,10 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting SAVE_COMMENT_PHOTOS =
             new BooleanSetting("hushgram_save_comment_photos", FALSE);
 
+    /** A GIF reply for a comment carrying a GIF, sending that same GIF back (#402). Off until enabled. */
+    public static final BooleanSetting REPLY_WITH_COMMENT_GIFS =
+            new BooleanSetting("hushgram_reply_with_comment_gifs", FALSE);
+
     /**
      * The menu on someone's profile gets Save profile picture
      * ({@link app.hushgram.extension.instagram.download.ProfilePicture}). Off until enabled.
