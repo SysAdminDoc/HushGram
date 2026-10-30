@@ -39,7 +39,7 @@ $NativeRunnerControlCases = @('bind', 'control-positive', 'control-negative')
 # presence-paused needs the settings presence saves, so it runs only after presence passed, and
 # visual-paused the same for visual.
 $NativeRunnerFeatureCases = [ordered]@{ 'presence' = $null; 'presence-paused' = 'presence'; 'visual' = $null; 'visual-paused' = 'visual'
-    'notifications' = $null }
+    'notifications' = $null; 'share' = $null }
 # What every result carries. Anything else a case reports is what it observed.
 $NativeRunnerResultKeys = @('case', 'verdict', 'package', 'versionName', 'versionCode', 'signerSha256', 'baseApkSha256', 'user',
     'process', 'network', 'missingHook', 'prerequisite', 'buildIdentity', 'error', 'detail')

@@ -26,7 +26,12 @@
     notifications posts test notifications through the stand-in every Instagram notify call goes
     to, on two of Instagram's channel ids: with one muted, its posts never reach the manager and
     are logged once while the other arrives, and with the list emptied the next one arrives in
-    the same process. Nothing is sent. The run fails unless every feature case passed.
+    the same process. share hands a reel link with its share id, next to a link to another site,
+    to the stand-in for the share sheet that also takes the sender the sheet answers through: only
+    with Sanitize sharing links on does the reel link lose its keys, the other link keeps its own,
+    and the chooser always keeps the share and that sender, in the extra Android's own chooser
+    keeps it in (Android 17 moved it). Nothing is sent. The run fails unless every feature case
+    passed.
 
     The cases run in a new Android user created for the run, which has never signed in and is
     allowed to post notifications, and that user is removed afterwards along with the runner. The target app and its data in every other

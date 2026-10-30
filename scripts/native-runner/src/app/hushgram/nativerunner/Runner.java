@@ -10,13 +10,17 @@ import android.app.Instrumentation;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.os.Process;
 import android.service.notification.StatusBarNotification;
 
@@ -93,6 +97,14 @@ public final class Runner extends Instrumentation {
     private static final int MUTED_ID = 0x4847_0001;
     private static final int KEPT_ID = 0x4847_0003;
     private static final int UNMUTED_ID = 0x4847_0004;
+    private static final String LINK_CLEANER_CLASS = "app.hushgram.extension.instagram.misc.LinkCleaner";
+    // A reel link as Copy link gives it, with the per-share id and a label, next to a link to another
+    // site. Only Instagram's own link loses its keys.
+    private static final String SHARED_TEXT = "Look https://www.instagram.com/reel/DHushRunner1/?igsh=MTc4MmM1YmI2Ng==&utm_source=ig_web_copy_link"
+            + " and https://example.com/a?utm_source=x";
+    private static final String CLEANED_TEXT = "Look https://www.instagram.com/reel/DHushRunner1/ and https://example.com/a?utm_source=x";
+    // Where the share sheet would say which app was picked: a broadcast to the target itself, never sent.
+    private static final String PICKED_ACTION = "app.hushgram.nativerunner.SHARE_PICKED";
 
     private Bundle arguments;
 
@@ -159,6 +171,8 @@ public final class Runner extends Instrumentation {
                 return visualPaused(target, out);
             case "notifications":
                 return notifications(target, out);
+            case "share":
+                return share(target, out);
             default:
                 throw new IllegalArgumentException("Unknown case '" + name + "'");
         }
@@ -430,6 +444,106 @@ public final class Runner extends Instrumentation {
         }
         if (wrong.length() > 0) out.putString(PREFIX + "detail", wrong.toString());
         return wrong.length() == 0;
+    }
+
+    /**
+     * Sanitize sharing links on the stand-in for Intent.createChooser with the IntentSender the
+     * share sheet tells Instagram the picked app through, sharing SHARED_TEXT: before the settings
+     * are ready, with the switch off, then on. Only on does the reel link lose its keys, and the
+     * other site's link keeps its own. Each time the chooser has to carry the share and the very
+     * sender it was given. Nothing is started or sent, and the switch goes back as it was saved.
+     */
+    private static boolean share(Context target, Bundle out) throws Exception {
+        ClassLoader loader = target.getClassLoader();
+        Class<?> utils = requireClass(loader, EXTENSION_CLASS, out);
+        Class<?> settings = requireClass(loader, SETTINGS_CLASS, out);
+        Class<?> pause = requireClass(loader, PAUSE_CLASS, out);
+        Class<?> cleaner = requireClass(loader, LINK_CLEANER_CLASS, out);
+        if (utils == null || settings == null || pause == null || cleaner == null) return false;
+        Method standIn;
+        try {
+            standIn = cleaner.getMethod("createChooser", Intent.class, CharSequence.class, IntentSender.class);
+        } catch (NoSuchMethodException absent) {
+            missing(out, LINK_CLEANER_CLASS + ".createChooser");
+            return false;
+        }
+        StringBuilder wrong = new StringBuilder();
+        PendingIntent picked = PendingIntent.getBroadcast(target, 0, new Intent(PICKED_ACTION).setPackage(target.getPackageName()),
+                PendingIntent.FLAG_IMMUTABLE);
+        try {
+            IntentSender sender = picked.getIntentSender();
+            String senderKey = senderKey(Intent.createChooser(new Intent(Intent.ACTION_SEND).setType("text/plain"), "Share", sender), sender);
+            out.putString(PREFIX + "share.senderKey", senderKey == null ? "none" : senderKey);
+            if (senderKey == null) {
+                out.putString(PREFIX + "detail", "Android's own chooser keeps no sender, so the stand-in's can't be judged");
+                return false;
+            }
+            boolean readyAtStart = (Boolean) utils.getMethod("settingsReady").invoke(null);
+            out.putString(PREFIX + "settingsReadyAtStart", Boolean.toString(readyAtStart));
+            if (readyAtStart) note(wrong, "the settings were ready before the case gave the extension its context");
+            else out.putString(PREFIX + "share.notReady", outcome(wrong, "not ready", chosen(standIn, sender, senderKey), "kept"));
+
+            utils.getMethod("setContext", Context.class).invoke(null, target);
+            String reason = String.valueOf(pause.getMethod("reason").invoke(null));
+            out.putString(PREFIX + "pause", reason);
+            if (!"NONE".equals(reason)) note(wrong, "this start runs paused (" + reason + ")");
+            Object domain = settings.getField("SHARING_DOMAIN").get(null);
+            Object domainSaved = domain.getClass().getMethod("savedValue").invoke(domain);
+            // A Sharing domain would move the reel link too, and the user is new, so it's blank.
+            if (!"".equals(domainSaved)) note(wrong, "the Sharing domain is set to " + domainSaved);
+            Object sanitize = settings.getField("SANITIZE_SHARING_LINKS").get(null);
+            Object saved = sanitize.getClass().getMethod("savedValue").invoke(sanitize);
+            try {
+                save(sanitize, false);
+                out.putString(PREFIX + "share.off", outcome(wrong, "off", chosen(standIn, sender, senderKey), "kept"));
+                save(sanitize, true);
+                out.putString(PREFIX + "share.on", outcome(wrong, "on", chosen(standIn, sender, senderKey), "cleaned"));
+            } finally {
+                try { save(sanitize, saved); } catch (Exception e) { note(wrong, "cleanup: " + e); }
+            }
+        } finally {
+            picked.cancel();
+        }
+        if (wrong.length() > 0) out.putString(PREFIX + "detail", wrong.toString());
+        return wrong.length() == 0;
+    }
+
+    /**
+     * The extra Android's own chooser keeps the sender in, or null when it keeps none. Android 17
+     * (API 37) keeps it in EXTRA_CHOOSER_RESULT_INTENT_SENDER, not EXTRA_CHOSEN_COMPONENT_INTENT_SENDER,
+     * so the key is read off the platform's chooser rather than named here.
+     */
+    private static String senderKey(Intent own, IntentSender sender) {
+        Bundle extras = own.getExtras();
+        if (extras == null) return null;
+        for (String key : extras.keySet()) {
+            if (sender.equals(extras.get(key))) return key;
+        }
+        return null;
+    }
+
+    /**
+     * What the stand-in made of a new share of SHARED_TEXT: "kept" or "cleaned" when it answered a
+     * chooser holding that share, with the text as given or as cleaned, and the sender it was given
+     * where Android's own chooser keeps it. Anything else is named.
+     */
+    private static String chosen(Method standIn, IntentSender sender, String senderKey) throws Exception {
+        Intent share = new Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, SHARED_TEXT);
+        Object answer = standIn.invoke(null, share, "Share", sender);
+        if (!(answer instanceof Intent) || !Intent.ACTION_CHOOSER.equals(((Intent) answer).getAction())) return "no chooser";
+        Intent chooser = (Intent) answer;
+        Parcelable inner = chooser.getParcelableExtra(Intent.EXTRA_INTENT);
+        Parcelable told = chooser.getParcelableExtra(senderKey);
+        if (!(inner instanceof Intent)) return "no share in the chooser";
+        if (!sender.equals(told)) {
+            Bundle extras = chooser.getExtras();
+            return "the sender was lost (" + (told == null ? "none" : told.getClass().getName()) + "; extras "
+                    + (extras == null ? "none" : String.join(",", extras.keySet())) + ")";
+        }
+        String text = String.valueOf(((Intent) inner).getCharSequenceExtra(Intent.EXTRA_TEXT));
+        if (SHARED_TEXT.equals(text)) return "kept";
+        if (CLEANED_TEXT.equals(text)) return "cleaned";
+        return "changed to " + text;
     }
 
     private static Notification test(Context target, String channel) {

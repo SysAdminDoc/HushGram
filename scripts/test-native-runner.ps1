@@ -181,6 +181,8 @@ function New-FakeDevice {
                     $out += 'INSTRUMENTATION_RESULT: hushgram.visual.paused=native'
                 } elseif ($case -ceq 'notifications') {
                     $out += @('INSTRUMENTATION_RESULT: hushgram.notifications.muted=held,held', 'INSTRUMENTATION_RESULT: hushgram.notifications.unmuted=shown')
+                } elseif ($case -ceq 'share') {
+                    $out += @('INSTRUMENTATION_RESULT: hushgram.share.off=kept', 'INSTRUMENTATION_RESULT: hushgram.share.on=cleaned')
                 }
                 if ($case -ceq $FailCase) {
                     $pass = $false
@@ -301,7 +303,7 @@ try {
     Assert-True ($null -eq $run.Error) "A clean run failed: $($run.Error)"
     $session = $run.Session
     Assert-True ($session.ControlsProven -and $session.FeaturesPassed -and $session.IsolatedUser -and $session.NetworkOff -and $session.User -ceq '10') 'A clean run did not prove the controls and pass the features in its own user.'
-    Assert-True ((@($session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',') -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=pass,visual-paused=pass,notifications=pass') 'The cases ran out of order or with the wrong verdicts.'
+    Assert-True ((@($session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',') -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=pass,visual-paused=pass,notifications=pass,share=pass') 'The cases ran out of order or with the wrong verdicts.'
     Assert-True ($session.Cases[2].MissingHook -ceq $NativeRunnerAbsentHook) 'The negative control did not name its missing hook.'
     Assert-True ($session.Cases[3].Observed['presence.on'] -ceq 'ACTIVE>IDLE,IDLE>IDLE,OFFLINE>OFFLINE,DISABLED>DISABLED' -and
         $session.Cases[3].Observed.Count -eq 2 -and $session.Cases[0].Observed.Count -eq 0) 'What a case observed was lost, or a bound fact was taken for an observation.'
@@ -327,7 +329,7 @@ try {
     $android17Run = Invoke-FakeSession $android17
     Assert-True ($null -eq $android17Run.Error -and $android17Run.Session.FeaturesPassed) "A run on Android 17 failed: $($android17Run.Error)"
     Assert-NothingLeft $android17 'A run on Android 17'
-    Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 8) 'A case ran without its time limit.'
+    Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 9) 'A case ran without its time limit.'
     Assert-True ($device.State.Stopped.Count -eq 0) 'A run that finished in time stopped the target.'
     Assert-True ($calls[-4] -ceq 'shell pm uninstall --user 10 app.hushgram.nativerunner' -and $calls[-3] -ceq 'shell pm remove-user 10' -and
         $calls[-2] -ceq 'shell settings delete secure anr_show_background' -and
@@ -409,7 +411,7 @@ try {
     $failing = New-FakeDevice -FailCase 'presence'
     $run = Invoke-FakeSession $failing
     $seen = (@($run.Session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',')
-    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=fail,presence-paused=skipped,visual=pass,visual-paused=pass,notifications=pass' -and
+    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=fail,presence-paused=skipped,visual=pass,visual-paused=pass,notifications=pass,share=pass' -and
         $run.Session.ControlsProven -and -not $run.Session.FeaturesPassed) "A failed feature case gave $seen."
     Assert-True ($run.Session.Cases[3].Detail -ceq 'on: ACTIVE was stored as ACTIVE, expected IDLE' -and
         $run.Session.Cases[4].Problems[0] -like '*builds on presence*') 'A failed feature case lost its reason, or the skip gave none.'
@@ -419,7 +421,7 @@ try {
     $failingLater = New-FakeDevice -FailCase 'visual'
     $run = Invoke-FakeSession $failingLater
     $seen = (@($run.Session.Cases | ForEach-Object { "$($_.Case)=$($_.Verdict)" }) -join ',')
-    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=fail,visual-paused=skipped,notifications=pass' -and
+    Assert-True ($null -eq $run.Error -and $seen -ceq 'bind=pass,control-positive=pass,control-negative=fail,presence=pass,presence-paused=pass,visual=fail,visual-paused=skipped,notifications=pass,share=pass' -and
         -not $run.Session.FeaturesPassed -and $run.Session.Cases[6].Problems[0] -like '*builds on visual*') "A failed later feature case gave $seen."
     Assert-True (@($failingLater.State.Calls | Where-Object { $_ -like '*-e case visual-paused *' }).Count -eq 0) 'visual-paused ran on settings visual never saved.'
     Assert-NothingLeft $failingLater 'A failed later feature case'
@@ -494,6 +496,9 @@ try {
     # The runner keeps the target's startup out, and asks for nothing.
     $runnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'native-runner/src/app/hushgram/nativerunner/Runner.java') -Raw
     Assert-True ($runnerSource -match 'public void callApplicationOnCreate\(Application app\)\s*\{\s*\}') 'The runner calls the target Application.onCreate.'
+    foreach ($featureCase in $NativeRunnerFeatureCases.Keys) {
+        Assert-True ($runnerSource.Contains("case `"$featureCase`":")) "The runner has no $featureCase case to run."
+    }
     $manifest = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'native-runner/AndroidManifest.xml') -Raw
     Assert-True ($manifest -notmatch '<(uses-permission|activity|service|receiver|provider)\b') 'The runner manifest declares a permission or a component.'
 
@@ -625,10 +630,10 @@ try {
     $written = Get-Content -LiteralPath $wholeVerdict -Raw | ConvertFrom-Json
     Assert-True ($written.controlsProven -eq $true -and $written.networkOff -eq $true -and $written.isolatedUser -eq $true -and
         [string]$written.user -ceq '10' -and $written.serial -ceq 'emulator-5554' -and $written.target.Sha256 -ceq $boundTarget.Sha256 -and
-        $written.target.SelectionSha256 -ceq $boundTarget.SelectionSha256 -and @($written.cases).Count -eq 8 -and $written.featuresPassed -eq $true -and
+        $written.target.SelectionSha256 -ceq $boundTarget.SelectionSha256 -and @($written.cases).Count -eq 9 -and $written.featuresPassed -eq $true -and
         $written.cases[3].Observed.'presence.paused' -ceq $null -and $written.cases[4].Observed.'presence.paused' -ceq 'ACTIVE>ACTIVE' -and
         $written.cases[5].Observed.'visual.on' -ceq 'held' -and $written.cases[6].Observed.'visual.paused' -ceq 'native' -and
-        $written.cases[7].Observed.'notifications.muted' -ceq 'held,held') 'The verdict file does not record the run.'
+        $written.cases[7].Observed.'notifications.muted' -ceq 'held,held' -and $written.cases[8].Observed.'share.on' -ceq 'cleaned') 'The verdict file does not record the run.'
     Assert-True ($device.State.RunnerUsers.Count -eq 0 -and $device.State.Airplane -ceq 'disabled' -and -not (Test-Path -LiteralPath $leaseFile)) 'A whole run left the runner, the network switch or its lease.'
     $device = New-FakeDevice -ReportedSigner $runnerSignerDigest -Fixture $boundTarget
     $whole = Invoke-WholeRun $device $boundTarget -Install -Gate { param($Tools, $Apk) $false }
