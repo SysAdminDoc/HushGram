@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -59,6 +60,27 @@ class ShowAllRecentSearchesHookTest {
         assertEquals(1, after.count { it.reference() == hook })
     }
 
+    /**
+     * #375: a builder that makes the Show more row without naming its string is found too, and a
+     * method naming the Recent group with neither, like the group's own factory, is left alone.
+     */
+    @Test
+    fun aBuilderThatOnlyMakesTheShowMoreRowIsFoundToo() {
+        val context = PatchContexts.of(
+            listOf(builder("Lfixture/Older;"), builder("Lfixture/Newer;", showMore = ShowMore.MADE), builder("Lfixture/Group;", showMore = ShowMore.NONE), showMoreRow()),
+        )
+        val sites = context.findRecentLimits()
+        assertEquals(listOf("Lfixture/Older;", "Lfixture/Newer;"), sites.map { it.type }.sortedDescending())
+
+        context.showAllRecents(sites)
+
+        for (type in listOf("Lfixture/Older;", "Lfixture/Newer;")) {
+            val after = context.mutableClassDefBy(type).methods.single { it.name == "build" }.code()
+            assertEquals(type, 1, after.count { it.reference() == hook })
+        }
+        assertEquals(0, context.mutableClassDefBy("Lfixture/Group;").methods.single().code().count { it.reference() == hook })
+    }
+
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val cases = listOf(
@@ -88,10 +110,14 @@ class ShowAllRecentSearchesHookTest {
     }
 
     private fun takesTheHook(bundle: java.io.File) {
-        val holders = FixtureDex.classesLoading(bundle, SHOW_MORE)
+        val holders = (FixtureDex.classesLoading(bundle, SHOW_MORE) + FixtureDex.classesLoading(bundle, NULL_STATE_RECENT)).distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders) + ExtensionDex.classDef(RECENT_SEARCHES))
         val sites = context.findRecentLimits()
         assertTrue("${bundle.name}: ${sites.size} sites", sites.size in 1..2)
+        assertTrue(
+            "${bundle.name}: #375, the builder that only makes the Show more row is hooked too",
+            sites.any { site -> context.mutableClassDefBy(site.type).methods.single { it.matches(site) }.let { !context.loadsString(it, SHOW_MORE) } },
+        )
         val before = sites.map { site ->
             context.mutableClassDefBy(site.type).methods.single { it.matches(site) }.code().map { it.shape() }
         }
@@ -109,7 +135,21 @@ class ShowAllRecentSearchesHookTest {
     private fun MutableMethod.matches(site: RecentLimitSite) =
         name == site.name && parameterTypes.map(Any::toString) == site.parameters
 
-    private fun builder(type: String, withMin: Boolean = true, jumpAfterMin: Boolean = false): ClassDef {
+    /** How a builder reaches the Show more row: names its string, makes the row, or neither. */
+    private enum class ShowMore { NAMED, MADE, NONE }
+
+    private val row = "Lfixture/ShowMoreRow;"
+
+    /** The Show more row, whose constructor names [SHOW_MORE]. */
+    private fun showMoreRow(): ClassDef {
+        val init = MutableMethod(
+            ImmutableMethod(row, "<init>", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value, null, null, ImmutableMethodImplementation(2, emptyList(), null, null)),
+        )
+        init.addInstructionsWithLabels(0, "const-string v0, \"$SHOW_MORE\"\nreturn-void")
+        return ImmutableClassDef(row, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(ImmutableMethod.of(init)))
+    }
+
+    private fun builder(type: String, withMin: Boolean = true, jumpAfterMin: Boolean = false, showMore: ShowMore = ShowMore.NAMED): ClassDef {
         val body = buildString {
             appendLine("const/4 v0, 0x3")
             appendLine("const/4 v1, 0x5")
@@ -119,7 +159,11 @@ class ShowAllRecentSearchesHookTest {
                 appendLine("move-result v2")
             }
             if (jumpAfterMin) appendLine(":after")
-            appendLine("const-string v3, \"$SHOW_MORE\"")
+            when (showMore) {
+                ShowMore.NAMED -> appendLine("const-string v3, \"$SHOW_MORE\"")
+                ShowMore.MADE -> appendLine("new-instance v3, $row")
+                ShowMore.NONE -> Unit
+            }
             appendLine("const-string v3, \"$NULL_STATE_RECENT\"")
             appendLine("return-void")
         }

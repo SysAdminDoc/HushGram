@@ -17,10 +17,12 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Show all recent searches"
 internal const val SHOWN_HOOK = "$RECENT_SEARCHES->shown(I)I"
@@ -36,7 +38,7 @@ private const val MATH_MIN = "Ljava/lang/Math;->min(II)I"
  * Explore that starts off.
  *
  * Instagram keeps the whole recent list on the phone and trims it to a small count (three, or eight
- * with one of its flags) in the method that builds the empty search screen, with a Show more row
+ * with one of its flags) in each method that builds the empty search screen, with a Show more row
  * when something was cut. The patch hands that count to the extension right after Instagram works it
  * out, and the extension answers with no limit while the switch is on. The list isn't fetched in
  * pages, so nothing is faked. See all and the x on each row are Instagram's and stay as they are.
@@ -65,16 +67,21 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 internal class RecentLimitSite(val type: String, val name: String, val parameters: List<String>, val after: Int, val register: Int)
 
 /**
- * Finds each method building the empty search screen's Recent group: those loading both
- * [NULL_STATE_RECENT] and [SHOW_MORE]. In each, the count is the last call to [MATH_MIN] before the
- * group is named, and the hook goes right after its move-result. Instagram has an older and a newer
- * builder in the same app, so one or two are expected. Fails before anything changes when there are
- * none, when one has no such call, or when something jumps to where the hook would go (a jump keeps
- * its target on the instruction it was written for, so the hook could be skipped).
+ * Finds each method building the empty search screen's Recent group: those loading
+ * [NULL_STATE_RECENT] that also load [SHOW_MORE] or make the Show more row (a class whose
+ * constructor loads [SHOW_MORE]). Instagram 453 has two: one names the row's string itself, the
+ * other, behind the newer null state service, only calls the row's constructor (#375). In each, the
+ * count is the last call to [MATH_MIN] before the group is named, and the hook goes right after its
+ * move-result. One or two are expected. Fails before anything changes when there are none, when one
+ * has no such call, or when something jumps to where the hook would go (a jump keeps its target on
+ * the instruction it was written for, so the hook could be skipped).
  */
 internal fun BytecodePatchContext.findRecentLimits(): List<RecentLimitSite> {
-    val holders = classesLoadingString(SHOW_MORE).flatMap { classDef ->
-        classDef.methods.filter { loadsString(it, SHOW_MORE) && loadsString(it, NULL_STATE_RECENT) }
+    val showMore = classesLoadingString(SHOW_MORE)
+    val rows = showMore.filter { classDef -> classDef.methods.any { it.name == "<init>" && loadsString(it, SHOW_MORE) } }
+        .mapTo(HashSet()) { it.type }
+    val holders = (showMore + classesLoadingString(NULL_STATE_RECENT)).distinctBy { it.type }.flatMap { classDef ->
+        classDef.methods.filter { loadsString(it, NULL_STATE_RECENT) && (loadsString(it, SHOW_MORE) || makesAny(it, rows)) }
     }
     if (holders.isEmpty() || holders.size > 2) refuse("expected one or two builders of the search screen's Recent group, found ${holders.size}")
     return holders.map { method ->
@@ -95,6 +102,11 @@ internal fun BytecodePatchContext.findRecentLimits(): List<RecentLimitSite> {
             after, (result as OneRegisterInstruction).registerA,
         )
     }
+}
+
+/** Whether [method] makes an instance of any of [types]. */
+private fun makesAny(method: Method, types: Set<String>) = method.implementation?.instructions?.toList().orEmpty().any {
+    it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type in types
 }
 
 /** Passes each count through [SHOWN_HOOK], which hands back the same count or no limit. */
