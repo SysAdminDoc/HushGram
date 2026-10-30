@@ -305,9 +305,12 @@ internal fun BytecodePatchContext.orderStoryTray(found: StoryTrayTargets) {
             if-nez v0, :pinned
             invoke-virtual { v1, v2 }, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
             move-result v0
-            if-nez v0, :pinned
+            if-nez v0, :own
             invoke-virtual { p1, p0 }, ${found.reelClass}->${found.seenCheck}(${USER_SESSION})Z
             move-result v0
+            return v0
+            :own
+            const/4 v0, -0x2
             return v0
             :pinned
             const/4 v0, -0x1

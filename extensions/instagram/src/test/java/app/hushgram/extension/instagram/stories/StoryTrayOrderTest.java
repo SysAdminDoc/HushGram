@@ -79,6 +79,39 @@ public class StoryTrayOrderTest {
         assertEquals(Arrays.<Object>asList("Create", "watched1", "special", "new1", "own", "watched2", "new2", null), tray);
     }
 
+    /** The signed-in account's own reel goes first, ahead of the watched ones pushed back, and the rest sort as before (#241). */
+    @Test
+    public void theOwnStoryStaysFirstWhateverItsStateAndWatchedOnesGoBack() {
+        StoryTrayOrder.Seen seen = reel -> {
+            String name = (String) reel;
+            if (name.equals("own")) return StoryTrayOrder.OWN;
+            return name.startsWith("watched") ? 1 : 0;
+        };
+        List<Object> tray = Arrays.<Object>asList("watched1", "new1", "own", "watched2", "new2");
+        List<Object> ordered = StoryTrayOrder.order(tray, ON, seen);
+        assertEquals(Arrays.<Object>asList("own", "new1", "new2", "watched1", "watched2"), ordered);
+        assertEquals("nothing added or dropped", new HashSet<>(tray), new HashSet<>(ordered));
+        assertEquals("Instagram's own list is not touched",
+                Arrays.<Object>asList("watched1", "new1", "own", "watched2", "new2"), tray);
+    }
+
+    @Test
+    public void anOwnStoryAlreadyFirstOrAloneChangesNothing() {
+        StoryTrayOrder.Seen seen = reel -> reel.equals("own") ? StoryTrayOrder.OWN : 0;
+        List<Object> first = Arrays.<Object>asList("own", "a", "b");
+        assertSame(first, StoryTrayOrder.order(first, ON, seen));
+        List<Object> behind = Arrays.<Object>asList("a", "own", "b");
+        assertEquals(Arrays.<Object>asList("own", "a", "b"), StoryTrayOrder.order(behind, ON, seen));
+    }
+
+    /** Off, or paused, hands Instagram's order back with the own story where Instagram put it. */
+    @Test
+    public void ownStoryIsOnlyMovedWhileTheTrayIsOrdered() {
+        StoryTrayOrder.Seen seen = reel -> reel.equals("own") ? StoryTrayOrder.OWN : 1;
+        List<Object> tray = Arrays.<Object>asList("a", "own", "b");
+        assertSame(tray, StoryTrayOrder.order(tray, OFF, seen));
+    }
+
     @Test
     public void unknownEntriesStayPinnedAndAreNeverCountedAsUnseen() {
         List<Object> tray = Arrays.<Object>asList("watched", "unknown", "new");

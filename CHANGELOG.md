@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** With `Gray out stories you've watched`, your own `Your story` now stays first in the tray, ahead of the watched stories pushed to the back. Before, it could end up among them. Reported in #241.
 * **Instagram:** A save that comes out in lower quality because your phone's storage is low now says so in its toast, and a carousel's summary counts how many. It used to blame only Instagram's quality. Reported in #348.
 * **Instagram:** With `Tab bar layout`, picking Classic or Swipe under Tab bar works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
 * **Instagram:** With `Tab bar layout`, a long press on the classic bar's Search tab opens search with the keyboard up again. Instagram 453 waited for pages only the swipe bar has, so the press just switched to Explore. Reported in #383.

@@ -23,7 +23,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Home's feed adapter asks the reel store for the tray's reels and the store, with that flag off,
  * hands them back in the order the server sent. So the patch hands the store's answer to
  * {@link #order}, which sorts only ordinary story slots, unseen first and watched after, each
- * half in its original order. Your own story, Create and special entries keep their native slots.
+ * half in its original order. Create and special entries keep their native slots, and the signed-in
+ * account's own `Your story` reel goes first, ahead of the watched ones pushed back (#241).
  * Nothing is added or dropped.
  *
  * <p>A story you've just watched stays where it was (#377). Home asks the store for the tray again
@@ -44,11 +45,14 @@ public final class StoryTrayOrder {
     static final String MOVED = "watched stories moved to the back";
     static final String KEPT = "stories just watched kept in place";
     static final int PINNED = -1;
+    /** The signed-in account's own reel: kept out of the sort and put first. */
+    static final int OWN = -2;
+    static final String OWN_FIRST = "own story put first";
 
     /** How many trays are remembered: Home's top row and its feed adapter each ask for their own. */
     static final int REMEMBERED = 4;
 
-    /** Native state: 0 unseen, 1 watched, or {@link #PINNED} for entries that must stay put. */
+    /** Native state: 0 unseen, 1 watched, {@link #PINNED} for entries that must stay put, or {@link #OWN}. */
     interface Seen {
         int of(Object reel);
     }
@@ -112,11 +116,16 @@ public final class StoryTrayOrder {
             List<Object> watched = new ArrayList<>();
             int[] slots = new int[reels.size()];
             int count = 0;
+            int own = -1;
             for (int index = 0; index < reels.size(); index++) {
                 Object reel = reels.get(index);
                 if (reel == null) continue;
                 int state = seen.of(reel);
                 if (state == PINNED) continue;
+                if (state == OWN) {
+                    if (own < 0) own = index;
+                    continue;
+                }
                 if (state != 0 && state != 1) throw new IllegalStateException("Unknown story tray state");
                 slots[count++] = index;
                 if (state == 1) watched.add(reel);
@@ -129,6 +138,12 @@ public final class StoryTrayOrder {
                 for (int index = 0; index < count; index++) sorted.set(slots[index], unseen.get(index));
                 if (!sorted.equals(reels)) ordered = sorted;
             }
+            boolean ownFirst = own > 0;
+            if (ownFirst) {
+                List<Object> moved = new ArrayList<>(ordered);
+                moved.add(0, moved.remove(own));
+                ordered = moved;
+            }
             List<Object> kept = kept(reels, ordered);
             if (kept != null) {
                 HookStatus.counted(FamilyNames.STORY_SEEN, KEPT);
@@ -136,7 +151,8 @@ public final class StoryTrayOrder {
                 return kept;
             }
             if (ordered == reels) return reels;
-            HookStatus.counted(FamilyNames.STORY_SEEN, MOVED);
+            if (ownFirst) HookStatus.counted(FamilyNames.STORY_SEEN, OWN_FIRST);
+            if (!watched.isEmpty() && !unseen.isEmpty()) HookStatus.counted(FamilyNames.STORY_SEEN, MOVED);
             Logger.printDebug(() -> "Story tray: moved " + watched.size() + " watched stories to the back");
             return ordered;
         } catch (Throwable failure) {
@@ -173,7 +189,7 @@ public final class StoryTrayOrder {
 
     // ------------------------------------------------------------------ what the patch fills in
 
-    /** Filled by the patch: a native ordinary story's seen state, or {@link #PINNED} for own/special/unknown entries. */
+    /** Filled by the patch: a native ordinary story's seen state, {@link #OWN} for the account's own reel, or {@link #PINNED} for special/unknown entries. */
     static int seen(Object store, Object reel) {
         return PINNED;
     }
