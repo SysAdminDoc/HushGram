@@ -47,10 +47,6 @@ class FirstMatchFingerprintSourceTest {
             "HushGram's own Utils class, named in full, holds one method of that name",
         "patches/shared/misc/extension/SharedExtensionPatch.kt: MorpheUtilsBuildIdentityFingerprint.method" to
             "HushGram's own Utils class, named in full, holds one method of that name",
-        "util/BytecodeUtils.kt: fingerprint.methodOrNull" to
-            "setExtensionIsPatchIncluded names the extension class in full, the method, no parameters and Z",
-        "util/BytecodeUtils.kt: fingerprint.method" to
-            "setExtensionIsPatchIncluded names the extension class in full, the method, no parameters and Z",
     )
 
     @Test
@@ -69,18 +65,19 @@ class FirstMatchFingerprintSourceTest {
             names.size >= fewestCredibleFingerprints,
         )
 
-        val found = firstMatches(texts).toSet()
+        // Counted, so an allowed read covers the one place it was allowed for and not a second copy.
+        val found = firstMatches(texts).groupingBy { it }.eachCount()
         assertEquals(
             "these take a fingerprint's first match, which turns a retarget that gives it a second " +
                 "into a silent wrong hook. Use uniqueMethod, or matchAllOrNull and choose, or allow the " +
                 "read here with why it can only find one method",
             emptyList<String>(),
-            (found - allowed.keys).sorted(),
+            found.filter { (read, count) -> read !in allowed || count > 1 }.map { (read, count) -> "$read x$count" }.sorted(),
         )
         assertEquals(
             "these allowed reads aren't in the sources any more, so take them off the list",
             emptyList<String>(),
-            (allowed.keys - found).sorted(),
+            (allowed.keys - found.keys).sorted(),
         )
     }
 

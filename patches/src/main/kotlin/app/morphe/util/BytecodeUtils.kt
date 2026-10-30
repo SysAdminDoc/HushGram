@@ -1437,15 +1437,13 @@ internal fun setExtensionIsPatchIncluded(patchExtensionClassType: String) {
         }
     )
 
-    with(patchContext) {
-        if (fingerprint.methodOrNull == null) {
-            throw PatchException(
-                "Could not find required extension method: $patchExtensionClassType->$methodName()$returnType"
-            )
-        }
-
-        fingerprint.method.returnEarly(true)
-    }
+    // An "ends with" class type can match more than one class, so only one match is taken.
+    val matches = with(patchContext) { fingerprint.matchAllOrNull() }.orEmpty()
+    val method = matches.singleOrNull()?.method ?: throw PatchException(
+        "Could not find exactly one required extension method: " +
+            "$patchExtensionClassType->$methodName()$returnType, found ${matches.size}"
+    )
+    method.returnEarly(true)
 }
 
 /**
