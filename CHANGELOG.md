@@ -20,6 +20,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Lock your messages` adds `Fingerprint or face only` to Unlock with under Messages, on Android 11 and up. Its prompt has no PIN, pattern or password. Remove every fingerprint and face and your screen lock unlocks again.
 * **Instagram:** `Full screen Reels and Home` adds `Show the whole reel` under Reels. Every reel fits inside the screen with black bars where its shape differs, so nothing's cut off at the sides. Starts off.
 * **Instagram:** `Skip the collections tray` is a new patch. With its switch on under Feed, saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection. Starts off.
+* **Instagram:** `Hide the Reels tab` adds `Settings button on Home's header` under Tab bar. A gear at the top of Home opens HushGram settings with one tap. Starts off. Asked for in #404.
 
 ### Bug Fixes
 

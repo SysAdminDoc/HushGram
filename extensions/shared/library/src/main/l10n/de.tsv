@@ -1324,3 +1324,5 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	%1$d Benachrichtigungsarten sind stummgeschaltet.
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram hat seine Benachrichtigungsarten auf diesem Telefon noch nicht eingerichtet. Öffne Instagram einmal und komm dann hierher zurück.
 Unmute all	Alle Stummschaltungen aufheben
+Settings button on Home's header	Einstellungen-Taste oben auf der Startseite
+Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.	Fügt oben auf der Startseite ein Zahnrad hinzu, das die HushGram-Einstellungen öffnet. Starte Instagram neu, um die Änderung zu sehen.

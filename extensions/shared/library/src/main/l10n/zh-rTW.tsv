@@ -1327,3 +1327,5 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	已將 %1$d 種通知類型設為靜音。
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram 尚未在這支手機上建立通知類型。請先開啟 Instagram 一次，再回到這裡。
 Unmute all	全部取消靜音
+Settings button on Home's header	首頁頂端的設定按鈕
+Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.	在首頁頂端加入齒輪，可開啟 HushGram 設定。請重新啟動 Instagram 以套用變更。

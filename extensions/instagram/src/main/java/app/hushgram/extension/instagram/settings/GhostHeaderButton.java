@@ -33,6 +33,7 @@ import app.hushgram.extension.instagram.reels.HomeHeader;
 import app.hushgram.extension.instagram.reels.HomeLogo;
 import app.hushgram.extension.instagram.reels.MessagesHeaderButton;
 import app.hushgram.extension.instagram.reels.SearchHeaderButton;
+import app.hushgram.extension.instagram.reels.SettingsHeaderButton;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -77,6 +78,7 @@ public final class GhostHeaderButton {
                 // Before the ghost, which goes right before whichever Messages button the header shows.
                 MessagesHeaderButton.place(header);
                 place(header);
+                SettingsHeaderButton.place(header);
                 HomeLogo.center(header);
             });
         } catch (Throwable failure) {

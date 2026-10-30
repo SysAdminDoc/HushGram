@@ -755,7 +755,7 @@ public final class SettingsEntry {
     }
 
     /** Queues a gesture through the shortcut's same resume/account handoff, without starting a tab. */
-    static boolean requestOpen(Activity activity) {
+    public static boolean requestOpen(Activity activity) {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
         if (!closedByUser && ((host != null && host.get() == activity)
                 || (openPending && SystemClock.elapsedRealtime() - requestedAt <= REQUEST_LIFETIME_MS))) return true;

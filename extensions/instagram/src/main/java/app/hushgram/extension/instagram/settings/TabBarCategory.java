@@ -87,6 +87,9 @@ final class TabBarCategory {
                                     + "of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram "
                                     + "to see the change.")));
                 }
+                glass.addPreference(toggle(context, Settings.SETTINGS_BUTTON_ON_HOME, L10n.t("Settings button on Home's header"),
+                        L10n.t("Adds a gear at the top of Home that opens HushGram settings. Restart Instagram "
+                                + "to see the change.")));
                 glass.addPreference(toggle(context, Settings.CENTER_HOME_LOGO, L10n.t("Center the logo on Home's header"),
                         L10n.t("Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden "
                                 + "or added. A feed's name shown there is centered too. Restart Instagram to see the change.")));

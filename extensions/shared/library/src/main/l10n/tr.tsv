@@ -1324,3 +1324,5 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	%1$d bildirim türü sessizde.
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram bu telefonda bildirim türlerini henüz ayarlamadı. Instagram'ı bir kez aç, sonra buraya dön.
 Unmute all	Tümünün sesini aç
+Settings button on Home's header	Ana sayfa üstünde Ayarlar düğmesi
+Adds a gear at the top of Home that opens HushGram settings. Restart Instagram to see the change.	Ana sayfanın üstüne HushGram ayarlarını açan bir dişli ekler. Değişikliği görmek için Instagram'ı yeniden başlat.
