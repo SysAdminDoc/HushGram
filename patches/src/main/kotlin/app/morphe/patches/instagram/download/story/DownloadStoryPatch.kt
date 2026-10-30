@@ -21,10 +21,19 @@ import app.morphe.patches.instagram.download.storyMusicBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.originalName
+import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.follow.BIND_FOLLOW
+import app.morphe.patches.instagram.stories.seen.BIND_BUTTON
+import app.morphe.patches.instagram.stories.seen.StoryHeaderBinderFingerprint
+import app.morphe.patches.instagram.stories.seen.ViewHolderFingerprint
+import app.morphe.patches.instagram.stories.seen.itemViewField
+import app.morphe.util.extendsClass
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -47,6 +56,10 @@ private const val STORY_DOWNLOAD = "$EXTENSION_PACKAGE/download/StoryDownload;"
 internal const val LABELS = "$STORY_DOWNLOAD->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence;"
 internal const val SAVE_STORY = "$STORY_DOWNLOAD->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z"
 internal const val BUILDING = "$STORY_DOWNLOAD->building(Ljava/lang/Object;)V"
+private const val STORY_DOWNLOAD_BUTTON = "$EXTENSION_PACKAGE/stories/StoryDownloadButton;"
+internal const val BIND_DOWNLOAD = "$STORY_DOWNLOAD_BUTTON->bind(Ljava/lang/Object;Ljava/lang/Object;)V"
+private const val OBJECT = "Ljava/lang/Object;"
+private const val VIEW = "Landroid/view/View;"
 internal const val LABEL_LIST = "$STORY_DOWNLOAD->labelList(Ljava/util/List;)V"
 
 /** The name Instagram's build keeps, in a static field, for the class that runs a story's menu. */
@@ -82,7 +95,8 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
 val downloadStoryPatch = bytecodePatch(
     name = "Download any story",
     description = "Adds Download to the menu of anyone's story. Videos save at the quality you choose and photos " +
-        "at their largest size, and Download as photo saves a still from a video story. On by default. Turn it off in HushGram settings > Stories.",
+        "at their largest size, and Download as photo saves a still from a video story. " +
+        "A Download button at the top of a story is a separate switch, off to start. Turn them on or off in HushGram settings > Stories.",
     default = true,
 ) {
     category("Downloads")
@@ -92,12 +106,12 @@ val downloadStoryPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storyDownload")
-        offerDownloadOnEveryStory()
+        offerDownloadOnEveryStory(withButton = true)
         enableStatus("storyDownload")
     }
 }
 
-internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
+internal fun BytecodePatchContext.offerDownloadOnEveryStory(withButton: Boolean = false) {
     val helpers = mutableListOf<ClassDef>()
     val listeners = mutableListOf<Method>()
     classDefForEach { classDef ->
@@ -141,6 +155,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
         it.name == "storyMedia" && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
     } ?: throw PatchException("$PATCH: $INSTAGRAM_MEDIA has no static storyMedia(Object)")
+    val button = if (withButton) findStoryButton(media) else null
     val lookups = listeners.flatMap { it.labelLookups(type, builders) }
     val handled = handlers.map { mutable(it) }
     handled.forEach { it.requireLocals(PATCH, 2) }
@@ -236,6 +251,108 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
     writeVideoBridges()
     writeImageBridges()
     writeMusicBridges()
+    if (button != null) hookStoryButton(button)
+}
+
+/**
+ * Where the story Download button's hook goes (#400): the story item binder's toolbar bind that
+ * Mark as seen hooks, the parameters holding the story and its view holder, the view holder base's
+ * item view field, and the two stubs of the extension's button class that read the story's Media
+ * and that item view.
+ */
+internal class StoryButtonTargets(
+    val binder: String,
+    val binderName: String,
+    val binderParameters: List<String>,
+    val item: Int,
+    val holder: Int,
+    val itemView: FieldReference,
+    val itemViewStub: MutableMethod,
+    val mediaStub: MutableMethod,
+    val media: String,
+)
+
+/** Finds all of it, or stops the patch naming what is missing, before anything changes. */
+internal fun BytecodePatchContext.findStoryButton(media: String): StoryButtonTargets {
+    val binder = uniqueMethod(PATCH, "story item binder's toolbar bind", StoryHeaderBinderFingerprint)
+    val where = "${binder.definingClass}->${binder.name}"
+    if (!AccessFlags.STATIC.isSet(binder.accessFlags)) throw PatchException("$PATCH: $where isn't static, as the story item binder's toolbar bind is")
+    val parameters = binder.parameterTypes.map(Any::toString)
+    val holderInit = uniqueMethod(PATCH, "view holder constructor", ViewHolderFingerprint)
+    val base = holderInit.definingClass
+    val holders = parameters.indices.filter { parameters[it].startsWith("L") && extendsClass(parameters[it], base) }
+    val holder = holders.singleOrNull() ?: throw PatchException("$PATCH: expected $where to take one view holder, found ${holders.size}")
+    val items = parameters.indices.filter { parameters[it] == REEL_ITEM }
+    val item = items.singleOrNull() ?: throw PatchException("$PATCH: expected $where to take one story ($REEL_ITEM), found ${items.size}")
+    binder.requireLocals(PATCH, 2)
+    val itemView = itemViewField(holderInit, PATCH)
+    val baseClass = classDefByOrNull(base) ?: throw PatchException("$PATCH: $base isn't in this build")
+    if (!AccessFlags.PUBLIC.isSet(baseClass.accessFlags)) throw PatchException("$PATCH: $base isn't public, so the extension can't reach it")
+    val extension = classDefByOrNull(STORY_DOWNLOAD_BUTTON)?.let { mutableClassDefBy(STORY_DOWNLOAD_BUTTON) }
+        ?: throw PatchException("$PATCH: $STORY_DOWNLOAD_BUTTON isn't in the extension")
+    extension.methods.singleOrNull {
+        "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == BIND_DOWNLOAD.substringAfter("->") &&
+            AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+    } ?: throw PatchException("$PATCH: $STORY_DOWNLOAD_BUTTON has no public static hook ${BIND_DOWNLOAD.substringAfter("->")}")
+    val viewStub = extension.methods.singleOrNull {
+        it.name == "itemView" && it.returnType == VIEW && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(Any::toString) == listOf(OBJECT)
+    } ?: throw PatchException("$PATCH: $STORY_DOWNLOAD_BUTTON has no static $VIEW itemView($OBJECT)")
+    val mediaStub = extension.methods.singleOrNull {
+        it.name == "media" && it.returnType == OBJECT && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(Any::toString) == listOf(OBJECT)
+    } ?: throw PatchException("$PATCH: $STORY_DOWNLOAD_BUTTON has no static $OBJECT media($OBJECT)")
+    return StoryButtonTargets(binder.definingClass, binder.name, parameters, item, holder, itemView, viewStub, mediaStub, media)
+}
+
+/**
+ * Hands the story and its view holder to [BIND_DOWNLOAD] at the start of the toolbar bind, through
+ * two borrowed locals, and fills the stubs. Mark as seen and Hide Follow on stories hook the same
+ * method, and each holds its place at the start, so this goes right after theirs when they're
+ * already there; applied earlier, it's pushed back by them. None of the hooks branches, and the
+ * locals they borrow are free until Instagram's first instruction.
+ */
+internal fun BytecodePatchContext.hookStoryButton(found: StoryButtonTargets) {
+    val binder = mutableClassDefBy(found.binder).methods.single {
+        it.name == found.binderName && it.parameterTypes.map(Any::toString) == found.binderParameters
+    }
+    val where = "${binder.definingClass}->${binder.name}"
+    val code = binder.implementation?.instructions?.toList().orEmpty()
+    if (code.any { (it as? ReferenceInstruction)?.reference?.toString() == BIND_DOWNLOAD }) {
+        throw PatchException("$PATCH: $where already calls $BIND_DOWNLOAD")
+    }
+    var at = 0
+    if (code.size > 4 && code.take(3).all { it.opcode == Opcode.MOVE_OBJECT_FROM16 } &&
+        code[3].opcode == Opcode.INVOKE_STATIC && (code[3] as ReferenceInstruction).reference.toString() == BIND_BUTTON
+    ) at = 4
+    if (code.size > at + 2 && code[at].opcode == Opcode.MOVE_OBJECT_FROM16 && code[at + 1].opcode == Opcode.INVOKE_STATIC &&
+        (code[at + 1] as ReferenceInstruction).reference.toString() == BIND_FOLLOW
+    ) at += 2
+    if (at in binder.jumpTargets()) throw PatchException("$PATCH: a branch in $where lands on its first instruction, where the hook goes")
+    binder.addInstructionsWithLabels(
+        at,
+        """
+            move-object/from16 v0, ${binder.parameterRegister(found.item)}
+            move-object/from16 v1, ${binder.parameterRegister(found.holder)}
+            invoke-static { v0, v1 }, $BIND_DOWNLOAD
+        """,
+    )
+    found.itemViewStub.addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.itemView.definingClass}
+            iget-object p0, p0, ${found.itemView}
+            return-object p0
+        """,
+    )
+    found.mediaStub.addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, $REEL_ITEM
+            iget-object p0, p0, ${found.media}
+            return-object p0
+        """,
+    )
 }
 
 /**

@@ -140,6 +140,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.DOWNLOAD_STORIES, L10n.t("Download on stories"),
                     L10n.t("Adds Download to the menu of anyone's story, photo or video, saved at your download quality. "
                             + "Off or paused, Instagram's own menu returns.")));
+            stories.add(toggle(context, Settings.DOWNLOAD_BUTTON_ON_STORIES, L10n.t("Download button on stories"),
+                    L10n.t("Puts a Download button at the top of a story, beside the three dots. One tap saves the "
+                            + "photo or video in front, the same as Download in the menu.")));
         }
         if (build.contains(PatchFamily.STORY_UPLOAD_QUALITY)) {
             stories.add(toggle(context, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, L10n.t("Upload stories at full quality"),

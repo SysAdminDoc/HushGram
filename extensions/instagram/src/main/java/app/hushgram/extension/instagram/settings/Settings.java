@@ -2230,6 +2230,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_stories", TRUE);
 
     /**
+     * A Download button in the story viewer's header, beside the three dots, that saves the story in
+     * front the way the menu's Download row does (#400). Off to start. It works with Download on
+     * stories off too.
+     */
+    public static final BooleanSetting DOWNLOAD_BUTTON_ON_STORIES =
+            new BooleanSetting("hushgram_download_button_on_stories", FALSE);
+
+    /**
      * Download in the menu of anyone else's feed post with a video, saving it through the save
      * pipeline below. Instagram's own row is there only on your own posts, where Instagram's
      * server lets it show, and a tap on it saves the same way. Off to start.

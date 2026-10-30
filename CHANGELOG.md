@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Full screen Reels and Home` adds `Show the whole reel` under Reels. Every reel fits inside the screen with black bars where its shape differs, so nothing's cut off at the sides. Starts off.
 * **Instagram:** `Skip the collections tray` is a new patch. With its switch on under Feed, saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection. Starts off.
 * **Instagram:** `Hide the Reels tab` adds `Settings button on Home's header` under Tab bar. A gear at the top of Home opens HushGram settings with one tap. Starts off. Asked for in #404.
+* **Instagram:** `Download any story` adds `Download button on stories` under Stories. A button at the top of a story, beside the three dots, saves the photo or video in front with one tap. Starts off. Asked for in #400.
 
 ### Bug Fixes
 

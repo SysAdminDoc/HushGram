@@ -199,22 +199,38 @@ public final class StoryDownload {
             if (label == null || !on()) return false;
             Choice choice = choice(label);
             if (choice == null) return false;
-            Context context = Utils.getContext().getApplicationContext();
-            Object media = InstagramMedia.storyMedia(menu);
-            if (choice == Choice.STORY && media != null
-                    && ExternalDownload.handOff(context, ExternalDownload.storyLink(media), FamilyNames.STORY_DOWNLOAD)) {
-                return true;
-            }
-            boolean started = media != null && (choice == Choice.PHOTO ? savePhoto(context, media) : saveMedia(context, media));
-            if (!started) {
-                Feedback.show(context, L10n.t(context, "Download failed"), true);
-            }
+            start(choice, InstagramMedia.storyMedia(menu));
             return true;
         } catch (Throwable t) {
             // It runs inside Instagram's click dispatch, where a throw ends the app. Instagram's
             // handler goes ahead instead, and passes over a label it doesn't know.
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return false;
+        }
+    }
+
+    /**
+     * The story button's tap (#400): the save the menu's Download row runs, for [media], the story's
+     * Media, whatever the Download on stories switch says. A save that can't start says so. Never throws.
+     */
+    public static void saveStory(Object media) {
+        try {
+            start(Choice.STORY, media);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story button", t);
+        }
+    }
+
+    /** Runs the save [choice] names for [media], or hands the story to the external downloader. */
+    private static void start(Choice choice, Object media) {
+        Context context = Utils.getContext().getApplicationContext();
+        if (choice == Choice.STORY && media != null
+                && ExternalDownload.handOff(context, ExternalDownload.storyLink(media), FamilyNames.STORY_DOWNLOAD)) {
+            return;
+        }
+        boolean started = media != null && (choice == Choice.PHOTO ? savePhoto(context, media) : saveMedia(context, media));
+        if (!started) {
+            Feedback.show(context, L10n.t(context, "Download failed"), true);
         }
     }
 

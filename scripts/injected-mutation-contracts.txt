@@ -1282,6 +1282,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeenButton;->bind(Ljava
 # Left out, the Follow button is never kept off a story's header; twice or elsewhere, it isn't the
 # hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryFollowButton;->bind(Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
+# Download any story (#400) hands the story and its view holder to StoryDownloadButton in the same
+# toolbar bind, behind the other hooks, through two moves into borrowed locals. Left out, no story
+# gets a Download button; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryDownloadButton;->bind(Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindToolbarViews
 # It also hands StorySeenRings the story viewer's write of a reel's seen time into the store that greys
 # its ring (0202.A0A on 450, the viewer logger's per-story method, which takes the story and holds
 # nux_story), in the write's own place, with the story whose time it is. The extension skips it while
