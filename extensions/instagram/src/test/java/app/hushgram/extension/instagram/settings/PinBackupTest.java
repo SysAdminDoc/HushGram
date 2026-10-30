@@ -14,6 +14,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ public class PinBackupTest {
 
     @Before
     public void setup() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         MessagesLockForTests.reset();
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         Settings.LOCK_MESSAGES.save(true);

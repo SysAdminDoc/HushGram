@@ -15,11 +15,13 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -30,8 +32,14 @@ import app.hushgram.extension.shared.SettingsContextRule;
  * sheet gave on Instagram 449 on a phone, 2026-09-29: a per-share stkn and no igsh.
  */
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 36, 37})
 public class LinkCleanerTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void targetLikeInstagram() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
+    }
 
     @Test
     public void copyLinkOn449LosesItsShareToken() {

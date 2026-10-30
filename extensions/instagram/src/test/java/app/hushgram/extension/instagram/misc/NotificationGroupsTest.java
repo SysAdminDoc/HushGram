@@ -79,6 +79,7 @@ public class NotificationGroupsTest {
         HookStatus.clear();
         NotificationGroups.resetForTests();
         context = RuntimeEnvironment.getApplication();
+        context.getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         manager = context.getSystemService(NotificationManager.class);
     }
 

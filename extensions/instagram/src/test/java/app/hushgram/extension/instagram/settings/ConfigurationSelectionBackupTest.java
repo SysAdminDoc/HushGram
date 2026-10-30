@@ -16,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import app.hushgram.extension.instagram.misc.SettingsRows;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -26,6 +27,7 @@ public class ConfigurationSelectionBackupTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
     @Before public void prepare() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.SETTINGS_ROWS);
         ConfigurationBackup.forgetUndo();
         Settings.HIDDEN_SETTINGS_ROWS.resetToDefault();

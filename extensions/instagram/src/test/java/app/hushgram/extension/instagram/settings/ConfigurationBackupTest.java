@@ -40,12 +40,13 @@ import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.SharedPrefCategory;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 30)
+@Config(sdk = {30, 37})
 public class ConfigurationBackupTest {
     @Rule public final SettingsContextRule context = new SettingsContextRule();
     private SharedPreferences original;
 
     @Before public void setup() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         original = Setting.preferences.preferences;
         ConfigurationBackup.forgetUndo();

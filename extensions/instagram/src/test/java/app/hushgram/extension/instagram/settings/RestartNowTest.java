@@ -49,7 +49,7 @@ import app.hushgram.extension.shared.settings.preference.ExportStatus;
  * export would be cut off.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {28, 36})
+@Config(sdk = {28, 36, 37})
 public class RestartNowTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
     private final AtomicInteger ended = new AtomicInteger();
@@ -57,6 +57,7 @@ public class RestartNowTest {
 
     @Before
     public void prepare() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.FOLLOWING_FEED);
         RestartNow.endProcessForTests = ended::incrementAndGet;
         launcher = new ComponentName(RuntimeEnvironment.getApplication().getPackageName(),

@@ -70,7 +70,7 @@ import app.hushgram.extension.shared.settings.preference.LogBufferManager;
  * grant goes.
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 30)
+@Config(sdk = {30, 37})
 public class SaveTreeTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
@@ -83,6 +83,7 @@ public class SaveTreeTest {
     @Before
     public void setUp() {
         context = RuntimeEnvironment.getApplication();
+        context.getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         LogBufferManager.clearLogBuffer();
         ShadowToast.reset();
         SaveLeftovers.forgetSweepForTests();
