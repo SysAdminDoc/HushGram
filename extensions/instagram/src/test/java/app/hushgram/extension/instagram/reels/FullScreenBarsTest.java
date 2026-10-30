@@ -814,6 +814,40 @@ public class FullScreenBarsTest {
         }
     }
 
+    /**
+     * #378: back from a reel's profile, the pause had given the navigation bar's height back and the
+     * resume put the pill's 0 in again before the screens read it. The pass that keeps that 0 brings
+     * the screens nothing new, so they aren't told it again: a tell there stopped the reel's video.
+     */
+    @Test public void theZeroTakenBackAsTheActivityResumesIsntToldAgain() {
+        List<String> told = new ArrayList<>();
+        FullScreenBars.resetHeightsForTests((listener, status, nav) -> told.add(listener + " " + status + " " + nav));
+        FullScreenBars.registeredForTests(true);
+        try {
+            Settings.FULL_SCREEN_HIDES.save(HiddenBars.NAVIGATION_BAR);
+            Settings.FULL_SCREEN_REELS.save(true);
+            FullScreenBars.nowResumed(activity);
+            FullScreenBars.heightsAsked(activity, "reels");
+            heights(75, 135);
+            showViewer(W, H);
+            assertTrue(watch().isHidden());
+            shadowOf(Looper.getMainLooper()).idle();
+            assertEquals(Arrays.asList("reels 75 135", "reels 75 0"), told);
+
+            FullScreenBars.giveBackBarHeights();
+            FullScreenBars.takeNavBarHeight();
+            heights(75, 135);
+            assertEquals("the screens already have 75/0", 2, told.size());
+
+            FullScreenBars.giveBackBarHeights();
+            heights(75, 135);
+            assertEquals("without the resume's 0 the pass's 0 is news", Arrays.asList("reels 75 135", "reels 75 0", "reels 75 0"), told);
+        } finally {
+            FullScreenBars.registeredForTests(false);
+            FullScreenBars.resetHeightsForTests(null);
+        }
+    }
+
     /** Whether the window shows the status bar ([status]) and the navigation bar ([navigation]), as far as HushGram asked. */
     private void assertBarsShowing(boolean status, boolean navigation) throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
