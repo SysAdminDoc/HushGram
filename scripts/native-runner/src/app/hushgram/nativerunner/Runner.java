@@ -97,6 +97,12 @@ public final class Runner extends Instrumentation {
     private static final int MUTED_ID = 0x4847_0001;
     private static final int KEPT_ID = 0x4847_0003;
     private static final int UNMUTED_ID = 0x4847_0004;
+    private static final int GROUPED_ID = 0x4847_0010;
+    private static final int GROUPED_MUTED_ID = 0x4847_0012;
+    private static final int GROUPED_UNMUTED_ID = 0x4847_0013;
+    // NotificationGroups' one group and the tag its summaries are posted under.
+    private static final String ONE_GROUP = "hushgram_notifications";
+    private static final String SUMMARY_TAG = "hushgram_notification_group";
     private static final String LINK_CLEANER_CLASS = "app.hushgram.extension.instagram.misc.LinkCleaner";
     // A reel link as Copy link gives it, with the per-share id and a label, next to a link to another
     // site. Only Instagram's own link loses its keys.
@@ -387,8 +393,11 @@ public final class Runner extends Instrumentation {
      * stand-in, with test notifications on two of Instagram's own channel ids. With the promo
      * channel muted, its two posts never reach the manager and are logged once, while a post on the
      * other channel arrives as built. With the list emptied, the next promo post arrives in the same
-     * process. The user is new, so the case makes both channels itself, and it takes its
-     * notifications down and the list back to empty at the end.
+     * process. Then the same with Group notifications on: two kept posts and a muted one give one
+     * summary counting 2, each kept post shows as it was built, and the next promo post after the
+     * list is emptied joins the group and the count goes to 3, still in the same process. The user
+     * is new, so the case makes both channels itself, and it takes its notifications down and the
+     * settings back as they were saved at the end.
      */
     private static boolean notifications(Context target, Bundle out) throws Exception {
         ClassLoader loader = target.getClassLoader();
@@ -412,9 +421,14 @@ public final class Runner extends Instrumentation {
         out.putString(PREFIX + "pause", reason);
         if (!"NONE".equals(reason)) note(wrong, "this start runs paused (" + reason + ")");
         Object muted = settings.getField("MUTED_NOTIFICATION_CHANNELS").get(null);
+        Object grouping = settings.getField("GROUP_NOTIFICATIONS").get(null);
+        Object byType = settings.getField("GROUP_NOTIFICATIONS_BY_TYPE").get(null);
+        Object groupingSaved = grouping.getClass().getMethod("savedValue").invoke(grouping);
+        Object byTypeSaved = byType.getClass().getMethod("savedValue").invoke(byType);
         manager.createNotificationChannel(new NotificationChannel(MUTED_CHANNEL, "Product announcements", NotificationManager.IMPORTANCE_DEFAULT));
         manager.createNotificationChannel(new NotificationChannel(KEPT_CHANNEL, "Likes", NotificationManager.IMPORTANCE_DEFAULT));
         try {
+            save(grouping, false);
             save(muted, MUTED_CHANNEL);
             standIn.invoke(null, manager, MUTED_ID, test(target, MUTED_CHANNEL));
             standIn.invoke(null, manager, MUTED_ID + 1, test(target, MUTED_CHANNEL));
@@ -435,9 +449,41 @@ public final class Runner extends Instrumentation {
             boolean back = shows(manager, UNMUTED_ID);
             out.putString(PREFIX + "notifications.unmuted", back ? "shown" : "missing");
             if (!back) note(wrong, "unmuted: the next post on " + MUTED_CHANNEL + " never showed");
+
+            manager.cancelAll();
+            save(byType, false);
+            save(grouping, true);
+            save(muted, MUTED_CHANNEL);
+            Notification first = test(target, KEPT_CHANNEL, "First like", "Someone liked your photo.");
+            Notification second = test(target, KEPT_CHANNEL, "Second like", "Someone else liked your photo.");
+            standIn.invoke(null, manager, GROUPED_ID, first);
+            standIn.invoke(null, manager, GROUPED_MUTED_ID, test(target, MUTED_CHANNEL, "Promo", "Try something new."));
+            standIn.invoke(null, manager, GROUPED_ID + 1, second);
+            List<Notification> summaries = summaries(manager, 2);
+            String counted = counted(summaries);
+            out.putString(PREFIX + "notifications.grouped.summary", counted);
+            if (!"2".equals(counted)) note(wrong, "grouped: the summaries counted " + counted + ", expected one counting 2");
+            String keptGrouped = asPosted(manager, GROUPED_ID, first) + "," + asPosted(manager, GROUPED_ID + 1, second);
+            out.putString(PREFIX + "notifications.grouped.kept", keptGrouped);
+            if (!"same,same".equals(keptGrouped)) note(wrong, "grouped: the kept posts showed as " + keptGrouped + ", expected same,same");
+            String heldGrouped = active(manager, GROUPED_MUTED_ID) ? "shown" : "held";
+            out.putString(PREFIX + "notifications.grouped.muted", heldGrouped);
+            if (!"held".equals(heldGrouped)) note(wrong, "grouped: the post on " + MUTED_CHANNEL + " was shown, expected held");
+
+            save(muted, "");
+            Notification third = test(target, MUTED_CHANNEL, "Promo", "Try something else.");
+            standIn.invoke(null, manager, GROUPED_UNMUTED_ID, third);
+            String joined = shows(manager, GROUPED_UNMUTED_ID) ? asPosted(manager, GROUPED_UNMUTED_ID, third) : "missing";
+            out.putString(PREFIX + "notifications.grouped.unmuted", joined);
+            if (!"same".equals(joined)) note(wrong, "grouped unmuted: the next post on " + MUTED_CHANNEL + " showed as " + joined + ", expected same");
+            String recounted = counted(summaries(manager, 3));
+            out.putString(PREFIX + "notifications.grouped.after", recounted);
+            if (!"3".equals(recounted)) note(wrong, "grouped unmuted: the summaries counted " + recounted + ", expected one counting 3");
         } finally {
             // Each step on its own, so one that fails neither hides the case's own error nor skips the rest.
             try { save(muted, ""); } catch (Exception e) { note(wrong, "cleanup: " + e); }
+            try { save(grouping, groupingSaved); } catch (Exception e) { note(wrong, "cleanup: " + e); }
+            try { save(byType, byTypeSaved); } catch (Exception e) { note(wrong, "cleanup: " + e); }
             try { manager.cancelAll(); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
             try { manager.deleteNotificationChannel(MUTED_CHANNEL); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
             try { manager.deleteNotificationChannel(KEPT_CHANNEL); } catch (RuntimeException e) { note(wrong, "cleanup: " + e); }
@@ -549,6 +595,56 @@ public final class Runner extends Instrumentation {
     private static Notification test(Context target, String channel) {
         return new Notification.Builder(target, channel).setSmallIcon(android.R.drawable.stat_notify_chat)
                 .setContentTitle("HushGram native runner").build();
+    }
+
+    private static Notification test(Context target, String channel, String title, String text) {
+        return new Notification.Builder(target, channel).setSmallIcon(android.R.drawable.stat_notify_chat)
+                .setContentTitle(title).setContentText(text).build();
+    }
+
+    /** HushGram's summaries in the shade once one counts [number], or what shows after five seconds. */
+    private static List<Notification> summaries(NotificationManager manager, int number) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5_000;
+        while (true) {
+            List<Notification> found = new ArrayList<>();
+            boolean counts = false;
+            for (StatusBarNotification shown : manager.getActiveNotifications()) {
+                if (!SUMMARY_TAG.equals(shown.getTag())) continue;
+                found.add(shown.getNotification());
+                counts |= shown.getNotification().number == number;
+            }
+            if (counts || System.currentTimeMillis() >= deadline) return found;
+            Thread.sleep(100);
+        }
+    }
+
+    /** Each summary's count, with a comma between, and its group when that isn't the one group. "none" for no summary. */
+    private static String counted(List<Notification> summaries) {
+        if (summaries.isEmpty()) return "none";
+        List<String> each = new ArrayList<>();
+        for (Notification summary : summaries) {
+            each.add(summary.number + (ONE_GROUP.equals(summary.getGroup()) ? "" : " in " + summary.getGroup()));
+        }
+        return String.join(",", each);
+    }
+
+    /**
+     * "same" when the notification with this id shows in the one group with the title and text it
+     * was built with, otherwise what differs.
+     */
+    private static String asPosted(NotificationManager manager, int id, Notification posted) {
+        for (StatusBarNotification shown : manager.getActiveNotifications()) {
+            if (shown.getId() != id || shown.getTag() != null) continue;
+            Notification active = shown.getNotification();
+            if (!ONE_GROUP.equals(active.getGroup())) return "outside the group (" + active.getGroup() + ")";
+            String title = String.valueOf(active.extras.getCharSequence(Notification.EXTRA_TITLE));
+            String text = String.valueOf(active.extras.getCharSequence(Notification.EXTRA_TEXT));
+            String postedTitle = String.valueOf(posted.extras.getCharSequence(Notification.EXTRA_TITLE));
+            String postedText = String.valueOf(posted.extras.getCharSequence(Notification.EXTRA_TEXT));
+            if (postedTitle.equals(title) && postedText.equals(text)) return "same";
+            return "changed to " + title + " / " + text;
+        }
+        return "missing";
     }
 
     /** Whether the notification with this id shows within five seconds. The manager posts later than notify returns. */
