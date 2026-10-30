@@ -51,6 +51,7 @@ Every HushGram release, newest first.
 
 ### Improvements
 
+* **Instagram:** `See who a story mentions` opens its list again when you come back from an account's profile, so you can go down the list without reopening it each time. Close ends it. Asked for in #403.
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
 * **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.
 * **Instagram:** In `Download any reel`, Download audio's line in the diagnostics report says when a reel's only sound is xHE-AAC, which some players can't play. The file is still saved as it is, never re-encoded. A follow-up to #216.

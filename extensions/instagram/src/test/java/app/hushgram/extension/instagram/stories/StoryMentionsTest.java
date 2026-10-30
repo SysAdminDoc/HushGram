@@ -7,6 +7,7 @@ package app.hushgram.extension.instagram.stories;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -581,6 +582,80 @@ public class StoryMentionsTest {
         assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_DOWN, center[0], between)));
         assertTrue(StoryMentions.touch(activity, event(MotionEvent.ACTION_UP, center[0], between)));
         assertNotNull("the tap didn't open the list", ShadowDialog.getLatestDialog());
+    }
+
+    private AlertDialog openedList() {
+        assertTrue(pill().performClick());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        return dialog;
+    }
+
+    private void tapAccount(AlertDialog dialog, String description) {
+        View row = find(dialog.getWindow().getDecorView(), view -> description.contentEquals(String.valueOf(view.getContentDescription())));
+        assertNotNull(row);
+        assertTrue(row.performClick());
+    }
+
+    /** #403: the list comes back when the story does, so the next account is one tap away. */
+    @Test
+    public void theListComesBackAfterAProfileWhenTheStoryReturns() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        assertFalse(first.isShowing());
+        StoryMentions.Pill pill = pill();
+        pill.setVisibility(View.GONE);
+        idle();
+        pill.setVisibility(View.VISIBLE);
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+        assertNotNull(find(again.getWindow().getDecorView(), view -> "@bo.k".equals(textOf(view))));
+    }
+
+    @Test
+    public void theListStaysClosedWhileTheProfileIsStillUp() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        idle();
+        bind(ANA, BO);
+        assertFalse("the pill never went away, so the profile still has the screen", ((AlertDialog) ShadowDialog.getLatestDialog()).isShowing());
+    }
+
+    @Test
+    public void closingTheListEndsTheComeBack() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        first.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        StoryMentions.Pill pill = pill();
+        pill.setVisibility(View.GONE);
+        idle();
+        pill.setVisibility(View.VISIBLE);
+        idle();
+        assertSame("Close ends it", first, ShadowDialog.getLatestDialog());
+    }
+
+    @Test
+    public void anotherStoryEndsTheComeBack() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        StoryMentions.Pill pill = pill();
+        pill.setVisibility(View.GONE);
+        idle();
+        bind(BO);
+        idle();
+        assertSame("a story with other mentions doesn't open the list", first, ShadowDialog.getLatestDialog());
+        bind(ANA, BO);
+        idle();
+        assertSame("and the old list is forgotten", first, ShadowDialog.getLatestDialog());
+    }
+
+    private static String textOf(View view) {
+        return view instanceof TextView ? String.valueOf(((TextView) view).getText()) : null;
     }
 
     private void bind(Account... mentioned) {

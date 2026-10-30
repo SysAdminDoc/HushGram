@@ -17,6 +17,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
+import android.os.SystemClock;
 import android.text.Layout;
 import android.text.TextUtils;
 import android.util.LruCache;
@@ -136,6 +137,61 @@ public final class StoryMentions {
     private StoryMentions() {
     }
 
+    /** How long a list left open for a profile still comes back with the story (#403). */
+    static final long BACK_TO_LIST_MS = 10 * 60 * 1000L;
+
+    /**
+     * The list a tap on an account left for that profile. When the story's pill shows again after
+     * the pill went away, the same list opens again, until Close, Back or a different story ends it.
+     */
+    private static final class BackToList {
+        final List<String> usernames = new ArrayList<>();
+        final long at = SystemClock.uptimeMillis();
+        boolean away;
+
+        BackToList(List<Mention> people) {
+            for (Mention person : people) usernames.add(person.username);
+        }
+
+        boolean matches(List<Mention> people) {
+            if (people.size() != usernames.size()) return false;
+            for (int i = 0; i < people.size(); i++) if (!usernames.get(i).equals(people.get(i).username)) return false;
+            return true;
+        }
+
+        boolean stale() {
+            return SystemClock.uptimeMillis() - at > BACK_TO_LIST_MS;
+        }
+    }
+
+    @Nullable private static BackToList backToList;
+
+    /** [pill] went off screen: if a profile is open over its story, the list waits for it to return. */
+    private static void pillLeft(Pill pill) {
+        BackToList waiting = backToList;
+        if (waiting != null && waiting.matches(pill.people)) waiting.away = true;
+    }
+
+    /** [pill] shows: the list opens again if it went away for a profile and the pill left and came back. */
+    private static void pillShown(Pill pill) {
+        BackToList waiting = backToList;
+        if (waiting == null || pill.people.isEmpty()) return;
+        if (waiting.stale()) {
+            backToList = null;
+        } else if (!waiting.matches(pill.people)) {
+            if (waiting.away) backToList = null;
+        } else if (waiting.away && pill.isShown()) {
+            backToList = null;
+            pill.post(() -> {
+                try {
+                    if (pill.isShown()) list(activityOf(pill) != null ? activityOf(pill) : pill.getContext(), pill.people);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+                }
+            });
+        }
+    }
+
     /** One account a story mentions, as the list shows it. */
     static final class Mention {
         final String username;
@@ -221,6 +277,39 @@ public final class StoryMentions {
 
         Pill(Context context) {
             super(context);
+        }
+
+        @Override
+        public void onVisibilityAggregated(boolean visible) {
+            super.onVisibilityAggregated(visible);
+            settle(visible);
+        }
+
+        @Override
+        protected void onVisibilityChanged(View changedView, int visibility) {
+            super.onVisibilityChanged(changedView, visibility);
+            settle(visibility == VISIBLE && isShown());
+        }
+
+        @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            settle(isShown());
+        }
+
+        @Override
+        protected void onDetachedFromWindow() {
+            super.onDetachedFromWindow();
+            settle(false);
+        }
+
+        private void settle(boolean visible) {
+            try {
+                if (visible) pillShown(this);
+                else pillLeft(this);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+            }
         }
 
         /**
@@ -335,6 +424,7 @@ public final class StoryMentions {
             pill.setText(text);
             pill.setContentDescription(L10n.f(context, "%1$s, see who this story mentions", text));
             pill.setVisibility(View.VISIBLE);
+            pillShown(pill);
             HookStatus.counted(FamilyNames.STORY_MENTIONS, PILL_SHOWN);
             return true;
         } catch (Throwable failure) {
@@ -535,15 +625,21 @@ public final class StoryMentions {
                 .setNegativeButton(L10n.t(activity, "Close"), null);
         Context themed = builder.getContext();
         AlertDialog dialog = builder.create();
+        boolean[] leaving = {false};
         LinearLayout rows = new LinearLayout(themed);
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(0, Dim.dp(8), 0, Dim.dp(8));
         for (Mention person : people) {
             rows.addView(row(themed, person, () -> {
+                leaving[0] = true;
+                backToList = new BackToList(people);
                 dialog.dismiss();
                 openProfile(activity, person.username);
             }));
         }
+        dialog.setOnDismissListener(shown -> {
+            if (!leaving[0]) backToList = null;
+        });
         ScrollView scroll = new ScrollView(themed);
         scroll.addView(rows);
         dialog.setView(scroll);
@@ -807,6 +903,7 @@ public final class StoryMentions {
         pressed = new WeakReference<>(null);
         touched = new WeakReference<>(null);
         anyPill = false;
+        backToList = null;
     }
 
     // ------------------------------------------------------------------ what the patch fills in
