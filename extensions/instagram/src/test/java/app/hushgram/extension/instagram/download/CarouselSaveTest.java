@@ -1047,6 +1047,44 @@ public class CarouselSaveTest {
     }
 
     /**
+     * Choose pages keeps Name saves by account and post time's page numbers: ticking pages 2 and 4
+     * of five saves just those two, as _2 and _4, the names Save all gives them.
+     */
+    @Test @Config(sdk = {28, 37})
+    public void choosePagesKeepsEachPagesNumberInItsName() throws Exception {
+        Shadows.shadowOf(RuntimeEnvironment.getApplication()).grantPermissions(android.Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        for (String directory : new String[]{Environment.DIRECTORY_PICTURES, Environment.DIRECTORY_MOVIES}) {
+            File[] old = new File(Environment.getExternalStoragePublicDirectory(directory), "Instagram").listFiles();
+            if (old != null) for (File file : old) assertTrue(file.delete());
+        }
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        Settings.SAVE_NAME_BY_POST.save(true);
+        Calendar noon = new GregorianCalendar();
+        noon.clear();
+        noon.set(2026, Calendar.SEPTEMBER, 1, 12, 0, 0);
+        MediaBridge.poster = "stevi.ous";
+        MediaBridge.postedAt = noon.getTimeInMillis() / 1000L;
+        CarouselPages.previews = (application, url, size) -> null;
+        MediaBridge.post = Arrays.asList(page(false, "/p1.jpg", "1"), page(false, "/p2.jpg", "2"),
+                page(false, "/p3.jpg", "3"), page(true, "/p4.mp4", "4"), page(false, "/p5.jpg", "5"));
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        List<CheckBox> boxes = boxes(list);
+        assertEquals(5, boxes.size());
+        boxes.get(1).setChecked(true);
+        boxes.get(3).setChecked(true);
+        list.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+        waitForSaves();
+        assertEquals("Saved 2. Failed 0. Skipped 0.", ShadowToast.getTextOfLatestToast());
+        String base = "stevi.ous_20260901_120000";
+        assertEquals(Arrays.asList(base + "_2.jpg", base + "_4.mp4"), savedNames());
+        for (String path : new String[]{"/p1.jpg", "/p3.jpg", "/p5.jpg"}) assertEquals(path, 0, server.hits(path));
+        assertClean();
+    }
+
+    /**
      * A page the photo switch leaves out is listed but can't be ticked, rows work with no picture,
      * and Save says why and saves nothing when the account changed, the screen closed or nothing is
      * chosen.
