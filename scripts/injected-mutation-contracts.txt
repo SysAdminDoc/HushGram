@@ -358,6 +358,11 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentB
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideCommentBar(Ljava/lang/Object;)Z holding android_purge_26_q2_ClipsViewerCommentBarController_unVanishCommentBar
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
 once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryCommentBar()Z holding android_purge_26_q3_ClipsViewerInViewerCommentBarComponent_render
+# Keep the Reels top bar puts the top bar's onReelScroll second flag, the one it hands the scroll
+# helper's update as the keep-in-place flag, through ReelsTopBarScroll.keepInPlace first thing (#411).
+# Left out, the title, the tabs and the buttons slide away with the switch on.
+start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(Z)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
+once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(Z)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
 # Hide the reply bar on reels from chats asks hideDirectReplyBar(Object) with the viewer's source
 # right after each read of the direct reply bar controller's hidden flag, when the flag is clear:
 # once in the showReplyBar that turns the flag into visible or gone (merged into the controller's
@@ -478,6 +483,10 @@ sole-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->setLogoLong
 # names the constructor alone. Left out, the newer header's logo opens nothing; LogoLongPressTest
 # checks the call follows the store on the stored register in all seven 450 builds.
 single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->watchLogo(Landroid/view/View;)V in <init>
+# Keep Home's top bar puts the list of header views Home's fragment hands its scroll controller
+# through HomeTopBar.slidingViews, in the one method reading the navbar-hidden argument (04rY.A0g on
+# 453), once (#408). Left out, the logo and its buttons slide away with the switch on.
+once-call Lapp/hushgram/extension/instagram/feed/HomeTopBar;->slidingViews(Ljava/util/List;)Ljava/util/List; in instance (Z)V holding was_previous_homecoming_tab_navbar_hidden
 # Spoof location sends every read of a Location's latitude, longitude and distance to SpoofLocation,
 # which answers the set place for a fix from the phone while the switch is on. One left in
 # Instagram's code is a read that tells Instagram where the phone really is.
@@ -2405,11 +2414,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/l
 
 # Feed Subscribe has a native eligibility branch inside the header, without a Subscribe view id.
 once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscribe(I)Z holding null\scannot\sbe\scast\sto\snon-null\stype\sinstagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState
-# Chat history tools (#246) hands ChatPager.opened first in the chat screen's onResume and ChatPager.closed
-# first in its onPause, the same pair of methods the chat lock hooks (the one pair logging the thread
-# controller's DirectThreadController.onResume and .onPause). Left out, the chat's name never gets its
-# menu; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/direct/ChatPager;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+# Chat history tools (#246) hands ChatPager.opened to the chat screen's onResume and ChatPager.closed
+# to its onPause, the same pair of methods the chat lock hooks (the one pair logging the thread
+# controller's DirectThreadController.onResume and .onPause). Not first in the method: both patches
+# insert at the start and the chat lock, applied later, keeps that spot. Left out, the chat's name never
+# gets its menu; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
-start-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
 once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
