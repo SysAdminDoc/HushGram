@@ -35,6 +35,7 @@ Every HushGram release, newest first.
 * **Tooling:** The release check holds a published receipt to the coverage census its own commit reviewed. Once a retarget replaced the old build's entry, the shipped receipt read as uncertified and the check failed on every push.
 * **Tooling:** The source audit reports a source it couldn't read past a rate limit as unread, and fails GitLab code search when a limit keeps a hit's project unread. Both used to be treated as gone.
 * **Tooling:** The source audit waits out a rate limit for as long as the forge's Retry-After asks, up to five minutes. A longer one, like GitLab's hourly limit, fails that source at once and says when it resets.
+* **Tooling:** The source audit leaves a source unread when a rate limit stops a branch comparison, instead of reporting the branch as new work. A server error on a GitLab hit's project now fails the search too.
 
 ### Improvements
 

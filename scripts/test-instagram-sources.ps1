@@ -467,8 +467,10 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/branches\?per_page=100&page=1$' { $answer = $a.alphaBranches; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/forks\?per_page=100&page=1$' { $answer = $a.alphaForks; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/compare/([0-9a-f]{40})\.\.\.([0-9a-f]{40})$' {
+                # A compare entry is GitHub's status for that commit, or a whole answer such as a limit.
                 $status = $a.compare[$Matches[2]]
-                if ($status) { $answer = @{ Status = 200; Content = "{`"status`":`"$status`"}" } }
+                if ($status -is [hashtable]) { $answer = $status }
+                elseif ($status) { $answer = @{ Status = 200; Content = "{`"status`":`"$status`"}" } }
                 break
             }
             '^https://api\.github\.com/repos/fixture-owner/beta-module$' { $answer = $a.betaRepo; break }
@@ -481,6 +483,16 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/files/LICENSE\?ref=main$' { $answer = $a.gammaLicense; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/branches\?per_page=100&page=1$' { $answer = $a.gammaBranches; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/forks\?per_page=100&page=1$' { $answer = $a.gammaForks; break }
+            '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/compare\?from=([0-9a-f]{40})&to=([0-9a-f]{40})$' {
+                # GitLab lists the commits $to has past $from; behind or identical lists none.
+                $status = $a.compare[$Matches[2]]
+                if ($status -is [hashtable]) { $answer = $status }
+                elseif ($status) {
+                    $commits = if ($status -eq 'ahead') { @(@{ id = $Matches[2] }) } else { @() }
+                    $answer = @{ Status = 200; Content = (@{ commits = $commits } | ConvertTo-Json -Depth 4) }
+                }
+                break
+            }
             '^https://gitlab\.com/api/v4/search\?scope=blobs&search=([^&]+)&per_page=100&page=1$' {
                 $items = if ([Uri]::UnescapeDataString($Matches[1]) -eq '"com.instagram.android"') { @($a.gitlabHits) } else { @() }
                 $answer = @{ Status = 200; Content = (ConvertTo-Json -InputObject @($items) -Depth 8) }
@@ -605,6 +617,15 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         '"repo": "fixture-owner/alpha-patches"', '"repo": "newcomer/ig-patches"')
     Assert-True ($fakeForge.Answers.directory.Content -like '*newcomer/ig-patches*') 'The directory answer was not edited, so the addition case would prove nothing.'
     Assert-Drift 'addition' '*github.com/newcomer/ig-patches*Morphe directory*' 'A bundle only the directory knows'
+    Reset-FixtureLedger
+    # A limit on the newcomer's metadata is named as one in the evidence, not passed off as its answer.
+    $fakeForge.Answers.repoMeta = @{ Status = 429; Content = $null }
+    $unreadMeta = Invoke-Audit
+    $addition = @($unreadMeta.Report.findings | Where-Object { $_.kind -eq 'addition' -and $_.repository -like '*newcomer/ig-patches' })
+    Assert-True ($addition.Count -eq 1 -and $addition[0].evidence.repository.status -eq 429 -and
+        $addition[0].evidence.repository.unread -like 'api.github.com was still rate limiting the audit (HTTP 429) when it read its metadata*') `
+        "An addition whose metadata a limit kept unread didn't say so: $($addition | ConvertTo-Json -Depth 6 -Compress)"
+    Reset-FixtureLedger
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.searchHits[2].sha = ('9b' * 20)
@@ -636,6 +657,26 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Reset-FixtureLedger
     $fakeForge.Answers.compare[('a3' * 20)] = 'ahead'
     Assert-Drift 'new-branch' '*alpha-patches*branch old carries work the ledger hasn''t pinned*' 'A branch with work of its own'
+    Reset-FixtureLedger
+    # A limit on the comparison says nothing about the branch, on either forge: the source goes
+    # unread instead of reporting work the ledger hasn't pinned.
+    $fakeForge.Answers.compare[('a3' * 20)] = @{ Status = 403; Content = $null; Body = '{"message":"You have exceeded a secondary rate limit."}' }
+    $fakeForge.Answers.gammaBranches.Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}},{`"name`":`"old`",`"commit`":{`"id`":`"$('c3' * 20)`"}}]"
+    $fakeForge.Answers.compare[('c3' * 20)] = 'behind'
+    $gitlabBehind = Invoke-Audit
+    Assert-True (@($gitlabBehind.Report.findings | Where-Object { $_.repository -like '*gamma-patches*' }).Count -eq 0) `
+        "A GitLab branch behind a pinned one was reported: $(@($gitlabBehind.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | ')"
+    Reset-FixtureLedger
+    $fakeForge.Answers.compare[('c3' * 20)] = @{ Status = 429; Content = $null }
+    $compareLimited = Invoke-Audit
+    $compareFindings = @($compareLimited.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($compareLimited.ExitCode -eq 1 -and @($compareLimited.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like "*alpha-patches could not be read: api.github.com was still rate limiting the audit (HTTP 403) when it read the comparison of $('a3' * 20) with $commitA1*" }).Count -eq 1 -and
+        @($compareLimited.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like "*gamma-patches could not be read: gitlab.com was still rate limiting the audit (HTTP 429) when it read the comparison of $('c3' * 20) with $commitG1*" }).Count -eq 1) `
+        "A limited comparison didn't leave its source unread (exit $($compareLimited.ExitCode)): $compareFindings"
+    Assert-True (@($compareLimited.Report.findings | Where-Object { $_.kind -eq 'new-branch' }).Count -eq 0) "A limited comparison was reported as a new branch: $compareFindings"
+    Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'An audit a limited comparison cut short changed the ledger.'
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.alphaForks.Content = '[{"full_name":"someone/alpha-patches"},{"full_name":"stranger/alpha-patches"}]'
@@ -665,14 +706,38 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     # GitLab's per-address limit runs by the hour and says so in Retry-After. A wait longer than
     # -MaxRateLimitWaitSeconds gives up on the request at once and names the reset; a short one is
     # waited for as long as the forge asked.
+    # The reset is named the same way under any culture (fi-FI writes a time as 11.12), and rounded
+    # up so it's never a minute early.
     $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 3036 }
-    $hourlyRun = Invoke-Audit
+    $culture = [Globalization.CultureInfo]::CurrentCulture
+    $askedFrom = [DateTime]::UtcNow
+    try {
+        [Globalization.CultureInfo]::CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('fi-FI')
+        $hourlyRun = Invoke-Audit
+    } finally { [Globalization.CultureInfo]::CurrentCulture = $culture }
+    $askedUntil = [DateTime]::UtcNow
     $hourly = @($hourlyRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and $_.detail -like '*gamma-patches could not be read*' })
     Assert-True ($hourlyRun.ExitCode -eq 1 -and $hourly.Count -eq 1 -and
-        $hourly[0].detail -like '*gitlab.com was still rate limiting this address (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*') `
+        $hourly[0].detail -like '*gitlab.com was still rate limiting the audit (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*') `
         "A limit resetting within the hour wasn't reported unread with its reset: $(@($hourlyRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    $named = [DateTime]::ParseExact(([regex]::Match($hourly[0].detail, 'after (\d{4}-\d\d-\d\d \d\d:\d\d) UTC')).Groups[1].Value, 'yyyy-MM-dd HH:mm',
+        [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]'AssumeUniversal, AdjustToUniversal')
+    Assert-True ($named -ge $askedFrom.AddSeconds(3036) -and $named -le $askedUntil.AddSeconds(3036 + 60)) `
+        "The reset named ($named) wasn't the minute after Retry-After's 3036 s from $askedFrom."
     Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 1) `
         'A Retry-After past the longest wait was waited out instead of given up on.'
+    # A Retry-After decades out still reads as a limit, not as a number too big for the audit.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 1e10 }
+    $farRun = Invoke-Audit
+    Assert-True (@($farRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like '*gamma-patches could not be read: gitlab.com was still rate limiting the audit (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*' }).Count -eq 1) `
+        "A Retry-After past what an [int] holds wasn't reported as the limit: $(@($farRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    # The audit's own wait, for a limit that names none, isn't held to the cap on what a forge asks.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null }
+    $ownWait = Invoke-Audit @{ RateLimitWaitSeconds = 1; MaxRateLimitWaitSeconds = 0 }
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4 -and
+        ([regex]::Matches($ownWait.Said, 'rate limited on gitlab\.com, waiting 1 s')).Count -eq 3) `
+        "A limit naming no wait wasn't waited out three times past a smaller cap: $($ownWait.Said)"
     $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 1 }
     $shortRun = Invoke-Audit
     Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4 -and
@@ -684,7 +749,7 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     $fakeForge.Answers.betaWatch = @{ Status = 429; Content = $null }
     $watchRun = Invoke-Audit
     Assert-True ($watchRun.ExitCode -eq 1 -and @($watchRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
-                $_.detail -like '*beta-module could not be read: api.github.com was still rate limiting this address (HTTP 429) when the audit read the commits of main under app/instagram*' }).Count -eq 1) `
+                $_.detail -like '*beta-module could not be read: api.github.com was still rate limiting the audit (HTTP 429) when it read the commits of main under app/instagram*' }).Count -eq 1) `
         "A limited watched-path read wasn't reported as the limit: $(@($watchRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
     $fakeForge.Answers = New-FakeAnswers
 
@@ -729,6 +794,14 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/4242' }).Count -eq 4) `
             'The rate-limited project lookup was not asked four times before the search gave up on it.'
         Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A search a limit cut short changed the ledger.'
+        Reset-FixtureLedger
+        # A server error is no answer about the project either, so it fails the search too.
+        $fakeForge.Answers.gitlabProject = @{ Status = 502; Content = $null }
+        $searchBroken = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searchBroken.ExitCode -eq 1 -and @($searchBroken.Report.findings | Where-Object {
+                    $_.kind -eq 'source-failed' -and $_.detail -like '*GitLab code search could not be read: project 4242 answered HTTP 502*' }).Count -eq 1) `
+            ("A project lookup that got a server error didn't fail GitLab code search (exit $($searchBroken.ExitCode)): " +
+                (@($searchBroken.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
     } finally {
         $env:GITLAB_TOKEN = $null
         Reset-FixtureLedger

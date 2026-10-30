@@ -193,9 +193,12 @@ function Get-RetryAfterSeconds {
     if ($null -eq $headers -or $null -eq $headers.Value) { return $null }
     $hint = $headers.Value.PSObject.Properties['RetryAfter']
     if ($null -eq $hint -or $null -eq $hint.Value) { return $null }
-    if ($null -ne $hint.Value.Delta) { return [int][Math]::Ceiling($hint.Value.Delta.TotalSeconds) }
-    if ($null -ne $hint.Value.Date) { return [int][Math]::Max(0, [Math]::Ceiling(($hint.Value.Date - [DateTimeOffset]::UtcNow).TotalSeconds)) }
-    return $null
+    $seconds = $null
+    if ($null -ne $hint.Value.Delta) { $seconds = $hint.Value.Delta.TotalSeconds }
+    elseif ($null -ne $hint.Value.Date) { $seconds = ($hint.Value.Date - [DateTimeOffset]::UtcNow).TotalSeconds }
+    if ($null -eq $seconds) { return $null }
+    # A reset decades out still has to fit an [int], or reading it throws inside the request's catch.
+    return [int][Math]::Min([double][int]::MaxValue, [Math]::Max([double]0, [Math]::Ceiling([double]$seconds)))
 }
 
 function Get-RequestFault {
@@ -203,8 +206,15 @@ function Get-RequestFault {
     # in force and when to audit again.
     param($Answer, [string]$What)
     if (-not $Answer.Limited) { return "$What answered HTTP $($Answer.Status)" }
-    $when = if ($null -ne $Answer.ResetsAt) { "after $($Answer.ResetsAt.ToString('yyyy-MM-dd HH:mm')) UTC, when it resets" } else { 'once it resets' }
-    return "$($Answer.Host) was still rate limiting this address (HTTP $($Answer.Status)) when the audit read $What; audit again $when"
+    $when = 'once it resets'
+    if ($null -ne $Answer.ResetsAt) {
+        # Rounded up to the minute, so the time named is never before the reset.
+        $minute = [DateTime]::new($Answer.ResetsAt.Ticks - ($Answer.ResetsAt.Ticks % [TimeSpan]::TicksPerMinute), [DateTimeKind]::Utc)
+        if ($minute -lt $Answer.ResetsAt) { $minute = $minute.AddMinutes(1) }
+        $when = "after $($minute.ToString('yyyy-MM-dd HH:mm', [Globalization.CultureInfo]::InvariantCulture)) UTC, when it resets"
+    }
+    # GitLab counts reads without a token per address and GitHub counts per token, so this names neither.
+    return "$($Answer.Host) was still rate limiting the audit (HTTP $($Answer.Status)) when it read $What; audit again $when"
 }
 
 function Invoke-SourceRequest {
@@ -253,7 +263,8 @@ function Invoke-SourceRequest {
             $limited = $status -eq 429 -or ($status -eq 403 -and $said -match '(?i)rate limit')
             $retryAfter = if ($limited) { Get-RetryAfterSeconds $answer.Value } else { $null }
             $wait = if ($null -ne $retryAfter) { [Math]::Max($retryAfter, 1) } else { $RateLimitWaitSeconds }
-            if ($limited -and $attempt -lt 4 -and $wait -le $MaxRateLimitWaitSeconds) {
+            # The cap is for what a forge asks; the audit's own wait is always taken.
+            if ($limited -and $attempt -lt 4 -and ($null -eq $retryAfter -or $wait -le $MaxRateLimitWaitSeconds)) {
                 Write-Step "rate limited on $(([Uri]$Uri).Host), waiting $wait s"
                 Start-Sleep -Seconds $wait
                 continue
@@ -619,8 +630,9 @@ if ($searchGitLab) {
                 $projectId = [string]$item.project_id
                 if (-not $projects.ContainsKey($projectId)) {
                     $project = Invoke-SourceRequest -Uri "https://gitlab.com/api/v4/projects/$projectId" -Auth gitlab
-                    # A project that's gone or private drops its hit; one a limit kept unread fails the search.
-                    if ($project.Limited) { throw (Get-RequestFault $project "project $projectId") }
+                    # A project that's gone or private (GitLab answers 404 for both) drops its hit; one a
+                    # limit or a server error kept unread fails the search.
+                    if ($project.Status -ne 200 -and $project.Status -ne 404) { throw (Get-RequestFault $project "project $projectId") }
                     $projects[$projectId] = if ($project.Status -eq 200) {
                         ConvertTo-SourceKey ('https://gitlab.com/' + (ConvertFrom-SourceJson -Text $project.Content -What "GitLab project $projectId").path_with_namespace)
                     } else { $null }
@@ -728,6 +740,8 @@ foreach ($candidate in @($candidates.Values | Sort-Object Key)) {
                 archived = [bool]$repo.archived; pushedAt = "$($repo.pushed_at)"; description = [string]$repo.description }
         } else {
             $meta = [ordered]@{ status = $answer.Status }
+            # A limit says nothing about the repository, and the finding says so.
+            if ($answer.Limited) { $meta.unread = Get-RequestFault $answer 'its metadata' }
         }
     }
     Add-Finding -Kind 'addition' -Repository "https://$key" `
@@ -785,17 +799,20 @@ function Get-GitLabWatchedHead {
 
 function Test-CommitContained {
     # Whether $Commit is $Within or one of its ancestors. A commit either forge can't compare (a
-    # pin rewritten away by a force push, say) counts as not contained, so it gets looked at.
+    # pin rewritten away by a force push, say) counts as not contained, so it gets looked at. A
+    # limit leaves the source unread instead, since it says nothing about the branch.
     param($Where, [string]$Commit, [string]$Within)
     if ($Commit -notmatch '^[0-9a-f]{40}$' -or $Within -notmatch '^[0-9a-f]{40}$') { return $false }
     if ($Where.Host -eq 'github.com') {
         $answer = Invoke-SourceRequest -Uri "https://api.github.com/repos/$($Where.Path)/compare/$Within...$Commit" -Auth github
+        if ($answer.Limited) { throw (Get-RequestFault $answer "the comparison of $Commit with $Within") }
         if ($answer.Status -ne 200) { return $false }
         $status = [string](ConvertFrom-SourceJson -Text $answer.Content -What "$($Where.Path) comparison").status
         return $status -eq 'identical' -or $status -eq 'behind'
     }
     $answer = Invoke-SourceRequest -Uri ("https://gitlab.com/api/v4/projects/$([Uri]::EscapeDataString($Where.Path))/repository/compare?from=" +
         "$Within&to=$Commit") -Auth gitlab
+    if ($answer.Limited) { throw (Get-RequestFault $answer "the comparison of $Commit with $Within") }
     if ($answer.Status -ne 200) { return $false }
     return @(Get-JsonItems (ConvertFrom-SourceJson -Text $answer.Content -What "$($Where.Path) comparison").commits).Count -eq 0
 }
