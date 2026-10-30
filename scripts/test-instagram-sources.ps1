@@ -493,7 +493,13 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         if ($null -eq $answer) { throw "The audit made a request no stand-in answers: $url" }
         if ($answer.Status -ne 200) {
             $failure = New-Object System.Exception "Response status code does not indicate success: $($answer.Status)."
-            Add-Member -InputObject $failure -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $answer.Status })
+            $response = [pscustomobject]@{ StatusCode = $answer.Status }
+            # A Retry-After comes back the way HttpResponseHeaders carries one: a delta, no date.
+            if ($null -ne $answer.RetryAfter) {
+                Add-Member -InputObject $response -NotePropertyName Headers -NotePropertyValue ([pscustomobject]@{
+                    RetryAfter = [pscustomobject]@{ Delta = [TimeSpan]::FromSeconds($answer.RetryAfter); Date = $null } })
+            }
+            Add-Member -InputObject $failure -NotePropertyName Response -NotePropertyValue $response
             if (-not $answer.Body) { throw $failure }
             # A body comes back as the error's details, where Invoke-WebRequest puts what the forge said.
             $record = New-Object System.Management.Automation.ErrorRecord $failure, 'WebCmdletWebResponseException', 'InvalidOperation', $null
@@ -652,6 +658,34 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4) `
         'The rate-limited source was not asked four times before the audit gave up on it.'
     Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A rate-limited audit changed the ledger.'
+    Assert-True (@($limitedRun.Report.findings | Where-Object { $_.detail -like '*audit again once it resets*' }).Count -eq 1) `
+        "A limit that named no reset said when to audit again anyway: $limitedFindings"
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitLab's per-address limit runs by the hour and says so in Retry-After. A wait longer than
+    # -MaxRateLimitWaitSeconds gives up on the request at once and names the reset; a short one is
+    # waited for as long as the forge asked.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 3036 }
+    $hourlyRun = Invoke-Audit
+    $hourly = @($hourlyRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and $_.detail -like '*gamma-patches could not be read*' })
+    Assert-True ($hourlyRun.ExitCode -eq 1 -and $hourly.Count -eq 1 -and
+        $hourly[0].detail -like '*gitlab.com was still rate limiting this address (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*') `
+        "A limit resetting within the hour wasn't reported unread with its reset: $(@($hourlyRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 1) `
+        'A Retry-After past the longest wait was waited out instead of given up on.'
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 1 }
+    $shortRun = Invoke-Audit
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4 -and
+        ([regex]::Matches($shortRun.Said, 'rate limited on gitlab\.com, waiting 1 s')).Count -eq 3) `
+        "A short Retry-After wasn't waited for three times as asked: $($shortRun.Said)"
+    $fakeForge.Answers = New-FakeAnswers
+
+    # A limit on a watched path's commits leaves the source unread as a limit, not as an error.
+    $fakeForge.Answers.betaWatch = @{ Status = 429; Content = $null }
+    $watchRun = Invoke-Audit
+    Assert-True ($watchRun.ExitCode -eq 1 -and @($watchRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like '*beta-module could not be read: api.github.com was still rate limiting this address (HTTP 429) when the audit read the commits of main under app/instagram*' }).Count -eq 1) `
+        "A limited watched-path read wasn't reported as the limit: $(@($watchRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
     $fakeForge.Answers = New-FakeAnswers
 
     # GitHub answers its secondary limit with a 403 that says so in the body, and that one is waited
