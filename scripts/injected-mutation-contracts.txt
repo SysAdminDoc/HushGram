@@ -2258,6 +2258,11 @@ once-call Lapp/hushgram/extension/instagram/reels/FullScreenBars;->heightsDroppe
 # after working it out, and returns true (fill) on a yes. Left out, reels close to the screen's shape
 # still letterbox with the bars hidden; twice or elsewhere, it isn't the check the patch wrote.
 once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fill(F)Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
+# Show the whole reel (piko #2183) asks ReelFill.fit first thing in the same decision, ahead of the
+# early crop for media Instagram lets crop, and answers false (fit with bars) on a yes. Left out,
+# reels keep being cut at the sides; twice or elsewhere, it isn't the check the patch wrote.
+start-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fit()Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
+once-call Lapp/hushgram/extension/instagram/reels/ReelFill;->fit()Z in instance (Lcom/instagram/clips/intf/ClipsViewerSource;Lcom/instagram/common/session/UserSession;LX/*;LX/*;Ljava/lang/Boolean;IIZZ)Z holding android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage
 
 # Tap a feed video to pause it (#137) asks FeedTapPause.tapped first thing in the feed's tap handler,
 # the one instance (View, Media, five objects, int, boolean) void method that loads the handler's

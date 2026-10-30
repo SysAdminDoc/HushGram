@@ -951,6 +951,8 @@ Full screen Reels	Reel a schermo intero
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Nasconde la barra di stato e la barra di navigazione mentre si vedono i reel. Scorri dal bordo verso l'interno per riportarle un attimo. Indietro e la tastiera funzionano come al solito.
 Fill the screen	Riempi lo schermo
 Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	I reel che hanno quasi la forma dello schermo lo riempiono, tagliati un po' ai lati, invece di mostrare barre nere sopra e sotto. I video quadrati e larghi continuano ad adattarsi.
+Show the whole reel	Mostra il reel intero
+Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	Ogni reel sta dentro lo schermo, con barre nere dove la sua forma è diversa, così niente viene tagliato ai lati. Funziona senza Reel a schermo intero e ha la precedenza su Riempi lo schermo.
 Full screen Home	Home a schermo intero
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Nasconde la barra di stato e la barra di navigazione mentre si vede la Home. Scorri dal bordo verso l'interno per riportarle un attimo.
 Full screen Messages	Messaggi a schermo intero

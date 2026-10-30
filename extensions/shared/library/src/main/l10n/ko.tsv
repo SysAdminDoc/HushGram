@@ -950,6 +950,8 @@ Full screen Reels	릴스 전체 화면
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	릴스가 표시되는 동안 상태 표시줄과 탐색 막대를 숨깁니다. 가장자리에서 안쪽으로 밀면 잠깐 다시 나타납니다. 뒤로 가기와 키보드는 평소처럼 작동합니다.
 Fill the screen	화면 채우기
 Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	화면 비율에 가까운 릴스는 위아래에 검은 막대를 표시하는 대신 양옆을 조금 잘라 화면을 채웁니다. 정사각형 및 가로 동영상은 그대로 맞춰 표시됩니다.
+Show the whole reel	릴스 전체 보기
+Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	모든 릴스가 화면 안에 맞춰지고 모양이 다른 부분에는 검은 막대가 표시되어 양옆이 잘리지 않습니다. 릴스 전체 화면 없이도 작동하며 화면 채우기보다 우선합니다.
 Full screen Home	홈 전체 화면
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	홈이 표시되는 동안 상태 표시줄과 탐색 막대를 숨깁니다. 가장자리에서 안쪽으로 밀면 잠깐 다시 나타납니다.
 Full screen Messages	메시지 전체 화면

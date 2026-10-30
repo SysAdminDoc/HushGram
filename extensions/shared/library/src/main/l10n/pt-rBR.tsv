@@ -951,6 +951,8 @@ Full screen Reels	Reels em tela cheia
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Oculta a barra de status e a barra de navegação enquanto os Reels aparecem. Deslize a partir da borda para mostrá-las por um instante. Voltar e o teclado funcionam como sempre.
 Fill the screen	Preencher a tela
 Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	Reels com formato quase igual ao da tela a preenchem, cortados um pouco nas laterais, em vez de mostrar barras pretas em cima e embaixo. Vídeos quadrados e largos continuam se ajustando.
+Show the whole reel	Mostrar o reel inteiro
+Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	Cada reel cabe dentro da tela, com barras pretas onde o formato é diferente, então nada é cortado nas laterais. Funciona sem Reels em tela cheia e tem prioridade sobre Preencher a tela.
 Full screen Home	Início em tela cheia
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Oculta a barra de status e a barra de navegação enquanto o Início aparece. Deslize a partir da borda para mostrá-las por um instante.
 Full screen Messages	Mensagens em tela cheia

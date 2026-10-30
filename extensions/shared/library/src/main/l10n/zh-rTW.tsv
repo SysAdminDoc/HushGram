@@ -1267,6 +1267,8 @@ Material You needs Android 12 or newer, so Instagram's blue stays.	Material You 
 No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	尚未新增字型。新增 .ttf 或 .otf 檔案後，就會與 Instagram 字型一起顯示在限時動態文字編輯器中。
 Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	請先在 Instagram 中開啟一次「設定和動態」，再回到這裡。接著就能在此清單中取消勾選要隱藏的項目。
 Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	長寬比接近螢幕的 Reels 會填滿螢幕，左右稍微裁切，不再於上下顯示黑邊。正方形和寬畫面影片仍會完整顯示。
+Show the whole reel	顯示完整的 Reels
+Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	每支 Reels 都會完整放進螢幕，形狀不同的地方顯示黑邊，左右不會被裁切。不需要開啟全螢幕 Reels，並且優先於填滿螢幕。
 Removed from your story fonts	已從限時動態字型中移除
 Rows in Instagram's settings	Instagram 設定中的項目
 That file isn't a font HushGram can use. Nothing was added.	HushGram 無法使用此字型檔，因此未新增任何內容。

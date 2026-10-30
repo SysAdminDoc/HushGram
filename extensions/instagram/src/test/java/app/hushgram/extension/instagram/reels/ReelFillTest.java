@@ -35,6 +35,7 @@ public class ReelFillTest {
     public void switchBack() {
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FILL_REEL_SCREEN.resetToDefault();
+        Settings.FIT_REEL_SCREEN.resetToDefault();
     }
 
     @Test
@@ -61,5 +62,18 @@ public class ReelFillTest {
         Settings.FILL_REEL_SCREEN.save(true);
         Settings.FULL_SCREEN_REELS.save(false);
         assertFalse(ReelFill.fill(TALL_SCREEN));
+    }
+
+    /** piko #2183: Show the whole reel answers on its own switch, with or without Full screen Reels. */
+    @Test
+    public void showTheWholeReelFitsOnItsOwnSwitch() {
+        assertFalse("off to start", ReelFill.fit());
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertTrue(ReelFill.fit());
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertTrue("doesn't need Full screen Reels", ReelFill.fit());
+        Settings.FIT_REEL_SCREEN.save(false);
+        assertFalse(ReelFill.fit());
     }
 }

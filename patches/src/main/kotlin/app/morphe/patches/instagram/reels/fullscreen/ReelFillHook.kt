@@ -13,7 +13,9 @@ import app.morphe.patcher.string
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -21,6 +23,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(F)Z"
+internal const val FIT_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fit()Z"
 
 /** The purge flag Instagram's reel crop decision names first thing. */
 internal const val SHOULD_CROP = "android_purge_26_q2_ClipsMediaResizingUtils_shouldCropDynamic"
@@ -69,5 +72,30 @@ internal fun BytecodePatchContext.fillReelScreen() {
             return v$answer
         """,
         ExternalLabel("instagram", decision.getInstruction(at)),
+    )
+}
+
+/**
+ * Show the whole reel (piko #2183). Before the percentage exists the decision already answers true
+ * for media Instagram lets crop, so the ask goes in at its first instruction: [FIT_HOOK] says yes
+ * and the decision answers false (fit with bars), ahead of Instagram's crop and of [fillReelScreen].
+ * The first local is free there, and nothing jumps back to it.
+ */
+internal fun BytecodePatchContext.fitReelScreen() {
+    val decision = uniqueMethod(FULL_SCREEN_BARS_PATCH, "reel crop decision", ReelCropDecisionFingerprint)
+    decision.requireLocals(FULL_SCREEN_BARS_PATCH, 1)
+    if (0 in decision.jumpTargets()) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: something jumps back to the reel crop decision's first instruction")
+    }
+    decision.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $FIT_HOOK
+            move-result v0
+            if-eqz v0, :instagram
+            const/4 v0, 0x0
+            return v0
+        """,
+        ExternalLabel("instagram", decision.getInstruction(0)),
     )
 }

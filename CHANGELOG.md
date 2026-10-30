@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * **Instagram:** When Instagram crashes in the first minute after it opens, HushGram now keeps what crashed, and the diagnostics report you save from `HushGram settings` includes it. Turn on Debug logging to keep later crashes too.
 * **Instagram:** `Group Instagram's notifications` adds `Mute notification types` under Notifications. It stops the types you tick, like the betting and promo pushes Instagram's own notification settings can't turn off, and works with grouping off. Nothing's muted to start.
 * **Instagram:** `Lock your messages` adds `Fingerprint or face only` to Unlock with under Messages, on Android 11 and up. Its prompt has no PIN, pattern or password. Remove every fingerprint and face and your screen lock unlocks again.
+* **Instagram:** `Full screen Reels and Home` adds `Show the whole reel` under Reels. Every reel fits inside the screen with black bars where its shape differs, so nothing's cut off at the sides. Starts off.
 
 ### Bug Fixes
 

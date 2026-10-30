@@ -19,6 +19,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * 18 to 24 percent off and often lands just past the threshold: black bars on some reels and not
  * others. The patch asks here right after Instagram works the percentage out, and true makes the
  * reel fill the screen.
+ *
+ * <p>Show the whole reel (piko #2183) goes the other way and asks first, before Instagram's early
+ * crop for media it lets crop: true makes every reel fit inside the viewer with bars where its shape
+ * differs, so nothing is cut at the sides. It doesn't need Full screen Reels and wins over Fill.
  */
 public final class ReelFill {
     /**
@@ -31,7 +35,26 @@ public final class ReelFill {
     /** What a reel cut to fill the screen is counted under. */
     static final String COUNT_FILLED = "reels filled to the screen";
 
+    /** What a reel kept whole inside the screen is counted under. */
+    static final String COUNT_FITTED = "reels shown whole";
+
     private ReelFill() {
+    }
+
+    /**
+     * Asked first as Instagram decides whether a reel fills the viewer. True when Show the whole reel
+     * is on, which makes the decision answer no: the reel fits with bars instead of being cut. False
+     * hands the decision on to Fill the screen and Instagram, and so does anything that throws.
+     */
+    public static boolean fit() {
+        try {
+            if (!Utils.settingsReady() || !Settings.FIT_REEL_SCREEN.get()) return false;
+            HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_FITTED);
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel fit", failure);
+            return false;
+        }
     }
 
     /**

@@ -149,6 +149,9 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.FILL_REEL_SCREEN, L10n.t("Fill the screen"),
                     L10n.t("Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of "
                             + "showing black bars above and below. Square and wide videos still fit.")));
+            reels.add(toggle(context, Settings.FIT_REEL_SCREEN, L10n.t("Show the whole reel"),
+                    L10n.t("Every reel fits inside the screen, with black bars where its shape differs, so nothing is "
+                            + "cut off at the sides. Works without Full screen Reels and wins over Fill the screen.")));
         }
         if (build.contains(PatchFamily.KEEP_REEL_SPEED)) {
             reels.add(toggle(context, Settings.KEEP_REEL_SPEED, L10n.t("Keep the reel speed"),

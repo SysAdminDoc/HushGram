@@ -1037,6 +1037,15 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting FILL_REEL_SCREEN =
             new BooleanSetting("hushgram_fill_reel_screen", FALSE, parent(FULL_SCREEN_REELS));
 
+    /**
+     * Every reel fits inside the viewer, with bars where its shape differs from the screen's, so
+     * nothing is cut at the sides (piko #2183,
+     * {@link app.hushgram.extension.instagram.reels.ReelFill#fit}). Works without
+     * {@link #FULL_SCREEN_REELS} and wins over {@link #FILL_REEL_SCREEN}. Off to start.
+     */
+    public static final BooleanSetting FIT_REEL_SCREEN =
+            new BooleanSetting("hushgram_fit_reel_screen", FALSE);
+
     /** The same on Home, while its tab is selected and Reels isn't showing. Off to start. */
     public static final BooleanSetting FULL_SCREEN_HOME =
             new BooleanSetting("hushgram_full_screen_home", FALSE);

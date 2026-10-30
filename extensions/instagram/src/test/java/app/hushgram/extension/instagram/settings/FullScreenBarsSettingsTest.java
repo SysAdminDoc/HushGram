@@ -37,6 +37,7 @@ public class FullScreenBarsSettingsTest {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FILL_REEL_SCREEN.resetToDefault();
+        Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
@@ -51,6 +52,7 @@ public class FullScreenBarsSettingsTest {
         PatchFamily.inBuildForTests = null;
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FILL_REEL_SCREEN.resetToDefault();
+        Settings.FIT_REEL_SCREEN.resetToDefault();
         Settings.FULL_SCREEN_HOME.resetToDefault();
         Settings.FULL_SCREEN_MESSAGES.resetToDefault();
         Settings.FULL_SCREEN_HIDES.resetToDefault();
@@ -99,6 +101,7 @@ public class FullScreenBarsSettingsTest {
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HOME.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_MESSAGES.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.FULL_SCREEN_HIDES.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.FIT_REEL_SCREEN.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.FULL_SCREEN_HIDES.key));
     }
 
@@ -193,5 +196,34 @@ public class FullScreenBarsSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.FILL_REEL_SCREEN.get());
         assertTrue(Settings.FILL_REEL_SCREEN.savedValue());
+    }
+
+    /** piko #2183: Show the whole reel sits right under Fill the screen, starts off, needs no other switch, is backed up and answers off while paused. */
+    @Test public void showTheWholeReelSitsUnderFillTheScreenAndStandsAlone() throws Exception {
+        open(EnumSet.of(PatchFamily.FULL_SCREEN_BARS));
+        android.preference.Preference fill = page.getPreferenceScreen().findPreference(Settings.FILL_REEL_SCREEN.key);
+        android.preference.Preference row = page.getPreferenceScreen().findPreference(Settings.FIT_REEL_SCREEN.key);
+        assertNotNull(row);
+        PreferenceGroup group = (PreferenceGroup) fill.getParent();
+        assertSame(group, row.getParent());
+        int at = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (group.getPreference(i) == fill) at = i;
+        }
+        assertSame("right under Fill the screen", row, group.getPreference(at + 1));
+        assertEquals("Show the whole reel", row.getTitle().toString());
+        assertEquals("Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at "
+                + "the sides. Works without Full screen Reels and wins over Fill the screen.", row.getSummary().toString());
+        assertFalse(Settings.FIT_REEL_SCREEN.defaultValue);
+        assertFalse(Settings.FULL_SCREEN_REELS.get());
+        assertTrue("needs no other switch", Settings.FIT_REEL_SCREEN.isAvailable());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FIT_REEL_SCREEN.key));
+
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertTrue(Settings.FIT_REEL_SCREEN.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.FIT_REEL_SCREEN.get());
+        assertTrue(Settings.FIT_REEL_SCREEN.savedValue());
     }
 }
