@@ -268,6 +268,41 @@ class AccentThemeTest {
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_badge"))
     }
 
+    /** With Instagram's icon attribute declared, each color gets a light and a dark icon color at its link shades and a style for each (#8). */
+    @Test
+    fun theIconStylesPointTheIconAttributeAtEachLinkShade() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val attrs = parse("<resources><attr name=\"$ICON_ATTRIBUTE\" format=\"reference|color\" /></resources>")
+        val colors = parse("<resources />")
+        val colorsV31 = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, colorsV31, styles)
+
+        val values = colors.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("#ffa07cfd", values["hushgram_accent_purple_icon_dark"])
+        assertEquals("#ff5806e0", values["hushgram_accent_purple_icon_light"])
+        assertEquals("#ff00727c", values[iconColor("TEAL", IconTheme.LIGHT)])
+        assertEquals("#ffd0bcff", values[iconColor(WALLPAPER, IconTheme.DARK)])
+        val system = colorsV31.elements("color").associate { it.getAttribute("name") to it.textContent }
+        assertEquals("@android:color/system_accent1_200", system[iconColor(WALLPAPER, IconTheme.DARK)])
+        assertEquals("@android:color/system_accent1_600", system[iconColor(WALLPAPER, IconTheme.LIGHT)])
+        val icons = styles.elements("style").filter { it.getAttribute("name").startsWith("HushGramAccentIcons_") }
+            .associate { style -> style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent } }
+        assertEquals(
+            (ACCENT_PALETTES.map { it.name } + WALLPAPER).flatMap { palette -> IconTheme.entries.map { iconStyle(palette, it) } },
+            icons.keys.toList(),
+        )
+        assertEquals(listOf(ICON_ATTRIBUTE to "@color/hushgram_accent_orange_icon_dark"), icons["HushGramAccentIcons_ORANGE_dark"])
+        assertEquals(listOf(ICON_ATTRIBUTE to "@color/hushgram_accent_wallpaper_icon_light"), icons["HushGramAccentIcons_WALLPAPER_light"])
+
+        val taken = parse("<resources><color name=\"hushgram_accent_red_icon_light\">#ff000000</color></resources>")
+        val fresh = parse("<resources><attr name=\"$ICON_ATTRIBUTE\" format=\"reference|color\" /></resources>")
+        val again = assertThrows(PatchException::class.java) { addAccentResources(uses, fresh, taken, parse("<resources />")) }
+        assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_icon_light"))
+    }
+
     @Test
     fun theHookAndTheStubAreInTheExtension() {
         val declared = app.morphe.ExtensionDex.classDef(ACCENT_THEME).methods
@@ -406,10 +441,15 @@ class AccentThemeTest {
                 // Material You's palette survives the encode, its colors naming the system palette on Android 12.
                 assertTrue("$code: the wallpaper palette", "style/$WALLPAPER_PALETTE_STYLE" in added)
                 assertTrue("$code: the wallpaper badge", "style/$WALLPAPER_BADGE_STYLE" in added)
+                // Instagram declares its icon attribute, so every color gets its icon styles (#8).
+                assertTrue("$code: the dark icons", "style/${iconStyle("PURPLE", IconTheme.DARK)}" in added)
+                assertTrue("$code: the light icons", "style/${iconStyle("PURPLE", IconTheme.LIGHT)}" in added)
+                assertTrue("$code: the wallpaper icons", "style/${iconStyle(WALLPAPER, IconTheme.DARK)}" in added)
                 val system = parse(File(res, "values-v31/colors.xml").readText()).elements("color")
                     .associate { it.getAttribute("name") to it.textContent.trim() }
                 assertEquals("$code: the wallpaper's fill", "@android:color/system_accent1_500", system["hushgram_accent_wallpaper_fill_ff"])
                 assertEquals("$code: the wallpaper's dark link", "@android:color/system_accent1_200", system["hushgram_accent_wallpaper_link_on_dark_ff"])
+                assertEquals("$code: the wallpaper's dark icons", "@android:color/system_accent1_200", system[iconColor(WALLPAPER, IconTheme.DARK)])
             }
         } finally {
             work.deleteRecursively()

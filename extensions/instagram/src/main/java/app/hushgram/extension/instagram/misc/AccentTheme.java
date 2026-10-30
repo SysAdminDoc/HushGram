@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.misc;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.util.TypedValue;
 
@@ -45,6 +46,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * tab bar's badges come from a theme wrapper Instagram builds off the main thread and styles with its
  * theme util, so they take the color through that hook rather than the activity's.
  *
+ * <p>With {@link Settings#ACCENT_ICONS} on, the picked color's icon style goes on as well (#8). It
+ * points {@code igds_color_primary_icon}, which Instagram's glyphs read and its themes tie to the
+ * primary text color, at the picked link shade for the theme: the light shade on a light theme, the
+ * dark one on a dark theme. Text keeps its own color.
+ *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
  * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.
  */
@@ -63,6 +69,15 @@ public final class AccentTheme {
 
     /** What's counted when Badges in the accent color is on but the patch added no badge style, so badges stay red. */
     static final String BADGES_MISSING = "themes left with red badges, the badge styles are missing";
+
+    /** What's counted each time the icons take the picked color, with Icons in the accent color on. */
+    static final String ICONS = "themes given accent icons";
+
+    /** What's counted when Icons in the accent color is on but the patch added no icon style, so icons keep their color. */
+    static final String ICONS_MISSING = "themes left with Instagram's icon color, the icon styles are missing";
+
+    /** The theme attribute Instagram's icons read, the patch's ICON_ATTRIBUTE. */
+    static final String ICON_ATTRIBUTE = "igds_color_primary_icon";
 
     /** Resource numbers by type and name, 0 for none. They don't change while the app runs. */
     private static final Map<String, Integer> IDS = new HashMap<>();
@@ -129,14 +144,25 @@ public final class AccentTheme {
                 HookStatus.counted(FamilyNames.ACCENT_COLOR, APPLIED);
                 Logger.printDebug(() -> "Accent color: " + styles.size() + " styles on " + context.getClass().getName() + "'s theme");
             }
-            if (!Settings.ACCENT_BADGES.get()) return;
-            int badges = id(resources, badgeStyle(hue), "style", app);
-            if (badges == 0) {
-                HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES_MISSING);
-                return;
+            if (Settings.ACCENT_BADGES.get()) {
+                int badges = id(resources, badgeStyle(hue), "style", app);
+                if (badges == 0) {
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES_MISSING);
+                } else {
+                    theme.applyStyle(badges, true);
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
+                }
             }
-            theme.applyStyle(badges, true);
-            HookStatus.counted(FamilyNames.ACCENT_COLOR, BADGES);
+            if (Settings.ACCENT_ICONS.get()) {
+                int attr = id(resources, ICON_ATTRIBUTE, "attr", app);
+                int icons = attr == 0 ? 0 : id(resources, iconStyle(hue, dark(context, theme, attr)), "style", app);
+                if (icons == 0) {
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS_MISSING);
+                } else {
+                    theme.applyStyle(icons, true);
+                    HookStatus.counted(FamilyNames.ACCENT_COLOR, ICONS);
+                }
+            }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
         }
@@ -179,6 +205,34 @@ public final class AccentTheme {
     /** The style pointing Instagram's badge attribute at [hue]'s fill (#315). */
     static String badgeStyle(AccentHue hue) {
         return "HushGramAccentBadge_" + hue.name();
+    }
+
+    /** The style pointing Instagram's icon attribute at [hue]'s link shade for a dark theme or a light one (#8). */
+    static String iconStyle(AccentHue hue, boolean dark) {
+        return "HushGramAccentIcons_" + hue.name() + (dark ? "_dark" : "_light");
+    }
+
+    /**
+     * Whether [theme] is a dark one: the icon color it holds, Instagram's primary text color, reads
+     * light. Every color's dark icon shade reads light too and its light one dark, so a theme styled
+     * twice keeps its shade. Without a plain color there, the screen's night mode decides.
+     */
+    static boolean dark(Context context, Resources.Theme theme, int iconAttribute) {
+        TypedValue value = new TypedValue();
+        if (theme.resolveAttribute(iconAttribute, value, true)
+                && value.type >= TypedValue.TYPE_FIRST_COLOR_INT && value.type <= TypedValue.TYPE_LAST_COLOR_INT) {
+            return readsLight(value.data);
+        }
+        int night = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        return night == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    /** Whether [rgb] is a light color, by its weighted brightness. */
+    static boolean readsLight(int rgb) {
+        int red = (rgb >> 16) & 0xff;
+        int green = (rgb >> 8) & 0xff;
+        int blue = rgb & 0xff;
+        return 299 * red + 587 * green + 114 * blue > 127_500;
     }
 
     private static int id(Resources resources, String name, String type, String app) {

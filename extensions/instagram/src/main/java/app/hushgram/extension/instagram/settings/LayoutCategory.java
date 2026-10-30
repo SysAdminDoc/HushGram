@@ -55,6 +55,9 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.ACCENT_BADGES, L10n.t("Badges in the accent color"),
                         L10n.t("The red dots and counts for new messages and notifications take the color you "
                                 + "picked. Restart Instagram to see the change.")));
+                layout.addPreference(toggle(context, Settings.ACCENT_ICONS, L10n.t("Icons in the accent color"),
+                        L10n.t("Instagram's icons on the top bar, the tab bar and under posts take the color you "
+                                + "picked. Text stays as it is. Restart Instagram to see the change.")));
             }
             // Pure black is set when you patch and stays out of the default selection, so a build
             // without it says where to get it (#267, #359).
