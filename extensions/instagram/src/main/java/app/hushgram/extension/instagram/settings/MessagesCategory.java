@@ -75,6 +75,10 @@ final class MessagesCategory {
                                 + "and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you "
                                 + "open stays read on this phone until a newer message comes in, even after your "
                                 + "messages refresh.")));
+                messages.addPreference(toggle(context, Settings.MARK_SEEN_ON_REPLY,
+                        L10n.t("Mark a chat seen when you reply"),
+                        L10n.t("Sending a message in a chat lets the other person see that you've read what they "
+                                + "sent before it. Chats you don't answer stay unseen to them.")));
             }
             if (build.contains(PatchFamily.TYPING)) {
                 messages.addPreference(toggle(context, Settings.HIDE_TYPING, L10n.t("Hide that you're typing"),

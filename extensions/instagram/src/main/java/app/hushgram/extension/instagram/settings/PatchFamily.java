@@ -76,7 +76,7 @@ public enum PatchFamily {
     DM_MEDIA_SEEN(FamilyNames.DM_MEDIA_SEEN, "visualSeen", null, Settings.VIEW_DM_MEDIA_ANONYMOUSLY),
     SPOOF_LOCATION(FamilyNames.SPOOF_LOCATION, "spoofLocation", null, Settings.SPOOF_LOCATION),
     THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
-            Settings.KEEP_CHATS_UNREAD),
+            Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY),
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),
     ACTIVE_STATUS(FamilyNames.ACTIVE_STATUS, "activeStatus", null, Settings.HIDE_ACTIVE_STATUS),
     LAST_ACTIVE(FamilyNames.LAST_ACTIVE, "lastActive", null, Settings.SHOW_LAST_ACTIVE),

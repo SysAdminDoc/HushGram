@@ -33,10 +33,12 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
 Lock these settings	Bu ayarları kilitle
+Mark a chat seen when you reply	Yanıt verdiğinde sohbeti görüldü olarak işaretle
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
 Ask to unlock	Kilidi açmayı iste
 Saved to %1$s in lower quality because storage is low	Depolama alanı azaldığı için %1$s konumuna daha düşük kaliteyle kaydedildi
 Saved to the gallery in lower quality because storage is low	Depolama alanı azaldığı için galeriye daha düşük kaliteyle kaydedildi
+Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Bir sohbette mesaj göndermen, karşı tarafın öncesinde yazdıklarını okuduğunu görmesini sağlar. Yanıtlamadığın sohbetler onlar için görülmemiş kalır.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
 Unlock asked	Kilit açma istendi
 These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s

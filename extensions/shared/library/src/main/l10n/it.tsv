@@ -33,10 +33,12 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Esporta report diagnostico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Dal prossimo avvio, tutti gli interruttori tranne Log di debug agiscono come se fossero off. Le modifiche fatte durante la patch restano attive e le tue scelte restano salvate.
 Lock these settings	Blocca queste impostazioni
+Mark a chat seen when you reply	Segna una chat come vista quando rispondi
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
 Ask to unlock	Chiedi di sbloccare
 Saved to %1$s in lower quality because storage is low	Salvato in %1$s con qualità inferiore perché lo spazio è quasi esaurito
 Saved to the gallery in lower quality because storage is low	Salvato nella galleria con qualità inferiore perché lo spazio è quasi esaurito
+Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Quando invii un messaggio in una chat, l'altra persona vede che hai letto ciò che ti ha scritto prima. Le chat a cui non rispondi restano non visualizzate per lei.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.
 Unlock asked	Sblocco chiesto
 These settings open at %1$s, for 10 minutes.	Queste impostazioni si aprono alle %1$s, per 10 minuti.

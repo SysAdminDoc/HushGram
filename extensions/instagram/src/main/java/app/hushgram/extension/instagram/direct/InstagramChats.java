@@ -51,6 +51,22 @@ public final class InstagramChats {
         return null;
     }
 
+    /**
+     * The id of the account that sent the message a queued seen receipt points at, the one Instagram's
+     * sender stores on the receipt. Null when this build's receipt keeps none the patch could read.
+     */
+    public static String receiptSender(Object receipt) {
+        return null;
+    }
+
+    /**
+     * The thread id of the chat a composer sends into, read off the object the composer keeps its
+     * chat in. Null when the patch didn't write it.
+     */
+    public static String composerThread(Object source) {
+        return null;
+    }
+
     /** A message's id. */
     public static String messageId(Object message) {
         return null;

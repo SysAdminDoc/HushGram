@@ -130,6 +130,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->markReadTogether
 # the guard the patch wrote. NativeMarkReadTest checks on every 452 fixture where it lands.
 start-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->keepUnread(Ljava/lang/Object;Ljava/lang/Object;)Z in static (L*;L*;Ljava/lang/String;)V calling instance L*;->*(L*;Lcom/instagram/model/direct/DirectThreadKey;)V holding uploaded upload_failed_permanent
 once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->keepUnread(Ljava/lang/Object;Ljava/lang/Object;)Z in static (L*;L*;Ljava/lang/String;)V calling instance L*;->*(L*;Lcom/instagram/model/direct/DirectThreadKey;)V holding uploaded upload_failed_permanent
+# Mark a chat seen when you reply (#365) hands ThreadSeen.replied(Object, Object, I) the account, the
+# chat handle and whether the message went, right before the composer's send answers (02MK.A02 on
+# 453), the instance (Editable, Long, String)Z method holding both of the composer's log names. Left
+# out, a reply never lets the held receipt go; twice or elsewhere, it isn't the hook the patch wrote.
+# NativeReplySeenTest checks on every 453 fixture where it lands.
+once-call Lapp/hushgram/extension/instagram/direct/ThreadSeen;->replied(Ljava/lang/Object;Ljava/lang/Object;I)V in instance (Landroid/text/Editable;Ljava/lang/Long;Ljava/lang/String;)Z pooled holding direct_composer_send_text direct_schedule_message
 # Hide that you're typing (#13) hands TypingStatus.hold(I) the typing flag first in Instagram's typing
 # status service (01MY.A06 on 450), the one (boolean) method holding the trace name and flag below.
 # Left out, the other person sees you typing with the switch on; twice or elsewhere, it isn't the

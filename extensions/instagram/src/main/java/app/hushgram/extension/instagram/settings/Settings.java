@@ -414,6 +414,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_chats_unread", TRUE, parent(READ_WITHOUT_SEEN_RECEIPT));
 
     /**
+     * Under {@link #READ_WITHOUT_SEEN_RECEIPT}: sending a message in a chat whose receipt was held
+     * lets that receipt go, so the other person sees Seen when you answer (#365). Read each time a
+     * message is sent, so a change applies to the next one. Off to start.
+     */
+    public static final BooleanSetting MARK_SEEN_ON_REPLY =
+            new BooleanSetting("hushgram_mark_seen_on_reply", FALSE, parent(READ_WITHOUT_SEEN_RECEIPT));
+
+    /**
      * The typing indicator a chat shows the other person while you write
      * ({@link app.hushgram.extension.instagram.direct.TypingStatus}). Read each time you start
      * typing, so a change applies the next time. Off to start.

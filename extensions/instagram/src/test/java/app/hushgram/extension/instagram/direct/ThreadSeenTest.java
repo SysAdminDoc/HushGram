@@ -844,6 +844,91 @@ public class ThreadSeenTest {
         return new Summary(thread, newest);
     }
 
+    /** Holds a receipt with Mark a chat seen when you reply on, as the hook does. */
+    private boolean holdForReply(Receipt receipt, Session session) {
+        return ThreadSeen.hold(receipt, session, ON, () -> false, ON, chats, clock);
+    }
+
+    @Test
+    public void aReplyLetsTheHeldReceiptThrough() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        assertTrue(chats.sent.isEmpty());
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertEquals("the chat's unread mark comes off", 1, chats.cleared.size());
+        assertNothingReported();
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals("a second reply sends nothing more", 1, chats.sent.size());
+    }
+
+    @Test
+    public void theNewestHeldReceiptIsTheOneAReplySends() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        assertTrue(holdForReply(receipt("t1", "m2", "s2"), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals(List.of("a1:t1/m2/s2"), chats.sent);
+    }
+
+    @Test
+    public void aReplyOnlyTouchesItsOwnChatAndAccount() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t2"), true, ON, chats, clock);
+        ThreadSeen.replied(OTHER, new Composer("t1"), true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals(1, chats.sent.size());
+    }
+
+    @Test
+    public void aMessageThatDidNotGoOrASwitchedOffReplyLeavesItHeld() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t1"), false, ON, chats, clock);
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, OFF, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals("still held until a reply that went", 1, chats.sent.size());
+    }
+
+    @Test
+    public void withTheSwitchOffNothingIsRememberedToSend() {
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), SESSION, ON, () -> false, OFF, chats, clock));
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+    }
+
+    @Test
+    public void aReceiptWithNoReadableSenderStaysHeld() {
+        assertTrue(holdForReply(new Receipt("t1", "m1", null), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+    }
+
+    @Test
+    public void aComposerWhoseChatCantBeReadSendsNothing() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        ThreadSeen.replied(SESSION, new Object(), true, ON, chats, clock);
+        ThreadSeen.replied(SESSION, null, true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals(1, chats.sent.size());
+    }
+
+    @Test
+    public void aFailedSendKeepsTheReceiptForTheNextReply() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        chats.sendThrows = true;
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        chats.sendThrows = false;
+        HookStatus.clear();
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+    }
+
+    private static Receipt receipt(String thread, String message, String sender) {
+        return new Receipt(thread, message, sender);
+    }
+
     private static Receipt receipt(String thread, String message) {
         return new Receipt(thread, message);
     }
@@ -880,10 +965,25 @@ public class ThreadSeenTest {
     private static final class Receipt {
         final String thread;
         final String message;
+        final String sender;
 
         Receipt(String thread, String message) {
+            this(thread, message, "s1");
+        }
+
+        Receipt(String thread, String message, String sender) {
             this.thread = thread;
             this.message = message;
+            this.sender = sender;
+        }
+    }
+
+    /** The object a chat's composer keeps its chat in. */
+    private static final class Composer {
+        final String thread;
+
+        Composer(String thread) {
+            this.thread = thread;
         }
     }
 
@@ -963,6 +1063,16 @@ public class ThreadSeenTest {
         public Object receiptKey(Object receipt) {
             if (keyThrows) throw new IllegalStateException("Required value was null.");
             return receipt instanceof Receipt ? new Key(((Receipt) receipt).thread) : null;
+        }
+
+        @Override
+        public String receiptSender(Object receipt) {
+            return receipt instanceof Receipt ? ((Receipt) receipt).sender : null;
+        }
+
+        @Override
+        public String composerThread(Object source) {
+            return source instanceof Composer ? ((Composer) source).thread : null;
         }
 
         @Override

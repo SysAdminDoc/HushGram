@@ -33,10 +33,12 @@ Every switch but Debug logging acts as if it were off, and what was set when you
 Export diagnostic report	Diagnosebericht exportieren
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Ab dem nächsten Start verhält sich jeder Schalter außer der Debug-Protokollierung, als wäre er aus. Was beim Patchen festgelegt wurde, bleibt aktiv, und deine Auswahl bleibt gespeichert.
 Lock these settings	Diese Einstellungen sperren
+Mark a chat seen when you reply	Chat als gesehen markieren, wenn du antwortest
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1 bis 72 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
 Ask to unlock	Entsperren anfordern
 Saved to %1$s in lower quality because storage is low	Gespeichert unter %1$s, in geringerer Qualität, weil der Speicher knapp ist
 Saved to the gallery in lower quality because storage is low	In der Galerie gespeichert, in geringerer Qualität, weil der Speicher knapp ist
+Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Wenn du in einem Chat eine Nachricht sendest, sieht die andere Person, dass du ihre vorherigen Nachrichten gelesen hast. Chats, auf die du nicht antwortest, bleiben für sie ungesehen.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.
 Unlock asked	Entsperren angefordert
 These settings open at %1$s, for 10 minutes.	Diese Einstellungen öffnen sich um %1$s für 10 Minuten.
