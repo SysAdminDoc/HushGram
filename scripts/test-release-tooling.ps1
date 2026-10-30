@@ -1293,7 +1293,8 @@ Set-Content -LiteralPath $Result -Value $lines
     }
     function Get-FixtureCensus([string]$Build) {
         return ('{"schemaVersion": 1, "fixtures": [{"package": "com.example", "versionName": "' + $Build +
-            '", "versionCode": "1", "families": []}]}' + "`n")
+            '", "versionCode": "1", "families": [{"family": "sanitizeSharingLinks", "patch": "Sanitize sharing links", ' +
+            '"targets": ["alpha"], "optional": []}]}]}' + "`n")
     }
     $censusReleased = Save-FixtureCensus (Get-FixtureCensus '1.0.0')
     $censusNow = Save-FixtureCensus (Get-FixtureCensus '1.0.1')
@@ -1304,6 +1305,16 @@ Set-Content -LiteralPath $Result -Value $lines
     $atCensusHead = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $censusNow
     Assert-True ([string]@($atCensusHead.Policy.fixtures)[0].versionName -eq '1.0.1' -and $null -eq $atCensusHead.Note) `
         "A census the working tree still holds as committed reported a difference: $($atCensusHead.Note)"
+    # The verdict reads the census that comes back: the receipt's own build is certified against the
+    # census its commit carried, and the working one, which reviews only the newer build, can't.
+    $censusArguments = @{ Names = @('Sanitize sharing links'); Package = 'com.example'; VersionName = '1.0.0'; VersionCode = '1'
+        Coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 1; expected = 1; targets = @('alpha'); missing = @() }) }
+    $atReleaseVerdict = Test-TargetCoverage @censusArguments -Policy $atCensusRelease.Policy
+    Assert-True ($atReleaseVerdict.Valid -and $atReleaseVerdict.Reviewed) `
+        "The census at the receipt's commit did not certify the build it reviewed: $($atReleaseVerdict.Reason)"
+    $atHeadVerdict = Test-TargetCoverage @censusArguments -Policy $atCensusHead.Policy
+    Assert-True ($atHeadVerdict.Valid -and -not $atHeadVerdict.Reviewed) `
+        'The working census certified a build only the receipt''s own census reviewed.'
     $atNoCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $releaseCommitSha
     Assert-True ($null -eq $atNoCensus.Policy -and $atNoCensus.Note -like '*has no reviewed coverage census*') `
         "A commit with no census did not fall back to the working one, saying so: $($atNoCensus.Note)"
