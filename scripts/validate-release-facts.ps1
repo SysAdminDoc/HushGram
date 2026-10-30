@@ -382,6 +382,12 @@ Require-Match -Text $readme -Pattern "\b$patchCount patches\b" -Description 'REA
 # release_notes.py writes: "## [X.Y.Z](compare link) (date)", or "## X.Y.Z (date)" for a first release.
 # The patch count and the Instagram build live in the GitHub description and the README, and a
 # description that names them anyway has to name them right.
+# Only an index a release of this version wrote is held to the new layout, the published one at this
+# version included. An index left on an older version is history and stands as it is.
+if (-not $indexLagsSource -or $publishedFactsDifferAtSameVersion) {
+    Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
+            -Description 'published bundle description version heading'
+}
 if ($indexLagsSource) {
     $descriptionVersion = "v$publishedVersion"
     $taggedFacts = if ($null -eq $publishedFacts.PatchCount -or $null -eq $publishedFacts.TargetVersion) {
@@ -396,10 +402,6 @@ if ($indexLagsSource) {
     if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
     elseif ($taggedFacts) { $descriptionTargetVersion = $taggedFacts.TargetVersion }
 } else {
-    # Only an index this release wrote is held to the new layout. While it lags, the old
-    # description is history and stands as it is.
-    Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
-            -Description 'published bundle description version heading'
     if ($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) {
         throw 'bundle description patch count does not match the generated release facts.'
     }

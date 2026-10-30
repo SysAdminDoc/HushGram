@@ -2917,6 +2917,26 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
             "The lenient check refused a held retarget whose index names only the published build: $said"
         Assert-Throws { Invoke-Facts } '*bundle description target version*' `
             'The strict check accepted an index naming a build the source no longer targets.'
+        # That index is still the one this version's release wrote, so it keeps the version heading.
+        Set-FactsFile 'patches-bundle.json' { param($text) $text -replace '## \[[^\]]+\]', '## [0.0.1]' }
+        Assert-Throws { Invoke-LenientFacts } '*bundle description version heading*' `
+            'The lenient check took a held retarget whose index opens on another version.'
+    } finally {
+        Reset-FactsFile 'patches-bundle.json'
+    }
+
+    # Patches added on main while the version waits at the published one: an index that names only
+    # the release's own count is the published one, and only the lenient check takes it.
+    Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace('Validation: ', "It has $($countHere + 1) patches. Validation: ") }
+    try {
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*source $versionHere has an unreleased catalog while the working index remains on its published facts*") `
+            "The lenient check refused an index naming only the published count: $said"
+        Assert-Throws { Invoke-Facts } '*bundle description patch count*' `
+            'The strict check accepted an index counting patches the source no longer has.'
+        Set-FactsFile 'patches-bundle.json' { param($text) $text -replace '## \[[^\]]+\]', '## [0.0.1]' }
+        Assert-Throws { Invoke-LenientFacts } '*bundle description version heading*' `
+            'The lenient check took an index naming only the published count under another version heading.'
     } finally {
         Reset-FactsFile 'patches-bundle.json'
     }
