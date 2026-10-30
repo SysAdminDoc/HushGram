@@ -7,6 +7,7 @@ package app.morphe.patches.shared.misc.extension
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
+import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.util.returnEarly
 import app.morphe.util.BuildIdentityMetadata
@@ -106,7 +107,13 @@ open class ExtensionHook(
 ) {
     context(patchContext: BytecodePatchContext)
     operator fun invoke(extensionClassDescriptor: String) {
-        with(patchContext) { fingerprint.method }.apply {
+        // An "ends with" class type can match more than one activity, and the first match would be
+        // whichever the build happens to list first, so anything but one match stops the patch.
+        val matches = with(patchContext) { fingerprint.matchAllOrNull() }.orEmpty()
+        val method = matches.singleOrNull()?.method ?: throw PatchException(
+            "extension hook: expected exactly one match for $fingerprint, found ${matches.size}",
+        )
+        method.apply {
             val insertIndex = with(patchContext) { insertIndexResolver(this@apply) }
             val contextRegister = with(patchContext) { contextRegisterResolver(this@apply) }
 
