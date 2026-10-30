@@ -29,6 +29,7 @@ Every HushGram release, newest first.
 * **Tooling:** When a settings heading isn't there, the whole-app walk says so as soon as the list stops moving. It used to keep swiping up past the top of the list, 24 times each way.
 * **Tooling:** Patch results, records and the patch catalog are read as strict JSON. A file that names a field twice could read as a pass and a failure at once, so it's refused.
 * **Tooling:** The release notes check refuses a bullet scoped to a patch name in any section after 0.0.17, Unreleased included, so each bullet names its patch in the text. It used to pass any dated section.
+* **Tooling:** The native runner reads the user limit the way Android 17 prints it, "Maximum supported switchable users", so it runs on an API 37 emulator. It used to stop there, saying the device takes one user.
 
 ### Improvements
 

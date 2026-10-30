@@ -469,7 +469,8 @@ function Invoke-NativeRunnerSession {
         throw "The $($Target.Package) installed on $serial isn't the target APK: it hashes to $installedSha, the target to $($Target.Sha256)."
     }
     $limit = Invoke-NativeRunnerAdb @call -Arguments @('shell', 'pm', 'get-max-users') -Failure 'Could not read the Android user limit'
-    $maximum = [regex]::Match((@($limit.Stdout) -join ' '), 'Maximum supported users: (\d+)')
+    # Android 17 words it "Maximum supported switchable users: 4".
+    $maximum = [regex]::Match((@($limit.Stdout) -join ' '), 'Maximum supported (?:switchable )?users: (\d+)')
     if (-not ($maximum.Success -and [int]$maximum.Groups[1].Value -ge 2)) {
         throw "$serial supports one Android user, so there is no signed-out user to run in."
     }

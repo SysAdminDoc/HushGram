@@ -37,6 +37,8 @@ function New-FakeDevice {
     param(
         [string]$Serial = 'emulator-5554',
         [int]$MaxUsers = 4,
+        # How pm get-max-users words its answer; Android 17 says "Maximum supported switchable users".
+        [string]$MaxUsersWording = 'Maximum supported users',
         [string]$Airplane = 'disabled',
         [string]$InstalledSha = $target.Sha256,
         [string[]]$InstalledPaths = @('/data/app/~~x/com.instagram.android-y/base.apk'),
@@ -109,7 +111,7 @@ function New-FakeDevice {
             }
             'shell pm path com.instagram.android' { $out = @($InstalledPaths | ForEach-Object { "package:$_" }) }
             'shell sha256sum *' { $out = @("$InstalledSha  $($command[2])") }
-            'shell pm get-max-users' { $out = @("Maximum supported users: $MaxUsers") }
+            'shell pm get-max-users' { $out = @("${MaxUsersWording}: $MaxUsers") }
             'shell cmd connectivity airplane-mode' { $out = @($state.Airplane) }
             'shell cmd connectivity airplane-mode enable' { $state.Airplane = 'enabled' }
             'shell cmd connectivity airplane-mode disable' { $state.Airplane = 'disabled' }
@@ -321,6 +323,10 @@ try {
     Assert-True ($null -eq $olderRun.Error -and $olderRun.Session.FeaturesPassed) "A run on Android 12L failed: $($olderRun.Error)"
     Assert-True (@($older.State.Calls | Where-Object { $_ -like 'shell pm grant *' }).Count -eq 0) 'A run on Android 12L asked for a permission that release lacks.'
     Assert-NothingLeft $older 'A run on Android 12L'
+    $android17 = New-FakeDevice -Sdk '37' -MaxUsersWording 'Maximum supported switchable users'
+    $android17Run = Invoke-FakeSession $android17
+    Assert-True ($null -eq $android17Run.Error -and $android17Run.Session.FeaturesPassed) "A run on Android 17 failed: $($android17Run.Error)"
+    Assert-NothingLeft $android17 'A run on Android 17'
     Assert-True (@($calls | Where-Object { $_ -like 'shell timeout 120 am instrument *' }).Count -eq 8) 'A case ran without its time limit.'
     Assert-True ($device.State.Stopped.Count -eq 0) 'A run that finished in time stopped the target.'
     Assert-True ($calls[-4] -ceq 'shell pm uninstall --user 10 app.hushgram.nativerunner' -and $calls[-3] -ceq 'shell pm remove-user 10' -and
@@ -349,6 +355,7 @@ try {
         @{ Name = 'a runner from another run'; Device = (New-FakeDevice -RunnerPresent); Want = '*already on emulator-5554*' },
         @{ Name = 'a test user from another run'; Device = (New-FakeDevice -LeftoverUser); Want = '*User 11*already on*' },
         @{ Name = 'a single-user device'; Device = (New-FakeDevice -MaxUsers 1); Want = '*supports one Android user*' },
+        @{ Name = 'a single-user Android 17 device'; Device = (New-FakeDevice -Sdk '37' -MaxUsers 1 -MaxUsersWording 'Maximum supported switchable users'); Want = '*supports one Android user*' },
         @{ Name = 'a phone'; Device = (New-FakeDevice -Serial 'PHONE0SERIAL'); Want = '*PHONE0SERIAL is not an emulator*' }
     )
     foreach ($refusal in $refusals) {
