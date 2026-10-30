@@ -1314,7 +1314,7 @@ Set-Content -LiteralPath $Result -Value $lines
         "The census at the receipt's commit did not certify the build it reviewed: $($atReleaseVerdict.Reason)"
     $atHeadVerdict = Test-TargetCoverage @censusArguments -Policy $atCensusHead.Policy
     Assert-True ($atHeadVerdict.Valid -and -not $atHeadVerdict.Reviewed) `
-        'The working census certified a build only the receipt''s own census reviewed.'
+        "The working census certified a build only the receipt's own census reviewed: $($atHeadVerdict.Reason)"
     $atNoCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $releaseCommitSha
     Assert-True ($null -eq $atNoCensus.Policy -and $atNoCensus.Note -like '*has no reviewed coverage census*') `
         "A commit with no census did not fall back to the working one, saying so: $($atNoCensus.Note)"
@@ -2936,8 +2936,9 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         Reset-FactsFile 'patches-bundle.json'
     }
 
-    # Patches added on main while the version waits at the published one: an index that names only
-    # the release's own count is the published one, and only the lenient check takes it.
+    # A patch removed on main while the version waits at the published one: an index that still names
+    # the release's own count, one more than the source has, is the published one, and only the
+    # lenient check takes it.
     Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace('Validation: ', "It has $($countHere + 1) patches. Validation: ") }
     try {
         $said = Invoke-LenientFacts
