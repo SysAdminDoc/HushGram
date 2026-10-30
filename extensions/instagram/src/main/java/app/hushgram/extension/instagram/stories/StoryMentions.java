@@ -17,6 +17,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
+import android.text.Layout;
 import android.text.TextUtils;
 import android.util.LruCache;
 import android.util.TypedValue;
@@ -60,8 +61,9 @@ import app.hushgram.extension.shared.ui.Dim;
  * <p>Instagram's story viewer gives each of its pages the story it shows in one place, its item
  * binder's bindMedia step. The patch calls {@link #bind} right after that, with the page and the
  * story. Once Instagram has bound the page's header, a pill goes after the name and time in it
- * (right under the header when the name has no row of its own, as on Instagram 453, and under
- * the name when there's no column to put it in) saying how many accounts the story mentions, from the
+ * (right under the header when the name has no row of its own, as on Instagram 453, or when the
+ * row would cut the name short, and under the name when there's no column to put it in) saying
+ * how many accounts the story mentions, from the
  * story's own list of mentions, so a mention sticker
  * that's hidden, shrunk or dragged off screen still counts. A story with none gets no pill.
  * Tapping the pill lists the accounts with their pictures, names and usernames, and tapping one
@@ -213,9 +215,34 @@ public final class StoryMentions {
     /** The pill under the name, a view of HushGram's own so a later bind finds it again. */
     static final class Pill extends TextView {
         List<Mention> people = Collections.emptyList();
+        /** The header's column while the pill sits in the name's row, so it can go under the header. */
+        @Nullable LinearLayout header;
+        private boolean moving;
 
         Pill(Context context) {
             super(context);
+        }
+
+        /**
+         * In the name's row, the pill takes its width from the name: Instagram's row shrinks the
+         * name to fit, so a long name or a date like "January 16" left only the verified badge
+         * showing. Once a layout shows the name cut short, the pill goes under the header instead.
+         */
+        @Override
+        protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            super.onLayout(changed, left, top, right, bottom);
+            try {
+                LinearLayout column = header;
+                ViewParent row = getParent();
+                if (column == null || moving || !(row instanceof LinearLayout) || !crowdsName((LinearLayout) row)) return;
+                moving = true;
+                post(() -> {
+                    moving = false;
+                    moveUnder(this, column);
+                });
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_MENTIONS, "story header", failure);
+            }
         }
     }
 
@@ -296,12 +323,10 @@ public final class StoryMentions {
                 LinearLayout into = row != null ? row : under != null ? under : header;
                 pill = newPill(context, into.getOrientation() == LinearLayout.HORIZONTAL);
                 if (under != null) {
-                    // Right under the header's row, lined up with the name.
-                    View headerRow = (View) header.getParent();
-                    ((LinearLayout.LayoutParams) pill.getLayoutParams()).setMarginStart(headerRow.getLeft() + header.getLeft());
-                    under.addView(pill, under.indexOfChild(headerRow) + 1);
+                    putUnder(pill, header, under);
                 } else {
                     into.addView(pill);
+                    if (row != null) pill.header = header;
                 }
                 anyPill = true;
             }
@@ -374,6 +399,45 @@ public final class StoryMentions {
         return found.getOrientation() == LinearLayout.VERTICAL ? found : null;
     }
 
+    /** Puts [pill] right under the header's row in [under], lined up with the name. */
+    private static void putUnder(Pill pill, LinearLayout header, LinearLayout under) {
+        View headerRow = (View) header.getParent();
+        LinearLayout.LayoutParams place = placement(false);
+        place.setMarginStart(headerRow.getLeft() + header.getLeft());
+        pill.setLayoutParams(place);
+        under.addView(pill, under.indexOfChild(headerRow) + 1);
+    }
+
+    /**
+     * Moves [pill] from the name's row to under the header of [header]'s column, where it leaves the
+     * name its whole width. With no column to go under, it stays in the row and stops checking.
+     */
+    static void moveUnder(Pill pill, LinearLayout header) {
+        try {
+            pill.header = null;
+            LinearLayout under = below(header);
+            ViewParent row = pill.getParent();
+            if (under == null || !(row instanceof ViewGroup) || row == under) return;
+            ((ViewGroup) row).removeView(pill);
+            putUnder(pill, header, under);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story header", failure);
+        }
+    }
+
+    /** Whether the name in [row] is narrower than its text and badge need, so it shows cut short. */
+    static boolean crowdsName(LinearLayout row) {
+        int id = titleId(row.getContext());
+        View found = id == 0 ? null : row.findViewById(id);
+        if (!(found instanceof TextView) || found.getVisibility() != View.VISIBLE) return false;
+        TextView title = (TextView) found;
+        CharSequence text = title.getText();
+        if (text == null || text.length() == 0) return false;
+        float wanted = Layout.getDesiredWidth(text, title.getPaint())
+                + title.getCompoundPaddingLeft() + title.getCompoundPaddingRight();
+        return title.getWidth() + 1 < wanted;
+    }
+
     @Nullable
     private static Pill pillAmong(ViewGroup group) {
         for (int i = 0; i < group.getChildCount(); i++) {
@@ -386,7 +450,8 @@ public final class StoryMentions {
      * The row the name sits in, when it's a row of its own inside the header's column, so the pill
      * goes at the end of it, after the name and the time. Under the name, the pill made the column
      * taller, and on each story with mentions the name moved up toward the progress bars (#151).
-     * Null when the name sits in the column itself or isn't there, and the pill goes under it.
+     * When the row can't hold the pill without cutting the name short, {@link Pill} moves it under
+     * the header. Null when the name sits in the column itself or isn't there, and the pill goes under it.
      */
     @Nullable
     static LinearLayout titleRow(ViewGroup header) {
@@ -413,6 +478,20 @@ public final class StoryMentions {
         return titleId;
     }
 
+    /** Where the pill sits: after the time in a row, or a little under what's above it in a column. */
+    private static LinearLayout.LayoutParams placement(boolean row) {
+        LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        if (row) {
+            place.setMarginStart(Dim.dp(6));
+            place.gravity = Gravity.CENTER_VERTICAL;
+        } else {
+            place.topMargin = Dim.dp(4);
+            place.gravity = Gravity.START;
+        }
+        return place;
+    }
+
     /**
      * A small rounded pill in white on a dim backing, like the rest of a story's header: under the
      * name in a column, or after it in a row.
@@ -429,16 +508,7 @@ public final class StoryMentions {
         backing.setColor(0x59000000);
         backing.setCornerRadius(Dim.dp(12));
         pill.setBackground(backing);
-        LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        if (row) {
-            place.setMarginStart(Dim.dp(6));
-            place.gravity = Gravity.CENTER_VERTICAL;
-        } else {
-            place.topMargin = Dim.dp(4);
-            place.gravity = Gravity.START;
-        }
-        pill.setLayoutParams(place);
+        pill.setLayoutParams(placement(row));
         PILLS.add(pill);
         pill.setOnClickListener(view -> {
             try {

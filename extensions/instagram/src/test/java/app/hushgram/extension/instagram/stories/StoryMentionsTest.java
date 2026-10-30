@@ -419,9 +419,82 @@ public class StoryMentionsTest {
         assertSame("the pill isn't in the name's row", row, pill.getParent());
         assertEquals("the pill goes after the time", row.getChildCount() - 1, row.indexOfChild(pill));
         assertEquals("the column grew", 1, header.getChildCount());
+        layOut(pill);
+        idle();
+        assertSame("a pill that fits left the name's row", row, pill.getParent());
+        assertFalse(StoryMentions.crowdsName(row));
         bind(BO);
         assertSame("a later story made a second pill", pill, pill());
         assertEquals("1 mention", pill.getText().toString());
+    }
+
+    /**
+     * Instagram's name row shrinks the name to make room, so on the S22 a highlight's "January 16"
+     * plus the pill left "creatives" showing only its verified badge. When a layout shows the name
+     * cut short, the pill goes under the header, lined up with the name, and the name gets its
+     * whole width back.
+     */
+    @Test
+    public void aPillThatCutsTheNameShortGoesUnderTheHeader() {
+        root.removeView(header);
+        LinearLayout column = new LinearLayout(activity);
+        column.setOrientation(LinearLayout.VERTICAL);
+        FrameLayout headerRow = new FrameLayout(activity);
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        TextView title = new TextView(activity);
+        title.setId(View.generateViewId());
+        title.setSingleLine(true);
+        title.setText("creatives");
+        TextView time = new TextView(activity);
+        time.setSingleLine(true);
+        time.setText("January 16");
+        // Like Instagram's: the name takes what the row has left once everything else is measured.
+        row.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        row.addView(time);
+        header.removeAllViews();
+        header.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        // Room for the name and the time, not the pill too.
+        int room = wanted(title) + wanted(time) + 2;
+        FrameLayout.LayoutParams besideTheAvatar = new FrameLayout.LayoutParams(room, ViewGroup.LayoutParams.WRAP_CONTENT);
+        besideTheAvatar.leftMargin = 88;
+        headerRow.addView(header, besideTheAvatar);
+        column.addView(headerRow);
+        root.addView(column);
+        StoryMentions.titleIdForTests = title.getId();
+        layOut(header);
+        assertFalse("the name is cut short before there's a pill", StoryMentions.crowdsName(row));
+
+        bind(ANA, BO);
+        StoryMentions.Pill pill = pill();
+        assertNotNull(pill);
+        // The first layout with the pill in the row is what moves it.
+        layOut(header);
+        idle();
+
+        assertSame("the pill stayed in the row", column, pill.getParent());
+        assertEquals("the pill isn't right under the header's row", column.indexOfChild(headerRow) + 1, column.indexOfChild(pill));
+        assertEquals("the pill doesn't line up with the name", 88,
+                ((LinearLayout.LayoutParams) pill.getLayoutParams()).getMarginStart());
+        layOut(pill);
+        assertTrue("the row had room for the pill, so this proves nothing",
+                wanted(title) + wanted(time) + pill.getWidth() > room);
+        assertFalse("the name is still cut short", StoryMentions.crowdsName(row));
+        assertTrue("the pill isn't below the header", pill.getTop() >= headerRow.getBottom());
+        String missing = HookStatus.missing(FamilyNames.STORY_MENTIONS).toString();
+        assertFalse(missing, missing.contains("threw"));
+        bind(BO);
+        assertSame("a later story made a second pill", pill, pill());
+        assertSame("a later story moved the pill back", column, pill.getParent());
+        assertEquals("1 mention", pill.getText().toString());
+        bind();
+        assertEquals(View.GONE, pill.getVisibility());
+    }
+
+    /** What [text] needs across to show whole. */
+    private static int wanted(TextView text) {
+        return (int) Math.ceil(android.text.Layout.getDesiredWidth(text.getText(), text.getPaint()))
+                + text.getCompoundPaddingLeft() + text.getCompoundPaddingRight();
     }
 
     /**

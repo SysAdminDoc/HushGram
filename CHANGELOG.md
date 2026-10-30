@@ -27,6 +27,7 @@ Every HushGram release, newest first.
 * **Instagram:** Typing fast in the `HushGram settings` search keeps every letter. The list used to take the focus from the field while it filtered, so a letter could go missing or come out twice.
 * **Instagram:** With `Gray out stories you've watched` on in `View stories anonymously`, a story you've just watched keeps its place in the tray until you pull down to refresh. It used to jump right the moment you closed it. Reported in #377.
 * **Instagram:** `See who a story mentions` puts its pill just under the story's header on Instagram 453, whose name row can't hold it. Under the name, the pill pushed the name up into the progress bars. Reported in #405.
+* **Instagram:** `See who a story mentions` no longer cuts the account's name short. When the name's row can't fit the pill, like on a highlight with a full date, the pill moves just under the header. Refs #405.
 * **Tooling:** When patching for a phone stops on an Instagram build with no reviewed coverage, the message now names the builds that have it, so you know which one to patch.
 * **Tooling:** Patching for a phone without `-Apk` takes the declared Instagram build from the fixture folder the way the release gate does, `.apks` bundles included. It used to skip `.apks` and take any file with the version in its name.
 * **Tooling:** The whole-app walk takes one more look, after a short pause, at a settings heading it caught mid-animation. It used to call the heading missing and fail the walk when a section was still opening or folding.
