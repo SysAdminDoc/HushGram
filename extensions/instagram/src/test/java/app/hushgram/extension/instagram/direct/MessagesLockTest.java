@@ -953,6 +953,17 @@ public class MessagesLockTest {
             assertEquals(1, phoneChecks[0]);
             alone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
             assertEquals("a fingerprint or face that can't be used lets the screen lock in", 2, phoneChecks[0]);
+
+            BiometricPrompt.AuthenticationCallback gone = MessagesLock.answer(host.get(), true, () -> false,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            int refused = notConfirmed[0];
+            toasts = ShadowToast.shownToastCount();
+            gone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, "Too many attempts. Try again later.");
+            gone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            ShadowLooper.idleMainLooper();
+            assertEquals("no reason is shown over another app", toasts, ShadowToast.shownToastCount());
+            assertEquals("no phone check over another app", 2, phoneChecks[0]);
+            assertEquals(refused + 2, notConfirmed[0]);
         }
     }
 

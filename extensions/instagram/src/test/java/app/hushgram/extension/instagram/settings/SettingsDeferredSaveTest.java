@@ -175,6 +175,8 @@ public class SettingsDeferredSaveTest {
             HushgramPreferenceFragment.UnlockWithRow row = unlockWith(host);
             assertEquals(UnlockWith.PHONE_LOCK.name(), row.getValue());
             assertEquals("Your fingerprint, face or screen lock unlocks your messages.", String.valueOf(row.getSummary()));
+            assertEquals("showing it doesn't save over it", UnlockWith.BIOMETRICS, Settings.UNLOCK_WITH.savedValue());
+            assertEquals(UnlockWith.BIOMETRICS, Setting.preferences.getEnum(Settings.UNLOCK_WITH.key, UnlockWith.PHONE_LOCK));
         }
     }
 
