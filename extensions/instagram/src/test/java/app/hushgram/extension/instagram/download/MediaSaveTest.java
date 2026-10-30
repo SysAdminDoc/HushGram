@@ -1184,4 +1184,48 @@ public class MediaSaveTest {
             return "video/mp4";
         }
     }
+    /**
+     * The DASH tracks have no room to be fetched, so the save falls back to a smaller single file.
+     * The toast names low storage as the reason, not just the lower quality (#348). A fallback that
+     * had room for the tracks keeps the plain lower-quality line.
+     */
+    @Test
+    public void aLowerSaveForWantOfStorageSaysStorageIsLow() throws InterruptedException {
+        serve("/track.mp4", "video/mp4", mp4(4096), 4096);
+        byte[] small = mp4(64);
+        serve("/clip_360p.mp4", "video/mp4", small, small.length);
+        DashManifest.Track video = new DashManifest.Track("video/mp4", "avc1.64001f", 1080, 1920, 3_000_000,
+                origin + "/track.mp4", 1080);
+        int port = server.port();
+        MediaUrlPolicy measuring = new MediaUrlPolicy(host -> new InetAddress[] { InetAddress.getByName("10.9.8.7") }) {
+            @Override
+            Refusal refusal(URL url) {
+                if (url.getPath().equals("/clip_360p.mp4")) describeSavedVideoWorkFile(640, 360);
+                if (url.getHost().equals("127.0.0.1") && url.getPort() == port) return null;
+                return super.refusal(url);
+            }
+        };
+        MediaSave.policyForTests = measuring;
+        DashSave.usableForTests = () -> DashSave.KEEP_FREE + 2000;
+
+        Thread worker = MediaSave.start(context, true, MediaSave.dashJob(context, video, null,
+                origin + "/clip_360p.mp4"));
+        worker.join(30_000);
+        assertFalse("the save never finished", worker.isAlive());
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        assertEquals(1, gallery.inserts.size());
+        String toast = String.valueOf(ShadowToast.getTextOfLatestToast());
+        assertTrue(toast, toast.startsWith("Saved to ") && toast.endsWith(" in lower quality because storage is low"));
+    }
+
+    @Test
+    public void theMessageNamesLowStorageOnlyForALowerSave() {
+        assertTrue(MediaSave.message(context, Downloader.Status.OK, "Movies", true, true).endsWith(" in lower quality because storage is low"));
+        assertEquals("Saved to the gallery in lower quality because storage is low",
+                MediaSave.message(context, Downloader.Status.OK, null, true, true));
+        assertTrue(MediaSave.message(context, Downloader.Status.OK, "Movies", true, false).endsWith(" in lower quality than on Instagram"));
+        assertFalse(MediaSave.message(context, Downloader.Status.OK, "Movies", false, true).contains("lower quality"));
+    }
+
 }

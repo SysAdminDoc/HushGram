@@ -229,25 +229,47 @@ final class Downloader {
          * the one Facebook's player can show, so the person saving is told.
          */
         final boolean lower;
+        /**
+         * A failure for want of free space on the phone: a work file or the joined file had no room
+         * beyond what a save leaves free ({@code DashSave.KEEP_FREE}) (#348).
+         */
+        final boolean noRoom;
+        /**
+         * With [lower], the save fell back to a smaller picture because the phone's storage was low,
+         * so the person saving is told storage was the reason (#348).
+         */
+        final boolean lowStorage;
 
-        private Result(Status status, String reason, String mime, boolean lower) {
+        private Result(Status status, String reason, String mime, boolean lower, boolean noRoom, boolean lowStorage) {
             this.status = status;
             this.reason = reason;
             this.mime = mime;
             this.lower = lower;
+            this.noRoom = noRoom;
+            this.lowStorage = lowStorage;
         }
 
         static Result ok(String mime) {
-            return new Result(Status.OK, null, mime, false);
+            return new Result(Status.OK, null, mime, false, false, false);
         }
 
         static Result fail(Status status, String reason) {
-            return new Result(status, reason, null, false);
+            return new Result(status, reason, null, false, false, false);
+        }
+
+        /** A write failure for want of free space (#348). */
+        static Result noRoom(String reason) {
+            return new Result(Status.WRITE_ERROR, reason, null, false, true, false);
         }
 
         /** This result, told that the saved picture is below the manifest's. */
         Result lower() {
-            return new Result(status, reason, mime, true);
+            return new Result(status, reason, mime, true, noRoom, lowStorage);
+        }
+
+        /** This result, told that the saved picture is below the manifest's because storage was low. */
+        Result lowerForStorage() {
+            return new Result(status, reason, mime, true, noRoom, true);
         }
 
         boolean ok() {

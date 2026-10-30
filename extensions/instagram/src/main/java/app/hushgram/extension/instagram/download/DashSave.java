@@ -216,7 +216,7 @@ final class DashSave {
             long tracks = videoFile.length() + (audioFile == null ? 0 : audioFile.length());
             long room = tracks + tracks / 16 + JOIN_BOXES;
             if (reserve(joined, room) < room) {
-                return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to join the tracks");
+                return Downloader.Result.noRoom("not enough free space to join the tracks");
             }
             // A converted picture is H.264, which the muxer writes.
             boolean own = !isH264 && ownWriter(video.codecs, Build.VERSION.SDK_INT);
@@ -332,7 +332,7 @@ final class DashSave {
             Downloader.Progress progress) {
         long room = reserve(into, cap);
         if (room <= 0 && cap > 0) {
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space for a work file");
+            return Downloader.Result.noRoom("not enough free space for a work file");
         }
         Downloader.Result result = Downloader.fetch(url, kind, into, policy, room, new Downloader.Progress() {
             private boolean sized;
@@ -358,8 +358,7 @@ final class DashSave {
         // Fetched, it grows no more, whatever size was announced or not.
         holdTo(into, into.length());
         if (result.status == Downloader.Status.TOO_LARGE && room < cap) {
-            return Downloader.Result.fail(Downloader.Status.WRITE_ERROR,
-                "not enough free space for a work file over " + room + " bytes");
+            return Downloader.Result.noRoom("not enough free space for a work file over " + room + " bytes");
         }
         return result;
     }

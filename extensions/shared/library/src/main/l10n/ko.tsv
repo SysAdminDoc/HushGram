@@ -1,6 +1,7 @@
 # Korean for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
+%1$d of them because storage is low.	그중 %1$d개는 저장 공간이 부족해서입니다.
 %1$s of %2$s	%2$s 중 %1$s
 %1$s so far	현재까지 %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. 패치할 때 적용되었기 때문에 HushGram 일시 정지로는 비활성화할 수 없습니다. 이 기능이 원인인지 확인하려면 다시 패치하면서 해당 패치를 제외하세요
@@ -35,6 +36,8 @@ From the next start, every switch but Debug logging acts as if it were off. Chan
 Lock these settings	이 설정 잠그기
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청
+Saved to %1$s in lower quality because storage is low	저장 공간이 부족해 %1$s에 낮은 화질로 저장했습니다
+Saved to the gallery in lower quality because storage is low	저장 공간이 부족해 낮은 화질로 갤러리에 저장했습니다
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	이 설정은 잠겨 있습니다. 탭하면 %1$s 대기가 시작되고, 끝나면 10분 동안 열립니다.
 Unlock asked	잠금 해제 요청됨
 These settings open at %1$s, for 10 minutes.	이 설정은 %1$s에 10분 동안 열립니다.

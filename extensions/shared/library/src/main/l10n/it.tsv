@@ -1,5 +1,6 @@
 # Italian for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d of them because storage is low.	%1$d di questi perché lo spazio è quasi esaurito.
 %1$s of %2$s	%1$s di %2$s
 %1$s so far	%1$s finora
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. È stato impostato durante la patch, quindi Pausa non può disattivarlo. Per escluderlo, applica di nuovo la patch senza quella patch.
@@ -34,6 +35,8 @@ From the next start, every switch but Debug logging acts as if it were off. Chan
 Lock these settings	Blocca queste impostazioni
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.
 Ask to unlock	Chiedi di sbloccare
+Saved to %1$s in lower quality because storage is low	Salvato in %1$s con qualità inferiore perché lo spazio è quasi esaurito
+Saved to the gallery in lower quality because storage is low	Salvato nella galleria con qualità inferiore perché lo spazio è quasi esaurito
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Queste impostazioni sono bloccate. Tocca per avviare l'attesa di %1$s, poi restano aperte per 10 minuti.
 Unlock asked	Sblocco chiesto
 These settings open at %1$s, for 10 minutes.	Queste impostazioni si aprono alle %1$s, per 10 minuti.

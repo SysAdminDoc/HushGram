@@ -1,5 +1,6 @@
 # Turkish for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d of them because storage is low.	Bunların %1$d tanesi depolama alanı azaldığı için.
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Şimdiye kadar %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Yamaladığında ayarlandığı için Duraklatma bunu kapatamaz. Bunu elemek için yeniden yamala ve o yamayı dışarıda bırak.
@@ -34,6 +35,8 @@ From the next start, every switch but Debug logging acts as if it were off. Chan
 Lock these settings	Bu ayarları kilitle
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
 Ask to unlock	Kilidi açmayı iste
+Saved to %1$s in lower quality because storage is low	Depolama alanı azaldığı için %1$s konumuna daha düşük kaliteyle kaydedildi
+Saved to the gallery in lower quality because storage is low	Depolama alanı azaldığı için galeriye daha düşük kaliteyle kaydedildi
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
 Unlock asked	Kilit açma istendi
 These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s

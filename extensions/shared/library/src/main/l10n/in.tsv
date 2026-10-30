@@ -1,5 +1,6 @@
 # Indonesian for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
+%1$d of them because storage is low.	%1$d di antaranya karena penyimpanan hampir penuh.
 %1$s of %2$s	%1$s dari %2$s
 %1$s so far	%1$s terunduh
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Ini diatur saat Anda menambal, jadi Jeda tidak dapat mematikannya. Untuk memastikan bukan ini penyebabnya, tambal ulang tanpa tambalan yang tertera dalam kurung setelahnya.
@@ -34,6 +35,8 @@ From the next start, every switch but Debug logging acts as if it were off. Chan
 Lock these settings	Kunci pengaturan ini
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
 Ask to unlock	Minta buka kunci
+Saved to %1$s in lower quality because storage is low	Disimpan ke %1$s dengan kualitas lebih rendah karena penyimpanan hampir penuh
+Saved to the gallery in lower quality because storage is low	Disimpan ke galeri dengan kualitas lebih rendah karena penyimpanan hampir penuh
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.
 Unlock asked	Buka kunci diminta
 These settings open at %1$s, for 10 minutes.	Pengaturan ini terbuka pukul %1$s, selama 10 menit.
