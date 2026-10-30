@@ -34,7 +34,7 @@ public class NotesRowSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_NOTES_ROW.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -81,6 +81,6 @@ public class NotesRowSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.HIDE_NOTES_ROW.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

@@ -35,7 +35,7 @@ public class LongPressZoomSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.LONG_PRESS_TO_ZOOM.resetToDefault();
         Settings.LONG_PRESS_ZOOM_STAYS_OPEN.resetToDefault();
         BaseSettings.PAUSED.save(false);

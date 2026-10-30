@@ -37,7 +37,7 @@ public class RecentSearchesSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.DONT_SAVE_RECENT_SEARCHES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -90,7 +90,7 @@ public class RecentSearchesSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.DONT_SAVE_RECENT_SEARCHES.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

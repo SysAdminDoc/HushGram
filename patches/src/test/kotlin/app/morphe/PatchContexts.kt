@@ -40,4 +40,10 @@ internal object PatchContexts {
             .invoke(context, Opcodes.getDefault())
         return context
     }
+
+    /** Adds [classDef] to the context's pool as the patcher merges an extension's class, replacing one of its type. */
+    fun add(context: BytecodePatchContext, classDef: ClassDef) {
+        val pool = BytecodePatchContext::class.java.getMethod("getPatchClasses\$morphe_patcher").invoke(context)
+        pool.javaClass.getMethod("addClass\$morphe_patcher", ClassDef::class.java).invoke(pool, classDef)
+    }
 }

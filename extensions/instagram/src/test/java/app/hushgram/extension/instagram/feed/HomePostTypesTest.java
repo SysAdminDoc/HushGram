@@ -168,6 +168,28 @@ public class HomePostTypesTest {
         Item item = new Item(FeedSuggestions.VIDEO);
         assertEquals(0, FeedSuggestions.mediaType(item));
         assertSame(item, FeedSuggestions.homeItem(item));
+        assertNull("no post as built", FeedSuggestions.homePost(item));
+    }
+
+    /**
+     * A suggested post on 451 comes as a unit holding the post, with the item's own post field empty
+     * (#192): the post is the item's own when it has one, else the unit's media_or_ad, else its media.
+     * An item with neither, or a read that throws, has no post.
+     */
+    @Test
+    public void aSuggestedPostIsReadFromItsUnit() {
+        Object own = new Object(), mediaOrAd = new Object(), media = new Object(), story = new Object();
+        java.util.function.Function<Object, Object> none = ignored -> null;
+        assertSame("its own post first", own, FeedSuggestions.homePost(new Object(), x -> own, x -> story, x -> mediaOrAd, x -> media));
+        assertSame("then the unit's media_or_ad", mediaOrAd, FeedSuggestions.homePost(new Object(), none, x -> story, x -> mediaOrAd, x -> media));
+        assertSame("then the unit's media", media, FeedSuggestions.homePost(new Object(), none, x -> story, none, x -> media));
+        assertNull("no unit", FeedSuggestions.homePost(new Object(), none, none, x -> mediaOrAd, x -> media));
+        assertNull("no item", FeedSuggestions.homePost(null, x -> own, x -> story, x -> mediaOrAd, x -> media));
+        assertNull("a read that throws", FeedSuggestions.homePost(new Object(), none, x -> {
+            throw new IllegalStateException("moved");
+        }, none, none));
+        String missing = HookStatus.missing(FamilyNames.FEED_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'post read'"));
     }
 
     /**

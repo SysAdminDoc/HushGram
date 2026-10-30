@@ -212,6 +212,10 @@ class ProvenanceTest {
                 writeText("# Taken from https://github.com/SysAdminDoc/Hushfacebook.\n#\n" +
                     "GHSA-aaaa-bbbb-cccc https://github.com/evil/other\n# https://github.com/evil/other\n")
             }
+            val table = File(dir, "x.tsv").apply {
+                writeText("# Reference upstream: https://github.com/SysAdminDoc/Hushfacebook\n" +
+                    "Link\thttps://github.com/evil/other\n")
+            }
             val python = File(dir, "x.py").apply {
                 writeText("\"\"\"Taken from https://github.com/SysAdminDoc/Hushfacebook.\"\"\"\n" +
                     "PAGE = \"https://github.com/evil/other\"\n")
@@ -227,11 +231,13 @@ class ProvenanceTest {
             val rule = Rule(listOf("x/**"), "ported", listOf("https://github.com/SysAdminDoc/Hushfacebook"))
             assertEquals(null, headerProblem("x.ps1", headerOf(script), rule))
             assertEquals(null, headerProblem("x.txt", headerOf(list), rule))
+            assertEquals(null, headerProblem("x.tsv", headerOf(table), rule))
             assertEquals(null, headerProblem("x.py", headerOf(python), rule))
             assertEquals(null, headerProblem("X.java", headerOf(program), rule))
             assertEquals(null, headerProblem("x.gradle", headerOf(gradle), rule))
             assertTrue("a script's body counted as its header", "evil" !in headerOf(script))
             assertTrue("a list's entries counted as its header", "evil" !in headerOf(list))
+            assertTrue("a table's entries counted as its header", "evil" !in headerOf(table))
             assertTrue("a Python script's body counted as its header", "evil" !in headerOf(python))
             assertTrue("a Java program's body counted as its header", "evil" !in headerOf(program))
             assertTrue("a Gradle script's body counted as its header", "evil" !in headerOf(gradle))
@@ -258,7 +264,7 @@ class ProvenanceTest {
         val text = file.readText().replace("\r\n", "\n")
         return when (file.extension) {
             "ps1" -> if (text.startsWith("<#")) text.substringBefore("\n#>") else ""
-            "txt" -> text.lineSequence().takeWhile { it.startsWith("#") }.joinToString("\n")
+            "txt", "tsv" -> text.lineSequence().takeWhile { it.startsWith("#") }.joinToString("\n")
             "py" -> if (text.startsWith("\"\"\"")) text.substring(3).substringBefore("\"\"\"") else ""
             "java", "kt" -> text.substringBefore("\npackage ").substringBefore("\nimport ")
             "gradle" -> if (text.startsWith("/*") && "*/" in text) text.substringBefore("*/") + "*/" else ""

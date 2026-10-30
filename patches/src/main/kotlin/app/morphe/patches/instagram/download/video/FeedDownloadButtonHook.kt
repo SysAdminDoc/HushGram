@@ -11,6 +11,7 @@ import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -21,6 +22,7 @@ import app.morphe.patches.instagram.share.findFeedUfiSite
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -42,8 +44,8 @@ private const val PATCH = "Download any video"
 internal const val FEED_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->bind(Landroid/view/View;Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
 
-/** Feed's inflated Save button in Instagram 450 (`row_feed_button_save`), the same id in every 450 build. */
-internal const val SAVE_BUTTON_ID = 0x7f0b370e
+/** Feed's inflated Save button in Instagram 452 (`row_feed_button_save`; 0x7f0b3728 in 451), the same id in all three 452 builds. */
+internal const val SAVE_BUTTON_ID = 0x7f0b3705
 
 private const val BOUNCY = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val ACTIVITY = "Landroid/app/Activity;"
@@ -169,8 +171,8 @@ internal const val LITHO_BUTTON =
     "$EXTENSION_PACKAGE/download/FeedDownloadButton;->litho(Ljava/util/List;Ljava/lang/Object;Ljava/lang/Object;)V"
 private const val FEED_BUTTON_CLASS = "$EXTENSION_PACKAGE/download/FeedDownloadButton;"
 
-/** The Feed action row's own id (`row_feed_view_group_buttons`), set on the host that holds the buttons. */
-internal const val ROW_BUTTONS_ID = 0x7f0b374c
+/** The Feed action row's own id (`row_feed_view_group_buttons`, 452, the same in all three builds; 0x7f0b3766 in 451), set on the host that holds the buttons. */
+internal const val ROW_BUTTONS_ID = 0x7f0b3743
 
 private const val OBJECT = "Ljava/lang/Object;"
 private const val CHAR_SEQUENCE_TYPE = "Ljava/lang/CharSequence;"
@@ -251,14 +253,18 @@ private fun Instruction.writes(register: Int): Boolean =
  */
 internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page: PageIndex): LithoSaveSite {
     val stateType = button.media.definingClass
-    val builders = classesLoading(SAVE_BUTTON_ID.toLong()).filter { !it.type.startsWith(EXTENSION_ROOT) }.flatMap { classDef ->
+    val saveBuilders = saveCandidates(stateType).filter { !it.type.startsWith(EXTENSION_ROOT) }.flatMap { classDef ->
         classDef.methods.filter { method ->
             val code = method.implementation?.instructions?.toList() ?: return@filter false
-            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                method.returnType.startsWith("L") &&
-                code.any { it.loadsLiteral(SAVE_BUTTON_ID) } && code.any { it.loadsLiteral(ROW_BUTTONS_ID) }
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) &&
+                method.returnType.startsWith("L") && code.any { it.loadsLiteral(SAVE_BUTTON_ID) }
         }
     }
+    // 451 makes the row's buttons and Save's icon spec in one method. 452 splits them: one method
+    // makes Save's spec and answers it, and the method composing the row calls it and adds the answer.
+    val whole = saveBuilders.filter { method -> method.implementation!!.instructions.any { it.loadsLiteral(ROW_BUTTONS_ID) } }
+    val split = whole.isEmpty()
+    val builders = if (split) saveBuilders else whole
     val builder = builders.singleOrNull()
         ?: refuse("expected one component row builder loading Save ($SAVE_BUTTON_ID) and the row ($ROW_BUTTONS_ID), found ${builders.size}")
     val label = "${builder.definingClass}->${builder.name}"
@@ -328,6 +334,47 @@ internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page
     val flag = kept(5, "Z")
     if (drawable == color) refuse("$specType keeps its drawable and its color in one field")
 
+    val hook = if (split) {
+        splitHook(builder, stateType)
+    } else {
+        wholeHook(builder, label, code, idAt, constructorAt, spec, stateType)
+    }
+
+    val stateClass = classDefByOrNull(stateType) ?: refuse("$stateType is missing")
+    val items = stateClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == page.index.definingClass }
+    val item = items.singleOrNull()
+        ?: refuse("expected one ${page.index.definingClass} field in $stateType for the carousel page's feed state, found ${items.size}")
+
+    return LithoSaveSite(
+        hook.type, hook.name, hook.parameters, hook.at, hook.list, hook.spec, hook.state,
+        specType, constructor, modifierType, modifier, scale, color, flag,
+        idStyle, functionStyles[0], functionStyles[1], description,
+        stateType, button.media, ImmutableFieldReference(item.definingClass, item.name, item.type),
+        findModifierParts(modifierType, idStyle),
+    )
+}
+
+/** Where the hook goes: [type]'s [name] at instruction [at], with the button list, Save's spec and the row state in these registers. */
+private class HookPoint(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val at: Int,
+    val list: Int,
+    val spec: Int,
+    val state: Int,
+)
+
+/** 451: right after the icon spec is made, in the method that also adds it to the list. */
+private fun wholeHook(
+    builder: Method,
+    label: String,
+    code: List<Instruction>,
+    idAt: Int,
+    constructorAt: Int,
+    spec: Int,
+    stateType: String,
+): HookPoint {
     val addAt = (constructorAt + 1 until minOf(code.size, constructorAt + 40)).firstOrNull { at ->
         val call = code[at].calls()
         call != null && (code[at].opcode == Opcode.INVOKE_VIRTUAL || code[at].opcode == Opcode.INVOKE_INTERFACE) &&
@@ -357,19 +404,69 @@ internal fun BytecodePatchContext.findLithoSaveSite(button: FeedButtonSite, page
         }
     }
     if (list == spec || list == state || spec == state) refuse("$label keeps the list, the spec and the state in one register")
+    return HookPoint(builder.definingClass, builder.name, builder.parameterTypes.map(CharSequence::toString), at, list, spec, state)
+}
 
-    val stateClass = classDefByOrNull(stateType) ?: refuse("$stateType is missing")
-    val items = stateClass.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == page.index.definingClass }
-    val item = items.singleOrNull()
-        ?: refuse("expected one ${page.index.definingClass} field in $stateType for the carousel page's feed state, found ${items.size}")
+/**
+ * 452: right after the one call of [builder], which answers Save's spec, in the one method that
+ * composes the row. The list is the ArrayList made before that call and added to after it, and the
+ * row state is the argument handed to [builder] as its [stateType].
+ */
+private fun BytecodePatchContext.splitHook(builder: Method, stateType: String): HookPoint {
+    val parameters = builder.parameterTypes.map(CharSequence::toString)
+    val callers = (listOf(classDefBy(builder.definingClass)) + classesCalling(builder.definingClass, builder.name)).distinctBy { it.type }.flatMap { classDef ->
+        classDef.methods.filter { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@filter false
+            code.any { it.loadsLiteral(ROW_BUTTONS_ID) } && code.any { instruction ->
+                instruction.calls()?.let { it.definingClass == builder.definingClass && it.name == builder.name && it.parameters() == parameters } == true
+            }
+        }
+    }
+    val caller = callers.singleOrNull()
+        ?: refuse("expected one method composing the row ($ROW_BUTTONS_ID) that calls ${builder.definingClass}->${builder.name}, found ${callers.size}")
+    val label = "${caller.definingClass}->${caller.name}"
+    val code = caller.implementation!!.instructions.toList()
+    val calls = code.indices.filter { at ->
+        code[at].calls()?.let { it.definingClass == builder.definingClass && it.name == builder.name && it.parameters() == parameters } == true
+    }
+    val callAt = calls.singleOrNull() ?: refuse("$label calls Save's spec ${calls.size} times")
+    val result = code.getOrNull(callAt + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$label doesn't keep Save's spec")
+    val spec = (result as OneRegisterInstruction).registerA
+    val arguments = when (val call = code[callAt]) {
+        is RegisterRangeInstruction -> (0 until call.registerCount).map { call.startRegister + it }
+        is FiveRegisterInstruction -> listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount)
+        else -> refuse("$label calls Save's spec by neither a range nor a plain invoke")
+    }
+    val stateParameters = parameters.indices.filter { parameters[it] == stateType }
+    val stateParameter = stateParameters.singleOrNull()
+        ?: refuse("${builder.definingClass}->${builder.name} takes the row state $stateType ${stateParameters.size} times")
+    val state = arguments[stateParameter + if (AccessFlags.STATIC.isSet(builder.accessFlags)) 0 else 1]
 
-    return LithoSaveSite(
-        builder.definingClass, builder.name, builder.parameterTypes.map(CharSequence::toString), at, list, spec, state,
-        specType, constructor, modifierType, modifier, scale, color, flag,
-        idStyle, functionStyles[0], functionStyles[1], description,
-        stateType, button.media, ImmutableFieldReference(item.definingClass, item.name, item.type),
-        findModifierParts(modifierType, idStyle),
-    )
+    val listAt = (callAt - 1 downTo 0).firstOrNull { at ->
+        val made = code[at]
+        made.opcode == Opcode.NEW_INSTANCE && ((made as ReferenceInstruction).reference as TypeReference).type == "Ljava/util/ArrayList;"
+    } ?: refuse("$label makes no list before Save's spec")
+    val list = (code[listAt] as OneRegisterInstruction).registerA
+    for (at in listAt + 1 until callAt) {
+        if (code[at].writes(list)) refuse("$label changes the button list between making it and Save's spec")
+    }
+    val addAt = (callAt + 2 until minOf(code.size, callAt + 40)).firstOrNull { at ->
+        val called = code[at].calls()
+        called != null && (code[at].opcode == Opcode.INVOKE_VIRTUAL || code[at].opcode == Opcode.INVOKE_INTERFACE) &&
+            called.name == "add" && called.definingClass in LISTS && called.returnType == "Z" && called.takes(OBJECT) &&
+            (code[at] as FiveRegisterInstruction).registerC == list
+    } ?: refuse("$label adds nothing to the button list after Save's spec")
+    for (at in callAt + 2 until addAt) {
+        if (code[at].writes(list)) refuse("$label changes the button list between Save's spec and its add")
+    }
+    val at = callAt + 2
+    val flow = ControlFlow.of(caller)
+    if (flow.normal.indices.any { from -> from != callAt + 1 && at in flow.normal[from] }) {
+        refuse("$label is branched to right after Save's spec")
+    }
+    if (list == spec || list == state || spec == state) refuse("$label keeps the list, the spec and the state in one register")
+    return HookPoint(caller.definingClass, caller.name, caller.parameterTypes.map(CharSequence::toString), at, list, spec, state)
 }
 
 private fun MethodReference.parameters() = parameterTypes.map(CharSequence::toString)
@@ -570,4 +667,21 @@ internal fun BytecodePatchContext.addLithoDownloadButton(site: LithoSaveSite) {
             return-object v1
         """,
     )
+}
+
+/**
+ * The classes that can load Save's id in a component row: the ones the literal index finds, and
+ * the ones with a method taking the row state. The index misses 452's builder, a private method
+ * of many registers, so the classes are read by their method signatures too.
+ */
+private fun BytecodePatchContext.saveCandidates(stateType: String): List<ClassDef> {
+    val taking = ArrayList<ClassDef>()
+    classDefForEach { classDef ->
+        if (!classDef.type.startsWith(EXTENSION_ROOT) &&
+            classDef.methods.any { method -> method.parameterTypes.any { it.toString() == stateType } }
+        ) {
+            taking += classDef
+        }
+    }
+    return (classesLoading(SAVE_BUTTON_ID.toLong()) + taking).distinctBy { it.type }
 }

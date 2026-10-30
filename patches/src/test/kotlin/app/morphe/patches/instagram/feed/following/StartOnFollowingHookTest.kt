@@ -49,7 +49,7 @@ class StartOnFollowingHookTest {
     /** The hooks the patch writes are in the FollowingFeed the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(FEED_FLAG, SAVED_FEED, LIMIT_PICKER)) {
+        for (hook in listOf(FEED_FLAG, SAVED_FEED, LIMIT_PICKER, PICKED_FEED)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -148,6 +148,31 @@ class StartOnFollowingHookTest {
         assertThrows(PatchException::class.java) { context.findPickerFreeze(context.findSavedFeedReturn()) }
     }
 
+    /** A method switching Home to a feed type hands it through the extension first thing; one taking anything else is left alone. */
+    @Test
+    fun theFeedSwitchHandsItsFeedThroughTheExtension() {
+        val context = PatchContexts.of(listOf(feedType(), feedSwitch(SWITCH, FEED_TYPE), feedSwitch(OTHER_SWITCH, STRING_TYPE), savedFeed(), pickerGate()))
+
+        val reads = context.findFlagReads("test", FEED_PICKER_FLAGS)
+        val switches = context.findFeedSwitches(reads)
+        assertEquals(listOf(SWITCH), switches.map { it.type })
+        assertEquals(FEED_TYPE, switches.single().feedType)
+        context.answerFlagReads(reads, FEED_FLAG)
+        context.keepFeedLinksInPlace(switches)
+
+        val method = context.mutableClassDefBy(SWITCH).methods.single()
+        assertFeedHandedThrough("stand-in", method, FEED_TYPE)
+        assertAnsweredAfterEveryRead("stand-in", method)
+    }
+
+    /** Without a method switching Home to a feed type, Back to home would still close Instagram. */
+    @Test
+    fun noFeedSwitchFailsThePatch() {
+        val context = PatchContexts.of(listOf(feedType(), feedSwitch(OTHER_SWITCH, STRING_TYPE), savedFeed(), pickerGate()))
+        val reads = context.findFlagReads("test", FEED_PICKER_FLAGS)
+        assertThrows(PatchException::class.java) { context.findFeedSwitches(reads) }
+    }
+
     @Test
     fun theExtensionIsLeftAlone() {
         val own = savedFeed(type = "Lapp/hushgram/extension/instagram/feed/Probe;")
@@ -184,16 +209,31 @@ class StartOnFollowingHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.loadsTheFlag() || it.holds(SAVED_FEED_KEY) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.loadsTheFlag() || it.holds(SAVED_FEED_KEY) || it.holds(FOR_YOU_FEED) }) {
+                    holders += ImmutableClassDef.of(classDef)
+                }
             }
         }
         val context = PatchContexts.of(holders)
 
         val reads = context.findFlagReads("test", FEED_PICKER_FLAGS)
         val saved = context.findSavedFeedReturn()
+        val switches = context.findFeedSwitches(reads)
         context.defaultSavedFeed(saved)
         context.answerFlagReads(reads, FEED_FLAG)
+        context.keepFeedLinksInPlace(switches)
 
+        // The picker's switch and the listener that opens a feed it doesn't switch to in place.
+        assertEquals("$label: feed switches", 2, switches.size)
+        for (switch in switches) {
+            assertFeedHandedThrough(
+                "$label ${switch.type}->${switch.name}",
+                context.mutableClassDefBy(switch.type).methods.single {
+                    it.name == switch.name && it.parameterTypes.map(CharSequence::toString) == listOf(switch.feedType)
+                },
+                switch.feedType,
+            )
+        }
         assertEquals("$label: remembered feed reads", 12, reads.count { it.flag == REMEMBERED_FEED_FLAG })
         assertEquals("$label: For you reads", 3, reads.count { it.flag == FOR_YOU_PICKER_FLAG })
         assertDefaultedAndAnswered(
@@ -238,6 +278,21 @@ class StartOnFollowingHookTest {
         assertEquals("$what: the return", Opcode.RETURN_OBJECT, code[hook + 2].opcode)
         assertEquals("$what: the returned register", register, (code[hook + 2] as OneRegisterInstruction).registerA)
         assertAnsweredAfterEveryRead(what, method)
+    }
+
+    /** The first three instructions take the feed type parameter through the extension and cast the answer back; one call in all. */
+    private fun assertFeedHandedThrough(what: String, method: Method, feedType: String) {
+        val code = method.implementation!!.instructions.toList()
+        val feed = method.implementation!!.registerCount - 1
+        assertEquals("$what: hooks", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == PICKED_FEED })
+        assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
+        assertEquals("$what: the hook", PICKED_FEED, (code[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: the feed handed", feed, (code[0] as RegisterRangeInstruction).startRegister)
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[1].opcode)
+        assertEquals("$what: the answer's register", feed, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the cast", Opcode.CHECK_CAST, code[2].opcode)
+        assertEquals("$what: the cast's register", feed, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the cast's type", feedType, (code[2] as ReferenceInstruction).reference.toString())
     }
 
     /** After each flag load, its read's move-result is followed by the extension call and a move-result into the same register. */
@@ -288,6 +343,45 @@ class StartOnFollowingHookTest {
         const val PICKER = "Lfixture/FeedTitle;"
         const val CONFIG = "Lfixture/MobileConfig;"
         const val STORE = "Lfixture/Store;"
+        const val FEED_TYPE = "Lfixture/FeedType;"
+        const val SWITCH = "Lfixture/FeedSwitch;"
+        const val OTHER_SWITCH = "Lfixture/TabSwitch;"
+        const val STRING_TYPE = "Ljava/lang/String;"
+
+        /** Shaped like 452's LX/02sV: an enum whose static initializer names its constants, For you among them. */
+        fun feedType(): ClassDef {
+            val static = AccessFlags.STATIC.value or AccessFlags.CONSTRUCTOR.value
+            val code = listOf<Instruction>(
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(FOR_YOU_FEED)),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )
+            return ImmutableClassDef(
+                FEED_TYPE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value or AccessFlags.ENUM.value, "Ljava/lang/Enum;",
+                null, null, null, null,
+                listOf(ImmutableMethod(FEED_TYPE, "<clinit>", null, "V", static, null, null, ImmutableMethodImplementation(1, code, null, null))),
+            )
+        }
+
+        /** Shaped like 452's LX/02tL.A00: an instance method taking [parameter] that reads the remembered feed flag. */
+        fun feedSwitch(type: String, parameter: String): ClassDef {
+            val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+            val code = listOf<Instruction>(
+                ImmutableInstruction51l(Opcode.CONST_WIDE, 0, REMEMBERED_FEED_FLAG),
+                ImmutableInstruction21c(Opcode.CHECK_CAST, 2, ImmutableTypeReference(CONFIG)),
+                ImmutableInstruction35c(Opcode.INVOKE_INTERFACE, 3, 2, 0, 1, 0, 0, ImmutableMethodReference(CONFIG, "Bae", listOf("J"), "Z")),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT, 0),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            )
+            return ImmutableClassDef(
+                type, instance, "Ljava/lang/Object;", null, null, null, null,
+                listOf(
+                    ImmutableMethod(
+                        type, "A00", listOf(ImmutableMethodParameter(parameter, null, null)), "V", instance, null, null,
+                        ImmutableMethodImplementation(5, code, null, null),
+                    ),
+                ),
+            )
+        }
 
         /**
          * Shaped like 449's LX/00lX: a constructor naming the preference, and a getter that asks

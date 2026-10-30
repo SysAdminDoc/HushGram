@@ -234,6 +234,11 @@ try {
     $deviceLease.Record.expiresUtc = '2026-01-01T00:00:00Z'
     Update-HushgramDeviceLease $deviceLease
     Assert-True ([DateTimeOffset]::Parse($deviceLease.Record.expiresUtc) -gt [DateTimeOffset]::UtcNow.AddMinutes(10)) 'An owned lease was not renewed.'
+    # Read back the way another session reads it: ConvertFrom-Json turns an offset time into a
+    # local DateTime, which compared with UTC looks hours away from its real expiry.
+    $written = [Text.Encoding]::UTF8.GetString((Read-LeaseBytes $leasePath)) | ConvertFrom-Json
+    Assert-True ($written.expiresUtc -is [DateTime] -and $written.expiresUtc.Kind -eq [DateTimeKind]::Utc -and
+        $written.acquiredUtc.Kind -eq [DateTimeKind]::Utc) 'The lease times read back as local times.'
     $denied = $false
     try { [void](Invoke-HushgramAdbCommand -Adb (Join-Path $leaseDirectory 'missing-adb.exe') -Arguments @('-s','SERIAL','get-state') -DeviceLease $deviceLease) }
     catch { $denied = $true }
@@ -622,6 +627,112 @@ class FakeAdb {
     } finally {
         [System.IO.File]::Delete($wiringCopy)
     }
+
+    # Exercise the real device builder up to a deliberately refused CLI run. These stand-ins
+    # capture its argument file without reading a signing key or contacting a device.
+    $signingRoot = Join-Path $leaseDirectory 'signing'
+    $release = Join-Path $signingRoot 'patches/build/release'
+    New-Item -ItemType Directory -Path $release -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $signingRoot 'gradle.properties'), "version = 1.2.3`n")
+    [IO.File]::WriteAllText((Join-Path $signingRoot 'patches-list.json'), @'
+{"version":"1.2.3","patches":[{"name":"Fixture patch","compatiblePackages":{"com.instagram.android":["1.0"]},"dependencies":[]}]}
+'@)
+    $stock = Join-Path $signingRoot 'stock.apk'
+    $desktop = Join-Path $signingRoot 'desktop.jar'
+    [IO.File]::WriteAllText($stock, 'fixture')
+    [IO.File]::WriteAllText($desktop, 'fixture')
+    [IO.File]::WriteAllText((Join-Path $release 'patches-1.2.3.mpp'), 'fixture')
+    $java = Join-Path $signingRoot 'java.ps1'
+    $aapt = Join-Path $signingRoot 'aapt.ps1'
+    $captured = Join-Path $signingRoot 'captured.json'
+    [IO.File]::WriteAllText($java, @'
+if ($args[0] -eq '-version') { 'openjdk version "21.0.5"'; exit 0 }
+if ($args.Count -ne 3 -or $args[0] -ne '-jar' -or -not $args[2].StartsWith('@')) { exit 18 }
+$file = $args[2].Substring(1)
+$values = @([IO.File]::ReadAllLines($file) | ForEach-Object { ConvertFrom-Json -InputObject $_ })
+$capture = @{ invocation = @($args); arguments = $values }
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot 'captured.json'), ($capture | ConvertTo-Json -Depth 4))
+exit 17
+'@)
+    [IO.File]::WriteAllText($aapt, @'
+'E: manifest (line=1)'
+'  A: package="com.instagram.android"'
+'  A: versionName="1.0"'
+'  A: versionCode="1"'
+exit 0
+'@)
+    $storeVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
+    $entryVariable = 'HUSHGRAM_SIDELOAD_KEY_PASSWORD'
+    $oldStore = [Environment]::GetEnvironmentVariable($storeVariable, 'Process')
+    $oldEntry = [Environment]::GetEnvironmentVariable($entryVariable, 'Process')
+    $special = 'entry \' + [char]0x03bb + '" quoted'
+    $signingCases = @(
+        @{ Name='defaults'; Store=$null; Entry=$null; Parameters=@{}; WantStore='sideload'; WantEntry='sideload' },
+        @{ Name='shared-environment'; Store='store value'; Entry=$null; Parameters=@{}; WantStore='store value'; WantEntry='store value' },
+        @{ Name='separate-environment'; Store='store value'; Entry='entry value'; Parameters=@{}; WantStore='store value'; WantEntry='entry value' },
+        @{ Name='blank-store'; Store=$null; Entry=$null; Parameters=@{KeystorePassword=''; KeyPassword='entry value'}; WantStore=''; WantEntry='entry value' },
+        @{ Name='blank-entry'; Store=$null; Entry=$null; Parameters=@{KeystorePassword='store value'; KeyPassword=''}; WantStore='store value'; WantEntry='' },
+        @{ Name='quoted-entry'; Store=$null; Entry=$null; Parameters=@{KeystorePassword='store value'; KeyPassword=$special}; WantStore='store value'; WantEntry=$special },
+        @{ Name='blank-store-environment-entry'; Store='ignored store'; Entry='entry value'; Parameters=@{KeystorePassword=''}; WantStore=''; WantEntry='entry value' },
+        @{ Name='explicit-precedence'; Store='ignored store'; Entry='ignored entry'; Parameters=@{KeystorePassword='chosen store'; KeyPassword='chosen entry'}; WantStore='chosen store'; WantEntry='chosen entry' }
+    )
+    try {
+        foreach ($case in $signingCases) {
+            [Environment]::SetEnvironmentVariable($storeVariable, $case.Store, 'Process')
+            [Environment]::SetEnvironmentVariable($entryVariable, $case.Entry, 'Process')
+            [IO.File]::Delete($captured)
+            $out = Join-Path $signingRoot $case.Name
+            $parameters = $case.Parameters
+            $refusal = $null
+            try {
+                & (Join-Path $Root 'scripts/patch-for-device.ps1') -Root $signingRoot -Apk $stock `
+                    -DesktopJar $desktop -Java $java -Aapt2 $aapt -OutDir $out `
+                    -Keystore (Join-Path $signingRoot 'fixture.keystore') @parameters
+            } catch { $refusal = $_.Exception.Message }
+            Assert-True ($refusal -ceq 'The desktop CLI exited with 17') "$($case.Name): the fixture did not reach the CLI refusal."
+            $record = Get-Content -LiteralPath $captured -Raw | ConvertFrom-Json
+            $storeIndex = [Array]::IndexOf([object[]]$record.arguments, '--keystore-password')
+            $entryIndex = [Array]::IndexOf([object[]]$record.arguments, '--keystore-entry-password')
+            Assert-True ($storeIndex -ge 0 -and $record.arguments[$storeIndex + 1] -ceq $case.WantStore) "$($case.Name): store password changed."
+            Assert-True ($entryIndex -ge 0 -and $record.arguments[$entryIndex + 1] -ceq $case.WantEntry) "$($case.Name): entry password changed."
+            Assert-True ($record.invocation.Count -eq 3 -and $record.invocation[2].StartsWith('@')) "$($case.Name): credentials left the argument file."
+            Assert-True (-not (Test-Path -LiteralPath (Join-Path $out 'morphe-patch.args'))) "$($case.Name): the refused run left its credential file."
+        }
+    } finally {
+        [Environment]::SetEnvironmentVariable($storeVariable, $oldStore, 'Process')
+        [Environment]::SetEnvironmentVariable($entryVariable, $oldEntry, 'Process')
+    }
+    Write-Host "[scripts] device signing arguments: $($signingCases.Count) cases passed"
+
+    # With no -Apk, the declared build's fixture comes from HUSHGRAM_FIXTURE_DIR, a split .apks
+    # included, found the way the gate and the receipt find it. 0.0.17's .apks was skipped.
+    $fixtureFolder = Join-Path $signingRoot 'fixtures'
+    New-Item -ItemType Directory -Path $fixtureFolder -Force | Out-Null
+    [IO.File]::WriteAllText((Join-Path $fixtureFolder 'notes-1.0.apk'), 'fixture')
+    $splitFixture = Join-Path $fixtureFolder 'instagram-1.0-1-arm64-v8a.apks'
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+    $splitZip = [IO.Compression.ZipFile]::Open($splitFixture, [IO.Compression.ZipArchiveMode]::Create)
+    try {
+        $writer = [IO.StreamWriter]::new($splitZip.CreateEntry('base.apk').Open())
+        try { $writer.Write('fixture') } finally { $writer.Dispose() }
+    } finally { $splitZip.Dispose() }
+    $oldFixtureDir = [Environment]::GetEnvironmentVariable('HUSHGRAM_FIXTURE_DIR', 'Process')
+    try {
+        [Environment]::SetEnvironmentVariable('HUSHGRAM_FIXTURE_DIR', $fixtureFolder, 'Process')
+        [IO.File]::Delete($captured)
+        $refusal = $null
+        try {
+            & (Join-Path $Root 'scripts/patch-for-device.ps1') -Root $signingRoot `
+                -DesktopJar $desktop -Java $java -Aapt2 $aapt -OutDir (Join-Path $signingRoot 'from-fixtures') `
+                -Keystore (Join-Path $signingRoot 'fixture.keystore')
+        } catch { $refusal = $_.Exception.Message }
+        Assert-True ($refusal -ceq 'The desktop CLI exited with 17') "The fixture folder's .apks wasn't patched: $refusal"
+        $record = Get-Content -LiteralPath $captured -Raw | ConvertFrom-Json
+        Assert-True ([string]$record.arguments[-1] -ceq $splitFixture) "The fixture folder gave the CLI $($record.arguments[-1]), not the declared build's .apks."
+    } finally {
+        [Environment]::SetEnvironmentVariable('HUSHGRAM_FIXTURE_DIR', $oldFixtureDir, 'Process')
+    }
+    Write-Host '[scripts] device fixture lookup: the declared .apks is patched'
 
 } finally {
     if ($deviceLease -and $deviceLease.File.CanWrite) { Exit-HushgramDeviceLease $deviceLease }

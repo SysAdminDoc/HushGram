@@ -84,14 +84,17 @@ private const val BOOLEAN = "Ljava/lang/Boolean;"
  * Adds Follows you or Doesn't follow you beside the name on someone's profile, in the slot Instagram
  * keeps there for pronouns, or with Show it as a chip as a chip under the profile's counts, and with
  * a second switch marks the accounts on your own Following list that don't follow you back
- * ([findFollowRow]). Asked for in #1 and, for the chip, #24.
+ * ([findFollowRow]). Recent unfollowers compares your own Followers list each time it has loaded to
+ * the end ([findFollowersParts]). Asked for in #1, for the chip #24, and for unfollowers #208.
  */
 @Suppress("unused")
 val friendshipStatusPatch = bytecodePatch(
     name = "Show if a profile follows you",
     description = "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches " +
-        "add a chip and mark accounts on your Following list that don't follow you back. The chip is blue for " +
-        "Follows you, green for Following each other and red for Doesn't follow you. On by default. Turn it " +
+        "add a chip and mark accounts on your Following list that don't follow you back, and Recent unfollowers " +
+        "shows who left your Followers list. The chip is blue for " +
+        "Follows you, green for Following each other and red for Doesn't follow you, and it can go small under " +
+        "the profile picture. On by default. Turn it " +
         "off in HushGram settings > Profiles.",
 ) {
     category("Profiles")
@@ -101,12 +104,15 @@ val friendshipStatusPatch = bytecodePatch(
     execute {
         requireStatusMethod("friendshipStatus")
         requireStatusMethod(FOLLOWING_LIST_STATUS)
+        requireStatusMethod(UNFOLLOWERS_STATUS)
         // Everything is found before anything changes, so a build missing any part is left untouched.
         val found = findProfileName()
         val screen = screenAnswerOrWarn()
         val mark = followRowOrWarn()
+        val followers = mark?.let { followersPartsOrWarn(it.order) }
         val stubs = friendshipStubs()
         val rowStubs = followingStubs()
+        val followerStubs = followersStubs()
         labelProfileName(found)
         stubs.fill(found)
         if (screen != null) stubs.fillScreen(found, screen)
@@ -117,6 +123,10 @@ val friendshipStatusPatch = bytecodePatch(
             rowStubs.fill(mark.row, mark.answers)
             rowStubs.fillOrder(mark.order)
             enableStatus(FOLLOWING_LIST_STATUS)
+            if (followers != null) {
+                followerStubs.fill(followers)
+                enableStatus(UNFOLLOWERS_STATUS)
+            }
         }
         enableStatus("friendshipStatus")
     }
@@ -146,6 +156,23 @@ internal fun BytecodePatchContext.followRowOrWarn(): FollowMark? = try {
     null
 }
 
+/** The first interface above [type] that declares getValue()Object. */
+private fun BytecodePatchContext.findLiveValue(type: String): MethodReference? {
+    val seen = mutableSetOf<String>()
+    fun find(current: String): MethodReference? {
+        if (!seen.add(current)) return null
+        val classDef = classDefByOrNull(current) ?: return null
+        classDef.methods.firstOrNull {
+            it.name == "getValue" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/Object;"
+        }?.let { return com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference(
+            current, it.name, emptyList(), it.returnType,
+        ) }
+        classDef.interfaces.forEach { find(it.toString())?.let { found -> return found } }
+        return null
+    }
+    return find(type)
+}
+
 internal fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
@@ -169,8 +196,8 @@ internal class ProfileName(
     val header: Int,
     val headerType: String,
     val viewModel: FieldReference,
-    /** The view model's field of the profile's user. */
-    val user: FieldReference,
+    /** The view model's field of the profile's user, directly or through its live data. */
+    val user: ProfileUser,
     /** The user model's getter of its friendship status, and the status's getter of whether the account follows you. */
     val friendship: String,
     val relationshipFollowedBy: String,
@@ -182,6 +209,33 @@ internal class ProfileName(
     val userId: String,
     val session: FieldReference,
 )
+
+/**
+ * Where the view model keeps the profile's user: its own field on older builds, or on 453 the live
+ * data field, whose value wraps the user in a holder that keeps it as a user model.
+ */
+internal class ProfileUser(
+    val field: FieldReference?,
+    val live: FieldReference?,
+    val getValue: MethodReference?,
+    val holder: String?,
+    val holderField: FieldReference?,
+) {
+    fun load(destination: String): String {
+        if (field != null) return "iget-object $destination, $destination, $field"
+        return """
+            iget-object $destination, $destination, $live
+            if-eqz $destination, :none
+            invoke-interface { $destination }, $getValue
+            move-result-object $destination
+            if-eqz $destination, :none
+            check-cast $destination, $holder
+            iget-object $destination, $destination, $holderField
+            if-eqz $destination, :none
+            check-cast $destination, $USER
+        """.trimIndent()
+    }
+}
 
 /**
  * Finds the one method outside the extension that loads [BIND_FULL_NAME], and in the trace section
@@ -252,8 +306,41 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val (header, headerType, viewModel) = headers.singleOrNull()
         ?: refuse("expected one parameter of $where holding a $VIEW_MODEL, found ${headers.size}")
     val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
-    val user = viewModelClass.instanceFields(USER).singleOrNull()
-        ?: refuse("expected $VIEW_MODEL to keep one $USER")
+    val direct = viewModelClass.instanceFields(USER).singleOrNull()
+    val user = if (direct != null) {
+        ProfileUser(direct, null, null, null, null)
+    } else {
+        val setters = viewModelClass.methods.filter {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) && it.implementation != null
+        }
+        val setter = setters.singleOrNull()
+            ?: refuse("expected one static ($VIEW_MODEL, $USER) setter, found ${setters.size}")
+        val setterCode = setter.implementation!!.instructions.toList()
+        val live = setterCode.indices.mapNotNull { at ->
+            val read = setterCode[at]
+            val field = read.fieldReference() ?: return@mapNotNull null
+            if (read.opcode != Opcode.IGET_OBJECT || field.definingClass != VIEW_MODEL || findLiveValue(field.type) == null) {
+                return@mapNotNull null
+            }
+            val setValue = setterCode.getOrNull(at + 1)?.methodReference()
+            field.takeIf {
+                setValue?.parameterTypes?.map(CharSequence::toString) == listOf(OBJECT) && setValue.returnType == "Z"
+            }
+        }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't keep the user in live data")
+        val holderField = setterCode.mapNotNull { instruction ->
+            instruction.fieldReference()?.takeIf { field ->
+                instruction.opcode == Opcode.IGET_OBJECT && field.definingClass != VIEW_MODEL &&
+                    classDefByOrNull(field.definingClass)?.let { holder ->
+                        holder.fields.any { it.type == USER || it.type.startsWith("L") && classDefByOrNull(it.type) != null && USER != it.type }
+                    } == true
+            }
+        }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't read the user's holder")
+        val holder = holderField.definingClass
+        val getValue = findLiveValue(live.type)
+            ?: refuse("${live.type} has no getValue()Object")
+        ProfileUser(null, live, getValue, holder, holderField)
+    }
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val getters = userClass.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == BOOLEAN &&
@@ -444,7 +531,7 @@ internal class FriendshipStubs(
                 check-cast p0, ${found.headerType}
                 iget-object p0, p0, ${found.viewModel}
                 if-eqz p0, :none
-                iget-object p0, p0, ${found.user}
+                ${found.user.load("p0")}
                 :none
                 return-object p0
             """,

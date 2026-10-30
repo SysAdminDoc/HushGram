@@ -19,7 +19,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * at 9 Mbps instead of 720 wide at a bitrate worked out from its size, the same as a post or a reel
  * gets with the setting on. The patch hands the upload's share type to {@link #fullQuality} at the start
  * of that question, and with the switch on a story gets a yes. Every other kind of upload gets
- * Instagram's own answer, and so does everything the server still decides after it.
+ * Instagram's own answer, and so does everything the server still decides after it. The server
+ * re-encodes every story video to 720p after upload whatever the phone sends, so the yes improves
+ * the source it works from, not the size viewers get.
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or anything
  * thrown, Instagram asks its own setting as before.

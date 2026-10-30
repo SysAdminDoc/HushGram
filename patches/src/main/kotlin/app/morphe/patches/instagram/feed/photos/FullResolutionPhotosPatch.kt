@@ -4,7 +4,6 @@
  */
 package app.morphe.patches.instagram.feed.photos
 
-import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
@@ -18,10 +17,10 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -37,7 +36,6 @@ internal const val FULL_RESOLUTION = "$EXTENSION_PACKAGE/feed/FullResolution;"
 internal const val PHOTO = "$FULL_RESOLUTION->photo(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"
 
 private const val CONTEXT = "Landroid/content/Context;"
-private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
 /** A size of a picture: its address, width and height. Instagram keeps the name. */
 internal const val EXTENDED_IMAGE_URL = "Lcom/instagram/model/mediasize/ExtendedImageUrl;"
@@ -52,19 +50,24 @@ internal const val MEDIA_EXT = "Lcom/instagram/feed/media/MediaExtKt;"
 internal const val NO_IMAGE_URL =
     "instagram.features.feed.ui.rows.image.FeedImageUseCase#getImageSource() Could not generate imageUrl for mediaId= "
 
+/** 452 logs the same message without the media id part. */
+internal const val NO_IMAGE_URL_SHORT =
+    "instagram.features.feed.ui.rows.image.FeedImageUseCase#getImageSource() Could not generate imageUrl "
+
 /**
  * Loads feed photos at the largest size the server sends rather than the one Instagram picks for
  * the screen. Included in the default selection with its switch initially off, since a larger
  * photo means more data. Only the pixels loaded change: the view's size comes from the post. A
  * second switch, also off to start, asks for a larger size on a phone narrower than 1440 pixels
- * (see LargerPhotos.kt).
+ * (see LargerPhotos.kt), and a third, Full size covers, reports a screen big enough for full size
+ * reel covers (#214).
  */
 @Suppress("unused")
 val fullResolutionPhotosPatch = bytecodePatch(
     name = "Full resolution photos",
     description = "Loads photos in the largest size Instagram sends instead of one picked for your screen. A " +
-        "second switch asks for a larger size on screens under 1440 pixels wide. Uses more data. Starts off. Turn " +
-        "it on in HushGram settings > Feed.",
+        "second switch asks for a larger size on screens under 1440 pixels wide, and a third gets reel covers and " +
+        "grid pictures at full size. Uses more data. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
     category("Feed")
@@ -88,16 +91,6 @@ val fullResolutionPhotosPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The feed image use case's instance method taking a Context, the session and a post, which logs [NO_IMAGE_URL]. */
-internal object FeedImageSourceFingerprint : Fingerprint(
-    parameters = listOf(CONTEXT, USER_SESSION, MEDIA),
-    strings = listOf(NO_IMAGE_URL),
-    custom = { method, _ ->
-        !AccessFlags.STATIC.isSet(method.accessFlags) &&
-            method.instructions().any { it.string() == NO_IMAGE_URL }
-    },
-)
-
 /**
  * Where the photo's size is picked: the method, the index of the move-result after the one call to
  * Media's helpers that takes a Context and the post and answers a size, the register the post is
@@ -110,6 +103,7 @@ internal class FullResolutionSite(
     val media: Int,
     val size: Int,
     val forScreen: MethodReference,
+    val parameters: List<String>,
 )
 
 /**
@@ -121,27 +115,42 @@ internal class FullResolutionSite(
  * exactly once, since that's an update this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findFullResolution(): FullResolutionSite {
-    val method = uniqueMethod(PATCH, "feed photo address method logging that it found none", FeedImageSourceFingerprint)
+    val sources = listOf(NO_IMAGE_URL, NO_IMAGE_URL_SHORT).flatMap { message ->
+        classesLoadingString(message).flatMap { it.methods }.filter { method -> loadsString(method, message) }
+    }.distinctBy { "${it.definingClass}->${it.name}${it.parameterTypes}" }.filter { method ->
+        method.parameterTypes.size == 3 && method.parameterTypes.first() == CONTEXT && method.parameterTypes.last() == MEDIA
+    }
+    val method = sources.singleOrNull()
+        ?: refuse("expected exactly one feed photo address method logging that it found none in this Instagram build, found ${sources.ifEmpty { null }?.joinToString { "${it.definingClass}->${it.name}" } ?: "none"}")
     val where = "${method.definingClass}->${method.name}"
     val code = method.instructions()
-    val calls = code.indices.filter { at ->
-        val instruction = code[at]
-        val called = instruction.methodReference()
-        (instruction.opcode == Opcode.INVOKE_STATIC || instruction.opcode == Opcode.INVOKE_STATIC_RANGE) &&
-            called != null && called.definingClass == MEDIA_EXT &&
-            called.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT, MEDIA) &&
-            called.returnType == EXTENDED_IMAGE_URL
+    // 451 asks the helper for the size for a Context. 452 inlines that helper, so the pick is the
+    // helper for a width, handed the width of the Context's screen by the call just before it.
+    val forContext = code.indices.filter { at ->
+        val called = code[at].staticCall()
+        called != null && called.definingClass == MEDIA_EXT &&
+            called.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT, MEDIA) && called.returnType == EXTENDED_IMAGE_URL
     }
+    val forWidth = code.indices.filter { at ->
+        val called = code[at].staticCall()
+        called != null && called.definingClass == MEDIA_EXT &&
+            called.parameterTypes.map(CharSequence::toString) == listOf(MEDIA, "I") && called.returnType == EXTENDED_IMAGE_URL
+    }
+    val calls = forContext.ifEmpty { forWidth }
     val call = calls.singleOrNull()
         ?: refuse("expected $where to ask Media's helpers once for the size for a Context, found ${calls.size}")
+    val mediaArgument = if (forContext.isEmpty()) 0 else 1
     val result = code.getOrNull(call + 1)
     if (result?.opcode != Opcode.MOVE_RESULT_OBJECT) refuse("$where doesn't keep the size it's handed")
     val size = (result as OneRegisterInstruction).registerA
-    val media = code[call].arguments()[1]
+    val media = code[call].arguments()[mediaArgument]
     if (size == media) refuse("$where keeps the size in the post's own register v$media")
     if (size > 15 || media > 15) refuse("$where keeps the post in v$media and the size in v$size, past what a plain invoke can name")
     if (call + 2 in method.jumpTargets()) refuse("something in $where jumps in right after the size it's handed")
-    return FullResolutionSite(method.definingClass, method.name, call + 1, media, size, code[call].methodReference()!!)
+    return FullResolutionSite(
+        method.definingClass, method.name, call + 1, media, size, code[call].methodReference()!!,
+        method.parameterTypes.map(CharSequence::toString),
+    )
 }
 
 /**
@@ -153,11 +162,14 @@ internal fun BytecodePatchContext.findFullResolution(): FullResolutionSite {
  * Fails before anything changes when any of it isn't there exactly once.
  */
 internal fun BytecodePatchContext.findPickerSizes(site: FullResolutionSite): MethodReference {
-    val forScreen = helper(site.forScreen)
-    val forWidth = forScreen.instructions().mapNotNull { it.staticCall() }.filter {
-        it.definingClass == MEDIA_EXT && it.parameterTypes.map(CharSequence::toString) == listOf(MEDIA, "I") &&
-            it.returnType == EXTENDED_IMAGE_URL
-    }.singleOrNull() ?: refuse("expected ${site.forScreen} to ask Media's helpers once for the size for a width")
+    val widthHelper = { call: MethodReference -> call.parameterTypes.map(CharSequence::toString) == listOf(MEDIA, "I") }
+    val forWidth = if (widthHelper(site.forScreen)) {
+        site.forScreen
+    } else {
+        helper(site.forScreen).instructions().mapNotNull { it.staticCall() }.filter {
+            it.definingClass == MEDIA_EXT && widthHelper(it) && it.returnType == EXTENDED_IMAGE_URL
+        }.singleOrNull() ?: refuse("expected ${site.forScreen} to ask Media's helpers once for the size for a width")
+    }
     val picker = helper(forWidth)
     val code = picker.instructions()
     val reads = code.indices.filter { at ->
@@ -193,7 +205,7 @@ private fun BytecodePatchContext.helper(reference: MethodReference): Method =
  */
 internal fun BytecodePatchContext.loadFullResolution(site: FullResolutionSite) {
     val method = mutableClassDefBy(site.definingClass).methods.single {
-        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == listOf(CONTEXT, USER_SESSION, MEDIA)
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }
     method.addInstructions(
         site.pick + 1,

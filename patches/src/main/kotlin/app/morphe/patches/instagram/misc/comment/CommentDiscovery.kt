@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.methodsCalling
 import app.morphe.util.ControlFlow
 import app.morphe.util.getFreeRegisterProvider
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -78,6 +79,23 @@ internal fun BytecodePatchContext.classPool(): Map<String, ClassDef> {
 }
 
 /**
+ * The methods of the classes the patcher's string index names for [string], each class as it stands
+ * in [classes]. A method loading [string] is in one of them, so a search for one reads those classes
+ * rather than every method in the app (#173). The index holds the extension's classes too, as the
+ * walk over [classes] did.
+ */
+internal fun BytecodePatchContext.methodsBesideString(string: String, classes: Map<String, ClassDef>): Sequence<Method> =
+    classDefByStrings(string).asSequence().map { it.type }.distinct().mapNotNull { classes[it] }.flatMap { it.methods.asSequence() }
+
+/**
+ * The methods of the classes calling [name] on [definingClass], by the patcher's index of the types
+ * each class refers to, each class as it stands in [classes].
+ */
+internal fun BytecodePatchContext.methodsBesideCall(definingClass: String, name: String, classes: Map<String, ClassDef>): Sequence<Method> =
+    methodsCalling(definingClass, name).asSequence().map { it.definingClass }.distinct().mapNotNull { classes[it] }
+        .flatMap { it.methods.asSequence() }
+
+/**
  * The surface as the first comment family in this patch run found it. The second family can't
  * read the renderer again once the shared call is in, so it reuses what was found before that.
  */
@@ -105,7 +123,6 @@ internal fun BytecodePatchContext.findCommentMenu(): CommentMenu = discovering(C
         if (type !in classes) refuse("missing extension boundary $type")
     }
     fun clazz(type: String) = classes[type] ?: refuse("missing native class $type")
-    fun methods() = classes.values.asSequence().flatMap { it.methods.asSequence() }
     val selectedType = surface.selectedType
     val model = clazz(selectedType)
     val raw = clazz(surface.raw)
@@ -120,7 +137,7 @@ internal fun BytecodePatchContext.findCommentMenu(): CommentMenu = discovering(C
         } } }.one("comment's parsed value model")
     val valueGetter = valueModel.methods.filter { it.matches(getter) }.one("parsed text getter")
     val valueText = parsedTextField(valueGetter, valueModel.type)
-    val parser = methods().filter { method -> method.name == "unsafeParseFromJson" &&
+    val parser = methodsBesideString("text", classes).filter { method -> method.name == "unsafeParseFromJson" &&
         method.returnType in setOf(OBJECT, valueModel.type) && "text" in method.strings() &&
         method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass == valueModel.type } == true }
     }.toList().one("comment text parser")
@@ -128,7 +145,7 @@ internal fun BytecodePatchContext.findCommentMenu(): CommentMenu = discovering(C
     if (constructorField(parser, readAt + 1, valueModel.type, classes, allowAbsent = true).toString() != valueText.toString()) {
         refuse("parsed text does not reach the original text getter")
     }
-    val converter = methods().filter { it.returnType == selectedType && it.code().any { instruction ->
+    val converter = methodsBesideCall(raw.type, getter.name, classes).filter { it.returnType == selectedType && it.code().any { instruction ->
         instruction.call()?.let { call -> call.definingClass == raw.type && call.matches(getter) } == true
     } }.toList().one("selected-comment conversion")
     val textAt = converter.code().indices.filter { at ->
@@ -205,9 +222,10 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
 
     // The selected comment's register is counted back from the list, so the value between them
     // must take one register.
+    // The parameter count reads no type name, so it goes first: decoding every method's return type was most of this walk (#173).
     val renderer = methods().filter { method ->
-        method.publicInstance() && method.returnType == "V" && method.parameters().let {
-            it.size == 5 && it[1] == selectedType && it[2] != "J" && it[2] != "D" && it[3] == LIST && it[4] == "F"
+        method.parameterTypes.size == 5 && method.publicInstance() && method.returnType == "V" && method.parameters().let {
+            it[1] == selectedType && it[2] != "J" && it[2] != "D" && it[3] == LIST && it[4] == "F"
         } && method.code().any { it.field()?.toString() == callback.toString() ||
             (it.reference() as? TypeReference)?.type == rowBase.type }
     }.toList().one("common comment menu renderer")
@@ -245,7 +263,7 @@ private fun BytecodePatchContext.findCommentSurface(classes: Map<String, ClassDe
     } catch (failure: IllegalArgumentException) {
         refuse("renderer has no safe invocation registers: ${failure.message}")
     }
-    val copy = methods().filter { it.name == "toString" && it.returnType == STRING && "CopyText" in it.strings() }
+    val copy = methodsBesideString("CopyText", classes).filter { it.name == "toString" && it.returnType == STRING && "CopyText" in it.strings() }
         .toList().one("native CopyText label anchor")
     return CommentSurface(selectedType, ImmutableFieldReference.of(rawField), raw.type, pando.type,
         ImmutableMethodReference.of(renderer), at, listRegister, selectedRegister, context, spare,

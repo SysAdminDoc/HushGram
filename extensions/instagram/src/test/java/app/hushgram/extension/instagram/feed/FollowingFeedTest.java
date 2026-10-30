@@ -9,6 +9,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.app.Activity;
 import android.content.Context;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -22,7 +23,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -201,6 +204,79 @@ public class FollowingFeedTest {
             Settings.START_ON_FOLLOWING.save(true);
         }
     }
+
+    /** Back to home at the end of Following asks for the plain Home feed, which opened an empty page and closed Instagram. */
+    @Test
+    public void backToHomeSwitchesHomeInPlace() {
+        HookStatus.clear();
+        assertEquals(Feed.BLENDED_FOR_YOU, FollowingFeed.picked(Feed.BLENDED));
+        assertEquals(
+                java.util.Arrays.asList(FamilyNames.FOLLOWING_FEED + ": invoked 1, 0 found, 0 missing. Counted: "
+                        + FollowingFeed.HOME_LINK_KEPT + " 1"),
+                HookStatus.report());
+        assertEquals(Feed.FOLLOWING, FollowingFeed.picked(Feed.FOLLOWING));
+        assertEquals(Feed.FAVORITES, FollowingFeed.picked(Feed.FAVORITES));
+        assertEquals("not a feed type", FollowingFeed.picked("not a feed type"));
+        assertNull(FollowingFeed.picked(null));
+
+        Settings.ONLY_FOLLOWING.save(true);
+        try {
+            assertEquals("For you taken out, Home stays on Following", Feed.FOLLOWING, FollowingFeed.picked(Feed.BLENDED));
+            Settings.START_ON_FOLLOWING.save(false);
+            assertEquals("switch off", Feed.BLENDED, FollowingFeed.picked(Feed.BLENDED));
+        } finally {
+            Settings.ONLY_FOLLOWING.resetToDefault();
+            Settings.START_ON_FOLLOWING.save(true);
+        }
+    }
+
+    /** With For you taken out, Back to home asks for the feed Home is on, so it taps the Home tab, a moment later, to go back to the top. */
+    @Test
+    public void backToHomeOnFollowingTapsTheHomeTab() {
+        HookStatus.clear();
+        assertEquals(Feed.BLENDED_FOR_YOU, FollowingFeed.picked(Feed.BLENDED));
+        ShadowLooper.idleMainLooper();
+        assertFalse("For you still offered: no tap", String.join("\n", HookStatus.report()).contains(FollowingFeed.HOME_LINK_NO_TAB));
+
+        Settings.ONLY_FOLLOWING.save(true);
+        try {
+            assertEquals(Feed.FOLLOWING, FollowingFeed.picked(Feed.BLENDED));
+            ShadowLooper.idleMainLooper();
+            // No activity is in front in a test, so the tap finds no tab and says so.
+            assertTrue(String.join("\n", HookStatus.report()).contains(FollowingFeed.HOME_LINK_NO_TAB + " 1"));
+        } finally {
+            Settings.ONLY_FOLLOWING.resetToDefault();
+        }
+    }
+
+    @Test
+    public void theHomeTabIsTappedOnlyWhileItsShown() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        FrameLayout root = new FrameLayout(activity);
+        View home = new View(activity);
+        home.setId(7301);
+        int[] taps = {0};
+        home.setOnClickListener(tab -> taps[0]++);
+        root.addView(home);
+        activity.setContentView(root);
+
+        assertTrue(FollowingFeed.tapHome(activity, 7301));
+        assertEquals(1, taps[0]);
+        assertFalse("no such tab", FollowingFeed.tapHome(activity, 7302));
+        assertFalse("no id", FollowingFeed.tapHome(activity, 0));
+        assertFalse("no activity", FollowingFeed.tapHome(null, 7301));
+        home.setVisibility(View.INVISIBLE);
+        assertFalse("hidden", FollowingFeed.tapHome(activity, 7301));
+        assertEquals(1, taps[0]);
+    }
+
+    /** An enum without the constant answered is left as it came. */
+    @Test
+    public void aFeedTypeWithoutForYouStands() {
+        assertEquals(Plain.BLENDED, FollowingFeed.picked(Plain.BLENDED));
+    }
+
+    private enum Plain { BLENDED }
 
     @Test
     public void anItemWithoutOneFeedTypeIsKept() throws Exception {

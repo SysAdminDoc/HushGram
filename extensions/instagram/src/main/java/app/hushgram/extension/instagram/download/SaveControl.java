@@ -18,6 +18,7 @@ import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.service.notification.StatusBarNotification;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -73,7 +74,7 @@ public final class SaveControl {
     private static volatile MediaSave.BatchResult lastBatch;
 
     /** What a running save is doing. */
-    public enum Phase { DOWNLOADING, JOINING, SAVING }
+    public enum Phase { DOWNLOADING, CONVERTING, JOINING, SAVING }
 
     /**
      * Told when a save starts, moves on to its next phase or ends, and at most twice a second while
@@ -121,6 +122,8 @@ public final class SaveControl {
         public final Phase phase;
         public final long done;
         public final long total;
+        /** How much of the picture is converted to H.264 so far, or -1 when it isn't known. */
+        public final int converted;
         /** Zero for an individual save, otherwise the bounded carousel's page count. */
         public final int batchPages;
         public final int batchPage;
@@ -132,6 +135,7 @@ public final class SaveControl {
             phase = save.phase;
             done = save.done;
             total = save.total;
+            converted = save.converted;
             batchPages = save.batchPages;
             batchPage = save.batchPage;
         }
@@ -145,10 +149,13 @@ public final class SaveControl {
         return running;
     }
 
-    /** What [save] is doing, and how far it has got while it downloads, in the phone's language. */
+    /** What [save] is doing, and how far it has got while it downloads or converts, in the phone's language. */
     public static String status(Running save) {
         String phase;
         switch (save.phase) {
+            case CONVERTING:
+                phase = L10n.t("Converting to H.264");
+                break;
             case JOINING:
                 phase = L10n.t("Joining the picture and sound");
                 break;
@@ -158,7 +165,9 @@ public final class SaveControl {
             default:
                 phase = L10n.t("Downloading");
         }
-        String progress = save.phase == Phase.DOWNLOADING ? progressText(save.done, save.total) : null;
+        String progress = save.phase == Phase.DOWNLOADING ? progressText(save.done, save.total)
+                : save.phase == Phase.CONVERTING && save.converted >= 0
+                ? NumberFormat.getPercentInstance(L10n.locale()).format(save.converted / 100.0) : null;
         String text = progress == null ? phase : phase + "\n" + progress;
         return save.batchPages == 0 ? text
                 : L10n.f("Page %1$d of %2$d", save.batchPage, save.batchPages) + "\n" + text;
@@ -336,6 +345,7 @@ public final class SaveControl {
         private volatile Phase phase = Phase.DOWNLOADING;
         private volatile long done;
         private volatile long total = -1;
+        private volatile int converted = -1;
         /** When the watchers were last told how far this save has got. */
         private long toldAt;
         /** Closes the connection the save is reading, handed over by Downloader. */
@@ -425,6 +435,21 @@ public final class SaveControl {
         }
 
         @Override
+        public void converting(int percent) {
+            converted = percent;
+            long now = System.nanoTime();
+            boolean began = phase != Phase.CONVERTING;
+            if (began || now - toldAt >= UPDATE_GAP_NANOS) {
+                phase = Phase.CONVERTING;
+                toldAt = now;
+                tell();
+            }
+            if (manager == null) return;
+            if (!began && (now - shownAt < UPDATE_GAP_NANOS || percent == shownPercent)) return;
+            show(percent, 0, -1);
+        }
+
+        @Override
         public void saving() {
             phase = Phase.SAVING;
             tell();
@@ -492,7 +517,8 @@ public final class SaveControl {
                     // The catalog's Cancel, in the language of the title above it.
                     .addAction(new Notification.Action.Builder((Icon) null,
                         L10n.t(application, "Cancel"), cancel).build());
-                String text = batchPages > 0 ? status(new Running(this)) : progressText(done, total);
+                String text = batchPages > 0 ? status(new Running(this))
+                    : phase == Phase.CONVERTING ? L10n.t(application, "Converting to H.264") : progressText(done, total);
                 if (text != null) builder.setContentText(text);
                 manager.notify(TAG, id, builder.build());
             } catch (Throwable t) {

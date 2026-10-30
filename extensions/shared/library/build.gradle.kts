@@ -7,7 +7,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        // Instagram 450 declares minSdk 28, and this library only ever runs inside it.
+        // A patched Instagram 453 declares minSdk 28, and this library only ever runs inside it.
         minSdk = 28
     }
 

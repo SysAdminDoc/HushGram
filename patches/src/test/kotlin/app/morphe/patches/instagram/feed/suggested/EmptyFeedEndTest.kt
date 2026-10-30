@@ -160,6 +160,32 @@ class EmptyFeedEndTest {
         assertThrows(PatchException::class.java) { context.findFeedEnd() }
     }
 
+    /**
+     * On 451's 385713073 the builder copies the feed into another register, reads the flag off the
+     * copy over it and asks the register it copied from, with an invoke-virtual/range, whether the
+     * feed is empty.
+     */
+    @Test
+    fun aFlagReadOffACopyOfTheFeedIsFound() {
+        val context = PatchContexts.of(listOf(adapter(
+            read = "move-object v0, v1\niget-boolean v0, v0, $ended",
+            asked = "invoke-virtual/range { v1 .. v1 }, $feed->isEmpty()Z",
+        )))
+        val end = context.findFeedEnd()
+        assertEquals(ended, end.flag.toString())
+        assertEquals("$feed->isEmpty()Z", end.empty.toString())
+    }
+
+    /** A copy the read writes the flag over the source of isn't the feed any more, and the patch fails. */
+    @Test
+    fun aQuestionAskedOfARegisterTheReadWroteFailsThePatch() {
+        val context = PatchContexts.of(listOf(adapter(
+            read = "move-object v0, v1\niget-boolean v1, v0, $ended",
+            asked = "invoke-virtual { v1 }, $feed->isEmpty()Z",
+        )))
+        assertThrows(PatchException::class.java) { context.findFeedEnd() }
+    }
+
     @Test
     fun twoBuildersFailThePatch() {
         val context = PatchContexts.of(listOf(adapter(), adapter("Lfixture/SecondAdapter;")))
@@ -170,8 +196,8 @@ class EmptyFeedEndTest {
      * In each build of the declared version, the declared bundle and the other builds of it, the home
      * feed adapter reads its flag twice, in its model builder and its empty check, and both reads go
      * past the extension with the feed handed over first. The feed's empty check is public, so the
-     * extension's stub can ask it. On 450's 385611438 that's LX/01ls reading LX/01mK;->A02:Z in A1A
-     * and A1J, and asking LX/048B;->A0H()Z.
+     * extension's stub can ask it. On 451's 385713073 that's LX/05cW reading LX/05cY;->A02:Z in A05
+     * and asking LX/05Gi;->A0D()Z.
      */
     @Test
     fun eachBuildEndsTheEmptiedFeed() {
@@ -424,14 +450,14 @@ class EmptyFeedEndTest {
      * The builder reads another flag first, then the one that ends the feed, asks the feed whether
      * it's empty, and asks again before adding the loading row. Its empty check reads the flag too.
      */
-    private fun adapter(type: String = adapter, asks: Boolean = true) = classDef(type, listOf(
+    private fun adapter(type: String = adapter, asks: Boolean = true, read: String = "iget-boolean v0, v1, $ended", asked: String = "invoke-virtual { v1 }, $feed->isEmpty()Z") = classDef(type, listOf(
         method(type, "buildModels", "V", registers = 4, body = """
             const-string v0, "$BUILD_MODELS"
             iget-object v1, v3, $type->feed:$feed
             iget-boolean v2, v1, $feed->other:Z
-            iget-boolean v0, v1, $ended
+            $read
             if-eqz v0, :loading
-            ${if (asks) "invoke-virtual { v1 }, $feed->isEmpty()Z\nmove-result v0" else "const/4 v0, 0x1"}
+            ${if (asks) "$asked\nmove-result v0" else "const/4 v0, 0x1"}
             if-eqz v0, :loading
             return-void
             :loading

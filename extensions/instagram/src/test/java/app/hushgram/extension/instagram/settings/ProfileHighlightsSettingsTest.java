@@ -34,7 +34,7 @@ public class ProfileHighlightsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_HIGHLIGHTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -80,6 +80,6 @@ public class ProfileHighlightsSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.HIDE_HIGHLIGHTS.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

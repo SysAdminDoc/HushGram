@@ -75,6 +75,40 @@ public final class CommentCopy {
         return Utils.settingsReady() && Settings.COPY_COMMENTS.get();
     }
 
+    /**
+     * The text after the @names it starts with, the way a reply begins (#270), or the text
+     * itself when it starts with none or holds nothing else. A name ends at a space or a line
+     * break, with one comma or colon allowed before it, so "@name's" is left as written.
+     */
+    static String withoutLeadingMentions(String text) {
+        int at = skipSpaces(text, 0);
+        int rest = -1;
+        while (at < text.length() && text.charAt(at) == '@') {
+            int end = at + 1;
+            while (end < text.length() && usernameChar(text.charAt(end))) end++;
+            if (end == at + 1) break;
+            if (end < text.length() && (text.charAt(end) == ',' || text.charAt(end) == ':')) end++;
+            if (end < text.length() && !space(text.charAt(end))) break;
+            at = skipSpaces(text, end);
+            rest = at;
+        }
+        return rest < 0 || rest >= text.length() ? text : text.substring(rest);
+    }
+
+    private static int skipSpaces(String text, int from) {
+        while (from < text.length() && space(text.charAt(from))) from++;
+        return from;
+    }
+
+    private static boolean space(char c) {
+        return Character.isWhitespace(c) || Character.isSpaceChar(c);
+    }
+
+    /** Instagram usernames hold letters, digits, periods and underscores. */
+    private static boolean usernameChar(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '_';
+    }
+
     /** Holds only the original text and the short-lived menu's context. */
     public static final class CopyAction implements Function0<Object> {
         final String text;
@@ -89,7 +123,8 @@ public final class CommentCopy {
         @Override public Object invoke() {
             try {
                 if (!enabled()) return null;
-                Utils.setClipboard(context, L10n.t(context, "Copy comment"), text);
+                String copied = Settings.COPY_COMMENTS_WITHOUT_MENTIONS.get() ? withoutLeadingMentions(text) : text;
+                Utils.setClipboard(context, L10n.t(context, "Copy comment"), copied);
                 Utils.showToastShort(L10n.t(context, "Comment copied"));
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.COMMENT_COPY, "copy comment", failure);

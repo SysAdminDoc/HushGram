@@ -34,7 +34,7 @@ public class SwipeToCreateSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.STOP_SWIPE_TO_CREATE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -80,6 +80,6 @@ public class SwipeToCreateSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.STOP_SWIPE_TO_CREATE.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

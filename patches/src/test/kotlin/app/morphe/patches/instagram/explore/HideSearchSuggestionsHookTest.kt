@@ -67,7 +67,12 @@ class HideSearchSuggestionsHookTest {
         assertEquals("the items", item, sites.itemType)
         val section = context.mutableClassDefBy(oldSearch).methods.single()
         assertSectionGuarded("stand-in", section)
-        assertEquals("Instagram's section after the guard", sectionBefore.map { it.opcode }, section.code().drop(4).map { it.opcode })
+        val sectionCode = section.code()
+        val guard = sectionCode.indexOfFirst { it.referenceText() == HIDE_SECTION }
+        assertEquals(
+            "Instagram's section around the guard", sectionBefore.map { it.opcode },
+            (sectionCode.take(guard) + sectionCode.drop(guard + 3)).map { it.opcode },
+        )
         val builder = context.mutableClassDefBy(newSearch).methods.single()
         assertItemsFiltered("stand-in", builder, builder.implementation!!.registerCount - 2)
         assertEquals("Instagram's builder after the filter", builderBefore.map { it.opcode }, builder.code().drop(2).map { it.opcode })
@@ -80,7 +85,6 @@ class HideSearchSuggestionsHookTest {
             classes(sections = 0) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 0",
             classes(sections = 2) to "expected one method adding the search screen's $NULL_STATE_SUGGESTED section, found 2",
             classes(builderHoldsRecents = false) to "expected one builder of the search screen taking a list and holding $SHOW_MORE_RECENTS, found 0",
-            classes(sectionStatic = false) to "$oldSearch->A02 isn't static",
             classes(loopsToStart = true) to "something in $newSearch->A00 jumps back to its start",
             classes(kindNames = listOf("RECENTS", "NULLSTATE_SUGGESTIONS")) to
                 "expected the search screen's builder to cast to one class with a kind naming SUGGESTED_USERS, found []",
@@ -99,16 +103,15 @@ class HideSearchSuggestionsHookTest {
     }
 
     /**
-     * In each declared build both builders are there once and hooked. On 450's 385611438 they're
-     * LX/0H2f.A02 (the older section) and LX/0I5d.A00 (the newer builder, whose items are LX/0I6e,
-     * kind LX/0GRI).
+     * In each of the three 452 builds both builders (the older section and the newer builder) are
+     * there once and hooked.
      */
     @Test
     fun eachDeclaredBuildHooksBothBuilders() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             val casts = mutableSetOf<String>()
@@ -143,15 +146,24 @@ class HideSearchSuggestionsHookTest {
         }
     }
 
-    /** First thing: ask the extension, and return when it says so. */
+    /**
+     * The recents are built, the extension is asked, and the suggested block is skipped when it says
+     * so: the hook sits after the recents and before the suggested names, and branches past them.
+     */
     private fun assertSectionGuarded(what: String, method: Method) {
         val code = method.code()
-        assertEquals("$what: the hook", HIDE_SECTION, code[0].referenceText())
-        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
-        assertEquals("$what: v0", 0, (code[1] as OneRegisterInstruction).registerA)
-        assertEquals("$what: the branch", Opcode.IF_EQZ, code[2].opcode)
-        assertEquals("$what: the return", Opcode.RETURN_VOID, code[3].opcode)
-        assertEquals("$what: hooks", 1, code.count { it.referenceText() == HIDE_SECTION })
+        val call = code.indexOfFirst { it.referenceText() == HIDE_SECTION }
+        assertTrue("$what: the hook is missing", call >= 0)
+        assertEquals("$what: one hook", 1, code.count { it.referenceText() == HIDE_SECTION })
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[call + 1].opcode)
+        val answer = (code[call + 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: the branch", Opcode.IF_NEZ, code[call + 2].opcode)
+        assertEquals("$what: the branch tests the answer", answer, (code[call + 2] as OneRegisterInstruction).registerA)
+        val recents = code.indexOfFirst { it.string() == SHOW_MORE_RECENTS }
+        val suggested = code.indexOfFirst { it.string() == NULL_STATE_SUGGESTED }
+        // Some 453 builds put the recents outside the section, which then holds no Show more row.
+        assertTrue("$what: recents built before the hook", recents < call)
+        assertTrue("$what: suggested names after the hook", suggested > call + 2)
     }
 
     /** First thing: the list's register handed to the extension and its answer put back in it. */
@@ -181,10 +193,19 @@ class HideSearchSuggestionsHookTest {
             const-string v0, "$NULL_STATE_SUGGESTED"
             const-string v0, "$FOLLOW_CHAINING_UNIT"
         """
+        // Shaped like 452's older section: the recents row first, then Instagram's own checks guard
+        // the suggested block, skipping to a common point past it when there's nothing to suggest.
         val section = { name: String ->
             method(
                 oldSearch, name, listOf("Lfixture/OldState;", oldSearch), "V", 1, if (sectionStatic) static else AccessFlags.PUBLIC.value,
-                "$names\nreturn-void",
+                """
+                    const-string v0, "$SHOW_MORE_RECENTS"
+                    if-eqz p0, :hidden
+                    if-eqz p1, :hidden
+                    $names
+                    :hidden
+                    return-void
+                """,
             )
         }
         val builder = method(

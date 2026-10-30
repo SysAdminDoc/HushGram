@@ -246,7 +246,8 @@ class FriendshipStatusHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                val context = PatchContexts.of(profileClasses(bundle))
+                // 453 keeps the user in a holder behind a live data interface, which the screen slice loads.
+                val context = PatchContexts.of((profileClasses(bundle) + screenClasses(bundle)).distinctBy { it.type })
 
                 val found = context.findProfileName()
                 context.labelProfileName(found)
@@ -292,7 +293,7 @@ class FriendshipStatusHookTest {
                     .implementation!!.instructions.mapNotNull { (it as? ReferenceInstruction)?.reference?.toString() }
                 val walk = listOf(
                     found.viewModel.toString(), screen.answer.toString(), screen.value, screen.tree.toString(), screen.reinterpret,
-                    CLIENT, screen.retype, screen.subtree,
+                    FIXTURE_CLIENT, screen.retype, screen.subtree,
                 )
                 assertEquals("${bundle.name}: $references", walk, references.filter { it in walk })
                 checked++
@@ -313,7 +314,7 @@ class FriendshipStatusHookTest {
     private fun assertScreenAnswer(what: String, screen: ScreenAnswer) {
         assertEquals("$what: the screen's answer is the view model's", VIEW_MODEL, screen.answer.definingClass)
         assertTrue("$what: ${screen.value}", screen.value.startsWith("${screen.answer.type}->getValue()"))
-        assertEquals("$what: the sheet's client", CLIENT, screen.client)
+        assertEquals("$what: the sheet's client", FIXTURE_CLIENT, screen.client)
         assertEquals("$what: the sheet's fragment type", SHEET_TYPE, screen.type)
         assertEquals("$what: the answer keeps its tree", screen.holder, screen.tree.definingClass)
         for (call in listOf(screen.reinterpret, screen.retype, screen.subtree, screen.flag)) {
@@ -443,6 +444,9 @@ class FriendshipStatusHookTest {
         const val TREE_HOLDER = "Lfixture/TreeHolder;"
         const val TREE = "Lfixture/Tree;"
         const val CLIENT = "itas-android"
+
+        /** The client string the 452 builds hand the sheet; 451 had "itas-android". The patch copies whichever it reads. */
+        const val FIXTURE_CLIENT = "ig4a-instagram-schema"
 
         /** The options sheet's fragment type on 450, 0xcd0b11e1. */
         const val SHEET_TYPE = -854912543

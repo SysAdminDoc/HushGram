@@ -14,11 +14,12 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
@@ -37,6 +38,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val POST_TIME_PATCH = "Show a post's exact time"
 internal const val POST_TIME = "$EXTENSION_PACKAGE/feed/PostTime;"
@@ -44,12 +46,22 @@ internal const val CONTEXT = "Landroid/content/Context;"
 internal const val STRING = "Ljava/lang/String;"
 internal const val OBJECT = "Ljava/lang/Object;"
 internal const val LONG_BOX = "Ljava/lang/Long;"
+internal const val RESOURCES = "Landroid/content/res/Resources;"
+internal const val INTEGER = "Ljava/lang/Integer;"
 
 /** The hooks that take the place of Instagram's call, for a time given as a double and as a long. */
 internal const val TIME_AS_DOUBLE = "$POST_TIME->time($OBJECT${CONTEXT}D)$STRING"
 internal const val TIME_AS_LONG = "$POST_TIME->time($OBJECT${CONTEXT}J)$STRING"
 
-/** The stubs the patch fills with Instagram's own call, one for each of the two shapes. */
+/**
+ * The hook for a time Instagram writes from the resources rather than a context, on the static
+ * call's own arguments: the resources, the unit, the formatter, the style, the time and a flag.
+ * The flag is taken as an int, never a boolean: a register Instagram's code types as int fails
+ * verification handed to a Z parameter, and the stub hands it on as Instagram's boolean.
+ */
+internal const val TIME_FROM_RESOURCES = "$POST_TIME->time($RESOURCES$OBJECT$OBJECT${INTEGER}DI)$STRING"
+
+/** The stubs the patch fills with Instagram's own call, one for each of the three shapes. */
 internal const val INSTAGRAM_TIME = "instagramTime"
 
 /** The relative formatter's core writes a time more than a week back as a date with this pattern. */
@@ -57,6 +69,12 @@ internal const val LONG_AGO_PATTERN = "MMMM d"
 
 /** What a feed post's footer builder traces as it builds the footer, the time with it. */
 internal const val FEED_FOOTER = "CoalescedFooterUseCase#getUiState"
+
+/**
+ * What the builder of the line under a feed post's comments traces. 452 moved the post's second
+ * time out of the footer builder into this one, which the footer builder calls.
+ */
+internal const val FEED_LABEL = "LabelBelowCommentUseCase#getUiState"
 
 /** How Compose names the comment header (author, time and badges), less the line number. */
 internal const val COMMENT_HEADER = "com.instagram.comments.mvvm.view.compose.CommentAuthorHeader ("
@@ -102,13 +120,19 @@ val showPostTimePatch = bytecodePatch(
 
 private fun refuse(why: String): Nothing = throw PatchException("$POST_TIME_PATCH: $why")
 
+/** How a call hands the time over: with a context as a double or a long, or with the resources. */
+internal enum class TimeShape { DOUBLE, LONG, RESOURCES }
+
 /** One call to the formatter that a post's or comment's time goes through, and what it called. */
 internal class PostTimeSite(val method: Method, val index: Int, val called: MethodReference) {
-    /** Whether it hands the time over as a long rather than a double. */
-    val asLong get() = called.parameterTypes.last().toString() == "J"
+    val shape get() = when {
+        called.parameterTypes.first().toString() == RESOURCES -> TimeShape.RESOURCES
+        called.parameterTypes.last().toString() == "J" -> TimeShape.LONG
+        else -> TimeShape.DOUBLE
+    }
 }
 
-/** The formatter, the calls taking its place, and the extension's two stubs. */
+/** The formatter, the calls taking its place, and the extension's three stubs. */
 internal class PostTimes(
     val formatter: String,
     val feed: List<PostTimeSite>,
@@ -116,6 +140,7 @@ internal class PostTimes(
     val row: List<PostTimeSite>,
     val asDouble: MutableMethod,
     val asLong: MutableMethod,
+    val fromResources: MutableMethod,
 ) {
     val sites get() = feed + header + row
 }
@@ -123,12 +148,17 @@ internal class PostTimes(
 /**
  * Finds every call this patch replaces and checks all of it before anything changes:
  *  - the relative formatter, the class of the one core method [RelativeTimeFingerprint] finds;
- *  - the feed footer: the one method holding [FEED_FOOTER] that calls the formatter;
- *  - the comment header: the one method holding a string starting with [COMMENT_HEADER] that does;
+ *  - the feed: the one method loading [FEED_FOOTER] that calls the formatter, and the one loading
+ *    [FEED_LABEL] that does, the same method on 453, whose calls are taken once;
+ *  - the comment header: the one method holding a string starting with [COMMENT_HEADER]. Up to 451
+ *    it called the formatter itself. From 452 its callers hand it the time's formatting as a
+ *    lambda, so the calls are the formatter's static resources overload in the classes those
+ *    callers create;
  *  - the comment row: the one class whose render loads [COMMENT_ROW_TIME] and that keeps one Long,
  *    the comment's time, and each call, wherever it is, whose time is that Long read and unboxed in
  *    straight code just before it.
- * A formatter call here is one answering a String from a context and a time, as a double or a long.
+ * A formatter call here is one answering a String from a context and a time, as a double or a long,
+ * or from the resources, a unit, the formatter, a style, the time as a double and a flag.
  * Each shape must reach one formatting of Instagram's, which its stub is filled with.
  */
 internal fun BytecodePatchContext.findPostTimes(): PostTimes {
@@ -144,18 +174,41 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
         PostTimeSite(this, at, call)
     }
 
-    fun one(what: String, classes: List<ClassDef>, holds: (String) -> Boolean): List<PostTimeSite> {
-        val methods = classes.flatMap { it.methods }.filter { method ->
-            method.code().any { (it.reference() as? StringReference)?.string?.let(holds) == true } && method.formatterCalls().isNotEmpty()
+    fun Method.resourcesCalls(): List<PostTimeSite> = code().mapIndexedNotNull { at, instruction ->
+        val call = instruction.call() ?: return@mapIndexedNotNull null
+        val shape = call.parameterTypes.map(CharSequence::toString)
+        if (instruction.opcode != Opcode.INVOKE_STATIC && instruction.opcode != Opcode.INVOKE_STATIC_RANGE) return@mapIndexedNotNull null
+        if (call.definingClass != formatter || call.returnType != STRING || shape.size != 6) return@mapIndexedNotNull null
+        if (shape[0] != RESOURCES || !shape[1].startsWith("L") || shape[2] != formatter || shape.drop(3) != listOf(INTEGER, "D", "Z")) {
+            return@mapIndexedNotNull null
         }
+        PostTimeSite(this, at, call)
+    }
+
+    fun one(what: String, value: String): List<PostTimeSite> {
+        val methods = classesLoadingString(value).flatMap { it.methods }.filter { loadsString(it, value) && it.formatterCalls().isNotEmpty() }
         val method = methods.singleOrNull()
             ?: refuse("expected one $what asking $formatter for a time, found ${methods.size}")
         return method.formatterCalls()
     }
 
-    val feed = one("feed footer builder holding \"$FEED_FOOTER\"", classesHolding(FEED_FOOTER)) { it == FEED_FOOTER }
+    // 453 builds the label inside the footer builder, so both strings find one method and its calls once.
+    val feed = (
+        one("feed footer builder loading \"$FEED_FOOTER\"", FEED_FOOTER) +
+            one("feed label builder loading \"$FEED_LABEL\"", FEED_LABEL)
+        ).distinctBy { Triple(it.method.definingClass, it.method.name + it.method.parameterTypes + it.method.returnType, it.index) }
     val headers = classDefByStrings(COMMENT_HEADER, StringComparisonType.STARTS_WITH).filterNot { it.type.startsWith(EXTENSION_ROOT) }
-    val header = one("comment header holding \"$COMMENT_HEADER\"", headers) { it.startsWith(COMMENT_HEADER) }
+        .flatMap { it.methods }.filter { method -> method.code().any { (it.reference() as? StringReference)?.string?.startsWith(COMMENT_HEADER) == true } }
+    val headerMethod = headers.singleOrNull()
+        ?: refuse("expected one comment header holding \"$COMMENT_HEADER\", found ${headers.size}")
+    val header = headerMethod.formatterCalls().ifEmpty {
+        val callers = classesCalling(headerMethod.definingClass, headerMethod.name).flatMap { it.methods }.filter { it.calls(headerMethod) }
+        val created = callers.flatMap { caller ->
+            caller.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { (it.reference() as? TypeReference)?.type }
+        }.distinct().filter { it != formatter }
+        created.mapNotNull { classDefByOrNull(it) }.flatMap { it.methods }.flatMap { it.resourcesCalls() }
+    }
+    if (header.isEmpty()) refuse("nothing asks $formatter for the time in ${headerMethod.definingClass}->${headerMethod.name} or the lambdas its callers make")
 
     // 450's 385611395 and 385611400 ask a string pool for the row's tag, so the class holding it
     // there is the pool and a static helper, neither of which keeps a time (#77).
@@ -168,7 +221,7 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
     if (rowSites.isEmpty()) refuse("nothing asks $formatter for the time in ${row.type}->${time.name}")
 
     val all = feed + header + rowSites
-    for (shape in all.groupBy { it.asLong }.values) {
+    for (shape in all.groupBy { it.shape }.values) {
         val called = shape.map { it.called.toString() }.distinct()
         if (called.size != 1) refuse("the times of one shape reach ${called.size} formatting methods: ${called.joinToString()}")
     }
@@ -181,29 +234,53 @@ internal fun BytecodePatchContext.findPostTimes(): PostTimes {
     }
     hook(TIME_AS_DOUBLE)
     hook(TIME_AS_LONG)
-    fun stub(time: String): MutableMethod = extension.methods.singleOrNull {
+    hook(TIME_FROM_RESOURCES)
+    fun stub(vararg parameters: String): MutableMethod = extension.methods.singleOrNull {
         it.name == INSTAGRAM_TIME && it.returnType == STRING && AccessFlags.STATIC.isSet(it.accessFlags) &&
-            it.parameterTypes.map(Any::toString) == listOf(OBJECT, CONTEXT, time)
-    } ?: refuse("$POST_TIME has no static $STRING $INSTAGRAM_TIME($OBJECT$CONTEXT$time)")
-    return PostTimes(formatter, feed, header, rowSites, stub("D"), stub("J"))
+            it.parameterTypes.map(Any::toString) == parameters.toList()
+    } ?: refuse("$POST_TIME has no static $STRING $INSTAGRAM_TIME(${parameters.joinToString("")})")
+    return PostTimes(
+        formatter, feed, header, rowSites,
+        stub(OBJECT, CONTEXT, "D"), stub(OBJECT, CONTEXT, "J"), stub(RESOURCES, OBJECT, OBJECT, INTEGER, "D", "Z"),
+    )
+}
+
+/** The hook that takes the place of a call of this shape. */
+private val TimeShape.hook get() = when (this) {
+    TimeShape.DOUBLE -> TIME_AS_DOUBLE
+    TimeShape.LONG -> TIME_AS_LONG
+    TimeShape.RESOURCES -> TIME_FROM_RESOURCES
 }
 
 /**
  * Fills each stub with the formatting its shape's calls reached, then puts the matching hook in
- * place of every call, on the same registers: the formatter, the context and the time.
+ * place of every call, on the same registers: the formatter, the context and the time, or the
+ * static call's resources, unit, formatter, style, time and flag.
  */
 internal fun BytecodePatchContext.showPostTime(found: PostTimes) {
-    for ((asLong, sites) in found.sites.groupBy { it.asLong }) {
-        val stub = if (asLong) found.asLong else found.asDouble
-        stub.addInstructions(
-            0,
-            """
-                check-cast p0, ${found.formatter}
-                invoke-virtual { p0, p1, p2, p3 }, ${sites.first().called}
-                move-result-object p0
-                return-object p0
-            """,
-        )
+    for ((shape, sites) in found.sites.groupBy { it.shape }) {
+        val called = sites.first().called
+        when (shape) {
+            TimeShape.DOUBLE, TimeShape.LONG -> (if (shape == TimeShape.LONG) found.asLong else found.asDouble).addInstructions(
+                0,
+                """
+                    check-cast p0, ${found.formatter}
+                    invoke-virtual { p0, p1, p2, p3 }, $called
+                    move-result-object p0
+                    return-object p0
+                """,
+            )
+            TimeShape.RESOURCES -> found.fromResources.addInstructions(
+                0,
+                """
+                    check-cast p1, ${called.parameterTypes[1]}
+                    check-cast p2, ${found.formatter}
+                    invoke-static/range { p0 .. p6 }, $called
+                    move-result-object p0
+                    return-object p0
+                """,
+            )
+        }
     }
     for (site in found.sites) {
         val method = mutableClassDefBy(site.method.definingClass).methods.single {
@@ -211,7 +288,7 @@ internal fun BytecodePatchContext.showPostTime(found: PostTimes) {
                 it.parameterTypes.map(Any::toString) == site.method.parameterTypes.map(Any::toString)
         }
         val call = method.implementation!!.instructions[site.index]
-        val hook = if (site.asLong) TIME_AS_LONG else TIME_AS_DOUBLE
+        val hook = site.shape.hook
         method.replaceInstruction(site.index, when (call) {
             is FiveRegisterInstruction -> listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG)
                 .take(call.registerCount).joinToString(prefix = "invoke-static { ", postfix = " }, $hook") { "v$it" }
@@ -273,6 +350,13 @@ private fun lastWrite(code: List<Instruction>, before: Int, register: Int, pair:
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 private fun Instruction.call() = reference() as? MethodReference
+
+/** Whether this method calls [target]. */
+private fun Method.calls(target: Method) = code().any { instruction ->
+    val call = instruction.call()
+    call != null && call.definingClass == target.definingClass && call.name == target.name && call.returnType == target.returnType &&
+        call.parameterTypes.map(CharSequence::toString) == target.parameterTypes.map(CharSequence::toString)
+}
 
 /** The registers an invoke hands over, in order. */
 private fun Instruction.arguments(): List<Int> = when (this) {

@@ -37,7 +37,7 @@ public class ReelTapAndVolumeSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.REEL_TAP_CHOICE.resetToDefault();
         Settings.KEEP_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -88,9 +88,9 @@ public class ReelTapAndVolumeSettingsTest {
         PreferenceGroup playback = row.getParent();
         String[] keys = new String[playback.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = playback.getPreference(i).getKey();
-        int scope = Arrays.asList(keys).indexOf(Settings.TAP_TO_PLAY_SCOPE.key);
-        assertTrue(Arrays.toString(keys), scope >= 0);
-        assertEquals("right after Where videos wait", Settings.REEL_TAP_CHOICE.key, keys[scope + 1]);
+        int last = Arrays.asList(keys).indexOf(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key);
+        assertTrue(Arrays.toString(keys), last >= 0);
+        assertEquals("right after Tap to play's last row", Settings.REEL_TAP_CHOICE.key, keys[last + 1]);
         assertFalse("it takes effect on the next tap, so no restart prompt", Settings.REEL_TAP_CHOICE.rebootApp);
         assertEquals("Control taps and volume on Reels", PatchFamily.REEL_TAP_AND_VOLUME.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_TAP_CHOICE.key));

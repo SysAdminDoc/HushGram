@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.feed.FeedStateWrite
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.ControlFlow
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -18,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -47,7 +49,10 @@ import org.junit.Test
 class HideRepostButtonHookTest {
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_REPOSTS, REPOSTS_ELIGIBLE, REPOSTS_FEED_UFI, REPOSTS_FEED_COMPONENT, REPOSTS_FEED_RESTORE, REPOSTS_FEED_STATE)) {
+        val hooks = listOf(
+            HIDE_REPOSTS, REPOSTS_ELIGIBLE, REPOSTS_ELIGIBLE_MATCH, REPOSTS_FEED_UFI, REPOSTS_FEED_COMPONENT, REPOSTS_FEED_RESTORE, REPOSTS_FEED_STATE,
+        )
+        for (hook in hooks) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -172,7 +177,7 @@ class HideRepostButtonHookTest {
 
     /**
      * Instagram numbers its string resources per build, so the label's number isn't matched: 450's
-     * x86 build 385611439 has 438's Repost label at 0x7f136e0f.
+     * x86 build 385611439 had the Repost label at 0x7f136e0f, 450's 438 at 0x7f136e0d.
      */
     @Test
     fun aLabelNumberedForAnotherBuildIsStillFound() {
@@ -208,13 +213,48 @@ class HideRepostButtonHookTest {
     }
 
     /**
+     * The state hook and the read filter may share a method only when its reads come before its
+     * writes (452's row builder); any other pair sharing one still fails, reads first or not.
+     */
+    @Test
+    fun theStateHookAndTheReadFilterShareABuilderOnlyWhenItsReadsComeFirst() {
+        val builder = "Lfixture/Builder;->build()"
+        val shared = mapOf(STATE_HOOK to setOf(builder), READ_FILTER to setOf(builder, "Lfixture/A;->a()"))
+        requireSeparateMethods(shared, readsFirst = setOf(builder))
+        assertThrows(PatchException::class.java) { requireSeparateMethods(shared) }
+        assertThrows(PatchException::class.java) { requireSeparateMethods(shared, readsFirst = setOf("Lfixture/A;->a()")) }
+        assertThrows(PatchException::class.java) {
+            requireSeparateMethods(mapOf(STATE_HOOK to setOf(builder), "the getter guard" to setOf(builder)), readsFirst = setOf(builder))
+        }
+        assertThrows(PatchException::class.java) {
+            requireSeparateMethods(mapOf(READ_FILTER to setOf(builder), "the Feed UFI hook" to setOf(builder)), readsFirst = setOf(builder))
+        }
+    }
+
+    /** A method's reads come first when the last of them sits before its first state write. */
+    @Test
+    fun readsComeFirstWhenTheLastOneSitsBeforeTheFirstWrite() {
+        val builder = "Lfixture/Builder;"
+        val flag = ImmutableFieldReference("Lfixture/State;", "enabled", "Z")
+        fun write(at: Int) = FeedStateWrite(builder, "build", "Lfixture/State;", emptyList(), at, 1, 0, flag, 1)
+        fun read(method: String, at: Int) = RepostRead(builder, method, emptyList(), at, 0)
+        val state = FeedRepostState("Lfixture/State;", listOf(flag), listOf(write(20), write(24)))
+        val before = RepostSites("getter", listOf(read("build", 10), read("build", 15), read("other", 30)))
+        assertEquals(setOf("$builder->build()"), readsBeforeWrites(state, before))
+        val between = RepostSites("getter", listOf(read("build", 10), read("build", 22)))
+        assertEquals(emptySet<String>(), readsBeforeWrites(state, between))
+        val touching = RepostSites("getter", listOf(read("build", 20)))
+        assertEquals(emptySet<String>(), readsBeforeWrites(state, touching))
+    }
+
+    /**
      * In each declared build, and in each other build of a declared version, the model's getter is
      * guarded, every tree read of the field is filtered, and the component renderer's Repost part
-     * returns nothing. On 450's declared build there are five reads, two of them in one lambda's
-     * invoke; 449 had six, and so has 450's 385611395, so another build's count isn't pinned. The x86
-     * build 385611439 numbers the Repost label 0x7f136e0f where 438 has 0x7f136e0d (#95). On 438
-     * the hook goes where it went when the renderer was found by that label: [RENDERER_438], at
-     * [PART_438], the one part reaching both the repost icon and the label.
+     * returns nothing. On 451's and 453's declared builds there are six reads, two of them in one lambda's
+     * invoke; 450's 438 had five, and 449 and 450's 385611395 six, so another build's count isn't
+     * pinned. On 073 the hook goes where it went when the renderer was found by its label: in
+     * [RENDERER_073], at [PART_073], the start of a renderer that draws Repost alone and reaches both
+     * the repost icon and the label.
      */
     @Test
     fun eachDeclaredBuildHidesTheButton() {
@@ -222,7 +262,7 @@ class HideRepostButtonHookTest {
         var checked = 0
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
-                hidesTheButtonIn(bundle, bundle.name, reads = 5, pinned = bundle.name.contains("-385611438."))
+                hidesTheButtonIn(bundle, bundle.name, reads = 6, pinned = bundle.name.contains("-385914557."))
                 checked++
             }
         }
@@ -231,8 +271,10 @@ class HideRepostButtonHookTest {
     }
 
     /**
-     * Hooks everything in [bundle] and checks each hook; [reads] is how many tree reads it has, when
-     * that's known, and [pinned] says it's 438, whose component hook lands where it's pinned.
+     * Hooks everything in [bundle], in the patch's order and through its guard, and checks each
+     * hook; [reads] is how many tree reads it has, when that's known, and [pinned] says it's the
+     * declared build, whose component hook lands where it's pinned and whose tree reads and flag
+     * stores sit in separate methods.
      */
     private fun hidesTheButtonIn(bundle: java.io.File, label: String, reads: Int?, pinned: Boolean = false) {
         val holders = mutableListOf<ClassDef>()
@@ -243,17 +285,29 @@ class HideRepostButtonHookTest {
                 }
             }
         }
+        val states = FixtureDex.classesHolding(bundle, REPOST_ENABLED_LABEL)
+        holders += states + FixtureDex.classesCreating(bundle, states.mapTo(HashSet()) { it.type })
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders.distinctBy { it.type }))
 
+        val state = context.findFeedRepostState()
         val sites = context.findRepostSites()
         val found = "$label: tree reads ${sites.reads.map { "${it.type}->${it.name}" }}"
         if (reads != null) assertEquals(found, reads, sites.reads.size) else assertTrue(found, sites.reads.isNotEmpty())
         val feedUfi = context.findFeedUfiSite()
         val component = context.findFeedRepostComponent()
+        val hooks = repostHookMethods(state, sites, feedUfi, component)
+        val readsFirst = readsBeforeWrites(state, sites)
+        requireSeparateMethods(hooks, readsFirst)
+        if (pinned) {
+            // 452's row builder read the tree and stored the flags both; 453's leaves those to separate methods.
+            val shared = hooks.getValue(STATE_HOOK) intersect hooks.getValue(READ_FILTER)
+            assertEquals("$label: no method both reads the tree and stores the flags", 0, shared.size)
+            assertEquals("$label: so no reads need to come first", emptySet<String>(), readsFirst)
+        }
         if (pinned) {
             val renderer = "${component.method.definingClass}->${component.method.name}"
-            assertEquals("$label: the renderer, at ${component.at}", RENDERER_438, renderer)
-            assertEquals("$label: the Repost part", PART_438, component.at)
+            assertEquals("$label: the renderer, at ${component.at}", RENDERER_073, renderer)
+            assertEquals("$label: the Repost part", PART_073, component.at)
             val reached = partReached(component.method, component.at)
             val code = component.method.implementation!!.instructions.toList()
             for ((what, id) in listOf("icon" to REPOSTS_UFI_ICON_ID, "label" to LABEL)) {
@@ -264,6 +318,7 @@ class HideRepostButtonHookTest {
             .implementation!!.instructions.filterIsInstance<BuilderOffsetInstruction>()
             .filter { it.target.location.index == feedUfi.insert }
         assertTrue("$label: expected native repost branches converging on Share", branchesToShare.isNotEmpty())
+        context.hideFeedState(state)
         context.guardRepostGetter(sites.getter)
         val byMethod = sites.reads.groupBy { Triple(it.type, it.name, it.parameters) }
         byMethod.values.forEach { context.filterRepostReads(it) }
@@ -277,9 +332,16 @@ class HideRepostButtonHookTest {
             val method = context.mutableClassDefBy(key.first).methods.single {
                 it.name == key.second && it.parameterTypes.map(CharSequence::toString) == key.third
             }
-            // Each earlier read's filter moves the later ones down by two.
+            // Each earlier read's filter moves the later ones down by two; the state hook's lines
+            // sit past every read, so they move none.
             val shifted = reads.sortedBy { it.at }.mapIndexed { i, read -> read.at + 2 * i }
             assertReadsFiltered("$label ${key.first}->${key.second}", method, shifted)
+        }
+        for ((key, writes) in state.writes.groupBy { Triple(it.owner, it.name, it.parameters) }) {
+            val code = context.mutableClassDefBy(key.first).methods.single {
+                it.name == key.second && it.parameterTypes.map(CharSequence::toString) == key.third
+            }.implementation!!.instructions.toList()
+            assertEquals("$label ${key.first}->${key.second}: state hooks", writes.size, code.count { it.names(REPOSTS_FEED_STATE) })
         }
         val feedMethod = context.mutableClassDefBy(feedUfi.type).methods.single {
             it.name == feedUfi.name && it.parameterTypes.map(CharSequence::toString) == feedUfi.parameters
@@ -312,8 +374,18 @@ class HideRepostButtonHookTest {
     /** At each index a read's answer is moved out, then passed through the filter and moved back into the same register. */
     private fun assertReadsFiltered(what: String, method: Method, answers: List<Int>) {
         val code = method.implementation!!.instructions.toList()
-        assertEquals("$what: filters", answers.size, code.count { it.names(REPOSTS_ELIGIBLE) })
+        assertEquals("$what: filters", answers.size, code.count { it.names(REPOSTS_ELIGIBLE) || it.names(REPOSTS_ELIGIBLE_MATCH) })
         for (at in answers) {
+            if (code[at].opcode == Opcode.MOVE_RESULT) {
+                // 452 compares in place: the answer and the Boolean it was compared with go through the filter.
+                val register = (code[at] as OneRegisterInstruction).registerA
+                val filter = code[at + 1]
+                assertTrue("$what: the compare filter at ${at + 1}", filter.names(REPOSTS_ELIGIBLE_MATCH))
+                assertEquals("$what: the filter's answer at $at", register, (filter as FiveRegisterInstruction).registerC)
+                assertEquals("$what: back at ${at + 2}", Opcode.MOVE_RESULT, code[at + 2].opcode)
+                assertEquals("$what: into the same register at ${at + 2}", register, (code[at + 2] as OneRegisterInstruction).registerA)
+                continue
+            }
             assertEquals("$what: the answer at $at", Opcode.MOVE_RESULT_OBJECT, code[at].opcode)
             val register = (code[at] as OneRegisterInstruction).registerA
             val filter = code[at + 1]
@@ -459,12 +531,12 @@ class HideRepostButtonHookTest {
             ),
         )
 
-        /** 438's Repost label. Other builds number it otherwise. */
-        const val LABEL = 0x7f136e0d
+        /** 385914557's Repost label, the button's content description, the id 55.79's 385914283 used too. */
+        const val LABEL = 0x7f13732b
 
-        /** 438's Feed component renderer, and where its Repost part starts. */
-        const val RENDERER_438 = "LX/009F;->A0o"
-        const val PART_438 = 688
+        /** 385914557's Feed component renderer, a renderer of its own, so its Repost part is the whole of it. */
+        const val RENDERER_073 = "LX/07Gw;->A0o"
+        const val PART_073 = 0
 
         /** A renderer of its own: the icon, the label, the [role] it gives the button, then null. */
         fun feedComponent(

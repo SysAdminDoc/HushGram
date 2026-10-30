@@ -200,6 +200,32 @@ Test-Broken { param($c) (Get-Entry $c $licensedCandidate).license.spdx = 'CC-BY-
     'A candidate whose licence can''t be combined with GPL-3.0'
 Test-Broken { param($c) (Get-Entry $c $unlicensed).disposition = 'adopted' } '*has no licence*' 'An unlicensed source marked adopted'
 
+# A relicensed source keeps its earlier licence pinned, and code it took from another lineage says so.
+$relicensed = @($entries | Where-Object { @($_.licenseHistory | Where-Object { $_ }).Count -gt 0 })
+Assert-True ($relicensed.Count -ge 1) 'No ledger source records an earlier licence, so the cases below would prove nothing.'
+$relicensedId = [string]$relicensed[0].id
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].commit = 'main' } '*earlier licence*pinned to no commit*' `
+    'An earlier licence pinned to a branch name'
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].sha256 = $null } '*earlier licence*no sha256*' 'An earlier licence with no hash'
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].url = 'http://example.com/LICENSE' } '*earlier licence*no https url*' `
+    'An earlier licence with no https url'
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].spdx = '' } '*earlier licence with no SPDX*' 'An earlier licence with no SPDX identifier'
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].until = 'October' } '*earlier licence*until is not a yyyy-MM-dd date*' `
+    'An earlier licence with no end date'
+Test-Broken { param($c) (Get-Entry $c $relicensedId).licenseHistory[0].until = '2999-01-01' } '*earlier licence*until is 2999-01-01, after today*' `
+    'An earlier licence that ends in the future'
+$inheriting = @($entries | Where-Object { @($_.inherits | Where-Object { $_ }).Count -gt 0 })
+Assert-True ($inheriting.Count -ge 1) 'No ledger source records inherited code, so the cases below would prove nothing.'
+$inheritingId = [string]$inheriting[0].id
+Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].source = 'not a repository' } '*inherits code from no source repository*' `
+    'Inherited code with no source'
+Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].lineage = ' ' } '*inherits code from*no lineage named*' 'Inherited code with no lineage'
+Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].evidence = 'http://example.com' } '*inherits code from*no https evidence*' `
+    'Inherited code with no evidence'
+Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].paths = @() } '*inherits code from*without saying where*' 'Inherited code with no path'
+Test-Broken { param($c) (Get-Entry $c $inheritingId).inherits[0].paths = @('../outside') } '*inherited path*inside the repository*' `
+    'Inherited code outside the repository'
+
 # provenance.json can't credit what the ledger doesn't allow, and can't port from what isn't adopted.
 $behaviorOnly = [string]@($entries | Where-Object { $_.disposition -eq 'behavior-only' })[0].repository
 Test-Broken { param($c) } '*credits*but the ledger lists it as behavior-only*' 'A provenance rule crediting a behavior-only source' {
@@ -307,7 +333,7 @@ $fixtureLedger = [ordered]@{
             hushgram = [ordered]@{ status = 'submitted'; url = 'https://github.com/nvbangg/awesome-morphe/issues/1'; submitted = '2026-09-01' } }
         [ordered]@{ id = 'morphe-patch-tracker'; name = 'Morphe Patch Tracker'; url = 'https://drnx64.github.io/morphe-track-patches/'
             hushgram = [ordered]@{ status = 'listed'; url = 'https://drnx64.github.io/morphe-track-patches/#/bundle/sysadmindoc'; checked = '2026-09-01' } }
-        [ordered]@{ id = 'jman-bundles'; name = 'Jman''s ReVanced Patch Bundles'; url = 'https://github.com/Jman-Github/ReVanced-Patch-Bundles'
+        [ordered]@{ id = 'jman-bundles'; name = 'Jman''s Patch Bundle Registry'; url = 'https://github.com/Jman-Github/Patch-Bundle-Registry'
             hushgram = [ordered]@{ status = 'not-listed'; checked = '2026-09-01' } }
         [ordered]@{ id = 'morphe-archive'; name = 'Morphe Archive'; url = 'https://rushiforai.github.io/morphe-archive/'
             hushgram = [ordered]@{ status = 'listed'; url = 'https://github.com/rushiforai/morphe-archive'; checked = '2026-09-01' } }
@@ -331,6 +357,10 @@ $fixtureLedger = [ordered]@{
             kind = 'revanced-patches'; packages = @('com.instagram.android'); targetVersions = [ordered]@{ 'com.instagram.android' = @() }
             features = @('Open links outside'); branches = @([ordered]@{ name = 'main'; commit = $commitG1 }); watchPaths = @()
             license = [ordered]@{ spdx = 'GPL-3.0'; url = "https://gitlab.com/fixture-group/gamma-patches/-/blob/$commitG1/LICENSE"; sha256 = $licenseHash }
+            licenseHistory = @([ordered]@{ spdx = 'MIT'; url = "https://gitlab.com/fixture-group/gamma-patches/-/blob/$('c0' * 20)/LICENSE"
+                sha256 = ('ab' * 32); commit = ('c0' * 20); until = '2026-08-01' })
+            inherits = @([ordered]@{ source = 'https://github.com/SysAdminDoc/HushGram'; lineage = 'hushgram'
+                evidence = "https://gitlab.com/fixture-group/gamma-patches/-/blob/$commitG1/third-party/HushGram/NOTICE.md"; paths = @('third-party/HushGram') })
             contaminatedBy = $null; disposition = 'candidate'; reason = 'A fixture GitLab source.'; archived = $false
             forks = @(); contentHashes = @(); mirrors = @(); lastChecked = '2026-09-01' }
     )
@@ -352,22 +382,21 @@ function New-FakeAnswers {
                 patches = @(@{ name = 'Hide ads'; compatiblePackagesKey = 0 }) })
             compatibilities = @(@{ packageName = 'com.instagram.android'; targets = @(@{ version = '449.0.0.52.84' }) }) } | ConvertTo-Json -Depth 8) }
         awesome = @{ Status = 200; Content = '{"fixture-owner/alpha-patches":{"com.instagram.android":"0123"},"SysAdminDoc/hushfeed":{"com.zhiliaoapp.musically":"4567"}}' }
-        tracker = @{ Status = 200; Content = (@{
-            'sysadmindoc:stable' = @{ repo_url = 'https://github.com/SysAdminDoc/HushGram'; apps = @(@{ package = 'com.instagram.android'; patches = @(@{ name = 'Hide ads' }) }) }
-            'alpha:stable' = @{ repo_url = 'https://github.com/fixture-owner/alpha-patches'; apps = @(@{ package = 'com.instagram.android'; patches = @(@{ name = 'Hide ads' }) }) }
-        } | ConvertTo-Json -Depth 8) }
-        jmanSources = @{ Status = 200; Content = '{"alpha-stable":{"patches":"https://api.github.com/repos/fixture-owner/alpha-patches"},"gamma-stable":{"patches":"https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches"}}' }
-        jmanCatalog = @{ Status = 200; Content = ("# Catalog`n| [Alpha](#alpha) | 1 | 1 | Generated |`n### X Alpha Bundle Patch List:`n" +
-            "| **Name** | **Description** | **Compatible Apps** | **Compatible Versions** |`n|---|---|---|---|`n" +
-            "| ${tick}Hide ads${tick} | ${tick}Removes ads.${tick} | ${tick}Instagram${tick} | ${tick}449.0.0.52.84${tick} |`n" +
-            "### X Gamma Bundle Patch List:`n| ${tick}Open links outside${tick} | ${tick}d${tick} | ${tick}com.instagram.android${tick} | ${tick}Any${tick} |`n") }
+        # The real tracker lists a bundle twice under keys that differ only in case ('immortalzeus:dev' and
+        # 'ImmortalZeus:dev'), which ConvertFrom-Json alone refuses, so the fixture is written as text.
+        tracker = @{ Status = 200; Content = ('{"sysadmindoc:stable":{"repo_url":"https://github.com/SysAdminDoc/HushGram","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]},' +
+            '"alpha:stable":{"repo_url":"https://github.com/fixture-owner/alpha-patches","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]},' +
+            '"Alpha:stable":{"repo_url":"https://github.com/fixture-owner/alpha-patches","apps":[{"package":"com.instagram.android","patches":[{"name":"Hide ads"}]}]}}') }
+        # Jman's registry answers GraphQL: whether HushGram is a source, and the latest bundles that patch Instagram.
+        jmanSelf = @{ Status = 200; Content = '{"data":{"source":[]}}' }
+        jmanBundles = @{ Status = 200; Content = '{"data":{"bundle":[{"source":{"url":"https://github.com/fixture-owner/alpha-patches"},"patches":[{"name":"Hide ads"}]},{"source":{"url":"https://gitlab.com/fixture-group/gamma-patches"},"patches":[{"name":"Open links outside"}]},{"source":{"url":"https://git.example.test/elsewhere/patches"},"patches":[{"name":"Off forge"}]}]}}' }
         archive = @{ Status = 200; Content = '{"name":"patches-list.json"}' }
         searchHits = @(
             @{ repository = @{ full_name = 'fixture-owner/alpha-patches' }; path = 'patches/Alpha.kt'; sha = $blobKnown }
             @{ repository = @{ full_name = 'copier/alpha-copy' }; path = 'patches/Alpha.kt'; sha = $blobMirror }
             @{ repository = @{ full_name = 'clone/alpha-clone' }; path = 'src/Alpha.kt'; sha = $blobKnown }
             @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/fixture-owner/alpha-patches/patches-list.json'; sha = ('3b' * 20) }
-            @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/Jman-Github/ReVanced-Patch-Bundles/patch-bundles/x/y-patches-list.json'; sha = ('4b' * 20) }
+            @{ repository = @{ full_name = 'rushiforai/morphe-archive' }; path = 'examplepatches/Jman-Github/Patch-Bundle-Registry/patch-bundles/x/y-patches-list.json'; sha = ('4b' * 20) }
             @{ repository = @{ full_name = 'noise/mentions-instagram' }; path = 'list.txt'; sha = ('5b' * 20) }
             @{ repository = @{ full_name = 'SysAdminDoc/HushGram' }; path = 'patches-list.json'; sha = ('6b' * 20) }
             # The archive keeps a recorded fork's patch list for its entry's own package, which is no bundle of its own.
@@ -388,6 +417,8 @@ function New-FakeAnswers {
         gammaLicense = @{ Status = 200; Content = (@{ file_name = 'LICENSE'; content = $licenseBase64 } | ConvertTo-Json) }
         gammaBranches = @{ Status = 200; Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}}]" }
         gammaForks = @{ Status = 200; Content = '[]' }
+        gitlabHits = @()
+        gitlabProject = @{ Status = 200; Content = '{"path_with_namespace":"fixture-group/gamma-patches"}' }
         repoMeta = @{ Status = 200; Content = '{"full_name":"newcomer/ig-patches","license":{"spdx_id":"MIT"},"fork":false,"archived":false,"pushed_at":"2026-09-20T00:00:00Z","description":"Instagram patches"}' }
         oldNameMeta = @{ Status = 200; Content = '{"full_name":"fixture-owner/alpha-patches","fork":false,"archived":false}' }
     }
@@ -417,8 +448,13 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://morphe-patches\.software/data/bundles\.json$' { $answer = $a.directory; break }
             '^https://raw\.githubusercontent\.com/nvbangg/awesome-morphe/main/data/hashes\.json$' { $answer = $a.awesome; break }
             '^https://raw\.githubusercontent\.com/drnx64/morphe-track-patches/main/data/bundles\.json$' { $answer = $a.tracker; break }
-            '^https://raw\.githubusercontent\.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/bundle-sources\.json$' { $answer = $a.jmanSources; break }
-            '^https://raw\.githubusercontent\.com/Jman-Github/ReVanced-Patch-Bundles/bundles/patch-bundles/PATCH-LIST-CATALOG\.md$' { $answer = $a.jmanCatalog; break }
+            '^https://patch-bundles\.api\.jmancentral\.com/graphql\?query=(.+)$' {
+                $graphql = [Uri]::UnescapeDataString($Matches[1])
+                if ($graphql -like '{ source(*') { $answer = $a.jmanSelf }
+                elseif ($graphql -like '{ bundle(*offset: 0,*') { $answer = $a.jmanBundles }
+                else { $answer = @{ Status = 200; Content = '{"data":{"bundle":[]}}' } }
+                break
+            }
             '^https://api\.github\.com/repos/rushiforai/morphe-archive/contents/examplepatches/SysAdminDoc/HushGram/patches-list\.json$' { $answer = $a.archive; break }
             '^https://api\.github\.com/search/code\?q=([^&]+)&per_page=100&page=1$' {
                 $query = [Uri]::UnescapeDataString($Matches[1])
@@ -431,8 +467,10 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/branches\?per_page=100&page=1$' { $answer = $a.alphaBranches; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/forks\?per_page=100&page=1$' { $answer = $a.alphaForks; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-patches/compare/([0-9a-f]{40})\.\.\.([0-9a-f]{40})$' {
+                # A compare entry is GitHub's status for that commit, or a whole answer such as a limit.
                 $status = $a.compare[$Matches[2]]
-                if ($status) { $answer = @{ Status = 200; Content = "{`"status`":`"$status`"}" } }
+                if ($status -is [hashtable]) { $answer = $status }
+                elseif ($status) { $answer = @{ Status = 200; Content = "{`"status`":`"$status`"}" } }
                 break
             }
             '^https://api\.github\.com/repos/fixture-owner/beta-module$' { $answer = $a.betaRepo; break }
@@ -445,14 +483,40 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/files/LICENSE\?ref=main$' { $answer = $a.gammaLicense; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/branches\?per_page=100&page=1$' { $answer = $a.gammaBranches; break }
             '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/forks\?per_page=100&page=1$' { $answer = $a.gammaForks; break }
+            '^https://gitlab\.com/api/v4/projects/fixture-group%2Fgamma-patches/repository/compare\?from=([0-9a-f]{40})&to=([0-9a-f]{40})$' {
+                # GitLab lists the commits $to has past $from; behind or identical lists none.
+                $status = $a.compare[$Matches[2]]
+                if ($status -is [hashtable]) { $answer = $status }
+                elseif ($status) {
+                    $commits = if ($status -eq 'ahead') { @(@{ id = $Matches[2] }) } else { @() }
+                    $answer = @{ Status = 200; Content = (@{ commits = $commits } | ConvertTo-Json -Depth 4) }
+                }
+                break
+            }
+            '^https://gitlab\.com/api/v4/search\?scope=blobs&search=([^&]+)&per_page=100&page=1$' {
+                $items = if ([Uri]::UnescapeDataString($Matches[1]) -eq '"com.instagram.android"') { @($a.gitlabHits) } else { @() }
+                $answer = @{ Status = 200; Content = (ConvertTo-Json -InputObject @($items) -Depth 8) }
+                break
+            }
+            '^https://gitlab\.com/api/v4/projects/\d+$' { $answer = $a.gitlabProject; break }
             '^https://api\.github\.com/repos/(newcomer/ig-patches|clone/alpha-clone)$' { $answer = $a.repoMeta; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-old$' { $answer = $a.oldNameMeta; break }
         }
         if ($null -eq $answer) { throw "The audit made a request no stand-in answers: $url" }
         if ($answer.Status -ne 200) {
             $failure = New-Object System.Exception "Response status code does not indicate success: $($answer.Status)."
-            Add-Member -InputObject $failure -NotePropertyName Response -NotePropertyValue ([pscustomobject]@{ StatusCode = $answer.Status })
-            throw $failure
+            $response = [pscustomobject]@{ StatusCode = $answer.Status }
+            # A Retry-After comes back the way HttpResponseHeaders carries one: a delta, no date.
+            if ($null -ne $answer.RetryAfter) {
+                Add-Member -InputObject $response -NotePropertyName Headers -NotePropertyValue ([pscustomobject]@{
+                    RetryAfter = [pscustomobject]@{ Delta = [TimeSpan]::FromSeconds($answer.RetryAfter); Date = $null } })
+            }
+            Add-Member -InputObject $failure -NotePropertyName Response -NotePropertyValue $response
+            if (-not $answer.Body) { throw $failure }
+            # A body comes back as the error's details, where Invoke-WebRequest puts what the forge said.
+            $record = New-Object System.Management.Automation.ErrorRecord $failure, 'WebCmdletWebResponseException', 'InvalidOperation', $null
+            $record.ErrorDetails = New-Object System.Management.Automation.ErrorDetails ([string]$answer.Body)
+            throw $record
         }
         return [pscustomobject]@{ StatusCode = 200; Content = [string]$answer.Content }
     }
@@ -509,6 +573,14 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         "The copy of the alpha lineage's file was not collapsed into it: $($clean.Report.notes -join ' | ')"
     Assert-True (@($clean.Report.lineages | Where-Object { $_.lineage -eq 'alpha' })[0].mirrors -contains 'https://github.com/clone/alpha-clone') `
         'The collapsed copy was not listed under its lineage.'
+    # Inherited code is reported as the lineage it came from, and adds no lineage of its own.
+    Assert-True (@($clean.Report.notes | Where-Object { $_ -like '*gamma-patches carries code from the hushgram lineage (third-party/HushGram)*not as its own work*' }).Count -eq 1) `
+        "The gamma fixture's inherited HushGram code was not reported as HushGram's: $($clean.Report.notes -join ' | ')"
+    Assert-True (@($clean.Report.lineages | Where-Object { $_.lineage -eq 'hushgram' }).Count -eq 0) 'Inherited code was counted as a lineage of its own.'
+    # The stamp moves the census dates, never when an earlier licence ended.
+    $stampedGamma = @($stampedLedger.entries | Where-Object { $_.id -eq 'gamma' })[0]
+    Assert-True (@($stampedGamma.licenseHistory).Count -eq 1 -and $stampedGamma.licenseHistory[0].until -eq '2026-08-01' -and
+        $stampedGamma.licenseHistory[0].commit -eq ('c0' * 20)) 'The clean audit moved or dropped an earlier licence record.'
     $leaked = @($fakeForge.Requests | Where-Object { $_.Authorization -and $_.Uri -notlike 'https://api.github.com/*' })
     Assert-True ($leaked.Count -eq 0) "The GitHub token went to another host: $($leaked[0].Uri)"
     Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -like 'https://api.github.com/*' -and $_.Authorization -ne "Bearer $fakeToken" }).Count -eq 0) `
@@ -545,6 +617,15 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         '"repo": "fixture-owner/alpha-patches"', '"repo": "newcomer/ig-patches"')
     Assert-True ($fakeForge.Answers.directory.Content -like '*newcomer/ig-patches*') 'The directory answer was not edited, so the addition case would prove nothing.'
     Assert-Drift 'addition' '*github.com/newcomer/ig-patches*Morphe directory*' 'A bundle only the directory knows'
+    Reset-FixtureLedger
+    # A limit on the newcomer's metadata is named as one in the evidence, not passed off as its answer.
+    $fakeForge.Answers.repoMeta = @{ Status = 429; Content = $null }
+    $unreadMeta = Invoke-Audit
+    $addition = @($unreadMeta.Report.findings | Where-Object { $_.kind -eq 'addition' -and $_.repository -like '*newcomer/ig-patches' })
+    Assert-True ($addition.Count -eq 1 -and $addition[0].evidence.repository.status -eq 429 -and
+        $addition[0].evidence.repository.unread -like 'api.github.com was still rate limiting the audit (HTTP 429) when it read its metadata*') `
+        "An addition whose metadata a limit kept unread didn't say so: $($addition | ConvertTo-Json -Depth 6 -Compress)"
+    Reset-FixtureLedger
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.searchHits[2].sha = ('9b' * 20)
@@ -576,6 +657,26 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Reset-FixtureLedger
     $fakeForge.Answers.compare[('a3' * 20)] = 'ahead'
     Assert-Drift 'new-branch' '*alpha-patches*branch old carries work the ledger hasn''t pinned*' 'A branch with work of its own'
+    Reset-FixtureLedger
+    # A limit on the comparison says nothing about the branch, on either forge: the source goes
+    # unread instead of reporting work the ledger hasn't pinned.
+    $fakeForge.Answers.compare[('a3' * 20)] = @{ Status = 403; Content = $null; Body = '{"message":"You have exceeded a secondary rate limit."}' }
+    $fakeForge.Answers.gammaBranches.Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}},{`"name`":`"old`",`"commit`":{`"id`":`"$('c3' * 20)`"}}]"
+    $fakeForge.Answers.compare[('c3' * 20)] = 'behind'
+    $gitlabBehind = Invoke-Audit
+    Assert-True (@($gitlabBehind.Report.findings | Where-Object { $_.repository -like '*gamma-patches*' }).Count -eq 0) `
+        "A GitLab branch behind a pinned one was reported: $(@($gitlabBehind.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | ')"
+    Reset-FixtureLedger
+    $fakeForge.Answers.compare[('c3' * 20)] = @{ Status = 429; Content = $null }
+    $compareLimited = Invoke-Audit
+    $compareFindings = @($compareLimited.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($compareLimited.ExitCode -eq 1 -and @($compareLimited.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like "*alpha-patches could not be read: api.github.com was still rate limiting the audit (HTTP 403) when it read the comparison of $('a3' * 20) with $commitA1*" }).Count -eq 1 -and
+        @($compareLimited.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like "*gamma-patches could not be read: gitlab.com was still rate limiting the audit (HTTP 429) when it read the comparison of $('c3' * 20) with $commitG1*" }).Count -eq 1) `
+        "A limited comparison didn't leave its source unread (exit $($compareLimited.ExitCode)): $compareFindings"
+    Assert-True (@($compareLimited.Report.findings | Where-Object { $_.kind -eq 'new-branch' }).Count -eq 0) "A limited comparison was reported as a new branch: $compareFindings"
+    Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'An audit a limited comparison cut short changed the ledger.'
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.alphaForks.Content = '[{"full_name":"someone/alpha-patches"},{"full_name":"stranger/alpha-patches"}]'
@@ -584,6 +685,127 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
 
     $fakeForge.Answers.gammaProject = @{ Status = 404; Content = $null }
     Assert-Drift 'repository-gone' '*gamma-patches*HTTP 404*' 'A GitLab source that is gone'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # A limit still in force after the waits leaves the source unread, never gone (GitLab's per-address
+    # limit for unauthenticated reads outlasted the waits on 2026-10-30).
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null }
+    $limitedRun = Invoke-Audit
+    $limitedFindings = @($limitedRun.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($limitedRun.ExitCode -eq 1 -and @($limitedRun.Report.findings | Where-Object {
+                $_.kind -eq 'source-failed' -and $_.detail -like '*gamma-patches could not be read*rate limiting*HTTP 429*' }).Count -eq 1) `
+        "A GitLab source behind a rate limit was not reported unread (exit $($limitedRun.ExitCode)): $limitedFindings"
+    Assert-True (@($limitedRun.Report.findings | Where-Object { $_.kind -eq 'repository-gone' }).Count -eq 0) "A rate-limited source was reported gone: $limitedFindings"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4) `
+        'The rate-limited source was not asked four times before the audit gave up on it.'
+    Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A rate-limited audit changed the ledger.'
+    Assert-True (@($limitedRun.Report.findings | Where-Object { $_.detail -like '*audit again once it resets*' }).Count -eq 1) `
+        "A limit that named no reset said when to audit again anyway: $limitedFindings"
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitLab's per-address limit runs by the hour and says so in Retry-After. A wait longer than
+    # -MaxRateLimitWaitSeconds gives up on the request at once and names the reset; a short one is
+    # waited for as long as the forge asked.
+    # The reset is named the same way under any culture (fi-FI writes a time as 11.12), and rounded
+    # up so it's never a minute early.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 3036 }
+    $culture = [Globalization.CultureInfo]::CurrentCulture
+    $askedFrom = [DateTime]::UtcNow
+    try {
+        [Globalization.CultureInfo]::CurrentCulture = [Globalization.CultureInfo]::GetCultureInfo('fi-FI')
+        $hourlyRun = Invoke-Audit
+    } finally { [Globalization.CultureInfo]::CurrentCulture = $culture }
+    $askedUntil = [DateTime]::UtcNow
+    $hourly = @($hourlyRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and $_.detail -like '*gamma-patches could not be read*' })
+    Assert-True ($hourlyRun.ExitCode -eq 1 -and $hourly.Count -eq 1 -and
+        $hourly[0].detail -like '*gitlab.com was still rate limiting the audit (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*') `
+        "A limit resetting within the hour wasn't reported unread with its reset: $(@($hourlyRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    $named = [DateTime]::ParseExact(([regex]::Match($hourly[0].detail, 'after (\d{4}-\d\d-\d\d \d\d:\d\d) UTC')).Groups[1].Value, 'yyyy-MM-dd HH:mm',
+        [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]'AssumeUniversal, AdjustToUniversal')
+    Assert-True ($named -ge $askedFrom.AddSeconds(3036) -and $named -le $askedUntil.AddSeconds(3036 + 60)) `
+        "The reset named ($named) wasn't the minute after Retry-After's 3036 s from $askedFrom."
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 1) `
+        'A Retry-After past the longest wait was waited out instead of given up on.'
+    # A Retry-After decades out still reads as a limit, not as a number too big for the audit.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 1e10 }
+    $farRun = Invoke-Audit
+    Assert-True (@($farRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like '*gamma-patches could not be read: gitlab.com was still rate limiting the audit (HTTP 429)*audit again after ????-??-?? ??:?? UTC, when it resets*' }).Count -eq 1) `
+        "A Retry-After past what an [int] holds wasn't reported as the limit: $(@($farRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    # The audit's own wait, for a limit that names none, isn't held to the cap on what a forge asks.
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null }
+    $ownWait = Invoke-Audit @{ RateLimitWaitSeconds = 1; MaxRateLimitWaitSeconds = 0 }
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4 -and
+        ([regex]::Matches($ownWait.Said, 'rate limited on gitlab\.com, waiting 1 s')).Count -eq 3) `
+        "A limit naming no wait wasn't waited out three times past a smaller cap: $($ownWait.Said)"
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null; RetryAfter = 1 }
+    $shortRun = Invoke-Audit
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4 -and
+        ([regex]::Matches($shortRun.Said, 'rate limited on gitlab\.com, waiting 1 s')).Count -eq 3) `
+        "A short Retry-After wasn't waited for three times as asked: $($shortRun.Said)"
+    $fakeForge.Answers = New-FakeAnswers
+
+    # A limit on a watched path's commits leaves the source unread as a limit, not as an error.
+    $fakeForge.Answers.betaWatch = @{ Status = 429; Content = $null }
+    $watchRun = Invoke-Audit
+    Assert-True ($watchRun.ExitCode -eq 1 -and @($watchRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and
+                $_.detail -like '*beta-module could not be read: api.github.com was still rate limiting the audit (HTTP 429) when it read the commits of main under app/instagram*' }).Count -eq 1) `
+        "A limited watched-path read wasn't reported as the limit: $(@($watchRun.Report.findings | ForEach-Object { $_.detail }) -join ' | ')"
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitHub answers its secondary limit with a 403 that says so in the body, and that one is waited
+    # out the same way. A 403 that names no limit is a repository gone private, asked once.
+    $fakeForge.Answers.alphaRepo = @{ Status = 403; Content = $null
+        Body = '{"message":"You have exceeded a secondary rate limit. Please wait a few minutes before you try again.","documentation_url":"https://docs.github.com/rest"}' }
+    $forbiddenRun = Invoke-Audit
+    $forbiddenFindings = @($forbiddenRun.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($forbiddenRun.ExitCode -eq 1 -and @($forbiddenRun.Report.findings | Where-Object {
+                $_.kind -eq 'source-failed' -and $_.detail -like '*alpha-patches could not be read*rate limiting*HTTP 403*' }).Count -eq 1) `
+        "A GitHub source behind a secondary limit was not reported unread (exit $($forbiddenRun.ExitCode)): $forbiddenFindings"
+    Assert-True (@($forbiddenRun.Report.findings | Where-Object { $_.kind -eq 'repository-gone' }).Count -eq 0) "A source behind a 403 limit was reported gone: $forbiddenFindings"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://api.github.com/repos/fixture-owner/alpha-patches' }).Count -eq 4) `
+        'The source behind a 403 limit was not asked four times before the audit gave up on it.'
+    $fakeForge.Answers.alphaRepo = @{ Status = 403; Content = $null; Body = '{"message":"Repository access blocked"}' }
+    Assert-Drift 'repository-gone' '*alpha-patches*HTTP 403*' 'A GitHub source that answers 403 without naming a limit'
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://api.github.com/repos/fixture-owner/alpha-patches' }).Count -eq 1) `
+        'A 403 that names no limit was waited out as one.'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitLab code search looks each hit's project up. A project that's gone drops its hit; one a
+    # limit kept unread fails the search instead of quietly shrinking it.
+    $env:GITLAB_TOKEN = 'fixture-gitlab-' + [guid]::NewGuid().ToString('N')
+    try {
+        $fakeForge.Answers.gitlabHits = @(@{ project_id = 4242; path = 'patches/Gamma.kt' })
+        $searched = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searched.ExitCode -eq 0 -and $searched.Said -like '*GitLab code search: 1 hits in 1 projects*') `
+            "GitLab code search did not read the gamma project's hit: $($searched.Said)"
+        Reset-FixtureLedger
+        $fakeForge.Answers.gitlabProject = @{ Status = 404; Content = $null }
+        $dropped = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($dropped.ExitCode -eq 0 -and $dropped.Said -like '*GitLab code search: 0 hits in 0 projects*') `
+            "A hit in a project that's gone was not dropped: $($dropped.Said)"
+        Reset-FixtureLedger
+        $fakeForge.Answers.gitlabProject = @{ Status = 429; Content = $null }
+        $searchLimited = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searchLimited.ExitCode -eq 1 -and @($searchLimited.Report.findings | Where-Object {
+                    $_.kind -eq 'source-failed' -and $_.detail -like '*GitLab code search could not be read*rate limiting*HTTP 429*project 4242*' }).Count -eq 1) `
+            ("A project lookup behind a rate limit did not fail GitLab code search (exit $($searchLimited.ExitCode)): " +
+                (@($searchLimited.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+        Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/4242' }).Count -eq 4) `
+            'The rate-limited project lookup was not asked four times before the search gave up on it.'
+        Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A search a limit cut short changed the ledger.'
+        Reset-FixtureLedger
+        # A server error is no answer about the project either, so it fails the search too.
+        $fakeForge.Answers.gitlabProject = @{ Status = 502; Content = $null }
+        $searchBroken = Invoke-Audit @{ SkipGitLabCodeSearch = $false }
+        Assert-True ($searchBroken.ExitCode -eq 1 -and @($searchBroken.Report.findings | Where-Object {
+                    $_.kind -eq 'source-failed' -and $_.detail -like '*GitLab code search could not be read: project 4242 answered HTTP 502*' }).Count -eq 1) `
+            ("A project lookup that got a server error didn't fail GitLab code search (exit $($searchBroken.ExitCode)): " +
+                (@($searchBroken.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+    } finally {
+        $env:GITLAB_TOKEN = $null
+        Reset-FixtureLedger
+    }
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.alphaRepo.Content = $fakeForge.Answers.alphaRepo.Content.Replace('"archived":false', '"archived":true')
@@ -646,9 +868,16 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-Drift 'license-added' '*beta-module*now has a licence (MIT*' 'An unlicensed source that gained a licence'
     $fakeForge.Answers = New-FakeAnswers
 
-    $tick = [string][char]96 * 3
-    $fakeForge.Answers.jmanCatalog.Content += "### X Delta Bundle Patch List:`n| ${tick}Hide reels${tick} | ${tick}d${tick} | ${tick}Instagram${tick} | ${tick}Any${tick} |`n"
-    Assert-Drift 'index-unresolved' "*Jman's catalog lists Instagram patches under 'Delta'*" 'A Jman section no repository stands behind'
+    $fakeForge.Answers.jmanBundles.Content = '{"data":{"bundle":[{"source":{"url":"https://github.com/newcomer/ig-patches"},"patches":[{"name":"Hide reels"}]}]}}'
+    Assert-Drift 'addition' '*newcomer/ig-patches*Jman''s bundle index*' 'A bundle only the Jman registry lists'
+    $fakeForge.Answers = New-FakeAnswers
+
+    $fakeForge.Answers.jmanSelf.Content = '{"data":{"source":[{"url":"https://github.com/SysAdminDoc/HushGram"}]}}'
+    Assert-Drift 'listing-changed' '*Jman''s Patch Bundle Registry lists HushGram now*' 'The Jman registry taking HushGram on'
+    $fakeForge.Answers = New-FakeAnswers
+
+    $fakeForge.Answers.jmanSelf = @{ Status = 200; Content = '{"errors":[{"message":"Query exceeds catalog budget"}]}' }
+    Assert-Drift 'source-failed' '*Jman''s bundle index could not be read*refused the query*' 'A Jman registry that refuses the query'
     $fakeForge.Answers = New-FakeAnswers
 
     # An index still spelling a source by its old name is that source, not an addition.

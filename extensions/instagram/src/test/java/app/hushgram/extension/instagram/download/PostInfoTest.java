@@ -358,6 +358,58 @@ public class PostInfoTest {
         assertNull(PostInfo.copies(activity, activity, facts, new AlertDialog.Builder(activity).create()));
     }
 
+    /**
+     * Copy caption without hashtags (#282) leaves out a closing tag block, the dot lines stacked
+     * above it and a line of tags alone, and keeps a tag's word when the sentence goes on after it.
+     * Numbers, C#, a link's #part and a tag in the middle of a word aren't hashtags.
+     */
+    @Test
+    public void captionsLoseTheirHashtagsButKeepTheirWords() {
+        String sunrise = new String(Character.toChars(0x1F305));
+        String hello = new String(new int[]{0x645, 0x631, 0x62D, 0x628, 0x627}, 0, 5);
+        String golden = new String(new int[]{0x630, 0x647, 0x628, 0x64A}, 0, 4);
+        assertEquals("Golden hour at the pier", PostInfo.withoutHashtags("Golden hour at the pier\n.\n.\n.\n#sunset #beach #goldenhour"));
+        assertEquals("Loving summer days, #1 fan of this", PostInfo.withoutHashtags("Loving #summer days, #1 fan of this #blessed"));
+        assertEquals("A day at the beach " + sunrise, PostInfo.withoutHashtags("A day at the beach #sun #fun " + sunrise));
+        assertEquals("Line one\n\nLine two", PostInfo.withoutHashtags("Line one\n\n#a #b\n\nLine two"));
+        assertEquals("Price is #2024 sale.", PostInfo.withoutHashtags("Price is #2024 sale #deal."));
+        assertEquals("tbt to last summer", PostInfo.withoutHashtags("#tbt to last summer #a#b"));
+        assertEquals(hello, PostInfo.withoutHashtags(hello + " #" + golden));
+        assertEquals("a b is fun", PostInfo.withoutHashtags("#a#b is fun"));
+        assertEquals("Great day", PostInfo.withoutHashtags("Great day #fun, #sun"));
+        assertEquals("x " + sunrise, PostInfo.withoutHashtags("x #a " + sunrise + " #b"));
+        assertEquals("sale.", PostInfo.withoutHashtags("sale #a, #b."));
+        assertEquals("Line one\nLine two", PostInfo.withoutHashtags("Line one\r\n#a #b\r\nLine two"));
+        assertEquals("Hi", PostInfo.withoutHashtags("Hi #ab" + new String(Character.toChars(0x200C)) + "cd"));
+        assertEquals("Hi", PostInfo.withoutHashtags("Hi" + new String(Character.toChars(0xA0)) + "#tag"));
+        assertNull("no hashtags", PostInfo.withoutHashtags("C# and example.com/#top, see #1 and mid#word"));
+        assertNull("a number's tag", PostInfo.withoutHashtags("Room #1#a and Tom&#39;s"));
+        assertNull("only hashtags", PostInfo.withoutHashtags("#only #tags\n.\n#a#b"));
+    }
+
+    /** The row shows only for a caption with hashtags, and copies the words like Copy caption does. */
+    @Test
+    public void theDetailsCopyTheCaptionWithoutItsHashtags() {
+        Settings.POST_DETAILS.save(true);
+        Post post = photo();
+        post.caption = "No tags on this one";
+        PostInfo.show(post, null, activity);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertTrue(labels(dialog).contains("Copy caption"));
+        assertFalse("nothing to leave out", labels(dialog).contains("Copy caption without hashtags"));
+        dialog.dismiss();
+
+        post.caption = "Sunset at the pier\n.\n#golden #hour";
+        PostInfo.show(post, null, activity);
+        dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Copy caption without hashtags").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("Sunset at the pier", clip().getItemAt(0).getText().toString());
+        assertTrue(clip().getDescription().getExtras().getBoolean("android.content.extra.IS_SENSITIVE"));
+        assertEquals("Caption copied", ShadowToast.getTextOfLatestToast());
+        assertFalse("Details closes", dialog.isShowing());
+    }
+
     private ClipData clip() {
         return ((ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE)).getPrimaryClip();
     }
@@ -414,6 +466,59 @@ public class PostInfoTest {
         assertEquals("the list Instagram made", options, VideoDownload.allow(options, "DOWNLOAD"));
     }
 
+    /** Our Details row in a reel's menu, an option the menu's handler is handed. */
+    private enum ReelRow { HUSHGRAM_REEL_DETAILS }
+
+    /**
+     * A reel's menu gets Details with the switch on, whatever Download does, and a tap on it opens
+     * the sheet a feed post's does, Copy caption included (#282). With the switch off the menu is
+     * Instagram's.
+     */
+    @Test
+    public void aReelGetsDetailsWithCopyCaption() {
+        Post reel = video();
+        reel.caption = "a reel's words";
+
+        Bridges.reelRows.clear();
+        Settings.POST_DETAILS.save(false);
+        assertFalse(ReelDownload.rows(null, reel, null, null, null));
+        assertTrue("off", Bridges.reelRows.isEmpty());
+
+        Settings.POST_DETAILS.save(true);
+        assertTrue("Download on reels keeps Instagram's row out of a video's", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_DOWNLOAD_REEL=Download", "HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+
+        Bridges.reelRows.clear();
+        Settings.DOWNLOAD_REELS.save(false);
+        assertFalse("Download on reels off: Instagram's own row follows", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+
+        assertTrue(ReelDownload.ours(ReelRow.HUSHGRAM_REEL_DETAILS));
+        assertTrue(ReelDownload.save(ReelRow.HUSHGRAM_REEL_DETAILS, reel, activity));
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        labelled(dialog, "Copy caption").performClick();
+        ShadowLooper.idleMainLooper();
+        assertEquals("a reel's words", clip().getItemAt(0).getText().toString());
+        Settings.DOWNLOAD_REELS.resetToDefault();
+    }
+
+    /** The reel menu's adder is let in for Details alone when Download is off and Instagram keeps its row out. */
+    @Test
+    public void detailsAloneLetsTheReelMenuIn() {
+        Settings.DOWNLOAD_REELS.save(false);
+        Settings.POST_DETAILS.save(false);
+        assertFalse(ReelDownload.offerRow(0, new Post("1_2", "someone", POSTED)));
+
+        Settings.POST_DETAILS.save(true);
+        Post reel = video();
+        assertTrue(ReelDownload.offerRow(0, reel));
+        assertTrue("Instagram's flag that keeps the row out is let by", !ReelDownload.withholdRow(1));
+        Bridges.reelRows.clear();
+        assertTrue("Details alone takes Download's place", ReelDownload.rows(null, reel, null, null, null));
+        assertEquals(Arrays.asList("HUSHGRAM_REEL_DETAILS=Details"), Bridges.reelRows);
+        Settings.DOWNLOAD_REELS.resetToDefault();
+    }
+
     /** A post or a carousel page as the bridges read it. */
     static final class Post {
         String id;
@@ -456,6 +561,15 @@ public class PostInfoTest {
         @Implementation protected static String captionText(Object caption) { return ((Post) caption).caption; }
         @Implementation protected static int carouselIndex(Object itemState) { return (Integer) itemState; }
         @Implementation protected static Object feedOption(String name) { return name; }
+        @Implementation protected static Object reelOption(String name) { return name; }
+
+        static final List<String> reelRows = new ArrayList<>();
+
+        @Implementation
+        protected static boolean addReelRow(Object menu, Object context, Object option, Object sheet, Object rowState, String text) {
+            reelRows.add(option + "=" + text);
+            return true;
+        }
         @Implementation protected static Object saveAllOption() { return "SAVE_ALL"; }
         @Implementation protected static Object feedMenuMedia(Object menu) { return menu; }
         @Implementation protected static Object feedMenuItemState(Object menu) { return null; }

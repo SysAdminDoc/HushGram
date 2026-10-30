@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -39,6 +40,10 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 private const val PATCH = "Start stories with sound"
 internal const val STORY_SOUND = "$EXTENSION_PACKAGE/stories/StorySound;"
 internal const val START_WITH_SOUND = "$STORY_SOUND->startWithSound(Ljava/lang/Object;)I"
+internal const val OPENED = "$STORY_SOUND->opened(Ljava/lang/Object;I)V"
+internal const val PAUSING = "$STORY_SOUND->pausing(Ljava/lang/Object;)I"
+internal const val PAUSED = "$STORY_SOUND->paused(Ljava/lang/Object;I)I"
+internal const val RESUMING = "$STORY_SOUND->resuming(Ljava/lang/Object;)I"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 private const val BUNDLE = "Landroid/os/Bundle;"
@@ -57,6 +62,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
  * extension answers no on a silent or vibrating phone and at zero media volume, so Instagram keeps
  * its own choice there. A no, the switch off, Pause and a settings screen that isn't ready all leave
  * Instagram's code exactly as it was.
+ *
+ * The feed and Reels read that same state, so a story that turned it on from off would leave them
+ * playing with sound (#342). The viewer's `onPause` puts it back to off unless you muted the story
+ * yourself, and its `onResume` turns it on again for the story.
  *
  * Found and checked before anything changes: a build that differs stops the patch naming what it
  * couldn't find.
@@ -80,16 +89,22 @@ val startStoriesWithSoundPatch = bytecodePatch(
 
 /**
  * The story viewer's `onCreate` and the index right after its super call, the viewer's session
- * getter, the audio state's static factory and its boolean setter, and the two locals the hook may
- * borrow there.
+ * getter, the audio state's static factory, its boolean getter and setter, the three locals the hook
+ * may borrow there, and the viewer's `onPause` and `onResume` with the locals their hooks borrow at
+ * their first instruction.
  */
 internal class StorySoundSite(
     val onCreate: Method,
     val index: Int,
     val session: MethodReference,
     val factory: MethodReference,
+    val getter: MethodReference,
     val setter: MethodReference,
     val scratch: List<Int>,
+    val onPause: Method,
+    val pauseScratch: List<Int>,
+    val onResume: Method,
+    val resumeScratch: List<Int>,
 )
 
 /**
@@ -120,7 +135,7 @@ internal fun BytecodePatchContext.findStorySoundSite(): StorySoundSite {
     onCreate.requireThisIntact(PATCH, listOf(index))
 
     val session = findSessionGetter(viewer.superclass)
-    val (factory, setter) = findAudioState()
+    val (factory, getter, setter) = findAudioState()
     requireViewerReadsIt(factory)
 
     // The injected code is in the viewer's package: each piece must be reachable from there.
@@ -137,16 +152,36 @@ internal fun BytecodePatchContext.findStorySoundSite(): StorySoundSite {
     }
     val setterMethod = classDefBy(stateType).methods.singleOrNull {
         it.name == setter.name && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(Any::toString) == listOf("Z")
+            it.parameterTypes.map(Any::toString).let { it == listOf("Z") || it == listOf("Z", "Z") }
     }
-    if (factoryMethod == null || setterMethod == null || !open(stateType, factoryMethod.accessFlags) ||
-        !open(stateType, setterMethod.accessFlags)
+    val getterMethod = classDefBy(stateType).methods.singleOrNull {
+        it.name == getter.name && !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" &&
+            it.parameterTypes.isEmpty()
+    }
+    if (factoryMethod == null || setterMethod == null || getterMethod == null || !open(stateType, factoryMethod.accessFlags) ||
+        !open(stateType, setterMethod.accessFlags) || !open(stateType, getterMethod.accessFlags)
     ) {
         refuse("$where can't reach the audio state $stateType from the story viewer")
     }
 
-    val scratch = onCreate.freeLocalsAt(PATCH, index, 2)
-    return StorySoundSite(onCreate, index, session, factory, setter, scratch)
+    val scratch = onCreate.freeLocalsAt(PATCH, index, 4)
+    val onPause = viewer.lifecycle("onPause")
+    val onResume = viewer.lifecycle("onResume")
+    return StorySoundSite(
+        onCreate, index, session, factory, getter, setter, scratch,
+        onPause, onPause.freeLocalsAt(PATCH, 0, 4), onResume, onResume.freeLocalsAt(PATCH, 0, 3),
+    )
+}
+
+/** The viewer's own no-argument [name], whose first instruction nothing jumps back to. */
+private fun ClassDef.lifecycle(name: String): Method {
+    val method = methods.singleOrNull {
+        it.name == name && it.returnType == "V" && it.parameterTypes.isEmpty() &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: refuse("$STORY_VIEWER has no $name() of its own")
+    if (0 in method.jumpTargets()) refuse("something in $STORY_VIEWER->$name jumps back to its first instruction")
+    method.requireThisIntact(PATCH, listOf(0))
+    return method
 }
 
 /**
@@ -176,8 +211,9 @@ private fun BytecodePatchContext.findSessionGetter(start: String?): MethodRefere
  * The Reels audio toggle ([TOGGLE_AUDIO]) takes the audio state from the session (a static taking
  * the session), asks it whether sound is on (a no-argument boolean), flips that with an xor and
  * hands the result to a boolean setter on the same object. Found once, or the patch stops.
+ * `Start reels with sound` sets the same state.
  */
-private fun BytecodePatchContext.findAudioState(): Pair<MethodReference, MethodReference> {
+internal fun BytecodePatchContext.findAudioState(): Triple<MethodReference, MethodReference, MethodReference> {
     val toggles = mutableListOf<Method>()
     val marked = typesMarked(TOGGLE_AUDIO)
     classDefForEach { classDef ->
@@ -186,7 +222,7 @@ private fun BytecodePatchContext.findAudioState(): Pair<MethodReference, MethodR
     }
     val toggle = toggles.singleOrNull() ?: refuse("the Reels audio toggle: expected one method marked $TOGGLE_AUDIO, found ${toggles.size}")
     val code = toggle.code()
-    val found = mutableListOf<Pair<MethodReference, MethodReference>>()
+    val found = mutableListOf<Triple<MethodReference, MethodReference, MethodReference>>()
     for (at in code.indices) {
         val factory = code[at].methodReference() ?: continue
         if (code[at].opcode != Opcode.INVOKE_STATIC || factory.parameterTypes.map(Any::toString) != listOf(USER_SESSION)) continue
@@ -203,15 +239,15 @@ private fun BytecodePatchContext.findAudioState(): Pair<MethodReference, MethodR
             flip?.opcode != Opcode.XOR_INT_LIT8 || (flip as NarrowLiteralInstruction).narrowLiteral != 1 ||
             (flip as TwoRegisterInstruction).registerB != answer.registerA ||
             code.getOrNull(at + 5)?.opcode != Opcode.INVOKE_VIRTUAL || sets?.definingClass != stateType || sets.returnType != "V" ||
-            sets.parameterTypes.map(Any::toString) != listOf("Z") ||
-            setsCall == null || setsCall.registerCount != 2 || state == null || setsCall.registerC != state.registerA ||
+            sets.parameterTypes.map(Any::toString).let { it != listOf("Z") && it != listOf("Z", "Z") } ||
+            setsCall == null || setsCall.registerCount !in 2..3 || state == null || setsCall.registerC != state.registerA ||
             setsCall.registerD != (flip as TwoRegisterInstruction).registerA
         ) {
             continue
         }
-        found += factory to sets
+        found += Triple(factory, asks, sets)
     }
-    return found.distinctBy { "${it.first}${it.second}" }.singleOrNull()
+    return found.distinctBy { "${it.first}${it.second}${it.third}" }.singleOrNull()
         ?: refuse("expected the audio toggle to flip the account's audio state once, found ${found.size}")
 }
 
@@ -237,11 +273,18 @@ private fun BytecodePatchContext.requireViewerReadsIt(factory: MethodReference) 
 
 /**
  * Right after the viewer's super call: ask [START_WITH_SOUND] with the viewer, and on a yes take the
- * account's audio state from the viewer's session and set it to on. Anything missing along the way,
- * no yes or no session, goes on to Instagram's own code.
+ * account's audio state from the viewer's session, tell [OPENED] whether it was on, and set it to
+ * on. At the top of `onPause`, when [PAUSING] says this viewer turned it on, read it and set it to
+ * off on a yes from [PAUSED]; at the top of `onResume`, set it to on again on a yes from [RESUMING].
+ * Anything missing along the way, no yes or no session, goes on to Instagram's own code.
  */
 internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
-    val (flag, state) = site.scratch
+    fun setter(state: Int, value: Int, extra: Int) = if (site.setter.parameterTypes.size == 2) {
+        "const/4 v$extra, 0x0\n                invoke-virtual { v$state, v$value, v$extra }, ${site.setter}"
+    } else {
+        "invoke-virtual { v$state, v$value }, ${site.setter}"
+    }
+    val (flag, state, viewer, setterExtra) = site.scratch
     mutable(site.onCreate).apply {
         addInstructionsWithLabels(
             site.index,
@@ -254,10 +297,58 @@ internal fun BytecodePatchContext.applyStorySound(site: StorySoundSite) {
                 if-eqz v$state, :stock
                 invoke-static { v$state }, ${site.factory}
                 move-result-object v$state
+                invoke-virtual { v$state }, ${site.getter}
+                move-result v$flag
+                move-object/from16 v$viewer, p0
+                invoke-static { v$viewer, v$flag }, $OPENED
                 const/4 v$flag, 1
-                invoke-virtual { v$state, v$flag }, ${site.setter}
+                ${setter(state, flag, setterExtra)}
             """,
             ExternalLabel("stock", getInstruction(site.index)),
+        )
+    }
+    val (pFlag, pState, pViewer, pSetterExtra) = site.pauseScratch
+    mutable(site.onPause).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static/range { p0 .. p0 }, $PAUSING
+                move-result v$pFlag
+                if-eqz v$pFlag, :stock
+                invoke-virtual/range { p0 .. p0 }, ${site.session}
+                move-result-object v$pState
+                if-eqz v$pState, :stock
+                invoke-static { v$pState }, ${site.factory}
+                move-result-object v$pState
+                invoke-virtual { v$pState }, ${site.getter}
+                move-result v$pFlag
+                move-object/from16 v$pViewer, p0
+                invoke-static { v$pViewer, v$pFlag }, $PAUSED
+                move-result v$pFlag
+                if-eqz v$pFlag, :stock
+                const/4 v$pFlag, 0
+                ${setter(pState, pFlag, pSetterExtra)}
+            """,
+            ExternalLabel("stock", getInstruction(0)),
+        )
+    }
+    val (rFlag, rState, rSetterExtra) = site.resumeScratch
+    mutable(site.onResume).apply {
+        addInstructionsWithLabels(
+            0,
+            """
+                invoke-static/range { p0 .. p0 }, $RESUMING
+                move-result v$rFlag
+                if-eqz v$rFlag, :stock
+                invoke-virtual/range { p0 .. p0 }, ${site.session}
+                move-result-object v$rState
+                if-eqz v$rState, :stock
+                invoke-static { v$rState }, ${site.factory}
+                move-result-object v$rState
+                const/4 v$rFlag, 1
+                ${setter(rState, rFlag, rSetterExtra)}
+            """,
+            ExternalLabel("stock", getInstruction(0)),
         )
     }
 }

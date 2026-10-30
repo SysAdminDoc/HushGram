@@ -73,11 +73,12 @@ public class PlaybackQualitySettingsTest {
             }
             assertNotNull(section);
             assertEquals("Playback", String.valueOf(section.getTitle()));
-            // Tap to play first with its choice of where, then the switch, its list and the tab that opens the list.
-            assertEquals(5, section.getPreferenceCount());
-            assertEquals(Settings.QUALITY_TAB_TARGET.key, section.getPreference(4).getKey());
+            // Tap to play first with its choice of where and Wait after auto scroll, then the switch, its list and the tab that opens the list.
+            assertEquals(6, section.getPreferenceCount());
+            assertEquals(Settings.QUALITY_TAB_TARGET.key, section.getPreference(5).getKey());
             assertEquals(Settings.TAP_TO_PLAY.key, section.getPreference(0).getKey());
             assertEquals(Settings.TAP_TO_PLAY_SCOPE.key, section.getPreference(1).getKey());
+            assertEquals(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key, section.getPreference(2).getKey());
 
             Preference sw = rows.get(toggle);
             assertTrue(sw instanceof SwitchPreference);

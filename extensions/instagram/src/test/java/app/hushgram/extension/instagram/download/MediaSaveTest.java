@@ -89,7 +89,7 @@ public class MediaSaveTest {
             }
         };
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         // A save of one file reads its policy through MediaSave, as every save does.
         MediaSave.policyForTests = policy;
         gallery = Robolectric.setupContentProvider(Gallery.class, MediaStore.AUTHORITY);

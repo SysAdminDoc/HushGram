@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Predicate;
 
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
@@ -52,6 +54,11 @@ import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
  * WRITE_EXTERNAL_STORAGE, which Instagram declares and asks for itself; without it the save fails
  * and the report says why. The hidden file is on the same list as a pending row, so a save the
  * system stops leaves nothing the next start doesn't remove.
+ *
+ * <p>A folder picked in settings ({@link SaveTree}) takes every save in place of all that, on any
+ * Android: the same hidden {@code .pending-} file and list, written through the folder's
+ * DocumentsProvider and renamed when it's done. A folder out of reach sends the save to the gallery
+ * folders as if none were picked.
  */
 final class MediaStoreWriter implements Downloader.Sink {
 
@@ -80,11 +87,21 @@ final class MediaStoreWriter implements Downloader.Sink {
     /** The gallery entry the last commit published, as text, or null before one is. */
     private String published;
 
+    /** The MIME {@link #open} settled on for the file being written, or null before one is opened. */
+    private String savedMime;
+
     /** Android 9 only: the folder, the hidden file being written, and the name it takes when done. */
     private File legacyFolder;
     private File legacyWork;
     private File legacyFile;
     private String legacyMime;
+
+    /** A picked folder only: its tree, the folder in it, the hidden file and the name it takes when done. */
+    private Uri tree;
+    private Uri treeParent;
+    private Uri treeWork;
+    private String treeName;
+    private Set<String> treeNames;
 
     MediaStoreWriter(Context applicationContext, boolean video) {
         this(applicationContext, video, PostDetails.NONE);
@@ -121,7 +138,8 @@ final class MediaStoreWriter implements Downloader.Sink {
 
     /**
      * {@code Movies/Instagram}, {@code Pictures/Instagram} or, for a recording, the audio folder's,
-     * or the folder the person named in place of Instagram, for the message to the user.
+     * or the folder the person named in place of Instagram, or a picked folder's path, like
+     * {@code Download/.Insta}, for the message to the user.
      */
     String savedLocation() {
         return location;
@@ -129,11 +147,16 @@ final class MediaStoreWriter implements Downloader.Sink {
 
     /**
      * The gallery entry the save published: its content:// address, or on Android 9 the finished
-     * file's file:// one. Null until a commit succeeds, and again once an abandon removed the entry.
+     * file's file:// one, or in a picked folder the finished document's. Null until a commit succeeds, and again once an abandon removed the entry.
      * Skip what's already saved writes it down to find the file again.
      */
     String publishedItem() {
         return published;
+    }
+
+    /** The MIME the save wrote, as {@link #open} settled it, or null before a file is opened. */
+    String savedMime() {
+        return savedMime;
     }
 
     /** Whether this phone's MediaStore is the one without RELATIVE_PATH and IS_PENDING. For tests too. */
@@ -144,6 +167,23 @@ final class MediaStoreWriter implements Downloader.Sink {
     @Override
     public OutputStream open(String mimeFromServer) throws IOException {
         String mime = mime(mimeFromServer);
+        savedMime = mime;
+        Uri picked = SaveTree.usable(context);
+        if (picked == null) {
+            SaveTree.tellIfLost(context);
+        } else {
+            try {
+                return openTree(picked, mime);
+            } catch (IOException | RuntimeException failure) {
+                // The folder went, or won't take the file: the save goes where it would without one.
+                abandon();
+                tree = null;
+                treeParent = null;
+                MediaSave.failure(() -> "could not save into the folder that was picked, so the save goes "
+                        + "to Movies or Pictures", failure);
+                SaveTree.tellRefused(context, picked);
+            }
+        }
         String directory = audio ? audioDirectory()
             : video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES;
         // One folder name for both kinds, so a story's photos and its videos land side by side.
@@ -226,9 +266,33 @@ final class MediaStoreWriter implements Downloader.Sink {
         return stream;
     }
 
+    /**
+     * A picked folder: the hidden work file in [picked], or in the poster's folder there with Folder
+     * per account, on the list of leftovers before a byte goes in.
+     */
+    private OutputStream openTree(Uri picked, String mime) throws IOException {
+        String account = SaveFolder.account(details);
+        tree = picked;
+        location = SaveTree.label(context, picked) + (account.isEmpty() ? "" : "/" + account);
+        treeParent = SaveTree.folder(context, picked, account);
+        treeName = name(mime, null);
+        treeWork = SaveTree.createWork(context, treeParent);
+        if (!SaveLeftovers.pending(context, treeWork)) {
+            throw new IOException("the list of pending gallery rows could not hold the new file");
+        }
+        stream = context.getContentResolver().openOutputStream(treeWork, "w");
+        if (stream == null) throw new IOException("the folder that was picked gave no way to write");
+        return stream;
+    }
+
     @Override
     public void commit() throws IOException {
         close();
+
+        if (treeWork != null) {
+            commitTree();
+            return;
+        }
 
         if (legacyWork != null) {
             commitLegacy();
@@ -265,12 +329,41 @@ final class MediaStoreWriter implements Downloader.Sink {
         }
     }
 
+    /**
+     * A picked folder: the finished file takes its name, numbered past one a save finishing
+     * alongside took since open looked, and never over another's.
+     */
+    private void commitTree() throws IOException {
+        Uri work = treeWork;
+        Uri done;
+        synchronized (LEGACY_COMMIT_LOCK) {
+            Set<String> taken = SaveTree.names(context, tree, treeParent);
+            done = SaveTree.rename(context, work, unused(treeName, taken::contains));
+            treeWork = null;
+        }
+        SaveLeftovers.settled(context, work);
+        published = done.toString();
+    }
+
     @Override
     public void abandon() {
         try {
             close();
         } catch (Throwable ignored) {
             // A failed close must not keep the pending row from being removed.
+        }
+
+        if (treeWork != null) {
+            Uri work = treeWork;
+            treeWork = null;
+            if (SaveTree.delete(context, work)) {
+                SaveLeftovers.settled(context, work);
+            } else {
+                // Left on the list, so the sweep when Instagram next starts tries again.
+                Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE,
+                        () -> "could not remove the unfinished file in the folder that was picked", null);
+            }
+            return;
         }
 
         if (legacyWork != null) {
@@ -310,14 +403,18 @@ final class MediaStoreWriter implements Downloader.Sink {
      * rename would replace the file already there.
      */
     static File unused(File folder, String name) throws IOException {
-        File file = new File(folder, name);
-        if (!file.exists()) return file;
+        return new File(folder, unused(name, candidate -> new File(folder, candidate).exists()));
+    }
+
+    /** {@link #unused(File, String)}'s numbering, for a folder whose [taken] names are known. */
+    static String unused(String name, Predicate<String> taken) throws IOException {
+        if (!taken.test(name)) return name;
         int dot = name.lastIndexOf('.');
         String stem = dot <= 0 ? name : name.substring(0, dot);
         String suffix = dot <= 0 ? "" : name.substring(dot);
         for (int number = 1; number <= 31; number++) {
-            file = new File(folder, stem + " (" + number + ")" + suffix);
-            if (!file.exists()) return file;
+            String numbered = stem + " (" + number + ")" + suffix;
+            if (!taken.test(numbered)) return numbered;
         }
         throw new IOException("every numbered copy of the file name is already in the save folder");
     }
@@ -377,15 +474,17 @@ final class MediaStoreWriter implements Downloader.Sink {
             // As a photo is named, so the saved recordings sort by the time they were saved.
             return AUDIO_PREFIX + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(now) + suffix;
         }
-        if (video) {
+        String template = FileNameTemplate.current();
+        if (video || FileNameTemplate.usesShortcode(template)) {
             // The person's template, read here, per file, and cleaned where it's read. As it
             // ships it's IG_VID_ and the date and time.
-            String template = FileNameTemplate.current();
             reportMissingTokens(template);
-            String name = FileNameTemplate.videoName(template, now, details) + suffix;
+            String name = (video ? FileNameTemplate.videoName(template, now, details)
+                    : FileNameTemplate.photoName(template, now, details, false)) + suffix;
             if (!inSaveFolder(collection, name)) return name;
             // MediaStore would number it, up to (31), and then refuse the save.
-            String taken = FileNameTemplate.takenVideoName(template, now, details);
+            String taken = video ? FileNameTemplate.takenVideoName(template, now, details)
+                    : FileNameTemplate.photoName(template, now, details, true);
             if (taken == null) return name;
             Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
                     () -> "the file name was already in the save folder, so the time of the save went on the end");
@@ -415,6 +514,17 @@ final class MediaStoreWriter implements Downloader.Sink {
      * On Android 9 the folder is a folder on the shared storage, and a look at it answers.
      */
     private boolean inSaveFolder(Uri collection, String displayName) {
+        if (treeParent != null) {
+            try {
+                if (treeNames == null) treeNames = SaveTree.names(context, tree, treeParent);
+                return treeNames.contains(displayName);
+            } catch (Throwable t) {
+                String kind = t.getClass().getSimpleName();
+                Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE,
+                        () -> "could not look for the file name in the folder that was picked (" + kind + ")");
+                return false;
+            }
+        }
         if (legacyStorage()) return legacyFolder != null && new File(legacyFolder, displayName).exists();
         try (Cursor cursor = context.getContentResolver().query(collection,
                 new String[] { MediaStore.MediaColumns._ID }, SAME_NAME_IN_FOLDER,
@@ -451,9 +561,11 @@ final class MediaStoreWriter implements Downloader.Sink {
         if (FileNameTemplate.usesVideoId(template) && !details.hasVideoId()) missing.add("the video id");
         if (FileNameTemplate.usesOwner(template) && !details.hasOwner()) missing.add("the poster");
         if (FileNameTemplate.usesPosted(template) && !details.hasPosted()) missing.add("the post date");
+        if (FileNameTemplate.usesShortcode(template) && !details.hasShortcode()) missing.add("the post shortcode");
         if (missing.isEmpty()) return;
 
-        boolean apart = FileNameTemplate.keepsApart(template, details.hasVideoId(), details.hasOwner(), details.hasPosted());
+        boolean apart = FileNameTemplate.keepsApart(template, details.hasVideoId(), details.hasOwner(), details.hasPosted(),
+                details.hasShortcode());
         String asked = missing.size() == 1 ? missing.get(0)
             : String.join(", ", missing.subList(0, missing.size() - 1)) + " and " + missing.get(missing.size() - 1);
         String has = missing.size() == 1 ? "none" : missing.size() == 2 ? "neither" : "none of them";

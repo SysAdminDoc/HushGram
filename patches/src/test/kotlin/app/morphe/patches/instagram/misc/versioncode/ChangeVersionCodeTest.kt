@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -191,11 +192,14 @@ class ChangeVersionCodeTest {
     }
 
     /**
-     * 385611439 (x86) is the one 450 build with minSdk 26, where every other has 28, so its crash
-     * reporter keeps getLongVersionCode's fallback for Android 8: below API 28 it reads versionCode
-     * from the same PackageInfo instead. That's Instagram's own code too, one more own read.
+     * The armeabi-v7a and x86 builds (385914503, 385914510, 385914556, 385914518 and 385914558) have minSdk 26
+     * where the arm64 builds have 28, so their crash reporter keeps getLongVersionCode's fallback for
+     * Android 8: below API 28 it reads versionCode from the same PackageInfo instead. That's Instagram's
+     * own code too, one more own read. The declared arm64 build is the .apks bundle, the others are
+     * folders named by version code.
      */
-    private val PRE_28_FALLBACK_BUILD = "instagram-450.0.0.50.77-385611439"
+    private fun hasPre28Fallback(label: String) =
+        label.substringAfterLast('-') in setOf("385914503", "385914510", "385914518", "385914556", "385914558")
 
     private fun builds(bundle: File, label: String) {
         val code = realVersionCode(label.removeSuffix(".apks").substringAfterLast('-'))
@@ -229,14 +233,19 @@ class ChangeVersionCodeTest {
             "${reads.count { it.verdict == Verdict.OTHER }} other")
         reads.forEach { println("[$label]   $it") }
 
+        // 453 moved the cold start jobs into a lambda the method builds and hands over.
+        val app = "Lcom/instagram/process/instagram/InstagramApplicationForMainProcess;"
+        val coldStart = FixtureDex.classes(bundle, setOf(app)).getValue(app).methods.single { it.name == "initializeAllColdStartJobs" }
+        val lambdas = coldStart.implementation!!.instructions.filter { it.opcode == Opcode.NEW_INSTANCE }
+            .map { ((it as ReferenceInstruction).reference as TypeReference).type }.toSet()
         assertTrue("the start-up check", prepared.reads.any {
-            it.method.definingClass == "Lcom/instagram/process/instagram/InstagramApplicationForMainProcess;" &&
-                it.method.name == "initializeAllColdStartJobs"
+            (it.method.definingClass == app && it.method.name == "initializeAllColdStartJobs") || it.method.definingClass in lambdas
         })
         assertEquals("the job scheduler check's two reads", 2,
             prepared.reads.count { read -> read.method.implementation!!.instructions.any { it.string()?.startsWith(SCHEDULER_CHECK) == true } })
-        val fallback = label == PRE_28_FALLBACK_BUILD
-        assertEquals("own reads", if (fallback) 15 else 14, prepared.reads.size)
+        val fallback = hasPre28Fallback(label)
+        // 453 reads its own code in two more places than 452 did, on every build.
+        assertEquals("own reads", if (fallback) 18 else 17, prepared.reads.size)
         assertEquals("own long reads", 1, prepared.reads.count { it.long })
         val longRead = prepared.reads.single { it.long }
         val beside = prepared.reads.filter { !it.long && it.method == longRead.method }

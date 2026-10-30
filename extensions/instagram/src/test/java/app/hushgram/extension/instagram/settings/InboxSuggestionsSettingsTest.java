@@ -34,7 +34,7 @@ public class InboxSuggestionsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_INBOX_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -81,6 +81,6 @@ public class InboxSuggestionsSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.HIDE_INBOX_SUGGESTIONS.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

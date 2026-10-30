@@ -178,6 +178,22 @@ class SetupTests(unittest.TestCase):
             hosted.prepare(self.root, self.package)
         self.assertEqual("reader's edits", worksheet.read_text(encoding="utf-8"))
 
+    def test_traditional_chinese_keeps_its_regional_language_and_review_rows(self):
+        folder = self.root / hosted.bridge.TABLE_DIRECTORY
+        rows = {"Hello": "你好", "Value %1$s": "值 %1$s", "Same": "相同"}
+        (folder / "zh-rTW.tsv").write_bytes("".join(
+            key + "\t" + value + "\n" for key, value in rows.items()).encode("utf-8"))
+        package = self.work / "taiwan-review"
+        hosted.prepare(self.root, package)
+        manifest = json.loads((package / "manifest.json").read_bytes())
+        self.assertEqual("zh-TW", manifest["seed_languages"]["zh-rTW"])
+        self.assertEqual({hosted.bridge.identifier(key): value for key, value in rows.items()},
+                         json.loads((package / "zh-rTW.json").read_bytes()))
+        with (package / "zh-rTW-review.csv").open(encoding="utf-8-sig", newline="") as handle:
+            records = list(csv.DictReader(handle))
+        self.assertEqual(rows, {record["english_key"]: record["current_translation"] for record in records})
+        self.assertEqual({"pending"}, {record["review_status"] for record in records})
+
     def test_plural_context_preserves_literal_suffixes_and_formula_text_is_inert(self):
         english = {"Literal|few": "Literal|few", "Items %1$d|few": "Items %1$d", "Value": "Value"}
         data = hosted.review_csv(english, {"Value": "=1+1"}).decode("utf-8-sig")

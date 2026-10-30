@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.explore.PAGING_TOKEN
 import app.morphe.patches.instagram.explore.SECTIONS
 import app.morphe.patches.instagram.explore.emptyExplorePages
 import app.morphe.patches.instagram.explore.findExploreParser
@@ -139,8 +140,8 @@ class ExploreShopTilesTest {
 
     /**
      * In each declared build, Explore's page parser reads its sections with one section parser, the
-     * one holding "DiscoverySection", and the section it built goes past the extension. On 450's
-     * 385611438 that's LX/09CT, its section LX/090D and its tile LX/09DR.
+     * one holding "DiscoverySection", and the section it built goes past the extension. On 451's
+     * 385713073 that's LX/01S4 and its section LX/0Cl2.
      */
     @Test
     fun eachDeclaredBuildHooksExploresSections() {
@@ -155,7 +156,10 @@ class ExploreShopTilesTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in the other arm64 builds of each declared version. */
+    /**
+     * The same in the other builds of each declared version; 451's 385713109 and 385713111 ask a
+     * string pool for the sections' key, so their page parser holds only its paging token.
+     */
     @Test
     fun eachOtherBuildHooksExploresSections() {
         var checked = 0
@@ -164,22 +168,24 @@ class ExploreShopTilesTest {
             checked++
         }
         assertTrue("no other build", checked > 0)
+        assertEquals("the builds besides the declared one", Fixtures.OTHER_BUILDS, checked)
     }
 
     /**
-     * Slices the fixture the way the finder reads it: the classes holding the sections' key or the
-     * section parser's string, then the classes of each type the parser builds, the fields of those,
-     * the fields of those, and theirs, so every candidate the finder weighs is there to weigh.
+     * Slices the fixture the way the finder reads it: the classes holding the sections' key, the
+     * paging token or the section parser's string, with the string pools they call, then the classes
+     * of each type the parser builds, the fields of those, the fields of those, and theirs, so every
+     * candidate the finder weighs is there to weigh.
      */
     private fun hooksExploresSections(bundle: File, label: String) {
         val fieldTypes = HashMap<String, List<String>>()
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
-            val holding = dex.stringSection.any { it == SECTIONS || it == DISCOVERY_SECTION }
+            val holding = dex.stringSection.any { it == SECTIONS || it == PAGING_TOKEN || it == DISCOVERY_SECTION }
             for (classDef in dex.classes) {
                 val types = classDef.instanceFields.map { it.type }.distinct()
                 if (types.isNotEmpty()) fieldTypes[classDef.type] = types
-                if (holding && classDef.methods.any { it.holds(SECTIONS) || it.holds(DISCOVERY_SECTION) }) {
+                if (holding && classDef.methods.any { it.holds(SECTIONS) || it.holds(PAGING_TOKEN) || it.holds(DISCOVERY_SECTION) }) {
                     holders += ImmutableClassDef.of(classDef)
                 }
             }
@@ -412,7 +418,7 @@ class ExploreShopTilesTest {
         )
 
         /**
-         * Shaped like 450's: Explore's page parser reads "sectional_items" with the section parser
+         * Shaped like 451's: Explore's page parser reads "sectional_items" with the section parser
          * and keeps the list in the page. The section parser holds "DiscoverySection", answers null
          * for JSON it can't read, and otherwise builds a section of a layout and its content and
          * hands it back. The content keeps a tile of its own, a list and a section to fall back on.

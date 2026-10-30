@@ -1,67 +1,5 @@
 # Turkish for HushGram: the English key, a tab, the translation. One row per string.
 # After editing, run python scripts/gen-l10n.py from the repository root.
-2x speed for videos in the feed	Akıştaki videolar için 2x hız
-Adds a shortcut to your saved posts in the Explore tab.	Keşfet sekmesine kaydettiğin gönderilere bir kısayol ekler.
-Adds a speed choice to the menu on a reel.	Bir Reels menüsüne hız seçeneği ekler.
-Adds the option to put a new story in a Highlight as you post it.	Yeni bir hikayeyi paylaşırken doğrudan Öne Çıkanlar'a ekleme seçeneği getirir.
-Asks Instagram to keep more detail when it prepares a story. Instagram's servers still compress what they receive.	Instagram'dan bir hikayeyi hazırlarken daha fazla ayrıntı korumasını ister. Instagram sunucuları aldıkları dosyayı yine de sıkıştırır.
-Blurred background on story reposts	Hikaye yeniden paylaşımlarında bulanık arka plan
-Choose Off to hide the suggested accounts that show before you type a search.	Aramaya yazmadan önce görünen önerilen hesapları gizlemek için Kapalı'yı seç.
-Choose Off to remove the brightness boost on reels and videos on HDR screens.	HDR ekranlarda Reels ve videolardaki parlaklık artışını kaldırmak için Kapalı'yı seç.
-Choose Off to show your recent searches instead of AI suggestions.	Yapay zekâ önerileri yerine son aramalarını görmek için Kapalı'yı seç.
-Choose Off to stop photos from being shown at full HDR brightness.	Fotoğrafların tam HDR parlaklığıyla gösterilmesini durdurmak için Kapalı'yı seç.
-Couldn't change that setting. Open settings from Home while signed in. Nothing changed.	Bu ayar değiştirilemedi. Oturum açıkken ayarları Ana Sayfa'dan aç. Hiçbir şey değişmedi.
-Couldn't read Instagram's overrides. Open settings from Home while signed in.	Instagram'ın geçersiz kılmaları okunamadı. Oturum açıkken ayarları Ana Sayfa'dan aç.
-Edit a story after posting	Paylaştıktan sonra hikayeyi düzenle
-Enlarge profile photos	Profil fotoğraflarını büyüt
-Extra-bright HDR video	Ekstra parlak HDR video
-Fills the space behind a reposted reel, post or story with a blur.	Yeniden paylaşılan bir Reels, gönderi veya hikayenin arkasındaki boşluğu bulanıklıkla doldurur.
-Instagram turns auto scroll off each time it starts. On keeps it the way you left it.	Instagram her açılışta otomatik kaydırmayı kapatır. Açık, bıraktığın gibi kalmasını sağlar.
-Instagram's own	Instagram'ın kendi değeri
-Keep Reels auto scroll between sessions	Reels otomatik kaydırmayı oturumlar arasında koru
-Leave a Close Friends list	Yakın Arkadaşlar listesinden ayrıl
-Lets you change a story for a short while after you post it.	Hikayeyi paylaştıktan sonra kısa bir süre değiştirmeni sağlar.
-Lets you tap a profile photo to see it bigger, with a setting in Account Privacy.	Bir profil fotoğrafına dokunup daha büyük görmeni sağlar, Hesap Gizliliği'nde bir ayarı vardır.
-Meta AI suggestions in search	Aramada Meta AI önerileri
-Named switches for some of Instagram's hidden settings, such as the new story style. Each one is Instagram's own, On or Off. Your current overrides are saved first for Restore.	Yeni hikaye stili gibi Instagram'ın bazı gizli ayarları için adlandırılmış anahtarlar. Her biri Instagram'ın kendi değeri, Açık veya Kapalı olabilir. Mevcut geçersiz kılmaların Geri Yükle için önce kaydedilir.
-New like animations	Yeni beğeni animasyonları
-New story fonts and animations	Yeni hikaye yazı tipleri ve animasyonları
-New story timestamp style	Yeni hikaye zaman damgası stili
-On	Açık
-Pick Instagram's own setting, On or Off. Restart Instagram after a change.	Instagram'ın kendi değerini, Açık veya Kapalı'yı seç. Değişiklikten sonra Instagram'ı yeniden başlat.
-Playback speed in the Reels menu	Reels menüsünde oynatma hızı
-Post a story straight to Highlights	Hikayeyi doğrudan Öne Çıkanlar'a paylaş
-Press and hold a reel to open a menu with playback speed.	Oynatma hızı menüsünü açmak için bir Reels'e basılı tut.
-Press and hold the edge of a video in your feed to watch it at double speed.	Akıştaki bir videonun kenarına basılı tutarak iki kat hızda izle.
-Press and hold the like button on a story to pick an emoji reaction.	Bir emoji tepkisi seçmek için hikayedeki beğen düğmesine basılı tut.
-Press and hold the paper plane on a story to send it.	Hikayeyi göndermek için kağıt uçağa basılı tut.
-Preview of disappearing photos in Messages	Mesajlar'da kaybolan fotoğrafların önizlemesi
-Quick emoji reactions on stories	Hikayelerde hızlı emoji tepkileri
-Quick speed menu in Reels	Reels'te hızlı hız menüsü
-Recommended flags	Önerilen bayraklar
-Redesigned Explore tab	Yeniden tasarlanan Keşfet sekmesi
-Redesigned notification settings	Yeniden tasarlanan bildirim ayarları
-Redesigned story viewer list	Yeniden tasarlanan hikaye izleyici listesi
-Saved button in Explore	Keşfet'te Kaydedilenler düğmesi
-Saved. Restart Instagram to apply it.	Kaydedildi. Uygulamak için Instagram'ı yeniden başlat.
-Send stories with a long press	Hikayeleri uzun basarak gönder
-Set another way right now.	Şu an başka bir yolla ayarlanmış.
-Shows a blurred preview of a disappearing photo or video in a chat.	Sohbette kaybolan bir fotoğraf veya videonun bulanık önizlemesini gösterir.
-Shows usernames in place of display names in chats and notifications.	Sohbetlerde ve bildirimlerde görünen ad yerine kullanıcı adını gösterir.
-Suggested accounts in search	Aramada önerilen hesaplar
-Tap the Close Friends icon on someone's story to remove yourself from their list.	Birinin listesinden çıkmak için hikayesindeki Yakın Arkadaşlar simgesine dokun.
-That's already how it is. Nothing changed.	Zaten böyle. Hiçbir şey değişmedi.
-The newer animations when you like a post, and the emoji ones on stories.	Bir gönderiyi beğenirken yeni animasyonlar ve hikayelerdeki emoji animasyonları.
-The newer layout of the Explore tab.	Keşfet sekmesinin yeni düzeni.
-The newer layout of the notification settings.	Bildirim ayarlarının yeni düzeni.
-The newer list of who viewed and replied to your story.	Hikayeni kimlerin izlediği ve yanıtladığının yeni listesi.
-The newer look for the "posted ... ago" label on stories.	Hikayelerdeki "... önce paylaşıldı" etiketinin yeni görünümü.
-The newer text fonts, animations and effects in the story editor.	Hikaye düzenleyicisindeki yeni yazı tipleri, animasyonlar ve efektler.
-This Instagram version has none of these switches.	Bu Instagram sürümünde bu anahtarların hiçbiri yok.
-Turn on Allow importing overrides first. These switches use the same path.	Önce Geçersiz kılmaları içe aktarmaya izin ver'i aç. Bu anahtarlar aynı yolu kullanır.
-Ultra HDR photos	Ultra HDR fotoğraflar
-Upload stories at higher quality	Hikayeleri daha yüksek kalitede yükle
-Usernames in Messages and notifications	Mesajlar ve bildirimlerde kullanıcı adları
 %1$s of %2$s	%1$s / %2$s
 %1$s so far	Şimdiye kadar %1$s
 %1$s. It was set when you patched, so Pause can't turn it off. To rule it out, patch again and leave out that patch.	%1$s. Yamaladığında ayarlandığı için Duraklatma bunu kapatamaz. Bunu elemek için yeniden yamala ve o yamayı dışarıda bırak.
@@ -69,6 +7,7 @@ Usernames in Messages and notifications	Mesajlar ve bildirimlerde kullanıcı ad
 A diagnostic report is already being saved.	Bir tanılama raporu zaten kaydediliyor.
 A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya HushGram'u duraklattı.
 About	Hakkında
+Add the source to saved photos	Kayıtlı fotoğraflara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
 Back	Geri
 Before you sign in	Giriş yapmadan önce
@@ -85,13 +24,32 @@ Debug logging	Hata ayıklama günlüğü
 Diagnostic data cleared. Tap again to put it back.	Tanılama verileri temizlendi. Geri getirmek için tekrar dokun.
 Diagnostic data put back.	Tanılama verileri geri getirildi.
 Diagnostic report copied to the clipboard.	Tanılama raporu panoya kopyalandı.
-Disable analytics	Analitiği devre dışı bırak
 Download failed	İndirme başarısız oldu
 Downloading	İndiriliyor
-Empties the activity log that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü boşaltır.
+Empties the activity log and any kept crash that a diagnostic report would include.	Bir tanılama raporuna dahil edilecek etkinlik günlüğünü ve kayıtlı çökme kaydını boşaltır.
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır, yamaladığında ayarlananlar ise devrede kalır. Ayarların olduğu gibi kalır.
 Export diagnostic report	Tanılama raporunu dışa aktar
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Sonraki açılıştan itibaren Hata ayıklama günlüğü dışındaki her anahtar kapalıymış gibi davranır. Yamaladığında ayarlananlar devrede kalır ve tercihlerin kayıtlı kalır.
+Lock these settings	Bu ayarları kilitle
+Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.
+Ask to unlock	Kilidi açmayı iste
+These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Bu ayarlar kilitli. %1$s beklemeyi başlatmak için dokun, sonra 10 dakika açık kalırlar.
+Unlock asked	Kilit açma istendi
+These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s
+These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s. Beklemeyi durdurmak için dokun.
+Stop the wait	Beklemeyi durdur
+Keep waiting	Beklemeye devam et
+Wait stopped. These settings stay locked.	Bekleme durduruldu. Bu ayarlar kilitli kalır.
+Settings are open	Ayarlar açık
+They lock again at %1$s. Tap to lock them now or turn the lock off.	Şu saatte yeniden kilitlenir: %1$s. Şimdi kilitlemek veya kilidi kapatmak için dokun.
+# context: the wait of a settings lock when it is exactly one hour; %1$d is the number
+%1$d hour	%1$d saat
+# context: the same wait for any other number of hours; %1$d is how many
+%1$d hours	%1$d saat
+Turn the lock off	Kilidi kapat
+Settings locked	Ayarlar kilitlendi
+Lock turned off	Kilit kapatıldı
+These settings are locked. Ask to unlock first.	Bu ayarlar kilitli. Önce kilidi açmayı iste.
 Full report saved to %1$s	Tam rapor şuraya kaydedildi: %1$s
 GPL-3.0, with the notices of the projects this is built on	GPL-3.0, üzerine kurulduğu projelerin lisans bildirimleriyle
 Gray out stories you've watched	İzlediğin hikayeleri gri göster
@@ -104,11 +62,11 @@ HushGram pauses when Instagram restarts.	HushGram, Instagram yeniden başladığ
 HushGram saves	HushGram kaydetme işlemleri
 HushGram settings	HushGram ayarları
 HushGram settings couldn't open	HushGram ayarları açılamadı
+HushGram settings are locked	HushGram ayarları kilitli
 HushGram turns back on when Instagram restarts.	HushGram, Instagram yeniden başladığında tekrar açılır.
 Instagram crashed or froze within a minute of starting three times in a row, so HushGram paused itself.	Instagram açıldıktan sonraki bir dakika içinde üst üste üç kez çöktü veya dondu, bu yüzden HushGram kendini duraklattı.
 Instagram stops showing the screen that says this version is too old. A patched build doesn't update on its own, so this keeps it usable.	Instagram bu sürümün çok eski olduğunu söyleyen ekranı artık göstermez. Yamalanmış bir sürüm kendi kendine güncellenmez, bu yüzden bu onu kullanılabilir tutar.
 Instagram's own checks of who signed the app keep passing on this patched build.	Instagram'ın uygulamayı kimin imzaladığına bakan kendi kontrolleri bu yamalı sürümde de geçmeye devam eder.
-Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. Restart Instagram to see the change.	Instagram'ın kullanım ve çökme raporlarını Instagram'a ve Facebook'a göndermesini engeller. Değişikliği görmek için Instagram'ı yeniden başlat.
 Joining the picture and sound	Görüntü ve ses birleştiriliyor
 Licenses	Lisanslar
 Link expired. Reopen the item and try again.	Bağlantının süresi doldu. Öğeyi yeniden açıp tekrar dene.
@@ -157,6 +115,7 @@ Updates	Güncellemeler
 Version	Sürüm
 Version %1$s for Instagram %2$s	Instagram %2$s için %1$s sürümü
 While you view anonymously, a story you've watched turns gray and moves to the end of the row, on this phone only. Instagram still isn't told you watched it.	Anonim izlerken izlediğin bir hikaye griye döner ve sıranın sonuna geçer, yalnızca bu telefonda. Instagram yine de onu izlediğini öğrenmez.
+Writes the account that posted, the post date and a link to the post into a saved photo's details, the EXIF a gallery or exiftool reads. JPEG photos only, and only what the save knows. The picture itself is unchanged.	Gönderiyi paylaşan hesabı, gönderi tarihini ve gönderiye bir bağlantıyı, kaydedilen bir fotoğrafın ayrıntılarına, yani bir galeri ya da exiftool'un okuduğu EXIF'e yazar. Yalnızca JPEG fotoğraflar ve yalnızca kaydın bildiği kadar. Resmin kendisi değişmez.
 You paused HushGram.	HushGram'u duraklattın.
 the re-signed build fix	yeniden imzalanmış sürüm düzeltmesi
 Don't send reel watch history	Reel izleme geçmişini gönderme
@@ -183,7 +142,7 @@ Stories	Hikayeler
 Hide Reels in the feed	Akıştaki reelleri gizle
 The rows of suggested reels between posts in your home feed. A reel someone you follow posts stays.	Ana akışındaki gönderiler arasına giren önerilen reel sıraları. Takip ettiğin birinin paylaştığı reel kalır.
 Hide the Follow button	Takip Et düğmesini gizle
-The Follow button beside a reel's author. Their profile still has one.	Bir reelin sahibinin yanındaki Takip Et düğmesi. Profilinde hâlâ var.
+The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	Bir reelin sahibinin yanındaki Takip Et ve Abone Ol düğmeleri. Profilinde hâlâ var.
 Hide promotion buttons on reels	Reels'teki tanıtım düğmelerini gizle
 Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live badges and state-controlled media labels stay.	Edits, şablonlar, Meta AI ve Ray-Ban Meta gözlüklerini öne çıkaran düğmeleri gizler. Canlı rozeti ve devlet kontrollü medya etiketi kalır.
 Hide friends' activity and comment previews	Arkadaş etkinliğini ve yorum önizlemesini gizle
@@ -191,6 +150,11 @@ The bubbles of friends who liked or commented, the Followed by and Liked by line
 Downloads	İndirmeler
 Save videos other apps can open	Videoları diğer uygulamaların açabileceği biçimde kaydet
 For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves without sound. May lower quality.	WhatsApp, CapCut ve InShot gibi video düzenleyiciler ya da kaydedilen videoları sessiz oynatan bir galeri veya oynatıcı için. Kaliteyi düşürebilir.
+Convert to keep the full size	Tam boyutu korumak için dönüştür
+For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size then converts only VP9.	AV1'i kötü oynatan telefonlar için. Instagram'ın tam boyutta yalnızca AV1 olarak sunduğu bir video, varsa VP9 olarak, yoksa en büyük H.264 boyutunda kaydedilir. Tam boyutu korumak için dönüştür o zaman yalnızca VP9'u dönüştürür.
+Never save AV1 video	AV1 videoları asla kaydetme
+Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.	Videoları diğer uygulamaların açabileceği biçimde, tam boyutta kaydeder. Instagram'da yalnızca VP9 veya AV1 olarak bulunan bir video, daha küçük kaydedilmek yerine telefonunda H.264'e dönüştürülür. Daha yavaştır ve 3 dakikadan uzun videolar küçük kalır.
+Converting to H.264	H.264'e dönüştürülüyor
 Download quality	İndirme kalitesi
 Best	En iyi
 Smallest	En küçük
@@ -202,12 +166,12 @@ Choose a folder name under Movies and Pictures. Invalid characters become unders
 Save	Kaydet
 Folder name	Klasör adı
 Folder set to %1$s.	Klasör %1$s olarak ayarlandı.
-Video file name	Video dosya adı
+Download file name	İndirme dosyası adı
 %1$s becomes the date and time of the save, %2$s the video's number on Instagram, %3$s who posted it and %4$s the day it was posted. What a save doesn't know is left out, and a name with none of these gets the date added. When the name is already in the folder, the time of the save goes on the end. Invalid characters become underscores. Leave it blank to use the default, %5$s.	%1$s kaydetme tarihine ve saatine, %2$s videonun Instagram'daki numarasına, %3$s paylaşan kişinin adına, %4$s ise paylaşıldığı güne dönüşür. Kaydederken bilinmeyenler dışarıda bırakılır ve bunların hiçbirini içermeyen bir ada tarih eklenir. Ad klasörde zaten varsa sonuna kaydetme saati eklenir. Geçersiz karakterler alt çizgiye dönüşür. Varsayılan %5$s adını kullanmak için boş bırak.
 File name	Dosya adı
 File name set to %1$s.	Dosya adı %1$s olarak ayarlandı.
 Videos go to %1$s and photos to %2$s.	Videolar %1$s klasörüne, fotoğraflar %2$s klasörüne kaydedilir.
-Example without post details	Gönderi ayrıntıları olmadan örnek
+Example file name	Örnek dosya adı
 Cancel saving this video	Bu videonun kaydedilmesini iptal et
 Cancel saving this photo	Bu fotoğrafın kaydedilmesini iptal et
 Download on reels	Reels'te indir
@@ -219,7 +183,7 @@ Download as photo	Fotoğraf olarak indir
 Download on stories	Hikayelerde indir
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	Herkesin hikayesinin menüsüne İndir ekler, fotoğraf ya da video, indirme kalitende kaydedilir. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.
 Upload stories at full quality	Hikayeleri tam kalitede yükle
-Video stories you post are sent up to 1080 pixels wide instead of 720, as they are with Instagram's own Upload at highest quality setting on. Photo stories stay as they are.	Paylaştığın video hikayeler 720 yerine en fazla 1080 piksel genişliğinde gönderilir, Instagram'ın kendi En yüksek kalitede yükle ayarı açıkken olduğu gibi. Fotoğraf hikayeler olduğu gibi kalır.
+Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	Paylaştığın video hikayeler 1080p ve daha yüksek bit hızıyla gönderilir, Instagram'ın kendi En yüksek kalitede yükle ayarı açıkken olduğu gibi. Instagram hikaye videolarını sunucularında yine de 720p'ye küçültür, bu yüzden görünen fark küçüktür. Fotoğraf hikayeler zaten Instagram'ın sakladığından daha büyük yüklenir.
 Download feed videos	Akıştaki videoları indir
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Akışındaki videolu bir gönderinin menüsüne İndir ekler. Aşağıdaki kaliteyi kullanır. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.
 Playback	Oynatma
@@ -263,11 +227,17 @@ Show the Reels tab	Reels sekmesini göster
 Puts Reels back on the tab bar if Instagram left it off yours. Hide the Reels tab wins if both are on. Restart Instagram to see the change.	Instagram seninkinde Reels'i çubuğa koymadıysa geri koyar. İkisi de açıksa Reels sekmesini gizle geçerli olur. Değişikliği görmek için Instagram'ı yeniden başlat.
 Show the Messages tab	Mesajlar sekmesini göster
 Puts Messages on the tab bar, before Profile, if Instagram left it off yours. Tab order can move it. Restart Instagram to see the change.	Instagram seninkinde Mesajlar'ı çubuğa koymadıysa Profil'in önüne koyar. Sekme sırası ile yerini değiştirebilirsin. Değişikliği görmek için Instagram'ı yeniden başlat.
+Hide the Messages tab	Mesajlar sekmesini gizle
+Takes the Messages button off the tab bar. A Messages button on Home's header still opens your chats, and so do notifications.	Mesajlar düğmesini sekme çubuğundan kaldırır. Ana sayfa üstündeki bir Mesajlar düğmesi sohbetlerini açmaya devam eder, bildirimler de açar.
+Show the Activity tab	Hareketler sekmesini göster
+Puts Activity, the screen the heart opens, on the tab bar before Profile. Tab order can move it, and Hide notifications on Home's header takes the heart away. Restart Instagram to see the change.	Kalbin açtığı Hareketler ekranını sekme çubuğunda Profil'in önüne koyar. Sekme sırası ile yerini değiştirebilirsin, Ana sayfa üstündeki bildirimleri gizle de kalbi kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Keep the reel speed	Reel hızını koru
 Keep a seek bar	İlerleme çubuğu hep görünsün
 Instagram's seek bar stays under every reel, short ones too, with the time played and the reel's length above it. Ads keep Instagram's own rules.	Instagram'ın ilerleme çubuğu kısa olanlar dahil her reel'in altında kalır, üstünde oynatılan süre ve reel'in uzunluğu yazar. Reklamlar Instagram'ın kendi kurallarına uyar.
 Keep auto scroll on	Otomatik kaydırma açık kalsın
 Once you turn on Instagram's auto scroll in Reels, it stays on after a restart or after you leave Reels, until you turn it off.	Reels'te Instagram'ın otomatik kaydırmasını açtığında, yeniden başlatmadan veya Reels'ten çıktıktan sonra da sen kapatana kadar açık kalır.
+Move on when a reel ends	Reel bitince sonrakine geç
+When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll switch can't turn it off. Restart Instagram to see the change.	Bir reel bittiğinde Reels onu yeniden oynatmak yerine sonrakine geçer. Instagram'ın kendi otomatik kaydırmasını kullanır, Instagram'ın bunu sunmadığı hesaplarda bile. Açıkken Instagram'ın kendi otomatik kaydırma anahtarı bunu kapatamaz. Değişikliği görmek için Instagram'ı yeniden başlat.
 Stop Reels scrolling	Reels'te kaydırmayı durdur
 A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new ones. The reel you opened still plays. Restart Instagram to see the change.	Reels'te kaydırmak artık sonraki reels'e geçmez, aşağı çekmek de yenilerini yüklemez. Açtığın reels oynamaya devam eder. Değişikliği görmek için Instagram'ı yeniden başlat.
 Lock a reel at 2x (hold its edge, then slide down) and the next reels play at 2x too. Slide the lock off, or hold the edge and let go, to go back to normal speed.	Bir reel'i 2x'te kilitle (kenarını basılı tut, sonra aşağı kaydır), sonraki reels'ler de 2x oynar. Normal hıza dönmek için kilidi kaydırıp kaldır ya da kenarı basılı tutup bırak.
@@ -296,8 +266,8 @@ Hide Ask Meta AI in About this reel	Bu reel hakkında bölümünde Meta AI'a sor
 About this reel keeps its summary and Sources, and only the Ask Meta AI box under them goes.	Bu reels hakkında bölümü özetini ve Kaynakları korur, yalnızca altındaki Meta AI'a Sor kutusu kalkar.
 Hide Meta AI in the share sheet	Paylaşım sayfasında Meta AI'ı gizle
 Removes Meta AI from the row at the bottom of the share sheet. Some accounts see it as Muse.	Paylaşım sayfasının altındaki satırdan Meta AI'ı kaldırır. Bazı hesaplar bunu Muse olarak görür.
-Hide the Muse card on profiles	Profillerde Muse kartını gizle
-Removes the Meet Muse card, with its Try Muse button, from profiles. Your other profile cards stay.	Meet Muse kartını ve Try Muse düğmesini profillerden kaldırır. Diğer profil kartların kalır.
+Hide the Muse card	Muse kartını gizle
+Removes the Meet Muse card, with its Try Muse button, from Home and your profile. Your other cards stay.	Meet Muse kartını ve Try Muse düğmesini Ana Sayfa'dan ve profilinden kaldırır. Diğer kartların kalır.
 Hide the Muse button on your profile	Profilinde Muse düğmesini gizle
 Removes the Muse button from the top bar of your profile. Your username and the menu stay.	Muse düğmesini profilinin üst çubuğundan kaldırır. Kullanıcı adın ve menü kalır.
 Hide Blend on reels	Reels'te Blend'i gizle
@@ -310,35 +280,43 @@ Leaves the Suggested for you accounts out of what shows when you tap the search 
 Messages	Mesajlar
 Hide the notes row	Notlar satırını gizle
 Takes the row of notes off the top of your messages, the Map bubble in it too. Your chats, search and requests stay.	Mesajlarının üst kısmındaki notlar satırını, içindeki Harita balonuyla birlikte kaldırır. Sohbetlerin, arama ve istekler kalır.
+Hide the search bar in Messages	Mesajlar'da arama çubuğunu gizle
+Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats, notes and requests stay.	Mesajlarının üst kısmındaki arama çubuğunu ve Filtre düğmesini kaldırır, Meta AI çubuğunu da. Sohbetlerin, notların ve isteklerin kalır.
 Hide Instants	Instants'ı gizle
 Removes the stack of Instants (quick photos from friends) from your messages. Restart Instagram to see the change.	Mesajlarındaki Instants yığınını (arkadaşlardan hızlı fotoğraflar) kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Read messages without the seen receipt	Mesajları görüldü bilgisi olmadan oku
 Opening a chat doesn't tell people you've seen their messages, and you still see when they've seen yours. To let one chat know, long press it in your messages and tap Mark as read.	Bir sohbeti açtığında karşı taraf mesajlarını gördüğünü öğrenmez ve onların seninkileri ne zaman gördüğünü görmeye devam edersin. Bir sohbetin bilmesini istersen mesajlarında ona uzun bas ve Okundu olarak işaretle'ye dokun.
+Keep chats unread here	Sohbetleri burada okunmamış tut
+A chat you open stays unread in your messages on this phone until you long press it and tap Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read on this phone until a newer message comes in, even after your messages refresh.	Açtığın bir sohbet, ona uzun basıp Okundu olarak işaretle'ye dokunana kadar bu telefondaki mesajlarında okunmamış kalır. İçindeki daha yeni bir mesaj da okunmamış kalır. Kapalıyken, açtığın bir sohbet mesajların yenilense bile daha yeni bir mesaj gelene kadar bu telefonda okunmuş kalır.
 # context: the toasts after tapping Mark as read on a chat's long press while seen receipts are held
 Marked as read	Okundu olarak işaretlendi
 Couldn't mark as read	Okundu olarak işaretlenemedi
 Hide that you're typing	Yazdığını gizle
 People you're chatting with don't see the typing dots while you write, and you still see theirs.	Sohbet ettiğin kişiler sen yazarken yazıyor noktalarını görmez, sen ise onlarınkini görmeye devam edersin.
 Hide your active status	Etkinlik durumunu gizle
-People don't see Active now for you while you use Instagram, and you still see when they're active. Restart Instagram to see the change.	Instagram'ı kullanırken başkaları senin şu anda aktif olduğunu görmez, sen ise onların ne zaman aktif olduğunu görmeye devam edersin. Değişikliği görmek için Instagram'ı yeniden başlat.
+People don't see Active now for you while you use Instagram, and you still see when they're active. It takes effect the next time you come back to Instagram.	Instagram'ı kullanırken başkaları senin şu anda aktif olduğunu görmez, sen ise onların ne zaman aktif olduğunu görmeye devam edersin. Değişiklik, Instagram'a bir sonraki dönüşünde geçerli olur.
 Start Home on Following	Ana Sayfa'yı Takip Edilenler ile aç
 Opens Home on posts from accounts you follow instead of For you. Tap the top of Home to switch. Restart Instagram to see the change.	Ana Sayfa'yı Senin için yerine takip ettiğin hesapların gönderileriyle açar. Geçiş yapmak için Ana Sayfa'nın üstüne dokun. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide suggested stories	Önerilen hikayeleri gizle
 Hides stories from accounts you don't follow, and accounts Instagram suggests, in the row at the top of Home. Stories from accounts you follow stay.	Ana Sayfa'nın üstündeki satırda, takip etmediğin hesapların hikâyelerini ve Instagram'ın önerdiği hesapları gizler. Takip ettiğin hesapların hikâyeleri kalır.
 Hide the Stories tray	Hikaye sırasını gizle
 Takes the whole row of stories off the top of Home, Your story included. Stories still open from a profile or a message.	Ana Sayfa'nın üstündeki hikaye sırasını, Hikayen dahil tamamen kaldırır. Hikayeler bir profilden veya mesajdan açılmaya devam eder.
+Keep the Stories tray in the feed	Hikaye sırasını akışta tut
+Stops Instagram from floating the row of stories over Home when you come back to it mid-feed or scroll up fast. The row stays at the top of the feed and scrolls away with it.	Akışın ortasında Ana Sayfa'ya döndüğünde veya hızla yukarı kaydırdığında Instagram'ın hikaye sırasını Ana Sayfa'nın üstünde yüzdürmesini engeller. Sıra akışın en üstünde kalır ve akışla birlikte kayıp gider.
 Hide the Music for you card	“Senin için müzik” kartını gizle
 Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.	Instagram'ın “Senin için müzik” kartının izlediğin hikayelerin arasında çıkmasını engeller. Hikayelerin kendisi kalır.
 Hide Suggested for you between stories	Hikayeler arasındaki Senin için önerilenleri gizle
 Leaves out the Suggested for you cards of accounts to follow that Instagram puts between the stories you tap through. The stories themselves stay.	Instagram'ın, dokunarak geçtiğin hikayelerin arasına koyduğu takip edilecek hesap kartlarını kaldırır. Hikayelerin kendisi kalır.
+Hide Add Yours cards between stories	Hikayeler arasındaki Sıra sende kartlarını gizle
+Leaves out the Add Yours cards, like Popular Add Yours and Join a trending Add Yours, that Instagram puts between the stories you tap through. The stories themselves stay.	Instagram'ın, dokunarak geçtiğin hikayelerin arasına koyduğu popüler ve trend Sıra sende kartlarını kaldırır. Hikayelerin kendisi kalır.
 Download feed photos	Akıştaki fotoğrafları indir
 The same Download on a photo post, and on a carousel showing a photo. Saves the largest size Instagram has.	Aynı İndir seçeneği bir fotoğraf gönderisinde ve fotoğraf gösteren bir kaydırmalı gönderide de çıkar. Instagram'daki en büyük boyutu kaydeder.
 the start-up fix for x86 devices	x86 cihazlar için açılış düzeltmesi
-Developer	Geliştirici
-Developer options on a long press of Home	Ana Sayfa'ya uzun basınca geliştirici seçenekleri
-Opens Instagram's own developer options, where you can look at and change its hidden settings. A wrong change can break parts of Instagram until you reset it.	Instagram'ın kendi geliştirici seçeneklerini açar. Burada gizli ayarlarına bakabilir ve onları değiştirebilirsin. Yanlış bir değişiklik, sıfırlayana kadar Instagram'ın bazı bölümlerini bozabilir.
+# context: toasts when a long press of Home gave up waiting on Instagram's developer options to load
 Pure black dark mode	Saf siyah karanlık mod
-Instagram's dark mode uses pure black instead of its near-black gray. Menus, sheets and buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Menüler, sayfalar ve düğmeler kendi gri tonlarını korur.
+Instagram's dark mode uses pure black instead of its near-black gray, and so do the menus that slide up from the bottom. Buttons keep their own grays.	Instagram'ın karanlık modu, siyaha yakın grisi yerine saf siyah kullanır. Alttan açılan menüler de siyah olur. Düğmeler kendi gri tonlarını korur.
+Pure black dark mode isn't in this build	Saf siyah karanlık mod bu derlemede yok
+To make dark mode pure black instead of dark gray, which can save battery on an OLED screen, pick Pure black dark mode in Morphe Manager the next time you patch Instagram.	Karanlık modu koyu gri yerine saf siyah yapmak için (OLED ekranda pil tasarrufu sağlayabilir) Instagram'ı bir sonraki yamalayışında Morphe Manager'da Saf siyah karanlık mod'u seç.
 the pure black dark mode	saf siyah karanlık mod
 No Play Store updates	Play Store güncellemesi yok
 Google Play won't offer Meta's updates over this build. To go back to the normal Instagram, uninstall this one first, which deletes Instagram's data on this phone. Later HushGram builds need Change version code too, or they won't install over this one.	Google Play bu sürümün üzerine Meta güncellemeleri sunmaz. Normal Instagram'a dönmek için önce bunu kaldır. Bu işlem Instagram'ın bu telefondaki verilerini siler. Sonraki HushGram sürümlerinin de Change version code'a ihtiyacı var, yoksa bunun üzerine kurulmazlar.
@@ -347,15 +325,17 @@ Sharing	Paylaşım
 Hide group buttons	Grup düğmelerini gizle
 Leaves New group out of the share sheet, and the button that sends to the people you picked as a group. Send separately stays, and you can still start a group from your messages.	Paylaşım menüsünden Yeni grup düğmesini ve seçtiğin kişilere grup olarak gönderen düğmeyi kaldırır. Ayrı ayrı gönder kalır ve mesajlarından yine grup oluşturabilirsin.
 Story ring size	Hikâye halkası boyutu
-Draws the rings in the stories row at the top of Home at the size below. Restart Instagram to see the change.	Ana Sayfa'nın üstündeki hikâye satırındaki halkaları aşağıdaki boyutta çizer. Değişikliği görmek için Instagram'ı yeniden başlat.
+Draws the rings in the stories row at the top of Home at the size below, and the rings of stories you haven't watched in the color below. Restart Instagram to see a change.	Ana Sayfa'nın üstündeki hikâye satırındaki halkaları aşağıdaki boyutta, izlemediğin hikâyelerin halkalarını da aşağıdaki renkte çizer. Değişikliği görmek için Instagram'ı yeniden başlat.
 Ring size	Halka boyutu
-Much smaller	Çok daha küçük
-Smaller	Daha küçük
 Instagram's size	Instagram boyutu
-Larger	Daha büyük
-Much larger	Çok daha büyük
 The rings are the size Instagram picks for your screen.	Halkalar, Instagram'ın ekranın için seçtiği boyuttadır.
 The rings are %1$s of the size Instagram picks for your screen.	Halkalar, Instagram'ın ekranın için seçtiği boyutun %1$s kadarıdır.
+# context: Stories list under Story ring size; it picks the color of the ring around a story you haven't watched
+Ring color	Halka rengi
+Instagram's colors	Instagram renkleri
+# context: two more colors in the Ring color list, beside Purple, Red and Orange
+Blue	Mavi
+Gold	Altın
 Hide the Repost button	Yeniden paylaş düğmesini gizle
 Takes Repost and its count off posts and reels, so nothing gets reposted to your followers by mistake. Share still sends a post or reel to someone.	Gönderilerden ve reels videolarından Yeniden paylaş düğmesini ve sayısını kaldırır, böylece hiçbir şey yanlışlıkla takipçilerine yeniden paylaşılmaz. Paylaş ile bir gönderiyi veya reels videosunu birine göndermeye devam edebilirsin.
 Layout	Düzen
@@ -369,7 +349,7 @@ Profiles	Profiller
 Show if a profile follows you	Bir profilin seni takip edip etmediğini göster
 Adds Follows you or Doesn't follow you beside the name on someone's profile, after their pronouns if they've set any. Nothing shows until Instagram has checked.	Birinin profilinde adının yanına, zamirleri varsa onlardan sonra, Seni takip ediyor ya da Seni takip etmiyor ekler. Instagram kontrol edene kadar hiçbir şey görünmez.
 Mark who doesn't follow you back	Seni geri takip etmeyenleri işaretle
-On your own Following list, adds Doesn't follow you after the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	Kendi Takip edilenler listende, seni geri takip etmeyen her hesabın adından sonra Seni takip etmiyor ekler. Instagram kontrol edene kadar hiçbir şey görünmez.
+On your own Following list, adds Doesn't follow you before the name of each account that doesn't follow you back. Nothing shows until Instagram has checked.	Kendi Takip edilenler listende, seni geri takip etmeyen her hesabın adından önce Seni takip etmiyor ekler. Instagram kontrol edene kadar hiçbir şey görünmez.
 Put accounts that don't follow you back first	Seni geri takip etmeyen hesapları başa al
 On your own Following list, moves the accounts that don't follow you back to the top and keeps Instagram's order within each group. Accounts Instagram hasn't checked yet stay below.	Kendi Takip edilenler listende, seni geri takip etmeyen hesapları en üste taşır ve her grubun içinde Instagram'ın sırasını korur. Instagram'ın henüz kontrol etmediği hesaplar altta kalır.
 Follows you	Seni takip ediyor
@@ -377,9 +357,15 @@ Doesn't follow you	Seni takip etmiyor
 Hide suggested people	Önerilen kişileri gizle
 Takes Suggested for you and the Discover people button off profiles, yours included. Bios, counts, posts and follower lists stay.	Senin için önerilenler bölümünü ve Kişileri keşfet düğmesini profillerden, seninki dahil, kaldırır. Biyografiler, sayılar, gönderiler ve takipçi listeleri kalır.
 Hide Suggested for you on follow lists	Takip listelerinde Senin için önerilenleri gizle
-Leaves the Suggested for you section off the bottom of the followers and following lists. Every account in the list stays.	Takipçiler ve takip edilenler listelerinin altındaki Senin için önerilenler bölümünü kaldırır. Listedeki her hesap kalır.
+Leaves the Suggested for you section off the followers, following and mutual lists, and the Suggested tab off other people's follow lists. Every account in the lists stays.	Takipçiler, takip edilenler ve ortak takipçiler listelerindeki Senin için önerilenler bölümünü ve başkalarının takip listelerindeki Önerilenler sekmesini kaldırır. Listelerdeki her hesap kalır.
 Hide Complete your profile	Profilini tamamla'yı gizle
 Takes the Complete your profile cards, like Add bio and Find people to follow, off your own profile. Your bio, counts and posts stay.	Biyografi ekle ve Takip edilecek kişileri bul gibi Profilini tamamla kartlarını kendi profilinden kaldırır. Biyografin, sayıların ve gönderilerin kalır.
+Hide People you don't follow back	Geri takip etmediğin kişiler bölümünü gizle
+Takes the People you don't follow back section off the bottom of your notifications. Notifications about new followers stay.	Bildirimlerinin altındaki Geri takip etmediğin kişiler bölümünü kaldırır. Yeni takipçi bildirimleri kalır.
+Hide suggestions in notifications	Bildirimlerdeki önerileri gizle
+Takes rows that only suggest something off your notifications, like a thread from an account you don't follow or someone you might know. Likes, comments, mentions and new followers stay.	Takip etmediğin bir hesabın gönderisi ya da tanıyor olabileceğin biri gibi yalnızca öneri olan satırları bildirimlerinden kaldırır. Beğeniler, yorumlar, bahsetmeler ve yeni takipçiler kalır.
+Hide Featured in notifications	Bildirimlerde Öne Çıkanlar'ı gizle
+Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Bildirimlerinin en üstündeki Öne Çıkanlar bölümünü, yani Instagram'ın orada göstermek için seçtiği gönderileri ve gönderi dizilerini kaldırır. Altındaki her şey kalır.
 Hide highlights	Öne çıkanları gizle
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Hikaye öne çıkanları satırını profillerden, seninki dahil, kaldırır. Biyografiler, sayılar ve gönderiler kalır, hikayelerindeki Öne çıkanlara ekle de kalır.
 Hide the Threads button	Threads düğmesini gizle
@@ -410,11 +396,12 @@ Undo is available until %1$s. Restarting Instagram discards Undo.	%1$s saatine k
 No settings import to undo.	Geri alınacak ayar içe aktarma işlemi yok.
 This phone has no file picker. Your settings haven't changed.	Bu telefonda dosya seçici yok. Ayarların değişmedi.
 Couldn't use that settings file. Your settings haven't changed.	Bu ayar dosyası kullanılamadı. Ayarlarınız değişmedi.
-That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, then use Import overrides. Your settings haven't changed.	Bu bir ayar dosyası değil, geçersiz kılma dosyası. Geliştirici altında Geçersiz kılmaları içe aktarmaya izin ver seçeneğini açın, ardından Geçersiz kılmaları içe aktar'ı kullanın. Ayarlarınız değişmedi.
 HushGram settings exported.	HushGram ayarları dışa aktarıldı.
 Couldn't export HushGram settings. Try another file.	HushGram ayarları dışa aktarılamadı. Başka bir dosya deneyin.
 Settings restored.	Ayarlar geri yüklendi.
 Imported %1$d settings. Skipped %2$d that this version doesn't know.	%1$d ayar içe aktarıldı. Bu sürümün tanımadığı %2$d tanesi atlandı.
+Imported %1$d settings.	%1$d ayar içe aktarıldı.
+Lock switches stay as they are until you change them here.	Kilit anahtarları, burada değiştirene kadar olduğu gibi kalır.
 Restart Instagram to apply these choices.	Bu seçimleri uygulamak için Instagram'ı yeniden başlatın.
 Couldn't save the settings. The previous values were restored.	Ayarlar kaydedilemedi. Önceki değerler geri yüklendi.
 Undo couldn't fully restore the settings. Check the shown values. Undo has been used up.	Geri Al ayarları tamamen geri yükleyemedi. Gösterilen değerleri kontrol et. Geri Al kullanıldı.
@@ -428,8 +415,7 @@ Reopen the media and save again.	Medyayı yeniden açıp tekrar kaydet.
 Search settings	Ayarlarda ara
 Clear search	Aramayı temizle
 No matching settings	Eşleşen ayar yok
-Try another word or clear the search.	Başka bir sözcük deneyin veya aramayı temizleyin.
-Contacts, location setup, analytics	Kişiler, konum kurulumu, analiz
+Try another word. Settings only appear for patches included in this install.	Başka bir sözcük deneyin. Yalnızca bu kuruluma dahil edilen yamaların ayarları görünür.
 Save all	Tümünü kaydet
 Saving a carousel	Çoklu gönderi kaydediliyor
 Cancel saving this carousel	Bu çoklu gönderinin kaydını iptal et
@@ -439,60 +425,17 @@ Carousel canceled. Saved %1$d. Failed %2$d. Skipped %3$d.	Çoklu gönderi iptal 
 Saved %1$d. Failed %2$d. Skipped %3$d.	Kaydedilen %1$d. Başarısız %2$d. Atlanan %3$d.
 %1$d saved in lower quality than on Instagram.	%1$d öğe Instagram'dakinden daha düşük kalitede kaydedildi.
 Last carousel save	Son çoklu gönderi kaydı
-Open MetaConfig overrides	MetaConfig geçersiz kılmalarını aç
-Opens Instagram's own editor for its hidden settings (MetaConfig). A wrong override, which is a changed setting, can break parts of Instagram.	Instagram'ın gizli ayarları için kendi düzenleyicisini (MetaConfig) açar. Yanlış bir override, yani değiştirilmiş bir ayar, Instagram'ın bazı bölümlerini bozabilir.
-MetaConfig is unavailable on this screen. Open HushGram settings from Home while signed in.	MetaConfig bu ekranda kullanılamıyor. Oturum açıkken Ana Sayfa'dan HushGram ayarlarını açın.
-Open Whitehat settings	Whitehat ayarlarını aç
-Opens Instagram's own Whitehat settings. Its switch lets Instagram trust the certificates installed on this phone for 24 hours, so you can check the app's traffic. Restart Instagram after you turn it on.	Instagram'ın kendi Whitehat ayarlarını açar. Buradaki anahtar, Instagram'ın bu telefonda yüklü sertifikalara 24 saat boyunca güvenmesini sağlar, böylece uygulamanın trafiğini inceleyebilirsiniz. Açtıktan sonra Instagram'ı yeniden başlatın.
-Whitehat settings are unavailable on this screen. Open HushGram settings from Home while signed in.	Whitehat ayarları bu ekranda kullanılamıyor. Oturum açıkken Ana Sayfa'dan HushGram ayarlarını açın.
 Comments	Yorumlar
 Copy comment	Yorumu kopyala
 Adds Copy to a selected comment's menu. Copies the original text, including line breaks.	Seçilen yorumun menüsüne Kopyala seçeneğini ekler. Satır sonları dahil özgün metni kopyalar.
+Copy without the @names at the start	Baştaki @adlar olmadan kopyala
+When a comment starts with @names, like most replies do, Copy leaves them out. The comment in Instagram stays the same.	Bir yorum çoğu yanıt gibi @adlarla başlıyorsa Kopyala bunları dışarıda bırakır. Instagram'daki yorum aynı kalır.
 Copy the commenter's username	Yorum yapanın kullanıcı adını kopyala
 Adds Copy username to a selected comment's menu, for the account that wrote it.	Seçilen bir yorumun menüsüne, yorumu yazan hesap için Kullanıcı adını kopyala seçeneğini ekler.
 Comment copied	Yorum kopyalandı
 Couldn't copy comment	Yorum kopyalanamadı
 Save comment photo	Yorum fotoğrafını kaydet
 Adds Save to a selected comment's menu when the comment has its own photo or GIF. Saves the largest size Instagram sent.	Kendi fotoğrafı veya GIF'i olan seçili bir yorumun menüsüne Kaydet seçeneğini ekler. Instagram'ın gönderdiği en büyük boyutu kaydeder.
-Export overrides	Geçersiz kılmaları dışa aktar
-Saves your overrides (changes to Instagram's hidden settings) for this exact Instagram version.	Override'larını (Instagram'ın gizli ayarlarında yaptığın değişiklikler) tam olarak bu Instagram sürümü için kaydeder.
-Validate an overrides file	Bir geçersiz kılma dosyasını doğrula
-Checks a saved file against this Instagram version. Nothing is applied.	Kayıtlı bir dosyayı bu Instagram sürümüne göre kontrol eder. Hiçbir şey uygulanmaz.
-This phone has no file picker. Overrides haven't changed.	Bu telefonda dosya seçici yok. Override'lar değişmedi.
-Couldn't use that file. Instagram's overrides haven't changed.	Bu dosya kullanılamadı. Instagram'ın override'ları değişmedi.
-Checked %1$d overrides only. Nothing was applied.	Yalnızca %1$d override kontrol edildi. Hiçbir şey uygulanmadı.
-%1$d more come from a different Instagram version and don't fit this one, so the import leaves them out.	%1$d tanesi farklı bir Instagram sürümünden geliyor ve bu sürüme uymuyor, bu yüzden içe aktarma onları atlar.
-None of this file's overrides fit this Instagram version. Nothing changed.	Bu dosyadaki hiçbir override bu Instagram sürümüne uymuyor. Hiçbir şey değişmedi.
-%1$d overrides from a different Instagram version don't fit this one and were left out.	Farklı bir Instagram sürümünden gelen %1$d override bu sürüme uymuyor ve atlandı.
-Overrides exported for this Instagram version.	Override'lar bu Instagram sürümü için dışa aktarıldı.
-Couldn't validate overrides. Check the file and open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar doğrulanamadı. Dosyayı denetleyin ve oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-Couldn't export overrides. The selected file may be incomplete. Instagram's overrides haven't changed.	Override'lar dışa aktarılamadı. Seçilen dosya eksik olabilir. Instagram'ın override'ları değişmedi.
-Allow importing overrides	Geçersiz kılmaları içe aktarmaya izin ver
-Shows the Import and Restore rows. An import changes Instagram's hidden settings for this signed-in account.	İçe Aktar ve Geri Yükle satırlarını gösterir. İçe aktarma, oturum açık olan bu hesap için Instagram'ın gizli ayarlarını değiştirir.
-Import overrides	Geçersiz kılmaları içe aktar
-Applies a HushGram export, or Instagram's own overrides file. Your current overrides are saved first so Restore can bring them back.	Bir HushGram dışa aktarımını veya Instagram'ın kendi override dosyasını uygular. Geri Yükle'nin geri getirebilmesi için mevcut override'ların önce kaydedilir.
-Restore previous overrides	Önceki geçersiz kılmaları geri yükle
-Puts back the overrides saved before your last import for this account and Instagram version.	Bu hesap ve Instagram sürümü için son içe aktarmandan önce kaydedilen override'ları geri getirir.
-An earlier import still needs Restore previous overrides, or Discard saved overrides if Restore can't run. Nothing changed.	Önceki bir içe aktarma için hâlâ Önceki geçersiz kılmaları geri yükle gerekiyor. Geri yükleme çalışamıyorsa Kayıtlı geçersiz kılmaları at seçeneğini kullanın. Hiçbir şey değişmedi.
-Couldn't restore overrides. There's no saved copy for this account and Instagram version. Nothing changed.	Override'lar geri yüklenemedi. Bu hesap ve Instagram sürümü için kayıtlı kopya yok. Hiçbir şey değişmedi.
-Couldn't import overrides. Check the file and open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar içe aktarılamadı. Dosyayı denetleyin ve oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-The current overrides already match the saved copy. Nothing changed.	Geçerli geçersiz kılmalar kayıtlı kopyayla zaten aynı. Hiçbir şey değişmedi.
-This file matches the current overrides. Nothing changed.	Bu dosya geçerli geçersiz kılmalarla aynı. Hiçbir şey değişmedi.
-Previous overrides restored. Restart Instagram to apply them.	Önceki geçersiz kılmalar geri yüklendi. Uygulamak için Instagram'ı yeniden başlatın.
-Imported %1$d override changes. Restart Instagram to apply them.	%1$d geçersiz kılma değişikliği içe aktarıldı. Uygulamak için Instagram'ı yeniden başlatın.
-Instagram didn't keep the change, so the overrides were put back as they were.	Instagram değişikliği tutmadı, bu yüzden geçersiz kılmalar eski haline getirildi.
-Instagram didn't keep the change and the overrides couldn't be confirmed. Use Restore previous overrides, then restart Instagram.	Instagram değişikliği tutmadı ve geçersiz kılmalar doğrulanamadı. Önceki geçersiz kılmaları geri yükle seçeneğini kullanın, ardından Instagram'ı yeniden başlatın.
-Discard saved overrides	Kayıtlı geçersiz kılmaları at
-Forgets the copy saved for Restore so imports can run again. Instagram's own settings don't change.	İçe aktarmalar yeniden çalışabilsin diye Geri Yükle için kaydedilen kopyayı unutur. Instagram'ın kendi ayarları değişmez.
-Discarded the saved copy. Imports can run again, and Instagram's overrides haven't changed.	Kayıtlı kopya atıldı. İçe aktarmalar yeniden çalışabilir ve Instagram'ın geçersiz kılmaları değişmedi.
-There's no saved copy to discard. Nothing changed.	Atılacak kayıtlı kopya yok. Hiçbir şey değişmedi.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Imports stay blocked until you use Discard saved overrides. Restart Instagram to apply the rest.	Geri Yükle yapabildiğini geri getirdi, ancak hiçbir şeye ayarlanmış olan %1$d override bu yolla geri getirilemez. Discard saved overrides'ı kullanana kadar içe aktarmalar engelli kalır. Kalanını uygulamak için Instagram'ı yeniden başlat.
-Restore put back what it could, except %1$d overrides that were set to nothing, which can't be put back this way. Restart Instagram to apply the rest.	Geri Yükle yapabildiğini geri getirdi, ancak hiçbir şeye ayarlanmış olan %1$d override bu yolla geri getirilemez. Kalanını uygulamak için Instagram'ı yeniden başlat.
-Couldn't restore overrides. The saved copy doesn't fit this account and Instagram version. Use Discard saved overrides if you don't need it. Nothing changed.	Override'lar geri yüklenemedi. Kayıtlı kopya bu hesaba ve Instagram sürümüne uymuyor. Gerekmiyorsa Discard saved overrides'ı kullan. Hiçbir şey değişmedi.
-Instagram is still saving an override change. Wait a moment and try again. Nothing changed.	Instagram hâlâ bir geçersiz kılma değişikliğini kaydediyor. Biraz bekleyip yeniden deneyin. Hiçbir şey değişmedi.
-Allow importing overrides is off or HushGram is paused. Nothing changed.	Geçersiz kılmaları içe aktarmaya izin ver kapalı ya da HushGram duraklatıldı. Hiçbir şey değişmedi.
-Couldn't restore overrides. Open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar geri yüklenemedi. Oturum açıkken Ana Sayfa'dan ayarları açın. Hiçbir şey değişmedi.
-Couldn't start that. Try again. Nothing changed.	Başlatılamadı. Tekrar dene. Hiçbir şey değişmedi.
 # context: View stories anonymously's second switch, and the label TalkBack reads for its eye button in a story's header
 Mark as seen button	Görüldü olarak işaretle düğmesi
 Adds an eye button to the top of each story while you view anonymously. Tap it to show up on that story's viewer list. The other stories stay hidden.	Anonim izlerken her hikayenin üstüne bir göz düğmesi ekler. O hikayenin izleyici listesinde görünmek için düğmeye dokun. Diğer hikayeler gizli kalır.
@@ -501,8 +444,6 @@ Marked as seen. Tap again to undo.	Görüldü olarak işaretlendi. Geri almak i�
 Marked as seen and sent	Görüldü olarak işaretlendi ve gönderildi
 View DM photos and videos anonymously	Mesajlardaki fotoğraf ve videoları anonim görüntüle
 Stops people seeing that you opened their view once photos and videos. They still disappear after you view them. This is a test feature and starts off.	İnsanların tek seferlik fotoğraf ve videolarını açtığını görmelerini engeller. Baktıktan sonra yine kaybolurlar. Bu bir test özelliğidir ve kapalı başlar.
-Couldn't finish discarding the saved copies. Try Discard saved overrides again. Instagram's overrides haven't changed.	Kayıtlı kopyaları silme işlemi tamamlanamadı. Discard saved overrides'ı tekrar dene. Instagram'ın override'ları değişmedi.
-Recovery cleanup didn't finish. Use Restore previous overrides or Discard saved overrides.	Kurtarma temizliği tamamlanmadı. Önceki geçersiz kılmaları geri yükle veya Kayıtlı geçersiz kılmaları at seçeneğini kullanın.
 Restored %1$d settings. Kept %2$d newer choices.	%1$d ayar geri yüklendi. Daha sonra yapılan %2$d seçim korundu.
 Preparing diagnostic report...	Tanılama raporu hazırlanıyor...
 Saving diagnostic report...	Tanılama raporu kaydediliyor...
@@ -514,8 +455,10 @@ Round handle on the seek bar	Reel ilerleme tutamacını göster
 Adds a white round handle to the seek bar that you can drag. Ads keep their own bar.	Arama çubuğuna sürükleyebileceğin beyaz, yuvarlak bir tutamaç ekler. Reklamlar kendi çubuklarını korur.
 Bigger seek bar on reels	Reel'lerde daha büyük ilerleme çubuğu
 Makes the seek bar thicker, with a round white handle and the time above it, over a soft dark fade so it shows on any video. Drag it to seek. It also keeps the bar on short reels.	İlerleme çubuğunu daha kalın yapar. Yuvarlak beyaz tutamaç ve üstünde süre gösterir, her videoda görünsün diye yumuşak koyu bir geçişin üzerinde durur. Sürükleyerek ilerle. Kısa Reel'lerde de çubuğu tutar.
+Seek bar like DM videos	Mesajlardaki videolar gibi ilerleme çubuğu
+Gives reels the seek bar of a video in a chat, a thin gray line that turns white as it plays, with a big round white handle. The time shows above it. Drag it to seek. When Bigger seek bar is on too, this look wins. It also keeps the bar on short reels.	Reel'lere sohbetteki bir videonun ilerleme çubuğunu verir. Oynadıkça beyaza dönen ince gri bir çizgi ve büyük, yuvarlak beyaz bir tutamaç. Süre üstünde görünür. Sürükleyerek ilerle. Daha büyük ilerleme çubuğu da açıksa bu görünüm kullanılır. Kısa Reel'lerde de çubuğu tutar.
 Blur the bars around a reel	Reel çevresindeki çubukları bulanıklaştır
-A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars. Open Reels again after a change.	Ekranı doldurmayan bir Reel, siyah çubuklar yerine üstünde ve altında kendisinin bulanık bir kopyasını gösterir. Değişiklikten sonra Reels'i yeniden aç.
+A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. Open Reels again after a change.	Ekranı doldurmayan bir Reel, siyah çubuklar yerine üstünde ve altında kendisinin bulanık bir kopyasını gösterir, sekme çubuğunun altındaki şerit ve saatin arkasındaki alan da Reel'i bulanık gösterir. Değişiklikten sonra Reels'i yeniden aç.
 # Chosen navigation long-press settings entry. Account tab availability varies.
 Settings entry	Ayarlara erişim
 Open settings with a tab long press	Sekmeye uzun basarak ayarları aç
@@ -537,7 +480,10 @@ Ask for larger photos	Daha büyük fotoğraflar iste
 Empties Home on purpose, so you see the stories row and nothing under it. Profiles, Explore and Reels still show posts. Pull down on Home to refresh after changing it.	Ana Sayfa'yı bilerek boşaltır, böylece hikâye satırını görürsün ve altında hiçbir şey olmaz. Profiller, Keşfet ve Reels gönderi göstermeye devam eder. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
 Hide the home feed	Ana Sayfa akışını gizle
 On a phone under 1440 pixels wide, asks Instagram for photos sized for a wider screen. This uses more data. Restart Instagram to see the change.	1440 pikselden dar bir telefonda, Instagram'dan daha geniş bir ekran boyutunda fotoğraf ister. Daha fazla veri kullanır. Değişikliği görmek için Instagram'ı yeniden başlat.
+Full size covers	Tam boyutlu kapaklar
+Reel covers and grid pictures come at full size, so Download cover saves a picked cover at full size too. Grids use a lot more data. Restart Instagram to see the change.	Reels kapakları ve ızgara resimleri tam boyutta gelir, böylece Kapağı indir seçilen kapağı da tam boyutta kaydeder. Izgaralar çok daha fazla veri kullanır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Stop swiping between tabs	Sekmeler arasında kaydırmayı durdur
+%d notification	%d bildirim
 %d notifications	%d bildirim
 1 hour	1 saat
 1 minute	1 dakika
@@ -553,6 +499,8 @@ Group by type	Türe göre grupla
 Group notifications	Bildirimleri grupla
 Hide shopping	Alışverişi gizle
 Hide surveys	Anketleri gizle
+Hide the caught up card	Hepsini gördün kartını gizle
+Hides the card after the posts from accounts you follow that says you've seen the latest ones, and its Older posts link. When Home has no new posts at all, the card stays. Pull down on Home to refresh after changing it.	Takip ettiğin hesapların gönderilerinden sonra gelen, en yenilerini gördüğünü söyleyen kartı ve onun Eski gönderiler bağlantısını gizler. Ana Sayfa'da hiç yeni gönderi yoksa kart kalır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
 Instagram is locked	Instagram kilitli
 Instagram locks as soon as you leave it or the screen turns off.	Instagram'dan çıktığın veya ekran kapandığı anda Instagram kilitlenir.
 Instagram locks once you've been away from it for %1$s.	Instagram'dan %1$s boyunca uzak kaldığında Instagram kilitlenir.
@@ -575,7 +523,6 @@ Your messages are locked	Mesajların kilitli
 Allow screenshots	Ekran görüntülerine izin ver
 Couldn't change every Ghost mode switch. Check them below.	Hayalet modu anahtarlarının hepsi değiştirilemedi. Aşağıdan kontrol et.
 Couldn't change every Ghost mode switch. Open HushGram settings to check them.	Hayalet modu anahtarlarının hepsi değiştirilemedi. HushGram ayarlarından kontrol et.
-Couldn't reset overrides. Open settings from Home while signed in. Nothing changed.	Geçersiz kılmalar sıfırlanamadı. Oturum açıkken ayarları Ana Sayfa'dan aç. Hiçbir şey değişmedi.
 Don't report screenshots	Ekran görüntülerini bildirme
 Ghost mode	Hayalet modu
 Ghost mode is off, and so is each of its switches.	Hayalet modu kapalı, anahtarlarının her biri de kapalı.
@@ -583,28 +530,32 @@ Ghost mode is on, and so is each of its switches.	Hayalet modu açık, anahtarla
 Instagram doesn't notice when you take a screenshot, so whoever sent you a disappearing photo or video isn't told. Your screenshots save as usual.	Ekran görüntüsü aldığında Instagram bunu fark etmez, böylece sana kaybolan bir fotoğraf veya video gönderen kişiye haber verilmez. Ekran görüntülerin her zamanki gibi kaydedilir.
 Keep in chat	Sohbette tut
 Lives you watch don't put you on the host's viewer list, so they aren't told you're there. Commenting or reacting still shows you. The viewer count you see stops updating, and a live that ends can keep looking live until you leave it.	İzlediğin canlı yayınlar seni yayıncının izleyici listesine eklemez, böylece orada olduğun ona söylenmez. Yorum yapmak veya tepki vermek seni yine gösterir. Gördüğün izleyici sayısı güncellenmeyi bırakır ve biten bir canlı yayın, sen çıkana kadar canlı görünmeye devam edebilir.
-Removed %1$d overrides. Restart Instagram to go back to its own settings.	%1$d override kaldırıldı. Instagram'ın kendi ayarlarına dönmek için yeniden başlat.
-Reset all overrides	Tüm geçersiz kılmaları sıfırla
 Screenshots and screen recordings work wherever Instagram blocks them, like disappearing photos and videos. Turn on Don't report screenshots too if the sender shouldn't hear about it.	Ekran görüntüleri ve ekran kayıtları, kaybolan fotoğraf ve videolar gibi Instagram'ın engellediği her yerde çalışır. Gönderen bunu duymamalıysa Ekran görüntülerini bildirme'yi de aç.
-Removes every override from this signed-in account, so Instagram goes back to its own settings. Your current overrides are saved first for Restore.	Oturum açık olan bu hesaptaki tüm override'ları kaldırır, böylece Instagram kendi ayarlarına döner. Mevcut override'ların önce Geri Yükle için kaydedilir.
-There are no overrides to reset. Nothing changed.	Sıfırlanacak geçersiz kılma yok. Hiçbir şey değişmedi.
 Turns the switches that keep what you do to yourself on or off in one go, like View stories anonymously and Hide that you're typing. Each one keeps its own switch.	Yaptıklarını kendine saklayan anahtarları, Hikayeleri anonim olarak izle ve Yazdığını gizle gibi, tek seferde açar veya kapatır. Her biri kendi anahtarını korur.
 View live anonymously	Canlı yayınları anonim izle
 Photos and videos sent as view once or replayable stay in the chat so you can open them again. Open the chat again to update ones already loaded.	Tek seferlik veya tekrar oynatılabilir gönderilen fotoğraflar ve videolar sohbette kalır, böylece tekrar açabilirsin. Önceden yüklenenleri güncellemek için sohbeti yeniden aç.
+Swipe through a chat's reels	Bir sohbetin reels videolarında kaydır
+Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels. Back takes you to the chat.	Bir sohbetten açtığın bir reels videosunda yukarı kaydırınca, önerilen videolardan önce o sohbette paylaşılan diğer videolar gelir. Geri tuşu seni sohbete döndürür.
+Stop after the chat's reels	Sohbetin reels videolarından sonra dur
+Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	Bir sohbetten açtığın reels videoları o sohbette paylaşılan sonuncusunda biter, ardından önerilen video gelmez. Bir sohbetin reels videolarında kaydır açıkken çalışır.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	İndir'in altına Kapağı indir ekler. Bir reel'in oynatılmadan önce gösterdiği hareketsiz görüntüyü en büyük boyutunda kaydeder.
+Adds Download audio under Download. It saves the sound of the reel as an audio file.	İndir'in altına Sesi indir ekler. Reel'in sesini bir ses dosyası olarak kaydeder.
 After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	20 reel'den sonra Instagram 15 dakika arka planda kalana kadar Reels'te kaydırma durur. Bir mesajdan veya gönderiden açtığın reel yine oynar.
 Find the reel you came from	Geldiğin reel'i bul
-Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. Stop looking ends the search where it is.	Bir reel'den içerik üreticinin profilini, ardından Reels sekmesini aç, sekme o reel'e kayar ve onu kısa bir süre çerçeveler. Aramayı durdur düğmesi aramayı olduğu yerde bitirir.
+Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Bir reel'den içerik üreticinin profilini, ardından Reels sekmesini aç, sekme o reel'e kayar ve onu kısa bir süre çerçeveler. Fotoğraflı bir reel gönderilerinde bulunur. Aramayı durdur düğmesi aramayı olduğu yerde bitirir.
 Wait for a tap to find it	Bulmak için dokunmayı bekle
-When the reel isn't on the first screen, the Reels tab shows a Find the reel button instead of scrolling on its own.	Reel ilk ekranda değilse Reels sekmesi kendi kaydırmak yerine bir Reel'i bul düğmesi gösterir.
+When the reel isn't on the first screen, the profile shows a Find the reel button instead of scrolling on its own.	Reel ilk ekranda değilse profil kendi kaydırmak yerine bir Reel'i bul düğmesi gösterir.
 Find the reel	Reel'i bul
 Stop looking	Aramayı durdur
 Couldn't find the reel you came from	Geldiğin reel bulunamadı
+That's a trial reel, so it isn't on their profile	Bu bir deneme reel'i, bu yüzden profilde yok
+That reel isn't on their profile. It might be a trial reel.	Bu reel profilde yok. Bir deneme reel'i olabilir.
 Clear saved copies now	Kayıtlı kopyaları şimdi temizle
 Clear the media cache	Medya önbelleğini temizle
 Couldn't clear the saved copies. Try again.	Kayıtlı kopyalar temizlenemedi. Tekrar dene.
 Don't save recent searches	Son aramaları kaydetme
 Download cover	Kapağı indir
+Download audio	Sesi indir
 Download on a reel, a feed post or a story opens the share sheet with its link, for a downloader app such as Seal. Save all and the other save rows still save here.	Bir reel, akış gönderisi veya hikayede İndir, bağlantısıyla paylaşım sayfasını Seal gibi bir indirme uygulaması için açar. Tümünü kaydet ve diğer kaydetme satırları yine buraya kaydeder.
 Each save goes into a folder named for the account that posted it, inside the save folder. A save that doesn't know who posted stays in the save folder.	Her kayıt, kayıt klasörünün içinde onu paylaşan hesabın adını taşıyan bir klasöre gider. Kimin paylaştığı bilinmeyen kayıt, kayıt klasöründe kalır.
 Folder per account	Hesap başına klasör
@@ -618,8 +569,18 @@ Loads smaller photos and starts videos, reels and stories at the lowest quality.
 Place	Yer
 Send downloads to another app	İndirmeleri başka bir uygulamaya gönder
 Send to	Gönderilecek uygulama
+Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Başka bir uygulamaya gönderildi. Burada kaydetmek için İndirmeler'de İndirmeleri başka bir uygulamaya gönder'i kapat.
 Spoof location	Konumu taklit et
 Stop after 20 reels	20 reel'den sonra dur
+Take a scroll break	Kaydırmaya mola ver
+# context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
+After %1$d minutes	%1$d dakika sonra
+Off. It can cover the Home, Reels and Explore tabs for 5 minutes after you've spent a while on them.	Kapalı. Ana Sayfa, Reels ve Keşfet sekmelerinde bir süre geçirdikten sonra bu sekmeleri 5 dakika boyunca kapatabilir.
+After %1$d minutes on the Home, Reels and Explore tabs, a break screen covers them for 5 minutes. Messages, your profile and the tab bar still work.	Ana Sayfa, Reels ve Keşfet sekmelerinde %1$d dakika geçirdikten sonra bir mola ekranı onları 5 dakika boyunca kapatır. Mesajlar, profilin ve sekme çubuğu çalışmaya devam eder.
+Time for a break	Mola zamanı
+Home, Reels and Explore open again when the countdown ends. Messages and your profile still work.	Geri sayım bitince Ana Sayfa, Reels ve Keşfet yeniden açılır. Mesajlar ve profilin çalışmaya devam eder.
+# context: read aloud by the screen reader on the break screen; %1$s is the time left, like 4:59
+Time for a break. Home, Reels and Explore open again in %1$s.	Mola zamanı. Ana Sayfa, Reels ve Keşfet şu süre sonra yeniden açılır: %1$s
 Storage	Depolama
 That isn't a place. Type a latitude and a longitude with a comma between them.	Bu bir yer değil. Aralarında virgül olan bir enlem ve bir boylam yaz.
 That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.	%1$d reel oldu. Instagram %2$d dakika arka planda kalana kadar Reels'te kaydırma kapalı.
@@ -630,13 +591,31 @@ Wi-Fi stays as it is. Turn this off to save data on every network.	Wi-Fi olduğu
 Hide comments	Yorumları gizle
 Hide memories and recaps	Anıları ve özetleri gizle
 Hide story rewinds	Hikaye geri sarmalarını gizle
-Nothing in the row of stories at the top of Home loads, your own story included, which saves data. A story ring on a profile or in a chat still opens its stories.	Ana Sayfa'nın üstündeki hikaye satırında, kendi hikayen dahil hiçbir şey yüklenmez, bu da veri tasarrufu sağlar. Bir profildeki veya sohbetteki hikaye halkası yine hikayelerini açar.
-Open categories as pages	Kategorileri sayfa olarak aç
-Settings shows a list of its categories, and a tap opens one on its own page. Search still looks through all of them.	Ayarlar kategorilerinin bir listesini gösterir ve bir dokunuş birini kendi sayfasında açar. Arama yine hepsinde arar.
+Nothing in the row of stories at the top of Home loads, your own story included, and highlights on profiles stay empty too. Saves data. A story ring on a profile or in a chat still opens its stories.	Ana Sayfa'nın üstündeki hikaye satırında, kendi hikayen dahil hiçbir şey yüklenmez ve profillerdeki öne çıkanlar da boş kalır. Veri tasarrufu sağlar. Bir profildeki veya sohbetteki hikaye halkası yine hikayelerini açar.
+Expandable categories	Genişletilebilir kategoriler
+Tap a category to show or hide its settings on this page.	Bir kategorinin ayarlarını bu sayfada göstermek veya gizlemek için kategoriye dokunun.
+Descriptions behind an info button	Açıklamalar bilgi düğmesinin arkasında
+Shows each switch by its name alone. Tap the i next to a name to read what it does.	Her anahtarı yalnızca adıyla gösterir. Ne yaptığını okumak için adın yanındaki i'ye dokun.
+Expanded	Genişletildi
+Collapsed	Daraltıldı
 Hide the HushGram row in Instagram's menu	Instagram menüsündeki HushGram satırını gizle
-While a tab long press or the long press on your profile's menu opens HushGram, Instagram's Settings and activity screen leaves out the HushGram row. Turn those long presses off and the row comes back.	Bir sekmeye ya da profilinin menüsüne uzun basmak HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Uzun basmaları kapatınca satır geri gelir.
-Stop loading stories	Hikayeleri yükleme
+Settings shortcut on the app icon	Uygulama simgesinde ayarlar kısayolu
+Open settings from the logo	Ayarları logodan aç
+Puts HushGram settings in the menu you get by holding Instagram's icon. Off, it leaves that menu.	Instagram simgesine basılı tutunca açılan menüye HushGram ayarlarını koyar. Kapalıyken bu menüden çıkar.
+A long press on the Instagram logo at the top of Home opens these settings. Off, the long press goes back to Instagram.	Ana sayfanın üstündeki Instagram logosuna basılı tutmak bu ayarları açar. Kapalıyken basılı tutma yeniden Instagram'a ait olur.
+The last way into these settings stays on.	Bu ayarlara giden son yol açık kalır.
+No other way into HushGram is on, so the row stays in Instagram's menu.	HushGram'ı açan başka bir yol açık değil, bu yüzden satır Instagram'ın menüsünde kalır.
+Instagram's Settings and activity screen leaves out the HushGram row while another way here opens HushGram. With every other way off, the row comes back.	Buraya gelen başka bir yol HushGram'ı açtığı sürece Instagram'ın Ayarlar ve hareketler ekranında HushGram satırı gösterilmez. Diğer bütün yollar kapalıyken satır geri gelir.
+Stop loading stories and highlights	Hikayeleri ve öne çıkanları yükleme
 Takes the Comment button and the comment count off the posts in your feed.	Akışındaki gönderilerden Yorum yap düğmesini ve yorum sayısını kaldırır.
+# context: Comments: the switch that hides the row of quick emoji above the comment box (#248). Comment box is the field where you type a comment.
+Hide the emoji row	Emoji satırını gizle
+Takes the row of quick emoji off above the comment box. The box itself stays.	Yorum kutusunun üstündeki hızlı emoji satırını kaldırır. Kutunun kendisi kalır.
+Open comments without the keyboard	Yorumları klavyesiz aç
+Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up.	Yorumlar klavye kapalıyken açılır. Yorum kutusuna ya da Yanıtla'ya dokunmak klavyeyi yine açar.
+# context: Feed: the switch that hides the Follow and Subscribe buttons beside the author's name on a post (#248). Follow and Subscribe are the labels Instagram uses on those buttons.
+Hide Follow on posts	Gönderilerde Takip Et'i gizle
+Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay.	Akışındaki gönderilerin üstünden Takip Et ve Abone Ol düğmelerini kaldırır. Ad, saat ve menü kalır.
 Takes the memories, recaps, follow anniversaries and birthday cards Instagram makes out of the row of stories at the top of Home. Stories people post stay.	Instagram'ın oluşturduğu anıları, özetleri, takip yıl dönümlerini ve doğum günü kartlarını Ana Sayfa'nın üstündeki hikaye satırından kaldırır. İnsanların paylaştığı hikayeler kalır.
 Hides the rewind cards, which bring back old highlights, from the row of stories at the top of Home.	Eski öne çıkanları geri getiren geri sarma kartlarını Ana Sayfa'nın üstündeki hikâye satırından gizler.
 A double tap on a comment doesn't like it. Starts off, so comments keep double tap to like until you turn this on.	Bir yoruma iki kez dokunmak onu beğenmez. Kapalı başlar, yani sen bunu açana kadar yorumlar iki kez dokunarak beğenmeyi korur.
@@ -669,6 +648,8 @@ Ask before a refresh	Yenilemeden önce sor
 Continue	Devam et
 Like or unlike this post?	Bu gönderiyi beğen veya beğenmekten vazgeç?
 Asks before pulling down refreshes Home, Reels or another list. Cancel keeps what's on screen.	Aşağı çekmenin Ana Sayfa'yı, Reels'i veya başka bir listeyi yenilemesinden önce sorar. İptal, ekrandakini korur.
+Skip the collections tray	Koleksiyonlar panelini atla
+Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection.	Bir gönderiyi veya Reels videosunu kaydettiğinde, koleksiyon oluşturmanı isteyen panel yerine Instagram yalnızca kaydedildiğini söyleyen mesajı gösterir.
 Refresh	Yenile
 Refresh this list?	Bu liste yenilensin mi?
 Asks before the Like button under a post likes or unlikes it, so a stray tap doesn't do it for you. Double taps aren't asked about.	Bir gönderinin altındaki Beğen düğmesi beğenmeden veya beğeniyi geri almadan önce sorar, böylece yanlışlıkla dokunma bunu yapmaz. Çift dokunuşta sorulmaz.
@@ -684,6 +665,10 @@ Save profile picture	Profil fotoğrafını kaydet
 Adds Save profile picture to the menu on someone's profile. Saves their picture at the largest size Instagram has.	Birinin profilindeki menüye Profil fotoğrafını kaydet seçeneğini ekler. Fotoğrafı Instagram'daki en büyük boyutta kaydeder.
 Show a post's exact time	Gönderinin tam zamanını göster
 Shows when a post and its comments went up, like Oct 2, 3:45 PM, instead of how long ago. Posts you load after a change show it.	Bir gönderinin ve yorumlarının ne zaman paylaşıldığını, ne kadar önce olduğu yerine 2 Eki, 15:45 gibi gösterir. Değişiklikten sonra yüklenen gönderilerde görünür.
+Show a reel's exact time	Reel'in tam zamanını göster
+Shows the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM. A change shows from the next reel.	Bir reel'in paylaşıldığı tarihi ve saati, paylaşanın adının altında 2 Eki, 15:45 gibi gösterir. Değişiklik bir sonraki reel'den itibaren görünür.
+Show seconds in a reel's time	Reel zamanında saniyeleri göster
+Adds the seconds to a reel's time, like Oct 2, 3:45:30 PM.	Reel'in zamanına saniyeleri ekler, 2 Eki, 15:45:30 gibi.
 Show like counts the poster hid	Paylaşanın gizlediği beğeni sayılarını göster
 Shows how many likes a post or reel has when its owner hid the count, but only when Instagram still sends the number. If it doesn't, nothing changes. Posts you load after a change show it.	Sahibi beğeni sayısını gizlemiş bir gönderinin veya reels videosunun kaç beğenisi olduğunu gösterir, ama yalnızca Instagram bu sayıyı hâlâ gönderiyorsa. Göndermiyorsa hiçbir şey değişmez. Değişiklikten sonra yüklenen gönderilerde görünür.
 Back leaves Home as it is	Geri tuşu Ana Sayfa'dan olduğu gibi çıkar
@@ -696,14 +681,15 @@ Details	Ayrıntılar
 Details in a post's menu	Gönderi menüsünde Ayrıntılar
 Media ID %1$s	Medya kimliği %1$s
 Media link	Medya bağlantısı
-Media link copied	Medya bağlantısı kopyalandı
+Media link copied. It stops working after a few days.	Medya bağlantısı kopyalandı. Birkaç gün sonra çalışmaz.
 No direct link for this one	Bunun için doğrudan bağlantı yok
 Posted %1$s	Paylaşıldı: %1$s
 Size %1$d × %2$d	Boyut %1$d × %2$d
-Adds Details to a feed post's menu. It shows when the post went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Akıştaki bir gönderinin menüsüne Ayrıntılar ekler. Gönderinin ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan düğmeler de vardır.
+Adds Details to a feed post's or reel's menu. It shows when it went up, who posted it, its media ID and the size Download saves, with buttons to copy the file link, username and caption.	Akıştaki bir gönderinin ya da reelin menüsüne Ayrıntılar ekler. Ne zaman paylaşıldığını, kimin paylaştığını, medya kimliğini ve İndir'in kaydettiği boyutu gösterir. Dosya bağlantısını, kullanıcı adını ve açıklamayı kopyalayan düğmeler de vardır.
 Caption	Açıklama
 Caption copied	Açıklama kopyalandı
 Copy caption	Açıklamayı kopyala
+Copy caption without hashtags	Açıklamayı hashtag'ler olmadan kopyala
 Copy username	Kullanıcı adını kopyala
 Couldn't copy the caption	Açıklama kopyalanamadı
 Couldn't copy the username	Kullanıcı adı kopyalanamadı
@@ -718,6 +704,12 @@ Hide the comment bar on reposted reels	Yeniden paylaşılan reels'te yorum çubu
 Puts the answer in a chip under the profile's posts, followers and following counts instead, and says Following each other when you follow them too.	Bunun yerine yanıtı profilin gönderi, takipçi ve takip sayılarının altında bir çip olarak gösterir ve sen de takip ediyorsan Birbirinizi takip ediyorsunuz yazar.
 Saving a voice message	Sesli mesaj kaydediliyor
 Show it as a chip	Çip olarak göster
+Follow label	Takip etiketi
+Under the counts	Sayıların altında
+Small, under the picture	Küçük, fotoğrafın altında
+The chip sits under the posts, followers and following counts.	Çip gönderi, takipçi ve takip sayılarının altında durur.
+A smaller chip, centered under the profile picture. A profile with no room there gets the small chip under the counts.	Profil fotoğrafının altında ortalanmış daha küçük bir çip. Orada yeri olmayan bir profilde küçük çip sayıların altına gelir.
+Turn on Show it as a chip to use this choice.	Bu seçimi kullanmak için Çip olarak göster seçeneğini açın.
 The Add comment bar under a reel you open from a profile's reposts. The comment button still opens the comments.	Bir profilin yeniden paylaşımlarından açtığın reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
 Hide the comment bar on all reels	Tüm reels'te yorum çubuğunu gizle
 The Add a comment bar under every reel, including the ones in the Reels tab. The comment button still opens the comments.	Reels sekmesindekiler dahil her reels'in altındaki Yorum ekle çubuğu. Yorum düğmesi yorumları açmaya devam eder.
@@ -727,6 +719,10 @@ Bio	Biyografi
 Bio copied	Biyografi kopyalandı
 Copy bio	Biyografiyi kopyala
 Copy username and bio	Kullanıcı adını ve biyografiyi kopyala
+Profile extras button	Profil ekstra düğmesi
+Puts a button next to the three dots on profiles that opens HushGram's profile actions. The rows in the three-dot menu stay too.	Profillerde üç noktanın yanına HushGram'ın profil eylemlerini açan bir düğme koyar. Üç nokta menüsündeki satırlar da kalır.
+HushGram profile actions	HushGram profil eylemleri
+Nothing to do for this profile	Yapılacak bir şey yok
 Couldn't copy the bio	Biyografi kopyalanamadı
 Couldn't open the picture	Fotoğraf açılamadı
 Profile picture	Profil fotoğrafı
@@ -762,6 +758,8 @@ Google's emoji everywhere	Her yerde Google emojileri
 # context: Layout switch; it turns Instagram's blue into a color picked in the row under it
 Accent color	Vurgu rengi
 Turns Instagram's blue, on Follow buttons, links and the like, into the color you pick below. Restart Instagram to see the change.	Instagram'ın Takip Et düğmelerinde, bağlantılarda ve benzeri yerlerdeki mavisini aşağıda seçtiğin renge çevirir. Değişikliği görmek için Instagram'ı yeniden başlat.
+Badges in the accent color	Rozetler vurgu renginde
+The red dots and counts for new messages and notifications take the color you picked. Restart Instagram to see the change.	Yeni mesajlar ve bildirimler için kırmızı noktalar ve sayılar seçtiğin rengi alır. Değişikliği görmek için Instagram'ı yeniden başlat.
 # context: Layout list under Accent color; its choices are Instagram blue and the colors below
 Color	Renk
 Instagram blue	Instagram mavisi
@@ -772,6 +770,8 @@ Red	Kırmızı
 Orange	Turuncu
 Green	Yeşil
 Teal	Camgöbeği
+Material You	Material You
+Material You needs Android 12 or newer, so Instagram's blue stays.	Material You için Android 12 veya daha yenisi gerekiyor, bu yüzden Instagram mavisi kalıyor.
 # context: Layout switch; it puts HushGram's logo on the screen Android shows while Instagram starts
 HushGram launch screen	HushGram açılış ekranı
 Shows HushGram's logo instead of Instagram's on the screen you see while Instagram starts, on Android 13 and newer. It shows from the next start.	Instagram açılırken gördüğün ekranda Instagram'ın logosu yerine HushGram'ın logosunu gösterir. Android 13 ve sonrasında çalışır. Bir sonraki açılıştan itibaren görünür.
@@ -781,6 +781,8 @@ Adds Download cover to the menu of a feed post with a video, and of a carousel s
 # context: Downloads switch under the feed video and photo downloads; it puts a Download icon in a feed post's action row beside Save
 Download button on feed posts	Akış gönderilerinde indirme düğmesi
 Puts a download icon in the row under a post, left of Save, so one tap saves it without opening the menu. On a carousel it asks for this page or all of them.	Bir gönderinin altındaki satıra, Kaydet'in soluna bir indirme simgesi koyar, böylece tek dokunuşla menüyü açmadan kaydedebilirsin. Karuselde yalnızca bu sayfayı mı yoksa hepsini mi istediğini sorar.
+Download button on reels	Reels'te indirme düğmesi
+Puts a download icon under Save beside a reel, so one tap saves it the way Download in its menu does. Needs Download on reels.	Bir reel'in yanında Kaydet'in altına bir indirme simgesi koyar, böylece tek dokunuş onu menüsündeki İndir gibi kaydeder. Reels'te indir açık olmalı.
 Nothing to download on this post	Bu gönderide indirilecek bir şey yok
 # context: Downloads switch; a hold with two or three fingers on a feed post or a reel saves it
 Hold to download	Basılı tutarak indir
@@ -794,30 +796,20 @@ Three fingers	Üç parmak
 Half a second	Yarım saniye
 1 second	1 saniye
 1.5 seconds	1,5 saniye
-Use HushGram's setting names	HushGram'ın ayar adlarını kullan
-MetaConfig shows names from HushGram's own list in place of numbers. The list comes from Instagram 447, so a few newer settings still show as numbers. A list you import is used instead.	MetaConfig sayılar yerine HushGram'ın kendi listesindeki adları gösterir. Liste Instagram 447'den geldiği için daha yeni birkaç ayar yine sayı olarak görünür. İçe aktardığın bir liste varsa onun yerine o kullanılır.
-Import setting names	Ayar adlarını içe aktar
-Pick a list of MetaConfig names, such as an id_name_mapping.json file, and MetaConfig shows those names in place of numbers. Searching by number still works.	id_name_mapping.json dosyası gibi bir MetaConfig ad listesi seç, MetaConfig sayılar yerine bu adları göstersin. Sayıyla arama çalışmaya devam eder.
-Remove setting names	Ayar adlarını kaldır
-Forget the imported names. MetaConfig goes back to HushGram's names, or to Instagram's own labels if that switch is off.	İçe aktarılan adları unutur. MetaConfig HushGram'ın adlarına döner, bu anahtar kapalıysa Instagram'ın kendi etiketlerini gösterir.
-Couldn't read setting names from that file. Nothing changed.	Bu dosyadan ayar adları okunamadı. Hiçbir şey değişmedi.
-Setting names removed. Open MetaConfig again to see the change.	Ayar adları kaldırıldı. Değişikliği görmek için MetaConfig'i yeniden aç.
-There are no imported setting names to remove.	Kaldırılacak içe aktarılmış ayar adı yok.
-Setting names imported: %1$d. Open MetaConfig again to see them.	İçe aktarılan ayar adları: %1$d. Görmek için MetaConfig'i yeniden aç.
-Entries left out because they repeat or don't fit: %1$d.	Tekrarlandığı veya uymadığı için dışarıda bırakılan girişler: %1$d.
-That file has no setting names in it. Nothing changed.	Bu dosyada ayar adı yok. Hiçbir şey değişmedi.
-Couldn't remove the setting names. Try again.	Ayar adları kaldırılamadı. Tekrar dene.
-Couldn't save the setting names. Nothing changed.	Ayar adları kaydedilemedi. Hiçbir şey değişmedi.
 On this Instagram build it covers %1$d of %2$d routes. The diagnostic report lists the rest.	Bu Instagram sürümünde %2$d yolun %1$d tanesini kapsıyor. Kalanlar tanılama raporunda listelenir.
 Hide suggested accounts in Messages	Mesajlar'daki önerilen hesapları gizle
 Takes the accounts Instagram suggests off the bottom of your messages. Your chats and follow requests stay. Restart Instagram to see the change.	Instagram'ın önerdiği hesapları mesajlarının altından kaldırır. Sohbetlerin ve takip istekleri kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 A light tick each time the highlight slides past a tab, so it follows the bar as you tap or swipe between screens.	Vurgu bir sekmenin üzerinden her geçtiğinde hafif bir titreşim verir; ekranlar arasında dokunurken veya kaydırırken çubuğu takip eder.
 Blur behind the tab bar	Sekme çubuğunun arkasında bulanıklık
 Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.	Android 12 ve üzerinde hapın arkasındaki görüntüyü bulanıklaştırır. Kapalıyken hap, buzlu bir renk tonudur.
+Slide across the tabs	Sekmeler arasında kaydır
+Put a finger on the tab bar and slide it sideways. A highlight follows your finger, and letting go opens the tab under it. Taps and long presses on a tab work as before. It works with or without Glass tab bar. Restart Instagram after changing it.	Parmağını sekme çubuğuna koyup yana kaydır. Bir vurgu parmağını takip eder ve bıraktığında altındaki sekme açılır. Sekmeye dokunmak ve basılı tutmak eskisi gibi çalışır. Cam sekme çubuğu açık da kapalı da çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Liquid glass look	Sıvı cam görünümü
+Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as you scroll is on. Restart Instagram after changing it.	Çubuğu ve vurgusunu tamamen yuvarlar, Ara'yı kendi cam dairesine koyar. Bir listeyi aşağı kaydırınca çubuk, bulunduğun sekme ile Ara'ya küçülür. Kaydırırken sekme çubuğunu gizle açıksa küçülmez. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab you're on. Restart Instagram after changing it.	Instagram'ın sekme çubuğunu, bulunduğun sekmeyi vurgulayan yüzen, yuvarlak bir cam hap olarak çizer. Değiştirdikten sonra Instagram'ı yeniden başlat.
 Glass tab bar	Cam sekme çubuğu
 Haptics on the tab bar	Sekme çubuğunda titreşim
-Home and the other tabs run down behind the pill, so the glass has real content to blur. Reels still stops above it.	Ana Sayfa ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur. Reels yine de onun üstünde biter.
+Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	Ana Sayfa, Reels ve diğer sekmeler hapın arkasından devam eder, böylece cam bulanıklaştıracak gerçek içeriğe sahip olur.
 Show content behind the tab bar	İçeriği sekme çubuğunun arkasında göster
 Tab bar	Sekme çubuğu
 Saved	Kaydedilenler
@@ -827,7 +819,7 @@ Battery	Pil
 Stop the background heartbeat	Arka plandaki kalp atışını durdur
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
-Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app, or nowhere with Disable analytics.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider, Analizleri kapat açıkken hiçbir yere gitmez.
+Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider.
 Haptic style	Haptik stili
 Short tick	Kısa tık
 System tick	Sistem tıkı
@@ -846,6 +838,8 @@ Chat %1$s	Sohbet %1$s
 # context: Hidden chats under Messages, the list of chats left out of the inbox with their notifications dropped, and the toasts after checking a chat in it
 Hidden chats	Gizli sohbetler
 Hide single chats. A hidden chat leaves your inbox and its notifications don't post until you show it here again.	Sohbetleri tek tek gizleyin. Gizlenen sohbet gelen kutunuzdan kalkar ve burada yeniden gösterene kadar bildirimleri gelmez.
+Double-tap Messages for hidden chats	Gizli sohbetler için Mesajlar'a çift dokun
+Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Sekme çubuğundaki veya Ana Sayfa'nın üstündeki Mesajlar düğmesine hızlıca iki kez dokunmak gizli sohbetlerini açar. Bir kilit açıksa önce onu sorar. Tek dokunuş Mesajlar'ı her zamanki gibi açar.
 Open a chat in Instagram, then come back here to hide it.	Instagram'da bir sohbet açın, sonra gizlemek için buraya dönün.
 %1$s is hidden	%1$s gizlendi
 %1$s is shown again	%1$s yeniden gösteriliyor
@@ -855,7 +849,8 @@ Long press %1$s to pick the playback quality instead of that tab's usual action.
 Playback quality: %1$s. The next video you open uses it.	Oynatma kalitesi: %1$s. Açacağın sonraki video bunu kullanır.
 Couldn't save the playback quality. Open HushGram settings to set it.	Oynatma kalitesi kaydedilemedi. Ayarlamak için HushGram ayarlarını aç.
 Support HushGram	HushGram'ı destekle
-Buy me a coffee on Ko-fi	Ko-fi'de bana bir kahve ısmarla
+Hide the Home tab	Ana Sayfa sekmesini gizle
+Takes Home off the tab bar. Your Start tab opens wherever Home would, so pick one other than Home that's on the bar, or Home stays. Restart Instagram to see the change.	Ana Sayfa'yı sekme çubuğundan kaldırır. Ana Sayfa'nın açılacağı her yerde Başlangıç sekmesi açılır, bu yüzden çubukta olan ve Ana Sayfa olmayan bir Başlangıç sekmesi seç, yoksa Ana Sayfa kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide the Search tab	Ara sekmesini gizle
 Takes Search off the tab bar and closes up the gap. Restart Instagram to see the change.	Aramayı sekme çubuğundan kaldırır ve boşluğu kapatır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Hide the Create tab	Oluştur sekmesini gizle
@@ -869,22 +864,32 @@ Takes the heart off the top of Home and closes up the gap. Alerts still arrive. 
 Ghost mode button on Home's header	Ana sayfa üstünde Hayalet modu düğmesi
 Adds a ghost button at the top of Home, next to Messages when it's there and at the end of the buttons when it isn't. Tap it to turn Ghost mode on or off. Restart Instagram to see the change.	Ana sayfanın üstüne bir hayalet düğmesi ekler. Mesajlar oradaysa onun yanına, değilse düğmelerin sonuna gelir. Hayalet modunu açıp kapatmak için dokun. Değişikliği görmek için Instagram'ı yeniden başlat.
 Search button on Home's header	Ana sayfa üstünde Ara düğmesi
-Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too, unless you swipe between your tabs. Restart Instagram to see the change.	Ana sayfanın üstüne, Ara sekmesi gibi aramayı açan bir büyüteç ekler. Ara sekmesi gizliyken de çalışır, sekmeler arasında kaydırıyorsan çalışmaz. Değişikliği görmek için Instagram'ı yeniden başlat.
+Adds a magnifier at the top of Home that opens Search, like the Search tab does. It works with the Search tab hidden too. Restart Instagram to see the change.	Ana sayfanın üstüne, Ara sekmesi gibi aramayı açan bir büyüteç ekler. Ara sekmesi gizliyken de çalışır. Değişikliği görmek için Instagram'ı yeniden başlat.
+Messages button on Home's header	Ana sayfa üstünde Mesajlar düğmesi
+Adds a Messages button at the top of Home when Instagram moved Messages to your tab bar. A tap opens your messages like the tab does. Restart Instagram to see the change.	Instagram Mesajlar'ı sekme çubuğuna taşıdıysa Ana sayfanın üstüne bir Mesajlar düğmesi ekler. Dokununca mesajların sekmedeki gibi açılır. Değişikliği görmek için Instagram'ı yeniden başlat.
+# context: toasts when the Messages button on Home's header can't open Messages because it isn't on the swiping tab bar
+To open Messages here, turn on Show the Messages tab and restart.	Mesajlar'ı burada açmak için Mesajlar sekmesini göster'i aç ve yeniden başlat.
+Restart Instagram to put Messages on your tab bar.	Mesajlar'ı sekme çubuğuna koymak için Instagram'ı yeniden başlat.
 Center the logo on Home's header	Ana sayfa üstündeki logoyu ortala
 Puts Instagram's logo in the middle of the top of Home, even with header buttons hidden or added. A feed's name shown there is centered too. Restart Instagram to see the change.	Üstteki düğmeler gizlenmiş ya da eklenmiş olsa bile Instagram logosunu Ana sayfanın üstünde ortaya koyar. Orada gösterilen akış adı da ortalanır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Center the name on profiles	Profillerde adı ortala
 Puts the username in the middle of the bar at the top of a profile, yours and other people's. The buttons stay where they are.	Bir profilin üstündeki çubukta kullanıcı adını ortaya koyar, seninkinde ve başkalarınınkinde. Düğmeler yerinde kalır.
+Center titles on other screens	Diğer ekranlarda başlığı ortala
+Puts the title in the middle of the bar at the top of other screens, like notifications, as far as the buttons beside it allow. The buttons stay where they are.	Bildirimler gibi diğer ekranların üstündeki çubukta başlığı, yanındaki düğmelerin izin verdiği kadar ortaya koyar. Düğmeler yerinde kalır.
 Search isn't on your tab bar, so this button can't open it here.	Ara sekme çubuğunda değil, bu yüzden bu düğme onu burada açamaz.
 To open Search here, turn off Hide the Search tab and restart.	Ara'yı burada açmak için Ara sekmesini gizle'yi kapat ve yeniden başlat.
 Restart Instagram to bring Search back to your tab bar.	Ara'yı sekme çubuğuna geri getirmek için Instagram'ı yeniden başlat.
 Tab order	Sekme sırası
 The tab bar keeps Instagram's order.	Sekme çubuğu Instagram'ın sırasını korur.
 Tabs go in this order: %1$s. Restart Instagram to see the change.	Sekmeler bu sırada: %1$s. Değişikliği görmek için Instagram'ı yeniden başlat.
-Tap a tab to move it up	Yukarı taşımak için bir sekmeye dokun
-Instagram's order	Instagram'ın sırası
+Show and reorder tabs	Sekmeleri göster ve sırala
+Drag to move %1$s	%1$s öğesini taşımak için sürükle
+Reset	Sıfırla
 Create	Oluştur
 Start tab	Başlangıç sekmesi
-Instagram opens the way it always has.	Instagram her zamanki gibi açılır.
+Instagram opens the way it always has, which can be Reels if you left it there.	Instagram her zamanki gibi açılır, en son Reels'te bıraktıysan Reels'te açılabilir.
+Instagram opens on Home when you start it from its icon, even if you left it on Reels. A notification or a link still opens what it's for. Restart Instagram to see the change.	Instagram'ı simgesinden başlattığında, en son Reels'te bıraksan bile Ana Sayfa açılır. Bir bildirim veya bağlantı yine kendi hedefini açar. Değişikliği görmek için Instagram'ı yeniden başlat.
+Always Home	Her zaman Ana Sayfa
 Instagram opens on %1$s when you start it from its icon. A notification or a link still opens what it's for. If that tab isn't on your bar, it opens on Home. Restart Instagram to see the change.	Instagram'ı simgesinden başlattığında %1$s sekmesinde açılır. Bir bildirim veya bağlantı yine kendi hedefini açar. Bu sekme çubuğunda yoksa Ana Sayfa açılır. Değişikliği görmek için Instagram'ı yeniden başlat.
 A tap on a reel	Reel'e dokunma
 Pause	Duraklat
@@ -897,6 +902,8 @@ Keep reels muted on the volume keys	Ses tuşlarında reel'leri sessiz tut
 Volume up still raises the phone's volume, but a muted reel stays muted until you unmute it.	Sesi artırmak telefonun sesini yine yükseltir, ancak sessize alınmış bir reel siz açana kadar sessiz kalır.
 Start stories with sound	Hikayeleri sesli başlat
 Stories open with their sound on, the same as tapping Instagram's speaker. Your phone's ringer and volume still count, so on silent or with the volume down, stories stay quiet.	Hikayeler, Instagram'ın hoparlörüne dokunmuş gibi sesi açık olarak açılır. Telefonunuzun zil modu ve ses düzeyi yine geçerlidir, bu yüzden sessizde veya ses kapalıyken hikayeler sessiz kalır.
+Stop swipe up to reply	Yanıtlamak için yukarı kaydırmayı durdur
+A swipe up on someone's story no longer opens the reply box and its reactions. Tap Send message to reply.	Birinin hikayesinde yukarı kaydırmak artık yanıt kutusunu ve tepkilerini açmaz. Yanıtlamak için Mesaj gönder'e dokunun.
 # context: toast when Download all is tapped while another post is still saving; it waits its turn
 Queued. It starts once the post before it is saved.	Sırada. Önceki gönderi kaydedilince başlayacak.
 # context: toast when Download all is tapped but the waiting line is already full; %1$d is the number waiting
@@ -905,19 +912,37 @@ Show all settings as a list	Tüm ayarları liste olarak göster
 Show settings by category	Ayarları kategoriye göre göster
 Tab bar opacity	Sekme çubuğu opaklığı
 Tab bar height	Sekme çubuğu yüksekliği
-Clearest	En saydam
-Clear	Saydam
-Frosted	Buzlu
 Standard	Standart
+Blur strength	Bulanıklık gücü
+# context: the blur slider's value under its title; dp is Android's screen unit, keep it
+%1$d dp	%1$d dp
+# context: the tab bar opacity slider's value under its title
+%1$d%%	%%%1$d
+# context: a slider's value when it sits at the starting setting, %1$s is the value
+%1$s (standard)	%1$s (standart)
 Compact	Kompakt
 Tall	Yüksek
+Tab bar corners	Sekme çubuğu köşeleri
+Rounder	Daha yuvarlak
+Fully round	Tam yuvarlak
 Space under the tab bar	Sekme çubuğunun altındaki boşluk
 A little more	Biraz daha
 More	Daha fazla
 Hide the tab bar as you scroll	Kaydırırken sekme çubuğunu gizle
-Scrolling a list down slides the pill out of the way. Scrolling up, reaching the top, or changing tab brings it back. Restart Instagram after changing it.	Bir listeyi aşağı kaydırmak çubuğu yoldan çeker. Yukarı kaydırmak, en üste ulaşmak veya sekme değiştirmek onu geri getirir. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, or changing tab brings it back. It works with or without Glass tab bar. Restart Instagram after changing it.	Bir listeyi aşağı kaydırmak sekme çubuğunu yoldan çeker. Yukarı kaydırmak, en üste ulaşmak veya sekme değiştirmek onu geri getirir. Cam sekme çubuğu açık da kapalı da çalışır. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+Hide the tab bar on Reels	Reels'te sekme çubuğunu gizle
+# context: a choice in the Hide the tab bar on Reels list under Glass tab bar; the bar is never hidden there
+Never	Hiçbir zaman
+# context: a choice in the Hide the tab bar on Reels list; %1$d is 2, 3, 5 or 8
+After %1$d seconds	%1$d saniye sonra
+# context: summary of the Hide the tab bar on Reels row while its choice is Never
+Never. Pick a time and the pill slides away once a reel has played that long without a touch. Restart Instagram after changing it.	Hiçbir zaman. Bir süre seçerseniz, bir reel o kadar süre dokunulmadan oynadığında çubuk kayarak kaybolur. Değiştirdikten sonra Instagram'ı yeniden başlatın.
+# context: summary of the Hide the tab bar on Reels row; %1$d is the seconds picked, 2, 3, 5 or 8
+On Reels, the pill slides away after %1$d seconds without a touch. Tap the bottom edge of the screen, change tab or press Back to bring it back. Restart Instagram after changing it.	Reels'te çubuk, %1$d saniye dokunulmadığında kayarak kaybolur. Geri getirmek için ekranın alt kenarına dokunun, sekme değiştirin veya Geri'ye basın. Değiştirdikten sonra Instagram'ı yeniden başlatın.
 Start feed videos with sound	Akış videolarını sesli başlat
 The first video on Home plays with its sound on, the same as tapping its speaker. Your phone's ringer and volume still count, so on silent or with the volume down, it stays quiet.	Ana Sayfa'daki ilk video, hoparlörüne dokunmuş gibi sesi açık olarak oynar. Telefonunuzun zil modu ve ses düzeyi yine geçerlidir, bu yüzden sessizde veya ses kapalıyken video sessiz kalır.
+Tap a feed video to pause it	Duraklatmak için akış videosuna dokun
+Tap the video playing in a feed to pause it in place instead of opening it in Reels, and tap it again to play it. Ads keep Instagram's own tap.	Bir akışta oynayan videoyu Reels'te açmak yerine duraklatmak için ona dokun, yeniden oynatmak için tekrar dokun. Reklamlar Instagram'ın kendi dokunmasını korur.
 Long press a photo to zoom	Yakınlaştırmak için fotoğrafa uzun bas
 Press and hold a photo in a feed to see it twice as big around your finger, and slide to look around. Let go to close it. While this is on, it takes the place of Instagram's own long press on a photo.	Bir akıştaki fotoğrafa basılı tut, parmağının çevresinde iki kat büyük gör ve etrafa bakmak için kaydır. Kapatmak için bırak. Bu açıkken, Instagram'ın bir fotoğraftaki kendi uzun basmasının yerini alır.
 Keep the zoom open	Yakınlaştırmayı açık tut
@@ -926,31 +951,36 @@ The zoom stays up after you let go. Drag to look around, pinch to zoom from 1x t
 Zoomed photo	Yakınlaştırılmış fotoğraf
 Full screen Reels	Tam ekran Reels
 Hides the status bar and the navigation bar while Reels shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Reels görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
+Fill the screen	Ekranı doldur
+Reels that are nearly the screen's shape fill it, cut a little at the sides, instead of showing black bars above and below. Square and wide videos still fit.	Ekranın şekline yakın Reels videoları, üstte ve altta siyah çubuklar göstermek yerine kenarlardan biraz kırpılarak ekranı doldurur. Kare ve geniş videolar yine sığdırılır.
+Show the whole reel	Reels videosunun tamamını göster
+Every reel fits inside the screen, with black bars where its shape differs, so nothing is cut off at the sides. Works without Full screen Reels and wins over Fill the screen.	Her Reels videosu ekrana sığar, şeklinin farklı olduğu yerlerde siyah çubuklar gösterilir, böylece kenarlardan hiçbir şey kesilmez. Tam ekran Reels olmadan da çalışır ve Ekranı doldur'un önüne geçer.
 Full screen Home	Tam ekran Ana sayfa
 Hides the status bar and the navigation bar while Home shows. Swipe in from the edge to bring them back for a moment.	Ana sayfa görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır.
+Full screen Messages	Tam ekran Mesajlar
+Hides the status bar and the navigation bar while your messages or a chat shows. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual.	Mesajların veya bir sohbet görünürken durum çubuğunu ve gezinme çubuğunu gizler. Kısa süreliğine geri getirmek için kenardan içeri kaydır. Geri ve klavye her zamanki gibi çalışır.
 Hide Notes on profile pictures	Profil fotoğraflarındaki Notları gizle
 Takes the Notes bubble off profile pictures, yours included. Notes in Messages stay as they are.	Notlar balonunu profil fotoğraflarından kaldırır, seninki dahil. Mesajlar'daki Notlar olduğu gibi kalır.
 # context: the line that opens a category's page in HushGram settings, under the page title
-How you open HushGram, and how this screen is laid out.	HushGram'ı nasıl açtığın ve bu ekranın düzeni.
-Hide ads and share less about yourself with Instagram.	Reklamları gizle ve Instagram'la kendin hakkında daha az şey paylaş.
+How you open HushGram and lay out settings.	HushGram'ı açma ve ayarları düzenleme.
+Hide ads and share less with Instagram.	Reklamları gizle ve Instagram ile daha az bilgi paylaş.
 Choose what Home shows and how it behaves.	Ana Sayfa'nın ne gösterdiğini ve nasıl davrandığını seç.
-Take Meta AI out of search, your feed, reels and profiles.	Meta AI'ı aramadan, akışından, reels'ten ve profillerden çıkar.
-Tidy up the Search tab and what it remembers.	Ara sekmesini ve hatırladıklarını düzenle.
-Keep your chats private and your inbox clear of extras.	Sohbetlerini gizli, gelen kutunu da fazlalıklardan uzak tut.
-Choose what reels show, and how they play and scroll.	Reels'in ne gösterdiğini, nasıl oynatılıp kaydırıldığını seç.
-Choose which stories you see and what people see you do.	Hangi hikayeleri göreceğini ve başkalarının senin yaptıklarından neyi göreceğini seç.
-Choose how videos start, sound and look.	Videoların nasıl başlayacağını, sesini ve görünümünü seç.
+Control where Meta AI appears.	Meta AI'ın nerede görüneceğini seç.
+Search, suggestions and the Explore grid.	Arama, öneriler ve Keşfet ızgarası.
+Privacy and controls for your chats.	Sohbetler için gizlilik ve kontroller.
+Playback and controls in the Reels tab.	Reels sekmesinde oynatma ve kontroller.
+Viewing, sound and the stories tray.	İzleme, ses ve hikâye tepsisi.
+Media quality, auto-play and controls.	Medya kalitesi, otomatik oynatma ve kontroller.
 Take buttons you don't use off posts and the share sheet.	Kullanmadığın düğmeleri gönderilerden ve paylaşım sayfasından kaldır.
 Copy, save or hide comments.	Yorumları kopyala, kaydet ya da gizle.
 See who follows you back, and clear extras off profiles.	Seni kimin geri takip ettiğini gör ve profillerdeki fazlalıkları kaldır.
 Change how Instagram looks, from its colors to its emoji.	Instagram'ın görünüşünü, renklerinden emojilerine kadar değiştir.
 Pick your tabs, their order and how the bar looks.	Sekmelerini, sıralarını ve çubuğun görünümünü seç.
-Group Instagram's notifications so they don't pile up.	Instagram bildirimlerini birikmesinler diye grupla.
+Group or mute Instagram's notifications so they don't pile up.	Instagram bildirimlerini birikmesinler diye grupla ya da sessize al.
 Keep Instagram's saved photos and videos from filling your phone.	Instagram'ın sakladığı fotoğraf ve videoların telefonunu doldurmasını önle.
 Save photos, videos and more, and choose where they go.	Fotoğraf, video ve daha fazlasını kaydet, nereye gideceklerini seç.
 Stop background work Instagram doesn't need.	Instagram'ın ihtiyaç duymadığı arka plan işlerini durdur.
 Stop Instagram from saying this version is too old.	Instagram'ın bu sürümün çok eski olduğunu söylemesini engelle.
-Instagram's own testing tools. Change them only if you know what they do.	Instagram'ın kendi test araçları. Yalnızca ne yaptıklarını biliyorsan değiştir.
 Chosen when you patched, so Pause leaves them on. Patch again to change them.	Yamalarken seçildi, bu yüzden Duraklatma bunları kapatmaz. Değiştirmek için yeniden yamala.
 Save your HushGram choices to a file, or bring them back.	HushGram seçimlerini bir dosyaya kaydet ya da geri getir.
 Your version, the source code and licenses.	Sürümün, kaynak kodu ve lisanslar.
@@ -958,19 +988,35 @@ Open settings with a long press on your profile's menu	Profilinin menüsüne uzu
 A long press on the menu button, the three lines at the top right of your own profile, opens HushGram. A tap still opens Instagram's menu, and other profiles stay the same.	Kendi profilinin sağ üstündeki üç çizgili menü düğmesine uzun basmak HushGram'ı açar. Dokunmak yine Instagram'ın menüsünü açar ve diğer profiller aynı kalır.
 Hide the top bar on the Reels tab	Reels sekmesindeki üst çubuğu gizle
 Takes away the row at the top of the Reels tab, with the Reels title, the camera button and anything else Instagram puts there. Reels you open from a profile, a post or a chat keep theirs. The camera still opens from Home.	Reels sekmesinin en üstündeki satırı, Reels başlığı, kamera düğmesi ve Instagram'ın oraya koyduğu diğer her şeyle birlikte kaldırır. Bir profilden, gönderiden veya sohbetten açtığın reels'ler bu satırı korur. Kamera Ana sayfadan açılmaya devam eder.
+Hide the Create button on reels	Reels'te Oluştur düğmesini gizle
+Takes the plus button that opens the camera off the top of reels, on the Reels tab and everywhere else, and closes up the gap. The rest of the bar stays.	Kamerayı açan artı düğmesini Reels sekmesinde ve diğer her yerde reels'in üstünden kaldırır ve boşluğu kapatır. Çubuğun geri kalanı kalır.
+Hide Your algorithm on reels	Reels'te Algoritman düğmesini gizle
+Takes the Your algorithm button off the top of the Reels tab and closes up the gap. The rest of the bar stays.	Algoritman düğmesini Reels sekmesinin üstünden kaldırır ve boşluğu kapatır. Çubuğun geri kalanı kalır.
+Hide the Friends tab on Reels	Reels'te Arkadaşlar sekmesini gizle
+Takes the Friends tab, with reels the people you follow shared, off the top of the Reels tab. Reels stays where it is.	Takip ettiğin kişilerin paylaştığı reels videolarının olduğu Arkadaşlar sekmesini Reels sekmesinin üstünden kaldırır. Reels yerinde kalır.
 Hide the Save button on reels	Reels'te Kaydet düğmesini gizle
 Burn-in guard	Ekran yanığı koruması
 Dim when idle	Boştayken karart
 Dim when idle and shift	Boştayken karart ve kaydır
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch. A touch brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar 5 saniye dokunulmadığında soluklaşır. Bir dokunuş onları geri getirir.
-On the Reels screen, the buttons, caption and bars fade after 5 seconds without a touch, and the screen moves a step every 2 minutes. A touch brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar 5 saniye dokunulmadığında soluklaşır ve ekran her 2 dakikada bir biraz kayar. Bir dokunuş onları geri getirir.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone. Touching one of them brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar onlara dokunmadığınızda soluklaşır. Birine dokunmak onları geri getirir.
+On the Reels screen, the buttons, caption and bars fade when you leave them alone, and the screen moves a step every 2 minutes. Touching one of them brings them back.	Reels ekranında düğmeler, açıklama ve çubuklar onlara dokunmadığınızda soluklaşır ve ekran her 2 dakikada bir biraz kayar. Birine dokunmak onları geri getirir.
+Dim after	Soluklaştırma süresi
+At once	Hemen
+Tapping the video, double-tapping it to like, and Save and Download don't count as a touch, so the buttons stay faded.	Videoya dokunmak, beğenmek için iki kez dokunmak, Kaydet ve İndir dokunuş sayılmaz, bu yüzden düğmeler soluk kalır.
 Off. It can fade a reel's buttons while the screen sits untouched, so they don't burn into an OLED screen.	Kapalı. Ekrana dokunulmadığı sürece bir reel'in düğmelerini soluklaştırabilir, böylece OLED ekranda iz bırakmazlar.
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
+Keep clear mode on	Temiz mod açık kalsın
+Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Bir reel'de Instagram'ın temiz modunu aç, sonraki reels'ler de bu modda açılır. Temiz moddan kendin çıkarsan sonraki reels'ler düğmelerini yeniden gösterir.
 Unlock with	Kilidi şununla aç
 Phone lock	Telefon kilidi
 HushGram PIN	HushGram PIN'i
 A PIN you set here unlocks your messages, in place of your screen lock. It can't be recovered, only cleared by clearing Instagram's storage.	Burada belirlediğin PIN, ekran kilidi yerine mesajlarının kilidini açar. Geri alınamaz, ancak Instagram'ın depolamasını temizleyerek kaldırılır.
 Your fingerprint, face or screen lock unlocks your messages.	Telefonunun parmak izi, yüz veya ekran kilidi mesajlarının kilidini açar.
+Fingerprint or face only	Yalnızca parmak izi veya yüz
+Only your fingerprint or face unlocks your messages. If the phone has none set up, your screen lock does.	Mesajlarının kilidini yalnızca parmak izin veya yüzün açar. Telefonda hiçbiri ayarlı değilse ekran kilidin açar.
+Add a fingerprint or face in your phone's settings first.	Önce telefonunun ayarlarından bir parmak izi veya yüz ekle.
+This phone has no fingerprint or face unlock to use.	Bu telefonda kullanılabilecek bir parmak izi veya yüz kilidi yok.
+Your phone won't let HushGram use your fingerprint or face right now. Check its fingerprint and face settings.	Telefonun şu an HushGram'ın parmak izini veya yüzünü kullanmasına izin vermiyor. Parmak izi ve yüz ayarlarına bak.
 Set or change the 4 to 8 digit PIN. It stays on this phone and isn't in a backup.	4 ile 8 haneli PIN'i belirle veya değiştir. Bu telefonda kalır, yedeğe girmez.
 PIN saved.	PIN kaydedildi.
 PIN	PIN
@@ -994,8 +1040,23 @@ Active at %1$s	%1$s'de aktifti
 Active yesterday at %1$s	Dün %1$s'de aktifti
 Active %1$s at %2$s	%1$s %2$s'de aktifti
 Rounded corners on posts	Gönderilerde yuvarlak köşeler
-Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles, Explore and Reels stay as they were.	Ana Sayfa ve Takip Edilenler'de bir gönderinin fotoğraf, video ve kaydırmalı albüm sayfalarının köşelerini yuvarlar. Bir değişiklikten sonra kaydırdığın gönderilerde görünür. Hikayeler, profiller, Keşfet ve Reels olduğu gibi kalır.
+Rounds the corners of a post's photo, video and carousel pages in Home and Following. Posts you scroll to after a change show it. Stories, profiles and Explore stay as they were.	Ana Sayfa ve Takip Edilenler'de bir gönderinin fotoğraf, video ve kaydırmalı albüm sayfalarının köşelerini yuvarlar. Bir değişiklikten sonra kaydırdığın gönderilerde görünür. Hikayeler, profiller ve Keşfet olduğu gibi kalır.
 Corner size	Köşe boyutu
+Rounded corners on Reels	Reels'te yuvarlak köşeler
+Rounded corners on stories	Hikayelerde yuvarlak köşeler
+Seek bar on stories	Hikayelerde arama çubuğu
+Shows a bar near the bottom of a video story. Drag it to jump to any point in the video. Photos don't get one.	Video hikayenin altına yakın bir çubuk gösterir. Videoda istediğin noktaya atlamak için sürükle. Fotoğraflarda görünmez.
+Seek bar on feed videos	Akış videolarında arama çubuğu
+Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump to that point in the video.	Bir akışta oynayan videonun altında bir çubuk gösterir. Videonun o noktasına atlamak için sürükleyip bırak.
+Thicker story progress bar	Daha kalın hikaye ilerleme çubuğu
+Draws the bar along the top of a story as thick as the choice below. Its segments and timing stay as they were.	Bir hikayenin üstündeki çubuğu aşağıdaki seçim kadar kalın çizer. Bölümleri ve zamanlaması olduğu gibi kalır.
+Thickness	Kalınlık
+Twice as thick	İki kat kalın
+Three times as thick	Üç kat kalın
+Rounds the corners of a reel's video in the Reels tab and wherever a reel opens full screen. The seek bar, captions and buttons stay whole.	Reels sekmesinde ve bir reel'in tam ekran açıldığı her yerde reel videosunun köşelerini yuvarlar. Arama çubuğu, altyazılar ve düğmeler bütün kalır.
+Rounds the corners of a story's photo or video, from the tray, a profile or a highlight. The progress bar, names and stickers stay whole.	Bir hikayenin fotoğrafının veya videosunun köşelerini yuvarlar; hikaye şeridinden, bir profilden veya öne çıkanlardan açılsa da. İlerleme çubuğu, adlar ve çıkartmalar bütün kalır.
+Peek at the next carousel page	Sonraki kaydırmalı sayfaya göz at
+A carousel post's page sits a little in from the edges, with the start of the next page showing at the right.	Kaydırmalı bir gönderinin sayfası kenarlardan biraz içeride durur ve sağda sonraki sayfanın başı görünür.
 Large	Büyük
 Small	Küçük
 # context: a toast shown once when safe mode has paused HushGram on its own after crashes at start
@@ -1015,6 +1076,247 @@ Clear download history	İndirme geçmişini sil
 Forgets everything Skip what's already saved remembers, for all your accounts. Your saved files stay.	Zaten kaydedilenleri atla özelliğinin hatırladığı her şeyi tüm hesapların için unutur. Kaydettiğin dosyalar yerinde kalır.
 Download history cleared.	İndirme geçmişi silindi.
 Couldn't clear the download history. Try again.	İndirme geçmişi silinemedi. Tekrar dene.
+Loading the picture...	Fotoğraf yükleniyor...
+# context: the settings row right above Support HushGram that opens a new bug report on GitHub
+Report a problem	Sorun bildir
+Opens a GitHub report with your versions and settings filled in. Add what happened.	Sürümlerin ve ayarların önceden doldurulmuş bir GitHub raporu açar. Ne olduğunu ekle.
+Hide the reply bar on reels from chats	Sohbetlerden açılan reels'te yanıt çubuğunu gizle
+The Reply to box under a reel you open from a chat, with its reactions and plus button. The chat's own message box stays.	Bir sohbetten açtığın reels'in altındaki yanıt kutusu, tepkileri ve artı düğmesiyle birlikte. Sohbetin kendi mesaj kutusu kalır.
+# context: Layout list title; it picks the font Instagram's text draws in
+Font	Yazı tipi
+# context: the three choices in the Font list
+Instagram's font	Instagram'ın yazı tipi
+Your phone's font	Telefonunun yazı tipi
+A font file	Bir yazı tipi dosyası
+# context: the line under the Font list for each choice
+Instagram's own font. You can also pick your phone's font or a .ttf or .otf file. Restart Instagram to see a change.	Instagram'ın kendi yazı tipi. Telefonunun yazı tipini ya da bir .ttf veya .otf dosyasını da seçebilirsin. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Instagram's text uses your phone's font. Restart Instagram to see a change.	Instagram'daki yazılar telefonunun yazı tipini kullanır. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Instagram's text uses the font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Instagram'daki yazılar seçtiğin yazı tipi dosyasını kullanır. Dosyayı değiştirmek için yeniden seç. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+# context: toasts after a font file is picked in the Font list
+That file isn't a font HushGram can use. Your font hasn't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Yazı tipin değişmedi.
+Font saved. Restart Instagram to see it.	Yazı tipi kaydedildi. Görmek için Instagram'ı yeniden başlat.
+# context: toast when Instagram starts and the picked font file won't load
+Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.	Yazı tipi dosyan yüklenemedi, bu yüzden Instagram'ın yazı tipi gösteriliyor. HushGram ayarları > Düzen bölümünden yeniden seç.
+# context: Reels switch title; it leaves out reels that carry Instagram's own AI label
+Hide AI-labeled reels	Yapay zeka etiketli reel'leri gizle
+# context: the line under the Hide AI-labeled reels switch
+Leaves out reels that carry Instagram's own AI label. A reel without that label stays, even if AI made it.	Instagram'ın kendi yapay zeka etiketini taşıyan reel'leri dışarıda bırakır. Bu etiketi olmayan bir reel, yapay zekayla yapılmış olsa bile kalır.
+# context: Downloads switch under Download button on feed posts; on a carousel the icon saves every page instead of asking which
+Save every page without asking	Tüm sayfaları sormadan kaydet
+On a carousel, the download icon saves all of its pages at once instead of asking.	Karuselde indirme simgesi sormak yerine tüm sayfaları tek seferde kaydeder.
+# context: Reels switch Hide reels by caption words, its Blocked words list row and that row's summary; %1$d is how many words
+Hide reels by caption words	Açıklamadaki kelimelere göre reel'leri gizle
+Also on Home	Ana Sayfa'da da
+Leaves out posts on Home whose caption holds a word or phrase from the list too. Pull down on Home to refresh after changing it.	Açıklamasında listedeki bir kelime veya ifade geçen Ana Sayfa gönderilerini de gizler. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
+Leaves out reels in the Reels tab whose caption holds a word or phrase from the list below. A reel you open yourself still plays.	Reels sekmesinde açıklaması aşağıdaki listeden bir kelime ya da ifade içeren reel'leri çıkarır. Kendin açtığın bir reel yine oynatılır.
+Blocked words	Engellenen kelimeler
+Words or phrases, with a comma or a new line between them. Capital letters don't matter, and a hashtag works too.	Aralarında virgül ya da yeni satır olan kelimeler veya ifadeler. Büyük küçük harf fark etmez, hashtag de olur.
+No words yet	Henüz kelime yok
+%1$d word	%1$d kelime
+%1$d words	%1$d kelime
+# context: Reels > Show a reel's exact time: how long ago a reel was posted (#195). %1$s is a short span like 1d 2h 5m, already in this language.
+Show how long ago a reel was posted	Reel'in ne kadar önce paylaşıldığını göster
+Shows the days, hours and minutes since it went up on a line under the time, like 1d 2h 5m ago.	Paylaşıldığından beri geçen günleri, saatleri ve dakikaları zamanın altındaki bir satırda gösterir, 1g 2 sa 5d önce gibi.
+%1$s ago	%1$s önce
+# context: Profiles > Recent unfollowers: the switch's title (#208).
+Recent unfollowers	Son takipten çıkanlar
+Each time you scroll your own Followers list to the end, compares it with the last time and lists who's gone. Nothing extra is asked of Instagram, and the list stays on your phone.	Kendi Takipçiler listeni her sonuna kadar kaydırdığında, son seferle karşılaştırır ve kimin gittiğini gösterir. Instagram'dan fazladan bir şey istenmez ve liste telefonunda kalır.
+# context: Profiles > Recent unfollowers: the row listing accounts that left your Followers list.
+Who unfollowed you	Seni takipten çıkanlar
+Reading the list…	Liste okunuyor…
+Nothing to compare yet. With Recent unfollowers on, open your own Followers list and scroll to the end. The next time you do, anyone missing shows here.	Henüz karşılaştıracak bir şey yok. Son takipten çıkanlar açıkken kendi Takipçiler listeni aç ve sonuna kadar kaydır. Bir dahaki sefere eksik olan herkes burada görünür.
+# context: %1$s is a date, already in this language.
+Last seen in full on %1$s.	En son %1$s tarihinde tamamı görüldü.
+No one has left since then.	O zamandan beri kimse gitmedi.
+# context: %1$s is an account's number, shown when it has no username.
+Account %1$s	Hesap %1$s
+# context: %1$s is @username, %2$s a date already in this language: the day the account was first seen missing.
+%1$s, gone by %2$s	%1$s, %2$s tarihine kadar gitti
+Only the newest 50 are shown.	Yalnızca en yeni 50 kişi gösterilir.
+Clear unfollower list	Takipten çıkanlar listesini temizle
+Forgets the saved Followers lists and everyone listed above, for all your accounts.	Kayıtlı Takipçiler listelerini ve yukarıda listelenen herkesi tüm hesapların için unutur.
+Unfollower list cleared.	Takipten çıkanlar listesi temizlendi.
+Couldn't clear the unfollower list. Try again.	Takipten çıkanlar listesi temizlenemedi. Tekrar dene.
+Hide Messages on Home's header	Ana sayfa üstündeki Mesajlar'ı gizle
+Takes Instagram's Messages button off the top of Home, for when Messages is on your tab bar too. Restart Instagram to see the change.	Mesajlar sekme çubuğunda da varsa Instagram'ın Mesajlar düğmesini Ana sayfanın üstünden kaldırır. Değişikliği görmek için Instagram'ı yeniden başlat.
+Bars to hide	Gizlenecek çubuklar
+Both bars	İki çubuk da
+The status bar only	Yalnızca durum çubuğu
+The navigation bar only	Yalnızca gezinme çubuğu
+Full screen Reels and Home hide the status bar and the navigation bar.	Tam ekran Reels ve Tam ekran Ana sayfa, durum çubuğunu ve gezinme çubuğunu gizler.
+Full screen Reels and Home hide only the status bar at the top. The navigation bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca üstteki durum çubuğunu gizler. Gezinme çubuğu kalır.
+Full screen Reels and Home hide only the navigation bar at the bottom. The status bar stays.	Tam ekran Reels ve Tam ekran Ana sayfa yalnızca alttaki gezinme çubuğunu gizler. Durum çubuğu kalır.
+Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice.	Bu seçimi kullanmak için Tam ekran Reels, Tam ekran Ana sayfa veya Tam ekran Mesajlar seçeneğini açın.
+Choose carousel pages	Çoklu gönderi sayfalarını seç
+Adds Choose pages to a carousel's menu, after Save all, and to the download icon. Tick the pages you want and only those save, in order.	Çoklu gönderinin menüsüne, Tümünü kaydet'in ardından, ve indirme simgesine Sayfaları seç ekler. İstediğin sayfaları işaretle, yalnızca onlar sırayla kaydedilir.
+Choose pages	Sayfaları seç
+Page %1$d, video	Sayfa %1$d, video
+Page %1$d, photo	Sayfa %1$d, fotoğraf
+Left out by your download switches	İndirme anahtarların nedeniyle dışarıda kaldı
+No pages chosen	Hiç sayfa seçilmedi
+Not saved: the screen closed	Kaydedilmedi: ekran kapandı
+Not saved: the account changed	Kaydedilmedi: hesap değişti
+Wait after auto scroll	Otomatik kaydırmadan sonra bekle
+A reel Instagram's auto scroll moves to waits for your tap too. Off, auto scroll plays reel after reel.	Instagram'ın otomatik kaydırmasının geçtiği reel de dokunmanı bekler. Kapalıyken otomatik kaydırma reelleri art arda oynatır.
+# context: Stories: the switch that hides the Follow button in a story's header (#237). Follow is Instagram's own button label, as in Hide the Follow button.
+Hide Follow on stories	Hikayelerde Takip Et'i gizle
+Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay.	Takip etmediğin hesapların hikayelerinin üstündeki Takip Et düğmesini kaldırır. Ad, saat ve menü kalır.
+# context: Reels: Burn-in guard's switch that keeps the faded buttons faded while you tap (#162)
+Stay dim when I tap	Dokununca soluk kalsın
+Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, the next reel too. They still work. Leaving Reels brings them back.	Ekran yanığı koruması düğmeleri soldurduktan sonra, Reels'te neye dokunur ya da kaydırırsan kaydır soluk kalırlar, sonraki reel'de de. Yine çalışırlar. Reels'ten çıkınca geri gelirler.
+# context: Profiles: switches next to Hide the Threads button. Create is the plus at the top of your own profile (#254); Share profile and Edit profile are Instagram's own button names (#253)
+Hide the Create button	Oluştur düğmesini gizle
+Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Yeni gönderiler için artı düğmesini kendi profilinin üstünden kaldırır. Diğer düğmeler oldukları yerde kalır.
+Hide Share profile	Profili paylaş düğmesini gizle
+Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Profili paylaş düğmesini profilinden kaldırır, Profili düzenle de boşluğu dolduracak şekilde genişler.
+# context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
+Keep the pill full size	Hapı tam boyutta tut
+Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Bir listeyi aşağı kaydırınca sıvı cam hap olduğu gibi kalır, her sekme yerinde durur. Değiştirdikten sonra Instagram'ı yeniden başlat.
+# context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names
+All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	Hepsi. Bazılarını dışarıda bırakmak için dokun, Hayalet modu onları senin ayarladığın gibi bırakır.
+%1$s. The others stay as you set them.	%1$s. Diğerleri senin ayarladığın gibi kalır.
+Switches Ghost mode turns	Hayalet modunun değiştirdiği anahtarlar
+Ghost mode needs at least one switch to turn.	Hayalet modunun değiştireceği en az bir anahtar olmalı.
+# context: Ghost mode: turning it on or off with a long press on a tab (#255). %1$s is a tab's name
+Turn Ghost mode on or off with a tab long press	Sekmeye uzun basarak Hayalet modunu aç veya kapat
+Tab long presses keep Instagram's own action. Choose one to turn Ghost mode on or off instead.	Sekmelere uzun basmak Instagram işlemini korur. Bunun yerine Hayalet modunu açıp kapatmak için bir sekme seç.
+Long press %1$s to turn Ghost mode on or off instead of that tab's usual action, and a toast says which way it went. Normal taps and other tabs stay the same. If the same tab opens HushGram or picks the playback quality, that comes first.	Sekmenin normal işlemi yerine Hayalet modunu açıp kapatmak için %1$s üzerine uzun bas, kısa bir bildirim hangi yöne gittiğini söyler. Normal dokunuşlar ve diğer sekmeler aynı kalır. Aynı sekme HushGram'ı açıyor ya da oynatma kalitesini seçiyorsa o öncelikli olur.
+Buttons on the share sheet	Paylaşım sayfasındaki düğmeler
+Every button under the people on the share sheet shows. Untick the ones you don't use.	Paylaşım sayfasında kişilerin altındaki tüm düğmeler görünür. Kullanmadıklarının işaretini kaldır.
+Left off the share sheet: %1$s.	Paylaşım sayfasından çıkarıldı: %1$s.
+Show all	Tümünü göster
+Add to story	Hikayeye ekle
+Share to	Şununla paylaş
+Copy link	Bağlantıyı kopyala
+QR code	QR kodu
+WhatsApp status	WhatsApp durumu
+Reply to author	Yazara yanıt ver
+Watch on TV	TV'de izle
+Download profile card	Profil kartını indir
+Add to channel	Kanala ekle
+WhatsApp	WhatsApp
+SMS	SMS
+Messenger	Messenger
+Facebook	Facebook
+Snapchat	Snapchat
+X	X
+Threads	Threads
+LINE	LINE
+KakaoTalk	KakaoTalk
+Discord	Discord
+Band	Band
+# context: Tabs on your profile and Tabs on other profiles rows under Profiles, one for the signed-in account's own profile and one for everyone else's; Reposts and Tagged are the names of Instagram's own profile tabs
+Tabs on your profile	Profilindeki sekmeler
+Tabs on other profiles	Diğer profillerdeki sekmeler
+Every tab shows on your profile. Untick the ones you don't want. The grid of posts always stays.	Profilinde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
+Every tab shows on other people's profiles. Untick the ones you don't want. The grid of posts always stays.	Başkalarının profillerinde tüm sekmeler görünür. İstemediklerinin işaretini kaldır. Gönderi ızgarası her zaman kalır.
+Left off your profile: %1$s. The grid of posts stays.	Profilinden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
+Left off other profiles: %1$s. The grid of posts stays.	Diğer profillerden kaldırılanlar: %1$s. Gönderi ızgarası kalır.
+Reposts	Yeniden paylaşımlar
+Tagged	Etiketli
+# context: Show all recent searches switch under Explore; See all is Instagram's own row under the recent searches
+Show all recent searches	Tüm son aramaları göster
+Lists every recent search under the search bar, not just the first few. See all and the x on each row work as before.	Arama çubuğunun altında yalnızca ilk birkaçını değil, tüm son aramaları listeler. Tümünü gör ve her satırdaki x eskisi gibi çalışır.
+Hide the call buttons in chats	Sohbetlerdeki arama düğmelerini gizle
+Takes the voice and video call buttons off the top of a chat. The name keeps its room. Turn it off and they're back the next time a chat opens.	Sohbetin üstündeki sesli ve görüntülü arama düğmelerini kaldırır. İsim yerini korur. Kapatırsan düğmeler sohbeti bir sonraki açışında geri gelir.
+Buttons in the message box	Mesaj kutusundaki düğmeler
+Every button in the message box shows. Untick the ones you don't use. The text box and Send always stay.	Mesaj kutusundaki tüm düğmeler görünür. Kullanmadıklarının işaretini kaldır. Metin kutusu ve Gönder her zaman kalır.
+Left off the message box: %1$s. The text box and Send stay.	Mesaj kutusundan çıkarılanlar: %1$s. Metin kutusu ve Gönder kalır.
+Gallery	Galeri
+Stickers	Çıkartmalar
+Voice message	Sesli mesaj
+Not interested button on reels	Reels'te İlgilenmiyorum düğmesi
+Puts a Not interested icon beside a reel, so one tap does what Not interested in its menu does.	Bir reel'in yanına İlgilenmiyorum simgesi koyar, böylece tek dokunuş menüsündeki İlgilenmiyorum ile aynı işi yapar.
+Not interested	İlgilenmiyorum
+Block button on reels	Reels'te Engelle düğmesi
+Puts a Block icon beside someone else's reel. A tap opens Instagram's own block screen for that account, so you still confirm it there.	Başka birinin reel'inin yanına bir Engelle simgesi koyar. Dokunuş o hesap için Instagram'ın kendi engelleme ekranını açar, yani yine orada onaylarsın.
+Block	Engelle
+Swipe left to open the profile	Profili açmak için sola kaydır
+A left swipe on a reel opens the creator's profile, like Instagram used to. Tap Friends at the top to reach your friends' reels.	Bir reel üzerinde sola kaydırmak, Instagram'ın eskiden yaptığı gibi içeriği oluşturanın profilini açar. Arkadaşlarının reel'lerine ulaşmak için üstteki Arkadaşlar'a dokun.
+Hide this sound	Bu sesi gizle
+Showing reels with %1$s again	%1$s kullanan reel'ler yeniden gösteriliyor
+Hiding reels with %1$s	%1$s kullanan reel'ler gizleniyor
+%1$s by %2$s	%1$s (%2$s)
+this sound	bu ses
+Hide reels by sound	Reels'i sese göre gizle
+Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that sound. Tap it again to bring them back.	Bir reel'in yanına müzik simgesi koyar. Dokunduğunda Reels sekmesi o sesi kullanan diğer reel'leri atlar. Geri getirmek için yeniden dokun.
+Hidden sounds	Gizli sesler
+The sounds you hid with the music icon. Uncheck one to see its reels again.	Müzik simgesiyle gizlediğin sesler. Reel'lerini yeniden görmek için birinin işaretini kaldır.
+No sounds are hidden yet. Turn on Hide reels by sound, then tap the music icon beside a reel.	Henüz gizli ses yok. Reels'i sese göre gizle'yi aç, sonra bir reel'in yanındaki müzik simgesine dokun.
+# context: read aloud after a settings row's name when a dot marks it as added since the settings were last opened
+New	Yeni
+App icon	Uygulama simgesi
+Instagram on black	Siyah üzerinde Instagram
+Instagram on plum	Mürdüm üzerinde Instagram
+Instagram in black on white	Beyaz üzerinde siyah Instagram
+Instagram's own	Instagram'ın kendi simgesi
+Instagram's own. Pick another to change the icon on your home screen and in the app drawer.	Instagram'ın kendi simgesi. Ana ekrandaki ve uygulama çekmecesindeki simgeyi değiştirmek için başka birini seç.
+%1$s. It shows once you leave Instagram. If the icon is gone from your home screen, add it again from the app drawer.	%1$s. Instagram'dan çıktığında görünür. Simge ana ekrandan kaybolursa uygulama çekmecesinden yeniden ekle.
+the home screen icon you picked	seçtiğin ana ekran simgesi
+# context: Your fonts in story text switch under Stories and the Your story fonts row and dialog under it; the fonts are .ttf or .otf files picked from the phone, shown in Instagram's story text editor after its own
+Your fonts in story text	Hikaye metninde kendi yazı tiplerin
+Adds the fonts below to the story text editor alongside Instagram's own fonts, which all stay. Pick one there like any other font.	Aşağıdaki yazı tiplerini hikaye metin düzenleyicisine Instagram'ın kendi yazı tipleriyle birlikte ekler. Onların hepsi yerinde kalır. Orada diğer yazı tipleri gibi birini seç.
+Your story fonts	Hikaye yazı tiplerin
+Add .ttf or .otf files from your phone. Uncheck one to take it out.	Telefonundan .ttf veya .otf dosyaları ekle. Çıkarmak için işaretini kaldır.
+No fonts added yet. Add a .ttf or .otf file and it shows up in the story text editor alongside Instagram's fonts.	Henüz yazı tipi eklenmedi. Bir .ttf veya .otf dosyası ekle, hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte görünür.
+Add a font file	Yazı tipi dosyası ekle
+Removed from your story fonts	Hikaye yazı tiplerinden çıkarıldı
+That file isn't a font HushGram can use. Nothing was added.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hiçbir şey eklenmedi.
+Added %1$s. Pick it in the story text editor alongside Instagram's fonts.	%1$s eklendi. Hikaye metin düzenleyicisinde Instagram'ın yazı tipleriyle birlikte onu seç.
+# context: Logo and titles at the start, a Tab bar switch under Center titles on other screens; the opposite of the three Center switches (#310)
+Logo and titles at the start	Logo ve başlıklar başta
+Puts Instagram's logo and every bar's title at the start of the bar, where Instagram used to show them. Turn it on if Instagram centers them for you. It wins over the centering switches above. Restart Instagram to see the change on Home.	Instagram logosunu ve her çubuğun başlığını, Instagram'ın eskiden gösterdiği gibi çubuğun başına koyar. Instagram bunları senin için ortalıyorsa aç. Yukarıdaki ortalama anahtarlarından önce gelir. Değişikliği Ana sayfada görmek için Instagram'ı yeniden başlat.
+# context: Emoji font in story text, a switch under Stories after Your story fonts; turning it on opens the phone's file picker for an emoji font file (.ttf), used only for emoji typed in Instagram's story text editor (#275)
+Emoji font in story text	Hikâye metninde emoji yazı tipi
+Emoji you type in story text draw from an emoji font file you pick. Turning it on asks for the file. Off, Instagram's emoji come back.	Hikâye metnine yazdığın emojiler, seçtiğin bir emoji yazı tipi dosyasından çizilir. Açınca dosyayı sorar. Kapalıyken Instagram'ın emojileri geri gelir.
+That file isn't a font HushGram can use. Story emoji haven't changed.	Bu dosya HushGram'ın kullanabileceği bir yazı tipi değil. Hikâye emojileri değişmedi.
+Emoji font saved. Emoji in story text draw in it.	Emoji yazı tipi kaydedildi. Hikâye metnindeki emojiler artık onunla çiziliyor.
+Rows in Instagram's settings	Instagram ayarlarındaki satırlar
+Every row of Instagram's Settings and activity shows. Untick the ones you don't use.	Instagram'ın Ayarlar ve hareketler ekranındaki tüm satırlar görünür. Kullanmadıklarının işaretini kaldır.
+%1$d row is left off Instagram's Settings and activity.	Instagram'ın Ayarlar ve hareketler ekranından %1$d satır kaldırıldı.
+%1$d rows are left off Instagram's Settings and activity.	Instagram'ın Ayarlar ve hareketler ekranından %1$d satır kaldırıldı.
+Open Settings and activity in Instagram once, then come back here. Its rows show up in this list to untick.	Instagram'da Ayarlar ve hareketler ekranını bir kez aç, sonra buraya dön. O ekranın satırları işaretini kaldırman için bu listede görünür.
+Date in backup file names	Yedek dosyası adlarında tarih
+Add the current date and time when exporting settings. Off keeps HushGram-settings.json.	Ayarları dışa aktarırken geçerli tarih ve saati ekler. Kapalıyken HushGram-settings.json korunur.
+%1$s is the post's shortcode. Stories and unknown posts leave it out. Using it also names photos.	%1$s gönderinin kısa kodudur. Hikâyelerde ve bilinmeyen gönderilerde boş bırakılır. Bu alan kullanıldığında şablon fotoğrafları da adlandırır.
+Videos and photos use %1$s. Unknown codes are left out.	Videolar ve fotoğraflar %1$s kullanır. Bilinmeyen kodlar atlanır.
+Tab bar layout	Sekme çubuğu düzeni
+Swipe between tabs	Sekmeler arasında kaydır
+Classic	Klasik
+Instagram's choice	Instagram'ın seçimi
+Keeps the newer bar, with Messages on it, and you can swipe sideways between every tab, even if Instagram moves your account back to the older one. Restart Instagram to see the change.	Mesajlar'ın bulunduğu yeni çubuğu korur ve Instagram hesabını eski çubuğa geri alsa bile tüm sekmeler arasında yana kaydırabilirsin. Değişikliği görmek için Instagram'ı yeniden başlat.
+Keeps the older bar, with Create on it and Messages at the top of Home. Swiping only moves between Home and the screens beside it. Restart Instagram to see the change.	Oluştur'un bulunduğu ve Mesajlar'ın Ana Sayfa'nın üstünde olduğu eski çubuğu korur. Kaydırma yalnızca Ana Sayfa ile yanındaki ekranlar arasında geçiş yapar. Değişikliği görmek için Instagram'ı yeniden başlat.
+Instagram picks the tab bar for your account, and it can switch between the two on its own.	Instagram hesabın için sekme çubuğunu seçer ve ikisi arasında kendiliğinden geçiş yapabilir.
+Group or mute Instagram's notifications, and take suggestions off the Notifications page.	Instagram bildirimlerini grupla ya da sessize al ve önerileri Bildirimler sayfasından kaldır.
+Take suggestions and Featured off the Notifications page.	Önerileri ve Öne Çıkanlar'ı Bildirimler sayfasından kaldır.
+Version warnings	Sürüm uyarıları
+Pause HushGram, lock these settings, or make a report when something breaks.	HushGram'u duraklat, bu ayarları kilitle veya bir sorun olduğunda rapor oluştur.
+Choose a folder	Klasör seç
+Saves go to Movies and Pictures. Pick any folder instead, a hidden one too, and every photo and video goes there.	Kaydedilenler Movies ve Pictures klasörlerine gider. Bunun yerine gizli olanlar dahil herhangi bir klasör seç, her fotoğraf ve video oraya gitsin.
+Photos and videos go to %1$s. Tap to pick another folder.	Fotoğraflar ve videolar %1$s klasörüne gider. Başka bir klasör seçmek için dokun.
+HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.	HushGram artık %1$s klasörüne erişemiyor, bu yüzden kaydedilenler Movies ve Pictures klasörlerine gidiyor. Klasörü yeniden seç.
+Use Movies and Pictures	Movies ve Pictures kullan
+Stop using the folder you picked. Saves go back to Movies and Pictures.	Seçtiğin klasörü kullanmayı bırak. Kaydedilenler yeniden Movies ve Pictures klasörlerine gider.
+Couldn't use that folder. Saves still go where they did.	Bu klasör kullanılamadı. Kaydedilenler eskisi gibi aynı yere gidiyor.
+Saves go to Movies and Pictures again.	Kaydedilenler yeniden Movies ve Pictures klasörlerine gidiyor.
+%1$s didn't take this save, so it went to Movies and Pictures.	%1$s bu kaydı kabul etmedi, bu yüzden Movies ve Pictures klasörlerine gitti.
+Start reels with sound	Reel'leri sesli başlat
+A reel you tap open from a post on Home plays with sound, and Home is muted again when you go back. Your phone's ringer and volume still count.	Ana Sayfa'daki bir gönderiden açtığınız reel sesli oynar ve geri döndüğünüzde Ana Sayfa yeniden sessize alınır. Telefonunuzun zil modu ve ses düzeyi yine geçerlidir.
+Keep your place in Home	Ana sayfadaki yerini koru
+Coming back to Instagram leaves Home on the post you were on, however long you were away. Pull down to refresh still reloads it.	Instagram'a döndüğünde, ne kadar uzak kalmış olursan ol, Ana sayfa bulunduğun gönderide kalır. Yenilemek için aşağı çekmek yine de yeniden yükler.
+Filter the Stories tray by verified accounts	Hikaye sırasını doğrulanmış hesaplara göre filtrele
+The row of stories at the top of Home keeps only the accounts the choice below names, by Instagram's verified badge. Your own story stays. Turn it off to see every story.	Ana sayfanın üstündeki hikaye sırası, Instagram'ın doğrulama rozetine göre yalnızca aşağıdaki seçimin belirttiği hesapları tutar. Kendi hikayen kalır. Tüm hikayeleri görmek için kapat.
+Stories to keep	Tutulacak hikayeler
+Only verified accounts	Yalnızca doğrulanmış hesaplar
+Only accounts that aren't verified	Yalnızca doğrulanmamış hesaplar
+Pinch to zoom	İki parmakla yakınlaştır
+Two fingers zoom into a playing reel, the way a photo zooms. Lift them and it goes back. Restart Instagram to see the change.	Oynayan bir reel'i bir fotoğraf gibi iki parmakla yakınlaştırırsın. Parmaklarını kaldırınca eski haline döner. Değişikliği görmek için Instagram'ı yeniden başlat.
+Mute notification types	Bildirim türlerini sessize al
+Stops the notification types you tick, even ones Instagram's own notification settings can't turn off.	İşaretlediğin bildirim türlerini durdurur, Instagram'ın kendi bildirim ayarlarının kapatamadıklarını da.
+%1$d notification type is muted.	%1$d bildirim türü sessizde.
+%1$d notification types are muted.	%1$d bildirim türü sessizde.
+Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram bu telefonda bildirim türlerini henüz ayarlamadı. Instagram'ı bir kez aç, sonra buraya dön.
+Unmute all	Tümünün sesini aç
 Clear all	Tümünü temizle
 Deleted messages	Silinen mesajlar
 Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Başkalarının sana gönderdiği mesajların metnini bu telefonda saklar ve sildiklerini işaretler. Hiçbir şey telefondan çıkmaz ve yalnızca metin saklanır.
@@ -1023,14 +1325,3 @@ Nothing has been deleted yet. A message shows up here once the person who sent i
 Save deleted messages	Silinen mesajları kaydet
 Saved messages cleared.	Kayıtlı mesajlar temizlendi.
 Sender	Gönderen
-Track who unfollows you	Seni takipten çıkanları izle
-Saves your own Followers list each time you scroll it to the end, and lists who is missing from the next one. Nothing leaves this phone.	Kendi takipçi listeni her sonuna kadar kaydırdığında kaydeder ve sonrakinde eksik olanları listeler. Hiçbir şey bu telefondan çıkmaz.
-Unfollowers	Takibi bırakanlar
-People who stopped following you since this phone last saved your followers. Tap to see them.	Bu telefon takipçilerini en son kaydettiğinden beri seni takip etmeyi bırakanlar. Görmek için dokun.
-%1$s followers saved on %2$s.	%1$s takipçi %2$s tarihinde kaydedildi.
-Nobody has unfollowed you yet. Scroll your Followers list to the end again later and HushGram will compare it with this one.	Henüz kimse seni takipten çıkmadı. Takipçi listeni daha sonra tekrar sonuna kadar kaydır, HushGram bununla karşılaştıracak.
-Open your own Followers list and scroll to the end to save it. HushGram compares it with the next one you scroll to the end of.	Kendi takipçi listeni aç ve kaydetmek için sonuna kadar kaydır. HushGram bunu sonuna kadar kaydırdığın bir sonrakiyle karşılaştırır.
-Saved followers cleared.	Kaydedilen takipçiler silindi.
-HushGram saved your %1$s followers and will tell you who unfollows.	HushGram %1$s takipçini kaydetti ve kimin takibi bıraktığını söyleyecek.
-%1$s unfollowed you.	%1$s seni takip etmeyi bıraktı.
-Unfollowed you: %1$s	Takibi bıraktı: %1$s

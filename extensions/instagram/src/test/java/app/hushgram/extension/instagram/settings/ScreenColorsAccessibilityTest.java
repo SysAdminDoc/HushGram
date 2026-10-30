@@ -15,11 +15,19 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.preference.Preference;
 import android.preference.SwitchPreference;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ContextThemeWrapper;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.CheckedTextView;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -66,7 +74,7 @@ public class ScreenColorsAccessibilityTest {
     private final List<AlertDialog> opened = new ArrayList<>();
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         RuntimeEnvironment.getApplication().getApplicationInfo().flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
         RuntimeEnvironment.setFontScale(1f);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -98,6 +106,7 @@ public class ScreenColorsAccessibilityTest {
             contrast("title", colors.title, surface, 4.5);
             contrast("summary", colors.summary, surface, 4.5);
             contrast("heading and secondary action", colors.heading, surface, 4.5);
+            contrast("validation error", colors.error, surface, 4.5);
             contrast("enabled on track", colors.accent, surface, 3.0);
             contrast("enabled off track", colors.switchOff, surface, 3.0);
         }
@@ -105,6 +114,161 @@ public class ScreenColorsAccessibilityTest {
         contrast("filled action text", colors.onAccent, colors.accent, 4.5);
         contrast("thumb on checked track", colors.onAccent, colors.accent, 3.0);
         contrast("thumb on unchecked track", colors.offThumb(), colors.switchOff, 3.0);
+    }
+
+    @Test public void nativeFieldsAndActionsDrawVisibleFocusWithoutChangingTheirRoles() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        Activity activity = controller.get();
+        EditText field = new EditText(activity);
+        ScreenColors.styleField(field);
+        Button primary = new Button(activity);
+        primary.setText("Save");
+        ScreenColors.styleAction(primary, true);
+        Button secondary = new Button(activity);
+        secondary.setText("Cancel");
+        ScreenColors.styleAction(secondary, false);
+        Button compact = new Button(activity);
+        compact.setContentDescription("Clear search");
+        ScreenColors.styleIconAction(compact);
+        for (View control : new View[]{field, primary, secondary, compact}) {
+            int ordinary = border(control, android.R.attr.state_enabled);
+            int focused = border(control, android.R.attr.state_enabled, android.R.attr.state_focused);
+            assertNotEquals("Focus must visibly outline " + control.getClass().getSimpleName(), ordinary, focused);
+            int surface = control == primary ? colors.accent : colors.dialog;
+            contrast("focused control boundary", focused, surface, 3.0);
+            GradientDrawable shape = control.getBackground() instanceof RippleDrawable
+                    ? (GradientDrawable) ((RippleDrawable) control.getBackground()).getDrawable(0)
+                    : (GradientDrawable) control.getBackground();
+            assertTrue("Shared controls use the compact radius scale", shape.getCornerRadius() <= dp(12));
+        }
+        contrast("unfocused input boundary", border(field, android.R.attr.state_enabled), colors.dialog, 3.0);
+        assertTrue(primary instanceof Button);
+        assertTrue(secondary.getBackground() instanceof RippleDrawable);
+        assertTrue(compact.getBackground() instanceof RippleDrawable);
+        assertNotNull("Fields keep native editing", field.getKeyListener());
+    }
+
+    @Test @Config(sdk = {28, 37})
+    public void freshActionsPaintEnabledFillAndOutlineBeforeAnyStateToggle() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        for (int theme : new int[]{android.R.style.Theme_Material_Light_NoActionBar,
+                android.R.style.Theme_Material_NoActionBar}) {
+            for (boolean primary : new boolean[]{true, false}) {
+                Button action = new Button(new ContextThemeWrapper(controller.get(), theme));
+                action.setText(primary ? "Save" : "Cancel");
+                ScreenColors.styleAction(action, primary);
+                assertTrue(action.isEnabled());
+                int fill = primary ? colors.accent : colors.card;
+                int edge = primary ? colors.accent : colors.outline;
+                assertEquals("A fresh enabled action must start opaque", fill, nativePixel(action, 6));
+                assertEquals("Its default outline must start opaque", edge, nativePixel(action, 1));
+                ScreenColors.styleAction(action, primary);
+                assertEquals("Restyling an enabled action preserves the current fill", fill, nativePixel(action, 6));
+                action.setEnabled(false);
+                assertEquals("Only a disabled action uses the dimmed fill", 0x61, Color.alpha(nativePixel(action, 6)));
+                action.setEnabled(true);
+                assertEquals("Re-enabling restores the opaque fill", fill, nativePixel(action, 6));
+                assertEquals(edge, nativePixel(action, 1));
+            }
+        }
+    }
+
+    @Test @Config(sdk = {28, 37})
+    public void freshChoicesKeepTheirNativeEnabledAndCheckedStateThroughTheTintPass() {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        Activity activity = controller.get();
+        ChoiceCards.Card card = new ChoiceCards.Card(activity, colors);
+        card.name.setText("Original");
+        card.detail.setText("Keep the original file.");
+        card.setBackgroundTintList(null);
+        assertEquals(colors.card, nativePixel(card, 10));
+        assertEquals("A fresh card's enabled outline must not become translucent", colors.outline, nativePixel(card, 4));
+
+        TextView plain = new TextView(activity);
+        plain.setText("Original");
+        plain.setBackgroundTintList(null);
+        new DialogChoices(singleRow(plain), colors).getView(0, null, new FrameLayout(activity));
+        assertEquals(colors.card, nativePixel(plain, 10));
+        assertEquals(colors.outline, nativePixel(plain, 4));
+
+        CheckedTextView checked = new CheckedTextView(activity);
+        checked.setText("Original");
+        checked.setChecked(true);
+        checked.setBackgroundTintList(null);
+        new DialogChoices(singleRow(checked), colors).getView(0, null, new FrameLayout(activity));
+        assertTrue(checked.isChecked());
+        assertEquals("An already checked choice keeps its native selection fill", 0x22,
+                Color.alpha(nativePixel(checked, 6)));
+        assertEquals(colors.heading, nativePixel(checked, 0));
+    }
+
+    private static BaseAdapter singleRow(View row) {
+        return new BaseAdapter() {
+            @Override public int getCount() { return 1; }
+            @Override public Object getItem(int position) { return row; }
+            @Override public long getItemId(int position) { return position; }
+            @Override public View getView(int position, View recycled, ViewGroup parent) { return row; }
+        };
+    }
+
+    /** Render the actual view's state. Do not push a synthetic state into its background. */
+    private int nativePixel(View view, int yDp) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(dp(160), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        try {
+            view.draw(new Canvas(bitmap));
+            return bitmap.getPixel(bitmap.getWidth() / 2, dp(yDp));
+        } finally { bitmap.recycle(); }
+    }
+
+    @Test public void keyboardSelectedChoiceAndPreferenceRowsRetainFocusAndTouchFeedback() {
+        Activity activity = controller.get();
+        Preference preference = new Preference(activity);
+        preference.setTitle("Downloads");
+        View row = preference.getView(null, new FrameLayout(activity));
+        ScreenColors.row(row, preference);
+        assertTrue(row.getBackground() instanceof RippleDrawable);
+        Drawable inset = ((RippleDrawable) row.getBackground()).getDrawable(0);
+        assertTrue(inset instanceof InsetDrawable);
+        Drawable surface = ((InsetDrawable) inset).getDrawable();
+        int ordinary = border(surface, android.R.attr.state_enabled);
+        int selected = border(surface, android.R.attr.state_enabled, android.R.attr.state_selected);
+        assertNotEquals("Native list keyboard selection must stay visible", ordinary, selected);
+        contrast("selected row", selected, ScreenColors.DEFAULT.card, 3.0);
+
+        AlertDialog dialog = new AlertDialog.Builder(activity)
+                .setSingleChoiceItems(new String[]{"Original", "Smaller file"}, 0, (d, index) -> { }).show();
+        opened.add(dialog);
+        ScreenColors.dialog(dialog);
+        View choice = dialog.getListView().getAdapter().getView(0, null, dialog.getListView());
+        assertTrue("Restyling a native choice must preserve pressed feedback",
+                choice.getBackground() instanceof RippleDrawable);
+        assertNotEquals(border(choice, android.R.attr.state_enabled),
+                border(choice, android.R.attr.state_enabled, android.R.attr.state_selected));
+    }
+
+    private int border(View view, int... state) {
+        return border(view.getBackground(), state);
+    }
+
+    private int border(Drawable drawable, int... state) {
+        int width = dp(160);
+        int height = dp(48);
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(ScreenColors.DEFAULT.dialog);
+        drawable.setState(state);
+        drawable.setBounds(0, 0, width, height);
+        drawable.draw(canvas);
+        int pixel = bitmap.getPixel(width / 2, dp(1) / 2);
+        bitmap.recycle();
+        return pixel;
+    }
+
+    private int dp(int value) {
+        return Math.round(value * controller.get().getResources().getDisplayMetrics().density);
     }
 
     @Test public void realDisabledRowsKeepTheirStateAndVisiblyDifferentControls() {
@@ -119,6 +283,18 @@ public class ScreenColorsAccessibilityTest {
         TextView enabledSummary = enabled.findViewById(android.R.id.summary);
         Switch enabledSwitch = enabled.findViewById(android.R.id.switch_widget);
         assertNotNull(enabledSwitch);
+        assertTrue(enabledSwitch.getThumbDrawable() instanceof GradientDrawable);
+        assertTrue(enabledSwitch.getTrackDrawable() instanceof GradientDrawable);
+        GradientDrawable thumb = (GradientDrawable) enabledSwitch.getThumbDrawable();
+        GradientDrawable track = (GradientDrawable) enabledSwitch.getTrackDrawable();
+        assertEquals("The native switch thumb stays rectangular", GradientDrawable.RECTANGLE, thumb.getShape());
+        assertEquals("The switch track must not become a capsule", GradientDrawable.RECTANGLE, track.getShape());
+        assertEquals(dp(4), thumb.getCornerRadius(), 0.01f);
+        assertEquals(dp(6), track.getCornerRadius(), 0.01f);
+        assertEquals(dp(20), thumb.getIntrinsicWidth());
+        assertEquals(dp(20), thumb.getIntrinsicHeight());
+        assertEquals(dp(40), track.getIntrinsicWidth());
+        assertEquals(dp(24), track.getIntrinsicHeight());
         contrast("actual enabled title", color(enabledTitle.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
         contrast("actual enabled summary", color(enabledSummary.getTextColors(), true, false), ScreenColors.DEFAULT.card, 4.5);
         int activeTrack = color(enabledSwitch.getTrackTintList(), true, true);
@@ -189,7 +365,8 @@ public class ScreenColorsAccessibilityTest {
         assertEquals(1, list.getCheckedItemCount());
     }
 
-    @Test public void movingTabsRefreshesTheStyledAdapterAndKeepsItsOwnClickListener() throws Exception {
+    /** The tab picker's rows keep the page's colours once the dialog is styled, and Reset keeps it open (#207). */
+    @Test public void theTabPickerKeepsItsColoursAndResetKeepsItOpen() throws Exception {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REELS_TAB);
         HushgramPreferenceFragment page = new HushgramPreferenceFragment();
         controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
@@ -201,16 +378,19 @@ public class ScreenColorsAccessibilityTest {
         AlertDialog alert = ShadowAlertDialog.getLatestAlertDialog();
         opened.add(alert);
         ScreenColors.dialog(alert);
-        ListView list = alert.getListView();
-        assertEquals(Arrays.asList("Home", "Search", "Reels", "Messages", "Create", "Profile"), labels(list));
-        tap(list, 3);
-        assertTrue(alert.isShowing());
-        assertEquals(Arrays.asList("Home", "Search", "Messages", "Reels", "Create", "Profile"), labels(list));
-        assertEquals("FEED,SEARCH,DIRECT,CLIPS,CREATION,PROFILE", Settings.TAB_ORDER.get());
-        tap(list, 2);
-        assertEquals(Arrays.asList("Home", "Messages", "Search", "Reels", "Create", "Profile"), labels(list));
+        android.widget.LinearLayout list = (android.widget.LinearLayout)
+                alert.getWindow().getDecorView().findViewWithTag(TabPicker.HOME).getParent();
+        ScreenColors colors = ScreenColors.shown == null ? ScreenColors.DEFAULT : ScreenColors.shown;
+        TabPicker.moveUp(list, 3);
+        assertEquals(TabPicker.MESSAGES, list.getChildAt(2).getTag());
         alert.getButton(DialogInterface.BUTTON_NEUTRAL).performClick();
         ShadowLooper.idleMainLooper();
+        assertTrue(alert.isShowing());
+        assertEquals(TabPicker.REELS, list.getChildAt(2).getTag());
+        for (int at = 0; at < list.getChildCount(); at++) {
+            android.widget.CheckBox box = TabPicker.box(list.getChildAt(at));
+            assertEquals(box.isEnabled() ? colors.title : colors.summary, box.getCurrentTextColor());
+        }
         assertEquals("", Settings.TAB_ORDER.get());
     }
 
@@ -331,12 +511,6 @@ public class ScreenColorsAccessibilityTest {
                 View.MeasureSpec.makeMeasureSpec(Math.round(819 * density), View.MeasureSpec.AT_MOST));
         root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
         ShadowLooper.idleMainLooper();
-    }
-
-    private static List<String> labels(ListView list) {
-        List<String> result = new ArrayList<>();
-        for (int i = 0; i < list.getAdapter().getCount(); i++) result.add(String.valueOf(list.getAdapter().getItem(i)));
-        return result;
     }
 
     private static int color(ColorStateList colors, boolean enabled, boolean checked) {

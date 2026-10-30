@@ -1,0 +1,833 @@
+{
+  "schema": 1,
+  "prerequisite": "HushGram settings",
+  "categories": [
+    {
+      "id": "settings-privacy",
+      "title": "Ads and privacy",
+      "builder": "PrivacyCategory",
+      "page": true,
+      "when": {
+        "op": "any_of",
+        "conditions": [
+          {
+            "op": "any",
+            "patches": [
+              "Hide ads",
+              "Sanitize sharing links",
+              "Open links in external browser",
+              "Spoof location"
+            ]
+          },
+          {
+            "op": "at_least",
+            "count": 2,
+            "patches": [
+              "View stories anonymously",
+              "View live anonymously",
+              "Read messages without the seen receipt",
+              "View DM photos and videos anonymously",
+              "Hide that you're typing",
+              "Hide your active status",
+              "Don't report screenshots"
+            ]
+          }
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Ghost mode",
+          "when": {
+            "op": "at_least",
+            "count": 2,
+            "patches": [
+              "View stories anonymously",
+              "View live anonymously",
+              "Read messages without the seen receipt",
+              "View DM photos and videos anonymously",
+              "Hide that you're typing",
+              "Hide your active status",
+              "Don't report screenshots"
+            ]
+          }
+        },
+        {
+          "title": "Hide ads",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide ads"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-feed",
+      "title": "Feed",
+      "builder": "FeedCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide suggested posts",
+          "Start Home on Following",
+          "Stop swipe to create",
+          "Full resolution photos",
+          "Hide the home feed",
+          "Stop swiping between tabs",
+          "Ask before a like",
+          "Ask before a refresh",
+          "Skip the collections tray",
+          "Show a post's exact time",
+          "Show hidden like counts",
+          "Back leaves Home",
+          "Keep your place in Home",
+          "Start feed videos with sound",
+          "Tap a feed video to pause it",
+          "Seek bar on feed videos",
+          "Long press to zoom",
+          "Rounded post corners",
+          "Full screen Reels and Home",
+          "Hide Follow on feed posts"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Start Home on Following",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Start Home on Following"
+            ]
+          }
+        },
+        {
+          "title": "Hide suggested accounts",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested posts"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-metaai",
+      "title": "Meta AI",
+      "builder": "MetaAiCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide Meta AI"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide Meta AI in search and Home's bar",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide Meta AI"
+            ]
+          }
+        },
+        {
+          "title": "Hide Meta AI posts",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide Meta AI"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-explore",
+      "title": "Explore",
+      "builder": "ExploreCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide the Explore grid",
+          "Don't save recent searches",
+          "Show all recent searches"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide the Explore grid",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide the Explore grid"
+            ]
+          }
+        },
+        {
+          "title": "Don't save recent searches",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Don't save recent searches"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-messages",
+      "title": "Messages",
+      "builder": "MessagesCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide the notes row",
+          "Hide the search bar in Messages",
+          "Hide suggested accounts in DMs",
+          "Hide Instants",
+          "Read messages without the seen receipt",
+          "Hide that you're typing",
+          "View DM photos and videos anonymously",
+          "Hide your active status",
+          "Show when someone was last active",
+          "Lock your messages",
+          "Don't report screenshots",
+          "Allow screenshots",
+          "Keep in chat",
+          "Swipe through a chat's reels",
+          "Ask before a call",
+          "Message box buttons",
+          "Full screen Reels and Home"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide the notes row",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide the notes row"
+            ]
+          }
+        },
+        {
+          "title": "Read messages without the seen receipt",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Read messages without the seen receipt"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-reels",
+      "title": "Reels",
+      "builder": "ReelsCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide Reels in the feed",
+          "Hide suggested accounts in Reels",
+          "Hide paid partnership Reels",
+          "Hide AI-labeled reels",
+          "Hide reels by caption words",
+          "Clean up Reels",
+          "Don't send reel watch history",
+          "Download any reel",
+          "Turn off double tap to like",
+          "Change the like animation",
+          "Full screen Reels and Home",
+          "Keep the reel speed",
+          "Show a reel's exact time",
+          "Keep a seek bar on Reels",
+          "Pinch to zoom on Reels",
+          "Blur the bars around Reels",
+          "Keep Reels auto scroll on",
+          "Stop Reels scrolling",
+          "Swipe left to open the profile",
+          "Find the reel you came from"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide Reels in the feed",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide Reels in the feed"
+            ]
+          }
+        },
+        {
+          "title": "Hide suggested accounts",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested accounts in Reels"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-stories",
+      "title": "Stories",
+      "builder": "StoriesCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide suggested stories",
+          "Story ring size",
+          "Thicker story progress bar",
+          "Seek bar on stories",
+          "Stop Story auto-advance",
+          "Loop a story",
+          "Start stories with sound",
+          "Stop swipe up to reply",
+          "Show a story's exact time",
+          "See who a story mentions",
+          "Hide Follow on stories",
+          "View stories anonymously",
+          "View live anonymously",
+          "Download any story",
+          "Upload stories at full quality",
+          "Story text fonts"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide suggested stories",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested stories"
+            ]
+          }
+        },
+        {
+          "title": "View stories anonymously",
+          "when": {
+            "op": "any",
+            "patches": [
+              "View stories anonymously"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-playback",
+      "title": "Playback",
+      "builder": "PlaybackCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Turn off HDR brightness boosts",
+          "Tap to play",
+          "Resume long videos",
+          "Control taps and volume on Reels",
+          "Start reels with sound",
+          "Default playback quality",
+          "Data saver"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Tap to play",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Tap to play"
+            ]
+          }
+        },
+        {
+          "title": "Default playback quality",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Default playback quality"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-sharing",
+      "title": "Sharing",
+      "builder": "SharingCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Hide group buttons on the share sheet",
+          "Hide the Repost button",
+          "Hide the Share button"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide group buttons",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide group buttons on the share sheet"
+            ]
+          }
+        },
+        {
+          "title": "Hide the Repost button",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide the Repost button"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-comments",
+      "title": "Comments",
+      "builder": "CommentsCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Copy comment",
+          "Save comment photo",
+          "Hide comments",
+          "Hide the comment emoji row",
+          "Open comments without the keyboard"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Copy comment",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Copy comment"
+            ]
+          }
+        },
+        {
+          "title": "Save comment photo",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Save comment photo"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-profiles",
+      "title": "Profiles",
+      "builder": "ProfilesCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Show if a profile follows you",
+          "Hide suggested people on profiles",
+          "Hide highlights",
+          "Hide the Threads button",
+          "Hide Notes on profile pictures",
+          "Hide profile tabs",
+          "Saved on your profile",
+          "Profile posts as a list"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Show if a profile follows you",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Show if a profile follows you"
+            ]
+          }
+        },
+        {
+          "title": "Hide suggested people",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested people on profiles"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-layout",
+      "title": "Layout",
+      "builder": "LayoutCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Remove the empty space at the bottom",
+          "Emoji style",
+          "Accent color",
+          "HushGram launch screen",
+          "Font",
+          "Pick the app icon",
+          "Hide rows in Instagram's settings"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Remove the empty space at the bottom",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Remove the empty space at the bottom"
+            ]
+          }
+        },
+        {
+          "title": "Accent color",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Accent color"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-tabbar",
+      "title": "Tab bar",
+      "builder": "TabBarCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Glass tab bar",
+          "Hide the Reels tab"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Hide the Home tab",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide the Reels tab"
+            ]
+          }
+        },
+        {
+          "title": "Slide across the tabs",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Glass tab bar"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-notifications",
+      "title": "Notifications",
+      "builder": "NotificationsCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Group Instagram's notifications",
+          "Hide suggested people on profiles"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Group notifications",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Group Instagram's notifications"
+            ]
+          }
+        },
+        {
+          "title": "Group by type",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Group Instagram's notifications"
+            ]
+          }
+        },
+        {
+          "title": "Hide People you don't follow back",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Hide suggested people on profiles"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-storage",
+      "title": "Storage",
+      "builder": "StorageCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Clear the media cache"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Clear the media cache",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Clear the media cache"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-downloads",
+      "title": "Downloads",
+      "builder": "DownloadsCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Download any reel",
+          "Download any story",
+          "Download any video",
+          "Save profile picture",
+          "Download voice messages"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Download feed videos",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Download any video"
+            ]
+          }
+        },
+        {
+          "title": "Send downloads to another app",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Save videos other apps can open",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-battery",
+      "title": "Battery",
+      "builder": "BatteryCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Stop background wake-ups"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Stop the background heartbeat",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Stop background wake-ups"
+            ]
+          }
+        },
+        {
+          "title": "Stop the analytics upload alarm",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Stop background wake-ups"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-updates",
+      "title": "Version warnings",
+      "builder": "UpdatesCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Remove build expired popup"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Remove build expired popup",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Remove build expired popup"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-entry",
+      "title": "Settings entry",
+      "builder": "EntryCategory",
+      "page": true,
+      "when": {
+        "op": "unconditional"
+      },
+      "anchors": [
+        {
+          "title": "Settings shortcut on the app icon",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Expandable categories",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-patchtime",
+      "title": "Set when you patched",
+      "builder": "PatchTimeCategory",
+      "page": true,
+      "when": {
+        "op": "any",
+        "patches": [
+          "Restore trust on re-signed builds",
+          "Remove the advertising ID",
+          "Pure black dark mode",
+          "Change version code"
+        ]
+      },
+      "anchors": [
+        {
+          "title": "Instagram accepts this build",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Restore trust on re-signed builds"
+            ]
+          }
+        },
+        {
+          "title": "Advertising ID removed",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Remove the advertising ID"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-backup",
+      "title": "Settings backup",
+      "builder": "BackupCategory",
+      "page": true,
+      "when": {
+        "op": "unconditional"
+      },
+      "anchors": [
+        {
+          "title": "Export HushGram settings",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Date in backup file names",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-pause",
+      "title": "Pause and diagnostics",
+      "builder": "PauseCategory",
+      "page": true,
+      "when": {
+        "op": "unconditional"
+      },
+      "anchors": [
+        {
+          "title": "Pause HushGram",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Debug logging",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    },
+    {
+      "id": "settings-about",
+      "title": "About",
+      "builder": "AboutCategory",
+      "page": true,
+      "when": {
+        "op": "unconditional"
+      },
+      "anchors": [
+        {
+          "title": "Version",
+          "when": {
+            "op": "unconditional"
+          }
+        },
+        {
+          "title": "Licenses",
+          "when": {
+            "op": "unconditional"
+          }
+        }
+      ]
+    }
+  ]
+}

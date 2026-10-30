@@ -107,6 +107,14 @@ public final class TapToPlay {
             "seek", "seek_force_pause", "Seek start", "paused_for_pinch_to_zoom", "paused_for_replay")));
 
     /**
+     * The pause reason the music picker's clip slider, in Notes and stories, gives a moment into a
+     * drag ({@link TapClock#dragging}). It plays the song again from the new spot right after the
+     * finger comes up, so that pause is momentary too (#263). The same reason with no drag under way,
+     * from the picker's pause button, still ends the start.
+     */
+    static final String DRAG_PAUSE = "user_paused_video";
+
+    /**
      * The IgVideoPlayerImpl states a tap on a reel starts from: prepared and never started, which is
      * where the gate leaves a held reel, and paused, which is where a pause for the comments sheet
      * leaves it. ClipsVideoPlayer's resume restarts a player only from these two, so a tap on a reel
@@ -173,13 +181,16 @@ public final class TapToPlay {
 
     /**
      * The hook, first thing in IgGrootPlayer's pause. A paused player waits for a tap again, unless
-     * the pause is one of the {@link #MOMENTARY} ones Instagram plays on from by itself.
+     * the pause is one of the {@link #MOMENTARY} ones Instagram plays on from by itself, or the
+     * slider's {@link #DRAG_PAUSE} in the middle of a drag.
      */
     public static void paused(@Nullable Object player, @Nullable String reason) {
         try {
             HookStatus.invoked(FamilyNames.TAP_TO_PLAY);
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "player pause");
-            if ((reason == null || !MOMENTARY.contains(reason)) && ARMED.remove(player)) {
+            boolean momentary = reason != null
+                    && (MOMENTARY.contains(reason) || DRAG_PAUSE.equals(reason) && TapClock.dragging());
+            if (!momentary && ARMED.remove(player)) {
                 PlayButtons.ended(player);
                 logEnded(() -> "a pause for " + (reason == null ? "no reason" : reason));
             }
@@ -223,8 +234,10 @@ public final class TapToPlay {
      * that player isn't armed already ({@link #decide}). A held reel never plays, so it never ends,
      * and the scroller never moves on from it, and a reel you pause doesn't end either, so the chain
      * stops there. Without this the reel auto scroll moved to sat on its first frame and auto scroll
-     * stopped for good. Off, paused, before the settings are ready, or when anything here throws,
-     * nothing is recorded, and the next reel waits for a tap.
+     * stopped for good. With {@link Settings#TAP_TO_PLAY_AUTO_SCROLL_WAITS} on, that's what you
+     * get on purpose: nothing is recorded, so the viewer still moves on when a reel ends and the next
+     * reel waits for a tap (#175). With Tap to play off, paused, before the settings are ready, or
+     * when anything here throws, nothing is recorded either, and the next reel waits for a tap.
      */
     public static void autoScrolled() {
         try {
@@ -236,6 +249,7 @@ public final class TapToPlay {
             }
             if (!onFor(true)) return;
             HookStatus.bound(FamilyNames.TAP_TO_PLAY, "auto scroll");
+            if (Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.get()) return;
             scrolledAt(SystemClock.uptimeMillis());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, "auto scroll", failure);
@@ -469,7 +483,7 @@ public final class TapToPlay {
                 logLeftOutOnce(inReels);
                 return true;
             }
-            return decide(player, reason, now, path);
+            return decide(player, reason, now, path, inReels);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.TAP_TO_PLAY, hook, failure);
             return true;
@@ -500,17 +514,25 @@ public final class TapToPlay {
                 + (reels ? "in Reels" : "outside Reels") + " go ahead, the choice of where leaves them out");
     }
 
-    /** The rule, with the clock passed in. Arms the player when it lets the start through. */
+    /** The rule, with the clock passed in, for a start outside Reels. */
     static boolean decide(@Nullable Object player, @Nullable String reason, long now, String path) {
+        return decide(player, reason, now, path, false);
+    }
+
+    /**
+     * The rule, with the clock passed in. Arms the player when it lets the start through. A tap's
+     * first start of a player outside Reels, [inReels] false, hides the play button under the tap.
+     */
+    static boolean decide(@Nullable Object player, @Nullable String reason, long now, String path, boolean inReels) {
         boolean armed = ARMED.contains(player);
         long sinceTap = TapClock.msSinceTap(now);
         boolean covered = tapCovers(sinceTap, now, armed);
-        boolean scrolled = player != null && !armed && autoScrollCovers(now);
+        boolean scrolled = inReels && player != null && !armed && autoScrollCovers(now);
         boolean allowed = armed || covered || scrolled;
         if (allowed && !armed) ARMED.add(player, now);
         if (allowed) HELD.remove(player);
         else HELD.add(player, now);
-        if (covered) PlayButtons.started(player, now);
+        if (covered) PlayButtons.started(player, now, now - sinceTap, !armed && !inReels);
         logDecision(allowed, reason, sinceTap, armed, scrolled, path);
         return allowed;
     }

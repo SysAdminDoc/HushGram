@@ -159,7 +159,8 @@ internal object FeedItemStandIns {
         val candidates = FixtureDex.classes(bundle, made)
         val itemType = candidates.values.single { classDef -> classDef.fields.any { it.type == CLIPS_NETEGO } }.type
         val fieldTypes = candidates.getValue(itemType).fields.map { it.type }.toSet()
-        val classes = (holders + candidates.values + FixtureDex.classes(bundle, fieldTypes).values).distinctBy { it.type }
+        // 452 serializes the story unit in classes of its own, which hold "media_or_ad" too.
+        val classes = (holders + candidates.values + FixtureDex.classes(bundle, fieldTypes).values + FixtureDex.classesHolding(bundle, "media_or_ad")).distinctBy { it.type }
         return Fixture(bundle, classes, itemType)
     }
 

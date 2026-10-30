@@ -37,7 +37,7 @@ public class ActiveStatusSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_ACTIVE_STATUS.resetToDefault();
         Settings.HIDE_TYPING.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -81,7 +81,7 @@ public class ActiveStatusSettingsTest {
         assertNotNull(row);
         assertEquals("Hide your active status", row.getTitle().toString());
         assertEquals("People don't see Active now for you while you use Instagram, and you still see when they're "
-                + "active. Restart Instagram to see the change.", row.getSummary().toString());
+                + "active. It takes effect the next time you come back to Instagram.", row.getSummary().toString());
         PreferenceGroup messages = row.getParent();
         assertEquals("Messages", messages.getTitle().toString());
         String[] keys = new String[messages.getPreferenceCount()];

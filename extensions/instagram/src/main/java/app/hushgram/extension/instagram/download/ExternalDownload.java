@@ -113,10 +113,31 @@ public final class ExternalDownload {
             if (!(context instanceof Activity)) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             context.startActivity(chooser);
             HookStatus.counted(family, SENT);
+            sayWhyOnce(context);
             return true;
         } catch (Throwable t) {
             Logger.diagnosticError(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "the share sheet didn't open, so it saves here", t);
             return false;
         }
+    }
+
+    /**
+     * The first hand off of a run says which switch opened the share sheet (#305). Android 10 and up
+     * show no chooser title, so the sheet looks like Instagram's own Share, and someone who turned on
+     * every download switch can't tell why Download stopped saving.
+     */
+    private static void sayWhyOnce(Context context) {
+        if (toldWhy) return;
+        toldWhy = true;
+        Utils.showToastLong(L10n.t(context,
+                "Sent to another app. To save here instead, turn off Send downloads to another app under Downloads."));
+    }
+
+    /** Whether this run's toast has said which switch sends downloads away. */
+    private static volatile boolean toldWhy;
+
+    /** For tests: the next hand off says why again. */
+    static void forgetToldForTests() {
+        toldWhy = false;
     }
 }

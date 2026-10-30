@@ -46,6 +46,9 @@ import java.io.File
 private const val PLAYBACK_STATE = "VideoPlaybackUseCase_getUiState"
 private const val PIP_ON_CREATE = "ClipsPiPFragment_onCreate"
 
+/** The markers of what decides whether Reels offers auto scroll and of the scroller's three steps. */
+private val scrollerMarkers = setOf(OPT_IN_AUTOSCROLL, SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL)
+
 class KeepReelsAutoScrollHookTest {
     private val plugin = "Lfixture/AutoscrollPlugin;"
     private val preference = "Lfixture/AutoscrollPreference;"
@@ -67,6 +70,10 @@ class KeepReelsAutoScrollHookTest {
     private val durationMarker = "ClipsOptInAutoscrollPluginImpl_logDurationTap"
     private val timerHook = "$REEL_AUTO_SCROLL->timerSet(J)V"
     private val timerSetter = "$timer->expires($prefs" + "J)V"
+    private val experiments = "Lfixture/ViewerExperiments;"
+    private val offered = "$experiments->autoScrollOffered($session" + "Z)Z"
+    private val scroller = "Lfixture/AutoScroller;"
+    private val viewerBuilder = "Lfixture/ViewerBuilder;"
     private val clickParameters = listOf(
         "Landroidx/fragment/app/FragmentActivity;", session, "Lfixture/Logger;", "Lkotlin/jvm/functions/Function0;", "I", "J", "Z",
     )
@@ -84,7 +91,7 @@ class KeepReelsAutoScrollHookTest {
         "overwrittenOnABranch" to listOf("move/from16 v1, p8", "if-nez v0, :keep", "const/4 v1, 0x1", ":keep"),
         "parameterOverwritten" to listOf("const/16 p8, 0x1", "move/from16 v1, p8"),
     )
-    private val hooks = setOf(AUTO_SCROLL_ANSWER, AUTO_SCROLL_SAVED, AUTO_SCROLL_CHOSEN, AUTO_SCROLL_STORED, timerHook)
+    private val hooks = setOf(AUTO_SCROLL_ANSWER, AUTO_SCROLL_SAVED, AUTO_SCROLL_CHOSEN, AUTO_SCROLL_STORED, AUTO_SCROLL_INSTALL, timerHook)
 
     /** How the stand-in handler keeps its choice in memory: as it is, not at all, twice, or a constant in its place. */
     private val choiceToKeep = mapOf(
@@ -139,6 +146,11 @@ class KeepReelsAutoScrollHookTest {
             context.method(lifecycle, "onActivityCreated").code().count { it.referenceText() in hooks })
         assertEquals("the memory's getter isn't changed", 0, context.method(memoryClass, "instance").code().count { it.referenceText() in hooks })
         assertEquals("nothing else calls chosen", 0, context.method(viewer, "onPause").code().count { it.referenceText() == AUTO_SCROLL_CHOSEN })
+        assertInstallAnswered("the stand-in", context.method(viewerBuilder, "build"), offered, scroller)
+        assertEquals("whether auto scroll is offered stays Instagram's own answer everywhere else", 0,
+            context.method(experiments, "autoScrollOffered").code().count { it.referenceText() in hooks })
+        assertEquals("the scroller's own checks and its move aren't changed", 0,
+            context.mutableClassDefBy(scroller).methods.sumOf { method -> method.code().count { it.referenceText() in hooks } })
 
         val status = context.method(SETTINGS_STATUS, "reelAutoScroll").code()
         assertEquals("SettingsStatus.reelAutoScroll() isn't switched on", 1, (status.first() as NarrowLiteralInstruction).narrowLiteral)
@@ -155,6 +167,16 @@ class KeepReelsAutoScrollHookTest {
         keepReelsAutoScrollPatch.execute(context)
 
         assertChoiceFirst("copied twice", context.method(plugin, "handle"))
+    }
+
+    /** A scroller whose check of whether to move on asks the plugin itself, with no method in between, is read the same. */
+    @Test
+    fun aScrollerAskingThePluginItselfIsStillBuilt() {
+        val context = PatchContexts.of(classes(scrollerAsks = "direct") + ExtensionDex.classDef(SETTINGS_STATUS))
+
+        keepReelsAutoScrollPatch.execute(context)
+
+        assertInstallAnswered("asking directly", context.method(viewerBuilder, "build"), offered, scroller)
     }
 
     /** The completed duration choices pass the exact native timestamp after the native save. */
@@ -251,6 +273,28 @@ class KeepReelsAutoScrollHookTest {
             classes(clickKeeps = "constant") to "keeps something other than its choice, parameter 6 (v28), in $memory at instruction 10",
             classes(readerOpcode = "iget") to "$useCase->uiState()Z reads $memory with iget at instruction 4, not iget-boolean",
             classes(clickReads = true) to "reads $memory and hands its choice over too",
+            classes(gates = 0) to "$oneMarked $OPT_IN_AUTOSCROLL, found 0",
+            classes(gates = 2) to "$oneMarked $OPT_IN_AUTOSCROLL, found 2",
+            classes(gateTakes = listOf(session)) to "marked $OPT_IN_AUTOSCROLL, isn't a static ($session, boolean) method answering a boolean",
+            classes(scrollerMarks = setOf(SCROLLER_ON_LOOP, SCROLLER_SCROLL)) to "$oneMarked $SCROLLER_SHOULD_SCROLL, found 0",
+            classes(scrollerMarks = setOf(SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL)) to "$oneMarked $SCROLLER_SCROLL, found 0",
+            classes(scrollerMarks = setOf(SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL)) to "$oneMarked $SCROLLER_ON_LOOP, found 0",
+            classes(moveElsewhere = true) to "marked $SCROLLER_SCROLL, isn't a static ($scroller, boolean) method returning nothing",
+            classes(loopCalls = "noCheck") to "doesn't call both $scroller->shouldScroll($scroller)Z and $scroller->scrollToNext($scroller" + "Z)V",
+            classes(loopCalls = "noMove") to "doesn't call both $scroller->shouldScroll($scroller)Z and $scroller->scrollToNext($scroller" + "Z)V",
+            classes(scrollerAsks = "none") to "$scroller->shouldScroll($scroller)Z doesn't ask $plugin->check($session)Z whether auto scroll is on",
+            classes(builders = 0) to "expected one method building $scroller, found 0",
+            classes(builders = 2) to "expected one method building $scroller, found 2",
+            classes(builderStatic = false) to "isn't the Reels viewer's static method tracing \"$SCROLLER_TRACE\"",
+            classes(builderTraces = false) to "isn't the Reels viewer's static method tracing \"$SCROLLER_TRACE\"",
+            classes(scrollersBuilt = 2) to "builds $scroller 2 times, expected once",
+            classes(offeredReads = 0) to "reads $offered 0 times, expected once",
+            classes(offeredReads = 2) to "reads $offered 2 times, expected once",
+            // An if-nez that jumps past the build on a yes, where 453's goes on to it.
+            classes(offeredBranch = "if-nez") to "goes to 8, not on to the place $scroller is built, instruction 6",
+            classes(offeredBranch = "otherRegister") to "doesn't branch on $offered's answer right after reading it at instruction 2",
+            classes(branchSkipsBuild = false) to "doesn't skip the place $scroller is built",
+            classes(jumpOntoBranch = true) to "jumps to instruction 5, between its read of $offered and the branch on it",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes + ExtensionDex.classDef(SETTINGS_STATUS))
@@ -291,17 +335,23 @@ class KeepReelsAutoScrollHookTest {
         val found = mutableMapOf<String, ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             if (dex.stringSection.none { it == AUTOSCROLL_PREFERENCE || it == AUTOSCROLL_EXPIRATION ||
-                it.endsWith("_$IS_AUTOSCROLL_ACTIVE") || it.endsWith("_$AUTOSCROLL_MODE_CLICK") || it.endsWith("_$AUTOSCROLL_DURATION_TAP") }) {
+                it.endsWith("_$IS_AUTOSCROLL_ACTIVE") || it.endsWith("_$AUTOSCROLL_MODE_CLICK") || it.endsWith("_$AUTOSCROLL_DURATION_TAP") ||
+                scrollerMarkers.any { marker -> it.endsWith("_$marker") } }) {
                 return@forEach
             }
             for (classDef in dex.classes) {
                 val wanted = classDef.methods.any { method ->
-                    method.markers().any { it == IS_AUTOSCROLL_ACTIVE || it == AUTOSCROLL_MODE_CLICK || it == AUTOSCROLL_DURATION_TAP } ||
+                    method.markers().any { it == IS_AUTOSCROLL_ACTIVE || it == AUTOSCROLL_MODE_CLICK || it == AUTOSCROLL_DURATION_TAP || it in scrollerMarkers } ||
                         (method.name == "<clinit>" && method.code().any { it.string() in listOf(AUTOSCROLL_PREFERENCE, AUTOSCROLL_EXPIRATION) })
                 }
                 if (wanted) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
         }
+        // 451's callbacks call a static log helper holding the duration marker instead of holding it.
+        val logHelpers = found.values.flatMap { it.methods }
+            .filter { AUTOSCROLL_DURATION_TAP in it.markers() && AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.text() }.toSet()
+        fun Method.durationCallback() = !AccessFlags.STATIC.isSet(accessFlags) &&
+            (AUTOSCROLL_DURATION_TAP in markers() || code().any { it.referenceText() in logHelpers })
         val preferenceClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_PREFERENCE } } }
         val getter = preferenceClass.methods.single { AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Z" && it.parameterTypes.size == 1 }
         val setter = preferenceClass.methods.single {
@@ -312,6 +362,7 @@ class KeepReelsAutoScrollHookTest {
         val checkMethod = plugin.methods.single { IS_AUTOSCROLL_ACTIVE in it.markers() }
         val memory = checkMethod.code().single { it.opcode == Opcode.IGET_BOOLEAN }.reference() as FieldReference
         val memoryText = memory.toString()
+        val scrollerClass = found.values.single { type -> type.methods.any { m -> SCROLLER_SHOULD_SCROLL in m.markers() } }
         val timerClass = found.values.single { type -> type.methods.any { m -> m.name == "<clinit>" && m.code().any { it.string() == AUTOSCROLL_EXPIRATION } } }
         val expirationSetter = timerClass.methods.single { it.name != "<clinit>" }
         val boxingHelper = expirationSetter.code().mapNotNull { it.reference() as? MethodReference }.last()
@@ -329,6 +380,8 @@ class KeepReelsAutoScrollHookTest {
                 for (method in classDef.methods) {
                     for (instruction in method.code()) {
                         if (instruction.calls(setter) || instruction.referenceText() == memoryText) wanted = true
+                        if (instruction.referenceText() in logHelpers) wanted = true
+                        if (instruction.opcode == Opcode.NEW_INSTANCE && instruction.referenceText() == scrollerClass.type) wanted = true
                         val field = instruction.reference() as? FieldReference ?: continue
                         if (instruction.opcode.setsRegister() && field.definingClass in stateClasses && classDef.type !in stateClasses) {
                             stateReaders += method.text()
@@ -355,11 +408,11 @@ class KeepReelsAutoScrollHookTest {
         val click = context.mutableClassDefBy(plugin.type).methods.single { AUTOSCROLL_MODE_CLICK in it.markers() }
         assertChoiceFirst(label, click)
         assertChoiceKept(label, click, setter.text(), memoryText)
-        val callback = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.code().any { code -> code.calls(expirationSetter) } }
+        val callback = found.values.flatMap { it.methods.toList() }.single { it.durationCallback() && it.code().any { code -> code.calls(expirationSetter) } }
         assertTimerChoices(context.method(callback), expirationSetter.text())
         assertEquals("${label}: native expiration setter is unchanged", expirationSetter.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
             context.method(expirationSetter).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
-        val cancellation = found.values.flatMap { it.methods.toList() }.single { AUTOSCROLL_DURATION_TAP in it.markers() && it.text() != callback.text() }
+        val cancellation = found.values.flatMap { it.methods.toList() }.single { it.durationCallback() && it.text() != callback.text() }
         assertEquals("${label}: cancellation is unchanged", cancellation.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
             context.method(cancellation).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
 
@@ -367,7 +420,11 @@ class KeepReelsAutoScrollHookTest {
         assertTrue("${label}: the check reads the memory", readers.any { it.text() == checkMethod.text() })
         val outside = readers.filter { it.text() != checkMethod.text() }
         val known = listOf(PIP_ON_CREATE, PLAYBACK_STATE)
-        assertEquals("${label}: what reads the memory besides the check", known, outside.map { m -> known.single { it in m.markers() } }.sorted())
+        // 452 added a static helper beside the check that repeats it (the same flag, the memory, else the getter).
+        val checkCopies = outside.filter { m -> known.none { it in m.markers() } && m.code().any { it.calls(getter) } }
+        assertTrue("${label}: at most one copy of the check reads the memory", checkCopies.size <= 1)
+        assertEquals("${label}: what reads the memory besides the check", known,
+            (outside - checkCopies.toSet()).map { m -> known.single { it in m.markers() } }.sorted())
         outside.forEach { assertMemoryReadsAnswered("${label}: ${it.text()}", context.method(it), memoryText, reads = 1) }
         assertEquals("${label}: reads answered", outside.map { "${it.definingClass}->${it.name}" }.sorted(),
             sites.memoryReads.map { "${it.method.definingClass}->${it.method.name}" }.sorted())
@@ -385,6 +442,56 @@ class KeepReelsAutoScrollHookTest {
         assertChoiceAfterSave(label, context.method(toggle), setter.text())
         val (_, pause) = savers.single { (_, method) -> method.name == "onPause" }
         assertEquals("${label}: onPause isn't hooked", 0, context.method(pause).code().count { it.referenceText() in hooks })
+
+        val methods = found.values.flatMap { it.methods.toList() }
+        val gate = methods.single { OPT_IN_AUTOSCROLL in it.markers() }
+        val builder = methods.single { m -> m.code().any { it.opcode == Opcode.NEW_INSTANCE && it.referenceText() == scrollerClass.type } }
+        assertTrue("${label}: the scroller's builder is the Reels viewer's", builder.code().any { it.string() == SCROLLER_TRACE })
+        assertEquals("${label}: the builder", sites.install.builder.toString(), "${builder.definingClass}->${builder.name}(${builder.parameterTypes.joinToString("")})")
+        val built = context.mutableClassDefBy(builder.definingClass).methods.single { it.text() == builder.text() }
+        assertInstallAnswered(label, built, gate.text(), scrollerClass.type)
+        // Whether to move on from a reel, the move and what a reel's end runs stay Instagram's own,
+        // and so does the answer the menus read.
+        val after = (context.mutableClassDefBy(scrollerClass.type).methods + context.mutableClassDefBy(gate.definingClass).methods).associateBy { it.text() }
+        for (stock in scrollerClass.methods + gate) {
+            assertEquals("${label}: ${stock.text()} is changed", stock.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
+                after.getValue(stock.text()).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
+        }
+        for (marker in scrollerMarkers - OPT_IN_AUTOSCROLL) {
+            assertEquals("${label}: $marker is the scroller's", scrollerClass.type, methods.single { marker in it.markers() }.definingClass)
+        }
+    }
+
+    /**
+     * Right after the builder reads whether this account is offered auto scroll, install is handed
+     * that answer and its result goes back in the same register, in front of the branch that goes
+     * by it and still skips the place the scroller is built. Nothing jumps in between, and the
+     * builder calls no other hook.
+     */
+    private fun assertInstallAnswered(what: String, builder: MutableMethod, gate: String, scrollerType: String) {
+        val code = builder.code()
+        val read = code.indices.single { code[it].referenceText() == gate }
+        assertEquals("$what: Instagram's answer is read first", Opcode.MOVE_RESULT, code[read + 1].opcode)
+        val register = (code[read + 1] as OneRegisterInstruction).registerA
+        assertEquals("$what: install right after the read", AUTO_SCROLL_INSTALL, code[read + 2].referenceText())
+        assertEquals("$what: install is handed Instagram's answer", listOf(register), code[read + 2].arguments())
+        assertEquals("$what: install's result", Opcode.MOVE_RESULT, code[read + 3].opcode)
+        assertEquals("$what: the result's register", register, (code[read + 3] as OneRegisterInstruction).registerA)
+        // 453's 64-bit builds jump to the build on a yes rather than past it on a no.
+        val buildsWhenTrue = code[read + 4].opcode == Opcode.IF_NEZ
+        assertTrue("$what: the branch follows", buildsWhenTrue || code[read + 4].opcode == Opcode.IF_EQZ)
+        assertEquals("$what: the branch reads the result", register, (code[read + 4] as OneRegisterInstruction).registerA)
+        val targets = builder.jumpTargets()
+        assertTrue("$what: a jump lands between the read and its branch", (read + 1..read + 4).none { it in targets })
+        val created = code.indices.single { code[it].opcode == Opcode.NEW_INSTANCE && code[it].referenceText() == scrollerType }
+        assertTrue("$what: the scroller is built past the branch", created > read + 4)
+        if (buildsWhenTrue) {
+            assertTrue("$what: a yes still goes to the place the scroller is built", builder.targetOf(read + 4) <= created)
+        } else {
+            assertTrue("$what: the branch still skips the place the scroller is built", builder.targetOf(read + 4) > created)
+        }
+        assertEquals("$what: install calls", 1, code.count { it.referenceText() == AUTO_SCROLL_INSTALL })
+        assertEquals("$what: other hooks", 0, code.count { it.referenceText() in hooks - AUTO_SCROLL_INSTALL })
     }
 
     /**
@@ -517,6 +624,20 @@ class KeepReelsAutoScrollHookTest {
         timerKeepsDeadline: Boolean = true,
         durationOverwritesPrefs: Boolean = false,
         durationOverwritesReceiver: Boolean = false,
+        gates: Int = 1,
+        gateTakes: List<String> = listOf(session, "Z"),
+        scrollerMarks: Set<String> = setOf(SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL),
+        scrollerAsks: String = "helper",
+        moveElsewhere: Boolean = false,
+        loopCalls: String = "both",
+        builders: Int = 1,
+        builderStatic: Boolean = true,
+        builderTraces: Boolean = true,
+        scrollersBuilt: Int = 1,
+        offeredReads: Int = 1,
+        offeredBranch: String = "if-eqz",
+        branchSkipsBuild: Boolean = true,
+        jumpOntoBranch: Boolean = false,
     ): List<ClassDef> {
         val setter = "$preference->setEnabled($prefs" + "Z)V"
         val read = if (checkReads) "invoke-static { v0 }, $preference->enabled($prefs)Z" else "invoke-static { v0 }, Lfixture/Other;->enabled($prefs)Z"
@@ -745,7 +866,73 @@ class KeepReelsAutoScrollHookTest {
                 """),
             ), fields = listOf("preferences" to "Ljava/lang/Object;", "which" to "I"), interfaces = listOf("Lkotlin/jvm/functions/Function0;"), finalFields = true),
         )
-        return pluginClass + preferenceClasses + viewerClasses + otherClasses + toggleClasses + memoryClasses + readerClasses + timerClasses
+        // What decides whether Reels offers auto scroll, the scroller, and the viewer's builder,
+        // which reads the first and builds the second only when it says yes, as 450's does.
+        fun marker(name: String) = if (name in scrollerMarks) "const-string v0, \"android_purge_26_q3_$name\"" else ""
+        val askPlugin = "invoke-virtual { v0, v1 }, $plugin->check($session)Z"
+        val move = method(scroller, "scrollToNext", listOf(scroller, "Z"), "V", 1, static = true, body = """
+            ${marker(SCROLLER_SCROLL)}
+            const/4 v0, 0x0
+            return-void
+        """)
+        val scrollerMethods = listOf(
+            method(scroller, "active", listOf(scroller), "Z", 2, static = true, body = """
+                const/4 v0, 0x0
+                const/4 v1, 0x0
+                ${if (scrollerAsks == "helper") askPlugin else "invoke-static { v0 }, Lfixture/Other;->active(Ljava/lang/Object;)Z"}
+                move-result v0
+                return v0
+            """),
+            method(scroller, "shouldScroll", listOf(scroller), "Z", 2, static = true, body = """
+                ${marker(SCROLLER_SHOULD_SCROLL)}
+                const/4 v0, 0x0
+                const/4 v1, 0x0
+                ${if (scrollerAsks == "direct") askPlugin else "invoke-static { p0 }, $scroller->active($scroller)Z"}
+                move-result v0
+                return v0
+            """),
+            method(scroller, "onVideoLoop", listOf("Lfixture/Player;", "I", "I"), "V", 2, body = """
+                ${marker(SCROLLER_ON_LOOP)}
+                const/4 v1, 0x0
+                ${if (loopCalls == "noCheck") "" else "invoke-static { p0 }, $scroller->shouldScroll($scroller)Z"}
+                ${if (loopCalls == "noMove") "" else "invoke-static { p0, v1 }, $scroller->scrollToNext($scroller" + "Z)V"}
+                return-void
+            """),
+        )
+        val scrollerClasses = if (moveElsewhere) {
+            listOf(classDef(scroller, scrollerMethods), classDef("Lfixture/OtherScroller;", listOf(move.movedTo("Lfixture/OtherScroller;"))))
+        } else {
+            listOf(classDef(scroller, scrollerMethods + move))
+        }
+        val readOffered = (0 until offeredReads).joinToString("\n") { "invoke-static { v0, v3 }, $offered\nmove-result v0" }
+        val branch = if (offeredBranch == "otherRegister") "if-eqz v3" else "$offeredBranch v0"
+        val build = (0 until scrollersBuilt).joinToString("\n") { "new-instance v0, $scroller\ninvoke-direct { v0 }, $scroller-><init>()V" }
+        val experimentClasses = listOf(
+            classDef(experiments, (0 until gates).map { copy ->
+                method(experiments, if (copy == 0) "autoScrollOffered" else "autoScrollOffered$copy", gateTakes, "Z", 1, static = true, body = """
+                    const-string v0, "android_purge_26_q2_$OPT_IN_AUTOSCROLL"
+                    const/4 v0, 0x0
+                    return v0
+                """)
+            }),
+            classDef(viewerBuilder, (0 until builders).map { copy ->
+                method(viewerBuilder, if (copy == 0) "build" else "build$copy", listOf("Landroid/content/Context;", "I"), "V", 4, static = builderStatic, body = """
+                    const/4 v0, 0x0
+                    const/4 v3, 0x0
+                    ${if (jumpOntoBranch) "if-nez v3, :branch" else ""}
+                    $readOffered
+                    ${if (jumpOntoBranch) ":branch" else ""}
+                    $branch, ${if (branchSkipsBuild) ":none" else ":make"}
+                    ${if (builderTraces) "const-string v1, \"$SCROLLER_TRACE\"" else ""}
+                    ${if (branchSkipsBuild) "" else ":make"}
+                    $build
+                    ${if (branchSkipsBuild) ":none" else ""}
+                    return-void
+                """)
+            }),
+        )
+        return pluginClass + preferenceClasses + viewerClasses + otherClasses + toggleClasses + memoryClasses + readerClasses + timerClasses +
+            scrollerClasses + experimentClasses
     }
 
     private fun method(

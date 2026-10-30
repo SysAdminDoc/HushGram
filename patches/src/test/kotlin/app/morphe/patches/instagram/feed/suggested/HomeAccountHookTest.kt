@@ -122,6 +122,21 @@ class HomeAccountHookTest {
         assertEquals("the constructor still reads the session where it was", 21, (code[2] as TwoRegisterInstruction).registerB)
     }
 
+    /** 451's constructor takes the session first and the boolean after it, so the session is in p1. */
+    @Test
+    fun aSessionTakenFirstGoesOverFromItsOwnRegister() {
+        val context = PatchContexts.of(classes(source(constructor(listOf(session, "Z")))))
+
+        requireNotNull(context.homeAccountOrWarn()).write()
+
+        val code = context.mutableClassDefBy(MAIN_FEED_CACHE_SOURCE).methods.single().instructions()
+        assertEquals(HOME_SESSION, ((code[0] as ReferenceInstruction).reference as MethodReference).text())
+        val range = code[0] as RegisterRangeInstruction
+        assertEquals("the session's register, p1", 20, range.startRegister)
+        assertEquals(1, range.registerCount)
+        assertEquals(listOf(Opcode.INVOKE_DIRECT_RANGE, Opcode.MOVE_OBJECT_FROM16, Opcode.RETURN_VOID), code.drop(1).map { it.opcode })
+    }
+
     /** The stub casts its argument to the session and answers getUserId(), using p0 alone. */
     @Test
     fun theStubAnswersTheSessionsUserId() {
@@ -257,8 +272,9 @@ class HomeAccountHookTest {
     }
 
     /**
-     * On every build of the declared version, the cache source has its one (boolean, UserSession)
-     * constructor with the session in its last register, UserSession has its public getUserId(), the
+     * On every build of the declared version, the cache source has its one constructor taking a
+     * boolean and the session (451 takes the session first), the hook reads the session's own
+     * register, UserSession has its public getUserId(), the
      * hook goes in first, and the source is the one class holding the contract rule's two strings.
      */
     @Test
@@ -283,7 +299,10 @@ class HomeAccountHookTest {
             val code = constructor.instructions()
             assertEquals("$where: the hook first", HOME_SESSION, ((code[0] as ReferenceInstruction).reference as MethodReference).text())
             val registers = constructor.implementation!!.registerCount
-            assertEquals("$where: the session is the last of p0, p1 and p2", registers - 1, (code[0] as RegisterRangeInstruction).startRegister)
+            val parameters = constructor.parameterTypes.map(Any::toString)
+            assertEquals("$where: a boolean and the session", listOf(session, "Z"), parameters.sorted())
+            val sessionAt = registers - parameters.size + parameters.indexOf(session)
+            assertEquals("$where: the session's own register", sessionAt, (code[0] as RegisterRangeInstruction).startRegister)
             assertEquals("$where: the hook once", 1, code.count {
                 ((it as? ReferenceInstruction)?.reference as? MethodReference)?.text() == HOME_SESSION
             })

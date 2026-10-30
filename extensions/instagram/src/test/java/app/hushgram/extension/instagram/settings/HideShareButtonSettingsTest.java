@@ -37,7 +37,7 @@ public class HideShareButtonSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_SHARE_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

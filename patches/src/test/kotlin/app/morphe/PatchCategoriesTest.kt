@@ -30,8 +30,8 @@ class PatchCategoriesTest {
         "Profiles", "Interface", "Downloads", "Updates", "Fixes", "Settings",
     )
 
-    /** Interface once held 43 patches. A group past this is too long to scan on a phone. */
-    private val largestGroup = 15
+    /** Interface once held 43 patches. A group past this is too long to scan on a phone. Feed, Interface and Reels are at the limit, Reels since Swipe left to open the profile (#245). */
+    private val largestGroup = 16
 
     private fun shippedPatches() = run {
         val catalog = File("../patches-list.json").takeIf { it.isFile } ?: File("patches-list.json")

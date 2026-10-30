@@ -15,16 +15,20 @@
        method verifyAndroidBoundaries requires is still a test method, and every text the settings
        tests expect is still in the extension sources or the translation tables.
     6. One Gradle build through the machine's queue: the catalog regenerated and compared with the
-       committed one, and the patch tests that read no Instagram APK (the README table, the
+       committed one, the patch tests that read no Instagram APK (the README table, the
        categories, the notices and source checks), so the patch tests' long fixture scans aren't
-       what finds a README row out of step.
+       what finds a README row out of step, and the bundle (:patches:buildAndroid).
+    7. verify-all-patches.ps1 on each declared build's fixture with that bundle: every patch
+       applied in one run, the manifest and resource table checks, and DexDiff's injected-code
+       contracts (scripts/injected-mutation-contracts.txt), which otherwise first run in the gate.
+       About three minutes, in a work folder under the temp folder that's removed after.
 
     Each step says how long it took, and the run says if the whole took more than five minutes.
-    -SkipGradle leaves the last step out. A failed step stops the run with exit 1.
+    -SkipGradle leaves the last two steps out. A failed step stops the run with exit 1.
 
 .EXAMPLE
     scripts/release/preflight.ps1
-    scripts/release/preflight.ps1 -Version 0.0.9
+    scripts/release/preflight.ps1 -Version 0.0.17
 
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
@@ -52,11 +56,12 @@ foreach ($name in @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WO
     }
 }
 
-# The patch tests that open no fixture: they read the README, the catalog, the notices and the
-# sources, and take seconds once the module is compiled.
+# The patch tests that open no fixture: they read the README, the catalog, the notices, the
+# sources and the compiled hooks, and take seconds once the module is compiled. A hook taking a
+# boolean (BooleanHookParametersTest) otherwise first fails half an hour into the gate.
 $quickPatchTests = @('ReadmePatchNamesTest', 'PatchCategoriesTest', 'ProvenanceTest', 'SourceNoticeTest',
     'OriginNoticeMirrorsTest', 'ExtensionHostsTest', 'GuavaPatchSourceGuardTest', 'ConstantReturnSourceTest',
-    'ObfuscatedIdentityTest')
+    'ObfuscatedIdentityTest', 'patches.instagram.misc.extension.BooleanHookParametersTest')
 $started = Get-Date
 $stepStarted = $null
 $stepName = $null
@@ -91,10 +96,12 @@ if (-not $folder -or -not (Test-Path -LiteralPath $folder -PathType Container)) 
     Stop-Preflight 'HUSHGRAM_FIXTURE_DIR names no folder, so the gate would patch nothing and the receipt has no fixture'
 }
 $target = Get-PatchTarget -PatchList (Get-Content -LiteralPath (Join-Path $Root 'patches-list.json') -Raw | ConvertFrom-Json)
+$fixtures = @()
 foreach ($declared in @($target.PackageVersions)) {
     $fixture = Find-DeclaredFixture -Target $target -Version $declared -Folder $folder
     if (-not $fixture) { Stop-Preflight "no fixture of the declared build $(Format-DeclaredBuilds -Target $target) in $folder" }
     Write-Host "[preflight]   $declared`: $($fixture.Name)"
+    $fixtures += [pscustomobject]@{ Version = $declared; Apk = $fixture.FullName }
 }
 try { $cli = Resolve-DesktopCli -Root $Root -Required } catch { Stop-Preflight $_.Exception.Message }
 Write-Host "[preflight]   desktop CLI $(Split-Path -Leaf $cli)"
@@ -119,15 +126,32 @@ if ($LASTEXITCODE -ne 0) { Stop-Preflight "stale_tests.py exited $LASTEXITCODE" 
 Complete-Step
 
 if (-not $SkipGradle) {
-    Start-Step 'the catalog and the patch tests that read no APK'
+    Start-Step 'the catalog, the patch tests that read no APK and the bundle'
     $catalog = Join-Path $Root 'patches-list.json'
     $before = Get-Content -LiteralPath $catalog -Raw
     $tasks = @('--console=plain', ':patches:generatePatchesList', ':patches:test')
     foreach ($class in $quickPatchTests) { $tasks += @('--tests', "app.morphe.$class") }
+    $tasks += ':patches:buildAndroid'
     Invoke-GradleBuild -ProjectDir $Root -Tasks $tasks
     if ($LASTEXITCODE -ne 0) { Stop-Preflight "Gradle exited $LASTEXITCODE" }
     if ((Get-Content -LiteralPath $catalog -Raw) -cne $before) {
         Stop-Preflight 'patches-list.json is stale: the regenerated catalog is in the checkout now, so review and commit it'
+    }
+    $bundle = Get-ReleaseBundlePath -Root $Root
+    if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { Stop-Preflight "Gradle passed but left no bundle at $bundle" }
+    Complete-Step
+
+    # The gate's own patch run, so a contract the new hooks outgrew shows here and not an hour in.
+    Start-Step 'every patch on the declared build'
+    $work = Join-Path ([IO.Path]::GetTempPath()) "hushgram-preflight-$([guid]::NewGuid().ToString('N'))"
+    try {
+        foreach ($fixture in $fixtures) {
+            & pwsh -NoProfile -File (Join-Path $scripts 'verify-all-patches.ps1') -Apk $fixture.Apk `
+                -DesktopJar $cli -WorkDir $work -Bundle $bundle -PatchList $catalog
+            if ($LASTEXITCODE -ne 0) { Stop-Preflight "verify-all-patches.ps1 exited $LASTEXITCODE on $($fixture.Version)" }
+        }
+    } finally {
+        Remove-Item -LiteralPath $work -Recurse -Force -ErrorAction SilentlyContinue
     }
     Complete-Step
 }

@@ -137,17 +137,6 @@ private fun Method.findInstructionIndexFromToString(fieldName: String) : Int {
 }
 
 /**
- * Find the method used for a toString() StringBuilder write of a given String name.
- *
- * @param fieldName The name of the field to find.  Partial matches are allowed.
- */
-context(patchContext: BytecodePatchContext)
-internal fun Method.findMethodFromToString(fieldName: String) : MutableMethod {
-    val methodUsageIndex = findInstructionIndexFromToString(fieldName)
-    return patchContext.navigate(this).to(methodUsageIndex).stop()
-}
-
-/**
  * Find the field used for a toString() StringBuilder write of a given String name.
  *
  * @param fieldName The name of the field to find.  Partial matches are allowed.

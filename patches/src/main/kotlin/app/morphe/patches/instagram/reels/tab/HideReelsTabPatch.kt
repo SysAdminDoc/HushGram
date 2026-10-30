@@ -43,7 +43,8 @@ internal const val PAGER_START = "$REELS_TAB->startAtTab(I)Z"
  * asked for, off, on the pager's first tab. Off on most accounts, which is right only while Home is
  * first, so Tab order answers it.
  */
-internal const val PAGER_START_FLAG = 0x8104e200051584L
+// 451: 0x8104dd00051545. 452 moved it to 0x8104d5000514d5 and 453 to 0x8104c700051499 in the same tab switch.
+internal const val PAGER_START_FLAG = 0x8104c700051499L
 
 /** The names Instagram's tab enum gives Reels and Home, and the module name only its Reels tab carries. */
 internal const val REELS = "CLIPS"
@@ -66,6 +67,11 @@ internal const val SESSION = "Lcom/instagram/common/session/UserSession;"
  * tab host's switch to a tab is where every start, notification and link that picks a tab ends up;
  * both hand their Reels to the extension, which answers with Home.
  *
+ * Hide the Home tab adds three more, see HomeTabTargets: the method that names Home as the tab the
+ * back stack starts from, the saved back stack read as Instagram restores, and the switch between
+ * two tabs that can start the stack again. Each asks the extension, which answers with the Start tab
+ * while Home is off the bar.
+ *
  * In the default selection with its switch off, so the tab bar stays as it was until the reader turns it
  * on.
  */
@@ -75,9 +81,10 @@ val hideReelsTabPatch = bytecodePatch(
     description = "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. " +
         "A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, " +
         "and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. " +
-        "Under Tab bar, switches do the same for Search, Create and Profile, another puts Messages on the bar when Instagram left it off, switches take the Create and notifications buttons off Home's header, others add a Search button and a Ghost mode button to it or put Instagram's logo in its middle, one centers the name at the top of profiles, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
+        "Under Tab bar, switches do the same for Home, Search, Create, Messages and Profile, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages or Ghost mode button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
 ) {
-    category("Reels")
+    // Most of its switches sit under Tab bar, as the glass tab bar's do, and Reels was past 15 patches.
+    category("Interface")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
@@ -90,9 +97,11 @@ val hideReelsTabPatch = bytecodePatch(
         val header = findHomeHeader()
         val tabs = findReelsTab()
         val search = findSearchButton(tabs)
+        val home = findHomeTab(tabs)
         hideReelsTab(tabs)
         hideHomeHeaderButtons(header)
         addSearchButton(search)
+        hideHomeTab(home)
         enableStatus("reelsTab")
     }
 }

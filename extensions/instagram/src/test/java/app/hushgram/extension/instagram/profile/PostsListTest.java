@@ -190,6 +190,31 @@ public class PostsListTest {
         assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
     }
 
+    /**
+     * A profile opened from a photo reel, which Find the reel you came from looks for in this grid:
+     * the grid stays up, and stays up when the tab comes back (#225).
+     */
+    @Test
+    public void aPhotoReelSearchKeepsTheGridUp() {
+        addRow("first", "second");
+        layout();
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        List<Object> asked = new ArrayList<>();
+        PostsList.resumed(tab, ON, searched -> asked.add(searched));
+        idleSeconds(6);
+        assertEquals(List.of(tab), asked);
+        assertTrue("no post opened", taps.isEmpty());
+        assertTrue(tab.getArguments().getBoolean(PostsList.OPENED_KEY));
+        assertTrue(page.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        PostsList.resumed(tab, ON, searched -> false);
+        idleSeconds(6);
+        assertTrue("back from the photo, the grid stays", taps.isEmpty());
+        assertTrue(HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).toString(), HookStatus.missing(FamilyNames.PROFILE_POSTS_LIST).isEmpty());
+    }
+
     /** A cell that leaves the tap to the view around it gets it through that view, and a subclass of the cell counts. */
     @Test
     public void theTapGoesToWhicheverViewTakesItAndSubclassesCount() {
@@ -426,5 +451,39 @@ public class PostsListTest {
         decor.measure(View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
                 View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.EXACTLY));
         decor.layout(0, 0, 1080, 1920);
+    }
+
+    @Test
+    public void turningTheChoiceOffWhileWaitingCancelsTheOpenAndLetsALaterResumeRetry() {
+        Page page = new Page();
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        tab.page = page;
+        PostsList.resumed(tab);
+        Settings.PROFILE_POSTS_LIST.save(false);
+        addRow("first", "second");
+        layout();
+        idleSeconds(1);
+
+        assertTrue("an obsolete choice must not tap the first cell", taps.isEmpty());
+        assertFalse("the tab may try again later", tab.getArguments().getBoolean(PostsList.OPENED_KEY));
+        assertFalse("the page may try again later", page.getArguments().getBoolean(PostsList.OPENED_KEY));
+
+        Settings.PROFILE_POSTS_LIST.save(true);
+        PostsList.resumed(tab);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of("first"), taps);
+    }
+
+    @Test
+    public void pausingWhileWaitingCancelsTheQueuedProfileOpen() {
+        Tab tab = tab(PostsList.POSTS_TAB, false);
+        PostsList.resumed(tab);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        addRow("first");
+        layout();
+        idleSeconds(1);
+
+        assertTrue("Pause applies to already queued work", taps.isEmpty());
+        assertFalse(tab.getArguments().getBoolean(PostsList.OPENED_KEY));
     }
 }

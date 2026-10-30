@@ -22,7 +22,6 @@ import app.morphe.patches.instagram.reels.scrolling.ReelsViewerSetupFingerprint
 import app.morphe.patches.instagram.reels.scrolling.SET_USER_INPUT
 import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.shared.compat.AppCompatibilities
-import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -69,8 +68,8 @@ val blurReelBarsPatch = bytecodePatch(
     }
 }
 
-/** The viewer's onViewCreated, the index of its one store of the pager, and the register that holds it. */
-internal class ReelPagerStore(val viewer: String, val store: Int, val pager: Int)
+/** The method that stores the pager (onViewCreated on 451, the pager's setupView on 452), the index of its one store of the pager, and the register that holds it. */
+internal class ReelPagerStore(val viewer: String, val name: String, val parameters: List<String>, val store: Int, val pager: Int)
 
 /**
  * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, and the viewer
@@ -92,22 +91,21 @@ internal fun BytecodePatchContext.findReelPagerStore(): ReelPagerStore {
         refuse("${enable.definingClass}->${enable.name} doesn't call $VIEW_PAGER->$SET_USER_INPUT")
     }
 
-    val viewer = uniqueMethod(PATCH, "Reels viewer onViewCreated holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
-    if (AccessFlags.STATIC.isSet(viewer.accessFlags)) refuse("${viewer.definingClass}->onViewCreated is static")
+    val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
     val code = viewer.instructions()
-    val where = "${viewer.definingClass}->onViewCreated"
+    val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }
     val store = stores.singleOrNull() ?: refuse("expected $where to store $field once, found ${stores.size}")
     if (store + 1 !in code.indices) refuse("$where ends at its store of $field")
     if (store + 1 in viewer.jumpTargets()) refuse("something in $where jumps to the instruction after its store of $field")
     // An iput names v15 at most, so the pager's register fits the hook's invoke as it is.
-    return ReelPagerStore(viewer.definingClass, store, (code[store] as TwoRegisterInstruction).registerA)
+    return ReelPagerStore(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, (code[store] as TwoRegisterInstruction).registerA)
 }
 
 /** Hands the pager to [BLUR_PAGER_HOOK] right after the viewer stores it. */
 internal fun BytecodePatchContext.applyBlurReelBars(site: ReelPagerStore) {
     mutableClassDefBy(site.viewer).methods.single {
-        it.name == "onViewCreated" && it.parameterTypes.map(CharSequence::toString) == listOf("Landroid/view/View;", "Landroid/os/Bundle;")
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }.addInstructions(site.store + 1, "invoke-static { v${site.pager} }, $BLUR_PAGER_HOOK")
 }
 

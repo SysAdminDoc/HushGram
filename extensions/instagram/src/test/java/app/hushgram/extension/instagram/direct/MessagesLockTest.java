@@ -21,6 +21,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
 import android.os.Build;
 import android.os.SystemClock;
@@ -46,6 +47,8 @@ import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 import org.robolectric.Shadows;
+import org.robolectric.shadow.api.Shadow;
+import org.robolectric.shadows.ShadowBiometricManager;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -59,6 +62,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
@@ -101,6 +105,8 @@ public class MessagesLockTest {
         Settings.LOCK_APP.resetToDefault();
         Settings.LOCK_AGAIN.resetToDefault();
         Settings.LOCKED_CHATS.resetToDefault();
+        Settings.UNLOCK_WITH.resetToDefault();
+        Settings.LOCK_PIN.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -390,6 +396,98 @@ public class MessagesLockTest {
         MessagesLock.relock(true);
         MessagesLock.openUntilLeft();
         assertTrue(MessagesLock.locked());
+    }
+
+    /**
+     * Turned on with an inbox behind settings and nothing locked, a lock keeps that screen out of
+     * the recent apps picture at once, so a leave straight from settings doesn't leave a picture of
+     * the inbox in recents until the next leave (S22, 2026-10-13).
+     */
+    @Test
+    public void turningALockOnKeepsTheScreenBehindSettingsOutOfRecentsAtOnce() {
+        Settings.LOCK_MESSAGES.save(false);
+        ActivityController<Activity> controller = inbox();
+        Activity activity = controller.get();
+        MessagesLock.follow(activity);
+        assertEquals(0, activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE);
+
+        MessagesLock.openUntilLeft();
+        Settings.LOCK_MESSAGES.save(true);
+        ShadowLooper.idleMainLooper();
+
+        assertFalse("turning it on covered the screen you're on", MessagesLock.locked());
+        assertNull(cover(activity));
+        assertTrue(asks.isEmpty());
+        if (Build.VERSION.SDK_INT < 33) {
+            assertTrue("the inbox behind settings could go into recents",
+                    (activity.getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_SECURE) != 0);
+        }
+    }
+
+    @Test
+    public void turningOnLockYourMessagesOpensNoChatLockedOnItsOwn() {
+        for (UnlockWith unlock : UnlockWith.values()) turnOnWithALockedChat(Settings.LOCK_MESSAGES, unlock);
+    }
+
+    @Test
+    public void turningOnLockAllOfInstagramOpensNoChatLockedOnItsOwn() {
+        for (UnlockWith unlock : UnlockWith.values()) turnOnWithALockedChat(Settings.LOCK_APP, unlock);
+    }
+
+    /**
+     * Both switches off and one chat locked on its own, still covered: turning [lock] on the way its
+     * row does (the listener runs before the switch is saved) never opens that chat, never takes it
+     * off the list without an unlock, and never lets its notifications or banners through. Nor does
+     * a leave and return, or HushGram paused (audit 2026-10-12).
+     */
+    private void turnOnWithALockedChat(BooleanSetting lock, UnlockWith unlock) {
+        MessagesLock.watch(RuntimeEnvironment.getApplication());
+        MessagesLock.relock(true);
+        Settings.LOCK_MESSAGES.save(false);
+        Settings.LOCK_APP.save(false);
+        Settings.UNLOCK_WITH.save(unlock);
+        if (unlock == UnlockWith.PIN) assertTrue(PinLock.set("4821"));
+        ChatLocks.add(ALICE, "Alice");
+        ActivityController<Activity> controller = focused();
+        Activity activity = chat(controller, "Alice");
+        open(ALICE);
+        MessagesLock.check(activity);
+        assertEquals(View.VISIBLE, cover(activity, MessagesLock.CHAT_ROOT).getVisibility());
+        Notification message = message("ig_direct", Notification.CATEGORY_MESSAGE);
+        ChatLocks.track(message, null, null, "direct_v2?id=" + ALICE, null, null, ME);
+        String where = lock.key + " with " + unlock;
+
+        MessagesLock.openUntilLeft();
+        lock.save(true);
+        ShadowLooper.idleMainLooper();
+
+        assertTrue(where + " opened the locked chat", MessagesLock.chatListLocked());
+        assertTrue(where + " opened the messages", MessagesLock.locked());
+        boolean[] removed = {false};
+        MessagesLock.confirmChatsThen(activity, () -> removed[0] = true);
+        assertFalse(where + " let the chat off the list without an unlock", removed[0]);
+        assertNotSame(where + " let the chat's notification through", message, MessagesLock.notification(message));
+        assertTrue(where + " let the banner show", MessagesLock.holdBanner());
+        MessagesLock.check(activity);
+        String screen = lock == Settings.LOCK_APP ? MessagesLock.APP : MessagesLock.CHAT_ROOT;
+        assertEquals(where + " took the cover down", View.VISIBLE, cover(activity, screen).getVisibility());
+
+        // Left and back, then turned on again while paused: still shut, and no answer was skipped.
+        controller.pause().stop();
+        controller.start().resume();
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            MessagesLock.openUntilLeft();
+            assertTrue(where + " opened after a leave or while paused", MessagesLock.chatListLocked());
+            assertTrue(MessagesLock.locked());
+        } finally {
+            PauseForTests.resume();
+        }
+        controller.pause().stop().destroy();
+        ChatLocks.remove(ALICE);
+        lock.save(false);
+        PinLock.resetForTests();
+        Settings.LOCK_PIN.resetToDefault();
     }
 
     @Test
@@ -694,9 +792,193 @@ public class MessagesLockTest {
     public void onlyYourCancelEndsAnAsk() {
         assertTrue(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED));
         assertTrue(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_CANCELED));
+        assertTrue("Cancel reported as an error", MessagesLock.cancelledByYou(MessagesLock.NEGATIVE_BUTTON));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT));
         assertFalse(MessagesLock.cancelledByYou(BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE));
+    }
+
+    /** Fingerprint or face only leaves the PIN, pattern and password out of the prompt; the phone's lock keeps them. */
+    @Test
+    public void fingerprintOrFaceOnlyLeavesTheScreenLockOutOfThePrompt() {
+        assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK, MessagesLock.authenticators(true));
+        assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+                MessagesLock.authenticators(false));
+    }
+
+    /** With a fingerprint or face set up, Fingerprint or face only asks for it alone. */
+    @Test
+    @Config(sdk = 37)
+    public void anEnrolledFingerprintOrFaceIsAskedAlone() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            biometrics.setCanAuthenticate(true);
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            assertTrue(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+            assertFalse("the phone's lock still offers the PIN", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /**
+     * None enrolled, or no sensor at all: the phone's lock asks as before, so taking every
+     * fingerprint and face off the phone after choosing them never shuts you out.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void withNoFingerprintOrFaceTheScreenLockAsksAgain() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED);
+            assertFalse("none enrolled", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            biometrics.setAuthenticatorType(0);
+            biometrics.setCanAuthenticate(false);
+            assertFalse("no sensor", MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** Android 9 and 10 ask through the phone's own check, which can't leave the PIN out. */
+    @Test
+    @Config(sdk = 28)
+    public void beforeAndroid11TheScreenLockAlwaysAsks() {
+        Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+        assertFalse(MessagesLock.biometricsReady(RuntimeEnvironment.getApplication()));
+        assertFalse(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+    }
+
+    /**
+     * With the phone's lock, anything but your cancel goes on to its own check. With Fingerprint or
+     * face only, a short lockout or a timeout waits for the next try, and only a fingerprint or face
+     * that can't be used any more lets the screen lock in.
+     */
+    @Test
+    public void fingerprintOrFaceOnlyWaitsOutAShortLockout() {
+        assertTrue(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, false, true));
+        assertTrue(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT, false, true));
+        assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, true, true));
+        assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT, true, true));
+        for (int gone : new int[]{BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, BiometricPrompt.BIOMETRIC_ERROR_NO_BIOMETRICS,
+                BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, BiometricPrompt.BIOMETRIC_ERROR_HW_NOT_PRESENT}) {
+            assertTrue("error " + gone, MessagesLock.phoneCheckAfter(gone, true, true));
+        }
+        for (boolean only : new boolean[]{false, true}) {
+            assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED, only, true));
+            assertFalse(MessagesLock.phoneCheckAfter(BiometricPrompt.BIOMETRIC_ERROR_CANCELED, only, true));
+            assertFalse(MessagesLock.phoneCheckAfter(MessagesLock.NEGATIVE_BUTTON, only, true));
+        }
+    }
+
+    /**
+     * Android 16 with Identity Check reports a lockout where it used to say SUCCESS. It still counts
+     * as set up, so a short lockout can't hand the ask to the PIN. A sensor that's busy doesn't.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void aLockedOutFingerprintOrFaceStillCounts() {
+        ShadowBiometricManager biometrics = biometrics();
+        try {
+            Settings.UNLOCK_WITH.save(UnlockWith.BIOMETRICS);
+            biometrics.setCanAuthenticate(true);
+            biometrics.setAuthenticatorType(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT);
+            assertTrue(MessagesLock.biometricsReady(RuntimeEnvironment.getApplication()));
+            assertTrue(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+            biometrics.setAuthenticatorType(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE);
+            assertEquals(BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE, MessagesLock.biometricsState(RuntimeEnvironment.getApplication()));
+            assertFalse(MessagesLock.biometricsOnly(RuntimeEnvironment.getApplication()));
+        } finally {
+            ShadowBiometricManager.reset();
+        }
+    }
+
+    /** The prompt Fingerprint or face only builds takes no PIN and has a Cancel button; the phone's lock has neither. */
+    @Test
+    @Config(sdk = 37)
+    public void theFingerprintOrFacePromptHasItsOwnCancel() {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup()) {
+            BiometricPrompt alone = MessagesLock.promptFor(host.get(), true, () -> { });
+            assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK, alone.getAllowedAuthenticators());
+            assertEquals("Cancel", String.valueOf(alone.getNegativeButtonText()));
+            BiometricPrompt phoneLock = MessagesLock.promptFor(host.get(), false, () -> { });
+            assertEquals(BiometricManager.Authenticators.BIOMETRIC_WEAK | BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+                    phoneLock.getAllowedAuthenticators());
+            assertNull(phoneLock.getNegativeButtonText());
+        }
+    }
+
+    /**
+     * The prompt's answer: a match unlocks, an error with Instagram gone leaves the cover and opens
+     * nothing (audit A3), one in front goes on to the phone's check, and Fingerprint or face only
+     * says why it waits out a short lockout.
+     */
+    @Test
+    @Config(sdk = 37)
+    public void thePromptsAnswerOpensThePhoneCheckOnlyOverInstagram() {
+        try (ActivityController<Activity> host = Robolectric.buildActivity(Activity.class).setup()) {
+            int[] confirmed = new int[1];
+            int[] notConfirmed = new int[1];
+            int[] phoneChecks = new int[1];
+            assertFalse("no Instagram activity is started", MessagesLock.inFront());
+            MessagesLock.answer(host.get(), false, MessagesLock::inFront, () -> confirmed[0]++, () -> notConfirmed[0]++,
+                    () -> phoneChecks[0]++).onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            assertEquals(0, phoneChecks[0]);
+            assertEquals(1, notConfirmed[0]);
+
+            BiometricPrompt.AuthenticationCallback phoneLock = MessagesLock.answer(host.get(), false, () -> true,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            phoneLock.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, "Busy");
+            assertEquals(1, phoneChecks[0]);
+            phoneLock.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED, "Cancelled");
+            assertEquals(1, phoneChecks[0]);
+            assertEquals(2, notConfirmed[0]);
+            phoneLock.onAuthenticationSucceeded(null);
+            assertEquals(1, confirmed[0]);
+
+            BiometricPrompt.AuthenticationCallback alone = MessagesLock.answer(host.get(), true, () -> true,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            alone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, "Too many attempts. Try again later.");
+            ShadowLooper.idleMainLooper();
+            assertEquals(1, phoneChecks[0]);
+            assertEquals(3, notConfirmed[0]);
+            assertEquals("Too many attempts. Try again later.", ShadowToast.getTextOfLatestToast());
+            int toasts = ShadowToast.shownToastCount();
+            alone.onAuthenticationError(MessagesLock.NEGATIVE_BUTTON, "Cancel");
+            ShadowLooper.idleMainLooper();
+            assertEquals("your Cancel needs no reason", toasts, ShadowToast.shownToastCount());
+            assertEquals(1, phoneChecks[0]);
+            alone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            assertEquals("a fingerprint or face that can't be used lets the screen lock in", 2, phoneChecks[0]);
+
+            BiometricPrompt.AuthenticationCallback gone = MessagesLock.answer(host.get(), true, () -> false,
+                    () -> confirmed[0]++, () -> notConfirmed[0]++, () -> phoneChecks[0]++);
+            int refused = notConfirmed[0];
+            toasts = ShadowToast.shownToastCount();
+            gone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, "Too many attempts. Try again later.");
+            gone.onAuthenticationError(BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT, "Too many attempts");
+            ShadowLooper.idleMainLooper();
+            assertEquals("no reason is shown over another app", toasts, ShadowToast.shownToastCount());
+            assertEquals("no phone check over another app", 2, phoneChecks[0]);
+            assertEquals(refused + 2, notConfirmed[0]);
+        }
+    }
+
+    /** An error that arrives after Instagram left never opens the phone's check over another app. */
+    @Test
+    public void noPhoneCheckOnceInstagramHasLeft() {
+        for (int code : new int[]{BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT, BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT_PERMANENT,
+                BiometricPrompt.BIOMETRIC_ERROR_HW_UNAVAILABLE, BiometricPrompt.BIOMETRIC_ERROR_VENDOR}) {
+            assertFalse("phone's lock, error " + code, MessagesLock.phoneCheckAfter(code, false, false));
+            assertFalse("fingerprint or face only, error " + code, MessagesLock.phoneCheckAfter(code, true, false));
+        }
+    }
+
+    private static ShadowBiometricManager biometrics() {
+        return Shadow.extract(RuntimeEnvironment.getApplication().getSystemService(BiometricManager.class));
     }
 
     private static final String ALICE = "340282366841710300949128111";
@@ -704,7 +986,11 @@ public class MessagesLockTest {
 
     /** A chat screen: its root, as Instagram names it, with the name in the header. */
     private static Activity chat(String name) {
-        Activity activity = focused().get();
+        return chat(focused(), name);
+    }
+
+    private static Activity chat(ActivityController<Activity> controller, String name) {
+        Activity activity = controller.get();
         FrameLayout root = new FrameLayout(activity);
         FrameLayout screen = new FrameLayout(activity);
         screen.setId(CHAT);

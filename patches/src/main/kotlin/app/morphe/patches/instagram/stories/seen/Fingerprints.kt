@@ -5,31 +5,40 @@
 package app.morphe.patches.instagram.stories.seen
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.string
 
 /**
- * The method that builds Instagram's request telling it which stories you've seen, a method of the
- * batch it sends: the one holding both the media/seen/ path and the name it sends the ids of
- * stories it counts as seen under.
+ * The strings of the method that builds Instagram's request telling it which stories you've seen, a
+ * method of the batch it sends: the media/seen/ path and the name it sends the ids of stories it
+ * counts as seen under. 451's 385713073 asks a string pool for the name, 450 held it, so
+ * [findStorySeen] takes either.
  */
-internal object StorySeenRequestFingerprint : Fingerprint(
-    strings = listOf("media/seen/?reel=%s&live_vod=0", "force_seen_story_ids"),
-)
+internal const val SEEN_PATH = "media/seen/?reel=%s&live_vod=0"
+internal const val FORCE_SEEN_KEY = "force_seen_story_ids"
 
 /**
- * The method of PendingReelSeenStateStore that reads the batches a session saved to disk. Its class
- * is the store that sends each batch.
+ * The strings of PendingReelSeenStateStore's method that reads the batches a session saved to disk.
+ * Its class is the store that sends each batch.
  */
-internal object PendingStorySeenStoreFingerprint : Fingerprint(
-    strings = listOf("pending_reel_seen_states_", "PendingReelSeenStateStore.deserializeFromDisk"),
-)
+internal const val PENDING_PREFIX = "pending_reel_seen_states_"
+internal const val PENDING_READ = "PendingReelSeenStateStore.deserializeFromDisk"
 
 /**
- * The story viewer's header binder, the one method holding the trace section Instagram names after
- * it. It's handed the account signed in, the story on screen and the story's view holder.
+ * The trace section of the story item binder's method the Mark as seen button binds from. 450 named
+ * it bindHeaderViews. 451 has no header binder: the item binder's media bind and item bind (the two
+ * callers 450's header binder had) now call only its toolbar binder, which takes the same account,
+ * story and view holder on every bind, so the button binds from there. It still goes in the
+ * header's row of buttons, found by name under the holder's item view.
+ */
+internal const val STORY_BINDER_TRACE = "ReelViewerItemBinder.bindToolbarViews"
+
+/**
+ * The story item binder's method the button binds from, the one method holding [STORY_BINDER_TRACE].
+ * It's handed the account signed in, the story on screen and the story's view holder.
  */
 internal object StoryHeaderBinderFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf("ReelViewerItemBinder.bindHeaderViews"),
+    filters = listOf(string(STORY_BINDER_TRACE)),
 )
 
 /**
@@ -39,5 +48,5 @@ internal object StoryHeaderBinderFingerprint : Fingerprint(
 internal object ViewHolderFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("Landroid/view/View;"),
-    strings = listOf("itemView may not be null"),
+    filters = listOf(string("itemView may not be null")),
 )

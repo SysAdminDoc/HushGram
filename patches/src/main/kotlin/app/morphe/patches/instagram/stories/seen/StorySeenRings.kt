@@ -13,6 +13,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -106,12 +107,17 @@ internal fun BytecodePatchContext.findStoryRings(): StoryRingTargets {
         refuseRings("${reelWrite.descriptor()}, the reel's write of its seen time, isn't public for the extension to call")
     }
 
-    val sites = classesCalling(reelWrite.definingClass, reelWrite.name).flatMap { classDef ->
+    val allSites = classesCalling(reelWrite.definingClass, reelWrite.name).flatMap { classDef ->
         classDef.methods.flatMap { method ->
             val code = method.body()
             code.indices.filter { at -> code[at].calledMethod()?.sameCall(reelWrite) == true && code.storyTimeAt(at) }.map { method to it }
         }
     }
+    // 453 writes the seen time from the viewer's controller as well as from another story helper;
+    // only the controller the story viewer keeps is the one whose write the viewer makes.
+    val held = classDefByOrNull(STORY_VIEWER)?.fields?.mapTo(HashSet()) { it.type }.orEmpty()
+    val viewerSites = allSites.filter { (method, _) -> method.definingClass == STORY_VIEWER || method.definingClass in held }
+    val sites = if (allSites.size > 1 && viewerSites.isNotEmpty()) viewerSites else allSites
     val (viewer, at) = sites.singleOrNull()
         ?: refuseRings("expected the story viewer to write one story's time as its reel's seen time, found ${sites.size}")
     val code = viewer.body()

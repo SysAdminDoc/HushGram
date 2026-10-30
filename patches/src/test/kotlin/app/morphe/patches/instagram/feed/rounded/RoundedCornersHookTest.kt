@@ -130,7 +130,7 @@ class RoundedCornersHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("every build of the version", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val detecting = mutableSetOf<String>()

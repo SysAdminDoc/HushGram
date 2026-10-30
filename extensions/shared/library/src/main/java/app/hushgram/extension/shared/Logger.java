@@ -20,9 +20,11 @@ import androidx.annotation.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
+import app.hushgram.extension.shared.diagnostics.DiagnosticRedactor;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
@@ -72,6 +74,19 @@ public class Logger {
             java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
 
     private static final int MAX_TOASTED_ERRORS = 24;
+
+    /** About what logcat keeps of one entry. Anything longer was dropped by the system anyway. */
+    private static final int SYSTEM_LOG_MAX_CHARS = 4_000;
+
+    /** An error toast past this is cut: nobody reads that far on a phone. */
+    private static final int TOAST_MAX_CHARS = 1_000;
+
+    /**
+     * The most of one line the redactor reads before a system log entry or a toast. Four times
+     * what logcat keeps, so a value the cut splits sits past what's kept unless redaction took
+     * out most of the text before it, and the line it split is dropped all the same.
+     */
+    private static final int REDACT_MAX_CHARS = 16_000;
 
     /**
      * @return For outer classes, this returns {@link Class#getSimpleName()}.
@@ -147,12 +162,64 @@ public class Logger {
         try {
             logBuilt(logLevel, category, explicitSource, message, messageString, ex, includeStackTrace, showToast);
         } catch (Throwable failure) {
+            String tag = MORPHE_LOG_TAG_PREFIX + "Logger";
             try {
-                Log.e(MORPHE_LOG_TAG_PREFIX + "Logger", "Could not log a message: " + messageString, failure);
-            } catch (Throwable ignored) {
-                // Nothing is left to report through.
+                Log.e(tag, redacted("Could not log a message: " + messageString, failure, SYSTEM_LOG_MAX_CHARS));
+            } catch (Throwable unredactable) {
+                try {
+                    // The message and the failure's text are what couldn't be made safe, so neither goes.
+                    Log.e(tag, "Could not log a message. " + failure.getClass().getName());
+                } catch (Throwable ignored) {
+                    // Nothing is left to report through.
+                }
             }
         }
+    }
+
+    /**
+     * [text], then [ex]'s stack trace with its causes and suppressed ones, as the system log and
+     * an error toast get them: past {@link DiagnosticRedactor}, the policy the exported report
+     * uses, and within [max] characters. Android's log reaches whoever holds a bug report or ADB,
+     * so a token in a message or an exception's text has to stay out of it as well. Exception
+     * types, frames and causes stay. The redactor reads at most {@link #REDACT_MAX_CHARS}.
+     */
+    private static String redacted(String text, @Nullable Throwable ex, int max) {
+        String raw = ex == null ? text : text + '\n' + traceOf(ex);
+        boolean longer = raw.length() > REDACT_MAX_CHARS;
+        String safe = DiagnosticRedactor.redact(longer ? raw.substring(0, REDACT_MAX_CHARS) : raw);
+        // The last line is the one the cut split, so a value in it may be only partly there.
+        if (longer) safe = safe.substring(0, Math.max(0, safe.lastIndexOf('\n'))) + "\n[cut]";
+        if (safe.length() <= max) return safe;
+        int end = safe.lastIndexOf('\n', max);
+        return safe.substring(0, end > max / 2 ? end : max) + "\n[cut]";
+    }
+
+    /**
+     * [ex]'s stack trace as printStackTrace writes it, kept to {@link #REDACT_MAX_CHARS}. A host
+     * throwable's getMessage or toString can throw partway, and the type then says what failed.
+     */
+    private static String traceOf(Throwable ex) {
+        StringBuilder trace = new StringBuilder();
+        try {
+            ex.printStackTrace(new PrintWriter(new Writer() {
+                @Override
+                public void write(char[] chars, int offset, int length) {
+                    trace.append(chars, offset, Math.min(length, Math.max(0, REDACT_MAX_CHARS + 1 - trace.length())));
+                }
+
+                @Override
+                public void flush() {
+                }
+
+                @Override
+                public void close() {
+                }
+            }));
+        } catch (Throwable unprintable) {
+            trace.append(trace.length() == 0 ? ex.getClass().getName()
+                    : "\n[the rest couldn't be printed: " + unprintable.getClass().getName() + "]");
+        }
+        return trace.toString();
     }
 
     private static void logBuilt(
@@ -194,25 +261,25 @@ public class Logger {
         String managerToastString = className + ": " + logText;
         LogBufferManager.appendEvent(category, className, logLevel.name(), logText);
 
+        // The buffer keeps the raw line, which the export redacts. The system log and the toast
+        // leave this process as they are, so they're redacted here, the trace written into the text.
         String logTag = MORPHE_LOG_TAG_PREFIX + className;
+        String systemText = redacted(logText, ex, SYSTEM_LOG_MAX_CHARS);
         switch (logLevel) {
             case DEBUG:
-                if (ex == null) Log.d(logTag, logText);
-                else Log.d(logTag, logText, ex);
+                Log.d(logTag, systemText);
                 break;
             case INFO:
-                if (ex == null) Log.i(logTag, logText);
-                else Log.i(logTag, logText, ex);
+                Log.i(logTag, systemText);
                 break;
             case ERROR:
-                if (ex == null) Log.e(logTag, logText);
-                else Log.e(logTag, logText, ex);
+                Log.e(logTag, systemText);
                 break;
         }
 
         if (showToast && TOASTED_ERRORS.size() < MAX_TOASTED_ERRORS
                 && TOASTED_ERRORS.add(managerToastString)) {
-            Utils.showToastLong(managerToastString);
+            Utils.showToastLong(redacted(managerToastString, null, TOAST_MAX_CHARS));
         }
     }
 

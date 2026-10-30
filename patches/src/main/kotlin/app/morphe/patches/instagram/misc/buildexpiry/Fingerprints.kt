@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.misc.buildexpiry
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.string
 
 /**
  * The method that shows the "this version of Instagram has expired" lockout over the main
@@ -15,5 +16,5 @@ import app.morphe.patcher.Fingerprint
 internal object BuildExpiredLockoutFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("Landroidx/fragment/app/FragmentActivity;", "L"),
-    strings = listOf("lockout_active"),
+    filters = listOf(string("lockout_active")),
 )

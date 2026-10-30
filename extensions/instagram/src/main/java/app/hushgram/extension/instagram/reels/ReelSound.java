@@ -1,0 +1,179 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.reels;
+
+import java.util.Map;
+import java.util.WeakHashMap;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.stories.StorySound;
+import app.hushgram.extension.shared.Logger;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+
+/**
+ * Helper for the "Start reels with sound" patch (#342).
+ *
+ * <p>Instagram keeps one audio state for the signed-in account, the one the Reels speaker icon and
+ * the volume keys flip, and the feed and the Reels viewer both play by it. Home keeps it muted while
+ * you scroll, so a reel tapped open from a feed post starts muted too.
+ *
+ * <p>The patch asks {@link #wanted()} as a Reels viewer is created, and on a yes asks
+ * {@link #startWithSound(Object, Object)} with the viewer and where it was opened from, a
+ * {@code ClipsViewerSource} whose constant names Instagram's build keeps. Only a viewer opened from
+ * Home ({@link #FROM_HOME}) gets a yes, which makes the patch set the account's state to on the way
+ * the speaker icon does. The Reels tab, profiles, chats and Explore keep Instagram's own choice. The
+ * phone's ringer and volume still count, as they do for stories.
+ *
+ * <p>When the patch turned the sound on from off, the viewer's pause puts it back to off, so Home is
+ * muted again on the way back, and its resume turns it on again for the reel. A reel you mute
+ * yourself stays muted.
+ */
+public final class ReelSound {
+    /** What {@link HookStatus} counts: a reel opened from Home with the sound turned on. */
+    static final String STARTED = "reels started with sound";
+
+    /** What {@link HookStatus} counts: the sound put back to off as a reel opened from Home was left. */
+    static final String RESTORED = "reel sound put back to off";
+
+    /** The hook's name in a failure report. */
+    static final String VIEWER = "reels viewer";
+
+    /** The start of every source name for a viewer opened from a post on Home, as Instagram 452 names them. */
+    static final String FROM_HOME = "FEED_TIMELINE";
+
+    /**
+     * Every viewer that turned the account's sound on from off, held weakly, mapped to whether its
+     * pause has put the sound back to off. A viewer is a Fragment, whose equals is identity.
+     */
+    private static final Map<Object, Boolean> turnedOn = new WeakHashMap<>();
+
+    private ReelSound() {
+    }
+
+    /**
+     * Asked first as a Reels viewer is created, before anything is read from it. True while the
+     * switch is on, HushGram isn't paused and the settings are ready. Never throws.
+     */
+    public static int wanted() {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_SOUND);
+            return Utils.settingsReady() && Settings.START_REELS_WITH_SOUND.get() ? 1 : 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Asked after a yes from {@link #wanted()}, with the viewer and its source. True means set
+     * Instagram's audio state to on: the viewer was opened from Home, the phone's ringer is on and
+     * its media volume is up. False for every other source, a source that isn't an enum, and
+     * anything that throws. Never throws.
+     */
+    public static int startWithSound(Object viewer, Object source) {
+        try {
+            if (viewer == null || !(source instanceof Enum)) return 0;
+            String name = ((Enum<?>) source).name();
+            Logger.printDebug(() -> "Reels viewer opened from " + name);
+            if (!name.startsWith(FROM_HOME)) return 0;
+            if (!Utils.settingsReady() || !Settings.START_REELS_WITH_SOUND.get() || !StorySound.phoneAllowsSound()) return 0;
+            HookStatus.counted(FamilyNames.REEL_SOUND, STARTED);
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Told, after a yes from {@link #startWithSound(Object, Object)} and before the sound is set
+     * on, whether the account's sound was on already. Only an off is worth putting back. Never throws.
+     */
+    public static void opened(Object viewer, int wasOn) {
+        try {
+            if (viewer == null) return;
+            synchronized (ReelSound.class) {
+                if (wasOn == 0) turnedOn.put(viewer, Boolean.FALSE);
+                else turnedOn.remove(viewer);
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+        }
+    }
+
+    /**
+     * Asked as a Reels viewer pauses. True when this viewer turned the sound on from off and it
+     * hasn't been put back yet, so the patch reads the sound and asks {@link #paused(Object, int)}.
+     * Never throws.
+     */
+    public static int pausing(Object viewer) {
+        try {
+            if (viewer == null) return 0;
+            synchronized (ReelSound.class) {
+                return Boolean.FALSE.equals(turnedOn.get(viewer)) ? 1 : 0;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Told whether the sound is still on as the viewer pauses. True means set it to off, which is
+     * what it was before the viewer opened. A sound already off was muted on the reel, so it's left
+     * as it is and the viewer is forgotten. Never throws.
+     */
+    public static int paused(Object viewer, int isOn) {
+        try {
+            if (viewer == null) return 0;
+            synchronized (ReelSound.class) {
+                if (!turnedOn.containsKey(viewer)) return 0;
+                if (isOn == 0) {
+                    turnedOn.remove(viewer);
+                    return 0;
+                }
+                turnedOn.put(viewer, Boolean.TRUE);
+            }
+            HookStatus.counted(FamilyNames.REEL_SOUND, RESTORED);
+            Logger.printDebug(() -> "Reels viewer left: sound back to off");
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 0;
+        }
+    }
+
+    /**
+     * Asked as a Reels viewer resumes. True when its pause put the sound back to off and the reel
+     * should play with sound again: the switch still on, HushGram not paused, the phone's ringer on
+     * and its volume up. Otherwise the viewer is forgotten and the sound stays off. Never throws.
+     */
+    public static int resuming(Object viewer) {
+        try {
+            if (viewer == null) return 0;
+            synchronized (ReelSound.class) {
+                if (!Boolean.TRUE.equals(turnedOn.get(viewer))) return 0;
+                turnedOn.remove(viewer);
+            }
+            if (!Utils.settingsReady() || !Settings.START_REELS_WITH_SOUND.get() || !StorySound.phoneAllowsSound()) return 0;
+            synchronized (ReelSound.class) {
+                turnedOn.put(viewer, Boolean.FALSE);
+            }
+            return 1;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 0;
+        }
+    }
+
+    /** Forgets every viewer. For tests. */
+    static void resetForTests() {
+        synchronized (ReelSound.class) {
+            turnedOn.clear();
+        }
+    }
+}

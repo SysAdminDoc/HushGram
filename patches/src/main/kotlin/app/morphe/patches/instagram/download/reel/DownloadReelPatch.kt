@@ -26,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireLocals
@@ -74,6 +75,8 @@ internal const val SAVE = "$REEL_DOWNLOAD->save(Ljava/lang/Object;Ljava/lang/Obj
 internal const val OURS = "$REEL_DOWNLOAD->ours(Ljava/lang/Object;)Z"
 internal const val ROWS = "$REEL_DOWNLOAD->rows(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Z"
 internal const val ADD_TO = "$REEL_DOWNLOAD->addTo(Ljava/util/List;Ljava/lang/Object;)V"
+/** Gives a row of ours its icon by name: Details gets Instagram's info glyph, the rest Download's arrow. */
+internal const val ROW_ICON = "$REEL_DOWNLOAD->rowIcon(Ljava/lang/String;I)I"
 
 /** The reel menu's handler of a tapped option, in the class that runs the menu. */
 internal const val HANDLER_MARKER = "ClipsOrganicMoreOptionsHelper_handleOptionSelected"
@@ -116,6 +119,11 @@ internal const val REDUCED_MARKER = "ClipsOrganicMediaItemViewMoreOptionsControl
  * let in, so its menu, divider included, stays Instagram's. Builders that put Download anywhere else
  * never let it in for the player.
  *
+ * A separate switch puts a Download icon in the column beside a reel, under Save, whose tap saves
+ * what the menu's Download saves (#178). The column is a component, so the icon joins its list of
+ * buttons as it's composed ([addReelDownloadButtonWhereItFits]). A build whose column differs keeps
+ * the menu's Download without the icon, with a warning.
+ *
  * Everything is found before anything changes, so a build that differs stops the patch naming
  * what it couldn't find, and nothing is half done.
  */
@@ -124,8 +132,9 @@ val downloadReelPatch = bytecodePatch(
     name = "Download any reel",
     description = "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose " +
         "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
-        "picture, the largest one the post carries. Download as video on a carousel with music saves every page, " +
-        "in order. On by default. Turn it off in HushGram settings > Reels.",
+        "picture, the largest one the post carries, and Download audio saves just its sound. Download as video on " +
+        "a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel. On by " +
+        "default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {
     category("Downloads")
@@ -136,6 +145,7 @@ val downloadReelPatch = bytecodePatch(
     execute {
         requireStatusMethod("reelDownload")
         offerDownloadOnEveryReel()
+        addReelDownloadButtonWhereItFits()
         enableStatus("reelDownload")
     }
 }
@@ -300,7 +310,8 @@ internal fun BytecodePatchContext.offerDownloadOnEveryReel() {
 
 /**
  * Finds the extension's two bridges to the reel menu, and answers the step that writes them:
- * `reelOption`, which makes an option named by its argument with Download's ordinal and [icon],
+ * `reelOption`, which makes an option named by its argument with Download's ordinal and [icon]
+ * (handed with the name to [ROW_ICON], so Details draws the info glyph),
  * and `addReelRow`, which hands an option and a label to [adder], the menu's adder of one row,
  * with no icon of its own, and answers true.
  */
@@ -319,7 +330,7 @@ private fun BytecodePatchContext.rowBridges(icon: String, adder: Method): () -> 
     return {
         bridges.methods.remove(optionStub)
         bridges.methods.add(replaced(optionStub, 5).apply {
-            addInstructions(0, newOption(icon, "move-object v1, p0"))
+            addInstructions(0, newOption(icon, "move-object v1, p0", iconByName = ROW_ICON))
         })
         bridges.methods.remove(rowStub)
         bridges.methods.add(replaced(rowStub, 13).apply {
@@ -389,7 +400,7 @@ internal fun Method.downloadGates(eligible: Method, rows: Boolean = false): List
     val check = code.indices.filter { code[it].calls(eligible) }.singleOrNull()
         ?: throw PatchException("$PATCH: $where doesn't call the download check once")
     if (check > row) throw PatchException("$PATCH: $where calls the download check after adding Download")
-    val media = if (!rows) null else code.mediaArgument(check, eligible)?.takeIf { register ->
+    val media = if (!rows) null else mediaArgument(code, check, eligible)?.takeIf { register ->
         val answer = (code.getOrNull(check + 1) as? OneRegisterInstruction)?.registerA
         register <= 15 && answer != null && answer <= 15 && answer != register
     }
@@ -449,20 +460,45 @@ private fun BytecodePatchContext.handsToRows(builder: Method, adder: Method): Bo
 }
 
 /**
- * The register the call at [at] hands [eligible], the download check, its one Media in, or null when
- * the check takes none, or more than one.
+ * The register holding the Media the call at [at] hands [eligible], the download check, or null. The
+ * check takes the Media once, or, as on 451, takes no Media and is handed one wrapper that a static
+ * (Media) call answering that parameter's type makes just before (the same check the feed menu reads
+ * through `checkedPost`). The wrapper's Media is used only when nothing writes its register from that
+ * call to the check's answer and no jump lands in between, so it still holds the post the check got.
  */
-private fun List<Instruction>.mediaArgument(at: Int, eligible: Method): Int? {
+private fun Method.mediaArgument(code: List<Instruction>, at: Int, eligible: Method): Int? {
     val types = eligible.parameterTypes.map(Any::toString)
-    if (types.count { it == MEDIA } != 1) return null
-    val before = types.takeWhile { it != MEDIA }.sumOf { if (it == "J" || it == "D") 2 else 1 }
-    val index = (if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + before
-    return when (val call = this[at]) {
+    val receiver = if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1
+    fun argument(index: Int): Int? = when (val call = code[at]) {
         is RegisterRangeInstruction -> (call.startRegister + index).takeIf { index < call.registerCount }
         is FiveRegisterInstruction ->
             listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount).getOrNull(index)
         else -> null
     }
+    fun slot(index: Int) = receiver + types.take(index).sumOf { if (it == "J" || it == "D") 2 else 1 }
+    if (types.count { it == MEDIA } == 1) return argument(slot(types.indexOf(MEDIA)))
+    if (MEDIA in types) return null
+
+    val targets = jumpTargets()
+    val made = types.indices.mapNotNull { index ->
+        val register = argument(slot(index)) ?: return@mapNotNull null
+        val write = (at - 1 downTo 0).firstOrNull { code[it].writes(register) } ?: return@mapNotNull null
+        val wrap = code.getOrNull(write - 1) ?: return@mapNotNull null
+        val made = (wrap as? ReferenceInstruction)?.reference as? MethodReference
+        if (code[write].opcode != Opcode.MOVE_RESULT_OBJECT || wrap.opcode !in STATIC_CALLS || made == null ||
+            made.returnType != types[index] || made.parameterTypes.map(Any::toString) != listOf(MEDIA)
+        ) {
+            return@mapNotNull null
+        }
+        val media = when (wrap) {
+            is FiveRegisterInstruction -> wrap.registerC.takeIf { wrap.registerCount == 1 }
+            is RegisterRangeInstruction -> wrap.startRegister.takeIf { wrap.registerCount == 1 }
+            else -> null
+        } ?: return@mapNotNull null
+        val span = write..minOf(at + 1, code.lastIndex)
+        media.takeIf { span.none { code[it].writes(media) } && span.none { it in targets } }
+    }
+    return made.singleOrNull()
 }
 
 /** Whether [this], a call, hands [register] to the method it calls. */
@@ -503,6 +539,7 @@ private val BRANCHES = setOf(
     Opcode.IF_EQZ, Opcode.IF_NEZ, Opcode.IF_LTZ, Opcode.IF_GEZ, Opcode.IF_GTZ, Opcode.IF_LEZ,
 )
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 
 private fun Instruction.calls(method: Method): Boolean {
     val reference = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false

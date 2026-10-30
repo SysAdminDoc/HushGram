@@ -159,7 +159,8 @@ class NativeVisualSeenTest {
             }
             val handler = found.values.flatMap { it.methods }.single("visual handler") { it.visualCode().mapNotNull { ins -> ins.visualString() }.containsAll(listOf(VISUAL_ENDPOINT, VISUAL_KIND)) }
             val mutation = (handler.visualCode().first().visualReference() as TypeReference).type
-            val needs = handler.parameterTypes.map(Any::toString).toMutableSet()
+            // 453's 32-bit build names the mutation in the concrete class, from a string pool.
+            val needs = (handler.parameterTypes.map(Any::toString) + mutation).toMutableSet()
             needs += handler.visualCode().calls().single("response factory") { it.parameterTypes.map(Any::toString) == listOf(USER_SESSION, handler.parameterTypes[1].toString()) }.definingClass
             needs += found.getValue(handler.definingClass).methods.single { it.name == "<clinit>" }.visualCode().mapNotNull { (it.visualReference() as? FieldReference)?.definingClass }
             // 450's creator sends through a static helper, so the dispatcher's callers come too.
@@ -200,6 +201,7 @@ class NativeVisualSeenTest {
                 .filter { it.opcode == Opcode.CONST_CLASS }.mapNotNull { (it.visualReference() as? TypeReference)?.type }.single()
             found += FixtureDex.classes(bundle, setOf(table))
             found += FixtureDex.classes(bundle, setOf(found.getValue(table).superclass!!))
+            for (pool in FixtureDex.withStringPools(bundle, found.values)) found.putIfAbsent(pool.type, pool)
             found[VISUAL_SEEN] = ImmutableClassDef.of(ExtensionDex.classDef(VISUAL_SEEN))
             found
         }

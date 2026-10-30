@@ -36,6 +36,11 @@ internal const val SCROLL_TO_NEXT_REEL = "ClipsAutoScroller_scrollToNextReel"
 
 private const val OBJECT = "Ljava/lang/Object;"
 
+/** 451 called its pager class directly; 452 made the pager an interface, so the move is an interface call there. */
+private val PAGER_CALLS = setOf(
+    Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE,
+)
+
 /**
  * The auto scroller's move to the next reel, and the index of its call that moves the Reels pager on.
  *
@@ -121,7 +126,7 @@ internal fun BytecodePatchContext.findAutoScroll(): AutoScroll? {
 
     val calls = code.indices.filter { index ->
         val call = code[index].methodReference()
-        (code[index].opcode == Opcode.INVOKE_VIRTUAL || code[index].opcode == Opcode.INVOKE_VIRTUAL_RANGE) && call != null &&
+        code[index].opcode in PAGER_CALLS && call != null &&
             call.definingClass == pager.type && call.parameterTypes.isEmpty() && call.returnType == "V"
     }
     val call = calls.singleOrNull()

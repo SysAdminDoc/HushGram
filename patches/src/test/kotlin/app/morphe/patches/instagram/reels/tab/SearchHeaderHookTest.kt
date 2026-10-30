@@ -84,7 +84,7 @@ class SearchHeaderHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the six others", 7, bundles.size)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val name = bundle.parentFile?.name ?: bundle.name
             val enums = FixtureDex.classesHolding(bundle, REELS_MODULE).filter { it.superclass == "Ljava/lang/Enum;" }

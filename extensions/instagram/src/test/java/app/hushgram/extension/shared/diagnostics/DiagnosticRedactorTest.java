@@ -455,6 +455,36 @@ public class DiagnosticRedactorTest {
     }
 
     /**
+     * A file in shared storage names what the reader keeps there, spaces and all, so it goes up
+     * to the ": " an exception puts after it. The app's own paths and a source file's line stay.
+     */
+    @Test public void aSharedStoragePathGoes() {
+        assertEquals("java.io.FileNotFoundException: [path omitted]: open failed: EACCES",
+                DiagnosticRedactor.redact("java.io.FileNotFoundException: /storage/emulated/0/Download/Tax return 2025.pdf: open failed: EACCES"));
+        assertEquals("saved [path omitted]\nnext", DiagnosticRedactor.redact("saved /sdcard/DCIM/Camera/IMG_0412.jpg\nnext"));
+        assertEquals("{\"file\":\"[path omitted]\"}", DiagnosticRedactor.redact("{\"file\":\"/data/media/0/Documents/lease.docx\"}"));
+        assertEquals("[path omitted]", DiagnosticRedactor.redact("/mnt/user/0/emulated/0/Pictures/a.png"));
+        for (String alias : new String[]{"pass_through/0/emulated/0", "runtime/write/emulated/0", "sdcard",
+                "installer/0/emulated/0", "androidwritable/0/emulated/0"}) {
+            assertEquals(alias, "[path omitted]: open failed: EACCES",
+                    DiagnosticRedactor.redact("/mnt/" + alias + "/Download/My lease.pdf: open failed: EACCES"));
+        }
+        String code = "/data/app/~~x/com.instagram.android-1/base.apk\n\tat a.b.C.d(Logger.java:151)";
+        assertEquals(code, DiagnosticRedactor.redact(code));
+        assertEquals("/mnt/expand/u/app/base.apk", DiagnosticRedactor.redact("/mnt/expand/u/app/base.apk"));
+    }
+
+    /**
+     * A text that ends inside a credential's object, as a log line cut to a length does, has no
+     * closing bracket to find. All of what's left is the object, its unnamed members included.
+     */
+    @Test public void aBlockTheTextEndsInsideGoesToTheEnd() {
+        assertEquals("before\ntoken=[omitted]",
+                DiagnosticRedactor.redact("before\ntoken: {\n  \"kind\": \"session\",\n  \"value\": \"EAABcutX1\",\n  \"more\": [1, 2"));
+        assertEquals("token=[omitted] after", DiagnosticRedactor.redact("token: {\"value\": \"EAABwholeX2\"} after"));
+    }
+
+    /**
      * Short ids behind a quoted or camel-cased name. A post or story id of a few digits is too
      * short for the bare-number rule, so only its name gives it away.
      */

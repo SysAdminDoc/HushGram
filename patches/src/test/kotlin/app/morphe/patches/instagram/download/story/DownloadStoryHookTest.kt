@@ -32,6 +32,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
@@ -61,7 +62,7 @@ class DownloadStoryHookTest {
     /** The hooks the patch writes are in the extension the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(LABELS, SAVE_STORY, BUILDING)) {
+        for (hook in listOf(LABELS, SAVE_STORY, BUILDING, LABEL_LIST)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -125,6 +126,28 @@ class DownloadStoryHookTest {
 
         assertTrue("another class's builder changed", context.method(other, "A0o").code().none { it.referenceText() == BUILDING })
         assertEquals("a handler names its menu", 0, context.method(helper, "A0I").code().count { it.referenceText() == BUILDING })
+    }
+
+    /**
+     * #339: your own highlights' menu is built as a list. Its builder names its menu first, and each
+     * return hands the list to labelList() in place, the jump that lands on the return included.
+     */
+    @Test
+    fun theHighlightListGetsTheRowsInPlace() {
+        val context = PatchContexts.of(classes())
+
+        context.offerDownloadOnEveryStory()
+
+        val code = context.method(helper, "A05").code()
+        assertEquals(BUILDING, code[0].referenceText())
+        assertEquals("the menu, p0 of five registers", 3, (code[0] as Instruction35c).registerC)
+        assertEquals("the original code moved", Opcode.NEW_INSTANCE, code[1].opcode)
+        val at = code.indexOfFirst { it.opcode == Opcode.RETURN_OBJECT }
+        assertEquals(listOf(Opcode.INVOKE_STATIC, Opcode.RETURN_OBJECT), code.subList(at - 1, at + 1).map { it.opcode })
+        assertEquals(LABEL_LIST, code[at - 1].referenceText())
+        assertEquals("labelList()'s argument", (code[at] as OneRegisterInstruction).registerA, (code[at - 1] as Instruction35c).registerC)
+        assertEquals("the jump to the return", at - 1, code.target(code.indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+        assertEquals("one return", 1, code.count { it.opcode == Opcode.RETURN_OBJECT })
     }
 
     /** A tap asks save() first, with the tapped label and the menu's class; any other label goes on. */
@@ -335,6 +358,23 @@ class DownloadStoryHookTest {
                                 target !in returns && target !in returns.map { it - 1 })
                         }
                 }
+                // #339: your own highlights' menus are lists, the highlight sheet's among them. 453.0.0.57.79's
+                // 385914557 loads the name with const-string/jumbo, its dex having more strings than a short index reaches.
+                val lists = statics.filter { it.returnType == "Ljava/util/ArrayList;" && menu.type in it.parameterTypes.map(Any::toString) }
+                val stringLoads = setOf(Opcode.CONST_STRING, Opcode.CONST_STRING_JUMBO)
+                assertTrue("${bundle.name}: no list builder holds the highlight sheet's name", lists.any { list ->
+                    list.code().any { it.opcode in stringLoads && it.referenceText() == "story_highlight_action_sheet" }
+                })
+                val notJumps = setOf(Opcode.PACKED_SWITCH, Opcode.SPARSE_SWITCH, Opcode.FILL_ARRAY_DATA)
+                lists.forEach { list ->
+                    val code = context.method(menu.type, list.name, list.parameterTypes.map(Any::toString)).code()
+                    assertEquals("${bundle.name}: ${list.name} names its menu first", BUILDING, code[0].referenceText())
+                    val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+                    assertTrue("${bundle.name}: ${list.name} doesn't return", returns.isNotEmpty())
+                    returns.forEach { at -> assertEquals("${bundle.name}: ${list.name} before the return at $at", LABEL_LIST, code[at - 1].referenceText()) }
+                    code.indices.filter { code[it] is OffsetInstruction && code[it].opcode !in notJumps }
+                        .forEach { jump -> assertTrue("${bundle.name}: the jump at $jump in ${list.name} skips labelList()", code.target(jump) !in returns) }
+                }
                 val handlers = statics.filter { it.returnType == "V" && it.parameterTypes.lastOrNull()?.toString() == label && menu.type in it.parameterTypes.map(Any::toString) }
                 assertTrue("${bundle.name}: fewer handlers than builders", handlers.size >= builders.size)
                 handlers.forEach { handler ->
@@ -383,9 +423,9 @@ class DownloadStoryHookTest {
             assertTrue("$build: the posted type bridge calls $getter", getter.startsWith("$MEDIA->") && getter.endsWith("()Ljava/lang/Integer;"))
             val story = context.method(INSTAGRAM_MEDIA, "storyMedia").code()[3].referenceText()!!
             val viewers = FixtureDex.methodsWhere(bundle, { dex -> dex.methodSection.any { it.toString() == getter } }) { method ->
-                method.code().postedTypeChecks(story, getter).isNotEmpty()
+                method.postedTypeChecks(story, getter).isNotEmpty()
             }
-            val compared = viewers.flatMap { it.code().postedTypeChecks(story, getter) }.toSet()
+            val compared = viewers.flatMap { it.postedTypeChecks(story, getter) }.toSet()
             assertTrue("$build: nothing reads $getter on $story and compares it with a media type", compared.isNotEmpty())
             val types = FixtureDex.classes(bundle, compared.mapTo(HashSet()) { it.substringBefore("->") })
             compared.forEach { constant ->
@@ -393,6 +433,47 @@ class DownloadStoryHookTest {
                 assertEquals("$build: Instagram's number for $constant, the type its viewer compares with", photo, numbers[constant])
             }
         }
+    }
+
+    /**
+     * The check above counts a story's Media only when nothing jumps in between its read and the
+     * getter. A jump out, like 385914546's cached type check, leaves it counted; a jump landing on
+     * the call brings whatever Media the other path put in the register.
+     */
+    @Test
+    fun aJumpLandingOnTheGetterLosesTheStorysMedia() {
+        val type = "Lfixture/MediaType;"
+        val story = "$REEL_ITEM->A16:$MEDIA"
+        val getter = "$MEDIA->A6P()Ljava/lang/Integer;"
+        val compare = """
+            invoke-virtual { v0 }, $getter
+            move-result-object v1
+            invoke-static { v1 }, $type->A00(Ljava/lang/Integer;)$type
+            move-result-object v1
+            sget-object v2, $type->A01:$type
+            if-ne v1, v2, :no
+            const/4 v0, 0x1
+            return v0
+            :no
+            const/4 v0, 0x0
+            return v0
+        """.trimIndent()
+        val viewer = { body: String -> method("Lfixture/Viewer;", "A00", listOf(REEL_ITEM, MEDIA), "Z", 6, static = true, body = body + "\n" + compare) }
+        val jumpOut = viewer("""
+            iget-object v0, p0, $story
+            iget-object v3, p0, $REEL_ITEM->cached:$type
+            if-nez v3, :no
+        """.trimIndent())
+        assertEquals(listOf("$type->A01:$type"), jumpOut.postedTypeChecks(story, getter))
+        val jumpIn = viewer("""
+            if-eqz p1, :story
+            move-object v0, p1
+            goto :read
+            :story
+            iget-object v0, p0, $story
+            :read
+        """.trimIndent())
+        assertEquals("the other path's Media reaches the getter", emptyList<String>(), jumpIn.postedTypeChecks(story, getter))
     }
 
     /** The classes Download any story reads in [bundle], with the extension's bridges. */
@@ -408,18 +489,23 @@ class DownloadStoryHookTest {
     }
 
     /**
-     * The media type constants [this] code compares a story's posted type with: where it reads the
+     * The media type constants [this] method compares a story's posted type with: where it reads the
      * story's Media from [story], calls [getter] on it, turns the answer into Instagram's media type
-     * through a static method taking the number, and loads one of that type's constants.
+     * through a static method taking the number, and loads one of that type's constants. The Media
+     * the getter is called on is the one last put in its register before the call, which 453.0.0.57.79's
+     * 385914546 reads five instructions earlier, checking a cached copy of the type first. Only the
+     * straight run ending at the call counts: a jump landing in it could bring another Media.
      */
-    private fun List<Instruction>.postedTypeChecks(story: String, getter: String): List<String> =
-        indices.filter { this[it].opcode == Opcode.INVOKE_VIRTUAL && this[it].referenceText() == getter }.mapNotNull { call ->
-            val media = (this[call] as Instruction35c).registerC
-            val read = (maxOf(0, call - 4) until call).any { at ->
-                this[at].opcode == Opcode.IGET_OBJECT && this[at].referenceText() == story && (this[at] as TwoRegisterInstruction).registerA == media
-            }
+    private fun Method.postedTypeChecks(story: String, getter: String): List<String> {
+        val code = code()
+        val entered = entries()
+        return code.indices.filter { code[it].opcode == Opcode.INVOKE_VIRTUAL && code[it].referenceText() == getter }.mapNotNull { call ->
+            val media = (code[call] as Instruction35c).registerC
+            val run = (call downTo 0).firstOrNull { it in entered } ?: 0
+            val set = (call - 1 downTo run).firstOrNull { at -> code[at].opcode.setsRegister() && (code[at] as? OneRegisterInstruction)?.registerA == media }
+            val read = set != null && code[set].opcode == Opcode.IGET_OBJECT && code[set].referenceText() == story
             if (!read) return@mapNotNull null
-            val after = subList(call + 1, minOf(size, call + 8))
+            val after = code.subList(call + 1, minOf(code.size, call + 8))
             val type = after.firstNotNullOfOrNull { instruction ->
                 ((instruction as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf {
                     instruction.opcode == Opcode.INVOKE_STATIC && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Integer;")
@@ -430,6 +516,27 @@ class DownloadStoryHookTest {
                     ((instruction as ReferenceInstruction).reference as FieldReference).let { it.definingClass == type && it.type == type }
             }?.referenceText()
         }
+    }
+
+    /** The indices of [this] method's code that another path enters at: jump and switch targets, and catch handlers. */
+    private fun Method.entries(): Set<Int> {
+        val code = code()
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { i, instruction -> address[i + 1] = address[i] + instruction.codeUnits }
+        val index = address.withIndex().associate { (i, at) -> at to i }
+        val entries = HashSet<Int>()
+        code.forEachIndexed { i, instruction ->
+            if (instruction !is OffsetInstruction) return@forEachIndexed
+            val landing = index.getValue(address[i] + instruction.codeOffset)
+            if (instruction.opcode == Opcode.PACKED_SWITCH || instruction.opcode == Opcode.SPARSE_SWITCH) {
+                (code[landing] as SwitchPayload).switchElements.forEach { entries += index.getValue(address[i] + it.offset) }
+            } else {
+                entries += landing
+            }
+        }
+        implementation?.tryBlocks?.forEach { block -> block.exceptionHandlers.forEach { entries += index.getValue(it.handlerCodeAddress) } }
+        return entries
+    }
 
     /**
      * The number each constant of [this] enum is built with in its static initializer, the last of
@@ -478,6 +585,7 @@ class DownloadStoryHookTest {
 
     private fun assertUntouched(context: BytecodePatchContext) {
         assertTrue("a builder changed", context.method(helper, "A0o").code().none { it.referenceText() == LABELS || it.referenceText() == BUILDING })
+        assertTrue("the list builder changed", context.method(helper, "A05").code().none { it.referenceText() == LABEL_LIST || it.referenceText() == BUILDING })
         assertEquals("a handler changed", Opcode.CONST_STRING, context.method(helper, "A0I").code().first().opcode)
         assertEquals("the story bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "storyMedia").code().first().opcode)
         assertEquals("a bridge was written", Opcode.CONST_4, context.method(INSTAGRAM_MEDIA, "videoVersions").code().first().opcode)
@@ -556,8 +664,19 @@ class DownloadStoryHookTest {
                 // A builder whose labels end up above v15.
                 method(helper, "A0m", listOf("Lfixture/Kind;", helper, "Lfixture/Logger;"), labels, 24, static = true, body = """
                     const/4 v0, 0x0
-                    new-array v20, v0, $labels
+                    new-array v0, v0, $labels
+                    move-object/from16 v20, v0
                     return-object v20
+                """),
+                // Your own highlight's menu, built as a list (#339), with a jump to its return.
+                method(helper, "A05", listOf(helper, "Lfixture/Sheet;"), "Ljava/util/ArrayList;", 5, static = true, body = """
+                    new-instance v0, Ljava/util/ArrayList;
+                    invoke-direct { v0 }, Ljava/util/ArrayList;-><init>()V
+                    const-string v1, "story_highlight_action_sheet"
+                    if-eqz v1, :done
+                    const/4 v2, 0x0
+                    :done
+                    return-object v0
                 """),
                 // The new sheet's handler: the menu seventh of thirteen, the label last.
                 method(helper, "A0I", listOf(dismiss) + List(5) { "Lfixture/Arg$it;" } + listOf(helper) + List(5) { "Lfixture/More$it;" } + listOf(label),

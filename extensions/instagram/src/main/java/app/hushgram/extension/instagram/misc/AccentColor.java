@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.misc;
 
 import android.content.res.ColorStateList;
 import android.os.Parcel;
+import android.util.TypedValue;
 
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -19,10 +20,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Helper for the "Accent color" patch: Instagram's blue turns into the color picked in HushGram
  * settings.
  *
- * <p>Instagram reads most of its colors from its theme, through two small methods that resolve a
- * theme attribute and answer the color, and reads a button's colors for each of its states as a
- * color state list through AndroidX's loader. The patch hands every color those two answer to
- * {@link #color} and every list the loader answers to {@link #list}.
+ * <p>Instagram reads most of its colors from its theme, through small methods that resolve a theme
+ * attribute and answer the color (two plain ones and two that take a fallback color), and reads a
+ * button's colors for each of its states as a color state list through AndroidX's loader. Its text
+ * spans (mentions, hashtags, links) take the value the attribute resolves to straight from one more
+ * read. The patch hands every color those reads answer to {@link #color}, the value read's answer to
+ * {@link #value}, and every list the loader answers to {@link #list}. Its Compose screens, such as
+ * the Activity tab and a profile's bio, take theirs from palettes of colors written into the code,
+ * and each accent blue those store goes through {@link #composeColor}.
  *
  * <p>Only Instagram's exact accent blues change, each into the shade of the picked color that plays
  * the same part (see {@link #swap}), and each keeps its alpha. So a list keeps its states: a disabled
@@ -39,6 +44,9 @@ public final class AccentColor {
 
     /** What's counted when a color state list from AndroidX's loader is swapped. */
     static final String LIST = "accent color lists swapped";
+
+    /** What's counted when a color one of Instagram's Compose palettes holds is swapped. */
+    static final String COMPOSE = "Compose palette colors swapped";
 
     /** What's counted when a list didn't read back as states and colors, so it was left alone. */
     static final String UNREAD = "color lists it couldn't read";
@@ -75,6 +83,46 @@ public final class AccentColor {
     }
 
     /**
+     * Injected where one of Instagram's Compose palettes stores an accent blue, as the palette is set
+     * up. A Compose color in the sRGB space holds its ARGB in the high 32 bits and nothing in the low
+     * ones; answers [value] as the picked color's shade then, keeping the alpha, and [value] itself
+     * for any other color. Never throws.
+     */
+    public static long composeColor(long value) {
+        try {
+            HookStatus.invoked(FamilyNames.ACCENT_COLOR);
+            if ((value & 0xffffffffL) != 0) return value;
+            int argb = (int) (value >>> 32);
+            if (role(argb) == Role.NONE) return value;
+            AccentHue hue = picked();
+            if (hue == null) return value;
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, COMPOSE);
+            return (long) swap(argb, hue) << 32;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "Compose color", failure);
+            return value;
+        }
+    }
+
+    /**
+     * Injected before Instagram's theme value read returns: the one that answers what an attribute
+     * resolves to as it stands, which is how mentions, hashtags and links in captions, comments
+     * and search get their color (#8). Answers [data] swapped as {@link #color} does when [value]
+     * holds a color, and [data] itself for a size, a number or anything else. Never throws.
+     */
+    public static int value(int data, TypedValue value) {
+        try {
+            if (value == null || value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT) {
+                return data;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme value", failure);
+            return data;
+        }
+        return color(data);
+    }
+
+    /**
      * Injected before each return of AndroidX's color state list loader. Answers [list] with its
      * accent blues swapped, or [list] itself when it holds none. Never throws.
      */
@@ -104,10 +152,14 @@ public final class AccentColor {
         }
     }
 
-    /** The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready. */
+    /**
+     * The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready, or
+     * Material You with no wallpaper palette to read.
+     */
     static AccentHue picked() {
         if (!Utils.settingsReady() || !Settings.ACCENT_COLOR.get()) return null;
         AccentHue hue = Settings.ACCENT_HUE.get();
+        if (hue == AccentHue.WALLPAPER && MaterialYou.shades() == null) return null;
         return hue == null || hue == AccentHue.BLUE ? null : hue;
     }
 
@@ -123,11 +175,19 @@ public final class AccentColor {
      * screen and #85a1ff or #8593ff on a dark one. The older theme, which accounts outside Prism
      * get, draws links (mentions, hashtags, bio links) in blue_8 (#00376b) on a light screen and in
      * blue_1 (#e0f1ff) on a dark one, and fills a selected pill or comment with that same pale blue.
+     *
+     * 451 adds shades of its own. indigo_0700 (#708dff) is the link on a dark screen, which code
+     * picks rather than a theme attribute. indigo_0800 (#5c77ff), indigo_0900 (#5465fe) and
+     * indigo_1100 (#4150f7) fill badges, carousel dots and strong buttons, and indigo_000, _0100,
+     * _050 and _0300 are a selected pill's pale backgrounds, held down or not.
      */
     static Role role(int color) {
         switch (color & 0xffffff) {
             case 0x0095f6:
             case 0x4a5df9:
+            case 0x5c77ff:
+            case 0x5465fe:
+            case 0x4150f7:
                 return Role.FILL;
             case 0x3b52e7:
                 return Role.PRESSED;
@@ -139,18 +199,32 @@ public final class AccentColor {
                 return Role.LINK_ON_LIGHT;
             case 0x85a1ff:
             case 0x8593ff:
+            case 0x708dff:
                 return Role.LINK_ON_DARK;
             case 0xe0f1ff:
+            case 0xeff1ff:
+            case 0xebf1ff:
+            case 0xdbdfff:
+            case 0xccddff:
                 return Role.PALE;
             default:
                 return Role.NONE;
         }
     }
 
-    /** [color] as [hue]'s shade for the part it plays, with its own alpha, or [color] for no part. */
+    /**
+     * [color] as [hue]'s shade for the part it plays, with its own alpha, or [color] for no part, or
+     * when Material You's palette can't be read.
+     */
     static int swap(int color, AccentHue hue) {
+        Role role = role(color);
+        if (hue == AccentHue.WALLPAPER) {
+            int[] shades = MaterialYou.shades();
+            if (role == Role.NONE || shades == null) return color;
+            return (color & 0xff000000) | shades[role.ordinal() - 1];
+        }
         int rgb;
-        switch (role(color)) {
+        switch (role) {
             case FILL:
                 rgb = hue.fill;
                 break;

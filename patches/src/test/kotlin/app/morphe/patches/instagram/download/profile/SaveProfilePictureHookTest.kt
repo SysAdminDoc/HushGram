@@ -98,6 +98,7 @@ class SaveProfilePictureHookTest {
         assertEquals(6, adds.registerCount)
         assertEquals("no icon, as the newer menu's own rows", -1, stub.literal(adds.startRegister + 4))
         assertEquals("the plain text color, not Report's red", 0, stub.literal(adds.startRegister + 5))
+        assertEquals("every argument is set before the call", emptyList<Int>(), stub.unsetArguments(adds))
         assertEquals("the stub says the row went in", Opcode.RETURN, stub.last().opcode)
 
         // The fixture's item stores its eleventh and sixteenth arguments in each other's field, as 450 does.
@@ -185,7 +186,7 @@ class SaveProfilePictureHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the six others", 7, bundles.size)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, bundles.size)
         var checked = 0
         run {
             for (bundle in bundles) {
@@ -197,9 +198,8 @@ class SaveProfilePictureHookTest {
                         }
                     }
                 }
-                val hosts = FixtureDex.classesHolding(bundle, PROFILE_MENUS[0]).filter { host ->
-                    host.methods.any { method -> PROFILE_MENUS.all { name -> method.loads(name) } }
-                }
+                val menuHosts = PROFILE_MENUS.map { name -> FixtureDex.classesLoading(bundle, name).map { it.type }.toSet() }
+                val hosts = FixtureDex.classesLoading(bundle, PROFILE_MENUS[0]).filter { host -> menuHosts.all { host.type in it } }
                 val made = hosts.flatMap { it.methods }.flatMap { it.instructions() }
                     .filter { it.opcode == Opcode.NEW_INSTANCE }.map { (it.reference() as TypeReference).type }.toSet()
                 val built = FixtureDex.classes(bundle, made).values
@@ -207,7 +207,7 @@ class SaveProfilePictureHookTest {
                 val taken = built.flatMap { it.methods }.filter { it.name == "<init>" }.flatMap { it.parameterTypes.map(Any::toString) }.toSet()
                 kept += hosts + built + FixtureDex.classes(bundle, taken - made).values
                 val context = PatchContexts.of(
-                    kept.distinctBy { it.type } + ExtensionDex.classDef(PROFILE_PICTURE) + ExtensionDex.classDef(INSTAGRAM_MEDIA),
+                    FixtureDex.withStringPools(bundle, kept.distinctBy { it.type }) + ExtensionDex.classDef(PROFILE_PICTURE) + ExtensionDex.classDef(INSTAGRAM_MEDIA),
                 )
 
                 val menus = context.findProfileMenus()
@@ -226,6 +226,7 @@ class SaveProfilePictureHookTest {
                     (adds.reference() as com.android.tools.smali.dexlib2.iface.reference.MethodReference).definingClass)
                 assertEquals("${bundle.name}: the plain text color, not Report's red", 0,
                     stub.literal((adds as RegisterRangeInstruction).startRegister + 5))
+                assertEquals("${bundle.name}: every argument is set before the call", emptyList<Int>(), stub.unsetArguments(adds))
                 for (bridge in PICTURE_BRIDGES) {
                     assertEquals("${bundle.name}: $bridge", Opcode.CHECK_CAST, context.method(INSTAGRAM_MEDIA, bridge).instructions().first().opcode)
                 }
@@ -240,7 +241,7 @@ class SaveProfilePictureHookTest {
                 checked++
             }
         }
-        assertEquals("every build checked", 7, checked)
+        assertEquals("every build checked", Fixtures.BUILDS, checked)
     }
 
     /** With the bio's getter gone, every other bridge goes in and the bio's keeps answering null, so only Copy bio is left out. */
@@ -304,6 +305,16 @@ class SaveProfilePictureHookTest {
     private fun List<Instruction>.literal(register: Int): Int =
         last { it is NarrowLiteralInstruction && (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA == register }
             .let { (it as NarrowLiteralInstruction).narrowLiteral }
+
+    /**
+     * The registers [call] passes that nothing before it sets. The inline assembler drops a move it can't
+     * encode (a plain move-object from v16) without a word, and ART then rejects the whole class.
+     */
+    private fun List<Instruction>.unsetArguments(call: RegisterRangeInstruction): List<Int> {
+        val set = take(indexOf(call as Instruction)).filter { it.opcode.setsRegister() }
+            .map { (it as com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction).registerA }.toSet()
+        return (call.startRegister until call.startRegister + call.registerCount).filterNot { it in set }
+    }
 
     private companion object {
         const val HOST = "Lfixture/ProfileFragment;"

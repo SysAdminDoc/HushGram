@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -77,14 +78,14 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 /** The profile header's binder, found by its trace name. */
 internal object HighlightsHeaderBindFingerprint : Fingerprint(
     name = "bindView",
-    strings = listOf(HEADER_BIND),
+    filters = listOf(string(HEADER_BIND)),
     custom = { method, _ -> method.holdsString(HEADER_BIND) },
 )
 
 /** The setup of the header's row types, the one enum setup naming the highlights tray. */
 internal object HighlightsRowTypesFingerprint : Fingerprint(
     name = "<clinit>",
-    strings = listOf(REEL_TRAY),
+    filters = listOf(string(REEL_TRAY)),
     custom = { method, classDef -> classDef.superclass == "Ljava/lang/Enum;" && method.holdsString(REEL_TRAY) },
 )
 
@@ -112,7 +113,9 @@ internal fun BytecodePatchContext.findHighlightsRow(): HighlightsRowSite {
     val setup = uniqueMethod(PATCH, "row type setup naming $REEL_TRAY", HighlightsRowTypesFingerprint)
     val field = trayField(setup)
 
-    val readers = header.methods.filter { it.name == BUILD_ROWS }.flatMap { method ->
+    // 451 built the rows in buildRowViewTypes itself. 452 leaves that a bridge and builds them in a method it names A04,
+    // so any method of the binder reading the type does, and only one may.
+    val readers = header.methods.flatMap { method ->
         method.instructions().indices.filter { method.instructions()[it].readsStatic(field) }.map { method to it }
     }
     val (rows, tray) = readers.singleOrNull()

@@ -112,7 +112,7 @@ class StartFeedVideosWithSoundHookTest {
     }
 
     /**
-     * In each of the version's seven builds the feed controller is found by its string, its video start is found once, and
+     * In each of the version's three builds the feed controller is found by its string, its video start is found once, and
      * the hook goes in once, in front of the sound flag call, with one borrowed local up to v15 that nothing reads afterwards
      * and every other instruction in place. Read as the patcher reads an APK, and copied.
      */
@@ -121,7 +121,7 @@ class StartFeedVideosWithSoundHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val holding = FixtureDex.classesHolding(apk, FEED_CONTROLLER_STRING)

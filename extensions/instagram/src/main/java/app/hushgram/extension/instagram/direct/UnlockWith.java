@@ -10,5 +10,10 @@ package app.hushgram.extension.instagram.direct;
  */
 public enum UnlockWith {
     PHONE_LOCK,
-    PIN
+    PIN,
+    /**
+     * The phone's fingerprint or face with no PIN, pattern or password beside it, on Android 11 and
+     * up (piko #2215). While the phone has none to ask, the phone's lock asks as usual.
+     */
+    BIOMETRICS
 }

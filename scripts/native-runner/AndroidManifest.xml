@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The native feature runner: an instrumentation package with no activities, services or
+  permissions. It runs inside the target's own process, so it has to be signed with the target's
+  key. aapt2's rename-instrumentation-target-package points it at a clone when one is tested.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="app.hushgram.nativerunner">
+
+    <application
+        android:allowBackup="false"
+        android:hasCode="true"
+        android:label="HushGram native runner" />
+
+    <instrumentation
+        android:name=".Runner"
+        android:label="HushGram native runner"
+        android:targetPackage="com.instagram.android" />
+</manifest>

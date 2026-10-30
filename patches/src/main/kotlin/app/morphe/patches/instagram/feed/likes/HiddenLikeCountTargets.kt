@@ -60,9 +60,7 @@ internal const val ID_FIELD = "id"
 internal val ID_KEY = ID_FIELD.hashCode()
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
-private val DECIDER_PARAMETERS = listOf(USER_SESSION, "Ljava/lang/String;", "Z")
-private const val POSTER_PARAMETER = 1
-private const val FLAG_PARAMETER = 2
+private const val STRING = "Ljava/lang/String;"
 private const val BOOLEAN = "Ljava/lang/Boolean;"
 private const val INTEGER = "Ljava/lang/Integer;"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -130,7 +128,7 @@ internal fun BytecodePatchContext.findHiddenLikeCounts(): HiddenLikeCountAnchors
     pandoGetter(HIDDEN_LIKE_COUNTS_PATCH, POST_MODEL, LIKE_COUNT_FIELD, INTEGER)
 
     val (decider, flag, asked) = findDecider()
-    val poster = decider.parameterRegisterNumber(POSTER_PARAMETER)
+    val poster = decider.parameterRegisterNumber(decider.parameterTypes.size - 2)
     if (flag != poster + 1) refuse("${decider.definingClass}->${decider.name} doesn't keep the poster's id and the flag in neighboring registers")
     val counter = findCounter()
     val code = counter.code()
@@ -230,19 +228,20 @@ private fun BytecodePatchContext.findDecider(): Triple<Method, Int, List<Pair<Me
     val decider = classDefByOrNull(owner)?.methods?.singleOrNull { it.key() == reference }
         ?: refuse("the like rows ask $reference, which isn't in the app")
     val code = decider.code()
-    val flag = decider.parameterRegisterNumber(FLAG_PARAMETER)
-    val test = code.firstOrNull()
-    if (test?.opcode != Opcode.IF_NEZ || (test as OneRegisterInstruction).registerA != flag) {
-        refuse("$reference doesn't test the flag first")
+    val flag = decider.parameterRegisterNumber(decider.parameterTypes.size - 1)
+    // 450 and 451 test the flag first; 452 tests it after its enum and own-post checks. Either way
+    // a test of the flag, and nothing else, has to lead straight to answering hidden.
+    val tests = code.indices.filter { at -> code[at].opcode == Opcode.IF_NEZ && (code[at] as OneRegisterInstruction).registerA == flag }
+    if (tests.isEmpty()) refuse("$reference doesn't test the flag")
+    val answersHidden = tests.any { at ->
+        val target = code.branchTarget(at)
+        val answer = code.getOrNull(target)
+        val returned = code.getOrNull(target + 1)
+        answer?.opcode == Opcode.CONST_4 && (answer as NarrowLiteralInstruction).narrowLiteral == 1 &&
+            returned?.opcode == Opcode.RETURN && (returned as OneRegisterInstruction).registerA == (answer as OneRegisterInstruction).registerA
     }
-    val target = code.branchTarget(0)
-    val answer = code.getOrNull(target)
-    val returned = code.getOrNull(target + 1)
-    if (answer?.opcode != Opcode.CONST_4 || (answer as NarrowLiteralInstruction).narrowLiteral != 1 ||
-        returned?.opcode != Opcode.RETURN || (returned as OneRegisterInstruction).registerA != (answer as OneRegisterInstruction).registerA
-    ) {
-        refuse("$reference doesn't answer hidden at once when the flag is set")
-    }
+    if (!answersHidden) refuse("$reference doesn't answer hidden at once when the flag is set")
+    if (code.any { it.opcode.setsRegister() && it is OneRegisterInstruction && it.registerA == flag }) refuse("$reference writes its flag parameter")
     if (0 in decider.jumpTargets()) refuse("a jump or exception handler enters $reference at its first instruction")
     if (flag > 255) refuse("$reference keeps the flag in a register the hook can't write")
     return Triple(decider, flag, asked.map { it.first to it.second })
@@ -259,7 +258,7 @@ private fun Method.deciderAsked(): List<Pair<Int, String>> {
         if (!code.readsFlag(read)) return@mapNotNull null
         (read + 2 until minOf(code.size, read + READER_REACH)).firstNotNullOfOrNull { at ->
             val called = (code[at] as? ReferenceInstruction)?.reference as? MethodReference
-            called?.takeIf { it.returnType == "Z" && it.parameterTypes.map(CharSequence::toString) == DECIDER_PARAMETERS }
+            called?.takeIf { it.returnType == "Z" && it.isDeciderShaped() }
                 ?.let { read to it.key() }
         }
     }
@@ -364,3 +363,12 @@ private fun Method.code(): List<Instruction> = implementation?.instructions?.toL
 private fun Method.key(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 private fun MethodReference.key(): String = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
+/**
+ * Whether this is shaped like the decider: the session first, the poster's id and the flag last,
+ * and at most one more parameter between (452's surface). 450 and 451 take just the three.
+ */
+private fun MethodReference.isDeciderShaped(): Boolean {
+    val types = parameterTypes.map(CharSequence::toString)
+    return types.size in 3..4 && types.first() == USER_SESSION && types[types.size - 2] == STRING && types.last() == "Z"
+}

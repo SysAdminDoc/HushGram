@@ -24,7 +24,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Keep Reels auto scroll on's switch: under Reels, on to start, off while paused; its memory is no switch. */
+/** Keep Reels auto scroll on's two switches: under Reels, off to start, off while paused; its memory is no switch. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -34,8 +34,9 @@ public class ReelAutoScrollSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -47,6 +48,7 @@ public class ReelAutoScrollSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -62,6 +64,7 @@ public class ReelAutoScrollSettingsTest {
     @Test public void missingPatchHasNoAutoScrollSwitch() throws Exception {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_ADVANCE.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_SCROLL_ON.key));
     }
     @Test public void autoScrollSwitchStartsOffPersistsAndHonorsPause() throws Exception {
@@ -72,7 +75,8 @@ public class ReelAutoScrollSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.KEEP_REEL_AUTO_SCROLL.get());
         assertNull("the memory isn't a control", page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_SCROLL_ON.key));
-        assertEquals(java.util.Collections.singletonList(Settings.KEEP_REEL_AUTO_SCROLL), PatchFamily.REEL_AUTO_SCROLL.switches);
+        assertEquals(java.util.Arrays.asList(Settings.KEEP_REEL_AUTO_SCROLL, Settings.REEL_AUTO_ADVANCE),
+                PatchFamily.REEL_AUTO_SCROLL.switches);
         assertFalse("a backup leaves the memory out", ConfigurationBackup.eligible().containsKey(Settings.REEL_AUTO_SCROLL_ON.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_REEL_AUTO_SCROLL.key));
 
@@ -88,6 +92,55 @@ public class ReelAutoScrollSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.KEEP_REEL_AUTO_SCROLL.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+    }
+    /**
+     * Move on when a reel ends sits right under Keep auto scroll on, off to start, and asks for a
+     * restart, since the Reels viewer builds its scroller as it opens. A pause answers off and keeps
+     * the saved choice. The words in the request it came from find it.
+     */
+    @Test public void moveOnSwitchStartsOffUnderKeepAsksForARestartAndHonorsPause() throws Exception {
+        open(true);
+        SwitchPreference keep = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_ADVANCE.key);
+        assertNotNull(row);
+        assertEquals("Move on when a reel ends", row.getTitle().toString());
+        assertEquals("When a reel ends, Reels moves on to the next one instead of playing it again. It uses Instagram's own "
+                + "auto scroll, even on accounts where Instagram doesn't offer it. While it's on, Instagram's own Auto scroll "
+                + "switch can't turn it off. Restart Instagram to see the change.",
+                row.getSummary().toString());
+        assertEquals("Reels", row.getParent().getTitle().toString());
+        assertSame(keep.getParent(), row.getParent());
+        int above = -1;
+        for (int i = 0; i < row.getParent().getPreferenceCount(); i++) if (row.getParent().getPreference(i) == keep) above = i;
+        assertSame("right under Keep auto scroll on", row, row.getParent().getPreference(above + 1));
+        assertFalse(row.isChecked());
+        assertEquals(Boolean.FALSE, Settings.REEL_AUTO_ADVANCE.defaultValue);
+        assertFalse(Settings.REEL_AUTO_ADVANCE.get());
+        assertTrue("the viewer builds its scroller as it opens", Settings.REEL_AUTO_ADVANCE.rebootApp);
+        assertFalse("keeping a choice needs no restart", Settings.KEEP_REEL_AUTO_SCROLL.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_AUTO_ADVANCE.key));
+
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        assertTrue(Settings.REEL_AUTO_ADVANCE.get());
+        assertFalse("turning it on turns on no remembered choice", Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        assertFalse("nor the other switch", Settings.KEEP_REEL_AUTO_SCROLL.savedValue());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.REEL_AUTO_ADVANCE.get());
+        assertTrue(Settings.REEL_AUTO_ADVANCE.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(Settings.REEL_AUTO_ADVANCE.get());
+
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        for (String query : new String[]{"auto advance", "AUTOLOOP", "loop", "Keep Reels auto scroll on"}) {
+            page.searchSettings(query);
+            assertNotNull(query, page.getPreferenceScreen().findPreference(Settings.REEL_AUTO_ADVANCE.key));
+        }
+        page.searchSettings("autoloop");
+        assertNull("the words are the new switch's alone", page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
+        page.searchSettings("");
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_AUTO_SCROLL.key));
     }
 }

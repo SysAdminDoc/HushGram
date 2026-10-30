@@ -300,6 +300,109 @@ public class DashJoinTest {
         assertFalse(DashSave.ownWriter("hvc1.1.6.l93.90", 30));
     }
 
+    /**
+     * A conversion to H.264 runs after both tracks are down and before the join (#236). Robolectric
+     * has no codecs, so it fails the way a phone without a fitting decoder does: a build error that
+     * says so, nothing joined or sent to the gallery, and no work file left.
+     */
+    @Test
+    public void aConversionTheCodecsCantDoEndsTheSaveCleanly() {
+        Gallery gallery = new Gallery();
+        Downloader.Result result = DashSave.save(context, video, audio, true, false, gallery, policy,
+                Downloader.MAX_BYTES, Downloader.SILENT);
+
+        assertEquals(result.toString(), Downloader.Status.BUILD_ERROR, result.status);
+        assertTrue(result.toString(), result.toString().contains("could not be converted to H.264: the phone has no "
+                + "decoder of video/avc"));
+        assertFalse("a failed conversion reached the gallery", gallery.opened);
+        assertEquals("the muxer joined a picture that was never converted", 0, FaultyMuxer.writes.get());
+        assertEquals("a failed conversion left its work files", 0, workFiles());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the picture was not converted to H.264: the phone has no decoder of video/avc"));
+    }
+
+    private Downloader.Result runConverting(DashManifest.Track picture, DashManifest.Pick instead) {
+        MediaSave.policyForTests = policy;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(rows.videoUri(1), new ByteArrayOutputStream());
+        return MediaSave.dashJob(context, picture, audio, null, DownloadQuality.BEST, true, instead)
+                .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+    }
+
+    /**
+     * When the conversion fails and the save would fall back to the same picture, it joins the one
+     * it already fetched: nothing is fetched twice.
+     */
+    @Test
+    public void aFailedConversionJoinsThePictureItFetched() {
+        Downloader.Result result = runConverting(video, new DashManifest.Pick(video, audio));
+
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals(PICTURES + SOUNDS, FaultyMuxer.writes.get());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the conversion ended with BUILD_ERROR (the picture could not be converted "
+                + "to H.264: the phone has no decoder of video/avc"));
+        assertTrue(report, report.contains(", joining the picture as it is"));
+        assertFalse("the same tracks were saved again", report.contains("saving the tracks as they are"));
+        assertEquals(0, workFiles());
+    }
+
+    /**
+     * When the conversion of the full size fails, the save takes the H.264 pair it would have
+     * without it, so the person still gets a file other apps can open, only smaller.
+     */
+    @Test
+    public void aFailedConversionSavesTheH264PairInstead() {
+        byte[] body = mp4(1_000);
+        server.serve("/full.mp4", 200, "video/mp4", body, body.length);
+        DashManifest.Track full = new DashManifest.Track("video/mp4", "avc1.640028", 1920, 1080, 3_000_000,
+                server.origin() + "/full.mp4");
+
+        Downloader.Result result = runConverting(full, new DashManifest.Pick(video, audio));
+
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertEquals(PICTURES + SOUNDS, FaultyMuxer.writes.get());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the DASH save ended with BUILD_ERROR (the picture could not be converted "
+                + "to H.264: the phone has no decoder of video/avc"));
+        assertTrue(report, report.contains("saving the tracks as they are: video/mp4 avc1.64001f 1280x720 1200kbps"));
+        assertFalse(report, report.contains("joining the picture as it is"));
+        assertEquals(0, workFiles());
+    }
+
+    /**
+     * With only xHE-AAC in the manifest, the converted picture's sound is the single file's (#236):
+     * that file is fetched as the sound, never the manifest's sound. A whole file can't be joined as
+     * it is, so a conversion that fails saves the single file in its place, even when the picture
+     * itself is what a failed conversion would otherwise join as it is.
+     */
+    @Test
+    public void theSingleFilesSoundIsFetchedForAConvertedPicture() {
+        byte[] single = mp4(4_096);
+        server.serve("/single.mp4", 200, "video/mp4", single, single.length);
+        MediaSave.policyForTests = policy;
+        MediaSaveTest.Gallery rows = Robolectric.setupContentProvider(MediaSaveTest.Gallery.class, MediaStore.AUTHORITY);
+        ByteArrayOutputStream published = new ByteArrayOutputStream();
+        Shadows.shadowOf(context.getContentResolver()).registerOutputStream(rows.videoUri(1), published);
+
+        Downloader.Result result = MediaSave.dashJob(context, video, null,
+                MediaSave.Rendition.of(server.origin() + "/single.mp4"), DownloadQuality.BEST, true,
+                new DashManifest.Pick(video, null), true)
+                .run(new MediaStoreWriter(context, true), Downloader.SILENT);
+
+        assertEquals(result.toString(), Downloader.Status.OK, result.status);
+        assertArrayEquals("the single file wasn't what reached the gallery", single, published.toByteArray());
+        assertEquals("fetched as the sound, then as the file saved in the picture's place", 2,
+                server.hits("/single.mp4"));
+        assertEquals(0, server.hits("/a.mp4"));
+        assertEquals("the muxer joined a picture that was never converted", 0, FaultyMuxer.writes.get());
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the DASH save ended with BUILD_ERROR (the picture could not be converted "
+                + "to H.264: the phone has no decoder of video/avc"));
+        assertFalse(report, report.contains("joining the picture as it is"));
+        assertEquals(0, workFiles());
+    }
+
     /** Keeps what the gallery was sent. */
     private static final class Kept implements Downloader.Sink {
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();

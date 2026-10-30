@@ -5,7 +5,9 @@
 package app.morphe.patches.instagram.misc.heartbeat
 
 import app.morphe.Fixtures
+import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.iface.Method
@@ -35,21 +37,27 @@ class StopHeartbeatFixtureTest {
 
     private fun Method.isStatic() = AccessFlags.STATIC.isSet(accessFlags)
 
+    private fun heartbeatsIn(build: File) = FixtureDex.methodsWhere(build, { dex -> dex.stringSection.any { it == HEARTBEAT_TAG } }) { method ->
+        method.returnType == "V" && method.parameterTypes.size == 1 && method.parameterTypes[0].startsWith("L") &&
+            method.holds(HEARTBEAT_TAG) && method.holds(NO_ALARM_MANAGER)
+    }
+
+    private fun uploadsIn(build: File) = FixtureDex.methodsWhere(build, { dex -> dex.stringSection.any { it == UPLOAD_TAG } }) { method ->
+        method.returnType == "V" && method.holds(UPLOAD_TAG) && method.holds(UPLOAD_ACTION)
+    }
+
+    private fun Method.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
+
     @Test
     fun eachBuildHasOneHeartbeatAndOneUploadAlarmToChange() {
         for (build in builds()) {
-            val heartbeats = FixtureDex.methodsWhere(build, { dex -> dex.stringSection.any { it == HEARTBEAT_TAG } }) { method ->
-                method.returnType == "V" && method.parameterTypes.size == 1 && method.parameterTypes[0].startsWith("L") &&
-                    method.holds(HEARTBEAT_TAG) && method.holds(NO_ALARM_MANAGER)
-            }
+            val heartbeats = heartbeatsIn(build)
             assertEquals("${build.parentFile.name}/${build.name}: heartbeat alarm methods", 1, heartbeats.size)
             val heartbeat = heartbeats.single()
             val inputs = heartbeat.parameterTypes.size + if (heartbeat.isStatic()) 0 else 1
             assertTrue("${build.name}: no register free in the heartbeat method", heartbeat.implementation!!.registerCount - inputs >= 1)
 
-            val uploads = FixtureDex.methodsWhere(build, { dex -> dex.stringSection.any { it == UPLOAD_TAG } }) { method ->
-                method.returnType == "V" && method.holds(UPLOAD_TAG) && method.holds(UPLOAD_ACTION)
-            }
+            val uploads = uploadsIn(build)
             assertEquals("${build.parentFile.name}/${build.name}: upload schedulers", 1, uploads.size)
             val upload = uploads.single()
             assertTrue("${build.name}: the upload scheduler isn't static", upload.isStatic())
@@ -60,6 +68,24 @@ class StopHeartbeatFixtureTest {
             }
             assertEquals("${build.name}: AlarmManager.set calls in the upload scheduler", 1, sets.size)
             assertTrue("${build.name}: AlarmManager.set is a range call", sets.single() is FiveRegisterInstruction)
+        }
+    }
+
+    /**
+     * The patch's own fingerprints, run over every class that loads one of their exact anchor strings,
+     * each pick the one method the shape check above finds.
+     */
+    @Test
+    fun eachBuildsFingerprintsPickThoseMethods() {
+        for (build in builds()) {
+            val label = "${build.parentFile.name}/${build.name}"
+            val classes = (FixtureDex.classesHolding(build, NO_ALARM_MANAGER) + FixtureDex.classesHolding(build, UPLOAD_ACTION))
+                .distinctBy { it.type }
+            val context = PatchContexts.of(classes)
+            val heartbeat = context.uniqueMethod("Stop background wake-ups", "heartbeat alarm", HeartbeatAlarmFingerprint)
+            assertEquals("$label: the heartbeat alarm", heartbeatsIn(build).single().signature(), heartbeat.signature())
+            val upload = context.uniqueMethod("Stop background wake-ups", "analytics upload alarm", UploadAlarmFingerprint)
+            assertEquals("$label: the upload scheduler", uploadsIn(build).single().signature(), upload.signature())
         }
     }
 

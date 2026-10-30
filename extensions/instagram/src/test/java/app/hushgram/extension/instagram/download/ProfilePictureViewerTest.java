@@ -9,8 +9,16 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Insets;
+import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.widget.TextView;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -36,11 +44,16 @@ import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.ui.Dim;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /** View profile picture's screen: a real loopback fetch, the picture it shows, its Save and its zoom. */
 @RunWith(RobolectricTestRunner.class)
@@ -61,7 +74,7 @@ public class ProfilePictureViewerTest {
 
     @Before public void setup() throws Exception {
         application = RuntimeEnvironment.getApplication();
-        application.getApplicationInfo().targetSdkVersion = 36;
+        application.getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -161,6 +174,134 @@ public class ProfilePictureViewerTest {
         assertFalse(dialog.isShowing());
     }
 
+    @Test public void loadingKeepsCloseAvailableAndSaveDisabledUntilThePictureIsReady() {
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        screen.dialog.show();
+        assertTrue(screen.close.isEnabled());
+        assertFalse(screen.save.isEnabled());
+        assertEquals(View.INVISIBLE, screen.picture.getVisibility());
+        assertEquals(View.VISIBLE, screen.spinner.getVisibility());
+        assertEquals("Loading the picture...", screen.spinner.getContentDescription());
+        assertEquals(View.ACCESSIBILITY_LIVE_REGION_POLITE, screen.spinner.getAccessibilityLiveRegion());
+        ViewGroup root = (ViewGroup) screen.picture.getParent().getParent();
+        root.measure(View.MeasureSpec.makeMeasureSpec(Dim.dp(300), View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(Dim.dp(600), View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, root.getMeasuredWidth(), root.getMeasuredHeight());
+        TextView caption = labeled(root, "Loading the picture...");
+        assertNotNull("loading has a visible explanation even between spinner animation frames", caption);
+        assertTrue(caption.isShown());
+        assertTrue(caption.getWidth() > 0 && caption.getHeight() > 0);
+        assertEquals(14f, caption.getTextSize() / caption.getResources().getDisplayMetrics().scaledDensity, 0.01f);
+        assertEquals(Dim.dp(48), screen.spinner.getWidth());
+        assertEquals(Dim.dp(48), screen.spinner.getHeight());
+        assertTrue("the caption sits below the spinner", caption.getTop() >= screen.spinner.getBottom());
+        assertEquals("the spinner already announces the loading label", View.IMPORTANT_FOR_ACCESSIBILITY_NO,
+                caption.getImportantForAccessibility());
+        screen.save.performClick();
+        assertTrue("a programmatic click can't queue a save while loading", saved.isEmpty());
+
+        screen.shown(new ProfilePictureViewer.Picture(Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888), 120));
+        assertTrue(screen.save.isEnabled());
+        assertEquals(View.VISIBLE, screen.picture.getVisibility());
+        assertEquals(View.GONE, screen.spinner.getVisibility());
+        assertEquals(View.GONE, ((View) screen.spinner.getParent()).getVisibility());
+        assertFalse("the loading explanation leaves with the spinner", caption.isShown());
+        screen.save.performClick();
+        assertEquals(1, saved.size());
+        screen.close.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue("closing still cancels the viewer's fetch", screen.watch.cancelled());
+    }
+
+    @Test public void closingWhileLoadingNeverBringsThePictureOrSaveBack() {
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        screen.dialog.show();
+        screen.close.performClick();
+        screen.shown(new ProfilePictureViewer.Picture(Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888), 120));
+        assertFalse(screen.dialog.isShowing());
+        ShadowLooper.idleMainLooper();
+        assertTrue(screen.watch.cancelled());
+        assertNull(screen.picture.getDrawable());
+        assertFalse(screen.save.isEnabled());
+    }
+
+    @Test public void failingToQueueASaveKeepsTheViewerOpenAndSaysWhy() {
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone",
+                (context, renditions, details) -> false);
+        screen.dialog.show();
+        screen.shown(new ProfilePictureViewer.Picture(Bitmap.createBitmap(120, 80, Bitmap.Config.ARGB_8888), 120));
+        screen.save.performClick();
+        ShadowLooper.idleMainLooper();
+        assertTrue(screen.dialog.isShowing());
+        assertTrue(screen.close.isEnabled());
+        assertTrue(screen.save.isEnabled());
+        assertEquals("Download failed", ShadowToast.getTextOfLatestToast());
+    }
+
+    @Test @SuppressWarnings("deprecation")
+    public void viewerKeepsItsBlackSurfaceAndReadableSystemBarsOverALightHost() {
+        activity.get().setTheme(android.R.style.Theme_Material_Light_NoActionBar);
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        screen.dialog.show();
+        View root = (View) screen.picture.getParent().getParent();
+        assertEquals("the surface behind transparent system bars stays black", Color.BLACK,
+                ((ColorDrawable) root.getBackground()).getColor());
+        // Android 15+ forces a transparent navigation bar for this app's target SDK.
+        assertEquals(Build.VERSION.SDK_INT >= 35 ? Color.TRANSPARENT : Color.BLACK,
+                screen.dialog.getWindow().getNavigationBarColor());
+        int flags = screen.dialog.getWindow().getDecorView().getSystemUiVisibility();
+        assertEquals(0, flags & (View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController bars = screen.dialog.getWindow().getInsetsController();
+            assertNotNull(bars);
+            assertEquals(0, bars.getSystemBarsAppearance() & (WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    | WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS));
+        }
+        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN,
+                screen.dialog.getWindow().getAttributes().softInputMode & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE);
+        assertTrue(screen.close.getMinimumHeight() >= Dim.dp(48));
+        assertTrue(screen.save.getMinimumHeight() >= Dim.dp(48));
+        assertTrue(screen.close.isFocusable());
+    }
+
+    @Test @SuppressWarnings("deprecation")
+    public void navigationGestureAndKeyboardInsetsKeepTheToolbarAndPictureClear() throws Exception {
+        ProfilePictureViewer.Screen screen = new ProfilePictureViewer.Screen(activity.get(), sizes(), "someone", save);
+        screen.dialog.show();
+        ViewGroup root = (ViewGroup) screen.picture.getParent().getParent();
+        WindowInsets insets = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                ? new WindowInsets.Builder()
+                    .setInsets(WindowInsets.Type.systemBars(), Insets.of(11, 24, 13, 30))
+                    .setInsets(WindowInsets.Type.systemGestures(), Insets.of(19, 0, 21, 42))
+                    .setInsets(WindowInsets.Type.ime(), Insets.of(0, 0, 0, 320)).build()
+                : WindowInsets.class.getConstructor(Rect.class).newInstance(new Rect(11, 24, 13, 30));
+        root.dispatchApplyWindowInsets(insets);
+        assertEquals(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? 19 : 11, root.getPaddingLeft());
+        assertEquals(24, root.getPaddingTop());
+        assertEquals(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? 21 : 13, root.getPaddingRight());
+        assertEquals(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? 320 : 30, root.getPaddingBottom());
+        View bar = (View) screen.save.getParent();
+        screen.close.setText("Close the profile picture viewer");
+        screen.close.setTextSize(32);
+        screen.save.setText("Save the profile picture");
+        screen.save.setTextSize(32);
+        root.measure(View.MeasureSpec.makeMeasureSpec(900, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1600, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 900, 1600);
+        View preview = (View) screen.picture.getParent();
+        assertEquals("the preview ends above the action bar", preview.getBottom(), bar.getTop());
+        assertTrue("the picture still has room above the expanded toolbar", preview.getHeight() > 0);
+        assertEquals(1600 - root.getPaddingBottom(), bar.getBottom());
+        assertTrue(screen.close.getHeight() >= Dim.dp(48));
+        assertTrue(screen.save.getHeight() >= Dim.dp(48));
+
+        WindowInsets clear = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                ? new WindowInsets.Builder().build()
+                : WindowInsets.class.getConstructor(Rect.class).newInstance(new Rect());
+        root.dispatchApplyWindowInsets(clear);
+        assertEquals("insets can disappear without accumulating padding", 0, root.getPaddingBottom());
+    }
+
     @Test public void saveAfterTheSwitchWentOffSavesNothing() throws Exception {
         assertTrue(ProfilePictureViewer.open(activity.get(), sizes(), "someone", save));
         settle();
@@ -237,4 +378,61 @@ public class ProfilePictureViewerTest {
         activity.get().finish();
         assertFalse(ProfilePictureViewer.open(activity.get(), sizes(), "someone", save));
     }
+    @Test @Config(sdk = 28)
+    public void closingAViewerDoesNotQueueItsSocketCloserBehindFetches() throws Exception {
+        withBusyBackgroundWorkers(() -> {
+            ProfilePictureViewer.Watch watch = new ProfilePictureViewer.Watch();
+            CountDownLatch closed = new CountDownLatch(1);
+            watch.reading(closed::countDown);
+            watch.cancel();
+            assertTrue("the viewer's connection closer waited behind occupied fetch workers",
+                    closed.await(2, TimeUnit.SECONDS));
+            assertTrue(watch.cancelled());
+        });
+    }
+
+    @Test @Config(sdk = 28)
+    public void aConnectionRegisteredAfterDismissalClosesWithoutTheFetchPool() throws Exception {
+        withBusyBackgroundWorkers(() -> {
+            ProfilePictureViewer.Watch watch = new ProfilePictureViewer.Watch();
+            watch.cancel();
+            CountDownLatch closed = new CountDownLatch(1);
+            watch.reading(closed::countDown);
+            assertTrue("a dismissed viewer left its newly registered connection waiting",
+                    closed.await(2, TimeUnit.SECONDS));
+        });
+    }
+
+    private interface BusyWorkerCheck { void run() throws Exception; }
+
+    /** Occupies every available general worker without shutting down or replacing the shared pool. */
+    private static void withBusyBackgroundWorkers(BusyWorkerCheck check) throws Exception {
+        Utils.awaitBackgroundTasksForTests();
+        java.lang.reflect.Field field = Utils.class.getDeclaredField("backgroundThreadPool");
+        field.setAccessible(true);
+        ThreadPoolExecutor pool = (ThreadPoolExecutor) field.get(null);
+        int previousCore = pool.getCorePoolSize();
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch entered = new CountDownLatch(pool.getMaximumPoolSize());
+        try {
+            // Earlier tests may have grown the pool above its core size. Occupy those workers too.
+            pool.setCorePoolSize(pool.getMaximumPoolSize());
+            pool.prestartAllCoreThreads();
+            for (int i = 0; i < pool.getMaximumPoolSize(); i++) {
+                assertTrue(Utils.runOnBackgroundThread(() -> {
+                    entered.countDown();
+                    try { release.await(); }
+                    catch (InterruptedException failure) { Thread.currentThread().interrupt(); }
+                }));
+            }
+            assertTrue("the fetch workers did not start", entered.await(3, TimeUnit.SECONDS));
+            check.run();
+        } finally {
+            release.countDown();
+            pool.setCorePoolSize(previousCore);
+            Utils.awaitBackgroundTasksForTests();
+        }
+    }
+
+
 }

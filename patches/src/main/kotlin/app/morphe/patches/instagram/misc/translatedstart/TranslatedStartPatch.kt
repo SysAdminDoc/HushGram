@@ -18,12 +18,15 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.handleTargets
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
+import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.TargetCoverage
 import app.morphe.patches.instagram.misc.extension.writeTargetCoverage
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -97,15 +100,19 @@ internal fun BytecodePatchContext.guardCodeProtection(coverage: (TargetCoverage)
 
 /**
  * Asks [PROTECT_CODE] in front of the call at [call], and jumps over the call on a 0. The answer goes
- * in a local nothing reads after the call. The code takes the call's own label, so a branch that
- * reached the call asks first too.
+ * in a local nothing reads after the call, or when the method has none, in a parameter nothing reads
+ * from the call on. The code takes the call's own label, so a branch that reached the call asks first too.
  */
 internal fun MutableMethod.skipUnlessProtected(call: Int) {
     val after = call + 1
     if (after >= implementation!!.instructions.size) {
         throw PatchException("$TRANSLATED_START_NAME: $definingClass->$name ends on its call to $MPROTECT_EXEC_CODE")
     }
-    val answer = freeLocalsAt(TRANSLATED_START_NAME, call, 1, targets = listOf(after), highest = 255).single()
+    val answer = try {
+        freeLocalsAt(TRANSLATED_START_NAME, call, 1, targets = listOf(after), highest = 255).single()
+    } catch (noLocal: PatchException) {
+        deadParameterAt(call, after) ?: throw noLocal
+    }
     addInstructionsAtControlFlowLabel(
         call,
         """
@@ -115,6 +122,25 @@ internal fun MutableMethod.skipUnlessProtected(call: Int) {
         """,
         ExternalLabel("skip", getInstruction(after)),
     )
+}
+
+/**
+ * A parameter register, `this` included, that nothing reads from [call] on, or null. Instagram 451's
+ * 0HUM.A02 is an instance method whose one register is `this`, holding only the call and its return.
+ * A narrow parameter only: half of a long or a double stays as it is, and so does a constructor's.
+ */
+private fun MutableMethod.deadParameterAt(call: Int, after: Int): Int? {
+    if (name == "<init>") return null
+    val live = liveAcrossInjection(call, listOf(after))
+    var register = localRegisterCount()
+    val narrow = mutableListOf<Int>()
+    if (!AccessFlags.STATIC.isSet(accessFlags)) narrow += register++
+    for (type in parameterTypes.map(CharSequence::toString)) {
+        val wide = type == "J" || type == "D"
+        if (!wide) narrow += register
+        register += if (wide) 2 else 1
+    }
+    return narrow.firstOrNull { it !in live && it <= 255 }
 }
 
 private fun Instruction.callsCodeProtection(): Boolean =

@@ -94,6 +94,13 @@ final class Downloader {
         default void joining() {
         }
 
+        /**
+         * The fetched picture is being converted to H.264, [percent] of it so far, or -1 when its
+         * length isn't known.
+         */
+        default void converting(int percent) {
+        }
+
         /** The finished file is being copied into the gallery. */
         default void saving() {
         }
@@ -141,6 +148,11 @@ final class Downloader {
             @Override
             public void joining() {
                 progress.joining();
+            }
+
+            @Override
+            public void converting(int percent) {
+                progress.converting(percent);
             }
 
             @Override
@@ -263,6 +275,41 @@ final class Downloader {
         void abandon();
     }
 
+    /** Headers and the already-opened response stream, claimed by exactly one fetch worker. */
+    static final class Prepared implements AutoCloseable {
+        final HttpURLConnection connection;
+        private final DownloadPreparation owner;
+        int code;
+        String type;
+        long length;
+        InputStream stream;
+        private boolean closed;
+
+        Prepared(HttpURLConnection connection, DownloadPreparation owner) {
+            this.connection = connection;
+            this.owner = owner;
+        }
+
+        void disconnect() {
+            try { connection.disconnect(); } catch (Throwable ignored) { /* The worker still closes its stream. */ }
+        }
+
+        @Override public void close() throws IOException {
+            if (closed) return;
+            closed = true;
+            try {
+                if (stream != null) stream.close();
+            } finally {
+                disconnect();
+                owner.closed(this);
+            }
+        }
+
+        void closeQuietly() {
+            try { close(); } catch (Throwable ignored) { /* Preserve the result that required cleanup. */ }
+        }
+    }
+
     private static final int CONNECT_TIMEOUT_MS = 15_000;
     private static final int READ_TIMEOUT_MS = 20_000;
 
@@ -301,78 +348,20 @@ final class Downloader {
      * only make a refusal more likely.
      */
     static Result fetch(String url, Kind kind, File into, MediaUrlPolicy policy, long maxBytes, Progress progress) {
-        HttpURLConnection connection = null;
         boolean kept = false;
-
+        Result result = null;
         try {
-            Object opened = connect(url, policy, progress);
+            Object opened = connect(url, kind, policy, maxBytes, progress);
             if (opened instanceof Result) return (Result) opened;
-            connection = (HttpURLConnection) opened;
-            if (progress.cancelled()) return cancelled();
-
-            int code = connection.getResponseCode();
-            if (code == 401 || code == 403 || code == 410) {
-                drain(connection, progress);
-                if (progress.cancelled()) return cancelled();
-                return Result.fail(Status.EXPIRED, "the server answered " + code);
+            try (Prepared response = (Prepared) opened) {
+                result = receive(response, kind, into, maxBytes, progress);
             }
-            // Only a 200 is the whole file. A 206 answers a Range request, and none was sent: its
-            // body is part of a file, of just the length it announces, so the length check below
-            // passed it and the gallery got a truncated video that said it saved.
-            if (code != 200) {
-                drain(connection, progress);
-                if (progress.cancelled()) return cancelled();
-                return Result.fail(Status.HTTP_ERROR, "the server answered " + code);
-            }
-
-            String declared = mimeOf(connection.getContentType());
-            if (!declaresKind(declared, kind)) {
-                return Result.fail(Status.REFUSED, "the server sent " + (declared == null ? "no type" : declared)
-                    + ", not " + kind.name().toLowerCase(Locale.US));
-            }
-
-            long expected = connection.getContentLengthLong();
-            if (expected > maxBytes) {
-                return Result.fail(Status.TOO_LARGE, "the server announced " + expected + " bytes, more than " + maxBytes);
-            }
-
-            InputStream in = connection.getInputStream();
-            byte[] head = new byte[HEAD];
-            int headLength = readHead(in, head);
-            if (headLength == 0) return Result.fail(Status.WRITE_ERROR, "the body was empty");
-
-            String sniffed = sniff(kind, head, headLength);
-            if (sniffed == null) {
-                return Result.fail(Status.REFUSED, "the body does not start like a " + kind.name().toLowerCase(Locale.US) + " file");
-            }
-
-            long total;
-            try (OutputStream out = new CacheFile(into)) {
-                out.write(head, 0, headLength);
-                progress.transferred(headLength, expected);
-                total = headLength + copy(in, out, maxBytes - headLength, headLength, expected, progress);
-            }
-            if (total > maxBytes) return Result.fail(Status.TOO_LARGE, "the body ran past " + maxBytes + " bytes");
-            // Without the length check a connection dropped near the end publishes a truncated
-            // file that reports success and will not play. That failure is worse than no file,
-            // because the user has no reason to try again.
-            if (expected >= 0 && total != expected) {
-                return Result.fail(Status.WRITE_ERROR, "the body was " + total + " of " + expected + " bytes");
-            }
-
-            kept = true;
-            // The bytes decide the gallery file type. A server can call PNG bytes JPEG (or WebM
-            // bytes MP4); using that header leaves a valid save with the wrong extension. DASH
-            // audio is fetched only for joining, and Meta calls its audio track video/mp4, so keep
-            // that reported type for the track. A HEIF whose brands don't say how it's coded
-            // keeps a declared AVIF, HEIC or HEIF type, which says more than the bytes did.
-            if (kind == Kind.AUDIO && isSpecific(declared)) return Result.ok(declared);
-            if (HEIF.equals(sniffed) && isHeifType(declared)) return Result.ok(declared);
-            return Result.ok(sniffed);
+            // Closing the response is part of the fetch. A close failure must not keep cache bytes.
+            kept = result.ok();
+            return result;
         } catch (IOException e) {
-            // A cancel closes the connection under the read, which surfaces here as a socket
-            // error. It's still the person's cancel, not a network failure.
             if (progress.cancelled()) return cancelled();
+            if (result != null && !result.ok()) return result;
             if (e instanceof StorageFailure) {
                 return Result.fail(Status.WRITE_ERROR, "the cache could not hold the file: "
                     + e.getCause().getClass().getSimpleName());
@@ -380,17 +369,58 @@ final class Downloader {
             return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + e.getClass().getSimpleName());
         } catch (Throwable t) {
             if (progress.cancelled()) return cancelled();
+            if (result != null && !result.ok()) return result;
             return Result.fail(Status.NETWORK_ERROR, "the fetch failed: " + t.getClass().getSimpleName());
         } finally {
             if (!kept) delete(into);
-            if (connection != null) {
-                try {
-                    connection.disconnect();
-                } catch (Throwable ignored) {
-                    // Nothing useful to do.
-                }
-            }
         }
+    }
+
+    private static Result receive(Prepared response, Kind kind, File into, long maxBytes, Progress progress) throws IOException {
+        if (progress.cancelled()) return cancelled();
+        int code = response.code;
+        if (code == 401 || code == 403 || code == 410) {
+            drain(response, progress);
+            if (progress.cancelled()) return cancelled();
+            return Result.fail(Status.EXPIRED, "the server answered " + code);
+        }
+        // No Range was sent. Only 200 names a complete file, whatever length a partial answer gives.
+        if (code != 200) {
+            drain(response, progress);
+            if (progress.cancelled()) return cancelled();
+            return Result.fail(Status.HTTP_ERROR, "the server answered " + code);
+        }
+        String declared = mimeOf(response.type);
+        if (!declaresKind(declared, kind)) {
+            return Result.fail(Status.REFUSED, "the server sent " + (declared == null ? "no type" : declared)
+                + ", not " + kind.name().toLowerCase(Locale.US));
+        }
+        long expected = response.length;
+        if (expected > maxBytes) {
+            return Result.fail(Status.TOO_LARGE, "the server announced " + expected + " bytes, more than " + maxBytes);
+        }
+        InputStream in = response.stream;
+        byte[] head = new byte[HEAD];
+        int headLength = readHead(in, head);
+        if (headLength == 0) return Result.fail(Status.WRITE_ERROR, "the body was empty");
+        String sniffed = sniff(kind, head, headLength);
+        if (sniffed == null) {
+            return Result.fail(Status.REFUSED, "the body does not start like a " + kind.name().toLowerCase(Locale.US) + " file");
+        }
+        long total;
+        try (OutputStream out = new CacheFile(into)) {
+            out.write(head, 0, headLength);
+            progress.transferred(headLength, expected);
+            total = headLength + copy(in, out, maxBytes - headLength, headLength, expected, progress);
+        }
+        if (total > maxBytes) return Result.fail(Status.TOO_LARGE, "the body ran past " + maxBytes + " bytes");
+        if (expected >= 0 && total != expected) {
+            return Result.fail(Status.WRITE_ERROR, "the body was " + total + " of " + expected + " bytes");
+        }
+        // Name the checked bytes. DASH audio keeps its specific declared container for the join.
+        if (kind == Kind.AUDIO && isSpecific(declared)) return Result.ok(declared);
+        if (HEIF.equals(sniffed) && isHeifType(declared)) return Result.ok(declared);
+        return Result.ok(sniffed);
     }
 
     /**
@@ -444,7 +474,14 @@ final class Downloader {
      * this to the default means an occasional unexplained failure, and it would also skip the
      * policy on the hop.
      */
-    private static Object connect(String url, MediaUrlPolicy policy, Progress progress) throws IOException {
+    private static Object connect(String url, Kind kind, MediaUrlPolicy policy, long maxBytes, Progress progress) throws IOException {
+        // Includes policy discovery and URLConnection's own proxy/DNS/header/stream callbacks.
+        return DownloadPreparation.await(progress, (long) CONNECT_TIMEOUT_MS + readTimeoutMs,
+                owner -> connectNow(url, kind, policy, maxBytes, owner));
+    }
+
+    private static Object connectNow(String url, Kind kind, MediaUrlPolicy policy, long maxBytes,
+            DownloadPreparation progress) throws IOException {
         URL current;
         try {
             current = new URL(url);
@@ -452,58 +489,53 @@ final class Downloader {
             return Result.fail(Status.REFUSED, "the address is not well formed");
         }
         Set<String> visited = new HashSet<>();
-
         for (int hop = 0; hop <= MAX_REDIRECTS; hop++) {
             if (progress.cancelled()) return cancelled();
             MediaUrlPolicy.Refusal refusal = policy.refusal(current);
+            if (progress.cancelled()) return cancelled();
             if (refusal != null) {
-                // A lookup that failed or lied is the network's doing; anything else means the
-                // address isn't Meta's media, and the person saving is told which.
                 return Result.fail(refusal.network ? Status.NETWORK_ERROR : Status.REFUSED,
                     (hop == 0 ? "the address: " : "redirect " + hop + ": ") + refusal.reason);
             }
             if (!visited.add(current.toExternalForm())) {
                 return Result.fail(Status.HTTP_ERROR, "redirect " + hop + " loops back to an address already fetched");
             }
-
-            HttpURLConnection connection = (HttpURLConnection) current.openConnection();
-            // This method's to close until it's handed back, whatever throws: a failure while the
-            // headers came in used to skip the disconnect.
+            Prepared response = new Prepared((HttpURLConnection) current.openConnection(), progress);
             boolean handedBack = false;
             String location;
             try {
+                progress.reading(response);
+                if (progress.cancelled()) return cancelled();
+                HttpURLConnection connection = response.connection;
                 connection.setRequestMethod("GET");
                 connection.setInstanceFollowRedirects(false);
                 connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
                 connection.setReadTimeout(readTimeoutMs);
                 connection.setUseCaches(false);
-                // disconnect(), never the stream's close(): over HTTPS on Android only disconnect()
-                // ends a read that's waiting (SaveControl.Save.cancel has the measurements).
-                progress.reading(connection::disconnect);
-                // A cancel's close that runs before the connection exists closes nothing, on the
-                // JDK and on Android alike, and the fetch then waited for an answer until the read
-                // timeout. So the flag is read again once connected; a close after that ends the wait.
                 connection.connect();
                 if (progress.cancelled()) return cancelled();
-
                 int code = connection.getResponseCode();
+                if (progress.cancelled()) return cancelled();
+                response.code = code;
                 if (code != 301 && code != 302 && code != 303 && code != 307 && code != 308) {
+                    if (code == 200) {
+                        response.type = connection.getContentType();
+                        response.length = connection.getContentLengthLong();
+                        if (progress.cancelled()) return cancelled();
+                        if (declaresKind(mimeOf(response.type), kind) && response.length <= maxBytes) {
+                            response.stream = connection.getInputStream();
+                        }
+                    } else response.stream = connection.getErrorStream();
+                    if (progress.cancelled()) return cancelled();
                     handedBack = true;
-                    return connection;
+                    return response;
                 }
-
                 location = connection.getHeaderField("Location");
-                drain(connection, progress);
+                response.stream = connection.getErrorStream();
+                drain(response, progress);
             } finally {
-                if (!handedBack) {
-                    try {
-                        connection.disconnect();
-                    } catch (Throwable ignored) {
-                        // Nothing useful to do.
-                    }
-                }
+                if (!handedBack) response.closeQuietly();
             }
-
             if (location == null || location.isEmpty()) {
                 return Result.fail(Status.HTTP_ERROR, "a redirect named no address");
             }
@@ -513,7 +545,6 @@ final class Downloader {
                 return Result.fail(Status.HTTP_ERROR, "redirect " + (hop + 1) + " is not well formed");
             }
         }
-
         return Result.fail(Status.HTTP_ERROR, "more than " + MAX_REDIRECTS + " redirects");
     }
 
@@ -699,31 +730,20 @@ final class Downloader {
      * on. A read that's waiting ends at the read timeout, or on a cancel, which closes the
      * connection ({@link Progress#reading}). A redirect has no error body, so none of it is read.
      */
-    private static void drain(HttpURLConnection connection, Progress progress) {
-        InputStream stream = null;
+    private static void drain(Prepared response, Progress progress) {
+        InputStream stream = response.stream;
+        if (stream == null) return;
         try {
-            stream = connection.getErrorStream();
-            if (stream == null) return;
-
             byte[] buffer = new byte[4096];
             long until = System.nanoTime() + DRAIN_NANOS;
             int left = DRAIN_BYTES;
             int read;
             while (left > 0 && System.nanoTime() - until < 0 && !progress.cancelled()
                     && (read = stream.read(buffer, 0, Math.min(buffer.length, left))) > 0) {
-                // Discarded on purpose. Reading it is what releases the connection.
                 left -= read;
             }
         } catch (Throwable ignored) {
-            // Nothing useful to do.
-        } finally {
-            if (stream != null) {
-                try {
-                    stream.close();
-                } catch (Throwable ignored) {
-                    // Nothing useful to do.
-                }
-            }
+            // The response's owner closes this stream, including when the drain failed.
         }
     }
 

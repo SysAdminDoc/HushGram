@@ -99,17 +99,18 @@ val hidePaidPartnershipReelsPatch = bytecodePatch(
     }
 }
 
-private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
+private fun refuse(detail: String): Nothing = refuseFor(PATCH, detail)
+
+private fun refuseFor(patch: String, detail: String): Nothing = throw PatchException("$patch: $detail")
 
 /**
- * What the patch changes: the Reels viewer's network callback ([callback]) and its [success]
- * method, which takes the page source ([pageInterface]); the instruction [join] where the page
- * and its fallback meet in register [list]; the local [scratch] the hook borrows there; the
- * callback's [moduleField], the viewer's module name; and, for the extension's stubs, the Reels
- * item type, its Media field and the Media getters for [PAID_PARTNERSHIP_FIELD] and
- * [BOOSTED_STATUS_FIELD].
+ * Where each page of the Reels viewer comes in: the viewer's network callback ([callback]) and its
+ * [success] method, which takes the page source ([pageInterface]); the instruction [join] where the
+ * page and its fallback meet in register [list]; the local [scratch] a hook borrows there; the
+ * callback's [moduleField], the viewer's module name; and the Reels item type with its Media field,
+ * which a filter's stub reads. Hide AI-labeled reels filters the same pages.
  */
-internal class PaidPartnershipSites(
+internal open class ReelsPageSites(
     val callback: String,
     val success: String,
     val pageInterface: String,
@@ -119,12 +120,37 @@ internal class PaidPartnershipSites(
     val moduleField: String,
     val itemType: String,
     val mediaField: String,
-    val partnershipGetter: Method,
-    val boostedGetter: Method,
 )
 
+/** What this patch changes: the [ReelsPageSites], and the Media getters for [PAID_PARTNERSHIP_FIELD] and [BOOSTED_STATUS_FIELD]. */
+internal class PaidPartnershipSites(
+    page: ReelsPageSites,
+    val partnershipGetter: Method,
+    val boostedGetter: Method,
+) : ReelsPageSites(
+    page.callback, page.success, page.pageInterface, page.join, page.list, page.scratch, page.moduleField,
+    page.itemType, page.mediaField,
+)
+
+/** Finds where the Reels viewer takes each page of items, with this patch's stubs. See [findReelsPage]. */
+internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSites {
+    val page = findReelsPage(PATCH)
+    val partnership = publicGetter(PAID_PARTNERSHIP_FIELD, "Ljava/lang/Boolean;")
+    val boosted = publicGetter(BOOSTED_STATUS_FIELD, STRING)
+    classDefByOrNull(PAID_PARTNERSHIP_REELS)?.let { extension ->
+        if (extension.methods.none { it.isStaticStub("page", listOf(LIST, STRING), LIST) }) {
+            refuse("the extension has no static page(List, String)List")
+        }
+        listOf("media" to OBJECT, "paidPartnership" to "Ljava/lang/Boolean;", "boostedStatus" to STRING)
+            .filter { (stub, returns) -> extension.methods.none { it.isStaticStub(stub, listOf(OBJECT), returns) } }
+            .forEach { (stub, returns) -> refuse("the extension has no static $stub(Object)$returns to fill") }
+    } ?: refuse("the extension has no $PAID_PARTNERSHIP_REELS")
+    return PaidPartnershipSites(page, partnership, boosted)
+}
+
 /**
- * Finds where the Reels viewer takes each page of items, and which viewer asked for it.
+ * Finds where the Reels viewer takes each page of items, and which viewer asked for it, for the
+ * patch named [patch].
  *
  * Every source of Reels answers a page through one interface's method: the instance methods taking
  * the UserSession and answering a List that call the Reels item converter, by [TO_CLIPS_ITEM], or
@@ -139,8 +165,9 @@ internal class PaidPartnershipSites(
  * Fails before anything changes when any of it isn't there or isn't shaped that way, since that's
  * an update this patch hasn't seen.
  */
-internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSites {
-    val converter = uniqueMethod(PATCH, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
+internal fun BytecodePatchContext.findReelsPage(patch: String): ReelsPageSites {
+    fun refuse(detail: String): Nothing = refuseFor(patch, detail)
+    val converter = uniqueMethod(patch, "Reels item converter holding \"$TO_CLIPS_ITEM\"", ClipsItemConverterFingerprint)
     val itemType = converter.returnType
     val item = classDefByOrNull(itemType) ?: refuse("the Reels item converter answers $itemType, which isn't a class of the app")
     if (!AccessFlags.PUBLIC.isSet(item.accessFlags)) refuse("$itemType isn't public, so the extension can't reach it")
@@ -171,25 +198,13 @@ internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSit
     ) {
         refuse("expected ${success.describe()} to take a $pageInterface and answer nothing")
     }
-    val (join, list) = pageJoin(success, pageInterface, pageName)
-    success.requireThisIntact("$PATCH: the Reels page's callback", listOf(join))
-    val scratch = success.freeLocalsAt("$PATCH: the Reels page's callback", join, 1, except = listOf(list)).single()
-    val moduleField = moduleField(success.definingClass)
+    val (join, list) = pageJoin(patch, success, pageInterface, pageName)
+    success.requireThisIntact("$patch: the Reels page's callback", listOf(join))
+    val scratch = success.freeLocalsAt("$patch: the Reels page's callback", join, 1, except = listOf(list)).single()
+    val moduleField = moduleField(patch, success.definingClass)
 
-    val partnership = publicGetter(PAID_PARTNERSHIP_FIELD, "Ljava/lang/Boolean;")
-    val boosted = publicGetter(BOOSTED_STATUS_FIELD, STRING)
-    classDefByOrNull(PAID_PARTNERSHIP_REELS)?.let { extension ->
-        if (extension.methods.none { it.isStatic("page", listOf(LIST, STRING), LIST) }) {
-            refuse("the extension has no static page(List, String)List")
-        }
-        listOf("media" to OBJECT, "paidPartnership" to "Ljava/lang/Boolean;", "boostedStatus" to STRING)
-            .filter { (stub, returns) -> extension.methods.none { it.isStatic(stub, listOf(OBJECT), returns) } }
-            .forEach { (stub, returns) -> refuse("the extension has no static $stub(Object)$returns to fill") }
-    } ?: refuse("the extension has no $PAID_PARTNERSHIP_REELS")
-
-    return PaidPartnershipSites(
-        success.definingClass, success.name, pageInterface, join, list, scratch, moduleField,
-        itemType, mediaField.name, partnership, boosted,
+    return ReelsPageSites(
+        success.definingClass, success.name, pageInterface, join, list, scratch, moduleField, itemType, mediaField.name,
     )
 }
 
@@ -201,7 +216,8 @@ internal fun BytecodePatchContext.findPaidPartnershipReels(): PaidPartnershipSit
  * branch between the two calls, past which nothing writes the list, so that register holds a List
  * from one of the two on every path to it.
  */
-private fun pageJoin(success: Method, pageInterface: String, pageName: String): Pair<Int, Int> {
+private fun pageJoin(patch: String, success: Method, pageInterface: String, pageName: String): Pair<Int, Int> {
+    fun refuse(detail: String): Nothing = refuseFor(patch, detail)
     val where = success.describe()
     val flow = ControlFlow.of(success)
     val code = flow.instructions
@@ -246,7 +262,8 @@ private fun pageJoin(success: Method, pageInterface: String, pageName: String): 
  * the callback with what the viewer's getModuleName answered, read straight before; the callback's
  * one constructor keeps that parameter in one field, and nothing else writes it.
  */
-private fun BytecodePatchContext.moduleField(callback: String): String {
+private fun BytecodePatchContext.moduleField(patch: String, callback: String): String {
+    fun refuse(detail: String): Nothing = refuseFor(patch, detail)
     val fetch = markedMethods(REELS_FETCH).singleOrNull()
         ?: refuse("expected one method marked $REELS_FETCH, found ${markedMethods(REELS_FETCH).map { it.describe() }}")
     val code = fetch.implementation?.instructions?.toList().orEmpty()
@@ -284,7 +301,7 @@ private fun BytecodePatchContext.moduleField(callback: String): String {
     }
     val at = kept.singleOrNull()
         ?: refuse("expected $callback's constructor to keep its module name in one field, found ${kept.size}")
-    constructor.requireParameterIntact("$PATCH: the Reels page's callback", slot, listOf(at))
+    constructor.requireParameterIntact("$patch: the Reels page's callback", slot, listOf(at))
     val field = body[at].fieldReference()!!.name
     val writers = callbackClass.methods.filter { method ->
         method.implementation?.instructions?.any { instruction ->
@@ -324,15 +341,25 @@ private fun answeredBy(code: List<Instruction>, targets: Set<Int>, at: Int, regi
  * and a List either way, so nothing is cast.
  */
 internal fun BytecodePatchContext.hidePaidPartnershipReels(sites: PaidPartnershipSites) {
-    val extension = mutableClassDefBy(PAID_PARTNERSHIP_REELS)
-    fun fill(name: String, returns: String, registers: Int, body: String) {
-        val stub = extension.methods.single { it.isStatic(name, listOf(OBJECT), returns) }
-        extension.methods.remove(stub)
-        extension.methods.add(replaced(stub, registers, body))
-    }
+    fillReelsItemMedia(PAID_PARTNERSHIP_REELS, sites)
+    fillStub(PAID_PARTNERSHIP_REELS, "paidPartnership", "Ljava/lang/Boolean;", 1, getterBody(sites.partnershipGetter))
+    fillStub(PAID_PARTNERSHIP_REELS, "boostedStatus", STRING, 1, getterBody(sites.boostedGetter))
+    filterReelsPage(sites, PARTNERSHIP_PAGE_FILTER)
+}
+
+/** Replaces the body of [extension]'s static [name](Object) answering [returns] with [body], in [registers] registers. */
+internal fun BytecodePatchContext.fillStub(extension: String, name: String, returns: String, registers: Int, body: String) {
+    val methods = mutableClassDefBy(extension).methods
+    val stub = methods.single { it.isStaticStub(name, listOf(OBJECT), returns) }
+    methods.remove(stub)
+    methods.add(replaced(stub, registers, body))
+}
+
+/** Fills [extension]'s media(Object)Object stub, which reads a Reels item's post. */
+internal fun BytecodePatchContext.fillReelsItemMedia(extension: String, sites: ReelsPageSites) {
     // Answers an Object: null for anything that isn't a Reels item, else the item's post, which can be null.
-    fill(
-        "media", OBJECT, 2,
+    fillStub(
+        extension, "media", OBJECT, 2,
         """
             instance-of v0, p0, ${sites.itemType}
             if-nez v0, :item
@@ -344,9 +371,15 @@ internal fun BytecodePatchContext.hidePaidPartnershipReels(sites: PaidPartnershi
             return-object v0
         """,
     )
-    fill("paidPartnership", "Ljava/lang/Boolean;", 1, getterBody(sites.partnershipGetter))
-    fill("boostedStatus", STRING, 1, getterBody(sites.boostedGetter))
+}
 
+/**
+ * Hands the list the callback holds where the page and its fallback meet to [filter], a static
+ * (List, String)List, with the callback's module name, at that instruction's own label so the
+ * branch from the page's check passes through it too. Another patch's filter put there before
+ * runs after this one.
+ */
+internal fun BytecodePatchContext.filterReelsPage(sites: ReelsPageSites, filter: String) {
     val success = mutableClassDefBy(sites.callback).methods.single {
         it.name == sites.success && it.returnType == "V" && it.parameterTypes.map(Any::toString) == listOf(sites.pageInterface)
     }
@@ -356,7 +389,7 @@ internal fun BytecodePatchContext.hidePaidPartnershipReels(sites: PaidPartnershi
         """
             move-object/from16 v${sites.scratch}, v$self
             iget-object v${sites.scratch}, v${sites.scratch}, ${sites.callback}->${sites.moduleField}:$STRING
-            invoke-static { v${sites.list}, v${sites.scratch} }, $PARTNERSHIP_PAGE_FILTER
+            invoke-static { v${sites.list}, v${sites.scratch} }, $filter
             move-result-object v${sites.list}
         """,
     )
@@ -402,7 +435,7 @@ private fun Method.isPage() = implementation != null && !AccessFlags.STATIC.isSe
     !AccessFlags.ABSTRACT.isSet(accessFlags) && returnType == LIST &&
     parameterTypes.map(Any::toString) == listOf(USER_SESSION)
 
-private fun Method.isStatic(name: String, parameters: List<String>, returns: String) =
+internal fun Method.isStaticStub(name: String, parameters: List<String>, returns: String) =
     this.name == name && AccessFlags.STATIC.isSet(accessFlags) && returnType == returns &&
         parameterTypes.map(Any::toString) == parameters
 

@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.preference.JavaCrashReport;
 
 /**
  * Pause HushGram, and the safe mode that turns it on without being asked.
@@ -264,8 +265,9 @@ public final class HushgramPause {
 
     /**
      * Marks the start record when an uncaught exception ends the process inside the first
-     * minute, for Android before 11, which keeps no exit reasons. The handler only writes a
-     * word to a file and hands the crash on.
+     * minute, for Android before 11, which keeps no exit reasons, and keeps the crash's report for
+     * the diagnostic export ({@link JavaCrashReport}): inside the first minute always, after it
+     * only while Debug logging is on. Then it hands the crash on.
      */
     private static void installCrashMark() {
         Thread.UncaughtExceptionHandler current = Thread.getDefaultUncaughtExceptionHandler();
@@ -273,9 +275,14 @@ public final class HushgramPause {
         Thread.setDefaultUncaughtExceptionHandler(new CrashMark(current));
     }
 
+    /** Whether this process started and is still inside its first minute. */
+    static boolean inStartWindow() {
+        return filesDir != null && SystemClock.elapsedRealtime() - startElapsed <= START_WINDOW_MS;
+    }
+
     static void markCrash() {
         File dir = filesDir;
-        if (dir == null || SystemClock.elapsedRealtime() - startElapsed > START_WINDOW_MS) return;
+        if (dir == null || !inStartWindow()) return;
         if (!CRASH_MARKED.compareAndSet(false, true)) return;
         File record = new File(dir, START_RECORD_NAME);
         String current = read(record);
@@ -291,12 +298,17 @@ public final class HushgramPause {
 
         @Override
         public void uncaughtException(Thread thread, Throwable throwable) {
+            JavaCrashReport.Saved saved = null;
             try {
+                boolean young = inStartWindow();
                 markCrash();
+                if (young || BaseSettings.DEBUG.get()) saved = JavaCrashReport.save(thread, throwable);
             } catch (Throwable ignored) {
                 // The crash belongs to the handler after this one.
             }
             if (delegate != null) delegate.uncaughtException(thread, throwable);
+            // Still here: the handlers after this one let the process live on.
+            JavaCrashReport.survived(thread, saved);
         }
     }
 
@@ -342,5 +354,11 @@ public final class HushgramPause {
         appContext = null;
         crashState = HushgramPause::inErrorState;
         Setting.setPausedForProcess(false);
+        JavaCrashReport.resetForTests();
+    }
+
+    /** The handler {@link #onProcessStart} installed in front of [delegate], for a test to throw through. */
+    static Thread.UncaughtExceptionHandler crashMarkForTests(Thread.UncaughtExceptionHandler delegate) {
+        return new CrashMark(delegate);
     }
 }

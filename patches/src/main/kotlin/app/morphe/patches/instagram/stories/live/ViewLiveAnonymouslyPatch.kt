@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -50,7 +51,7 @@ internal const val OBJECT = "Ljava/lang/Object;"
 /** The heartbeat a viewer or guest sends: the one (tick, role, broadcast id, continuation) method naming [LIVE_WITH_ELIGIBILITY]. */
 internal object ViewerHeartbeatFingerprint : Fingerprint(
     returnType = OBJECT,
-    strings = listOf(LIVE_WITH_ELIGIBILITY),
+    filters = listOf(string(LIVE_WITH_ELIGIBILITY)),
     custom = { method, _ ->
         val parameters = method.parameterTypes.map(CharSequence::toString)
         !AccessFlags.STATIC.isSet(method.accessFlags) && parameters.size == 4 &&

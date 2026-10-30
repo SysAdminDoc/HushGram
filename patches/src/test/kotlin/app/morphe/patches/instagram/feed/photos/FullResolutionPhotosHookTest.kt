@@ -87,7 +87,6 @@ class FullResolutionPhotosHookTest {
         val cases = listOf(
             classes(methods = 0) to "expected exactly one $method, found none",
             classes(methods = 2) to "expected exactly one $method, found $where, $useCase->source2",
-            classes(static = true) to "expected exactly one $method, found none",
             classes(calls = 0) to "expected $where to ask Media's helpers once for the size for a Context, found 0",
             classes(calls = 2) to "expected $where to ask Media's helpers once for the size for a Context, found 2",
             classes(keepsSize = false) to "$where doesn't keep the size it's handed",
@@ -175,9 +174,12 @@ class FullResolutionPhotosHookTest {
         context.loadFullResolution(site)
 
         val method = context.mutableClassDefBy(site.definingClass).methods.single {
-            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == parameters
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
         }
-        assertTrue("$label: the method is an instance one", !AccessFlags.STATIC.isSet(method.accessFlags))
+        // The middle value is the session on 451 and an image address on 452.
+        assertEquals("$label: the context first", parameters.first(), site.parameters.first())
+        assertEquals("$label: the post last", parameters.last(), site.parameters.last())
+        assertEquals("$label: three values", parameters.size, site.parameters.size)
         assertHooked(label, method, site.media, site.size)
         val written = holders.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
             .filter { written -> written.code().any { it.referenceText() == PHOTO } }
@@ -224,7 +226,9 @@ class FullResolutionPhotosHookTest {
             }
         }
         val site = PatchContexts.of(pool.values).findFullResolution()
-        val forWidth = pool.getValue(MEDIA_EXT).method(site.forScreen).code().mapNotNull { it.call() }
+        // 452 inlines the helper for a screen, so the pick is the helper for a width.
+        val forWidth = if (site.forScreen.parameterTypes.map(Any::toString) == listOf(MEDIA, "I")) site.forScreen
+        else pool.getValue(MEDIA_EXT).method(site.forScreen).code().mapNotNull { it.call() }
             .single { it.definingClass == MEDIA_EXT && it.returnType == EXTENDED_IMAGE_URL }
         val picker = pool.getValue(MEDIA_EXT).method(forWidth).code().mapNotNull { it.call() }
         val onPost = picker.single { it.definingClass == MEDIA && it.returnType == IMAGE_INFO }
@@ -294,9 +298,12 @@ class FullResolutionPhotosHookTest {
         val pick = code[hook - 2]
         val picked = (pick as ReferenceInstruction).reference as MethodReference
         assertEquals("$what: what comes before", MEDIA_EXT, picked.definingClass)
-        assertEquals("$what: what it's handed", listOf(contextType, MEDIA), picked.parameterTypes.map(CharSequence::toString))
+        val handed = picked.parameterTypes.map(CharSequence::toString)
+        // 451 hands the Context and the post. 452 inlines that and hands the post and a width.
+        assertTrue("$what: what it's handed: $handed", handed == listOf(contextType, MEDIA) || handed == listOf(MEDIA, "I"))
         assertEquals("$what: what it answers", EXTENDED_IMAGE_URL, picked.returnType)
-        assertEquals("$what: the post handed to the pick", media, (pick as FiveRegisterInstruction).registerD)
+        assertEquals("$what: the post handed to the pick", media,
+            if (handed.first() == MEDIA) (pick as FiveRegisterInstruction).registerC else (pick as FiveRegisterInstruction).registerD)
         assertEquals("$what: the kept size", Opcode.MOVE_RESULT_OBJECT, code[hook - 1].opcode)
         assertEquals("$what: the kept size's register", size, (code[hook - 1] as OneRegisterInstruction).registerA)
         assertEquals("$what: the call", Opcode.INVOKE_STATIC, code[hook].opcode)

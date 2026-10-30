@@ -9,12 +9,14 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.feed.findFeedItemHelper
 import app.morphe.patches.instagram.feed.suggested.emptiedFeedEndPatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsConstStringContaining
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -39,7 +41,8 @@ internal const val HOME_FEED_FILTER =
 internal object HomeFeedResponseFingerprint : Fingerprint(
     returnType = "Ljava/lang/Object;",
     parameters = listOf("L"),
-    strings = listOf("feed_items", "pull_to_refresh_window_ms"),
+    filters = listOf(string("pull_to_refresh_window_ms")),
+    custom = { method, _ -> method.loadsConstStringContaining("feed_items") },
 )
 
 /** Home's store of the items it last showed, read back at the next start. Its name is kept. */

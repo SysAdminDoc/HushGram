@@ -10,13 +10,13 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
-import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -80,11 +80,9 @@ internal class EmojiProcess(val method: MutableMethod, val strategy: String)
  * compares it, or a copy of it, for equality with a strategy. Nothing jumps to process's start.
  */
 internal fun BytecodePatchContext.findEmojiProcess(): EmojiProcess {
-    val found = mutableListOf<Method>()
-    classDefForEach { classDef ->
-        if (classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
-        classDef.methods.forEach { if (it.holds(RANGE_CHECK) && it.holds(LENGTH_CHECK)) found += it }
-    }
+    // Only classes holding both strings are read, which the patcher's index names. Reading every method
+    // in the app was a measured share of patching (#173).
+    val found = classesHolding(RANGE_CHECK, LENGTH_CHECK).flatMap { it.methods }.filter { it.holds(RANGE_CHECK) && it.holds(LENGTH_CHECK) }
     val process = found.singleOrNull()
         ?: refuse("expected one method holding \"$RANGE_CHECK\" and \"$LENGTH_CHECK\", found ${found.size}")
     val where = "${process.definingClass}->${process.name}"

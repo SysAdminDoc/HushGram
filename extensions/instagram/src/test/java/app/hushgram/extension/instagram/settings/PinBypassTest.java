@@ -34,6 +34,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import java.util.EnumSet;
 
+import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.direct.MessagesLockForTests;
 import app.hushgram.extension.instagram.direct.PinLock;
@@ -61,7 +62,7 @@ public class PinBypassTest {
 
     @Before
     public void setup() throws Exception {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         MessagesLockForTests.reset();
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         Settings.LOCK_MESSAGES.save(true);
@@ -86,6 +87,7 @@ public class PinBypassTest {
         BaseSettings.PAUSED.save(false);
         Settings.LOCK_MESSAGES.resetToDefault();
         Settings.LOCK_APP.resetToDefault();
+        Settings.LOCK_AGAIN.resetToDefault();
         Settings.UNLOCK_WITH.resetToDefault();
         Settings.LOCK_PIN.resetToDefault();
         Settings.LOCK_PIN_MISSES.resetToDefault();
@@ -236,6 +238,63 @@ public class PinBypassTest {
         ShadowLooper.idleMainLooper();
         assertTrue(PinLock.matches(PIN));
         assertFalse(PinLock.matches("13572468"));
+    }
+
+    /**
+     * A longer Lock again weakens the locks, so with a PIN it asks the PIN every time, even with the
+     * session already unlocked, and a wrong PIN changes nothing (audit 2026-10-12).
+     */
+    @Test
+    public void waitingLongerToLockAgainAsksThePin() {
+        MessagesLockForTests.open();
+        eachRoute(Settings.LOCK_AGAIN.key, "Lock again", () -> {
+            android.preference.ListPreference row = delayRow();
+            row.setValue(LockDelay.RIGHT_AWAY.name());
+            ShadowLooper.idleMainLooper();
+            assertFalse("an hour went in without the PIN", change(row, LockDelay.ONE_HOUR.name()));
+            AlertDialog dialog = dialog();
+            enter(dialog, "0000");
+            assertEquals("a wrong PIN changed the wait", LockDelay.RIGHT_AWAY.name(), row.getValue());
+            assertEquals(LockDelay.RIGHT_AWAY, Settings.LOCK_AGAIN.savedValue());
+            enter(dialog, PIN);
+            assertEquals(LockDelay.ONE_HOUR.name(), row.getValue());
+            assertEquals("the right PIN didn't save the wait", LockDelay.ONE_HOUR, Settings.LOCK_AGAIN.savedValue());
+            row.setValue(LockDelay.RIGHT_AWAY.name());
+            ShadowLooper.idleMainLooper();
+        });
+    }
+
+    @Test
+    public void cancellingThePinKeepsTheWaitAndAShorterOneNeedsNone() {
+        android.preference.ListPreference row = delayRow();
+        row.setValue(LockDelay.FIFTEEN_MINUTES.name());
+        ShadowLooper.idleMainLooper();
+        assertFalse(change(row, LockDelay.ONE_HOUR.name()));
+        AlertDialog asked = dialog();
+        asked.cancel();
+        ShadowLooper.idleMainLooper();
+        assertEquals("a cancel changed the wait", LockDelay.FIFTEEN_MINUTES.name(), row.getValue());
+        assertEquals(LockDelay.FIFTEEN_MINUTES, Settings.LOCK_AGAIN.savedValue());
+
+        assertTrue("a shorter wait didn't go in", change(row, LockDelay.ONE_MINUTE.name()));
+        assertTrue("the same wait didn't go in", change(row, LockDelay.FIFTEEN_MINUTES.name()));
+        ShadowLooper.idleMainLooper();
+        assertSame("a shorter wait asked the PIN", asked, ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    @Test
+    public void withThePhoneLockALongerWaitNeedsNoPin() {
+        Settings.UNLOCK_WITH.save(UnlockWith.PHONE_LOCK);
+        android.preference.ListPreference row = delayRow();
+        row.setValue(LockDelay.RIGHT_AWAY.name());
+        ShadowLooper.idleMainLooper();
+        assertTrue(change(row, LockDelay.ONE_HOUR.name()));
+        ShadowLooper.idleMainLooper();
+        assertNull("the PIN was asked with the phone lock chosen", ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    private android.preference.ListPreference delayRow() {
+        return (android.preference.ListPreference) row(Settings.LOCK_AGAIN.key);
     }
 
     private UnlockRow unlockRow() {

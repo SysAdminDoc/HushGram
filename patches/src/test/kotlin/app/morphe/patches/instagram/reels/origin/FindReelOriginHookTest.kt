@@ -4,8 +4,12 @@
  */
 package app.morphe.patches.instagram.reels.origin
 
+import app.morphe.ExtensionDex
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
+import app.morphe.patches.instagram.misc.extension.PatchLogCapture
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -25,7 +29,9 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction12x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
@@ -59,9 +65,46 @@ class FindReelOriginHookTest {
         assertEquals("the tab's other methods stay as they were",
             before.getValue(ReelOriginFixture.TAB).filter { !it.first.contains("->onResume(") },
             snapshot(tab.filter { it.name != "onResume" }))
-        for (other in input.filter { it.type != ReelOriginFixture.OPENER && it.type != ReelOriginFixture.TAB }) {
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertTrialBridge(stubs)
+        assertEquals("the other bridges stay unwritten",
+            before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name != "activeTrial" }))
+        val hooked = setOf(ReelOriginFixture.OPENER, ReelOriginFixture.TAB, INSTAGRAM_MEDIA)
+        for (other in input.filter { it.type !in hooked }) {
             assertEquals("${other.type} changed", before[other.type], snapshot(context.mutableClassDefBy(other.type).methods))
         }
+    }
+
+    /**
+     * A trial reel isn't on its poster's profile, so the extension skips it by Media's one getter of
+     * `is_active_trial` (#225). Without one, or with two, every hook still goes in and the trial stub
+     * stays as it was, after the patch log says why, once.
+     */
+    @Test fun aMediaWithoutATrialGetterLooksForTrialReelsToo() =
+        skipsTrials(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 1, trialGetters = 0)),
+            "for is_active_trial, found none")
+    @Test fun aMediaWithTwoTrialGettersLooksForTrialReelsToo() =
+        skipsTrials(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 1, trialGetters = 2)),
+            "for is_active_trial, found A4p, A4q")
+
+    private fun skipsTrials(input: List<ClassDef>, reason: String) {
+        val context = PatchContexts.of(input)
+        val before = input.associate { it.type to snapshot(it.methods) }
+        val gridResume = ReelOriginFixture.postsGrid().methods.single { it.name == "onResume" }.code()
+        val tabResume = ReelOriginFixture.tab().methods.single { it.name == "onResume" }.code()
+        val warnings = PatchLogCapture.warnings { context.hookReelOrigin() }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().startsWith("$REEL_ORIGIN_PATCH: ") && reason in warnings.single() &&
+            warnings.single().endsWith("$REEL_ORIGIN_PATCH goes in looking for trial reels too."))
+        assertResumeHook(context.mutableClassDefBy(ReelOriginFixture.TAB).methods.single { it.name == "onResume" }, tabResume)
+        assertGridHook(context.mutableClassDefBy(POSTS_GRID).methods.single { it.name == "onResume" }, gridResume)
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertEquals("the trial stub stays as it was", before.getValue(INSTAGRAM_MEDIA).filter { it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name == "activeTrial" }))
+        assertEquals("the media type bridge is still written", "$MEDIA->A6N()Ljava/lang/Integer;",
+            stubs.single { it.name == "mediaType" }.code()[1].reference())
     }
 
     @Test fun aMissingOpenerIsRefused() = refuses("holding the $OPEN_PROFILE marker, found none",
@@ -119,6 +162,115 @@ class FindReelOriginHookTest {
     @Test fun anExtensionWithoutTheTabHookIsRefused() = refuses("extension has no public static reelsTabResumed(Ljava/lang/Object;)V",
         ReelOriginFixture.with(ReelOriginFixture.extension(leaveOut = "reelsTabResumed")))
 
+    /**
+     * A photo reel's search: the posts grid goes to the extension right after its super.onResume(),
+     * and the media type bridge reads Media's media_type getter (#225).
+     */
+    @Test fun thePostsGridHookFollowsItsSuperCallAndTheMediaTypeBridgeIsWritten() {
+        val input = ReelOriginFixture.withPhotos()
+        val context = PatchContexts.of(input)
+        val before = input.associate { it.type to snapshot(it.methods) }
+        val gridResume = ReelOriginFixture.postsGrid().methods.single { it.name == "onResume" }.code()
+        val tabResume = ReelOriginFixture.tab().methods.single { it.name == "onResume" }.code()
+        context.hookReelOrigin()
+
+        val grid = context.mutableClassDefBy(POSTS_GRID).methods
+        assertGridHook(grid.single { it.name == "onResume" }, gridResume)
+        assertEquals("the posts grid's other methods stay as they were",
+            before.getValue(POSTS_GRID).filter { !it.first.contains("->onResume(") },
+            snapshot(grid.filter { it.name != "onResume" }))
+        assertResumeHook(context.mutableClassDefBy(ReelOriginFixture.TAB).methods.single { it.name == "onResume" }, tabResume)
+
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        val bridge = stubs.single { it.name == "mediaType" }.code()
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+            bridge.take(4).map { it.opcode })
+        assertEquals(MEDIA, bridge[0].reference())
+        assertEquals("the getter loading media_type, not its neighbor", "$MEDIA->A6N()Ljava/lang/Integer;", bridge[1].reference())
+        assertTrialBridge(stubs)
+        val written = setOf("mediaType", "activeTrial")
+        assertEquals("the other bridges stay unwritten",
+            before.getValue(INSTAGRAM_MEDIA).filter { snapshot -> written.none { snapshot.first.contains("->$it(") } },
+            snapshot(stubs.filter { it.name !in written }))
+        val hooked = setOf(ReelOriginFixture.OPENER, ReelOriginFixture.TAB, POSTS_GRID, INSTAGRAM_MEDIA)
+        for (other in input.filter { it.type !in hooked }) {
+            assertEquals("${other.type} changed", before[other.type], snapshot(context.mutableClassDefBy(other.type).methods))
+        }
+    }
+
+    /**
+     * Profile posts as a list puts its own call first in the same onResume, with a start-call
+     * contract. Whichever patch goes in first, it stays first and this hook still follows the super call.
+     */
+    @Test fun profilePostsAsAListKeepsTheFirstSpot() {
+        val input = ReelOriginFixture.withPhotos()
+        val context = PatchContexts.of(input)
+        val gridResume = ReelOriginFixture.postsGrid().methods.single { it.name == "onResume" }.code()
+        val postsList = "Lapp/hushgram/extension/instagram/profile/PostsList;->resumed(Ljava/lang/Object;)V"
+        val grid = context.mutableClassDefBy(POSTS_GRID).methods.single { it.name == "onResume" }
+        grid.addInstructions(0, "invoke-static/range { p0 .. p0 }, $postsList")
+        context.hookReelOrigin()
+
+        val code = grid.code()
+        assertEquals("Profile posts as a list stays first", postsList, code[0].reference())
+        assertGridHook(grid, listOf(code[0]) + gridResume)
+    }
+
+    @Test fun withoutThePostsGridOnlyTheReelsTabIsHooked() = skipsPhotos(ReelOriginFixture.withPhotos().filter { it.type != POSTS_GRID },
+        "no $POSTS_GRID")
+    @Test fun aPostsGridWithoutItsKeyIsSkipped() = skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(key = false)),
+        "the posts grid's onCreate doesn't read $GRID_KEY")
+    @Test fun aJumpToJustPastThePostsGridsSuperCallIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(jumpPastSuper = true)),
+            "something in the posts grid's onResume jumps to just past its super call")
+    @Test fun aPostsGridNotCallingSuperOnResumeIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(supers = 0)),
+            "the posts grid's onResume doesn't call super.onResume once, found 0")
+    @Test fun aPostsGridCallingSuperOnResumeTwiceIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(supers = 2)),
+            "the posts grid's onResume doesn't call super.onResume once, found 2")
+    @Test fun aPostsGridWithTwoGridsIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(grids = listOf(AccessFlags.PUBLIC.value, AccessFlags.PUBLIC.value))),
+            "the posts grid has 2 RecyclerView fields, not one")
+    @Test fun aPrivatePostsGridIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(grids = listOf(AccessFlags.PRIVATE.value))),
+            "the posts grid's recyclerView isn't public")
+    @Test fun aPostsGridThatIsNoFragmentIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.postsGrid(superclass = "Ljava/lang/Object;")),
+            "the posts grid isn't a $FRAGMENT")
+    @Test fun anExtensionWithoutThePostsGridHookIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.extension(leaveOut = "postsGridResumed")),
+            "extension has no public static postsGridResumed(Ljava/lang/Object;)V")
+    @Test fun aMediaWithoutAMediaTypeGetterIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 0)),
+            "for media_type, found none")
+    @Test fun aMediaWithTwoMediaTypeGettersIsSkipped() =
+        skipsPhotos(ReelOriginFixture.withPhotos(ReelOriginFixture.media(AccessFlags.PUBLIC.value, typeGetters = 2)),
+            "for media_type, found A6N, A6O")
+
+    /**
+     * The Reels tab is hooked as ever, while the posts grid and the media type stub are left as they
+     * were, and the patch log says why, once. The trial stub, which video reels need too, is written.
+     */
+    private fun skipsPhotos(input: List<ClassDef>, reason: String) {
+        val context = PatchContexts.of(input)
+        val before = input.associate { it.type to snapshot(it.methods) }
+        val tabResume = ReelOriginFixture.tab().methods.single { it.name == "onResume" }.code()
+        val warnings = PatchLogCapture.warnings { context.hookReelOrigin() }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().startsWith("$REEL_ORIGIN_PATCH: ") && reason in warnings.single() &&
+            warnings.single().endsWith("$REEL_ORIGIN_PATCH goes in finding video reels alone."))
+        assertResumeHook(context.mutableClassDefBy(ReelOriginFixture.TAB).methods.single { it.name == "onResume" }, tabResume)
+        if (input.any { it.type == POSTS_GRID }) {
+            assertEquals("$POSTS_GRID changed", before[POSTS_GRID], snapshot(context.mutableClassDefBy(POSTS_GRID).methods))
+        }
+        val stubs = context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
+        assertTrialBridge(stubs)
+        assertEquals("$INSTAGRAM_MEDIA changed", before.getValue(INSTAGRAM_MEDIA).filter { !it.first.contains("->activeTrial(") },
+            snapshot(stubs.filter { it.name != "activeTrial" }))
+    }
+
     /** Refused for [reason], with every class as it was. */
     private fun refuses(reason: String, input: List<ClassDef>) {
         val context = PatchContexts.of(input)
@@ -150,17 +302,44 @@ class FindReelOriginHookTest {
                 code.drop(3).map { Triple(it.opcode, it.reference(), it.namedRegisters()) })
         }
 
-        /** The tab goes to the extension first, in its own register, and then Instagram's [original] onResume runs as it was. */
-        internal fun assertResumeHook(method: Method, original: List<Instruction>) {
+        /** The tab goes to the extension's [hook] first, in its own register, and then Instagram's [original] onResume runs as it was. */
+        internal fun assertResumeHook(method: Method, original: List<Instruction>, hook: String = TAB_RESUMED) {
             val code = method.code()
             val self = method.implementation!!.registerCount - 1
-            assertEquals(1, code.count { it.reference() == TAB_RESUMED })
+            assertEquals(1, code.count { it.reference() == hook })
             assertEquals(Opcode.INVOKE_STATIC_RANGE, code[0].opcode)
-            assertEquals(TAB_RESUMED, code[0].reference())
+            assertEquals(hook, code[0].reference())
             assertEquals("the hook reads only the tab, p0", listOf(self), code[0].namedRegisters())
             assertEquals("one instruction comes in front, nothing else", original.size + 1, code.size)
             assertEquals(original.map { Triple(it.opcode, it.reference(), it.namedRegisters()) },
                 code.drop(1).map { Triple(it.opcode, it.reference(), it.namedRegisters()) })
+        }
+
+        /**
+         * The posts grid goes to [GRID_RESUMED] right after its super.onResume(), in its own register,
+         * and the rest of its [original] onResume runs as it was, whatever sits in front.
+         */
+        internal fun assertGridHook(method: Method, original: List<Instruction>) {
+            val code = method.code()
+            val self = method.implementation!!.registerCount - 1
+            assertEquals(1, code.count { it.reference() == GRID_RESUMED })
+            val at = code.indexOfFirst { it.reference() == GRID_RESUMED }
+            assertEquals(Opcode.INVOKE_STATIC_RANGE, code[at].opcode)
+            assertEquals("the hook reads only the grid, p0", listOf(self), code[at].namedRegisters())
+            assertEquals(Opcode.INVOKE_SUPER, code[at - 1].opcode)
+            assertTrue("right after super.onResume(), not ${code[at - 1].reference()}", code[at - 1].reference()!!.endsWith("->onResume()V"))
+            assertEquals("one instruction goes in, nothing else", original.size + 1, code.size)
+            assertEquals(original.map { Triple(it.opcode, it.reference(), it.namedRegisters()) },
+                code.filterIndexed { index, _ -> index != at }.map { Triple(it.opcode, it.reference(), it.namedRegisters()) })
+        }
+
+        /** The trial bridge casts to Media and calls the getter loading `is_active_trial`'s key, 452's A4p in the fixture. */
+        internal fun assertTrialBridge(stubs: Iterable<Method>) {
+            val bridge = stubs.single { it.name == "activeTrial" }.code()
+            assertEquals(listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT),
+                bridge.take(4).map { it.opcode })
+            assertEquals(MEDIA, bridge[0].reference())
+            assertEquals("the getter loading is_active_trial, not its neighbor", "$MEDIA->A4p()Ljava/lang/Boolean;", bridge[1].reference())
         }
 
         internal fun snapshot(methods: Iterable<Method>) = methods.map { method ->
@@ -187,7 +366,7 @@ internal object ReelOriginFixture {
     private fun marker(name: String) = "android_purge_26_q3_$name"
 
     fun classes(): List<ClassDef> = listOf(opener(), destination(), media(AccessFlags.PUBLIC.value or AccessFlags.FINAL.value),
-        tab(), clazz(BASE, FRAGMENT, emptyList()), fragment(), extension())
+        tab(), clazz(BASE, FRAGMENT, emptyList()), fragment(), extension(), ExtensionDex.classDef(INSTAGRAM_MEDIA))
 
     /** [classes] with [replacement] in place of the class of its type. */
     fun with(replacement: ClassDef): List<ClassDef> = classes().map { if (it.type == replacement.type) replacement else it }
@@ -234,9 +413,64 @@ internal object ReelOriginFixture {
         listOf(field(DESTINATION, "A01", "LX/011g;", AccessFlags.PUBLIC.value)) +
             (0 until media).map { field(DESTINATION, "A0${3 + it}", MEDIA, AccessFlags.PUBLIC.value) })
 
-    fun media(getIdFlags: Int): ClassDef = clazz(MEDIA, OBJECT, listOf(method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1,
+    /**
+     * Media with its getId and [typeGetters] getters loading `media_type`'s key, as 451's A6N does,
+     * beside a getter of another Integer field, as its A6P of `original_media_type`, and
+     * [trialGetters] getters loading `is_active_trial`'s, as 452's A4p does, beside another Boolean's.
+     */
+    fun media(getIdFlags: Int, typeGetters: Int = 0, trialGetters: Int = 1): ClassDef = clazz(MEDIA, OBJECT, listOf(method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1,
         listOf(ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("1_2")), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)),
-        getIdFlags)))
+        getIdFlags)) + (0 until typeGetters).map { getter("A6${"NO"[it]}", "media_type") } + getter("A6P", "original_media_type") +
+        (0 until trialGetters).map { getter("A4${"pq"[it]}", "is_active_trial", BOOLEAN) } + getter("A4o", "is_paid_partnership", BOOLEAN))
+
+    private const val BOOLEAN = "Ljava/lang/Boolean;"
+
+    private fun getter(name: String, field: String, returns: String = "Ljava/lang/Integer;") = method(MEDIA, name, emptyList(), returns, 2, listOf(
+        ImmutableInstruction31i(Opcode.CONST, 0, field.hashCode()), ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
+        ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0)), AccessFlags.PUBLIC.value or AccessFlags.FINAL.value)
+
+    /**
+     * [classes] with what a photo reel's search needs too: 451's posts grid and Media's media_type
+     * getter, then [replacements] in place of the classes of their types.
+     */
+    fun withPhotos(vararg replacements: ClassDef): List<ClassDef> =
+        (classes().map { if (it.type == MEDIA) media(AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, typeGetters = 1) else it } +
+            postsGrid())
+            .map { classDef -> replacements.firstOrNull { it.type == classDef.type } ?: classDef }
+
+    /**
+     * 451's posts grid, ProfileMediaTabFragment: an onResume holding no string, only its trace
+     * number, an onCreate reading which of the profile's grids it is, and its grid.
+     */
+    fun postsGrid(
+        jumpPastSuper: Boolean = false,
+        supers: Int = 1,
+        key: Boolean = true,
+        grids: List<Int> = listOf(AccessFlags.PUBLIC.value),
+        superclass: String = BASE,
+    ): ClassDef {
+        val resume = mutableListOf<Instruction>(ImmutableInstruction31i(Opcode.CONST, 0, 0x421bb1cc))
+        // A branch over the super calls to what follows them: two code units of its own, three each call.
+        if (jumpPastSuper) resume += ImmutableInstruction21t(Opcode.IF_EQZ, 0, 2 + 3 * supers)
+        repeat(supers) {
+            resume += ImmutableInstruction35c(Opcode.INVOKE_SUPER, 1, 1, 0, 0, 0, 0, ImmutableMethodReference(BASE, "onResume", emptyList(), "V"))
+        }
+        resume += ImmutableInstruction10x(Opcode.RETURN_VOID)
+        val create = listOfNotNull<Instruction>(
+            if (key) ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(GRID_KEY)) else null,
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val methods = listOf(
+            method(POSTS_GRID, "onResume", emptyList(), "V", 2, resume, final),
+            method(POSTS_GRID, "onCreate", listOf(BUNDLE), "V", 3, create, final),
+            // Another method of the same shape, which the hook leaves alone.
+            method(POSTS_GRID, "onPause", emptyList(), "V", 1, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), final),
+        )
+        val fields = grids.mapIndexed { at, flags -> field(POSTS_GRID, if (at == 0) "recyclerView" else "A0$at", RECYCLER_VIEW, flags) } +
+            field(POSTS_GRID, "A0G", "Ljava/lang/String;", AccessFlags.PUBLIC.value)
+        return clazz(POSTS_GRID, superclass, methods, fields)
+    }
 
     /** 450's Reels tab: its onResume with the trace marker, its onCreate, its tile lookup and its grid. */
     fun tab(
@@ -285,7 +519,7 @@ internal object ReelOriginFixture {
                     AccessFlags.PUBLIC.value or AccessFlags.FINAL.value)
             })
 
-    fun extension(leaveOut: String? = null): ClassDef = clazz(REEL_ORIGIN, OBJECT, listOf("opening", "reelsTabResumed")
+    fun extension(leaveOut: String? = null): ClassDef = clazz(REEL_ORIGIN, OBJECT, listOf("opening", "reelsTabResumed", "postsGridResumed")
         .filter { it != leaveOut }
         .map { method(REEL_ORIGIN, it, listOf(OBJECT), "V", 1, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)),
             AccessFlags.PUBLIC.value or AccessFlags.STATIC.value) })

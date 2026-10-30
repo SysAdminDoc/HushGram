@@ -82,7 +82,7 @@ public class SaveInterruptionTest {
     @Test @Config(sdk = 28)
     public void sdk28InterruptedSaveRemovesItsHiddenStorageFileBeforeNotice() throws Exception {
         assertEquals(28, Build.VERSION.SDK_INT);
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES), "Instagram");
         assertTrue(folder.mkdirs() || folder.isDirectory());
         File hidden = File.createTempFile(MediaStoreWriter.LEGACY_PENDING_PREFIX, ".mp4", folder);

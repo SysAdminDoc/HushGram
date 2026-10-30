@@ -12,6 +12,9 @@ package app.hushgram.extension.instagram.misc;
  * fill reads at least as well as it does on Instagram's own blue (a contrast of 3.9 or more against
  * its 3.2), and each link shade reads at better than 5 to 1 on its screen. The pressed shade, the dim one
  * and the pale one are worked out from the fill, as Instagram's are from its blue.
+ *
+ * <p>{@link #WALLPAPER} is Material You (#187, #264): its shades are Android 12's wallpaper tones,
+ * read as Instagram runs ({@link MaterialYou}), so its own fields hold nothing.
  */
 public enum AccentHue {
     BLUE(0, 0, 0),
@@ -20,7 +23,8 @@ public enum AccentHue {
     RED(0xe0010d, 0xc4000b, 0xff6b78),
     ORANGE(0xd95700, 0xb54800, 0xff9a40),
     GREEN(0x118841, 0x0d7a39, 0x3ee581),
-    TEAL(0x00838f, 0x00727c, 0x4dd0d9);
+    TEAL(0x00838f, 0x00727c, 0x4dd0d9),
+    WALLPAPER(0, 0, 0);
 
     /** A button's or a highlight's color. */
     public final int fill;

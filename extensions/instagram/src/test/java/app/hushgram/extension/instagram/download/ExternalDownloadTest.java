@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
+import android.os.Looper;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -24,6 +25,7 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.annotation.Implementation;
 import org.robolectric.annotation.Implements;
+import org.robolectric.shadows.ShadowToast;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -50,6 +52,8 @@ public class ExternalDownloadTest {
         Post.id = null;
         Post.name = null;
         HookStatus.clear();
+        ExternalDownload.forgetToldForTests();
+        ShadowToast.reset();
     }
 
     /** A short code is the pk in base 64, Instagram's alphabet, with no leading zero digit. */
@@ -108,6 +112,26 @@ public class ExternalDownloadTest {
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse("paused", ExternalDownload.handOff(application, link, FamilyNames.REEL_DOWNLOAD));
+    }
+
+    /** The first hand off of a run says which switch opened the share sheet, and the next ones don't (#305). */
+    @Test
+    public void theFirstHandOffSaysWhichSwitchSentIt() {
+        Application application = RuntimeEnvironment.getApplication();
+        Settings.SEND_DOWNLOADS_TO_APP.save(true);
+        assertFalse("no link, no sheet, no toast", ExternalDownload.handOff(application, null, FamilyNames.REEL_DOWNLOAD));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(0, ShadowToast.shownToastCount());
+
+        assertTrue(ExternalDownload.handOff(application, "https://www.instagram.com/p/B/", FamilyNames.REEL_DOWNLOAD));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(1, ShadowToast.shownToastCount());
+        assertEquals("Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.",
+                String.valueOf(ShadowToast.getTextOfLatestToast()));
+
+        assertTrue(ExternalDownload.handOff(application, "https://www.instagram.com/p/BA/", FamilyNames.VIDEO_DOWNLOAD));
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("once a run", 1, ShadowToast.shownToastCount());
     }
 
     /** A reel's Download hands its link off and saves nothing here; with the switch off it saves. */

@@ -180,7 +180,7 @@ class HideProfileSuggestionsHookTest {
         assertEquals("$label: the button handed over", code[button - 1].arguments().take(1), code[button].arguments())
 
         val rows = written.single { method -> method.code().any { it.referenceText() == KEEP_STANDALONE_ROW } }
-        assertEquals("$label: the rows method", BUILD_ROWS, rows.name)
+        assertEquals("$label: the rows method", "buildRowViewTypes", rows.name)
         val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_STANDALONE_ROW }
         assertStandaloneAsked(label, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
     }

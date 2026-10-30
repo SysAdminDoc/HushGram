@@ -8,10 +8,11 @@
     over adb when a serial and expected device identity are given. Installs preserve app data,
     permissions and signing keys. An incompatible existing signer is refused without uninstalling.
 
-    The signing password comes from HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD. When it is unset, the
-    local test keystore's documented password, sideload, is used. The Morphe arguments travel
-    through a temporary Java argument file so the password value is not in the child process
-    command line. The file is deleted when patching exits.
+    The store password comes from -KeystorePassword or HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD,
+    falling back to the local test password, sideload. The key password comes from -KeyPassword
+    or HUSHGRAM_SIDELOAD_KEY_PASSWORD, otherwise it uses the store password. Explicit parameters
+    accept empty passwords. The Morphe arguments travel through a temporary Java argument file
+    so passwords are not in the child process command line. The file is deleted when patching exits.
 
     The vendor APK defaults to the newest declared build in the folder HUSHGRAM_FIXTURE_DIR
     names. -Apk takes any build the catalog declares, and the result is held to that APK's own
@@ -46,12 +47,17 @@ param(
     # Patch with the release bundle even when a source file is newer than it, for replaying
     # an earlier build on purpose. Without it a stale bundle stops the run.
     [switch]$AllowStaleBundle,
+    # After the install, run ART's verifier over the installed APK and fail on any HushGram class it
+    # rejects. Takes a few minutes on the phone.
+    [switch]$VerifyClasses,
     [string]$Apk,
     [string]$DesktopJar,
     [string]$Java,
     [string]$Aapt2,
     [string]$Keystore = "$HOME\.android\sideload-release.jks",
     [string]$KeyAlias = 'sideload',
+    [AllowEmptyString()][string]$KeystorePassword,
+    [AllowEmptyString()][string]$KeyPassword,
     [string]$OutDir = (Join-Path $env:TEMP 'hushgram-device'),
     # The checkout whose catalog and release bundle are used, the one holding this script unless
     # given. The contract tests point it at a fixture.
@@ -68,6 +74,7 @@ if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
 $OutDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutDir)
 . (Join-Path $PSScriptRoot 'patch-target.ps1')
 . (Join-Path $PSScriptRoot 'patch-report.ps1')
+. (Join-Path $PSScriptRoot 'patch-record.ps1')
 . (Join-Path $PSScriptRoot 'common.ps1')
 . (Join-Path $PSScriptRoot 'Resolve-Java.ps1')
 . (Join-Path $PSScriptRoot 'apk-facts.ps1')
@@ -75,13 +82,14 @@ $Java = Resolve-Java -Explicit $Java
 $DesktopJar = Resolve-DesktopCli -Explicit $DesktopJar -Root $root -Required
 $catalogPath = Join-Path $root 'patches-list.json'
 if (-not (Test-Path -LiteralPath $catalogPath -PathType Leaf)) { throw "No patch list found: $catalogPath" }
-try { $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json }
+try { $catalog = ConvertFrom-PatchJson (Get-Content -LiteralPath $catalogPath -Raw) }
 catch { throw "Could not read patch list ${catalogPath}: $($_.Exception.Message)" }
 $target = Get-PatchTarget -PatchList $catalog
 if (-not $Apk -and $env:HUSHGRAM_FIXTURE_DIR -and (Test-Path -LiteralPath $env:HUSHGRAM_FIXTURE_DIR -PathType Container)) {
-    $Apk = (Get-ChildItem -LiteralPath $env:HUSHGRAM_FIXTURE_DIR `
-        -File | Where-Object { $_.Name -like "*$($target.PackageVersion)*" -and $_.Extension -in '.apk', '.apkm' } |
-        Select-Object -First 1).FullName
+    # The fixture the gate and the receipt patch, pinned version code and .apks included. A name
+    # match on the version alone skipped Instagram 453's .apks and could take another build's file.
+    $fixtureFile = Find-DeclaredFixture -Target $target -Version $target.PackageVersion -Folder $env:HUSHGRAM_FIXTURE_DIR
+    if ($fixtureFile) { $Apk = $fixtureFile.FullName }
 }
 if (-not $Apk -or -not (Test-Path -LiteralPath $Apk -PathType Leaf)) {
     throw ("No vendor APK. Pass -Apk with the $($target.PackageVersion) build, or set " +
@@ -110,12 +118,21 @@ if (-not (Test-DeclaredBuild -Target $target -VersionName ([string]$stock.versio
         "declare, at version code $($stock.versionCode). It declares $(Format-DeclaredBuilds -Target $target). " +
         'Build for a phone from a declared build; scripts/verify-all-patches.ps1 -Force shows what still applies on another one.')
 }
-$passwordVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
-$keystorePassword = [Environment]::GetEnvironmentVariable(
-    $passwordVariable, [EnvironmentVariableTarget]::Process)
-if ([string]::IsNullOrEmpty($keystorePassword)) {
-    $keystorePassword = 'sideload'
-    Write-Host "[device] $passwordVariable is unset; using the documented local test-key fallback"
+$storePassword = $KeystorePassword
+if (-not $PSBoundParameters.ContainsKey('KeystorePassword')) {
+    $passwordVariable = 'HUSHGRAM_SIDELOAD_KEYSTORE_PASSWORD'
+    $storePassword = [Environment]::GetEnvironmentVariable(
+        $passwordVariable, [EnvironmentVariableTarget]::Process)
+    if ([string]::IsNullOrEmpty($storePassword)) {
+        $storePassword = 'sideload'
+        Write-Host "[device] $passwordVariable is unset; using the documented local test-key fallback"
+    }
+}
+$entryPassword = $KeyPassword
+if (-not $PSBoundParameters.ContainsKey('KeyPassword')) {
+    $entryPassword = [Environment]::GetEnvironmentVariable(
+        'HUSHGRAM_SIDELOAD_KEY_PASSWORD', [EnvironmentVariableTarget]::Process)
+    if ([string]::IsNullOrEmpty($entryPassword)) { $entryPassword = $storePassword }
 }
 $version = Get-BundleVersion -Root $root
 $bundle = Get-ReleaseBundlePath -Root $root -Version $version
@@ -152,8 +169,8 @@ Write-Host "[device] $($names.Count) patches from $(Split-Path -Leaf $bundle) on
 $enable = @()
 foreach ($name in $names) { $enable += '-e'; $enable += $name }
 $arguments = @('patch', '--exclusive', '-p', $bundle, '-o', $out, '-t', $temp, '-r', $result,
-    '--keystore', $Keystore, '--keystore-password', $keystorePassword,
-    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $keystorePassword) + $enable + @($Apk)
+    '--keystore', $Keystore, '--keystore-password', $storePassword,
+    '--keystore-entry-alias', $KeyAlias, '--keystore-entry-password', $entryPassword) + $enable + @($Apk)
 $argumentFile = Join-Path $OutDir 'morphe-patch.args'
 $argumentFileLines = @($arguments | ForEach-Object {
     $value = [string]$_
@@ -173,15 +190,20 @@ try {
     try {
         $ErrorActionPreference = 'Continue'
         $global:LASTEXITCODE = -1
+        $dropped = [System.Collections.Generic.List[string]]::new()
         & $Java -jar $DesktopJar "@$argumentFile" 2>&1 | ForEach-Object {
             $line = [string]$_
-            if ($ShowPatchLog -or $line -match 'SEVERE|ERROR|WARNING|Exception|Saved to') { Write-Host "[device] $line" }
+            if (Select-DroppedSmali -Lines $line) { $dropped.Add($line) }
+            if ($ShowPatchLog -or $line -match 'SEVERE|ERROR|WARNING|Exception|Saved to|^\[\d+,\d+\] ') { Write-Host "[device] $line" }
         }
         $cliExitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $preference
     }
     if ($cliExitCode -ne 0) { throw "The desktop CLI exited with $cliExitCode" }
+    if ($dropped.Count) {
+        throw "The inline assembler left $($dropped.Count) instruction(s) out, and ART would reject the class: $($dropped -join '; ')"
+    }
 } finally {
     Remove-Item -LiteralPath $argumentFile -Force -ErrorAction SilentlyContinue
     # The CLI unpacks the whole APK here and a run against Instagram leaves gigabytes behind.
@@ -190,11 +212,15 @@ try {
 # The same report check the throwaway verification applies: every requested patch, every
 # step, the target, and a real APK. The build that goes onto a phone deserves no less.
 $report = $null
-if (Test-Path -LiteralPath $result -PathType Leaf) { $report = Get-Content -LiteralPath $result -Raw | ConvertFrom-Json }
+if (Test-Path -LiteralPath $result -PathType Leaf) {
+    try { $report = ConvertFrom-PatchJson (Get-Content -LiteralPath $result -Raw) }
+    catch { throw "Patching did not produce a complete APK: the patch result doesn't parse ($($_.Exception.Message))" }
+}
 $validation = Test-PatchingReport -Report $report -ExpectedNames $names `
     -AllowedDependencyNames $dependencyNames -OutputPath $out `
     -ExpectedPackageName $target.PackageName -ExpectedPackageVersion $stock.versionName
 if (-not $validation.Valid) { throw "Patching did not produce a complete APK: $($validation.Reason)" }
+Assert-HushgramRuntimeFloor -Manifest (Get-ApkManifestFacts -Apk $out -Aapt2 $Aapt2) -Stock $stock
 $coverage = @(Get-ApkTargetCoverage -Apk $out -Java $Java -DesktopJar $DesktopJar -Names $names)
 $coverageVerdict = Test-TargetCoverage -Coverage $coverage -Names $names -Package $stock.package `
     -VersionName $stock.versionName -VersionCode $stock.versionCode
@@ -203,10 +229,13 @@ foreach ($entry in $coverage) {
     Write-Host "[device] $($entry.family): $($entry.matched)/$($entry.expected) targets; missing: $($entry.missing -join ', ')"
 }
 Write-Host "[device] applied $(@($report.appliedPatches).Count), failed $(@($report.failedPatches).Count), target $($report.packageName) $($report.packageVersion)"
+# Ties result.json to this APK's content, which signing again with another key keeps. The native
+# runner takes the patch selection from a result only through this record.
+Write-PatchRecord -Apk $out -Result $result -Path (Join-Path $OutDir 'patch-record.json')
 Write-Host "[device] $out"
 
 if (-not $Serial) { return }
-$adb = (Get-Command adb -ErrorAction SilentlyContinue).Source
+$adb = (Get-Command adb -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
 if (-not $adb) { $adb = Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter adb.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName }
 if (-not $adb) { throw 'No adb found. Put it on the PATH or install the platform tools.' }
 . (Join-Path $PSScriptRoot 'injected-register-device.ps1')
@@ -223,4 +252,26 @@ $installedPackage = if ($Clone) { 'com.instagram.android.hush' } else { $target.
 $facts = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'dumpsys', 'package', $installedPackage) -DeviceLease $deviceLease
 if ($facts.ExitCode -ne 0) { throw 'The install finished, but installed build verification failed.' }
 $facts.Output | Select-String 'versionName' | Out-Host
+if ($VerifyClasses) {
+    # ART's own verifier over the installed APK, the one no JVM test runs. A class it rejects throws
+    # VerifyError the first time Instagram touches it: a String stub returning a merged Object and a
+    # move the inline assembler dropped each took the app down on a chat or profile that way.
+    $paths = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell', 'pm', 'path', $installedPackage) -DeviceLease $deviceLease
+    $apkOnDevice = (@($paths.Output | ForEach-Object { [string]$_ } | Where-Object { $_ -like 'package:*base.apk' }) | Select-Object -First 1) -replace '^package:', ''
+    if (-not $apkOnDevice) { throw "No installed APK path for $installedPackage." }
+    Write-Host "[device] verifying every class of $apkOnDevice with dex2oat"
+    [void](Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-G', '16M') -DeviceLease $deviceLease)
+    [void](Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-c') -DeviceLease $deviceLease)
+    $oat = '/data/local/tmp/hushgram-verify'
+    $verify = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'shell',
+        "/apex/com.android.art/bin/dex2oat64 --dex-file=$apkOnDevice --dex-location=$apkOnDevice --oat-file=$oat.odex " +
+        "--compiler-filter=verify -j2 --runtime-arg -verbose:verifier; status=`$?; rm -f $oat.odex $oat.vdex; exit `$status") -DeviceLease $deviceLease
+    if ($verify.ExitCode -ne 0) { throw "dex2oat could not verify the APK on $Serial (exit $($verify.ExitCode))." }
+    $log = Invoke-HushgramAdbCommand -Adb $adb -Arguments @('-s', $Serial, 'logcat', '-d') -DeviceLease $deviceLease
+    $rejected = @($log.Output | ForEach-Object { [string]$_ } | Where-Object { $_ -match 'Verification failed on class|Verifier rejected class' })
+    $ours = @($rejected | Where-Object { $_ -match 'app[./]hushgram' })
+    Write-Host "[device] classes rejected: $($ours.Count) of HushGram's, $($rejected.Count - $ours.Count) of Instagram's"
+    $ours | Select-Object -First 20 | ForEach-Object { Write-Host "[device] $_" }
+    if ($ours.Count) { throw "ART rejects $($ours.Count) HushGram class(es), and the app crashes when it reaches one." }
+}
 } finally { Exit-HushgramDeviceLease $deviceLease }

@@ -11,15 +11,21 @@ import android.content.ContextWrapper;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -204,13 +210,15 @@ final class ProfilePictureViewer {
     static final class Watch implements Downloader.Progress {
         private volatile boolean cancelled;
         private Runnable close;
+        private boolean closeQueued;
 
         @Override public void transferred(long done, long total) {
         }
 
         @Override public synchronized void reading(Runnable close) {
             this.close = close;
-            if (cancelled) Utils.runOnBackgroundThread(close);
+            closeQueued = false;
+            if (cancelled) closeConnection();
         }
 
         @Override public boolean cancelled() {
@@ -220,7 +228,17 @@ final class ProfilePictureViewer {
         /** Off the main thread, since closing a connection can touch the network. */
         synchronized void cancel() {
             cancelled = true;
-            if (close != null) Utils.runOnBackgroundThread(close);
+            closeConnection();
+        }
+
+        private void closeConnection() {
+            if (close == null || closeQueued) return;
+            closeQueued = true;
+            if (!ConnectionClose.closeAsync(close)) {
+                closeQueued = false;
+                HookStatus.threw(FamilyNames.PROFILE_PICTURE, "close profile picture connection",
+                        new java.util.concurrent.RejectedExecutionException("Connection close queue is full"));
+            }
         }
     }
 
@@ -233,36 +251,61 @@ final class ProfilePictureViewer {
         final TextView close;
         final Watch watch = new Watch();
         private final Activity activity;
+        private final LinearLayout loading;
 
         Screen(Activity activity, List<MediaSave.Rendition> sizes, String owner, ProfilePicture.Save saver) {
             this.activity = activity;
             dialog = new Dialog(activity, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
-            FrameLayout root = new FrameLayout(activity);
-            root.setBackgroundColor(Color.BLACK);
+            LinearLayout root = new LinearLayout(activity);
+            root.setOrientation(LinearLayout.VERTICAL);
+            root.setBackgroundColor(ScreenColors.DEFAULT.background);
+            // The picture fits above the actions rather than disappearing behind them when zoomed out.
+            FrameLayout preview = new FrameLayout(activity);
+            root.addView(preview, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
 
             picture = new ZoomView(activity);
             picture.setContentDescription(L10n.t(activity, "Profile picture"));
-            root.addView(picture, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
+            picture.setVisibility(View.INVISIBLE);
+            preview.addView(picture, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT));
 
+            loading = new LinearLayout(activity);
+            loading.setOrientation(LinearLayout.VERTICAL);
+            loading.setGravity(Gravity.CENTER);
+            loading.setPaddingRelative(Dim.dp(24), 0, Dim.dp(24), 0);
+            preview.addView(loading, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
             spinner = new ProgressBar(activity);
             spinner.setIndeterminateTintList(ColorStateList.valueOf(ScreenColors.DEFAULT.heading));
-            root.addView(spinner, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+            spinner.setContentDescription(L10n.t(activity, "Loading the picture..."));
+            spinner.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+            loading.addView(spinner, new LinearLayout.LayoutParams(Dim.dp(48), Dim.dp(48)));
+            TextView caption = new TextView(activity);
+            caption.setText(spinner.getContentDescription());
+            caption.setTextColor(ScreenColors.DEFAULT.summary);
+            caption.setTextSize(14);
+            caption.setGravity(Gravity.CENTER);
+            caption.setSingleLine(false);
+            caption.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            LinearLayout.LayoutParams captionSize = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            captionSize.topMargin = Dim.dp(16);
+            loading.addView(caption, captionSize);
 
             LinearLayout bar = new LinearLayout(activity);
             bar.setOrientation(LinearLayout.HORIZONTAL);
             bar.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-            bar.setBackgroundColor(Color.BLACK);
-            bar.setPadding(Dim.dp(16), Dim.dp(16), Dim.dp(16), Dim.dp(24));
+            bar.setBackgroundColor(ScreenColors.DEFAULT.background);
+            bar.setPaddingRelative(Dim.dp(16), Dim.dp(12), Dim.dp(16), Dim.dp(16));
             close = button(activity, L10n.t(activity, "Close"));
             ScreenColors.styleAction(close, false);
             close.setOnClickListener(view -> dialog.dismiss());
             save = button(activity, L10n.t(activity, "Save"));
             ScreenColors.styleAction(save, true);
+            save.setEnabled(false);
             save.setOnClickListener(view -> {
                 try {
-                    if (!ProfilePicture.viewing()) return;
+                    if (!save.isEnabled() || !ProfilePicture.viewing()) return;
                     if (!saver.photo(activity, sizes, PostDetails.profilePicture(owner))) ProfilePicture.failed(activity);
                 } catch (Throwable failure) {
                     HookStatus.threw(FamilyNames.PROFILE_PICTURE, "save from viewer", failure);
@@ -277,11 +320,36 @@ final class ProfilePictureViewer {
                     LinearLayout.LayoutParams.WRAP_CONTENT, 1);
             saveSize.setMarginStart(Dim.dp(8));
             bar.addView(save, saveSize);
-            root.addView(bar, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM));
+            root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
+
+            root.setOnApplyWindowInsetsListener((view, insets) -> {
+                Rect safe = safeInsets(insets);
+                view.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+                return insets;
+            });
+            root.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            root.setFocusableInTouchMode(true);
+            root.requestFocus();
 
             dialog.setContentView(root);
+            Window window = dialog.getWindow();
+            if (window != null) {
+                window.setBackgroundDrawable(new ColorDrawable(ScreenColors.DEFAULT.background));
+                window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                window.setNavigationBarColor(ScreenColors.DEFAULT.background);
+                window.setStatusBarColor(ScreenColors.DEFAULT.background);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) window.setNavigationBarContrastEnforced(false);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) window.setDecorFitsSystemWindows(false);
+                // A light Instagram theme must not leave dark navigation icons on the black viewer.
+                window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+                        | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+            }
             dialog.setOnDismissListener(shut -> watch.cancel());
+            dialog.setOnShowListener(shown -> root.requestApplyInsets());
         }
 
         /** Shows [loaded], or closes and says the picture couldn't open when it's null. */
@@ -294,11 +362,42 @@ final class ProfilePictureViewer {
                     return;
                 }
                 spinner.setVisibility(View.GONE);
+                loading.setVisibility(View.GONE);
                 picture.setImageBitmap(loaded.bitmap);
+                picture.setVisibility(View.VISIBLE);
+                save.setEnabled(true);
                 HookStatus.counted(FamilyNames.PROFILE_PICTURE, viewed(loaded.width));
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.PROFILE_PICTURE, "show profile picture", failure);
+                dialog.dismiss();
+                notOpened(activity);
             }
+        }
+
+        /** Keep actions clear of navigation, edge gestures, a cutout and any keyboard still closing. */
+        @SuppressWarnings("deprecation")
+        static Rect safeInsets(WindowInsets insets) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets safe = insets.getInsets(WindowInsets.Type.systemBars()
+                        | WindowInsets.Type.displayCutout() | WindowInsets.Type.systemGestures() | WindowInsets.Type.ime());
+                return new Rect(safe.left, safe.top, safe.right, safe.bottom);
+            }
+            Rect safe = new Rect(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                    insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            android.view.DisplayCutout cutout = insets.getDisplayCutout();
+            if (cutout != null) {
+                safe.left = Math.max(safe.left, cutout.getSafeInsetLeft());
+                safe.top = Math.max(safe.top, cutout.getSafeInsetTop());
+                safe.right = Math.max(safe.right, cutout.getSafeInsetRight());
+                safe.bottom = Math.max(safe.bottom, cutout.getSafeInsetBottom());
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                android.graphics.Insets gestures = insets.getSystemGestureInsets();
+                safe.left = Math.max(safe.left, gestures.left);
+                safe.right = Math.max(safe.right, gestures.right);
+                safe.bottom = Math.max(safe.bottom, gestures.bottom);
+            }
+            return safe;
         }
 
         private static TextView button(Activity activity, String label) {

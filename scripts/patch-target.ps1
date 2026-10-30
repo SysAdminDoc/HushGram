@@ -61,8 +61,13 @@ function Get-PatchTarget {
                 foreach ($appTarget in @($entry.targets)) {
                     if ($null -eq $appTarget -or $null -eq $appTarget.versionCodes) { continue }
                     $version = [string]$appTarget.version
-                    $pinned = @($appTarget.versionCodes.PSObject.Properties | ForEach-Object { [string]$_.Value })
-                    $codes[$version] = @(@($codes[$version]) + $pinned | Where-Object { $_ } | Sort-Object -Unique)
+                    # The arm64 build first: it's the one Manager downloads, the fixtures hold as a
+                    # bundle and the bug form names, so callers reading [0] get it whatever the
+                    # other ABIs' codes sort like (#346 declared armeabi-v7a 385914556 below it).
+                    $byAbi = @($appTarget.versionCodes.PSObject.Properties |
+                        Sort-Object { if ($_.Name -ceq 'ARM64_V8A') { 0 } else { 1 } }, Name)
+                    $pinned = @($byAbi | ForEach-Object { [string]$_.Value })
+                    $codes[$version] = @(@($codes[$version]) + $pinned | Where-Object { $_ } | Select-Object -Unique)
                 }
             }
             $declared = @(foreach ($version in @($versions | Sort-Object -Unique)) {

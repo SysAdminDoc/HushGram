@@ -178,10 +178,11 @@ internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
     val where = "${tap.definingClass}->${tap.name}"
     if (AccessFlags.STATIC.isSet(tap.accessFlags) || tap.returnType != "V") refuse("$where isn't an instance method returning nothing")
     val controller = toggle.definingClass
+    val toggleParameters = toggle.parameterTypes.map(Any::toString)
     if (AccessFlags.STATIC.isSet(toggle.accessFlags) || !AccessFlags.PUBLIC.isSet(toggle.accessFlags) || toggle.returnType != "V" ||
-        toggle.parameterTypes.map(Any::toString) != listOf("I")
+        toggleParameters != listOf("I") && toggleParameters != listOf("I", "Z")
     ) {
-        refuse("$controller->${toggle.name}, the audio toggle, isn't a public instance void (int)")
+        refuse("$controller->${toggle.name}, the audio toggle, isn't a public instance void (int) or (int, boolean)")
     }
     val controllerPublic = classDefBy(controller).let { AccessFlags.PUBLIC.isSet(it.accessFlags) }
     if (!controllerPublic && controller.substringBeforeLast('/') != tap.definingClass.substringBeforeLast('/')) {
@@ -212,7 +213,7 @@ internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
     // The hook reads the supplier from `this` with an iget, so `this` must sit at or below v15 and be intact.
     if (tap.localRegisterCount() > 15) refuse("$where keeps this past v15")
     tap.requireThisIntact(PATCH, listOf(index))
-    val scratch = tap.freeLocalsAt(PATCH, index, 2)
+    val scratch = tap.freeLocalsAt(PATCH, index, 3)
     return ReelTapSite(tap, index, supplier, controller, toggle, scratch)
 }
 
@@ -221,7 +222,15 @@ internal fun BytecodePatchContext.findReelTapSite(): ReelTapSite {
  * controller's audio and return. A no falls through to the pause.
  */
 internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
-    val (first, second) = site.scratch
+    val (first, second, third) = site.scratch
+    val toggle = when (site.toggle.parameterTypes.map(Any::toString)) {
+        listOf("I") -> "invoke-virtual { v$first, v$second }, ${site.controller}->${site.toggle.name}(I)V"
+        listOf("I", "Z") -> """
+            const/4 v$third, 0x1
+            invoke-virtual { v$first, v$second, v$third }, ${site.controller}->${site.toggle.name}(IZ)V
+        """.trimIndent()
+        else -> refuse("${site.controller}->${site.toggle.name} takes ${site.toggle.parameterTypes}, not an int or an int and a boolean")
+    }
     mutable(site.tap).apply {
         addInstructionsWithLabels(
             site.index,
@@ -234,7 +243,7 @@ internal fun BytecodePatchContext.applyReelTap(site: ReelTapSite) {
                 move-result-object v$first
                 check-cast v$first, ${site.controller}
                 const/4 v$second, $BUTTON_REASON
-                invoke-virtual { v$first, v$second }, ${site.controller}->${site.toggle.name}(I)V
+                $toggle
                 return-void
             """,
             ExternalLabel("pause", getInstruction(site.index)),
@@ -282,9 +291,9 @@ internal fun BytecodePatchContext.findVolumeSite(): VolumeSite {
         refuse("$where doesn't report the $VOLUME_ADJUSTED marker with a static call")
     }
     if (index in run.jumpTargets()) refuse("something in $where jumps to just past the $VOLUME_ADJUSTED marker")
-    if (run.localRegisterCount() > 15) refuse("$where keeps this past v15")
     run.requireThisIntact(PATCH, listOf(index))
-    val scratch = run.freeLocalsAt(PATCH, index, 2)
+    // 453's runnable keeps this at v17, so the hook copies it into a low local before reading fields.
+    val scratch = run.freeLocalsAt(PATCH, index, 3)
     val audio = findAudioState(run, code)
     return VolumeSite(run, index, direction, scratch, audio)
 }
@@ -323,7 +332,7 @@ private fun BytecodePatchContext.findAudioState(run: Method, runCode: List<Instr
             flip?.opcode != Opcode.XOR_INT_LIT8 || (flip as NarrowLiteralInstruction).narrowLiteral != 1 ||
             (flip as TwoRegisterInstruction).registerB != answer.registerA ||
             code[at + 5].opcode != Opcode.INVOKE_VIRTUAL || sets?.definingClass != stateType || sets.returnType != "V" ||
-            sets.parameterTypes.map(Any::toString) != listOf("Z")
+            sets.parameterTypes.map(Any::toString).let { it != listOf("Z") && it != listOf("Z", "Z") }
         ) continue
         // The session register the static takes was loaded by the nearest write before it: an iget-object of the controller's.
         val sessionRegister = (code[at] as? FiveRegisterInstruction)?.registerC ?: continue
@@ -440,14 +449,15 @@ private fun findPlayerAudio(code: List<Instruction>, controller: String): Player
  * before the unmute. A reel whose sound is already on keeps the unmute, so a fade-in still finishes.
  */
 internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
-    val (direction, state) = site.scratch
+    val (direction, state, self) = site.scratch
     val audio = site.audio
     val player = audio.player
     mutable(site.run).apply {
         addInstructionsWithLabels(
             site.index,
             """
-                iget-object v$state, p0, ${audio.controllerField}
+                move-object/from16 v$self, p0
+                iget-object v$state, v$self, ${audio.controllerField}
                 if-eqz v$state, :unknown
                 invoke-virtual { v$state }, ${player.currentList}
                 move-result-object v$direction
@@ -457,7 +467,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 invoke-virtual { v$direction, v$state }, ${player.holderAt}
                 move-result-object v$direction
                 if-eqz v$direction, :session
-                iget-object v$state, p0, ${audio.controllerField}
+                iget-object v$state, v$self, ${audio.controllerField}
                 iget-object v$state, v$state, ${player.factoryField}
                 if-eqz v$state, :session
                 invoke-virtual { v$state, v$direction }, ${player.playerFor}
@@ -469,7 +479,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 iget-boolean v$state, v$direction, ${player.flag}
                 goto :ask
                 :session
-                iget-object v$state, p0, ${audio.controllerField}
+                iget-object v$state, v$self, ${audio.controllerField}
                 if-eqz v$state, :unknown
                 iget-object v$state, v$state, ${audio.sessionField}
                 if-eqz v$state, :unknown
@@ -481,7 +491,7 @@ internal fun BytecodePatchContext.applyKeepMuted(site: VolumeSite) {
                 :unknown
                 const/4 v$state, -1
                 :ask
-                iget v$direction, p0, ${site.direction}
+                iget v$direction, v$self, ${site.direction}
                 invoke-static { v$direction, v$state }, $KEEP_MUTED
                 move-result v$direction
                 if-eqz v$direction, :stock

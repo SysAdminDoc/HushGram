@@ -42,7 +42,7 @@ import org.robolectric.shadows.ShadowAlertDialog;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 
-/** Real framework/font boundaries. Instagram 449 declares minSdk 28 and targetSdk 36. */
+/** Real framework/font boundaries. Instagram 453 declares minSdk 28 and targetSdk 37. */
 @RunWith(RobolectricTestRunner.class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w320dp-h640dp-xhdpi")
@@ -54,7 +54,7 @@ public class SettingsDialogBoundaryTest {
 
     @Before public void host() {
         ApplicationInfo info = RuntimeEnvironment.getApplication().getApplicationInfo();
-        info.targetSdkVersion = 36;
+        info.targetSdkVersion = 37;
         info.flags |= ApplicationInfo.FLAG_SUPPORTS_RTL;
         PatchFamily.inBuildForTests = EnumSet.noneOf(PatchFamily.class);
         RuntimeEnvironment.setFontScale(2f);
@@ -81,6 +81,45 @@ public class SettingsDialogBoundaryTest {
     public void sdk37DialogKeepsSystemBarsOutsideLargeTextContent() throws Exception {
         assertEquals(37, Build.VERSION.SDK_INT);
         checkInsets(false);
+    }
+
+    /**
+     * Nothing resizes an edge-to-edge window for the keyboard, so the page and Restart now sat
+     * behind it (S25, 2026-10-13). The keyboard's inset lifts them the way the buttons' does, and
+     * closing it gives the room back.
+     */
+    @Test @Config(sdk = 37)
+    public void theKeyboardLiftsThePageAndRestartNow() throws Exception {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        dialog = new SettingsDialog();
+        dialog.show(controller.get().getFragmentManager(), "boundary_settings");
+        controller.get().getFragmentManager().executePendingTransactions();
+        ShadowLooper.idleMainLooper();
+        ViewGroup root = (ViewGroup) dialog.getView();
+        assertNotNull(root);
+        root.dispatchApplyWindowInsets(new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 30))
+                .setInsets(WindowInsets.Type.ime(), Insets.of(0, 0, 0, 500))
+                .setVisible(WindowInsets.Type.ime(), true).build());
+        assertEquals(24, root.getPaddingTop());
+        assertEquals("the keyboard is taller than the buttons", 500, root.getPaddingBottom());
+        root.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 640, 1280);
+        View container = root.findViewById(SettingsDialog.CONTAINER_ID);
+        assertTrue("the page ends above the keyboard", container.getBottom() <= 1280 - 500);
+        View restart = root.findViewById(SettingsDialog.RESTART_ID);
+        assertNotNull(restart);
+        restart.setVisibility(View.VISIBLE);
+        root.measure(View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1280, View.MeasureSpec.EXACTLY));
+        root.layout(0, 0, 640, 1280);
+        assertTrue("Restart now ends above the keyboard", restart.getBottom() <= 1280 - 500);
+        assertTrue("and has its height", restart.getHeight() > 0);
+
+        root.dispatchApplyWindowInsets(new WindowInsets.Builder()
+                .setInsets(WindowInsets.Type.systemBars(), Insets.of(0, 24, 0, 30)).build());
+        assertEquals("the keyboard closed", 30, root.getPaddingBottom());
     }
 
     @Test @Config(sdk = 28, qualifiers = "ar-rEG-ldrtl-w320dp-h640dp-xhdpi")
@@ -329,7 +368,7 @@ public class SettingsDialogBoundaryTest {
     }
 
     private void checkInsets(boolean rtl) throws Exception {
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
         controller = Robolectric.buildActivity(Activity.class).setup().visible();
         dialog = new SettingsDialog();
         dialog.show(controller.get().getFragmentManager(), "boundary_settings");

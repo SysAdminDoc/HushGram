@@ -21,7 +21,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
 
 /**
  * Ghost mode from inside Instagram: a long press on the New message button in the inbox's top bar
- * turns every ghost switch in the build on or off, and a toast says which way it went. The button
+ * turns the ghost switches Ghost mode turns ({@link GhostMode#picked}) on or off, and a toast says
+ * which way it went. The button
  * has no long press of its own, so this takes nothing from Instagram, and a tap still starts a new
  * message.
  *
@@ -110,11 +111,24 @@ public final class GhostModeEntry {
         return !GhostMode.switches(build).isEmpty();
     }
 
-    /** The press itself: false, so the view acts as stock, whenever HushGram is paused or has nothing to turn. */
+    /** Whether a press would turn something right now: not paused, and a ghost patch in the build. */
+    static boolean offeredNow() {
+        try {
+            return Utils.settingsReady() && !HushgramPause.isPaused() && offered(PatchFamily.inThisBuild());
+        } catch (Throwable t) {
+            Logger.printException(() -> "Ghost mode: could not check the long press", t);
+            return false;
+        }
+    }
+
+    /**
+     * The press itself, here and on the tab chosen for it (#255): false, so the view acts as stock,
+     * whenever HushGram is paused or has nothing to turn.
+     */
     static boolean press(View view) {
         try {
             if (!Utils.settingsReady() || HushgramPause.isPaused()) return false;
-            List<BooleanSetting> switches = GhostMode.switches(PatchFamily.inThisBuild());
+            List<BooleanSetting> switches = GhostMode.picked(GhostMode.switches(PatchFamily.inThisBuild()));
             if (switches.isEmpty()) return false;
             GhostMode.flip(switches);
             return true;

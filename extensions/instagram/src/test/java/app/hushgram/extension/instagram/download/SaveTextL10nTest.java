@@ -121,6 +121,16 @@ public class SaveTextL10nTest {
                 MediaSave.message(context, Downloader.Status.OK, null, false));
     }
 
+    @Test
+    @Config(qualifiers = "zh-rTW")
+    public void traditionalChineseFormatsSaveResultsAndErrors() {
+        assertEquals("已儲存至相簿", MediaSave.message(context, Downloader.Status.OK, null, false));
+        assertEquals("已儲存至 " + L10n.isolate("Movies/Instagram"),
+                MediaSave.message(context, Downloader.Status.OK, "Movies/Instagram", false));
+        assertEquals("目前共 12 MB", SaveControl.progressText(12 * 1024L * 1024L, -1));
+        assertEquals("下載失敗，請檢查連線後再試一次。", L10n.t("Download failed. Check your connection and try again."));
+    }
+
     /** A channel named in one language is renamed in the next, keeping what the person set. */
     @Test
     @Config(qualifiers = "de")

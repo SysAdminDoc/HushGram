@@ -26,7 +26,7 @@ import java.util.TreeMap;
 public class PatchCoverage {
     public static void main(String[] args) throws Exception {
         if (args.length != 1) throw new IllegalArgumentException("Expected a patched APK");
-        Set<String> wanted = Set.of("disableAnalyticsCoverage", "sanitizeSharingLinksCoverage", "translatedStartCoverage");
+        Set<String> wanted = Set.of("sanitizeSharingLinksCoverage", "translatedStartCoverage");
         Set<String> found = new HashSet<>();
         TreeMap<String, String> values = new TreeMap<>();
         MultiDexContainer<? extends DexFile> dex = DexFileFactory.loadDexContainer(new File(args[0]), Opcodes.getDefault());

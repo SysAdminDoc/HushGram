@@ -106,18 +106,30 @@ public final class ReelSeekBar {
         ReelTimeLabel.bind(container, ad != 0, ReelSeekBar::switchedOn);
     }
 
-    /** Whether every reel keeps its bar and time label: Keep a seek bar, or the bigger bar, which needs the bar shown. */
+    /**
+     * Whether every reel keeps its bar and time label: Keep a seek bar, or a restyled bar (bigger, or
+     * like DM videos), which needs the bar shown.
+     */
     static boolean switchedOn() {
-        return Utils.settingsReady() && (Settings.REEL_SEEK_BAR.get() || Settings.BIG_REEL_SEEK_BAR.get());
+        return Utils.settingsReady() && (Settings.REEL_SEEK_BAR.get() || styled());
     }
 
-    /** Whether the bar gets a thumb: Round handle on the seek bar, or the bigger bar, which always has one. */
+    /** Whether the bar gets a thumb: Round handle on the seek bar, or a restyled bar, which always has one. */
     static boolean thumbOn() {
-        return Utils.settingsReady() && (Settings.REEL_SEEK_THUMB.get() || Settings.BIG_REEL_SEEK_BAR.get());
+        return Utils.settingsReady() && (Settings.REEL_SEEK_THUMB.get() || styled());
     }
 
-    /** Whether the bar is restyled thicker with a dark fade behind it. */
+    /** Whether the bar's track is drawn by HushGram: thicker with a dark fade behind it, or like DM videos. */
     static boolean bigOn() {
-        return Utils.settingsReady() && Settings.BIG_REEL_SEEK_BAR.get();
+        return Utils.settingsReady() && styled();
+    }
+
+    /** Whether the restyled bar takes the look of a video in a chat, which wins over the bigger bar. */
+    static boolean dmOn() {
+        return Utils.settingsReady() && Settings.DM_REEL_SEEK_BAR.get();
+    }
+
+    private static boolean styled() {
+        return Settings.BIG_REEL_SEEK_BAR.get() || Settings.DM_REEL_SEEK_BAR.get();
     }
 }

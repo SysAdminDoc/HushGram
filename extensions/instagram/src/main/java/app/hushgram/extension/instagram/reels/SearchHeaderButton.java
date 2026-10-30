@@ -7,12 +7,14 @@ package app.hushgram.extension.instagram.reels;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -50,8 +52,9 @@ import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragm
  * Search to Home lets this one switch through, so with Hide the Search tab on, Search still opens,
  * by its fragment, the way Instagram opens Messages off the bar on a wide screen. Where the tabs
  * swipe sideways the pager is built from the bar's tabs and has no page for a Search that's off
- * the bar, so the tap leaves Search shut there, says why in a toast and is counted. The patch writes
- * {@link #paging} to tell.
+ * the bar, so the tap opens Instagram's own search screen through its {@code instagram://search}
+ * link instead (#204). Only where nothing answers that link does it leave Search shut, say why in a
+ * toast and count it. The patch writes {@link #paging} to tell.
  *
  * <p>With the switch off or HushGram paused, no button is added and one left from before is taken
  * out at the next draw. A tap while paused does nothing. Nothing in here throws.
@@ -65,7 +68,11 @@ public final class SearchHeaderButton {
     static final String NO_ROW = "Home header Search button not placed, no row to put it in";
     static final String OPENED = "Home header Search button opened Search";
     static final String OPENED_OFF_BAR = "Home header Search button opened Search off the tab bar";
+    static final String OPENED_SCREEN = "Home header Search button opened Instagram's search screen";
     static final String SWIPING = "Home header Search button left Search shut, it's off the swiping tabs";
+
+    /** The link Instagram answers with its search screen, a screen of its own over the tabs. */
+    static final String SEARCH_LINK = "instagram://search";
     static final String NO_HOST = "Home header Search button found no tab host";
 
     /** Stand in for the patched stubs in tests, or null to ask the stubs. */
@@ -114,6 +121,11 @@ public final class SearchHeaderButton {
             }
             boolean onTheBar = TabStart.isOnTheBar(ReelsTab.SEARCH);
             if (!onTheBar && tabsSwipe(activity)) {
+                if (openSearchScreen(activity)) {
+                    HookStatus.counted(ROUTE, OPENED_SCREEN);
+                    Logger.printDebug(() -> "Reels tab: the header's Search button opened Instagram's search screen");
+                    return;
+                }
                 HookStatus.counted(ROUTE, SWIPING);
                 // A toast shows two lines at most on Android 12 and newer, so it says what to do and stops.
                 // Hide the Search tab turned off since Instagram started still has Search off the bar.
@@ -144,12 +156,31 @@ public final class SearchHeaderButton {
         }
     }
 
-    private static int switchTo(Activity activity, Object tab) {
+    /**
+     * Opens Instagram's own search screen, the one its {@code instagram://search} link opens, over
+     * [activity]. Back from it comes back to where the tap was. False when nothing in this app answers
+     * the link. Never throws.
+     */
+    static boolean openSearchScreen(Activity activity) {
+        try {
+            Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse(SEARCH_LINK)).setPackage(activity.getPackageName());
+            if (link.resolveActivity(activity.getPackageManager()) == null) return false;
+            activity.startActivity(link);
+            return true;
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Reels tab: Instagram's search screen didn't open", failure);
+            return false;
+        }
+    }
+
+    /** Switches [activity]'s tab host to [tab] through {@link #select}. The Messages button on the header uses it too. */
+    static int switchTo(Activity activity, Object tab) {
         ToIntBiFunction<Object, Object> stand = selectForTests;
         return stand != null ? stand.applyAsInt(activity, tab) : select(activity, tab);
     }
 
-    private static boolean tabsSwipe(Activity activity) {
+    /** Whether [activity]'s tabs swipe sideways, through {@link #paging}. */
+    static boolean tabsSwipe(Activity activity) {
         ToIntFunction<Object> stand = pagingForTests;
         return (stand != null ? stand.applyAsInt(activity) : paging(activity)) != 0;
     }

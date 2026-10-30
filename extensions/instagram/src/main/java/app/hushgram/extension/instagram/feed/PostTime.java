@@ -5,6 +5,7 @@
 package app.hushgram.extension.instagram.feed;
 
 import android.content.Context;
+import android.content.res.Resources;
 import android.text.format.DateUtils;
 
 import androidx.annotation.Nullable;
@@ -21,10 +22,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>Instagram writes how long ago a post went up ("3 hours ago") and how long ago a comment was
  * written ("3h") with one relative formatter, handed the time in seconds by the phone's clock. The
  * patch puts {@link #time} in place of that call where a feed post's footer, a comment's header and
- * a comment row ask for it, on the same arguments: the formatter, the context and the time. While
- * the switch is on it answers the date and time the way a story's exact time does, like
- * Oct 2, 3:45 PM, with the year for another year. Otherwise it hands the call on to Instagram's own
- * formatting, through the stubs the patch fills, so the label is the one Instagram would have made.
+ * a comment row ask for it, on the same arguments: the formatter, the context and the time. From
+ * 452 the comment header's time is written by a lambda that calls the formatter's static overload
+ * with the resources instead of a context, and the patch puts the resources form of {@link #time}
+ * in place of that call. While the switch is on it answers the date and time the way a story's
+ * exact time does, like Oct 2, 3:45 PM, with the year for another year. Otherwise it hands the call
+ * on to Instagram's own formatting, through the stubs the patch fills, so the label is the one
+ * Instagram would have made.
  */
 public final class PostTime {
     /** Past this many seconds, the time in milliseconds no longer fits a long. */
@@ -51,6 +55,17 @@ public final class PostTime {
         return null;
     }
 
+    /**
+     * Filled in by the patch: Instagram's own label for [seconds], from the static formatting a
+     * comment's header asks for with the resources. Only the unit and formatter Instagram passed
+     * may be handed on.
+     */
+    @Nullable
+    public static String instagramTime(Resources resources, Object unit, Object formatter, Integer style,
+                                       double seconds, boolean flag) {
+        return null;
+    }
+
     /** Whether the exact time is shown: the settings are read and the switch is on, which a pause answers off. */
     private static boolean on() {
         return Utils.settingsReady() && Settings.SHOW_POST_TIME.get();
@@ -70,6 +85,19 @@ public final class PostTime {
     public static String time(Object formatter, Context context, long seconds) {
         String exact = exact(context, seconds);
         return exact != null ? exact : instagramTime(formatter, context, seconds);
+    }
+
+    /**
+     * In place of Instagram's static call for a comment header's time, given with the resources
+     * rather than a context, on the same arguments. Instagram's flag comes as an int, non-zero for
+     * yes, since a register its code types as int fails verification handed to a boolean. The date
+     * is written with the app's context, which is there once the settings are.
+     */
+    public static String time(Resources resources, Object unit, Object formatter, Integer style,
+                              double seconds, int flag) {
+        String exact = Double.isNaN(seconds) ? null
+                : exact(Utils.settingsReady() ? Utils.getContext() : null, (long) seconds);
+        return exact != null ? exact : instagramTime(resources, unit, formatter, style, seconds, flag != 0);
     }
 
     /**

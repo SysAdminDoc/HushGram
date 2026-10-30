@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -185,21 +186,16 @@ class DownloadVoiceMessagesHookTest {
                 val saver = context.mutableClassDefBy(found.saver.method.definingClass).methods.single {
                     it.name == found.saver.method.name && it.parameterTypes == found.saver.method.parameterTypes
                 }
-                if (version == "450.0.0.50.77") {
-                    // Where it lands on 450, read off the dex by hand.
+                if (bundle.name == "instagram-453.0.0.57.79-385914557.apks") {
+                    // Where it lands on 453's declared build, read off the dex by hand.
                     val at = builder.instructions().indexOfFirst { it.referenceText() == OFFER_VOICE }
-                    assertEquals("LX/09xN;->invoke", "${builder.definingClass}->${builder.name}")
-                    assertEquals("LX/0Jyt;->AYr(Lcom/instagram/common/session/UserSession;LX/0038;)Z", builder.instructions()[at - 2].referenceText())
-                    assertEquals("LX/0Prd;->A03", "${saver.definingClass}->${saver.name}")
-                    assertEquals("LX/0Cpp;->A00:LX/0038;", saver.instructions()[0].referenceText())
-                    assertEquals("LX/0Prd;->A00:Landroid/app/Activity;", saver.instructions()[1].referenceText())
                     assertEquals(
-                        listOf("LX/0038;->A0N:LX/05x6;", "LX/05x6;->A00()LX/04bU;", "LX/04bU;->A08:LX/047y;", "LX/047y;->BTn()Ljava/lang/String;"),
-                        context.method(VOICE_MESSAGE, AUDIO_BRIDGE).instructions().filter { it.opcode in READS }.map { it.referenceText() },
-                    )
-                    assertEquals(
-                        listOf("LX/0038;->A0N:LX/05x6;", "LX/05x6;->A0D:Ljava/lang/String;"),
-                        context.method(VOICE_MESSAGE, VIEW_MODE_BRIDGE).instructions().filter { it.opcode in READS }.map { it.referenceText() },
+                        DECLARED_SITES,
+                        listOf(
+                            "${builder.definingClass}->${builder.name}", builder.instructions()[at - 2].referenceText(),
+                            "${saver.definingClass}->${saver.name}", saver.instructions()[0].referenceText(), saver.instructions()[1].referenceText(),
+                        ) + context.method(VOICE_MESSAGE, AUDIO_BRIDGE).instructions().filter { it.opcode in READS }.map { it.referenceText() } +
+                            context.method(VOICE_MESSAGE, VIEW_MODE_BRIDGE).instructions().filter { it.opcode in READS }.map { it.referenceText() },
                     )
                 }
                 checked++
@@ -211,8 +207,14 @@ class DownloadVoiceMessagesHookTest {
 
     /** Finds and applies everything in [bundle], checks the hooks went in, and hands back the context and what it found. */
     private fun offersSaveIn(bundle: java.io.File, label: String): Pair<BytecodePatchContext, VoiceMessages> {
-        val held = listOf(MESSAGE_MENU, SAVE_ACTION, AUDIO_SOURCE, VIEW_MODE_KEY, MEDIA_SAVER)
+        val holding = listOf(MESSAGE_MENU, SAVE_ACTION, AUDIO_SOURCE, VIEW_MODE_KEY, MEDIA_SAVER)
             .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        // The menu's action singletons too: on 451's 385713073 its Save action asks a string pool
+        // for its name, so it holds no SaveMedia of its own.
+        val actions = holding.flatMap { it.methods }.filter { it.loads(MESSAGE_MENU) }.flatMap { it.instructions() }
+            .filter { it.opcode == Opcode.SGET_OBJECT }.mapNotNull { (it.reference() as? FieldReference)?.takeIf { f -> f.definingClass == f.type }?.type }
+            .filter { type -> holding.none { it.type == type } }.toSet()
+        val held = FixtureDex.withStringPools(bundle, holding + FixtureDex.classes(bundle, actions).values).distinctBy { it.type }
         val extension = ExtensionDex.classDef(VOICE_MESSAGE)
         val (_, flag) = PatchContexts.of(held + extension).findSaveFlag()
         val model = flag.definingClass
@@ -258,6 +260,19 @@ class DownloadVoiceMessagesHookTest {
     private fun Instruction.referenceText(): String? = reference()?.toString()
 
     private companion object {
+        /**
+         * On 453.0.0.57.79's 385914557: the builder and the ask before the offer, the saver's entry and its
+         * first two reads, then the audio bridge's reads and the view mode bridge's. The builder is now
+         * the lambda 0AoC's invoke (55.79's static 0Au5.A0H), still the only caller of the ask 0VaU.AZS,
+         * and the message is 01vE (55.79's 01vF).
+         */
+        val DECLARED_SITES = listOf(
+            "LX/0AoC;->invoke", "LX/0VaU;->AZS(Lcom/instagram/common/session/UserSession;LX/01vE;)Z",
+            "LX/0PnT;->A02", "LX/0MJ7;->A00:LX/01vE;", "LX/0PnT;->A00:Landroid/app/Activity;",
+            "LX/01vE;->A0L:LX/05B6;", "LX/05B6;->A00()LX/02xm;", "LX/02xm;->A08:LX/09o4;", "LX/09o4;->BWP()Ljava/lang/String;",
+            "LX/01vE;->A0L:LX/05B6;", "LX/05B6;->A0D:Ljava/lang/String;",
+        )
+
         const val MENU = "Lfixture/ThreadFragment;"
         const val ACTION = "Lfixture/SaveMediaAction;"
         const val OTHER_ACTION = "Lfixture/OtherSaveMediaAction;"

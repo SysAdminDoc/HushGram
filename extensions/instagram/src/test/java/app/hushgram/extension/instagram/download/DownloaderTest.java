@@ -10,6 +10,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
@@ -28,6 +29,23 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+
+import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The fetch against a local server. The policy lets exactly that server through and hands every
@@ -705,4 +723,347 @@ public class DownloaderTest {
             abandoned = true;
         }
     }
+    @Test public void cancelRetiresAWorkerWhileDnsStillWaits() throws Exception {
+        BlockingLookup lookup = new BlockingLookup(1);
+        FetchAttempt attempt = new FetchAttempt(REBOUND, lookup.policy(), temp.newFile());
+        try {
+            assertTrue(lookup.entered.await(3, TimeUnit.SECONDS));
+            attempt.cancel();
+            assertEquals(Downloader.Status.CANCELLED, attempt.result.get(2, TimeUnit.SECONDS).status);
+            assertFalse("cancel left a work file", attempt.file.exists());
+            assertEquals("the native callback must still be waiting", 1, lookup.active.get());
+        } finally {
+            lookup.release.countDown();
+            attempt.finish();
+            assertTrue(lookup.left.await(3, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test public void aPreparationDeadlineRetiresBlockedDnsWithoutCancelingTheSave() throws Exception {
+        long previous = DownloadPreparation.timeoutForTests;
+        BlockingLookup lookup = new BlockingLookup(1);
+        FetchAttempt attempt = null;
+        try {
+            DownloadPreparation.timeoutForTests = 500;
+            attempt = new FetchAttempt(REBOUND, lookup.policy(), temp.newFile());
+            assertTrue(lookup.entered.await(3, TimeUnit.SECONDS));
+            Downloader.Result result = attempt.result.get(3, TimeUnit.SECONDS);
+            assertEquals(Downloader.Status.NETWORK_ERROR, result.status);
+            assertTrue(result.reason, result.reason.contains("timed out"));
+            assertFalse("a timeout changed the user's cancellation flag", attempt.stopped.get());
+            assertFalse(attempt.file.exists());
+            assertEquals(1, lookup.active.get());
+        } finally {
+            DownloadPreparation.timeoutForTests = previous;
+            lookup.release.countDown();
+            if (attempt != null) attempt.finish();
+            assertTrue(lookup.left.await(3, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test public void canceledPreparationsDoNotQueueReplacementLookups() throws Exception {
+        BlockingLookup lookup = new BlockingLookup(3);
+        List<FetchAttempt> attempts = new ArrayList<>();
+        AtomicInteger replacementLookups = new AtomicInteger();
+        try {
+            for (int i = 0; i < 3; i++) attempts.add(new FetchAttempt(REBOUND, lookup.policy(), temp.newFile()));
+            assertTrue(lookup.entered.await(3, TimeUnit.SECONDS));
+            for (FetchAttempt attempt : attempts) attempt.cancel();
+            for (FetchAttempt attempt : attempts) {
+                assertEquals(Downloader.Status.CANCELLED, attempt.result.get(2, TimeUnit.SECONDS).status);
+                assertFalse(attempt.file.exists());
+            }
+            MediaUrlPolicy replacement = new MediaUrlPolicy(host -> {
+                replacementLookups.incrementAndGet();
+                throw new UnknownHostException("replacement must not be queued");
+            });
+            File file = temp.newFile();
+            Downloader.Result refused = within(2_000,
+                    () -> Downloader.fetch(REBOUND, Downloader.Kind.VIDEO, file, replacement, 1024, Downloader.SILENT));
+            assertEquals(Downloader.Status.NETWORK_ERROR, refused.status);
+            assertFalse(file.exists());
+            assertEquals("an occupied preparation pool created or queued more native work", 0, replacementLookups.get());
+            assertEquals(3, lookup.active.get());
+        } finally {
+            lookup.release.countDown();
+            for (FetchAttempt attempt : attempts) attempt.finish();
+            assertTrue(lookup.left.await(3, TimeUnit.SECONDS));
+        }
+        assertEquals("a rejected replacement lookup ran late", 0, replacementLookups.get());
+        serve("/recovered.mp4", "video/mp4", mp4(128));
+        long until = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        Downloader.Result recovered;
+        do {
+            recovered = fetch("/recovered.mp4", Downloader.Kind.VIDEO, temp.newFile(), 1024);
+            if (recovered.ok()) break;
+            Thread.sleep(10);
+        } while (System.nanoTime() < until);
+        assertEquals("preparation admission did not recover: " + recovered, Downloader.Status.OK, recovered.status);
+    }
+
+    @Test public void cancelRetiresTheConnectionsSecondProxyLookup() throws Exception {
+        ProxySelector previous = ProxySelector.getDefault();
+        CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1), left = new CountDownLatch(1);
+        AtomicInteger selections = new AtomicInteger();
+        ProxySelector.setDefault(new ProxySelector() {
+            @Override public List<Proxy> select(URI uri) {
+                if (selections.incrementAndGet() == 2) {
+                    entered.countDown();
+                    try { awaitUninterruptibly(release); } finally { left.countDown(); }
+                }
+                return Collections.singletonList(Proxy.NO_PROXY);
+            }
+            @Override public void connectFailed(URI uri, SocketAddress address, IOException failure) {}
+        });
+        serve("/proxy-cancel.mp4", "video/mp4", mp4(128));
+        MediaUrlPolicy discover = new MediaUrlPolicy(host -> new InetAddress[0]) {
+            @Override Refusal refusal(URL url) { MediaUrlPolicy.proxied(url); return null; }
+        };
+        FetchAttempt attempt = new FetchAttempt(origin + "/proxy-cancel.mp4", discover, temp.newFile());
+        try {
+            assertTrue("the actual connection never repeated proxy discovery", entered.await(3, TimeUnit.SECONDS));
+            assertNotNull(attempt.closer.get());
+            attempt.cancel();
+            assertEquals(Downloader.Status.CANCELLED, attempt.result.get(2, TimeUnit.SECONDS).status);
+            assertFalse(attempt.file.exists());
+        } finally {
+            release.countDown();
+            try {
+                attempt.finish();
+                assertTrue(left.await(3, TimeUnit.SECONDS));
+            } finally { ProxySelector.setDefault(previous); }
+        }
+        assertEquals("canceled preparation made a late media request", 0, hitsOf("/proxy-cancel.mp4"));
+    }
+
+    @Test public void cancelBeforeHeadersClosesTheLateAnswerWithoutReadingItsBody() throws Exception {
+        assertCancellationDuringPreparation(false, false);
+    }
+
+    @Test public void cancelWhileOpeningAResponseStreamClosesTheLateStream() throws Exception {
+        assertCancellationDuringPreparation(true, false);
+    }
+
+    @Test public void aPreparationDeadlineClosesTheLateResponseStream() throws Exception {
+        long previous = DownloadPreparation.timeoutForTests;
+        try {
+            DownloadPreparation.timeoutForTests = 500;
+            assertCancellationDuringPreparation(true, true);
+        } finally { DownloadPreparation.timeoutForTests = previous; }
+    }
+
+    private void assertCancellationDuringPreparation(boolean openingStream, boolean timeout) throws Exception {
+        CountDownLatch entered = new CountDownLatch(1), release = new CountDownLatch(1), left = new CountDownLatch(1);
+        CountDownLatch lateClose = new CountDownLatch(1);
+        AtomicInteger bodies = new AtomicInteger(), reads = new AtomicInteger(), closed = new AtomicInteger();
+        AtomicBoolean callbackReturned = new AtomicBoolean();
+        try (TestProtocol protocol = new TestProtocol(url -> new RecordingConnection(url, mp4(128), false,
+                closed, new AtomicInteger()) {
+            private void holdCallback() {
+                entered.countDown();
+                try { awaitUninterruptibly(release); }
+                finally { callbackReturned.set(true); left.countDown(); }
+            }
+            @Override public int getResponseCode() {
+                if (!openingStream) holdCallback();
+                return 200;
+            }
+            @Override public String getContentType() { return "video/mp4"; }
+            @Override public InputStream getInputStream() {
+                bodies.incrementAndGet();
+                if (openingStream) holdCallback();
+                return new FilterInputStream(super.getInputStream()) {
+                    @Override public int read(byte[] bytes, int offset, int count) throws IOException {
+                        reads.incrementAndGet();
+                        return super.read(bytes, offset, count);
+                    }
+                };
+            }
+            @Override public void disconnect() {
+                super.disconnect();
+                if (callbackReturned.get()) lateClose.countDown();
+            }
+        })) {
+            FetchAttempt attempt = new FetchAttempt(protocol.url, protocolPolicy(), temp.newFile());
+            try {
+                assertTrue(entered.await(3, TimeUnit.SECONDS));
+                if (!timeout) attempt.cancel();
+                Downloader.Result result = attempt.result.get(3, TimeUnit.SECONDS);
+                assertEquals(timeout ? Downloader.Status.NETWORK_ERROR : Downloader.Status.CANCELLED, result.status);
+                if (timeout) assertTrue(result.reason, result.reason.contains("timed out"));
+                assertFalse(attempt.file.exists());
+            } finally {
+                release.countDown();
+                attempt.finish();
+                assertTrue(left.await(3, TimeUnit.SECONDS));
+            }
+            assertTrue("the late answer retained its connection", lateClose.await(3, TimeUnit.SECONDS));
+            assertEquals("the canceled preparation consumed a late response body", 0, reads.get());
+            assertEquals(openingStream ? 1 : 0, bodies.get());
+            assertEquals("a late stream was not closed", openingStream ? 1 : 0, closed.get());
+        }
+    }
+
+    @Test public void aSuccessfulFetchClosesItsResponseStream() throws Exception {
+        assertResponseClosed(jpeg(128), false, Downloader.Status.OK);
+    }
+
+    @Test public void aSniffRefusalClosesItsResponseStream() throws Exception {
+        assertResponseClosed(HTML, false, Downloader.Status.REFUSED);
+    }
+
+    @Test public void aReadFailureClosesItsResponseStream() throws Exception {
+        assertResponseClosed(jpeg(128), true, Downloader.Status.NETWORK_ERROR);
+    }
+
+    @Test public void aResponseCloseFailureDoesNotKeepCacheBytesOrReportSuccess() throws Exception {
+        AtomicInteger closed = new AtomicInteger();
+        File file = temp.newFile();
+        try (TestProtocol protocol = new TestProtocol(url -> new RecordingConnection(url, jpeg(128), false,
+                closed, new AtomicInteger()) {
+            @Override public InputStream getInputStream() {
+                return new FilterInputStream(super.getInputStream()) {
+                    @Override public void close() throws IOException { super.close(); throw new IOException("controlled close failure"); }
+                };
+            }
+        })) {
+            Downloader.Result result = Downloader.fetch(protocol.url, Downloader.Kind.IMAGE, file,
+                    protocolPolicy(), 1024, Downloader.SILENT);
+            assertEquals(result.toString(), Downloader.Status.NETWORK_ERROR, result.status);
+            assertEquals("the close was never attempted", 1, closed.get());
+            assertFalse("kept was set before the response stream closed successfully", file.exists());
+        }
+    }
+
+    @Test public void aCloseFailurePreservesThePrimaryReadFailure() throws Exception {
+        AtomicInteger closed = new AtomicInteger();
+        File file = temp.newFile();
+        try (TestProtocol protocol = new TestProtocol(url -> new RecordingConnection(url, jpeg(128), false,
+                closed, new AtomicInteger()) {
+            @Override public InputStream getInputStream() {
+                return new FilterInputStream(super.getInputStream()) {
+                    @Override public int read(byte[] bytes, int offset, int count) throws IOException { throw new ReadFailure(); }
+                    @Override public void close() throws IOException { super.close(); throw new IOException("secondary close failure"); }
+                };
+            }
+        })) {
+            Downloader.Result result = Downloader.fetch(protocol.url, Downloader.Kind.IMAGE, file,
+                    protocolPolicy(), 1024, Downloader.SILENT);
+            assertEquals(Downloader.Status.NETWORK_ERROR, result.status);
+            assertTrue("close replaced the primary failure: " + result, result.reason.endsWith("ReadFailure"));
+            assertEquals(1, closed.get());
+            assertFalse(file.exists());
+        }
+    }
+
+    private static final class ReadFailure extends IOException {}
+
+    private void assertResponseClosed(byte[] body, boolean failRead, Downloader.Status expected) throws Exception {
+        AtomicInteger closed = new AtomicInteger(), disconnected = new AtomicInteger();
+        try (TestProtocol protocol = new TestProtocol(url -> new RecordingConnection(url, body, failRead, closed, disconnected))) {
+            Downloader.Result result = Downloader.fetch(protocol.url, Downloader.Kind.IMAGE, temp.newFile(),
+                    protocolPolicy(), 1024, Downloader.SILENT);
+            assertEquals(result.toString(), expected, result.status);
+            assertEquals("the response stream remained open", 1, closed.get());
+            assertTrue("the connection remained open", disconnected.get() > 0);
+        }
+    }
+
+    private static MediaUrlPolicy protocolPolicy() {
+        return new MediaUrlPolicy(host -> new InetAddress[0]) { @Override Refusal refusal(URL url) { return null; } };
+    }
+
+    private static class RecordingConnection extends HttpURLConnection {
+        private final byte[] body;
+        private final InputStream stream;
+        private final AtomicInteger disconnected;
+        RecordingConnection(URL url, byte[] body, boolean failRead, AtomicInteger closed, AtomicInteger disconnected) {
+            super(url);
+            this.body = body;
+            this.disconnected = disconnected;
+            stream = new FilterInputStream(new ByteArrayInputStream(body)) {
+                @Override public int read(byte[] bytes, int offset, int length) throws IOException {
+                    if (failRead) throw new IOException("controlled body read failure");
+                    return super.read(bytes, offset, length);
+                }
+                @Override public void close() throws IOException { closed.incrementAndGet(); super.close(); }
+            };
+        }
+        @Override public void connect() {}
+        @Override public int getResponseCode() { return 200; }
+        @Override public String getContentType() { return "image/jpeg"; }
+        @Override public long getContentLengthLong() { return body.length; }
+        @Override public InputStream getInputStream() { return stream; }
+        @Override public void disconnect() { disconnected.incrementAndGet(); }
+        @Override public boolean usingProxy() { return false; }
+    }
+
+    private static final class TestProtocol implements AutoCloseable {
+        private final String previous = System.getProperty("java.protocol.handler.pkgs");
+        private final String host = "case" + java.util.UUID.randomUUID().toString().replace("-", "");
+        final String url = "hushgramtest://" + host + "/media";
+        TestProtocol(java.util.function.Function<URL, HttpURLConnection> connection) {
+            String prefix = "app.hushgram.extension.instagram.download.protocols";
+            System.setProperty("java.protocol.handler.pkgs", previous == null || previous.isEmpty() ? prefix : previous + "|" + prefix);
+            app.hushgram.extension.instagram.download.protocols.hushgramtest.Handler.register(host, connection);
+        }
+        @Override public void close() {
+            app.hushgram.extension.instagram.download.protocols.hushgramtest.Handler.remove(host);
+            if (previous == null) System.clearProperty("java.protocol.handler.pkgs");
+            else System.setProperty("java.protocol.handler.pkgs", previous);
+        }
+    }
+
+    private static final class FetchAttempt {
+        final File file;
+        final AtomicBoolean stopped = new AtomicBoolean();
+        final AtomicReference<Runnable> closer = new AtomicReference<>();
+        final FutureTask<Downloader.Result> result;
+        private Thread closing;
+        FetchAttempt(String url, MediaUrlPolicy rules, File file) {
+            this.file = file;
+            Downloader.Progress progress = new Downloader.Progress() {
+                @Override public void transferred(long done, long total) {}
+                @Override public void reading(Runnable close) { closer.set(close); }
+                @Override public boolean cancelled() { return stopped.get(); }
+            };
+            result = new FutureTask<>(() -> Downloader.fetch(url, Downloader.Kind.VIDEO, file, rules, 1024, progress));
+            Thread worker = new Thread(result, "download-prepare-regression");
+            worker.setDaemon(true);
+            worker.start();
+        }
+        void cancel() {
+            stopped.set(true);
+            Runnable close = closer.get();
+            if (close != null) { closing = new Thread(close, "download-cancel-regression"); closing.setDaemon(true); closing.start(); }
+        }
+        void finish() throws Exception {
+            result.get(5, TimeUnit.SECONDS);
+            if (closing != null) { closing.join(3_000); assertFalse("a test closer remained blocked", closing.isAlive()); }
+        }
+    }
+
+    private static final class BlockingLookup {
+        final CountDownLatch entered, left;
+        final CountDownLatch release = new CountDownLatch(1);
+        final AtomicInteger active = new AtomicInteger();
+        BlockingLookup(int count) { entered = new CountDownLatch(count); left = new CountDownLatch(count); }
+        MediaUrlPolicy policy() {
+            return new MediaUrlPolicy(host -> {
+                active.incrementAndGet(); entered.countDown();
+                try { awaitUninterruptibly(release); throw new UnknownHostException("controlled lookup failure"); }
+                finally { active.decrementAndGet(); left.countDown(); }
+            });
+        }
+    }
+
+    private static void awaitUninterruptibly(CountDownLatch latch) {
+        boolean interrupted = false;
+        while (true) {
+            try { latch.await(); break; } catch (InterruptedException ignored) { interrupted = true; }
+        }
+        if (interrupted) Thread.currentThread().interrupt();
+    }
+
+
 }

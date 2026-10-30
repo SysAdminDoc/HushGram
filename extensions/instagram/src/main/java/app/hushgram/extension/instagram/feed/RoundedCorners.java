@@ -4,13 +4,8 @@
  */
 package app.hushgram.extension.instagram.feed;
 
-import android.graphics.Outline;
 import android.view.View;
-import android.view.ViewOutlineProvider;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.function.Function;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -43,34 +38,8 @@ public final class RoundedCorners {
     /** What {@link #made} counts for each frame it rounds. */
     static final String ROUNDED = "frames rounded";
 
-    /** What a frame was before it was rounded, and the radius it has now. */
-    private static final class Kept {
-        final ViewOutlineProvider provider;
-        final boolean clipped;
-        float radius;
-
-        Kept(View view) {
-            provider = view.getOutlineProvider();
-            clipped = view.getClipToOutline();
-        }
-    }
-
-    /** Cuts a view's outline to a rounded rectangle of its size. The view system asks again whenever the size changes. */
-    private static final class Rounded extends ViewOutlineProvider {
-        final float radius;
-
-        Rounded(float radius) {
-            this.radius = radius;
-        }
-
-        @Override
-        public void getOutline(View view, Outline outline) {
-            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), radius);
-        }
-    }
-
     /** The frames rounded now, with what they were. Main thread only. */
-    private static final Map<View, Kept> kept = new WeakHashMap<>();
+    private static final RoundedFrames kept = new RoundedFrames();
 
     /** Reads the frame a holder keeps. Replaced by tests. */
     static Function<Object, Object> frames = RoundedTargets::frame;
@@ -86,7 +55,7 @@ public final class RoundedCorners {
     public static void made(Object holder) {
         try {
             if (!Utils.settingsReady() || !Settings.ROUNDED_POST_CORNERS.get()) {
-                if (!kept.isEmpty()) putBack();
+                if (!kept.isEmpty()) kept.putBack();
                 return;
             }
             HookStatus.invoked(FamilyNames.ROUNDED_POST_CORNERS);
@@ -94,16 +63,7 @@ public final class RoundedCorners {
             if (!(frame instanceof View)) return;
             View view = (View) frame;
             float radius = Settings.ROUNDED_CORNER_SIZE.get().dp * view.getResources().getDisplayMetrics().density;
-            Kept before = kept.get(view);
-            if (before == null) {
-                before = new Kept(view);
-                kept.put(view, before);
-            } else if (before.radius == radius) {
-                return;
-            }
-            before.radius = radius;
-            view.setOutlineProvider(new Rounded(radius));
-            view.setClipToOutline(true);
+            if (!kept.round(view, radius)) return;
             HookStatus.counted(FamilyNames.ROUNDED_POST_CORNERS, ROUNDED);
             if (!logged) {
                 logged = true;
@@ -112,17 +72,6 @@ public final class RoundedCorners {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ROUNDED_POST_CORNERS, MADE, failure);
         }
-    }
-
-    /** Gives every frame rounded so far Instagram's outline provider and clipping back, and forgets them. */
-    private static void putBack() {
-        for (Map.Entry<View, Kept> entry : new ArrayList<>(kept.entrySet())) {
-            View view = entry.getKey();
-            if (view == null) continue;
-            view.setOutlineProvider(entry.getValue().provider);
-            view.setClipToOutline(entry.getValue().clipped);
-        }
-        kept.clear();
     }
 
     /** How many frames are rounded now. Tests only. */

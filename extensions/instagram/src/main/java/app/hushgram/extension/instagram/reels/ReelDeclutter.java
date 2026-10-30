@@ -24,7 +24,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * nothing to show. The patch asks one of these first thing in each render it hides:
  *
  * <ul>
- *   <li>{@link #hideFollowButton} in the Follow button beside a reel's author. The Follow button
+ *   <li>{@link #hideFollowButton} in the Follow button beside a reel's author, and in the
+ *       Subscribe button a creator who sells subscriptions gets there (#248). The Follow button
  *       on the cards of suggested accounts between reels is another component and stays.
  *   <li>{@link #hideChips} in each pill that prompts you to make something or promotes something:
  *       the attribution pills for Edits, templates and creative tools, the Stories template pill,
@@ -45,6 +46,12 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       the switch for all reels on, it answers yes for every source.
  *   <li>{@link #hideEveryCommentBar} first thing in the render of the in-viewer comment bar
  *       component, the bar Instagram 450 draws under reels in the Reels tab.
+ *   <li>{@link #hideDirectReplyBar} right where the controller of the reply bar under a reel opened
+ *       with something to reply to reads its own hidden flag, in its show and once it inflates the
+ *       bar, with where the viewer was opened from. A flag Instagram already set stays set. A clear
+ *       one becomes this answer, which is yes for a chat, {@link #CHATS}, and Instagram's own code
+ *       then sets the bar gone the way it does for a bar it hides itself. Nothing writes the flag,
+ *       so off, paused or any other source is Instagram's own bar (#177).
  *   <li>{@link #hideSaveButton} and {@link #hideSaveCount} first thing in the two methods of the
  *       reel's button column that build the Save button and the save count under it. Each answers
  *       nothing when the hook says to hide, which Instagram's own "maybe create" methods do
@@ -55,8 +62,10 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with a switch
  * off, or when something throws, Instagram draws the part.
  *
- * <p>The patch's sixth switch, the Reels tab's top bar, needs no hook: {@link ReelsTopBar} hides
- * that bar's view at runtime.
+ * <p>The patch's sixth switch, the Reels tab's top bar, needs no hook, and neither do the two for
+ * the Create and Your algorithm buttons in it: {@link ReelsTopBar} hides those views at runtime. The
+ * Friends tab in it has the patch hand {@link ReelsTopBar#friendsTab} each tab's view as it's built,
+ * and is hidden the same way.
  */
 public final class ReelDeclutter {
     /**
@@ -85,9 +94,17 @@ public final class ReelDeclutter {
     /** Where a viewer of reposted reels is opened from, as Instagram 450's ClipsViewerSource names it. */
     static final Set<String> REPOSTS = new HashSet<>(Arrays.asList("REPOSTS_GRID", "SELF_REPOSTS_GRID"));
 
+    /**
+     * Where the viewer of a reel shared in a chat is opened from, as Instagram 450's
+     * ClipsViewerSource names it. The chat's own launcher hands the reply bar this one. A search of
+     * your messages, a Blend and a reply bar opened from a notification name others and stay.
+     */
+    static final Set<String> CHATS = Collections.singleton("DIRECT");
+
     /** Diagnostics counts, fixed text. */
     static final String COUNT_SAVE_HIDDEN = "reel Save buttons hidden";
     static final String COUNT_SAVE_COUNT_HIDDEN = "reel save counts hidden";
+    static final String COUNT_REPLY_BAR_HIDDEN = "chat reel reply bars kept hidden";
 
     /** The line types the debug log has named, each once a run. */
     private static final Set<String> LOGGED = Collections.synchronizedSet(new HashSet<>());
@@ -95,7 +112,7 @@ public final class ReelDeclutter {
     private ReelDeclutter() {
     }
 
-    /** True leaves the Follow button beside a reel's author out. Never throws. */
+    /** True leaves the Follow or Subscribe button beside a reel's author out. Never throws. */
     public static boolean hideFollowButton() {
         return hide(Settings.HIDE_REEL_FOLLOW_BUTTON, "Follow button");
     }
@@ -136,6 +153,23 @@ public final class ReelDeclutter {
             return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "comment bar source", failure);
+            return false;
+        }
+    }
+
+    /**
+     * True keeps the reply bar under a reel opened from a chat hidden: [source] is the viewer's
+     * ClipsViewerSource, and only {@link #CHATS} answer yes. Asked each time the controller would
+     * show the bar, so the count is of answers, not of reels. Never throws.
+     */
+    public static boolean hideDirectReplyBar(Object source) {
+        if (!hide(Settings.HIDE_REEL_REPLY_BAR, "reply bar")) return false;
+        try {
+            boolean chat = source instanceof Enum && CHATS.contains(((Enum<?>) source).name());
+            if (chat) HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_REPLY_BAR_HIDDEN);
+            return chat;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "reply bar source", failure);
             return false;
         }
     }

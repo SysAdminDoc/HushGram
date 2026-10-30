@@ -13,38 +13,58 @@ Hushfacebook, which took them from Hushfeed, which is built on
 icysymmetra/tiktok-patches-for-morphe, which is built on Morphe, which hard
 forked ReVanced. Its fix for re-signed builds and its Open links in external
 browser patch are rewritten from Andrew Liang's patches, by way of
-Hushfacebook. The notices below are reproduced from those projects. Morphe
-requires its text to be carried in derivative works and shown to the person
-using the software, so it is also reachable in the app itself: long-press
-Instagram's launcher icon, open HushGram settings, then Licenses.
+Hushfacebook. A few settings screen helpers (the way back to the page Restart
+now was tapped on and Report a problem) come from HushPinterest,
+the Pinterest member of the family, which is built on Hushfeed as well. The
+notices below are reproduced from those projects. Morphe requires its text to
+be carried in derivative works and shown to the person using the software, so
+it is also reachable in the app itself: long-press Instagram's launcher icon,
+open HushGram settings, then Licenses.
 
   HushGram                    https://github.com/SysAdminDoc/HushGram
   Hushfacebook                https://github.com/SysAdminDoc/Hushfacebook
+  HushPinterest               https://github.com/SysAdminDoc/HushPinterest
   Hushfeed                    https://github.com/SysAdminDoc/hushfeed
   morphe-patches (Andrew's)   https://github.com/andrewliang25/morphe-patches
   tiktok-patches-for-morphe   https://github.com/icysymmetra/tiktok-patches-for-morphe
   morphe-patches              https://github.com/MorpheApp/morphe-patches
   morphe-patches-library      https://github.com/MorpheApp/morphe-patches-library
   ReVanced                    https://gitlab.com/ReVanced/revanced-patches
-  piko                        https://github.com/crimera/piko
 
 Andrew Liang's patches are licensed under the GNU General Public License v3.0.
 Their files here keep a "Forked from" line naming the file and commit they
 came from, and provenance.json records every rule.
 
-crimera/piko is licensed under the GNU General Public License v3.0. HushGram
-carries no piko code. It ships two data files piko publishes, both from commit
-ea752648f5688a50a96df21430020e98bf9ece00: the MetaConfig name list for
-Instagram 447 (docs/mappings/447.0.0.55.81.json), packed into FlagNameData.java
-by scripts/gen-flag-names.py, and the recommended flag list
-(docs/mappings/piko_recommended_flags_v3.json), written out in
-RecommendedFlags.java. piko's notice is reproduced below.
+Traditional Chinese translation
+-------------------------------
+
+JhouHank contributed the Traditional Chinese (Taiwan) translation in PR #313.
+The table was imported from commit
+95b2fd99e642f8f1d0a8563ba36fe7af1c21f933, under GPL-3.0-only.
+Font placement hints were adjusted here. Privacy descriptions and notification counts are also maintained here.
+https://github.com/SysAdminDoc/HushGram/pull/313
+https://github.com/JhouHank/HushGram
+
+The contributor credits their Piko translations as a terminology reference.
+The table retains that reference, and Piko's notice is reproduced below.
+
+Piko NOTICE
+
+https://github.com/crimera/piko
+
+=============
+
+7b. Attribution Requirement
+---------------------------
+
+This NOTICE file must be preserved and retained in all distributions
+of the Source Code and any Derivative Works.
 
 Carried third-party libraries
 ----------------------------
 
-Gson 2.14.0 is carried by the patch bundle. Copyright 2008 Google Inc.
-Kotlin stdlib 2.4.20 and JetBrains annotations 13.0 are carried by the shared
+Gson 2.15.0 is carried by the patch bundle. Copyright 2008 Google Inc.
+Kotlin stdlib 2.4.21 and JetBrains annotations 13.0 are carried by the shared
 extension payload. Kotlin is copyright 2010-2024 JetBrains s.r.o. and Kotlin
 Programming Language contributors. Each library is licensed under Apache
 License 2.0, whose text is reproduced below.
@@ -53,8 +73,8 @@ The exact publisher artifacts and their license declarations are recorded
 with SHA-256 hashes in sources/carried-library-licenses.json. The publisher
 POMs for these versions are:
 
-https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.14.0/gson-2.14.0.pom
-https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.20/kotlin-stdlib-2.4.20.pom
+https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.15.0/gson-2.15.0.pom
+https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.21/kotlin-stdlib-2.4.21.pom
 https://repo.maven.apache.org/maven2/org/jetbrains/annotations/13.0/annotations-13.0.pom
 
 
@@ -130,19 +150,6 @@ GPLv3 Section 7e: Declining Grant of Trademark Rights
 This License does not grant any rights or permission under trademark law
 to use the name "Morphe" or any of the Program's trade names, trademarks,
 service marks, or logos.
-
-
-Piko NOTICE
-
-https://github.com/crimera/piko
-
-=============
-
-7b. Attribution Requirement
----------------------------
-
-This NOTICE file must be preserved and retained in all distributions
-of the Source Code and any Derivative Works.
 
 
 Trademarks

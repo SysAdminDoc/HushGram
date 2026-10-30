@@ -36,16 +36,40 @@ internal object AppCompatibilities {
     const val META_ROTATED_SIGNER_SHA256 = "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014"
 
     /** The Instagram build every patch here was applied to and read against. */
-    const val INSTAGRAM_TARGET_VERSION = "450.0.0.50.77"
+    const val INSTAGRAM_TARGET_VERSION = "453.0.0.57.79"
 
     /**
      * The version code of the arm64-v8a build of [INSTAGRAM_TARGET_VERSION]: APKMirror's
-     * (arm64-v8a) (480dpi) (Android 9.0+) bundle of that release, the one the fixtures hold.
+     * (arm64-v8a) (480-640dpi) (Android 9.0+) bundle of that release, the one the fixtures hold.
      */
-    const val INSTAGRAM_TARGET_VERSION_CODE = 385611438
+    const val INSTAGRAM_TARGET_VERSION_CODE = 385914557
+
+    /**
+     * The other declared builds of [INSTAGRAM_TARGET_VERSION], one per ABI, each with its own
+     * version code. Manager is told about every one, so a 32-bit phone is pointed at the
+     * armeabi-v7a build rather than the arm64 one, which it can't install (#346).
+     *
+     * Instagram ships 453.0.0.57.79 as eight builds (arm64 385914517, 385914546 and 385914557;
+     * armeabi-v7a 385914503, 385914510 and 385914556; x86 385914518 and 385914558). Manager takes
+     * one code per ABI, so each ABI's highest code is declared, the one Play hands that ABI, and
+     * the fixture tests read every build. No x86_64 build was uploaded for this release, so none
+     * is declared; an x86_64 device with an arm translator runs the arm64 build.
+     */
+    const val INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A = 385914556
+    const val INSTAGRAM_TARGET_VERSION_CODE_X86 = 385914558
+
+    /** Each declared ABI's build of [INSTAGRAM_TARGET_VERSION]. */
+    val INSTAGRAM_TARGET_VERSION_CODES = mapOf(
+        SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE,
+        SupportedAbi.ARMEABI_V7A to INSTAGRAM_TARGET_VERSION_CODE_ARMEABI_V7A,
+        SupportedAbi.X86 to INSTAGRAM_TARGET_VERSION_CODE_X86,
+    )
 
     /** Instagram's own floor, Android 9. */
     const val INSTAGRAM_TARGET_MIN_SDK = 28
+
+    /** Every ABI loading HushGram's extensions needs Android 9 APIs. */
+    const val INSTAGRAM_RUNTIME_MIN_SDK = 28
 
     fun instagram(): Array<Compatibility> = arrayOf(
         Compatibility(
@@ -57,7 +81,7 @@ internal object AppCompatibilities {
             targets = listOf(
                 AppTarget(
                     version = INSTAGRAM_TARGET_VERSION,
-                    versionCodes = mapOf(SupportedAbi.ARM64_V8A to INSTAGRAM_TARGET_VERSION_CODE),
+                    versionCodes = INSTAGRAM_TARGET_VERSION_CODES,
                     minSdk = INSTAGRAM_TARGET_MIN_SDK,
                 ),
             ),

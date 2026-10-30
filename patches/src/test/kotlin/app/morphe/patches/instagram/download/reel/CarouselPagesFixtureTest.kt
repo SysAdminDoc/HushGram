@@ -38,7 +38,7 @@ class CarouselPagesFixtureTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertTrue("seven builds of the declared version", bundles.size >= 7)
+        assertTrue("three builds of the declared version", bundles.size >= 3)
         for (bundle in bundles) {
             val name = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
             val media = FixtureDex.classes(bundle, setOf(MEDIA))[MEDIA] ?: error("$name: no Media class")

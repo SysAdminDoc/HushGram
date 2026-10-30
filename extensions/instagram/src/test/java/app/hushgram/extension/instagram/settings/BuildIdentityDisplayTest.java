@@ -47,7 +47,7 @@ public class BuildIdentityDisplayTest {
     }
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Utils.setContext(RuntimeEnvironment.getApplication());
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.DM_MEDIA_SEEN);

@@ -9,7 +9,9 @@ import app.morphe.patches.instagram.download.reel.OPTION
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
@@ -37,10 +39,19 @@ object HideRowAsserts {
         val add = row.methods.single { it.name == "addRow" }.code()
         assertTrue("$label: addRow calls the builder's adder", add.any { it.opcode == Opcode.INVOKE_STATIC_RANGE })
         val made = row.methods.single { it.name == "newOption" }.code()
-        assertEquals(
-            "$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V",
-            made.single { it.opcode == Opcode.INVOKE_DIRECT }.referenceText(),
-        )
+        val init = made.single { it.opcode == Opcode.INVOKE_DIRECT }
+        assertEquals("$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", init.referenceText())
+        // Download's icon goes through HideAccountRow.icon, and the option is made with its answer.
+        assertEquals("$label: the icon is swapped once", 1, made.count { it.referenceText() == HIDE_ICON })
+        val swap = made.indexOfFirst { it.referenceText() == HIDE_ICON }
+        val downloadIcon = made[swap - 1] as OneRegisterInstruction
+        assertTrue("$label: Download's icon is read first",
+            made[swap - 2].opcode == Opcode.INVOKE_VIRTUAL && made[swap - 2].referenceText()!!.startsWith("$OPTION->"))
+        assertEquals("$label: the swap is handed Download's icon", downloadIcon.registerA, (made[swap] as Instruction35c).registerC)
+        val swapped = made[swap + 1] as OneRegisterInstruction
+        assertEquals(Opcode.MOVE_RESULT, made[swap + 1].opcode)
+        assertTrue("$label: before the option is made", made.indexOf(init) > swap + 1)
+        assertEquals("$label: the option draws the swapped icon", swapped.registerA, (init as Instruction35c).registerF)
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

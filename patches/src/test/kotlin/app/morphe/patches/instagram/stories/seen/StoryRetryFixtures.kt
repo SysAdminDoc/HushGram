@@ -184,30 +184,41 @@ internal fun storyQueueBase(owner: String, request: String, session: Boolean = t
         emptyList(), null, null, fields, methods)
 }
 
+/** 452's disk reader: it keys its read and its cleanup with the store's private key helper ([storyQueueKey]). */
 internal fun storyQueueReader(store: String, owner: String): Method = storyQueueMethod(store, "A0L", emptyList(), "V", 10, """
-    const-string v4, "pending_reel_seen_states_"
     const-string v0, "PendingReelSeenStateStore.deserializeFromDisk"
-    invoke-virtual { p0 }, $owner->A0H()$USER_SESSION
-    move-result-object v6
     iget-object v5, p0, $store->storage:LX/00CN;
-    iget-object v0, v6, $USER_SESSION->userId:Ljava/lang/String;
-    invoke-static { v4, v0 }, LX/0003;->A0R(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    invoke-direct { p0 }, $store->A01()Ljava/lang/String;
     move-result-object v1
     const/4 v0, 0x1
     invoke-virtual { v5, v1, v0 }, LX/00CN;->A02(Ljava/lang/String;Z)Ljava/lang/Object;
     move-result-object v0
     invoke-virtual { p0 }, $owner->A0I()V
-    iget-object v0, v6, $USER_SESSION->userId:Ljava/lang/String;
-    invoke-static { v4, v0 }, LX/0003;->A0R(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+    invoke-direct { p0 }, $store->A01()Ljava/lang/String;
     move-result-object v0
     invoke-virtual { v5, v0 }, LX/00CN;->A05(Ljava/lang/String;)V
     return-void
 """)
 
+/** 452's private key helper: the pending-story prefix followed by the store's own account's user ID. */
+internal fun storyQueueKey(store: String, owner: String): Method = storyQueueMethod(store, "A01", emptyList(), "Ljava/lang/String;", 4, """
+    invoke-virtual { p0 }, $owner->A0H()$USER_SESSION
+    move-result-object v0
+    iget-object v2, v0, $USER_SESSION->userId:Ljava/lang/String;
+    const-string v1, "pending_reel_seen_states_"
+    new-instance v0, Ljava/lang/StringBuilder;
+    invoke-direct { v0, v1 }, Ljava/lang/StringBuilder;-><init>(Ljava/lang/String;)V
+    invoke-virtual { v0, v2 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+    invoke-virtual { v0 }, Ljava/lang/Object;->toString()Ljava/lang/String;
+    move-result-object v0
+    return-object v0
+""", private = true)
+
 internal fun storyQueueMethod(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, body: String,
     constructor: Boolean = false, monitor: Boolean = false, protected: Pair<Int, Int>? = null, static: Boolean = false,
-    cleanup: Boolean = false): ImmutableMethod {
-    val flags = AccessFlags.PUBLIC.value or (if (constructor) AccessFlags.CONSTRUCTOR.value else AccessFlags.FINAL.value) or
+    cleanup: Boolean = false, private: Boolean = false): ImmutableMethod {
+    val flags = (if (private) AccessFlags.PRIVATE.value else AccessFlags.PUBLIC.value) or
+        (if (constructor) AccessFlags.CONSTRUCTOR.value else AccessFlags.FINAL.value) or
         (if (monitor) AccessFlags.DECLARED_SYNCHRONIZED.value else 0) or (if (static) AccessFlags.STATIC.value else 0)
     val method = MutableMethod(ImmutableMethod(owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
         flags, null, null, ImmutableMethodImplementation(registers, emptyList(), null, null)))
@@ -236,16 +247,20 @@ internal fun storyQueueDiskHelpers(): List<ImmutableClassDef> {
     val parameterCheck = """
         if-nez p0, :done
         invoke-static { p1 }, Ljava/lang/Integer;->toString(I)Ljava/lang/String;
-        move-result-object p1
-        const-string p0, "param at index = "
-        invoke-static { p0, p1 }, LX/0003;->A0R(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-        move-result-object p0
-        invoke-static { p0 }, LX/04Zi;->A05(Ljava/lang/String;)Ljava/lang/String;
-        move-result-object p1
-        new-instance p0, Ljava/lang/NullPointerException;
-        invoke-direct { p0, p1 }, Ljava/lang/NullPointerException;-><init>(Ljava/lang/String;)V
-        invoke-static { p0 }, LX/04Zi;->A0b(Ljava/lang/Throwable;)V
-        throw p0
+        move-result-object v2
+        new-instance v1, Ljava/lang/StringBuilder;
+        invoke-direct { v1 }, Ljava/lang/StringBuilder;-><init>()V
+        const-string v0, "param at index = "
+        invoke-virtual { v1, v0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual { v1, v2 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+        invoke-virtual { v1 }, Ljava/lang/Object;->toString()Ljava/lang/String;
+        move-result-object v0
+        invoke-static { v0 }, LX/04Zi;->A05(Ljava/lang/String;)Ljava/lang/String;
+        move-result-object v1
+        new-instance v0, Ljava/lang/NullPointerException;
+        invoke-direct { v0, v1 }, Ljava/lang/NullPointerException;-><init>(Ljava/lang/String;)V
+        invoke-static { v0 }, LX/04Zi;->A0b(Ljava/lang/Throwable;)V
+        throw v0
         :done
         return-void
     """
@@ -266,8 +281,8 @@ internal fun storyQueueDiskHelpers(): List<ImmutableClassDef> {
                 :done
                 return-void
             """, static = true),
-            storyQueueMethod("LX/04Zi;", "A0V", listOf("Ljava/lang/Object;", "I"), "V", 2, parameterCheck, static = true),
-            storyQueueMethod("LX/04Zi;", "A0U", listOf("Ljava/lang/Object;", "I"), "V", 2,
+            storyQueueMethod("LX/04Zi;", "A0V", listOf("Ljava/lang/Object;", "I"), "V", 5, parameterCheck, static = true),
+            storyQueueMethod("LX/04Zi;", "A0U", listOf("Ljava/lang/Object;", "I"), "V", 5,
                 parameterCheck.replace("NullPointerException", "IllegalArgumentException"), static = true),
             storyQueueMethod("LX/04Zi;", "A05", listOf("Ljava/lang/String;"), "Ljava/lang/String;", 1, "return-object p0", static = true),
             storyQueueMethod("LX/04Zi;", "A0b", listOf("Ljava/lang/Throwable;"), "V", 1, "return-void", static = true),
@@ -280,15 +295,6 @@ internal fun storyQueueDiskHelpers(): List<ImmutableClassDef> {
                 :done
                 return-void
             """, static = true))),
-        type("LX/0003;", listOf(storyQueueMethod("LX/0003;", "A0R", listOf("Ljava/lang/String;", "Ljava/lang/String;"), "Ljava/lang/String;", 3, """
-            new-instance v0, Ljava/lang/StringBuilder;
-            invoke-direct { v0 }, Ljava/lang/StringBuilder;-><init>()V
-            invoke-virtual { v0, p0 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-            invoke-virtual { v0, p1 }, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
-            invoke-virtual { v0 }, Ljava/lang/Object;->toString()Ljava/lang/String;
-            move-result-object v0
-            return-object v0
-        """, static = true))),
         type(disk, listOf(
             storyQueueMethod(disk, "A02", listOf("Ljava/lang/String;", "Z"), "Ljava/lang/Object;", 4, """
                 const/4 v0, 0x0

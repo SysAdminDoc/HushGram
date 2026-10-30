@@ -181,10 +181,11 @@ public final class NavigationSettings {
         }
     }
 
-    /** Whether either long press choice, opening HushGram or the quality picker, names [tab]. */
+    /** Whether any long press choice, opening HushGram, the quality picker or Ghost mode, names [tab]. */
     private static boolean selected(Object tab) {
         return Utils.settingsReady()
-                && (Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab) || Settings.QUALITY_TAB_TARGET.get().matches(tab));
+                && (Settings.NAVIGATION_SETTINGS_TARGET.get().matches(tab) || Settings.QUALITY_TAB_TARGET.get().matches(tab)
+                || Settings.GHOST_TAB_TARGET.get().matches(tab));
     }
 
     private static final class Press implements View.OnLongClickListener {
@@ -211,6 +212,9 @@ public final class NavigationSettings {
                 NavigationTarget qualityTab = Settings.QUALITY_TAB_TARGET.get();
                 if (qualityTab != NavigationTarget.OFF && qualityTab.name().equals(binding.tab)
                         && QualityPicker.show(owner)) return true;
+                NavigationTarget ghostTab = Settings.GHOST_TAB_TARGET.get();
+                if (ghostTab != NavigationTarget.OFF && ghostTab.name().equals(binding.tab)
+                        && GhostModeEntry.press(view)) return true;
             }
             return original != null && original.onLongClick(view);
         }
@@ -230,8 +234,9 @@ public final class NavigationSettings {
 
     /**
      * Whether a long press on [tab] is HushGram's right now, as onLongClick decides it: it opens
-     * HushGram, or it shows the quality picker while the picker offers itself. Paused, with Default
-     * playback quality off or without its patch, the picker doesn't, and the press is Instagram's.
+     * HushGram, shows the quality picker while the picker offers itself, or turns Ghost mode while
+     * there's a ghost switch to turn. Paused, with Default playback quality off or without the
+     * patches, neither does, and the press is Instagram's.
      */
     private static boolean takes(String tab) {
         try {
@@ -239,7 +244,9 @@ public final class NavigationSettings {
             NavigationTarget settingsTab = Settings.NAVIGATION_SETTINGS_TARGET.get();
             if (settingsTab != NavigationTarget.OFF && settingsTab.name().equals(tab)) return true;
             NavigationTarget qualityTab = Settings.QUALITY_TAB_TARGET.get();
-            return qualityTab != NavigationTarget.OFF && qualityTab.name().equals(tab) && QualityPicker.offered();
+            if (qualityTab != NavigationTarget.OFF && qualityTab.name().equals(tab) && QualityPicker.offered()) return true;
+            NavigationTarget ghostTab = Settings.GHOST_TAB_TARGET.get();
+            return ghostTab != NavigationTarget.OFF && ghostTab.name().equals(tab) && GhostModeEntry.offeredNow();
         } catch (Throwable t) {
             Logger.printException(() -> "Navigation settings: could not check a tab's long press", t);
             return false;

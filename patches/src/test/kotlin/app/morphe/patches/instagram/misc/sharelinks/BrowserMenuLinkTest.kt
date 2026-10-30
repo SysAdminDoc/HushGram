@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -111,19 +112,25 @@ class BrowserMenuLinkTest {
     }
 
     /**
-     * The builds whose clipboard helper answers nothing. It's the same ClipboardUtil copy(Context,
-     * String) everywhere, handing the text to the (Context, String, String)Z that calls
-     * setPrimaryClip, but 385611439 and 385611440 (x86, x86_64) are compiled with it void since no
-     * caller reads its answer, where every arm64 build keeps its Z. The handler drops it either way.
+     * What the clipboard helper answers. It's the same ClipboardUtil copy(Context, String)
+     * everywhere, handing the text to the (Context, String, String)Z that calls setPrimaryClip.
+     * 450's x86 builds were compiled with it void since no caller reads its answer, 451 kept a Z,
+     * and 452.1 is void on three builds and a Z on x86 (385811007). The handler drops it either way.
      */
-    private val VOID_COPY_HELPER_BUILDS = setOf("instagram-450.0.0.50.77-385611439", "instagram-450.0.0.50.77-385611440")
+    private val COPY_HELPER_ANSWERS = setOf("V", "Z")
 
     private fun builds(bundle: File, label: String) {
         val handlers = FixtureDex.classesHolding(bundle, BROWSER_SHARE_FAILURE)
         assertEquals("${label}: classes logging the share's failure line", 1, handlers.size)
         val type = handlers.single().type
         val before = handlers.single().methods.single { it.name == "handleMessage" }.implementation!!.instructions.toList()
-        val context = PatchContexts.of(handlers)
+        // 453 asks a string pool for the share's key, so the pools the handler calls come along.
+        val pools = handlers.single().methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.mapNotNull {
+            ((it as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf { called ->
+                it.opcode == Opcode.INVOKE_STATIC && called.parameterTypes.map(Any::toString) == listOf("I") && called.returnType == "Ljava/lang/String;"
+            }?.definingClass
+        }.toSet()
+        val context = PatchContexts.of(handlers + FixtureDex.classes(bundle, pools).values.filter { it.type != type })
 
         assertNull(label, context.cleanBrowserMenu())
 
@@ -144,12 +151,12 @@ class BrowserMenuLinkTest {
         val put = code[share + 2]
         assertEquals(label, "Landroid/content/Intent;->putExtra(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;", put.reference())
         assertEquals("${label}: the shared text is the address", (code[share] as RegisterRangeInstruction).startRegister, (put as FiveRegisterInstruction).registerE)
-        assertTrue("${label}: its key", code[share - 1].loads("android.intent.extra.TEXT"))
+        assertTrue("${label}: its key", code[share - 1].loads("android.intent.extra.TEXT") ||
+            (code[share - 1].opcode == Opcode.MOVE_RESULT_OBJECT && context.stringLoadedAt(code, share - 2) == "android.intent.extra.TEXT"))
         assertTrue("${label}: Copy link's after its failure line", (share until copy).any { code[it].loads(BROWSER_COPY_FAILURE) })
         val helper = code[copy + 2]
         assertEquals(label, Opcode.INVOKE_STATIC, helper.opcode)
-        val answers = if (label in VOID_COPY_HELPER_BUILDS) "V" else "Z"
-        assertTrue("${label}: ${helper.reference()}", helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)$answers"))
+        assertTrue("${label}: ${helper.reference()}", COPY_HELPER_ANSWERS.any { helper.reference().endsWith("(Landroid/content/Context;Ljava/lang/String;)$it") })
         assertEquals("${label}: the copied text is the address", (code[copy] as RegisterRangeInstruction).startRegister, (helper as FiveRegisterInstruction).registerD)
         assertEquals(
             "${label}: the rest as it was",

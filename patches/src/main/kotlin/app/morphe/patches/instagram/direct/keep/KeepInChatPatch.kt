@@ -11,15 +11,19 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -27,6 +31,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 internal const val KEEP_IN_CHAT_PATCH = "Keep in chat"
 internal const val KEEP_IN_CHAT = "$EXTENSION_PACKAGE/direct/KeepInChat;"
@@ -57,15 +62,38 @@ internal const val MEDIA_ITEM_KEY = "message_item_dict"
 internal const val SENT_BY_VIEWER = "is_sent_by_viewer"
 internal const val SENDER_KEY = "user_id"
 
+/** The direct message's keys its parser loads, held or asked of a string pool. The reply preview's parser lacks is_sent_by_viewer. */
+internal val MESSAGE_KEYS = listOf(VISUAL_MEDIA_KEY, MEDIA_ITEM_KEY, SENT_BY_VIEWER, "raven_media")
+
 /**
- * The parser of a direct message: the one (reader) parse returning an object and holding all four keys.
- * The reply preview's parser also holds the media keys but not is_sent_by_viewer.
+ * The shapes of a direct message's parser. Up to 451 it's the (reader) parse that builds the
+ * message and returns it. 452 moved each key's read into a static (message, reader, key name) call
+ * the parse calls once per key, 08Ak.A01 on 385810270, and Redex asks a string pool for
+ * is_sent_by_viewer there.
  */
-internal object MessageParseFingerprint : Fingerprint(
-    returnType = "Ljava/lang/Object;",
-    strings = listOf(VISUAL_MEDIA_KEY, MEDIA_ITEM_KEY, SENT_BY_VIEWER, "raven_media"),
-    custom = { method, _ -> method.parameterTypes.size == 1 },
-)
+internal fun Method.isMessageParserShape(): Boolean = isMessageBuilder() || isMessageFieldReader()
+
+private fun Method.isMessageBuilder() = returnType == OBJECT && parameterTypes.size == 1
+
+private fun Method.isMessageFieldReader() = AccessFlags.STATIC.isSet(accessFlags) && returnType == "V" &&
+    parameterTypes.size == 3 && parameterTypes.all { it.startsWith("L") } && parameterTypes[2].toString() == STRING
+
+/**
+ * The direct message's parser: the one method of that shape loading all of [MESSAGE_KEYS], held or
+ * asked of a pool, among the classes loading message_item_dict.
+ */
+internal fun BytecodePatchContext.findMessageParser(): MutableMethod {
+    val parsers = classesLoadingString(MEDIA_ITEM_KEY).flatMap { classDef ->
+        classDef.methods.filter { method -> method.isMessageParserShape() && MESSAGE_KEYS.all { loadsString(method, it) } }
+    }
+    val native = parsers.singleOrNull() ?: refuse(
+        "expected exactly one direct message parser in this Instagram build, found " +
+            if (parsers.isEmpty()) "none" else parsers.joinToString { "${it.definingClass}->${it.name}" },
+    )
+    return mutableClassDefBy(native.definingClass).methods.single {
+        it.name == native.name && it.parameterTypes == native.parameterTypes && it.returnType == native.returnType
+    }
+}
 
 @Suppress("unused")
 val keepInChatPatch = bytecodePatch(
@@ -213,13 +241,19 @@ internal class SentMessage(
  *
  * Instagram tells a message you sent by its user_id matching the signed-in account's userId. The
  * live copy of one you've just sent doesn't say is_sent_by_viewer, so the flag alone isn't enough (#114).
+ *
+ * On 452 the four stores sit in the static call reading one key into the message (see
+ * [isMessageParserShape]): the message is its first parameter and the reader its second, already
+ * of the reader class, and neither register is written in it. Each store ends its key's case, so
+ * the call after it runs once the key is in, as on 451.
  */
 internal fun BytecodePatchContext.findSentMessage(mediaParse: MutableMethod, viewModeStore: Int): SentMessage {
     val viewMode = (mediaParse.implementation!!.instructions.toList()[viewModeStore] as ReferenceInstruction).reference as FieldReference
     val mediaClass = viewMode.definingClass
-    val parse = uniqueMethod(KEEP_IN_CHAT_PATCH, "direct message parser", MessageParseFingerprint)
+    val parse = findMessageParser()
+    val fieldReader = parse.isMessageFieldReader()
     val code = parse.implementation!!.instructions.toList()
-    fun keyAt(key: String): Int = code.indices.filter { code[it].string() == key }.singleOrNull()
+    fun keyAt(key: String): Int = code.indices.filter { stringLoadedAt(code, it) == key }.singleOrNull()
         ?: refuse("the message parser doesn't load \"$key\" once")
     fun storeAfter(key: String, opcode: Opcode): Int = (keyAt(key) + 1 until code.size).firstOrNull { code[it].opcode == opcode }
         ?: refuse("the message parser has no store after \"$key\"")
@@ -239,10 +273,17 @@ internal fun BytecodePatchContext.findSentMessage(mediaParse: MutableMethod, vie
     if (sent.type != "Z") refuse("the message's $SENT_BY_VIEWER isn't a flag")
     if (sender.type != STRING) refuse("the message's $SENDER_KEY isn't text")
 
-    val built = code.firstOrNull { it.opcode == Opcode.NEW_INSTANCE } as? ReferenceInstruction
-    val messageClass = (built?.reference as? TypeReference)?.type ?: refuse("the message parser builds nothing")
-    val builtAt = code.indexOf(built as Instruction)
-    val message = (code[builtAt] as OneRegisterInstruction).registerA
+    val firstParameter = parse.implementation!!.registerCount - 3
+    val messageClass: String
+    val message: Int
+    if (fieldReader) {
+        messageClass = parse.parameterTypes[0].toString()
+        message = firstParameter
+    } else {
+        val built = code.firstOrNull { it.opcode == Opcode.NEW_INSTANCE } as? ReferenceInstruction
+        messageClass = (built?.reference as? TypeReference)?.type ?: refuse("the message parser builds nothing")
+        message = (built as OneRegisterInstruction).registerA
+    }
     if (message > 15) refuse("the message is past v15")
     val stores = listOf(visualStore, itemStore, sentStore, senderStore)
     for (store in stores) {
@@ -274,27 +315,42 @@ internal fun BytecodePatchContext.findSentMessage(mediaParse: MutableMethod, vie
         instruction.opcode != except && ((instruction.opcode.setsRegister() && written == register) ||
             (instruction.opcode.setsWideRegister() && (written == register || written + 1 == register)))
     }
+    // The builder writes the message once, with its new-instance. The key reader is handed it.
     val messageWrites = writes(message)
-    if (messageWrites != 1) refuse("the message register is written $messageWrites times")
-    if (!code.any { it.opcode == Opcode.RETURN_OBJECT && (it as OneRegisterInstruction).registerA == message }) {
+    if (messageWrites != (if (fieldReader) 0 else 1)) refuse("the message register is written $messageWrites times")
+    if (!fieldReader && !code.any { it.opcode == Opcode.RETURN_OBJECT && (it as OneRegisterInstruction).registerA == message }) {
         refuse("the message parser doesn't return the message")
     }
 
-    // The reader is the one parameter, in the last register, cast in place to the class holding the account.
-    val reader = parse.implementation!!.registerCount - 1
+    // The builder's reader is its one parameter, in the last register, cast in place to the class
+    // holding the account. The key reader's is its second, already of that class.
+    val reader = if (fieldReader) firstParameter + 1 else parse.implementation!!.registerCount - 1
     if (reader > 15) refuse("the message parser's reader is past v15")
-    val cast = code.firstOrNull { it.opcode == Opcode.CHECK_CAST && (it as OneRegisterInstruction).registerA == reader }
-        ?: refuse("the message parser never casts its reader")
-    val readerClass = ((cast as ReferenceInstruction).reference as TypeReference).type
-    val readerWrites = writes(reader, Opcode.CHECK_CAST)
+    val readerClass = if (fieldReader) {
+        parse.parameterTypes[1].toString()
+    } else {
+        val cast = code.firstOrNull { it.opcode == Opcode.CHECK_CAST && (it as OneRegisterInstruction).registerA == reader }
+            ?: refuse("the message parser never casts its reader")
+        ((cast as ReferenceInstruction).reference as TypeReference).type
+    }
+    val readerWrites = writes(reader, if (fieldReader) null else Opcode.CHECK_CAST)
     if (readerWrites != 0) refuse("the reader register is written $readerWrites times")
     val sessions = code.filter { instruction ->
         instruction.opcode == Opcode.IGET_OBJECT && (instruction as TwoRegisterInstruction).registerB == reader &&
             ((instruction as ReferenceInstruction).reference as FieldReference).type == USER_SESSION
     }.map { (it as ReferenceInstruction).reference as FieldReference }.distinct()
-    val session = sessions.singleOrNull()
-        ?: refuse("the message parser reads ${sessions.size} accounts from its reader, not one")
-    if (session.definingClass !in ancestors(readerClass)) refuse("the reader's account is in ${session.definingClass}, which the reader $readerClass isn't")
+    if (sessions.size > 1) refuse("the message parser reads ${sessions.size} accounts from its reader, not one")
+    // 453's parser no longer reads the account, but its reader still holds it in a field of its own.
+    val held = if (sessions.isNotEmpty()) emptyList() else ancestors(readerClass).flatMap { owner ->
+        classDefByOrNull(owner)?.fields?.filter { it.type == USER_SESSION && !AccessFlags.STATIC.isSet(it.accessFlags) }.orEmpty()
+    }.map(ImmutableFieldReference::of)
+    if (sessions.isEmpty() && held.size != 1) {
+        refuse("the message parser reads 0 accounts from its reader, and the reader holds ${held.size}, not one")
+    }
+    val session = sessions.singleOrNull() ?: held.single()
+    if (session.definingClass !in ancestors(readerClass)) {
+        refuse("the reader's account is in ${session.definingClass}, which the reader $readerClass isn't")
+    }
     val userSession = classDefByOrNull(USER_SESSION) ?: refuse("there's no $USER_SESSION")
     if (userSession.fields.none { it.name == "userId" && it.type == STRING }) refuse("$USER_SESSION has no userId")
 

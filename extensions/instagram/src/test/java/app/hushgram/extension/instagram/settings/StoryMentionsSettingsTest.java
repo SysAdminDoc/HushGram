@@ -34,7 +34,7 @@ public class StoryMentionsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.SHOW_STORY_MENTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

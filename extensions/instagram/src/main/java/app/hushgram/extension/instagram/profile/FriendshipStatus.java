@@ -4,7 +4,10 @@
  */
 package app.hushgram.extension.instagram.profile;
 
+import android.content.Context;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -33,11 +36,23 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>With Show it as a chip on, the answer goes in a chip under the profile's counts instead
  * ({@link FriendshipChip}), which also says Following each other when you follow the account too.
- * The pronouns slot is then left as Instagram set it. A header whose counts can't be found keeps
- * the text label.
+ * Follow label can make it small and put it under the profile picture (#157). The pronouns slot is
+ * then left as Instagram set it. A header whose counts can't be found keeps the text label.
  */
 public final class FriendshipStatus {
     static final String SEPARATOR = " · ";
+
+    /** The name above the counts, which the pronouns slot sits beside, by name. */
+    static final String FULL_NAME = "profile_header_full_name_above_vanity";
+    /** Counted each time a profile with no name gets its name's line back for the label (#157). */
+    static final String NAME_LINE = "Follow label given a nameless profile's line";
+    /** How far up from the pronouns slot the name is looked for. */
+    private static final int MAX_DEPTH = 8;
+
+    /** Set by tests that have no Instagram resources: the name's id. */
+    static int fullNameIdForTests;
+    /** The name's id in this app, or -1 before the first lookup. */
+    private static volatile int fullNameId = -1;
 
     /** The keys of whether the account follows you and whether you follow it, as Instagram's trees hash them. */
     static final int FOLLOWED_BY_KEY = "followed_by".hashCode();
@@ -90,11 +105,49 @@ public final class FriendshipStatus {
                 return;
             }
             ((TextView) view).setText(label);
+            keepNameLine(view);
             setSlotVisibility(slot, View.VISIBLE);
             log(label);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, "profile header", failure);
         }
+    }
+
+    /**
+     * A profile with no name has Instagram hide the name, and the slot beside it loses the line it
+     * sits on, so a label put there lands on the counts (#157). The name is shown again with
+     * nothing in it, which gives the label its line back where the name would be. Instagram hides
+     * it again each time it binds the name, before the hook runs.
+     */
+    static void keepNameLine(View slot) {
+        View name = nameBeside(slot);
+        if (!(name instanceof TextView) || name.getVisibility() == View.VISIBLE) return;
+        ((TextView) name).setText("");
+        name.setVisibility(View.VISIBLE);
+        HookStatus.counted(FamilyNames.FRIENDSHIP_STATUS, NAME_LINE);
+    }
+
+    /** Going up from the pronouns [slot], the first name found, or null when there's none. */
+    @Nullable
+    static View nameBeside(View slot) {
+        int id = fullNameId(slot.getContext());
+        if (id == 0) return null;
+        View at = slot;
+        for (int depth = 0; depth < MAX_DEPTH; depth++) {
+            ViewParent parent = at.getParent();
+            if (!(parent instanceof ViewGroup)) return null;
+            ViewGroup group = (ViewGroup) parent;
+            View name = group.findViewById(id);
+            if (name != null && name != group) return name;
+            at = group;
+        }
+        return null;
+    }
+
+    private static int fullNameId(Context context) {
+        if (fullNameIdForTests != 0) return fullNameIdForTests;
+        if (fullNameId == -1) fullNameId = context.getResources().getIdentifier(FULL_NAME, "id", context.getPackageName());
+        return fullNameId;
     }
 
     /** The label for the profile [header] belongs to, or null when the switch is off or it isn't known. */
@@ -127,7 +180,9 @@ public final class FriendshipStatus {
         if (followedBy == null) followedBy = friendshipFollowedBy(user);
         if (followedBy == null) followedBy = followedBy(user);
         if (followedBy == null) {
-            Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you");
+            boolean screenKnown = screen != null;
+            Logger.printDebug(() -> "Friendship status: Instagram hasn't said whether this account follows you"
+                    + (screenKnown ? " (the screen's answer has no follows-you flag)" : " (no screen answer yet)"));
             return null;
         }
         if (following == null) following = friendshipFollowing(user);
@@ -177,7 +232,9 @@ public final class FriendshipStatus {
             FriendshipChip.clear(inside);
             return false;
         }
-        boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null);
+        FollowLabelPlace place = Settings.FOLLOW_LABEL_PLACE.get();
+        boolean shown = FriendshipChip.show(inside, relation, inside instanceof TextView ? (TextView) inside : null,
+                place == null ? FollowLabelPlace.UNDER_COUNTS : place);
         if (!shown) Logger.printDebug(() -> "Friendship status: no counts to put the chip under, so the label goes by the name");
         return shown;
     }

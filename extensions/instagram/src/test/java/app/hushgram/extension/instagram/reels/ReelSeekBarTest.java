@@ -748,6 +748,50 @@ public class ReelSeekBarTest {
     }
 
     /**
+     * #10: a bar Instagram moves on to another reel starts at 0 at once, where it used to keep the
+     * last reel's spot until the new reel's player first moved it. Bound again to the same reel,
+     * bound to an ad, or with no reel tag to tell by, it stays where it is.
+     */
+    @Test
+    public void aBarBoundToAnotherReelStartsAtZero() {
+        FrameLayout host = host();
+        FrameLayout container = scrubber(host, 55_000, false);
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "1");
+        SeekBar bar = barIn(container);
+        bar.setProgress(10_000);
+        ReelSeekBar.progress(bar, 10_000);
+        TextView label = ReelTimeLabel.labelOf(bar);
+
+        ReelSeekBar.bind(container, 0);
+        assertEquals("the same reel bound again", 10_000, bar.getProgress());
+
+        bar.setProgress(20_000);
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "2");
+        ReelSeekBar.bind(container, 0);
+        assertEquals("another reel starts at 0", 0, bar.getProgress());
+        ShadowLooper.idleMainLooper();
+        assertEquals("0:00 / 0:55", label.getText().toString());
+
+        bar.setProgress(3_000);
+        ReelSeekBar.bind(container, 0);
+        assertEquals("that reel bound again", 3_000, bar.getProgress());
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "3");
+        ReelSeekBar.bind(container, 1);
+        assertEquals("an ad's bar is Instagram's", 3_000, bar.getProgress());
+        container.setTag(null);
+        ReelSeekBar.bind(container, 0);
+        assertEquals("no tag to tell by", 3_000, bar.getProgress());
+
+        Settings.REEL_SEEK_BAR.save(false);
+        container.setTag(ReelTimeLabel.REEL_TAG_PREFIX + "4");
+        ReelSeekBar.bind(container, 0);
+        assertEquals("off", 3_000, bar.getProgress());
+        assertTrue(HookStatus.report().toString(),
+                HookStatus.report().toString().contains(ReelTimeLabel.COUNT_STARTED_OVER + " 1"));
+        assertNothingFailed();
+    }
+
+    /**
      * Two bars in one container share the view their labels go in, which holds one label. When the
      * shown label moves from the container's children to the same container's overlay and back, it
      * keeps its hold, and the other bar's label still waits.

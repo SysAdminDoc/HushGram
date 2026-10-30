@@ -59,7 +59,7 @@ class ShowLastActiveHookTest {
             }
         }
         for (base in Fixtures.otherBuilds()) checked += builds(base, base.parentFile.name)
-        for (code in BUILDS) assertTrue("no fixture of 450 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     @Test
@@ -159,6 +159,6 @@ class ShowLastActiveHookTest {
     private fun Instruction.reference(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
     private companion object {
-        val BUILDS = listOf(385611395, 385611400, 385611404, 385611431, 385611438, 385611439, 385611440)
+        val BUILDS = listOf(385914557, 385914503, 385914510, 385914517, 385914518, 385914546, 385914556, 385914558)
     }
 }

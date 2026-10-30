@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
@@ -27,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import java.util.BitSet
 
 /*
@@ -49,10 +51,14 @@ private fun refuse(patch: String, detail: String): Nothing = throw PatchExceptio
 
 /**
  * One write of a flag in a constructor of Feed's action-row state: `iput-boolean` of [value] into
- * [holder]'s [field] at [at], and the register the hook's answer goes into. That's [value] itself
+ * [holder]'s [field] at [at], and the register the hook's answer goes into. The method is [owner]'s
+ * [name], the state's constructor on 451 and a factory method on 452, where Redex inlined it. That's [value] itself
  * when nothing reads it after the write, and otherwise a spare one the write then stores.
  */
 internal class FeedStateWrite(
+    val owner: String,
+    val name: String,
+    val returns: String,
     val parameters: List<String>,
     val at: Int,
     val value: Int,
@@ -86,16 +92,18 @@ internal fun BytecodePatchContext.prepareFlagWrites(
     writes: List<FeedStateWrite>,
     hook: String,
 ): () -> Unit {
-    val state = mutableClassDefBy(type)
-    val constructors = writes.groupBy { it.parameters }.map { (parameters, inOne) ->
-        state.methods.single { it.name == "<init>" && it.parameterTypes.map(CharSequence::toString) == parameters } to inOne
+    val constructors = writes.groupBy { Triple(it.owner, it.name, it.returns + it.parameters) }.map { (key, inOne) ->
+        val first = inOne.first()
+        mutableClassDefBy(key.first).methods.single {
+            it.name == first.name && it.returnType == first.returns && it.parameterTypes.map(CharSequence::toString) == first.parameters
+        } to inOne
     }
     for ((constructor, inOne) in constructors) for (write in inOne) {
         val store = constructor.getInstruction(write.at)
         val field = (store as? ReferenceInstruction)?.reference as? FieldReference
         if (store.opcode != Opcode.IPUT_BOOLEAN || field == null || !field.sameAs(write.field) ||
             (store as TwoRegisterInstruction).registerA != write.value
-        ) refuse(patch, "$type's constructor changed at instruction ${write.at} before its $what flags were hooked")
+        ) refuse(patch, "$type's ${constructor.name} changed at instruction ${write.at} before its $what flags were hooked")
     }
     return {
         for ((constructor, inOne) in constructors) for (write in inOne.sortedByDescending { it.at }) {
@@ -157,31 +165,49 @@ internal fun Method.printedFlag(patch: String, type: String, label: String): Fie
 }
 
 /**
- * Each write of [flag] in this class, which has to be a final boolean field of its own, so set only
- * by its constructors. Refuses when it isn't, when another method sets it all the same, or when a
- * write has no register for the hook's answer.
+ * Each write of [flag] in [state], which has to be a boolean field of its own. On 451 it's final,
+ * so only the state's constructors set it. 452's Redex inlined the constructor into the one
+ * method that builds the state, and left the fields open, so there each write is an `iput-boolean`
+ * in a method that makes the state with `new-instance`. Refuses when another method sets it all
+ * the same, or when a write has no register for the hook's answer.
  */
-internal fun ClassDef.flagWrites(patch: String, flag: FieldReference): List<FeedStateWrite> {
-    val declared = fields.singleOrNull { it.name == flag.name && it.type == flag.type }
-    if (flag.definingClass != type || flag.type != "Z" || declared == null ||
-        AccessFlags.STATIC.isSet(declared.accessFlags) || !AccessFlags.FINAL.isSet(declared.accessFlags)
-    ) refuse(patch, "$type's ${flag.name} isn't a final boolean field of its own")
+internal fun BytecodePatchContext.flagWrites(patch: String, state: ClassDef, flag: FieldReference): List<FeedStateWrite> {
+    val declared = state.fields.singleOrNull { it.name == flag.name && it.type == flag.type }
+    if (flag.definingClass != state.type || flag.type != "Z" || declared == null || AccessFlags.STATIC.isSet(declared.accessFlags)) {
+        refuse(patch, "${state.type}'s ${flag.name} isn't a boolean field of its own")
+    }
+    val final = AccessFlags.FINAL.isSet(declared!!.accessFlags)
     val writes = mutableListOf<FeedStateWrite>()
-    for (method in methods) {
-        val code = method.implementation?.instructions?.toList() ?: continue
+    fun collect(owner: ClassDef, method: Method) {
+        val code = method.implementation?.instructions?.toList() ?: return
         for ((at, instruction) in code.withIndex()) {
             if (instruction.opcode != Opcode.IPUT_BOOLEAN) continue
             val field = (instruction as ReferenceInstruction).reference as FieldReference
             if (!field.sameAs(flag)) continue
-            if (method.name != "<init>") refuse(patch, "$type->${method.name} sets ${flag.name}, which only its constructor should")
+            val builds = code.count { it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == state.type }
+            val constructor = owner.type == state.type && method.name == "<init>"
+            if (!constructor && (final || owner.type == state.type || builds != 1)) {
+                refuse(patch, "${owner.type}->${method.name} sets ${flag.name}, which only the method that builds ${state.type} should")
+            }
             val store = instruction as TwoRegisterInstruction
             // The value's register takes the answer when nothing reads it afterwards, handlers included.
             val answer = if (method.readsAfter(at, store.registerA).isEmpty()) store.registerA
                 else method.freeLocalsAt(patch, at, 1).single()
             writes += FeedStateWrite(
-                method.parameterTypes.map(CharSequence::toString), at, store.registerA, store.registerB, field, answer,
+                owner.type, method.name, method.returnType, method.parameterTypes.map(CharSequence::toString),
+                at, store.registerA, store.registerB, field, answer,
             )
         }
+    }
+    for (method in state.methods) collect(state, method)
+    if (!final) {
+        for (owner in classesAccessing(state.type, flag.name, Opcode.IPUT_BOOLEAN)) {
+            if (owner.type == state.type) continue
+            for (method in owner.methods) collect(owner, method)
+        }
+    }
+    if (!final && (writes.isEmpty() || writes.any { it.owner == state.type })) {
+        refuse(patch, "${state.type}'s ${flag.name} isn't a final boolean field of its own")
     }
     return writes
 }

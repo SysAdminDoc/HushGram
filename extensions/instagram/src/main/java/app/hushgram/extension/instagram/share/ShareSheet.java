@@ -17,9 +17,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * a button of its own, built from a stub, or an action inside the search box, and either way one
  * method of the sheet reveals it once the sheet is set up. The patch asks {@link #hideGroupButton}
  * first thing in the method that builds the button, so the stub is never built and takes no room,
- * and {@link #hideGroupAction} first thing in the method that reveals it, which then turns the
- * search box's action off instead. Once you pick people, the bar under the sheet can also offer to
- * send to them as a group, and the patch asks {@link #hideGroupSend} before it shows that button.
+ * and {@link #hideGroupAction} right after each place the sheet shows the search box's own New
+ * group action, which then turns that action off again. Once you pick people, the bar under the
+ * sheet can also offer to send to them as a group, and the patch asks {@link #hideGroupSend}
+ * before it shows that button.
  */
 public final class ShareSheet {
     private static volatile boolean logged;
@@ -33,8 +34,8 @@ public final class ShareSheet {
     }
 
     /**
-     * Answers true while Hide group buttons is on, so the sheet doesn't reveal its New group button, and
-     * the patch turns the search box's New group action off in its place.
+     * Answers true while Hide group buttons is on, right after the sheet shows the search box's New
+     * group action, so the patch turns that action off again.
      */
     public static boolean hideGroupAction() {
         return hidden("group action");

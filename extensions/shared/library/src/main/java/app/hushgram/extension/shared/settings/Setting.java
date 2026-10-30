@@ -48,13 +48,14 @@ public abstract class Setting<T> {
     }
 
     /**
-     * Availability based on a single parent setting being enabled.
+     * Availability based on a single parent setting being enabled, and that parent being available
+     * itself, so a switch two levels down rests while the top one is off.
      */
     public static Availability parent(BooleanSetting parent) {
         return new Availability() {
             @Override
             public boolean isAvailable() {
-                return parent.savedValue();
+                return parent.savedValue() && parent.isAvailable();
             }
 
             @Override
@@ -65,14 +66,14 @@ public abstract class Setting<T> {
     }
 
     /**
-     * Availability based on any parent being enabled.
+     * Availability based on any parent being enabled and available itself.
      */
     public static Availability parentsAny(BooleanSetting... parents) {
         return new Availability() {
             @Override
             public boolean isAvailable() {
                 for (BooleanSetting parent : parents) {
-                    if (parent.savedValue()) return true;
+                    if (parent.savedValue() && parent.isAvailable()) return true;
                 }
                 return false;
             }

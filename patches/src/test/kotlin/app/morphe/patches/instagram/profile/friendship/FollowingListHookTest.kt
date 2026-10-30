@@ -325,11 +325,13 @@ class FollowingListHookTest {
      */
     private fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
         val anchors = listOf(FOLLOW_ROW_STATE, NON_RECIP_FOLLOWERS, FRIENDSHIP_STATUSES, FOLLOW_LIST_ADDED)
-        val binders = anchors.flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
+        val binders = anchors.flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
         val wanted = mutableSetOf(USER, USER_SESSION, FOLLOW_LIST_DATA, RELATIONSHIP)
         for (classDef in binders) {
             classDef.fields.forEach { wanted += it.type }
-            classDef.methods.filter { method -> anchors.any { method.loads(it) } }.forEach { wanted += it.referencedTypes() }
+            // A class asking a string pool for its anchor holds none, so each of its methods counts.
+            val anchored = classDef.methods.filter { method -> anchors.any { method.loads(it) } }
+            anchored.ifEmpty { classDef.methods.toList() }.forEach { wanted += it.referencedTypes() }
         }
         val first = FixtureDex.classes(bundle, wanted)
         // The list's data holds the list kind, and the config's methods call Instagram's check of whose list it is.
@@ -513,6 +515,7 @@ class FollowingListHookTest {
         const val JSON = "Lfixture/Json;"
         const val USERS = "Lfixture/Users;"
         const val ORDER_STATE = "Lfixture/ListBuilder;"
+        const val PAGER = "Lfixture/Pager;"
 
         /**
          * The classes the patch reads, shaped as on 449: an instance `bindView(int, View, Object,
@@ -540,6 +543,7 @@ class FollowingListHookTest {
             orderJump: Boolean = false,
             orderListAgain: String = "",
             orderBinderField: Boolean = true,
+            pagerParts: Boolean = true,
         ): List<ClassDef> {
             val bind = method(
                 BINDER, "bindView", parameters, "V", 10,
@@ -705,15 +709,36 @@ class FollowingListHookTest {
                     if-nez v2, :skip
                     const-string v3, "$orderTrace"
                     :skip
+                    ${if (pagerParts) "iget-object v4, p0, $ORDER_STATE->pager:$PAGER" else ""}
+                    ${if (pagerParts) "invoke-interface { v4 }, $PAGER->hasMore()Z" else ""}
                     return-void
+                """,
+                static = false,
+            )
+            // Recent unfollowers (#208): the builder's pager and owner, and the user's count and username by their keys' hashes.
+            val pagerMethods = listOf(IS_LOADING, "hasMore").map {
+                ImmutableMethod(PAGER, it, emptyList(), "Z", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)
+            }
+            fun keyed(name: String, key: String, returns: String) = method(
+                USER, name, emptyList(), returns, 2,
+                """
+                    const v0, ${key.hashCode()}
+                    const/4 v0, 0x0
+                    return-object v0
                 """,
                 static = false,
             )
             return listOf(
                 classOf(
                     ORDER_STATE,
-                    listOf(field(ORDER_STATE, "users", "Ljava/util/List;")) + if (orderBinderField) listOf(field(ORDER_STATE, "binder", BINDER)) else emptyList(),
+                    listOf(field(ORDER_STATE, "users", "Ljava/util/List;")) +
+                        (if (orderBinderField) listOf(field(ORDER_STATE, "binder", BINDER)) else emptyList()) +
+                        (if (pagerParts) listOf(field(ORDER_STATE, "pager", PAGER), field(ORDER_STATE, "owner", USER)) else emptyList()),
                     listOf(build),
+                ),
+                ImmutableClassDef(
+                    PAGER, AccessFlags.PUBLIC.value or AccessFlags.INTERFACE.value or AccessFlags.ABSTRACT.value, OBJECT,
+                    null, null, null, null, pagerMethods,
                 ),
                 classOf(FETCH, listOf(field(FETCH, "list", LIST_STATE)), listOf(fetch)),
                 classOf(LIST_STATE, listOf(field(LIST_STATE, "data", FOLLOW_LIST_DATA), field(LIST_STATE, "session", USER_SESSION)), emptyList()),
@@ -736,9 +761,13 @@ class FollowingListHookTest {
                 ),
                 classOf(IDS, emptyList(), listOf(isSelf)),
                 classOf(CHECKS, emptyList(), listOf(notNull)),
-                classOf(USER, emptyList(), listOf(handle, fullName)),
+                classOf(
+                    USER, emptyList(),
+                    listOf(handle, fullName, keyed("count", FOLLOWER_COUNT, "Ljava/lang/Integer;"), keyed("login", USERNAME, STRING)),
+                ),
                 classOf(USER_SESSION, listOf(field(USER_SESSION, "userId", STRING)), listOf(getUserId)),
                 ExtensionDex.classDef(FOLLOWING_LIST),
+                ExtensionDex.classDef(UNFOLLOWERS),
             )
         }
 

@@ -321,10 +321,11 @@ class StoryMentionsHookTest {
         var checked = 0
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the six others", 7, bundles.size)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, bundles.size)
         run {
             for (bundle in bundles) {
-                val binders = FixtureDex.classesHolding(bundle, BIND_MEDIA)
+                // 452's catch-up binder asks a string pool for the name, so the pool and its askers come too.
+                val binders = FixtureDex.classesLoading(bundle, BIND_MEDIA)
                 val pages = binders.flatMap { it.methods }.flatMap { it.instructions() }
                     .filter { it.opcode == Opcode.IPUT_OBJECT }
                     .mapNotNull { ((it as ReferenceInstruction).reference as FieldReference).takeIf { f -> f.type == STORY_ITEM }?.definingClass }

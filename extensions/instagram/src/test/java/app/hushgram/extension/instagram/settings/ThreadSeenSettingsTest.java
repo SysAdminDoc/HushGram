@@ -9,7 +9,6 @@ import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +36,7 @@ public class ThreadSeenSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -50,6 +49,7 @@ public class ThreadSeenSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
+        Settings.KEEP_CHATS_UNREAD.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -88,11 +88,11 @@ public class ThreadSeenSettingsTest {
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_INSTANTS.key,
-                Settings.READ_WITHOUT_SEEN_RECEIPT.key), Arrays.asList(keys));
+                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.get());
         assertFalse("each receipt reads the switch, so no restart", Settings.READ_WITHOUT_SEEN_RECEIPT.rebootApp);
-        assertEquals(Collections.singletonList(Settings.READ_WITHOUT_SEEN_RECEIPT), PatchFamily.THREAD_SEEN.switches);
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.KEEP_CHATS_UNREAD), PatchFamily.THREAD_SEEN.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.READ_WITHOUT_SEEN_RECEIPT.key));
 
         Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
@@ -105,5 +105,32 @@ public class ThreadSeenSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.READ_WITHOUT_SEEN_RECEIPT.get());
         assertFalse("the view-once switch stays its own", Settings.VIEW_DM_MEDIA_ANONYMOUSLY.get());
+    }
+    /** #184: the unread switch sits right under the seen receipt switch, on the same page, on to start. */
+    @Test public void keepChatsUnreadComesRightUnderTheSwitchAndStartsOn() throws Exception {
+        open(EnumSet.of(PatchFamily.THREAD_SEEN, PatchFamily.TYPING));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_CHATS_UNREAD.key);
+        assertNotNull(row);
+        assertEquals("Keep chats unread here", row.getTitle().toString());
+        assertEquals("A chat you open stays unread in your messages on this phone until you long press it and tap "
+                + "Mark as read. A newer message in it stays unread too. Turned off, a chat you open stays read "
+                + "on this phone until a newer message comes in, even after your messages refresh.",
+                row.getSummary().toString());
+        PreferenceGroup messages = row.getParent();
+        assertEquals("one level below the main page, beside its switch", "Messages", messages.getTitle().toString());
+        String[] keys = new String[messages.getPreferenceCount()];
+        for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.HIDE_TYPING.key),
+                Arrays.asList(keys));
+        assertTrue(Settings.KEEP_CHATS_UNREAD.defaultValue);
+        assertTrue(Settings.KEEP_CHATS_UNREAD.get());
+        assertTrue(row.isChecked());
+        assertFalse("each chat that opens reads the switch, so no restart", Settings.KEEP_CHATS_UNREAD.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_CHATS_UNREAD.key));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.KEEP_CHATS_UNREAD.get());
+        assertTrue(Settings.KEEP_CHATS_UNREAD.savedValue());
     }
 }

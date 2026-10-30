@@ -12,19 +12,23 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -126,29 +130,7 @@ internal class DoubleTaps(
 )
 
 internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
-    val posts = mutableListOf<Method>()
-    val reels = mutableListOf<Method>()
-    val setters = mutableListOf<Method>()
-    val listeners = mutableListOf<Method>()
-    val messages = mutableListOf<Method>()
-    // Every method called with a post's view and the post, and the methods that call it.
-    val likeShapes = mutableMapOf<String, MethodReference>()
-    val likeCallers = mutableMapOf<String, MutableMap<String, Method>>()
-    classDefForEach { classDef ->
-        classDef.methods.forEach { method ->
-            val code = method.code()
-            if (code.any { it.stringLoaded() == FEED_DOUBLE_TAP }) posts += method
-            val markers = method.markers()
-            if (HANDLE_DOUBLE_TAP in markers) reels += method
-            if (SET_LIKE_ACTION in markers) setters += method
-            if (classDef.superclass == GESTURE_LISTENER && method.isDoubleTapListener()) listeners += method
-            if (code.any { it.stringLoaded() == MESSAGE_TIP_COUNT } && code.any { it.stringLoaded() == MESSAGE_DOUBLE_TAP }) messages += method
-            code.mapNotNull { it.likeShapedCall() }.forEach { call ->
-                likeShapes.putIfAbsent(call.text(), call)
-                likeCallers.getOrPut(call.text()) { mutableMapOf() }[method.text()] = method
-            }
-        }
-    }
+    val posts = classesHolding(FEED_DOUBLE_TAP).flatMap { it.methods }.filter { method -> method.code().any { it.stringLoaded() == FEED_DOUBLE_TAP } }
     val post = posts.singleOrNull() ?: refuse("expected one feed double tap holding \"$FEED_DOUBLE_TAP\", found ${posts.size}")
 
     // Each kind of post (a photo, a carousel, a video, a map, ...) has its own gesture delegate,
@@ -167,25 +149,71 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     // photo's and two other kinds of post's calling the like means the others like somewhere the
     // guard doesn't reach, and so does a delegate calling a second method shaped exactly like it.
     val carried = like.parameterTypes.drop(1).map(Any::toString)
-    val carries = { method: Method -> method.parameterTypes.map(Any::toString).toMutableList().let { left -> carried.all(left::remove) } }
-    val delegates = likeCallers[like.text()].orEmpty().values.count(carries)
+    val carries = { method: Method ->
+        method.parameterTypes.size >= carried.size &&
+            method.parameterTypes.map(Any::toString).toMutableList().let { left -> carried.all(left::remove) }
+    }
+
+    // One walk over the app reads what each class declares, and the code of only the methods it
+    // keeps: those in the classes the patcher's indexes name for the Reels handler, its setter and
+    // the chat's double tap, the gesture listeners' double taps, and the methods handed what the like
+    // takes. Reading every method's code here was a measured share of patching (#173).
+    val marked = typesMarked(HANDLE_DOUBLE_TAP, SET_LIKE_ACTION)
+    val chats = classesLoadingString(MESSAGE_TIP_COUNT).mapTo(HashSet()) { it.type }
+        .apply { retainAll(classesLoadingString(MESSAGE_DOUBLE_TAP).mapTo(HashSet()) { it.type }) }
+    val reels = mutableListOf<Method>()
+    val setters = mutableListOf<Method>()
+    val listeners = mutableListOf<Method>()
+    val messages = mutableListOf<Method>()
+    val carriers = mutableListOf<Method>()
+    classDefForEach { classDef ->
+        val isMarked = classDef.type in marked
+        val isChat = classDef.type in chats
+        val isListener = classDef.superclass == GESTURE_LISTENER
+        classDef.methods.forEach { method ->
+            if (isMarked) {
+                val markers = method.markers()
+                if (HANDLE_DOUBLE_TAP in markers) reels += method
+                if (SET_LIKE_ACTION in markers) setters += method
+            }
+            if (isListener && method.isDoubleTapListener()) listeners += method
+            if (isChat && isMessageDoubleTap(method)) messages += method
+            if (carries(method)) carriers += method
+        }
+    }
+    val carrierCalls = carriers.map { method -> method.code().mapNotNull { it.likeShapedCall() } }
+    val delegates = carrierCalls.count { calls -> calls.any { it.text() == like.text() } }
     if (delegates < MIN_LIKE_DELEGATES) {
         refuse("the feed's double-tap like ${like.text()} is called by $delegates posts' delegates, expected at least $MIN_LIKE_DELEGATES, so other posts like elsewhere")
     }
     val likeParameters = like.parameterTypes.map(Any::toString)
-    likeShapes.values.firstOrNull { other ->
-        other.text() != like.text() && other.parameterTypes.map(Any::toString) == likeParameters &&
-            likeCallers[other.text()].orEmpty().values.any(carries)
+    carrierCalls.flatten().firstOrNull { other ->
+        other.text() != like.text() && other.parameterTypes.map(Any::toString) == likeParameters
     }?.let { refuse("a post's delegate calls ${it.text()}, a second like shaped as ${like.text()} is, so its posts like where the guard doesn't reach") }
     // The guard borrows v0 at index 0.
     if (like.localRegisterCount() < 1) refuse("the feed's double-tap like ${like.text()} has no local register")
 
     val reel = reels.singleOrNull() ?: refuse("expected one method marked $HANDLE_DOUBLE_TAP, found ${reels.size}")
-    val setter = setters.singleOrNull() ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
-    if (setter.definingClass != reel.definingClass) refuse("$SET_LIKE_ACTION isn't in ${reel.definingClass}")
-    val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
-        .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
-    val action = written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+    // 451 filed a setter for the like action next to the handler, so the action was the one field of
+    // the handler's class the setter stores. 452 inlines the handler into the gesture listener's
+    // onDoubleTap and the setter into the clips viewer's action setup, so there the action is the one
+    // field the double tap reads off its actions holder, tests for null and calls with four values,
+    // and the setup has to store that same field. A build filing no setter at all is read the same way.
+    val setter = if (setters.isEmpty()) null else setters.singleOrNull()
+        ?: refuse("expected one method marked $SET_LIKE_ACTION, found ${setters.size}")
+    val action = when {
+        setter == null -> reelLikeAction(reel)
+        setter.definingClass == reel.definingClass -> {
+            val written = setter.code().filter { it.opcode == Opcode.IPUT_OBJECT }.mapNotNull { it.fieldReference() }
+                .filter { it.definingClass == reel.definingClass }.distinctBy { it.toString() }
+            written.singleOrNull() ?: refuse("$SET_LIKE_ACTION writes ${written.size} fields of ${reel.definingClass}, expected one")
+        }
+        else -> reelLikeAction(reel).also { field ->
+            if (setter.code().none { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == field.toString() }) {
+                refuse("$SET_LIKE_ACTION in ${setter.definingClass} never stores the like action ${reel.definingClass}->${reel.name} reads, $field")
+            }
+        }
+    }
 
     // The handler reads its like action once and skips the like when it's null.
     val code = reel.code()
@@ -204,6 +232,47 @@ internal fun BytecodePatchContext.findDoubleTaps(): DoubleTaps {
     comments.firstOrNull { it.localRegisterCount() < 1 }?.let { refuse("the comment double tap ${it.definingClass}->onDoubleTap has no local register") }
     val message = findMessageDoubleTap(messages)
     return DoubleTaps(post, like, reel, read, action, comments, message)
+}
+
+/**
+ * Whether [method] loads both [MESSAGE_TIP_COUNT] and [MESSAGE_DOUBLE_TAP], each itself or from a
+ * pool of shared strings, as 452 asks a pool for the tip count. Only a method that loads one of them
+ * itself or hands a message's id to an interface call is asked about its pooled strings.
+ */
+internal fun BytecodePatchContext.isMessageDoubleTap(method: Method, code: List<Instruction> = method.code()): Boolean {
+    val raw = code.mapNotNullTo(HashSet()) { it.stringLoaded() }
+    val reacts = code.any { instruction ->
+        (instruction.opcode == Opcode.INVOKE_INTERFACE || instruction.opcode == Opcode.INVOKE_INTERFACE_RANGE) &&
+            ((instruction as ReferenceInstruction).reference as? MethodReference)?.parameterTypes?.any { it.toString() == MESSAGE_ID } == true
+    }
+    if (MESSAGE_TIP_COUNT in raw && MESSAGE_DOUBLE_TAP in raw) return true
+    if (!reacts && MESSAGE_TIP_COUNT !in raw && MESSAGE_DOUBLE_TAP !in raw) return false
+    val strings = code.indices.mapNotNullTo(HashSet()) { stringLoadedAt(code, it) }
+    return MESSAGE_TIP_COUNT in strings && MESSAGE_DOUBLE_TAP in strings
+}
+
+/**
+ * The Reels double tap's like action where no setter is filed: the field [reel] reads, tests for null
+ * and then calls through its interface with four values (the other actions it runs take one, two or
+ * five), the way 451's handler hands the like on.
+ */
+private fun reelLikeAction(reel: Method): FieldReference {
+    val code = reel.code()
+    val found = code.indices.mapNotNull { at ->
+        val field = code[at].fieldReference()?.takeIf { code[at].opcode == Opcode.IGET_OBJECT } ?: return@mapNotNull null
+        val register = (code[at] as OneRegisterInstruction).registerA
+        val test = code.getOrNull(at + 1)
+        if (test?.opcode != Opcode.IF_EQZ || (test as OneRegisterInstruction).registerA != register) return@mapNotNull null
+        val calls = (at + 2 until minOf(code.size, at + 8)).any { next ->
+            val call = code[next]
+            val target = (call as? ReferenceInstruction)?.reference as? MethodReference
+            call.opcode == Opcode.INVOKE_INTERFACE && target != null && target.definingClass == field.type &&
+                target.name == "invoke" && target.parameterTypes.size == 4 && (call as FiveRegisterInstruction).registerC == register
+        }
+        if (calls) field else null
+    }.distinctBy { it.toString() }
+    return found.singleOrNull()
+        ?: refuse("expected one like action ${reel.definingClass}->${reel.name} reads, tests for null and calls with four values, found ${found.size}")
 }
 
 /**

@@ -68,6 +68,22 @@ public class MusicCardTest {
         assertTrue(HookStatus.missing(FamilyNames.STORIES_TRAY).toString(), HookStatus.missing(FamilyNames.STORIES_TRAY).isEmpty());
     }
 
+    /** Every ask is counted by Instagram's answer, with the switch on or off. */
+    @Test
+    public void everyAskIsCountedByInstagramsAnswer() {
+        StoriesTray.musicCard(1);
+        StoriesTray.musicCard(0);
+        Settings.HIDE_MUSIC_CARD.save(true);
+        StoriesTray.musicCard(1);
+        StoriesTray.musicCard(0);
+        StoriesTray.musicCard(0);
+
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(StoriesTray.MUSIC_FLAG_ON + " 2"));
+        assertTrue(report, report.contains(StoriesTray.MUSIC_FLAG_OFF + " 3"));
+        assertTrue(report, report.contains("card left out 1"));
+    }
+
     /** Paused, or before the settings are read, the flag keeps Instagram's answer. */
     @Test
     public void pausedAndUnreadyKeepInstagramsAnswer() {

@@ -25,6 +25,7 @@ import app.morphe.patches.instagram.download.playerQueriesPatch
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
 import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
 import app.morphe.patches.instagram.download.reel.OPTION
+import app.morphe.patches.instagram.download.reel.ROW_ICON
 import app.morphe.patches.instagram.download.reel.code
 import app.morphe.patches.instagram.download.reel.newOption
 import app.morphe.patches.instagram.download.reel.optionIcon
@@ -78,6 +79,8 @@ internal const val PLAY_VIDEO = "$VIDEO_DOWNLOAD->play(Ljava/lang/Object;Ljava/l
 internal const val OFFER_COVER = "$VIDEO_DOWNLOAD->offerCover(Ljava/lang/Object;Ljava/util/ArrayList;)V"
 internal const val COVER_OPTION = "$VIDEO_DOWNLOAD->coverOption()Ljava/lang/Object;"
 internal const val SAVE_COVER = "$VIDEO_DOWNLOAD->saveCover(Ljava/lang/Object;Ljava/lang/Object;Landroid/app/Activity;)V"
+internal const val CHOOSE_OPTION = "$VIDEO_DOWNLOAD->chooseOption()Ljava/lang/Object;"
+internal const val CHOOSE_PAGES = "$VIDEO_DOWNLOAD->choosePages(Ljava/lang/Object;Landroid/app/Activity;)V"
 
 private const val POST_INFO = "$EXTENSION_PACKAGE/download/PostInfo;"
 internal const val OFFER_DETAILS = "$POST_INFO->offer(Ljava/lang/Object;Ljava/util/ArrayList;)V"
@@ -143,7 +146,9 @@ private const val CAROUSEL_FIELD = "carousel_media"
  * offered right after it and made with its own option, which the handler hands to the extension
  * with the post and its feed state. A tap saves the still picture a video shows before it plays,
  * as Download cover on a reel does. Open in another player is one more row of that kind, offered
- * after it, and Details, with its own switch, comes last.
+ * after it, and Details, with its own switch, comes last. Choose pages, with its own switch, is
+ * offered by the extension with Save all, and its tap is checked after the current page's Download,
+ * so the checks before it keep their places; it hands the post and the activity over as Save all does.
  *
  * Hold to download, with its own switch, hands every touch on a feed post's media frame and on a
  * reel to the extension first ([addHoldToDownload]), which saves through the same Download when two
@@ -238,8 +243,8 @@ internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
     val eligible = eligibles.singleOrNull() ?: throw PatchException(
         "$PATCH: expected one method holding the $ELIGIBLE_MARKER marker, found ${eligibles.size}",
     )
-    if (eligible.returnType != "Z" || MEDIA !in eligible.parameterTypes.map(Any::toString)) {
-        throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean for a Media")
+    if (eligible.returnType != "Z") {
+        throw PatchException("$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, doesn't answer a boolean")
     }
     // The builder adds Download with a static method of its state, which the menu keeps a field of.
     // R8 merges the builder into a different method in each build, and whether that method also
@@ -250,6 +255,7 @@ internal fun BytecodePatchContext.findFeedMenu(): FeedMenu {
         "$PATCH: expected one builder of the feed menu adding Download after the download check, found " +
             if (builders.isEmpty()) "none" else builders.joinToString { "${it.definingClass}->${it.name}" },
     )
+    builder.checkedPost(eligible)
     val outlined = { call: MethodReference -> classDefByOrNull(call.definingClass)?.methods?.firstOrNull { it.isTargetOf(call) } }
     val others = builder.othersRow(eligible, outlined)
     return FeedMenu(helper, eligible, builder, others, outlined, pageReads, shortLists)
@@ -440,7 +446,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             :current
             move-object/from16 v0, p1
             sget-object v1, $DOWNLOAD
-            if-ne v0, v1, :handle
+            if-ne v0, v1, :choose
             move-object/from16 v0, p0
             invoke-static { v0 }, $type->${media.name}($type)$MEDIA
             move-result-object v1
@@ -449,6 +455,17 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
             invoke-static { v1, v0, v2 }, $SAVE_VIDEO
             move-result v0
             if-eqz v0, :handle
+            return-void
+            :choose
+            invoke-static {}, $CHOOSE_OPTION
+            move-result-object v1
+            if-eqz v1, :handle
+            if-ne v0, v1, :handle
+            move-object/from16 v0, p0
+            invoke-static { v0 }, $type->${media.name}($type)$MEDIA
+            move-result-object v1
+            iget-object v2, v0, $type->${activity.name}:$FRAGMENT_ACTIVITY
+            invoke-static { v1, v2 }, $CHOOSE_PAGES
             return-void
         """,
         ExternalLabel("handle", menu.getInstruction(0)),
@@ -496,7 +513,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryVideo(): PageIndex {
         feedOptionStub.accessFlags, feedOptionStub.annotations, feedOptionStub.hiddenApiRestrictions,
         ImmutableMethodImplementation(5, emptyList(), null, null),
     ).toMutable().apply {
-        addInstructions(0, newOption(icon, "move-object v1, p0"))
+        addInstructions(0, newOption(icon, "move-object v1, p0", iconByName = ROW_ICON))
     })
     writeBridges()
     writeImageBridges()
@@ -688,11 +705,52 @@ internal fun Method.othersRow(eligible: Method, outlined: (MethodReference) -> M
 internal class OwnPost(val result: Int, val answer: Int, val state: Int, val gate: Int, val flag: Int)
 
 /**
+ * Where [this], the feed menu's builder, hands [eligible], the download check, its post: [register]
+ * holds the post's Media at [before], the check itself, or on 451 the one static call that makes
+ * the check's own wrapper of a Media out of it, whose result goes straight into the check.
+ */
+internal class CheckedPost(val register: Int, val before: Int)
+
+/**
+ * Finds [CheckedPost]: the check takes a Media once, or, as on 451, takes no Media and is handed
+ * one argument that a static (Media) call answering that parameter's type makes just before (on
+ * 451's 385713073 that's LX/0jTN->A00 making the LX/0WWx that LX/0F3f->A07 takes).
+ */
+internal fun Method.checkedPost(eligible: Method): CheckedPost {
+    val code = code()
+    val where = "$definingClass->$name"
+    val check = code.indices.singleOrNull { code[it].calls(eligible) }
+        ?: throw PatchException("$PATCH: $where doesn't call the download check once")
+    val parameters = eligible.parameterTypes.map(Any::toString)
+    val offset = if (code[check].opcode in STATIC_CALLS) 0 else 1
+    val arguments = code[check].argumentRegisters()
+    if (MEDIA in parameters) {
+        val post = arguments.getOrNull(offset + parameters.indexOf(MEDIA))
+        if (parameters.count { it == MEDIA } != 1 || post == null) throw PatchException("$PATCH: $where hands the download check no one post")
+        return CheckedPost(post, check)
+    }
+    val made = parameters.indices.mapNotNull { index ->
+        val register = arguments.getOrNull(offset + index) ?: return@mapNotNull null
+        val write = (check - 1 downTo 0).firstOrNull { code[it].writes(register) } ?: return@mapNotNull null
+        val call = code.getOrNull(write - 1)?.takeIf { code[write].opcode == Opcode.MOVE_RESULT_OBJECT && it.opcode in STATIC_CALLS }
+        val reference = call?.methodReference()
+        if (reference == null || reference.returnType != parameters[index] || reference.parameterTypes.map(Any::toString) != listOf(MEDIA)) {
+            return@mapNotNull null
+        }
+        CheckedPost(call.argumentRegisters().single(), write - 1)
+    }
+    return made.singleOrNull() ?: throw PatchException(
+        "$PATCH: ${eligible.definingClass}->${eligible.name}, the download check, isn't handed a Media or one made out of one in $where",
+    )
+}
+
+/**
  * Finds [OwnPost] in [this], the feed menu's builder. Only your own posts reach the check (see
- * [othersRow]). The post the check is handed is read from the builder's state just before, and
- * nothing between that read and the answer writes the state's register. A no jumps away at once.
- * On a yes, the first branch is on a boolean of the state read without a branch in between, and
- * it jumps ahead to the Download row on a 0.
+ * [othersRow]). The post the check is handed ([checkedPost]) is read from the builder's state just
+ * before, possibly through a copy (451 moves it to a high register first), and nothing between that
+ * read and the answer writes the state's register. A no jumps away at once. On a yes, the first
+ * branch is on a boolean of the state read without a branch in between, and it jumps ahead to the
+ * Download row on a 0.
  */
 internal fun Method.ownPost(eligible: Method, found: OthersRow): OwnPost {
     val code = code()
@@ -701,10 +759,13 @@ internal fun Method.ownPost(eligible: Method, found: OthersRow): OwnPost {
     val result = check + 1
     if (code.getOrNull(result)?.opcode != Opcode.MOVE_RESULT) throw PatchException("$PATCH: $where drops the download check's answer")
     val answer = (code[result] as OneRegisterInstruction).registerA
-    val offset = if (code[check].opcode in STATIC_CALLS) 0 else 1
-    val post = code[check].argumentRegisters().getOrNull(offset + eligible.parameterTypes.map(Any::toString).indexOf(MEDIA))
-        ?: throw PatchException("$PATCH: $where hands the download check no post")
-    val read = (check - 1 downTo 0).firstOrNull { code[it].writes(post) }
+    val checked = checkedPost(eligible)
+    var post = checked.register
+    var read = (checked.before - 1 downTo 0).firstOrNull { code[it].writes(post) }
+    while (read != null && code[read].opcode in OBJECT_MOVES) {
+        post = (code[read] as TwoRegisterInstruction).registerB
+        read = (read - 1 downTo 0).firstOrNull { code[it].writes(post) }
+    }
     if (read == null || code[read].opcode != Opcode.IGET_OBJECT || code[read].referenceText() != found.media.toString()) {
         throw PatchException("$PATCH: $where doesn't read the post it checks from the menu's state")
     }
@@ -819,6 +880,7 @@ internal fun Method.isShortMenuList(): Boolean =
 
 private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 private val GOTOS = setOf(Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32)
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
 
 private fun Instruction.argumentRegisters(): List<Int> = when (this) {
     is RegisterRangeInstruction -> List(registerCount) { startRegister + it }

@@ -15,6 +15,8 @@ import android.preference.SwitchPreference;
 import android.view.accessibility.AccessibilityManager;
 import java.text.DateFormat;
 import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +37,10 @@ import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.shared.settings.preference.AbstractPreferenceFragment;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
@@ -48,6 +54,7 @@ public class ConfigurationDocumentsTest {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         ConfigurationBackup.forgetUndo();
         Settings.HIDE_ADS.resetToDefault();
+        Settings.DATE_SETTINGS_EXPORT.resetToDefault();
     }
 
     @After public void restore() throws Exception {
@@ -55,6 +62,7 @@ public class ConfigurationDocumentsTest {
         HushgramPreferenceFragment.importFeedback = null;
         ConfigurationBackup.forgetUndo();
         Settings.HIDE_ADS.resetToDefault();
+        Settings.DATE_SETTINGS_EXPORT.resetToDefault();
         PatchFamily.inBuildForTests = null;
     }
 
@@ -141,6 +149,63 @@ public class ConfigurationDocumentsTest {
         }
     }
 
+    @Test public void datedExportUsesTheLocalClockAndWesternDigits() {
+        Locale originalLocale = Locale.getDefault();
+        TimeZone originalZone = TimeZone.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("ar-EG"));
+            TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+            assertEquals("HushGram-settings-1970-01-01_00-00-00.json",
+                    ConfigurationBackup.fileName(new Date(0), true));
+            assertEquals("HushGram-settings-1970-01-01_00-00-01.json",
+                    ConfigurationBackup.fileName(new Date(1_000), true));
+            Locale.setDefault(Locale.forLanguageTag("th-TH"));
+            TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"));
+            assertEquals("HushGram-settings-1969-12-31_19-00-00.json",
+                    ConfigurationBackup.fileName(new Date(0), true));
+            assertEquals("HushGram-settings.json", ConfigurationBackup.fileName(new Date(0), false));
+        } finally {
+            Locale.setDefault(originalLocale);
+            TimeZone.setDefault(originalZone);
+        }
+    }
+
+    @Test public void datedPickerKeepsItsSavedChoiceDuringPauseAndExportsAnImportableFile() throws Exception {
+        assertEquals(Boolean.FALSE, Settings.DATE_SETTINGS_EXPORT.defaultValue);
+        Settings.DATE_SETTINGS_EXPORT.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            SwitchPreference option = (SwitchPreference) page.findPreference(Settings.DATE_SETTINGS_EXPORT.key);
+            assertNotNull(option);
+            assertEquals("Date in backup file names", option.getTitle().toString());
+            assertTrue(option.isChecked());
+            assertFalse("the export must use the saved choice rather than the paused hook value",
+                    Settings.DATE_SETTINGS_EXPORT.get());
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            Shadows.shadowOf(activity.get().getContentResolver()).registerOutputStream(DOCUMENT, output);
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_export_configuration");
+            assertEquals(Intent.ACTION_CREATE_DOCUMENT, picked.intent.getAction());
+            assertEquals("application/json", picked.intent.getType());
+            assertTrue(picked.intent.hasCategory(Intent.CATEGORY_OPENABLE));
+            assertTrue(picked.intent.getStringExtra(Intent.EXTRA_TITLE).matches(
+                    "HushGram-settings-[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\\.json"));
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            JSONObject exported = new JSONObject(output.toString(StandardCharsets.UTF_8.name()));
+            assertEquals("HushGram", exported.getString("project"));
+            assertEquals(1, exported.getInt("schema"));
+            assertTrue(exported.getJSONObject("settings").getJSONObject(Settings.DATE_SETTINGS_EXPORT.key).getBoolean("value"));
+            Settings.DATE_SETTINGS_EXPORT.save(false);
+            ConfigurationBackup.restore(output.toByteArray());
+            assertTrue(Settings.DATE_SETTINGS_EXPORT.savedValue());
+        } finally {
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+        }
+    }
+
     @Test public void cancelledPickerAndInvalidFileLeaveSettingsAndUndoUntouched() throws Exception {
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
@@ -182,6 +247,39 @@ public class ConfigurationDocumentsTest {
         }
     }
 
+    // A file that changes a choice waiting on a restart owes Restart now, as flipping its row does.
+    // It owed nothing before: the row's listener read the value after the save and took the new
+    // one for what Instagram runs. An Undo back to that value owes nothing again.
+    @Test public void importOwesRestartNowAndUndoBackToTheRunningValueClearsIt() throws Exception {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.META_AI);
+        boolean running = Settings.HIDE_META_AI_SEARCH.savedValue();
+        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
+            assertTrue(Settings.HIDE_META_AI_SEARCH.rebootApp);
+            assertNotNull("the row's listener is part of what this proves", page.findPreference(Settings.HIDE_META_AI_SEARCH.key));
+            assertFalse(RestartNow.owed());
+            Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT, new ByteArrayInputStream(
+                    ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", !running))));
+            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
+            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
+            finish();
+            assertEquals(!running, Settings.HIDE_META_AI_SEARCH.savedValue());
+            assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.HIDE_META_AI_SEARCH.key));
+            assertTrue(RestartNow.owed());
+            assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString()
+                    .endsWith("Restart Instagram to apply these choices."));
+            Preference undo = page.findPreference("hushgram_undo_configuration");
+            undo.getOnPreferenceClickListener().onPreferenceClick(undo);
+            finish();
+            assertEquals(running, Settings.HIDE_META_AI_SEARCH.savedValue());
+            assertFalse(RestartNow.owed());
+            assertEquals("back on what's running, the receipt asks for no restart", "Settings restored.",
+                    page.findPreference("hushgram_import_configuration").getSummary().toString());
+        } finally {
+            Settings.HIDE_META_AI_SEARCH.resetToDefault();
+        }
+    }
+
     @Test public void staleUndoAfterExpiryNeverStartsAnImportOrChangesSettings() throws Exception {
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
@@ -218,12 +316,12 @@ public class ConfigurationDocumentsTest {
     }
 
     @Test public void completeRestartFeedbackStaysReadableAfterTheToastExpires() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DISABLE_ANALYTICS);
-        Settings.DISABLE_ANALYTICS.resetToDefault();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
+        Settings.HIDE_META_AI_SEARCH.resetToDefault();
         try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
             Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT,
-                    new ByteArrayInputStream(ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", false))));
+                    new ByteArrayInputStream(ConfigurationBackupTest.file(ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false))));
             ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
             Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
             finish();
@@ -232,7 +330,7 @@ public class ConfigurationDocumentsTest {
             assertTrue(page.findPreference("hushgram_import_configuration").getSummary().toString()
                     .contains("Restart Instagram to apply these choices."));
         } finally {
-            Settings.DISABLE_ANALYTICS.resetToDefault();
+            Settings.HIDE_META_AI_SEARCH.resetToDefault();
         }
     }
 
@@ -256,45 +354,29 @@ public class ConfigurationDocumentsTest {
         }
     }
 
-    /** Instagram's own overrides file, picked from the settings import, says which import takes it. */
-    @Test public void anOverridesFileNamesTheOverridesImport() throws Exception {
-        try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
-            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
-            Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT, new ByteArrayInputStream(
-                    "{\"70831:\":[\"15: : true\",\"11: : false\"],\"_qe_overrides_\":[]}".getBytes(StandardCharsets.UTF_8)));
-            ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
-            Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
-            finish();
-            assertTrue(Settings.HIDE_ADS.savedValue());
-            assertFalse(ConfigurationBackup.canUndo());
-            assertEquals("That's an overrides file, not a settings file. Turn on Allow importing overrides under Developer, "
-                    + "then use Import overrides. Your settings haven't changed.",
-                    page.findPreference("hushgram_import_configuration").getSummary().toString());
-        }
-    }
-
     @Test public void theCompleteReceiptSurvivesClosingAndReopeningSettings() throws Exception {
-        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.DISABLE_ANALYTICS);
-        Settings.DISABLE_ANALYTICS.resetToDefault();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.META_AI);
+        Settings.HIDE_META_AI_SEARCH.resetToDefault();
         String receipt;
         try {
             try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
                 HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(activity);
                 Shadows.shadowOf(activity.get().getContentResolver()).registerInputStream(DOCUMENT,
                         new ByteArrayInputStream(ConfigurationBackupTest.file(
-                                ConfigurationBackupTest.entry(Settings.DISABLE_ANALYTICS.key, "boolean", false))));
+                                ConfigurationBackupTest.entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false))));
                 ShadowActivity.IntentForResult picked = pick(page, activity.get(), "hushgram_import_configuration");
                 Shadows.shadowOf(activity.get()).receiveResult(picked.intent, Activity.RESULT_OK, new Intent().setData(DOCUMENT));
                 finish();
                 receipt = page.findPreference("hushgram_import_configuration").getSummary().toString();
-                assertTrue(receipt.contains("Imported 1 settings. Skipped 0 that this version doesn't know."));
+                assertTrue(receipt.contains("Imported 1 settings."));
+                assertFalse("no skipped clause when nothing was skipped", receipt.contains("Skipped"));
                 assertTrue(receipt.contains("Restart Instagram to apply these choices."));
             }
             try (ActivityController<Activity> activity = Robolectric.buildActivity(Activity.class).setup()) {
                 HushgramPreferenceFragment reopened = DownloadSettingsTest.pageIn(activity);
                 assertEquals(receipt, reopened.findPreference("hushgram_import_configuration").getSummary().toString());
             }
-        } finally { Settings.DISABLE_ANALYTICS.resetToDefault(); }
+        } finally { Settings.HIDE_META_AI_SEARCH.resetToDefault(); }
     }
 
     private static ShadowActivity.IntentForResult pick(HushgramPreferenceFragment page, Activity activity, String key) {

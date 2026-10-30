@@ -64,7 +64,7 @@ public class SettingsRowAccessibilityTest {
     private final List<AccessibilityEvent> events = new ArrayList<>();
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
         Settings.HIDE_ADS.save(false);
         Settings.START_ON_FOLLOWING.save(false);
@@ -83,6 +83,7 @@ public class SettingsRowAccessibilityTest {
         ScreenColors.shown = null;
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+        Settings.CATEGORY_PAGES.resetToDefault();
         Settings.HIDE_ADS.resetToDefault();
         Settings.START_ON_FOLLOWING.resetToDefault();
         Settings.ONLY_FOLLOWING.resetToDefault();
@@ -208,7 +209,7 @@ public class SettingsRowAccessibilityTest {
         for (String key : new String[]{"hushgram_export_configuration", "action_export_diagnostic_report",
                 "action_clear_diagnostic_data", Settings.SAVE_FOLDER.key, Settings.FILENAME_TEMPLATE.key,
                 Settings.DOWNLOAD_QUALITY.key, Settings.PLAYBACK_QUALITY.key, Settings.STORY_RING_SCALE.key,
-                Settings.NAVIGATION_SETTINGS_TARGET.key}) {
+                Settings.STORY_RING_COLOR.key, Settings.NAVIGATION_SETTINGS_TARGET.key}) {
             Preference preference = page.findPreference(key);
             assertNotNull(key, preference);
             View view = row(preference);
@@ -435,6 +436,13 @@ public class SettingsRowAccessibilityTest {
         open(PatchFamily.HIDE_ADS);
         Preference preference = page.findPreference(Settings.HIDE_ADS.key);
         View view = row(preference);
+        // TalkBack brings a row it focuses fully on screen. On API 28 a row cut off at the
+        // bottom can come back as a new view once its summary shortens.
+        ListView list = page.getView().findViewById(android.R.id.list);
+        if (view.getBottom() > list.getHeight()) {
+            list.scrollListBy(view.getBottom() - list.getHeight());
+            view = row(preference);
+        }
         assertTrue(view.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
         assertTrue(view.createAccessibilityNodeInfo().isAccessibilityFocused());
         preference.setSummary("Updated visible explanation");
@@ -523,7 +531,9 @@ public class SettingsRowAccessibilityTest {
         open();
         assertNull(page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.ONLY_FOLLOWING.key));
-        Preference status = page.getPreferenceScreen().getPreference(0);
+        assertNull(page.getPreferenceScreen().findPreference("hushgram_status"));
+        Preference status = page.about.getPreference(0);
+        assertEquals("Version", status.getTitle());
         assertFalse(status.isSelectable());
         View view = row(status);
         AccessibilityNodeInfo node = view.createAccessibilityNodeInfo();
@@ -665,6 +675,50 @@ public class SettingsRowAccessibilityTest {
         assertFalse("a removed category's child still exposes a working action", advertised);
         assertFalse(performed);
         assertFalse(Settings.HIDE_ADS.savedValue());
+    }
+
+    @Test public void categoryAccessibilityActionsExpandCollapseAndRejectDetachedChildren() throws Exception {
+        Settings.CATEGORY_PAGES.save(true);
+        open(PatchFamily.HIDE_ADS);
+        Preference header = null;
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            Preference candidate = page.getPreferenceScreen().getPreference(i);
+            if ("Ads and privacy".contentEquals(candidate.getTitle())) header = candidate;
+        }
+        assertNotNull(header);
+        View button = row(header);
+        AccessibilityNodeInfo node = button.createAccessibilityNodeInfo();
+        assertTrue(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND));
+        assertFalse(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE));
+        if (android.os.Build.VERSION.SDK_INT >= 30) assertEquals("Collapsed", node.getStateDescription());
+        else assertTrue(String.valueOf(node.getContentDescription()).endsWith("Collapsed"));
+        node.recycle();
+        assertTrue(button.performAccessibilityAction(AccessibilityNodeInfo.ACTION_EXPAND, null));
+        layout();
+        Preference ads = page.findPreference(Settings.HIDE_ADS.key);
+        assertSame(header, ads.getParent());
+        assertTrue(ads.isEnabled());
+        View child = row(ads);
+        assertTrue(child.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
+        assertTrue(Settings.HIDE_ADS.savedValue());
+        button = row(header);
+        node = button.createAccessibilityNodeInfo();
+        assertTrue(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_COLLAPSE));
+        assertFalse(node.getActionList().contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_EXPAND));
+        if (android.os.Build.VERSION.SDK_INT >= 30) assertEquals("Expanded", node.getStateDescription());
+        else assertTrue(String.valueOf(node.getContentDescription()).endsWith("Expanded"));
+        node.recycle();
+        assertTrue(button.performAccessibilityAction(AccessibilityNodeInfo.ACTION_COLLAPSE, null));
+        // The adapter still holds the old child view until its queued hierarchy refresh runs.
+        assertNull(ads.getParent());
+        assertFalse(clickable(child.createAccessibilityNodeInfo()));
+        assertFalse(child.performAccessibilityAction(AccessibilityNodeInfo.ACTION_CLICK, null));
+        assertTrue(Settings.HIDE_ADS.savedValue());
+        layout();
+        assertTrue(row(header).performAccessibilityAction(AccessibilityNodeInfo.ACTION_EXPAND, null));
+        layout();
+        assertSame(ads, page.getPreferenceScreen().findPreference(Settings.HIDE_ADS.key));
+        assertTrue(((android.preference.SwitchPreference) ads).isChecked());
     }
 
     @Test public void aReplacedScreenCannotAcceptItsPreviousRowBeforeRebinding() throws Exception {

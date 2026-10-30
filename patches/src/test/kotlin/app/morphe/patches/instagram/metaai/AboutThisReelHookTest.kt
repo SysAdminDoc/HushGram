@@ -31,6 +31,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
@@ -109,6 +110,20 @@ class AboutThisReelHookTest {
         context.holdAskMetaAiBox(site)
 
         assertEquals(SUMMARY_ROW, site.type)
+        assertBoxHeld(SUMMARY_ROW, context.mutableClassDefBy(SUMMARY_ROW).methods.single { it.name == "A04" }, BOX)
+    }
+
+    /**
+     * A move into the box's register on another path, earlier in the text than the lambda's copy, as
+     * 451's 385713073 has it, doesn't hide that the add hands on the register that copy was taken from.
+     */
+    @Test
+    fun aMoveIntoTheBoxOnAnotherPathIsLookedPast() {
+        val context = PatchContexts.of(listOf(summaryRow(SUMMARY_ROW, movedElsewhere = true)))
+
+        val site = context.findAskMetaAiBox()
+        context.holdAskMetaAiBox(site)
+
         assertBoxHeld(SUMMARY_ROW, context.mutableClassDefBy(SUMMARY_ROW).methods.single { it.name == "A04" }, BOX)
     }
 
@@ -316,13 +331,24 @@ class AboutThisReelHookTest {
         /**
          * Shaped like 450's summary row binder: its two strings, the box inflated into [BOX], copied
          * to v20 for the composer lambda (when [lambda]), then added to the row in v0 once for each of
-         * [adds]. [overwrite] puts a zero in [BOX] between the lambda and the add.
+         * [adds]. [overwrite] puts a zero in [BOX] between the lambda and the add. [movedElsewhere] adds a
+         * move into [BOX] behind a branch after the inflate, the last write to it in the text.
          */
-        fun summaryRow(type: String, adds: List<Int> = listOf(BOX), lambda: Boolean = true, overwrite: Boolean = false): ClassDef {
+        fun summaryRow(
+            type: String,
+            adds: List<Int> = listOf(BOX),
+            lambda: Boolean = true,
+            overwrite: Boolean = false,
+            movedElsewhere: Boolean = false,
+        ): ClassDef {
             val code = mutableListOf<Instruction>()
             for (string in SUMMARY_ROW_STRINGS) code += ImmutableInstruction21c(Opcode.CONST_STRING, 1, ImmutableStringReference(string))
             code += ImmutableInstruction35c(Opcode.INVOKE_STATIC, 0, 0, 0, 0, 0, 0, ImmutableMethodReference("Lfixture/Inflater;", "A00", emptyList(), "Landroid/view/View;"))
             code += ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, BOX)
+            if (movedElsewhere) {
+                code += ImmutableInstruction21t(Opcode.IF_EQZ, 1, 4)
+                code += ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, BOX, 5)
+            }
             if (lambda) {
                 code += ImmutableInstruction21c(Opcode.NEW_INSTANCE, 18, ImmutableTypeReference(LAMBDA))
                 code += ImmutableInstruction22x(Opcode.MOVE_OBJECT_FROM16, 20, BOX)

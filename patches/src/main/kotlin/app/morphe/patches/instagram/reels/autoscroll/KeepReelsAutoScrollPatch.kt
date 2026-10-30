@@ -9,7 +9,6 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patches.instagram.misc.analytics.loadsString
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
@@ -18,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.filterEveryBooleanReturn
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -87,6 +87,12 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
  * "on" made there is remembered at once. The Reels tab's long-press action hands its choice over
  * right after it saves it.
  *
+ * Its second switch, Move on when a reel ends, is for accounts Instagram offers no auto scroll to.
+ * There the Reels viewer builds no scroller at all, so where the viewer reads whether auto scroll is
+ * offered, the extension answers for it while that switch is on, and Instagram builds its own
+ * scroller, which asks the plugin the extension already answers. See [findScrollerInstall]. Asked
+ * for in #175.
+ *
  * Every method is found by Instagram's own markers, strings and kept class names, and everything is
  * found and checked before anything changes, so a build that differs stops the patch naming what
  * it couldn't find, and nothing is half done.
@@ -95,7 +101,8 @@ private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 val keepReelsAutoScrollPatch = bytecodePatch(
     name = "Keep Reels auto scroll on",
     description = "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, " +
-        "until you turn it off yourself. Starts off. Turn it on in HushGram settings > Reels.",
+        "until you turn it off yourself. It can also move on to the next reel when one ends on accounts where " +
+        "Instagram doesn't offer auto scroll. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -138,6 +145,8 @@ internal class ReelAutoScrollSites(
     val memoryReads: List<MemoryRead>,
     /** The completed duration callback and the proved wide timestamps it saves. */
     val timer: TimerChoices,
+    /** Where the Reels viewer reads whether to build its scroller: the read goes through [AUTO_SCROLL_INSTALL]. */
+    val install: ScrollerInstall,
 )
 
 /** In the handler, right [after] it keeps its choice, which [register] holds. */
@@ -166,6 +175,8 @@ internal class MemoryRead(val method: MethodSite, val index: Int, val register: 
  * [AUTOSCROLL_MEMORY] answering it, and keeps no other instance boolean. The handler writes it once,
  * with the choice it was handed (see [requireKeepsChoice]). Every other read of it anywhere in the
  * app is found here, so none is left reading Instagram's own value.
+ *
+ * Where the Reels viewer decides whether to build its scroller is found last, by [findScrollerInstall].
  *
  * Fails when any of them isn't there, or there's more than one, since that's an update this patch
  * hasn't seen.
@@ -283,9 +294,17 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
         refuse("${it.method} reads ${memory.text()} and hands its choice over too")
     }
 
+    val timer = findTimerChoices(isActive, click, getter.parameters().single())
+    val install = findScrollerInstall(isActive)
+    // Every index here was read off Instagram's own code, so no method may be changed in two places.
+    val changed = listOf(isActive.site(), getter.site(), click.site(), toggle.site(), timer.method) + memoryReads.map { it.method }
+    if (changed.any { it.toString() == install.builder.toString() }) {
+        refuse("${install.builder} builds the Reels auto scroller and is changed for something else too")
+    }
+
     return ReelAutoScrollSites(
         isActive.site(), getter.site(), click.site(), click.parameterRegisterNumber(click.parameterTypes.lastIndex), clickKeeps,
-        toggle.site(), toggleAt, toggleChoice, memoryReads, findTimerChoices(isActive, click, getter.parameters().single()),
+        toggle.site(), toggleAt, toggleChoice, memoryReads, timer, install,
     )
 }
 
@@ -295,9 +314,11 @@ internal fun BytecodePatchContext.findReelAutoScroll(): ReelAutoScrollSites {
  * it saves it. Every read of the memory outside the check passes what it read through
  * [AUTO_SCROLL_ANSWER] right after the read. Code put right after an instruction is skipped by a
  * jump to the instruction that followed it, which keeps its label: that jump didn't come through the
- * read or the keeping. Then every return of the check passes its answer through
- * [AUTO_SCROLL_ANSWER], and every return of the getter through [AUTO_SCROLL_SAVED], at the return's
- * own label, so a branch straight to a return passes through it too.
+ * read or the keeping. The Reels viewer's read of whether auto scroll is offered passes through
+ * [AUTO_SCROLL_INSTALL] right after it, in front of the branch that goes by it, which nothing jumps
+ * to. Then every return of the check passes its answer through [AUTO_SCROLL_ANSWER], and every
+ * return of the getter through [AUTO_SCROLL_SAVED], at the return's own label, so a branch straight
+ * to a return passes through it too.
  */
 internal fun BytecodePatchContext.keepReelAutoScroll(sites: ReelAutoScrollSites) {
     val duration = mutable(sites.timer.method)
@@ -327,6 +348,13 @@ internal fun BytecodePatchContext.keepReelAutoScroll(sites: ReelAutoScrollSites)
     mutable(sites.toggle).addInstructions(
         sites.toggleAt,
         "invoke-static/range { v${sites.toggleChoice} .. v${sites.toggleChoice} }, $AUTO_SCROLL_CHOSEN",
+    )
+    mutable(sites.install.builder).addInstructions(
+        sites.install.after,
+        """
+            invoke-static/range { v${sites.install.register} .. v${sites.install.register} }, $AUTO_SCROLL_INSTALL
+            move-result v${sites.install.register}
+        """,
     )
     mutable(sites.isActive).filterEveryBooleanReturn(PATCH, AUTO_SCROLL_ANSWER)
     mutable(sites.getter).filterEveryBooleanReturn(PATCH, AUTO_SCROLL_SAVED)

@@ -26,7 +26,10 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Hide the Threads button's switch: under Profiles after Hide highlights, off to start, off while paused. */
+/**
+ * Hide the Threads button's switches: Threads, Create (#254) and Share profile (#253), under Profiles
+ * after Hide highlights, off to start, off while paused.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 @SuppressWarnings("deprecation")
@@ -36,8 +39,10 @@ public class ThreadsButtonSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
+        Settings.HIDE_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -48,6 +53,8 @@ public class ThreadsButtonSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
+        Settings.HIDE_CREATE_BUTTON.resetToDefault();
+        Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -83,10 +90,12 @@ public class ThreadsButtonSettingsTest {
         assertEquals("Profiles", profiles.getTitle().toString());
         String[] keys = new String[profiles.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.HIDE_HIGHLIGHTS.key, Settings.HIDE_THREADS_BUTTON.key), Arrays.asList(keys));
+        assertEquals(Arrays.asList(Settings.HIDE_HIGHLIGHTS.key, Settings.HIDE_THREADS_BUTTON.key,
+                Settings.HIDE_CREATE_BUTTON.key, Settings.HIDE_SHARE_PROFILE_BUTTON.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_THREADS_BUTTON.get());
-        assertEquals(java.util.Collections.singletonList(Settings.HIDE_THREADS_BUTTON), PatchFamily.THREADS_BUTTON.switches);
+        assertEquals(Arrays.asList(Settings.HIDE_THREADS_BUTTON, Settings.HIDE_CREATE_BUTTON,
+                Settings.HIDE_SHARE_PROFILE_BUTTON), PatchFamily.THREADS_BUTTON.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_THREADS_BUTTON.key));
 
         Settings.HIDE_THREADS_BUTTON.save(true);
@@ -98,5 +107,31 @@ public class ThreadsButtonSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.HIDE_THREADS_BUTTON.get());
+    }
+    @Test public void createAndShareSwitchesStartOffAndHonorPause() throws Exception {
+        open(EnumSet.of(PatchFamily.THREADS_BUTTON));
+        SwitchPreference create = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_CREATE_BUTTON.key);
+        SwitchPreference share = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.HIDE_SHARE_PROFILE_BUTTON.key);
+        assertEquals("Hide the Create button", create.getTitle().toString());
+        assertEquals("Takes the plus for new posts off the top of your own profile. The other buttons stay "
+                + "where they were.", create.getSummary().toString());
+        assertEquals("Hide Share profile", share.getTitle().toString());
+        assertEquals("Takes the Share profile button off your profile, and Edit profile stretches to fill the "
+                + "space.", share.getSummary().toString());
+        assertFalse(create.isChecked());
+        assertFalse(share.isChecked());
+        for (app.hushgram.extension.shared.settings.BooleanSetting setting
+                : Arrays.asList(Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON)) {
+            assertEquals(Boolean.FALSE, setting.defaultValue);
+            assertTrue(ConfigurationBackup.eligible().containsKey(setting.key));
+            setting.save(true);
+            assertTrue(setting.get());
+            BaseSettings.PAUSED.save(true);
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse(setting.get());
+            assertTrue(setting.savedValue());
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+        }
     }
 }

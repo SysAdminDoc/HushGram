@@ -170,7 +170,7 @@ private fun BytecodePatchContext.flagCall(method: Method): FlagCall? {
  * instruction [at]: walking back from [at], each path stops at the first write it meets. A write
  * that throws leaves the old value, so the walk goes on past it along an exception edge.
  */
-private fun writesReaching(method: Method, at: Int, register: Int): Set<Int> {
+internal fun writesReaching(method: Method, at: Int, register: Int): Set<Int> {
     val flow = ControlFlow.of(method)
     val count = flow.instructions.size
     val normal = Array(count) { mutableListOf<Int>() }

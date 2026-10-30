@@ -37,7 +37,7 @@ public class ReelBlurBarsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.BLUR_REEL_BARS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -79,14 +79,17 @@ public class ReelBlurBarsSettingsTest {
         assertNotNull(row);
         assertEquals("Blur the bars around a reel", row.getTitle().toString());
         assertEquals("A reel that doesn't fill the screen shows a blurred copy of itself above and below it instead "
-                + "of black bars. Open Reels again after a change.", row.getSummary().toString());
+                + "of black bars, and the strip under the tab bar and the band behind the clock show the reel blurred too. "
+                + "Open Reels again after a change.",
+                row.getSummary().toString());
         PreferenceGroup reels = row.getParent();
         assertEquals("Reels", reels.getTitle().toString());
         String[] keys = new String[reels.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = reels.getPreference(i).getKey();
         int bigger = Arrays.asList(keys).indexOf(Settings.BIG_REEL_SEEK_BAR.key);
         assertTrue(Arrays.toString(keys), bigger >= 0);
-        assertEquals("right after Bigger seek bar on reels", Settings.BLUR_REEL_BARS.key, keys[bigger + 1]);
+        assertEquals("Seek bar like DM videos right after Bigger seek bar on reels", Settings.DM_REEL_SEEK_BAR.key, keys[bigger + 1]);
+        assertEquals("right after the seek bar's rows", Settings.BLUR_REEL_BARS.key, keys[bigger + 2]);
         assertFalse(row.isChecked());
         assertFalse(Settings.BLUR_REEL_BARS.get());
         assertFalse("the viewer reads the switch as pages settle, so no restart prompt", Settings.BLUR_REEL_BARS.rebootApp);

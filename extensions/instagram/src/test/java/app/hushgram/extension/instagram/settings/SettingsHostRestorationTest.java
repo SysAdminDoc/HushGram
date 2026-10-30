@@ -18,7 +18,6 @@ import android.preference.Preference;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
-import java.nio.file.Files;
 import java.util.EnumSet;
 
 import org.junit.After;
@@ -36,9 +35,6 @@ import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
-import app.hushgram.extension.instagram.misc.OverrideExchange;
-import app.hushgram.extension.instagram.misc.OverrideImportTest;
-import app.hushgram.extension.instagram.misc.OverrideImportTest.NativeTable;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -46,8 +42,7 @@ import app.hushgram.extension.instagram.misc.OverrideImportTest.NativeTable;
 public class SettingsHostRestorationTest {
     @Rule public final SettingsContextRule context = new SettingsContextRule();
     private final SettingsEntry.OpenWhenResumed callbacks = new SettingsEntry.OpenWhenResumed();
-    private static final String[] PICKERS = {"hushgram_export_configuration", "hushgram_import_configuration",
-            "hushgram_export_overrides", "hushgram_validate_overrides", "hushgram_import_overrides"};
+    private static final String[] PICKERS = {"hushgram_export_configuration", "hushgram_import_configuration"};
 
     /** Instagram 449 drops this state in both internal-onCreate branches before its super call. */
     public static class Host extends Activity {
@@ -60,24 +55,19 @@ public class SettingsHostRestorationTest {
 
     @Before public void setup() {
         Application app = RuntimeEnvironment.getApplication();
-        app.getApplicationInfo().targetSdkVersion = 36;
+        app.getApplicationInfo().targetSdkVersion = 37;
         app.registerActivityLifecycleCallbacks(callbacks);
         SettingsEntry.onClosedByUser();
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
-        Settings.ALLOW_OVERRIDE_IMPORT.save(true);
     }
 
     @After public void restore() throws Exception {
         Utils.awaitBackgroundTasksForTests();
         RuntimeEnvironment.getApplication().unregisterActivityLifecycleCallbacks(callbacks);
         SettingsEntry.onClosedByUser();
-        Settings.ALLOW_OVERRIDE_IMPORT.resetToDefault();
         Settings.HIDE_ADS.resetToDefault();
         ConfigurationBackup.forgetUndo();
         HushgramPreferenceFragment.importFeedback = null;
-        HushgramPreferenceFragment.overrideExportFeedback = null;
-        HushgramPreferenceFragment.overrideValidationFeedback = null;
-        HushgramPreferenceFragment.overrideImportFeedback = null;
         PatchFamily.inBuildForTests = null;
     }
 
@@ -159,47 +149,6 @@ public class SettingsHostRestorationTest {
             ShadowLooper.idleMainLooper();
             assertTrue("a duplicate import changed the later choice", Settings.HIDE_ADS.get());
             assertTrue(page(host.get()).findPreference(PICKERS[1]).isEnabled());
-        }
-    }
-
-    @Test @Config(sdk = {28, 37}, shadows = NativeTable.class)
-    public void everyOverridePickerCompletesAfterRecreationWithoutChangingTheSession() throws Exception {
-        OverrideImportTest.install();
-        for (int index = 2; index < PICKERS.length; index++) {
-            NativeTable.reset();
-            try (ActivityController<Host> host = open()) {
-                NativeTable.file = OverrideImportTest.store(host.get(), "mobileconfig");
-                byte[] original = Files.readAllBytes(NativeTable.file.toPath());
-                byte[] document = OverrideExchange.export(OverrideExchange.capture(host.get()));
-                Preference row = page(host.get()).findPreference(PICKERS[index]);
-                row.getOnPreferenceClickListener().onPreferenceClick(row);
-                ShadowActivity.IntentForResult picked = shadowOf(host.get()).getNextStartedActivityForResult();
-                host.recreate();
-                ShadowLooper.idleMainLooper();
-                Uri uri = Uri.parse("content://restored-documents/overrides.json");
-                ByteArrayOutputStream output = new ByteArrayOutputStream();
-                if (index == 2) shadowOf(host.get().getContentResolver()).registerOutputStream(uri, output);
-                else shadowOf(host.get().getContentResolver()).registerInputStream(uri, new ByteArrayInputStream(document));
-                int captures = NativeTable.captures;
-                Intent result = new Intent().setData(uri);
-                shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, result);
-                Utils.awaitBackgroundTasksForTests();
-                ShadowLooper.idleMainLooper();
-                assertTrue("the original operation was not delivered", NativeTable.captures > captures);
-                if (index == 2) assertArrayEquals(document, output.toByteArray());
-                else if (index == 3) assertEquals("Checked 3 overrides only. Nothing was applied.",
-                        HushgramPreferenceFragment.overrideValidationFeedback);
-                else assertEquals("This file matches the current overrides. Nothing changed.",
-                        HushgramPreferenceFragment.overrideImportFeedback);
-                captures = NativeTable.captures;
-                shadowOf(host.get()).receiveResult(picked.intent, Activity.RESULT_OK, result);
-                Utils.awaitBackgroundTasksForTests();
-                ShadowLooper.idleMainLooper();
-                assertEquals("duplicate result reached the session again", captures, NativeTable.captures);
-                assertEquals(0, NativeTable.writes);
-                assertArrayEquals(original, Files.readAllBytes(NativeTable.file.toPath()));
-                assertTrue(page(host.get()).findPreference(PICKERS[index]).isEnabled());
-            }
         }
     }
 

@@ -53,6 +53,10 @@ public final class SavesForTests {
         STARTED.get(id).transferred(done, total);
     }
 
+    public static void converting(int id, int percent) {
+        STARTED.get(id).converting(percent);
+    }
+
     public static void joining(int id) {
         STARTED.get(id).joining();
     }

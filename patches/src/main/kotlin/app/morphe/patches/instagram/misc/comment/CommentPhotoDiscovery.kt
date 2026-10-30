@@ -62,7 +62,6 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
         if (type !in classes) refuse("missing extension boundary $type")
     }
     fun clazz(type: String) = classes[type] ?: refuse("missing native class $type")
-    fun methods() = classes.values.asSequence().flatMap { it.methods.asSequence() }
     val selected = clazz(surface.selectedType)
     requirePublicField(selected, surface.rawField)
     val raw = clazz(surface.raw)
@@ -70,7 +69,7 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
     val pando = clazz(surface.pando)
 
     // The selected comment keeps the raw comment its conversion was handed.
-    val converter = methods().filter { method -> method.returnType == selected.type &&
+    val converter = methodsBesideCall(selected.type, "<init>", classes).filter { method -> method.returnType == selected.type &&
         method.parameters().count { it == raw.type } == 1 && method.code().any { instruction ->
             instruction.call()?.let { it.name == "<init>" && it.definingClass == selected.type } == true }
     }.toList().one("selected-comment conversion from the raw comment")
@@ -89,14 +88,14 @@ internal fun BytecodePatchContext.findCommentPhoto(): CommentPhotoPlan = discove
         .one("comment's parsed model")
     val parsedInfo = parsedTextField(parsedRaw.methods.filter { it.matches(info) }.one("parsed $COMMENT_MEDIA_KEY getter"),
         parsedRaw.type, info.returnType)
-    val commentParser = methods().filter { method -> method.name == "unsafeParseFromJson" &&
+    val commentParser = methodsBesideString(COMMENT_MEDIA_KEY, classes).filter { method -> method.name == "unsafeParseFromJson" &&
         method.returnType in setOf(OBJECT, parsedRaw.type) && COMMENT_MEDIA_KEY in method.strings() &&
         method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass == parsedRaw.type } == true }
     }.toList().one("comment parser")
     val infoModels = classes.values.filter { infoType.type in it.interfaces }
     val infoParsed = infoModels.filter { !treeBacked(it, classes) }.one("parsed $COMMENT_MEDIA_KEY model")
     val infoTree = infoModels.filter { treeBacked(it, classes) }.one("tree-backed $COMMENT_MEDIA_KEY model")
-    val infoParser = methods().filter { method -> method.name == "unsafeParseFromJson" &&
+    val infoParser = methodsBesideString("media", classes).filter { method -> method.name == "unsafeParseFromJson" &&
         method.returnType in setOf(OBJECT, infoParsed.type) && "media" in method.strings() &&
         method.code().any { it.call()?.let { call -> call.name == "<init>" && call.definingClass == infoParsed.type } == true }
     }.toList().one("$COMMENT_MEDIA_KEY parser")

@@ -7,11 +7,13 @@ package app.morphe.patches.instagram.direct.typing
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireFreeAt
@@ -42,8 +44,8 @@ internal const val REALTIME_CLIENT = "Lcom/instagram/realtimeclient/RealtimeClie
 internal object TypingStatusFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("Z"),
-    strings = listOf(TYPING_SERVICE, TYPING_ENABLED),
-    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
+    filters = listOf(string(TYPING_SERVICE)),
+    custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.loadsConstString(TYPING_ENABLED) },
 )
 
 internal data class TypingTargets(val service: MutableMethod, val sender: Method)

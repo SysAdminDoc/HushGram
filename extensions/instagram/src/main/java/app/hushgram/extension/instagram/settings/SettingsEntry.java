@@ -33,24 +33,36 @@ import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
+import app.hushgram.extension.instagram.feed.CarouselPeek;
+import app.hushgram.extension.instagram.feed.CommentEmojiRow;
+import app.hushgram.extension.instagram.feed.FeedFollowButton;
+import app.hushgram.extension.instagram.feed.FollowingFeed;
+import app.hushgram.extension.instagram.feed.ReelCorners;
+import app.hushgram.extension.instagram.feed.StoryCorners;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
+import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
+import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
+import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.Setting;
+import app.hushgram.extension.shared.settings.preference.ReopenSettingsAfterRestart;
 
 /**
  * How the HushGram screen is reached.
@@ -63,7 +75,8 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * shows only the first few. A launcher that shows no shortcuts leaves the row at the top of
  * Instagram's own Settings and activity screen, which {@link SettingsScreenRow} draws. Inside
  * Instagram, a long press on the Instagram logo at the top of Home opens it too (see
- * {@link #setLogoLongClickListener}).
+ * {@link #setLogoLongClickListener}). The shortcut, the logo's long press and the row each have a
+ * switch, and the last way in still on can't be turned off (HushFacebook#146).
  *
  * <p>The shortcut names the main activity itself rather than a launcher alias: Instagram's icon is
  * one of several aliases it switches between at runtime (its alternate app icons), and whichever
@@ -101,6 +114,11 @@ public final class SettingsEntry {
     /** The activity the screen was last shown over, while the person hasn't closed it. */
     private static WeakReference<Activity> host;
     private static volatile boolean closedByUser;
+    /**
+     * The category the pending request opens expanded, after Restart now. Kept while the screen
+     * moves to a screen in front, and dropped by the next request or the person closing it.
+     */
+    private static volatile String requestedPage;
     /** The long label last pushed, or found already on the shortcut, in this process. */
     private static volatile String publishedLabel;
     /** A check of the shortcut's place is waiting for the background thread. */
@@ -121,6 +139,8 @@ public final class SettingsEntry {
                 ((Application) context).registerActivityLifecycleCallbacks(new OpenWhenResumed());
                 callbacksRegistered = true;
             }
+            // Restart now was tapped a moment ago: the screen opens again on its page.
+            ReopenSettingsAfterRestart.reopenIfPending(SettingsEntry::reopenOn);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
@@ -128,11 +148,20 @@ public final class SettingsEntry {
         FullScreenBars.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
+        ScrollBreak.install(context);
         TabStart.install(context);
         ProfileSaved.install(context);
+        CommentEmojiRow.install(context);
+        FeedFollowButton.install(context);
+        FollowingFeed.install(context);
+        ReelCorners.install(context);
+        StoryCorners.install(context);
+        CarouselPeek.install(context);
+        StoryProgressBar.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
         LaunchScreen.install(context);
+        AppIcon.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
         // A save Android stopped halfway left a pending gallery row, a work file or a notification.
         SaveLeftovers.sweepAfterStart(context);
@@ -166,11 +195,17 @@ public final class SettingsEntry {
      */
     static void publishShortcutNow(Context app) {
         try {
+            // Nothing to go by until the settings are read: the next screen asks again.
+            if (!Utils.settingsReady()) return;
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
             String longLabel = L10n.t(app, "HushGram settings");
             // Set before the attempt, so a shortcut that can't be pushed isn't tried on every screen.
             publishedLabel = longLabel;
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             if (existing != null && existing.getRank() == 0
                     && longLabel.contentEquals(existing.getLongLabel())) return;
@@ -188,8 +223,18 @@ public final class SettingsEntry {
      */
     static void keepFirstNow(Context app) {
         try {
+            if (!Utils.settingsReady()) {
+                // The switch can't be read yet, so the next screen checks the shortcut again.
+                publishedLabel = null;
+                return;
+            }
             ShortcutManager manager = app.getSystemService(ShortcutManager.class);
             if (manager == null) return;
+            // Switched off, Instagram's calls neither bring it back nor rank it.
+            if (!Settings.SETTINGS_SHORTCUT.get()) {
+                removeShortcut(manager);
+                return;
+            }
             ShortcutInfo existing = ours(manager);
             if (existing == null) {
                 publishShortcutNow(app);
@@ -222,6 +267,23 @@ public final class SettingsEntry {
             manager.removeDynamicShortcuts(Collections.singletonList(last.getId()));
         }
         manager.addDynamicShortcuts(Collections.singletonList(shortcut));
+    }
+
+    /**
+     * The shortcut switch changed: off takes the shortcut out of the launcher's menu now, on puts it
+     * back in front, both on a background thread. Instagram's own shortcuts stay. Also called after
+     * the home screen icon changed, since Android takes a shortcut away with the icon it was under.
+     */
+    public static void shortcutSwitchChanged(Context context) {
+        final Context app = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        Utils.runOnBackgroundThread(() -> publishShortcutNow(app));
+    }
+
+    /** Takes the HushGram shortcut out of the launcher's menu, if it's there. */
+    private static void removeShortcut(ShortcutManager manager) {
+        if (ours(manager) == null) return;
+        manager.removeDynamicShortcuts(Collections.singletonList(SHORTCUT_ID));
+        Logger.printInfo(() -> "Settings entry: launcher shortcut removed, its switch is off");
     }
 
     /** The HushGram shortcut among the dynamic ones, or null. */
@@ -307,11 +369,46 @@ public final class SettingsEntry {
     /** Injected at the start of the main activity's {@code onNewIntent}. */
     public static void onNewIntent(Activity activity, Intent intent) {
         try {
-            noteIntent(intent);
+            if (noteIntent(intent)) ShortcutCover.show(activity);
+            else if (leavesSettings(intent)) closeForLink(activity);
             if (openPending) OpenWhenResumed.openWhenSettled(activity);
         } catch (Exception ex) {
             Logger.printException(() -> "Settings entry: onNewIntent failure", ex);
         }
+    }
+
+    /**
+     * Whether [intent], one that isn't the shortcut's, takes the person somewhere in Instagram: a
+     * link, which carries data, or a tapped notification, which names itself in an extra. Instagram
+     * shows where it leads under the settings, so they close for it.
+     */
+    static boolean leavesSettings(Intent intent) {
+        if (intent == null) return false;
+        if (intent.getData() != null) return true;
+        Bundle extras = intent.getExtras();
+        if (extras == null) return false;
+        for (String key : extras.keySet()) {
+            if (key != null && key.toLowerCase(Locale.ROOT).contains("notification")) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Closes the settings shown on [activity] as if the person had, so a link that came in shows.
+     * A request that hasn't shown yet is dropped with its cover, or it would open over the link.
+     */
+    private static void closeForLink(Activity activity) {
+        if (openPending) {
+            openPending = false;
+            onClosedByUser();
+            ShortcutCover.off("a link or notification came in first");
+            Logger.printInfo(() -> "Settings entry: a link or notification came in before the settings showed, dropping the request");
+        }
+        Fragment shown = activity.getFragmentManager().findFragmentByTag(DIALOG_TAG);
+        if (!(shown instanceof DialogFragment)) return;
+        onClosedByUser();
+        ((DialogFragment) shown).dismissAllowingStateLoss();
+        Logger.printInfo(() -> "Settings entry: a link or notification came in, closing the settings over it");
     }
 
     private static final String SAVED_SETTINGS = "app.hushgram.settings.saved_dialog";
@@ -354,7 +451,7 @@ public final class SettingsEntry {
             try {
                 // A screen put back after the process died carries its old intent; the request it
                 // held was spent the first time.
-                if (state == null) noteIntent(activity.getIntent());
+                if (state == null && noteIntent(activity.getIntent())) ShortcutCover.show(activity);
                 if (activity.getFragmentManager().findFragmentByTag(DIALOG_TAG) instanceof SettingsDialog) {
                     host = new WeakReference<>(activity);
                     closedByUser = false;
@@ -403,9 +500,12 @@ public final class SettingsEntry {
         @Override
         public void onActivityPaused(Activity activity) {
             if (resumed != null && resumed.get() == activity) resumed = null;
+            ShortcutCover.offIfOver(activity);
         }
 
-        @Override public void onActivityStarted(Activity activity) { }
+        @Override public void onActivityStarted(Activity activity) {
+            ShortcutCover.onStarted(activity);
+        }
         @Override public void onActivityStopped(Activity activity) { }
         @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {
             Fragment dialog = activity.getFragmentManager().findFragmentByTag(DIALOG_TAG);
@@ -490,8 +590,13 @@ public final class SettingsEntry {
      *
      * @return whether the screen is showing (or already was) over this activity.
      */
-    @SuppressWarnings("deprecation") // Framework fragments are what the shared preference code builds on.
     public static boolean open(Activity activity) {
+        // Only a pending request carries a page; a tap on Instagram's own settings row doesn't.
+        return open(activity, openPending ? requestedPage : null);
+    }
+
+    @SuppressWarnings("deprecation") // Framework fragments are what the shared preference code builds on.
+    private static boolean open(Activity activity, String page) {
         final String name = activity.getClass().getSimpleName();
         try {
             if (activity.isFinishing() || activity.isDestroyed()) {
@@ -517,11 +622,11 @@ public final class SettingsEntry {
             }
             // While Instagram is locked, the screen that could turn the lock off waits for the phone's lock.
             if (MessagesLock.locked()) {
-                MessagesLock.confirmThen(activity, () -> open(activity));
+                MessagesLock.confirmThen(activity, () -> open(activity, page));
                 return true;
             }
             closedByUser = false;
-            new SettingsDialog().show(fragments, DIALOG_TAG);
+            SettingsDialog.onPage(page).show(fragments, DIALOG_TAG);
             host = new WeakReference<>(activity);
             Logger.printInfo(() -> "Settings opened over " + name);
             return true;
@@ -538,13 +643,17 @@ public final class SettingsEntry {
      * method that draws the bar, with the same registers, and Instagram makes it again each time
      * the bar draws from a new state.
      *
-     * <p>The title view gets a listener that asks Instagram's first. Instagram's long press there
-     * only does something on some accounts (it can open an app icon sheet), and when it takes the
-     * press, the press stays Instagram's. Otherwise the press opens this screen over the logo's
-     * activity. The logo's tap isn't touched, so it still does what Instagram made it do.
+     * <p>The title view gets a listener that opens this screen over the logo's activity first.
+     * Instagram's long press there only does something on some accounts: on an Instagram Plus
+     * account it opens the Change your app icon sheet, which used to take every press, so the logo
+     * never reached HushGram there. Instagram's listener is asked only when this screen can't open,
+     * the logo no longer being on a screen in front. The logo's tap isn't touched, so it still does
+     * what Instagram made it do.
      *
-     * <p>No switch reads this, so Pause leaves it working: it's a way back to the switch that
-     * resumes HushGram. Anything that goes wrong leaves the title view with Instagram's listener.
+     * <p>The press has a switch ({@link Settings#SETTINGS_LOGO_PRESS}) that a pause leaves as it is,
+     * since this is a way back to the switch that resumes HushGram. The listener reads it on every
+     * press, and off, the press is Instagram's. Anything that goes wrong leaves the title view with
+     * Instagram's listener.
      */
     public static void setLogoLongClickListener(View title, View.OnLongClickListener instagrams) {
         View.OnLongClickListener listener = instagrams;
@@ -561,10 +670,27 @@ public final class SettingsEntry {
         title.setOnLongClickListener(listener);
     }
 
+    /**
+     * Home's newer header (the one with feed tabs) shows the Instagram logo as Home opens, and on
+     * some accounts keeps it there, but gives it no long press of its own. The patch hands its logo
+     * view here right after the header finds it in its layout, once per header, and the logo gets
+     * the same long press as the older header's: this screen over the logo's activity. Nothing
+     * listens for a tap there, so none is taken from Instagram. Never throws, since it runs inside
+     * the header's constructor; anything that goes wrong leaves the logo as Instagram made it.
+     */
+    public static void watchLogo(View logo) {
+        try {
+            if (logo == null) return;
+            setLogoLongClickListener(logo, null);
+        } catch (Throwable failure) {
+            Logger.printException(() -> "Settings entry: could not watch the Instagram logo in Home's newer header", failure);
+        }
+    }
+
     /** Whether the logo's long press has been logged this run, so a redraw doesn't log it again. */
     private static volatile boolean logoWatched;
 
-    /** The long press on Home's title view: Instagram's listener first, then this screen. */
+    /** The long press on Home's title view: this screen first, then Instagram's listener. */
     static final class LogoPress implements View.OnLongClickListener {
         /** Instagram's listener for the title view, or null when it passed none. */
         final View.OnLongClickListener instagrams;
@@ -576,10 +702,20 @@ public final class SettingsEntry {
 
         @Override
         public boolean onLongClick(View title) {
-            // Instagram's listener runs as it always did, and a press it takes is its own.
-            if (instagrams != null && instagrams.onLongClick(title)) return true;
-            return openFromLogo(title);
+            // The logo's long press is the way into HushGram, so Instagram's app icon sheet can't
+            // take it first. Instagram's listener gets the press only when this screen can't open,
+            // or with the switch off.
+            if (logoPressOn() && openFromLogo(title)) return true;
+            return instagrams != null && instagrams.onLongClick(title);
         }
+    }
+
+    /**
+     * Whether a long press on the logo opens this screen: its switch, read through Pause. Before the
+     * settings are read the press opens it, as it always did.
+     */
+    static boolean logoPressOn() {
+        return !Utils.settingsReady() || Settings.SETTINGS_LOGO_PRESS.get();
     }
 
     /**
@@ -603,11 +739,25 @@ public final class SettingsEntry {
         }
     }
 
+    /**
+     * At start, after Restart now: asks for the screen on [page], the way the launcher shortcut
+     * does, so it opens over the first Instagram screen that can show it.
+     */
+    static void reopenOn(String page) {
+        requestedPage = page;
+        closedByUser = false;
+        requestedAt = SystemClock.elapsedRealtime();
+        openPending = true;
+        themeRetryPending = false;
+        Logger.printInfo(() -> "Settings requested again after Restart now");
+    }
+
     /** Queues a gesture through the shortcut's same resume/account handoff, without starting a tab. */
     static boolean requestOpen(Activity activity) {
         if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
         if (!closedByUser && ((host != null && host.get() == activity)
                 || (openPending && SystemClock.elapsedRealtime() - requestedAt <= REQUEST_LIFETIME_MS))) return true;
+        requestedPage = null;
         closedByUser = false;
         requestedAt = SystemClock.elapsedRealtime();
         openPending = true;
@@ -619,17 +769,22 @@ public final class SettingsEntry {
     static void onClosedByUser() {
         closedByUser = true;
         host = null;
+        requestedPage = null;
     }
 
-    private static void noteIntent(Intent intent) {
+    /** Whether [intent] is the launcher shortcut's, which is then a pending request. */
+    private static boolean noteIntent(Intent intent) {
         if (intent != null && intent.getBooleanExtra(EXTRA_OPEN_SETTINGS, false)) {
             intent.removeExtra(EXTRA_OPEN_SETTINGS);
+            requestedPage = null;
             requestedAt = SystemClock.elapsedRealtime();
             openPending = true;
             // A new request looks for itself; a look an old one left scheduled may never run.
             themeRetryPending = false;
             Logger.printInfo(() -> "Settings requested by the launcher shortcut");
+            return true;
         }
+        return false;
     }
 
     /**
@@ -637,15 +792,13 @@ public final class SettingsEntry {
      * the screen's arguments and the view it made. On the top screen, Settings and activity, it
      * answers that view with the HushGram settings row above it; on every other screen, and when
      * anything goes wrong, the view as it came. With {@link Settings#HIDE_MENU_ROW} on, the row
-     * is left out while the chosen tab long press (#84) or the long press on your profile's menu (#148)
-     * can open HushGram instead.
+     * is left out while another way can open HushGram instead ({@link #menuRowLeftOut}).
      */
     public static View withSettingsRow(Bundle arguments, View screen) {
         try {
             if (screen == null || !SettingsScreenRow.isMainScreen(arguments)) return screen;
-            if (Utils.settingsReady() && Settings.HIDE_MENU_ROW.get()
-                    && (NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram())) {
-                Logger.printInfo(() -> "Settings entry: menu row left out, a long press opens HushGram");
+            if (menuRowLeftOut()) {
+                Logger.printInfo(() -> "Settings entry: menu row left out, another way opens HushGram");
                 return screen;
             }
             return SettingsScreenRow.above(screen);
@@ -653,6 +806,66 @@ public final class SettingsEntry {
             Logger.printException(() -> "Settings entry: could not add the row to Instagram's settings", t);
             return screen;
         }
+    }
+
+    /**
+     * Whether Instagram's settings screen leaves the HushGram row out: {@link Settings#HIDE_MENU_ROW}
+     * on while another way in works, which is the launcher shortcut (on a launcher that shows it) or
+     * the logo's long press with its switch on, the chosen tab long press (#84) on a button Instagram
+     * built, or the long press on your profile's menu (#148) on a button that carries it. With every
+     * other way off the row stays, so there's always a way in (HushFacebook#146). Paused, the switch
+     * reads off.
+     */
+    static boolean menuRowLeftOut() {
+        if (!Utils.settingsReady() || !Settings.HIDE_MENU_ROW.get()) return false;
+        return (Settings.SETTINGS_SHORTCUT.get() && launcherShowsShortcuts()) || Settings.SETTINGS_LOGO_PRESS.get()
+                || NavigationSettings.opensFromATab() || ProfileMenuPress.opensHushGram();
+    }
+
+    /**
+     * Whether the shortcut switch opens anything: the home screen app takes pinned shortcuts, the
+     * sign it shows the menu you get by holding an icon, or ours is already pinned there. A launcher
+     * with neither (some third-party ones, Android Go) never shows it, so it isn't a way in.
+     */
+    static boolean launcherShowsShortcuts() {
+        try {
+            ShortcutManager manager = Utils.getContext().getSystemService(ShortcutManager.class);
+            if (manager == null) return false;
+            if (manager.isRequestPinShortcutSupported()) return true;
+            for (ShortcutInfo pinned : manager.getPinnedShortcuts()) {
+                if (SHORTCUT_ID.equals(pinned.getId())) return true;
+            }
+            return false;
+        } catch (Exception ex) {
+            Logger.printException(() -> "Settings entry: could not tell whether the launcher shows shortcuts", ex);
+            return false;
+        }
+    }
+
+    /**
+     * How many ways into HushGram are on, from the saved values the settings screen shows: the
+     * launcher shortcut (on a launcher that shows it), the logo's long press, the menu row (on while
+     * its hide switch is off), a tab long press (a tab chosen) and the long press on your profile's
+     * menu.
+     */
+    static int waysInOn() {
+        return (Settings.SETTINGS_SHORTCUT.savedValue() && launcherShowsShortcuts() ? 1 : 0)
+                + (Settings.SETTINGS_LOGO_PRESS.savedValue() ? 1 : 0)
+                + (Settings.HIDE_MENU_ROW.savedValue() ? 0 : 1)
+                + (Settings.NAVIGATION_SETTINGS_TARGET.savedValue() != NavigationTarget.OFF ? 1 : 0)
+                + (Settings.PROFILE_MENU_LONG_PRESS.savedValue() ? 1 : 0);
+    }
+
+    /**
+     * Whether [way], the shortcut switch, the logo press switch or the menu row's hide switch, is the
+     * last way in still on, so the settings screen greys it out under a line saying why. The menu
+     * row's way is on while its hide switch is off. A shortcut the launcher never shows is no way in.
+     */
+    static boolean isLastWayIn(Setting<?> way) {
+        boolean on = way == Settings.SETTINGS_SHORTCUT ? Settings.SETTINGS_SHORTCUT.savedValue() && launcherShowsShortcuts()
+                : way == Settings.SETTINGS_LOGO_PRESS ? Settings.SETTINGS_LOGO_PRESS.savedValue()
+                : way == Settings.HIDE_MENU_ROW && !Settings.HIDE_MENU_ROW.savedValue();
+        return on && waysInOn() == 1;
     }
 
     /** A magenta disc with an "H", drawn so the shortcut needs no resource in Instagram's APK. */

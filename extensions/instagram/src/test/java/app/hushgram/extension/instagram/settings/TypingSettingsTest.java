@@ -37,7 +37,7 @@ public class TypingSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.HIDE_TYPING.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -87,7 +87,7 @@ public class TypingSettingsTest {
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_INSTANTS.key,
-                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.HIDE_TYPING.key), Arrays.asList(keys));
+                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.HIDE_TYPING.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_TYPING.get());
         assertFalse("each start of typing reads the switch, so no restart", Settings.HIDE_TYPING.rebootApp);

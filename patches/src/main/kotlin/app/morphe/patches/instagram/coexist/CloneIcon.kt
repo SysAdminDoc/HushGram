@@ -89,6 +89,15 @@ internal fun markedName(layer: String, reference: String): String =
     "hushgram_${layer}_" + reference.removePrefix("@").replace(Regex("[^A-Za-z0-9_]"), "_")
 
 /**
+ * Decodes what [readCloneIcons] reads: every version of each of [icons], and any drawable already
+ * holding one of the badge's names, which patcher 2.0 would otherwise leave encoded and unseen.
+ */
+internal fun ResourcePatchContext.decodeCloneIcons(icons: List<String>) {
+    val versions = icons.map { icon -> icon.split('/', limit = 2).let { (type, name) -> "res/$type*/$name.xml" } }
+    decode(*(versions + "res/drawable*/hushgram_*.xml").toTypedArray())
+}
+
+/**
  * Finds the adaptive version of each of [icons] in [res], the decoded app's res folder, and checks the
  * badge can go on each: an icon with no adaptive version, a foreground or monochrome layer that isn't
  * a reference to one of the app's drawables, or a drawable the badge would add that's already there

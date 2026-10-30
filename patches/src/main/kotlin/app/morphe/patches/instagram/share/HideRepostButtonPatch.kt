@@ -19,8 +19,8 @@ import app.morphe.patches.instagram.feed.isToString
 import app.morphe.patches.instagram.feed.prepareFlagWrites
 import app.morphe.patches.instagram.feed.printedFlag
 import app.morphe.patches.instagram.feed.sameAs
-import app.morphe.patches.instagram.misc.analytics.loadsString
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -52,6 +52,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 private const val PATCH = "Hide the Repost button"
 internal const val HIDE_REPOSTS = "$EXTENSION_PACKAGE/share/RepostButton;->hide()Z"
 internal const val REPOSTS_ELIGIBLE = "$EXTENSION_PACKAGE/share/RepostButton;->eligible(Ljava/lang/Boolean;)Ljava/lang/Boolean;"
+internal const val REPOSTS_ELIGIBLE_MATCH = "$EXTENSION_PACKAGE/share/RepostButton;->eligibleMatch(ILjava/lang/Object;)Z"
 internal const val REPOSTS_FEED_UFI = "$EXTENSION_PACKAGE/share/RepostButton;->feedUfi(Landroid/view/View;Landroid/view/View;)V"
 internal const val REPOSTS_FEED_COMPONENT = "$EXTENSION_PACKAGE/share/RepostButton;->feedComponent()Z"
 internal const val REPOSTS_FEED_RESTORE = "$EXTENSION_PACKAGE/share/RepostButton;->restoreFeedUfi(Landroid/view/View;Landroid/view/View;)V"
@@ -77,12 +78,13 @@ internal const val REPOSTS_FIELD = "enable_media_notes_production"
 internal val REPOSTS_HASH = REPOSTS_FIELD.hashCode()
 
 private const val BOOLEAN = "Ljava/lang/Boolean;"
+private const val OBJECT = "Ljava/lang/Object;"
 private const val BOUNCY_UFI_BUTTON = "Lcom/instagram/ui/widget/bouncyufibutton/IgBouncyUfiButtonImageView;"
 private const val UFI_COUNT = "Lcom/instagram/common/ui/base/IgTextView;"
 
-/** Feed's inflated repost icon and count in Instagram 450, the same ids in every build. */
-internal const val REPOSTS_UFI_ICON_ID = 0x7f0b3614
-internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b3613
+/** Feed's inflated repost icon and count in Instagram 452 (`reposts_ufi_icon`, `reposts_ufi_count`; 0x7f0b362e and 0x7f0b362d in 451), the same ids in all three builds. */
+internal const val REPOSTS_UFI_ICON_ID = 0x7f0b360c
+internal const val REPOSTS_UFI_COUNT_ID = 0x7f0b360b
 
 /**
  * The role the component renderer gives the Repost button. Its label is a string resource, and
@@ -115,7 +117,7 @@ val hideRepostButtonPatch = bytecodePatch(
         val sites = findRepostSites()
         val feedUfi = findFeedUfiSite()
         val component = findFeedRepostComponent()
-        requireSeparateMethods(repostHookMethods(feedState, sites, feedUfi, component))
+        requireSeparateMethods(repostHookMethods(feedState, sites, feedUfi, component), readsBeforeWrites(feedState, sites))
         val hideState = prepareFeedState(feedState)
         val hideUfi = prepareFeedUfi(feedUfi)
         val hideComponent = prepareFeedComponent(component)
@@ -132,6 +134,10 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 private fun methodKey(type: String, name: String, parameters: List<String>) = "$type->$name(${parameters.joinToString("")})"
 
+/** The two hooks that may share a method, when [readsBeforeWrites] says so. */
+internal const val STATE_HOOK = "the action-row state hook"
+internal const val READ_FILTER = "the tree read filter"
+
 /** The methods each of this patch's hooks changes, by hook. */
 internal fun repostHookMethods(
     state: FeedRepostState,
@@ -139,9 +145,9 @@ internal fun repostHookMethods(
     feedUfi: FeedUfiSite,
     component: FeedRepostComponent,
 ): Map<String, Set<String>> = mapOf(
-    "the action-row state hook" to state.writes.map { methodKey(state.type, "<init>", it.parameters) }.toSet(),
+    STATE_HOOK to state.writes.map { methodKey(it.owner, it.name, it.parameters) }.toSet(),
     "the getter guard" to setOf(methodKey(MEDIA, sites.getter, emptyList())),
-    "the tree read filter" to sites.reads.map { methodKey(it.type, it.name, it.parameters) }.toSet(),
+    READ_FILTER to sites.reads.map { methodKey(it.type, it.name, it.parameters) }.toSet(),
     "the Feed UFI hook" to setOf(methodKey(feedUfi.type, feedUfi.name, feedUfi.parameters)),
     "the Feed component hook" to setOf(
         methodKey(component.method.definingClass, component.method.name, component.method.parameterTypes.map(CharSequence::toString)),
@@ -149,18 +155,45 @@ internal fun repostHookMethods(
 )
 
 /**
+ * The methods where [STATE_HOOK] and [READ_FILTER] may both land: every tree read there sits before
+ * every state write. 452 inlines the action-row state's constructor into the builder that reads the
+ * post's tree, so one method holds both. The state hook goes first and inserts at the writes, past
+ * the reads, so the reads' positions still hold when the filter inserts right after each of them.
+ */
+internal fun readsBeforeWrites(state: FeedRepostState, sites: RepostSites): Set<String> {
+    val writes = state.writes.groupBy { methodKey(it.owner, it.name, it.parameters) }
+    return sites.reads.groupBy { methodKey(it.type, it.name, it.parameters) }
+        .filter { (method, reads) -> writes[method]?.let { stores -> reads.maxOf { it.at } < stores.minOf { it.at } } == true }
+        .keys
+}
+
+/**
  * Fails before any change when two hooks would change the same method. Each one places its lines
  * by instruction positions found in the untouched method, so another hook's lines would move them.
+ * The one exception is [STATE_HOOK] with [READ_FILTER] in a method of [readsFirst].
  */
-internal fun requireSeparateMethods(hooks: Map<String, Set<String>>) {
+internal fun requireSeparateMethods(hooks: Map<String, Set<String>>, readsFirst: Set<String> = emptySet()) {
     val owners = mutableMapOf<String, String>()
     for ((hook, methods) in hooks) for (method in methods) {
-        owners.put(method, hook)?.let { other -> refuse("$other and $hook would both change $method") }
+        val other = owners.put(method, hook) ?: continue
+        if (setOf(other, hook) != setOf(STATE_HOOK, READ_FILTER)) refuse("$other and $hook would both change $method")
+        if (method !in readsFirst) refuse("$other and $hook would both change $method, and a tree read there follows a state write")
     }
 }
 
-/** A read of the field from a post's data tree: where its move-result-object is and the register it fills. */
-internal class RepostRead(val type: String, val name: String, val parameters: List<String>, val at: Int, val register: Int)
+/**
+ * A read of the field from a post's data tree: where its move-result is and the register it fills.
+ * 451 keeps the Boolean, and 452 compares it in place: a static helper answers whether the tree's
+ * value equals the Boolean in register [expected], and [register] holds that answer.
+ */
+internal class RepostRead(
+    val type: String,
+    val name: String,
+    val parameters: List<String>,
+    val at: Int,
+    val register: Int,
+    val expected: Int = -1,
+)
 
 /** The post model's getter of the field, and every tree read of it outside the model. */
 internal class RepostSites(val getter: String, val reads: List<RepostRead>)
@@ -371,14 +404,14 @@ internal fun BytecodePatchContext.findFeedRepostState(): FeedRepostState {
     val enabled = toString.printedFlag(PATCH, state.type, REPOST_ENABLED_LABEL)
     // Read as it is now, so a write Hide comments has already hooked is found where it sits.
     val stored = mutableClassDefBy(state.type)
-    val writes = stored.flagWrites(PATCH, enabled).toMutableList()
+    val writes = flagWrites(PATCH, stored, enabled).toMutableList()
     if (writes.isEmpty()) refuse("${state.type}'s constructor never sets what it prints as \"$REPOST_ENABLED_LABEL\"")
     val flags = mutableListOf(enabled)
     for (label in listOf(REPOST_COUNT_LABEL, REPOST_ANIMATE_LABEL)) {
         if (!toString.holdsString(label)) continue
         // A flag printed some other way, or set anywhere but once in a constructor, is left alone.
         val flag = try { toString.printedFlag(PATCH, state.type, label) } catch (_: PatchException) { continue }
-        val set = try { stored.flagWrites(PATCH, flag) } catch (_: PatchException) { continue }
+        val set = try { flagWrites(PATCH, stored, flag) } catch (_: PatchException) { continue }
         if (set.size == 1 && flags.none { it.sameAs(flag) }) {
             flags += flag
             writes += set
@@ -433,6 +466,10 @@ private fun Method.repostReads(type: String): List<RepostRead> {
     val code = implementation?.instructions?.toList() ?: return emptyList()
     val reads = mutableListOf<RepostRead>()
     for ((at, instruction) in code.withIndex()) {
+        if (instruction.opcode == Opcode.INVOKE_STATIC) {
+            comparedRead(code, at)?.let { reads += RepostRead(type, name, parameterTypes.map(CharSequence::toString), at + 1, it.first, it.second) }
+            continue
+        }
         if (instruction.opcode != Opcode.INVOKE_INTERFACE && instruction.opcode != Opcode.INVOKE_INTERFACE_RANGE) continue
         val called = (instruction as ReferenceInstruction).reference as MethodReference
         if (called.returnType != BOOLEAN || called.parameterTypes.map(CharSequence::toString) != listOf("I")) continue
@@ -448,6 +485,22 @@ private fun Method.repostReads(type: String): List<RepostRead> {
         reads += RepostRead(type, name, parameterTypes.map(CharSequence::toString), at + 1, (result as OneRegisterInstruction).registerA)
     }
     return reads
+}
+
+/**
+ * 452's compare of a tree value: a static call handing a tree, the Boolean to compare with and
+ * [REPOSTS_HASH] to a helper answering whether they match, the answer kept by the next instruction.
+ * Answers the register the answer is in and the one holding the Boolean, or null for any other call.
+ */
+private fun comparedRead(code: List<Instruction>, at: Int): Pair<Int, Int>? {
+    val call = code[at] as? FiveRegisterInstruction ?: return null
+    val called = (call as ReferenceInstruction).reference as MethodReference
+    val parameters = called.parameterTypes.map(CharSequence::toString)
+    if (called.returnType != "Z" || parameters.size != 3 || parameters[1] != OBJECT || parameters[2] != "I") return null
+    if (call.registerCount != 3 || !code.hashLoadedInto(call.registerE, at)) return null
+    val result = code.getOrNull(at + 1)
+    if (result?.opcode != Opcode.MOVE_RESULT) return null
+    return (result as OneRegisterInstruction).registerA to call.registerD
 }
 
 /** Whether [REPOSTS_HASH] is loaded into [register] within [HASH_REACH] instructions before [at], and nothing else writes it between. */
@@ -494,6 +547,19 @@ internal fun BytecodePatchContext.filterRepostReads(reads: List<RepostRead>) {
         it.name == first.name && it.parameterTypes.map(CharSequence::toString) == first.parameters
     }
     for (read in reads.sortedByDescending { it.at }) {
+        if (read.expected >= 0) {
+            if (read.register > 15 || read.expected > 15) {
+                refuse("${first.type}->${first.name} compares the tree read in v${read.expected} and v${read.register}, past what a plain invoke can name")
+            }
+            method.addInstructions(
+                read.at + 1,
+                """
+                    invoke-static { v${read.register}, v${read.expected} }, $REPOSTS_ELIGIBLE_MATCH
+                    move-result v${read.register}
+                """,
+            )
+            continue
+        }
         method.addInstructions(
             read.at + 1,
             """

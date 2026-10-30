@@ -12,6 +12,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -57,14 +58,14 @@ internal val NOTIFY_PARAMETERS = listOf("Ljava/lang/String;", "I", "Landroid/app
 internal object NotifyFingerprint : Fingerprint(
     returnType = "V",
     parameters = NOTIFY_PARAMETERS,
-    strings = listOf(SIDE_CHANNEL),
+    filters = listOf(string(SIDE_CHANNEL)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
 /** The static method that shows the banner, (Context, notification, the banner's owner). */
 internal object BannerFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(NO_BANNER_ACTIVITY),
+    filters = listOf(string(NO_BANNER_ACTIVITY)),
     custom = { method, _ ->
         AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.size == 3 &&
             method.parameterTypes.first().toString() == "Landroid/content/Context;"
@@ -93,6 +94,7 @@ val lockMessagesPatch = bytecodePatch(
         val hidden = findHiddenChatTargets()
         val search = findSearchTargets()
         val recents = findRecentTargets()
+        val touch = findHiddenChatsTouch()
         hideNotificationText(targets.notify)
         hideDirectPosts(posts)
         holdBanner(targets.banner)
@@ -101,6 +103,7 @@ val lockMessagesPatch = bytecodePatch(
         hideChatsFromInbox(hidden)
         hideChatsFromSearch(search)
         hideChatsFromRecents(recents)
+        hookHiddenChatsTouch(touch)
         enableStatus("messagesLock")
     }
 }

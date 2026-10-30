@@ -41,6 +41,8 @@ internal const val OFFER_HIDE = "$HIDE_ROW->offer(Ljava/lang/Object;Ljava/util/A
 internal const val ALLOW_HIDE = "$HIDE_ROW->allow(Ljava/util/List;)Ljava/util/List;"
 internal const val HIDE_OPTION = "$HIDE_ROW->option()Ljava/lang/Object;"
 internal const val HIDE_TAPPED = "$HIDE_ROW->hide(Ljava/lang/Object;Landroid/app/Activity;)V"
+/** Swaps Download's arrow for Instagram's crossed-out eye on the row. */
+internal const val HIDE_ICON = "$HIDE_ROW->icon(I)I"
 
 private const val FRAGMENT_ACTIVITY = "Landroidx/fragment/app/FragmentActivity;"
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
@@ -124,7 +126,7 @@ internal class HideAccountRow(
                 optionOf.definingClass, optionOf.name, optionOf.parameters, optionOf.returnType,
                 optionOf.accessFlags, optionOf.annotations, optionOf.hiddenApiRestrictions,
                 ImmutableMethodImplementation(5, emptyList(), null, null),
-            ).toMutable().apply { addInstructions(0, newOption(icon, "move-object v1, p0")) },
+            ).toMutable().apply { addInstructions(0, newOption(icon, "move-object v1, p0", HIDE_ICON)) },
         )
     }
 }

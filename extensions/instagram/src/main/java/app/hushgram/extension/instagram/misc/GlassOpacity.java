@@ -4,21 +4,33 @@
  */
 package app.hushgram.extension.instagram.misc;
 
+import androidx.annotation.Nullable;
+
 /**
- * How see-through the glass tab bar's pill is. Each step scales the strength of the tint laid over the
- * blur (or over the bar's colour when there is no blur), so {@link #STANDARD}, the default, is exactly the
- * look the bar has always had and the others are a step clearer or a step more frosted.
+ * The four see-through steps the glass tab bar's pill had before its opacity became a slider (#391).
+ * Each scaled the strength of the tint laid over the blur, and {@link #STANDARD} was the look the bar
+ * has always had. Kept so a step saved by an older build, or carried in its settings file, comes back
+ * as the percent it drew.
  */
 public enum GlassOpacity {
-    CLEAR(0.5f),
-    LIGHT(0.75f),
-    STANDARD(1f),
-    FROSTED(1.35f);
+    CLEAR(50),
+    LIGHT(75),
+    STANDARD(100),
+    FROSTED(135);
 
-    /** What the tint's alpha is multiplied by. */
-    public final float scale;
+    /** What the tint's alpha was multiplied by, in percent. */
+    public final int percent;
 
-    GlassOpacity(float scale) {
-        this.scale = scale;
+    GlassOpacity(int percent) {
+        this.percent = percent;
+    }
+
+    /** The percent a step saved under [name] drew, or null for a name that was never a step. */
+    @Nullable
+    public static Integer percentOf(@Nullable String name) {
+        for (GlassOpacity step : values()) {
+            if (step.name().equals(name)) return step.percent;
+        }
+        return null;
     }
 }

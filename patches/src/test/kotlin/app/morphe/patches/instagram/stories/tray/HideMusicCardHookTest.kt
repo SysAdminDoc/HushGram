@@ -86,16 +86,36 @@ class HideMusicCardHookTest {
     }
 
     /**
+     * 451's 385713073 builds the repository in a static factory of another class (`0QbN.A00`),
+     * which holds its name, and the code asking the check casts to the class the factory makes.
+     */
+    @Test
+    fun aRepositoryBuiltByAFactoryIsTheCardsData() {
+        val context = PatchContexts.of(classes(factory = true))
+        assertEquals("$gate->A00", context.findMusicCard().let { "${it.type}->${it.name}" })
+        context.hideMusicCard()
+        assertAnswered("factory stand-in", context.mutableClassDefBy(gate).methods.single { it.name == "A00" })
+    }
+
+    /** A factory holding the name but making something else names no repository. */
+    @Test
+    fun aFactoryMakingAnotherClassFailsThePatch() {
+        val context = PatchContexts.of(classes(factory = true, factoryMakes = "Lfixture/Other;"))
+        val failure = assertThrows(PatchException::class.java) { context.hideMusicCard() }
+        assertTrue(failure.message, failure.message!!.contains("no class holds $MUSIC_CARD_REPOSITORY"))
+    }
+
+    /**
      * In each declared build the flag's one read is a check of the session, asked by code that
-     * casts to the music midcard repository, and it's answered. On 450 that's LX/05kB.A00, asked
-     * by the code that adds the card to the viewer's list.
+     * casts to the music midcard repository, and it's answered. On 451's 385713073 that's
+     * LX/06yB.A00, asked by the code that adds the card to the viewer's list.
      */
     @Test
     fun eachDeclaredBuildHidesTheCard() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val loaders = mutableMapOf<String, String>()
             val holders = mutableListOf<ClassDef>()
@@ -146,7 +166,8 @@ class HideMusicCardHookTest {
     /**
      * Shaped like 450's: a static check of the session reading the flag through a cast config, a
      * caller that casts something to the repository class and asks the check, and the repository,
-     * whose constructor holds its name.
+     * whose constructor holds its name. With [factory], as on 451, a static factory of another
+     * class holds the name instead and makes [factoryMakes].
      */
     private fun classes(
         repositoryHolds: String = MUSIC_CARD_REPOSITORY,
@@ -155,6 +176,8 @@ class HideMusicCardHookTest {
         sharedRead: Boolean = false,
         takes: String = session,
         casts: Boolean = true,
+        factory: Boolean = false,
+        factoryMakes: String = repository,
     ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
         val readFlag = List(reads) {
@@ -181,12 +204,17 @@ class HideMusicCardHookTest {
         )
         val init = method(
             repository, "<init>", listOf(session), "V", 2, AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value,
-            "const-string v0, \"$repositoryHolds\"\nreturn-void",
+            if (factory) "return-void" else "const-string v0, \"$repositoryHolds\"\nreturn-void",
         )
-        return listOf(
+        val make = method(
+            "Lfixture/MusicCardFactory;", "A00", listOf("Ljava/lang/Object;"), repository, 2, static,
+            "new-instance v1, $factoryMakes\nconst-string v0, \"$repositoryHolds\"\nreturn-object v1",
+        )
+        return listOfNotNull(
             classDef(gate, "Ljava/lang/Object;", listOf(check)),
             classDef(caller, "Ljava/lang/Object;", listOf(ask)),
             classDef(repository, "Ljava/lang/Object;", listOf(init)),
+            if (factory) classDef("Lfixture/MusicCardFactory;", "Ljava/lang/Object;", listOf(make)) else null,
         )
     }
 

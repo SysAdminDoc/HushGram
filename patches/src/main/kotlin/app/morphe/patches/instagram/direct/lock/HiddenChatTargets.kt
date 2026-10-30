@@ -8,8 +8,10 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
+import app.morphe.patcher.methodCall
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.visualCode
@@ -22,11 +24,13 @@ import app.morphe.patches.instagram.misc.extension.liveAcrossInjection
 import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
@@ -76,7 +80,7 @@ private const val UNMODIFIABLE_LIST = "Ljava/util/Collections;->unmodifiableList
 /** The store's readers of the sorted thread summaries: each logs [THREAD_SUMMARIES] and answers a new list. */
 internal object ThreadSummariesFingerprint : Fingerprint(
     returnType = ARRAY_LIST,
-    strings = listOf(THREAD_SUMMARIES),
+    filters = listOf(string(THREAD_SUMMARIES)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
@@ -86,10 +90,20 @@ internal object ThreadSummariesFingerprint : Fingerprint(
  * them in an unmodifiable list, and goes on to collect the unread chats' keys in a linked set.
  * Nothing else that reads the store does all three. The store is checked against its readers
  * afterwards. Its snapshot feeds the unread badge and, through a method of its own, the unread
- * counts on the inbox's folder tabs. It is not the list the inbox draws its rows from.
+ * counts on the inbox's folder tabs. It is not the list the inbox draws its rows from. The wrap is
+ * a filter as well, which [badgeReadAt] needs anyway, so the patcher's index picks the classes to
+ * read rather than every method being decoded (#173).
  */
 internal object InboxBadgeFingerprint : Fingerprint(
     returnType = "L",
+    filters = listOf(
+        methodCall(
+            definingClass = "Ljava/util/Collections;",
+            name = "unmodifiableList",
+            parameters = listOf("Ljava/util/List;"),
+            returnType = "Ljava/util/List;",
+        ),
+    ),
     custom = { method, _ ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.badgeReadAt() != null
     },
@@ -118,23 +132,24 @@ internal class SummaryList(val method: MutableMethod, val returnAt: Int, val reg
 /** A list on its way somewhere: the method, the instruction the filter goes in front of, and the register holding the list. */
 internal class ListSite(val method: MutableMethod, val at: Int, val register: Int)
 
-/**
- * The write of the inbox's list of chats ([site], the register holding the list), the register
- * holding the holder it is written to, the holder's list field, and the holder's own starter of the
- * row factory, which Instagram calls on the holder right after the write.
- */
-internal class InboxRows(val site: ListSite, val holder: Int, val list: FieldReference, val starter: Method)
+/** One write of the inbox's list of chats: [site], the register holding the list, and the register holding the holder it goes to. */
+internal class RowsWrite(val site: ListSite, val holder: Int)
 
 /**
- * What hiding chats from the inbox needs from Instagram, proved before anything changes: the write
+ * Every write of the inbox's list of chats, the holder's list field, and the holder's own starter
+ * of the row factory, which Instagram calls on the holder right after each write.
+ */
+internal class InboxRows(val writes: List<RowsWrite>, val list: FieldReference, val starter: Method)
+
+/**
+ * What hiding chats from the inbox needs from Instagram, proved before anything changes: each write
  * of the list the inbox draws its rows from and the holder it goes to, the unread badge snapshot's
  * read of the store's summaries, its read of each folder tab's chats for the tabs' unread counts,
  * the body of the extension's bridge from a summary to its chat's thread id, and the body of its
  * bridge that has the inbox draw its rows again.
  */
 internal class HiddenChatTargets(
-    val rows: ListSite,
-    val holder: Int,
+    val rows: List<RowsWrite>,
     val badge: ListSite,
     val folders: ListSite,
     val bridge: MutableMethod,
@@ -207,7 +222,7 @@ internal fun BytecodePatchContext.findHiddenChatTargets(): HiddenChatTargets {
     }.one("extension's inbox redraw bridge")
     requireFilter()
     return HiddenChatTargets(
-        rows.site, rows.holder, ListSite(view, after, register), folders, bridge, bridgeBody, redraw, redrawBody(rows),
+        rows.writes, ListSite(view, after, register), folders, bridge, bridgeBody, redraw, redrawBody(rows),
     )
 }
 
@@ -239,6 +254,13 @@ private fun keyGetters(type: ClassDef): List<Method> = type.methods.filter {
  * Reading back from the factory: the one method making it (07HZ.A01) loads the list from its own
  * class's one List field, and that field has one write in the whole app, the holder's subscriber
  * to the inbox's state (a case of 09kY.accept). The filter goes right in front of that write.
+ *
+ * 452's 385810270 keeps the list Instagram hands over in a second field (06XM.A09) and writes the
+ * drawn list (06XM.A0A) from it twice: in the subscriber (0Ayk.A00) and when the inbox's own filter
+ * changes (06XM.A05), each time as the selected filter allows, then starts the factory. Each write
+ * gets the filter, and each has to be followed by the starter on the holder, as on 450. Both are
+ * jumped to from the branch that picks the list, so the filter takes the write's place as the
+ * jumps' target and every way to the write passes through it.
  *
  * The starter isn't the field's only reader. On 450 six others read it too: 07HZ.A05, 07Ml.A05,
  * 04BN.A06 (onPause), 04BN.onAppBackgrounded, 09iQ.invoke and 09wL.FOY. Each reads the field
@@ -278,31 +300,46 @@ internal fun BytecodePatchContext.findInboxRows(): InboxRows {
             }.map { method to it }
         }
     }
-    val (native, at) = writes.one("write of the inbox's list of chats ${list.signature()}")
-    val writer = mutableClassDefBy(native.definingClass).methods.single {
-        it.name == native.name && it.parameters() == native.parameters() && it.returnType == native.returnType
-    }
-    val put = writer.visualCode()[at] as TwoRegisterInstruction
-    val value = put.registerA
-    val holder = put.registerB
-    if (value == holder) refuse("the write of the inbox's list of chats stores v$value into itself")
-    if (value > 15 || holder > 15) refuse("the write of the inbox's list of chats uses v$value and v$holder, past v15")
-    if (at in writer.jumpTargets()) refuse("something jumps straight to the write of the inbox's list of chats")
-    if (value in writer.liveAcrossInjection(at + 1)) {
-        refuse("${writer.definingClass}->${writer.name} reads the inbox's list of chats again after it writes it")
-    }
+    if (writes.isEmpty()) refuse("expected one write of the inbox's list of chats ${list.signature()}, found none")
+    val sites = writes.map { (native, at) -> rowsWrite(native, at, starter) }
     if (!AccessFlags.STATIC.isSet(starter.accessFlags) || starter.parameters() != listOf(list.definingClass) || starter.returnType != "V") {
         refuse("the inbox row factory's starter ${starter.signature()} isn't a static call taking its holder")
     }
     requirePublic(list.definingClass, list)
     requirePublic(list.definingClass, starter)
-    return InboxRows(ListSite(writer, at, value), holder, list, starter)
+    return InboxRows(sites, list, starter)
+}
+
+/**
+ * The write of the inbox's list at [at] in [native]: its value must not be read after it, both
+ * registers must fit the filter's call, and the next instruction must start the row factory on the
+ * holder written to, so the write is one the inbox draws.
+ */
+private fun BytecodePatchContext.rowsWrite(native: Method, at: Int, starter: Method): RowsWrite {
+    val writer = mutableClassDefBy(native.definingClass).methods.single {
+        it.name == native.name && it.parameters() == native.parameters() && it.returnType == native.returnType
+    }
+    val code = writer.visualCode()
+    val put = code[at] as TwoRegisterInstruction
+    val value = put.registerA
+    val holder = put.registerB
+    val where = "${writer.definingClass}->${writer.name}"
+    if (value == holder) refuse("the write of the inbox's list of chats in $where stores v$value into itself")
+    if (value > 15 || holder > 15) refuse("the write of the inbox's list of chats in $where uses v$value and v$holder, past v15")
+    if (value in writer.liveAcrossInjection(at + 1)) refuse("$where reads the inbox's list of chats again after it writes it")
+    val next = code.getOrNull(at + 1)
+    val call = next?.visualReference() as? MethodReference
+    val starts = next?.opcode == Opcode.INVOKE_STATIC && call != null && call.definingClass == starter.definingClass &&
+        call.name == starter.name && call.parameterTypes.map(CharSequence::toString) == starter.parameters() &&
+        (next as FiveRegisterInstruction).registerCount == 1 && next.registerC == holder
+    if (!starts) refuse("$where doesn't start the inbox row factory on its holder right after it writes the list of chats")
+    return RowsWrite(ListSite(writer, at, value), holder)
 }
 
 /** The inbox's row factory: a runnable logging [INBOX_ROWS]. */
 internal object InboxRowsFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(INBOX_ROWS),
+    filters = listOf(string(INBOX_ROWS)),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.isEmpty() },
 )
 
@@ -350,14 +387,18 @@ private fun BytecodePatchContext.findFolderCounts(badge: Method, storeRead: Meth
 internal fun hideChatsFromInbox(targets: HiddenChatTargets) {
     targets.bridge.addInstructionsWithLabels(0, targets.bridgeBody)
     targets.redraw.addInstructions(0, targets.redrawBody)
-    val rows = targets.rows
-    rows.method.addInstructions(
-        rows.at,
-        """
-            invoke-static { v${targets.holder}, v${rows.register} }, $HIDDEN_INBOX
-            move-result-object v${rows.register}
-        """,
-    )
+    // Last write first, so an earlier write in the same method keeps its index. The filter takes
+    // the write's place as a jump target, so a branch to the write runs it too.
+    for (write in targets.rows.sortedByDescending { it.site.at }) {
+        val rows = write.site
+        rows.method.addInstructionsAtControlFlowLabel(
+            rows.at,
+            """
+                invoke-static { v${write.holder}, v${rows.register} }, $HIDDEN_INBOX
+                move-result-object v${rows.register}
+            """,
+        )
+    }
     for ((site, filter) in listOf(targets.badge to HIDDEN_FILTER, targets.folders to HIDDEN_FOLDER)) {
         val register = "v${site.register}"
         site.method.addInstructions(
@@ -408,11 +449,14 @@ internal const val SEE_ALL_SCREEN = "Linstagram/features/direct/inbox/fragment/D
 internal object SearchRowsFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf(STRING, STRING, LIST, LIST),
-    strings = listOf("ibc_chats_context_lines"),
+    filters = listOf(string("ibc_chats_context_lines")),
     custom = { method, _ -> !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 
-/** The See all screen's reader of the same results: it loads them from the search state and casts them to a list. */
+/**
+ * The See all screen's reader of the same results: it loads them from the search state and casts
+ * them to a list, itself (451) or through the state's own static helper (452).
+ */
 internal object SeeAllRowsFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("L", STRING, "Z"),
@@ -438,8 +482,9 @@ internal fun Method.buildsMessageHits(): Boolean {
 
 /**
  * Where the See all screen reads the search state's results: the instruction that casts them to a
- * list, straight after the call that answers them and before the screen itself is cast. Null for
- * a method without that shape.
+ * list, straight after the call that answers them and before the screen itself is cast, or on 452
+ * the move-result keeping what the state's helper answers. Null for a method without that shape,
+ * or with more than one such read.
  */
 internal fun Method.seeAllListAt(): Int? {
     val code = implementation?.instructions?.toList() ?: return null
@@ -452,8 +497,55 @@ internal fun Method.seeAllListAt(): Int? {
             code[index + 2].opcode == Opcode.CHECK_CAST && (code[index + 2].visualReference() as? TypeReference)?.type == LIST &&
             code[index + 3].opcode == Opcode.IGET_OBJECT &&
             code[index + 4].opcode == Opcode.CHECK_CAST && (code[index + 4].visualReference() as? TypeReference)?.type == SEE_ALL_SCREEN
-    }
-    return at.singleOrNull()?.plus(2)
+    }.map { it + 2 } + seeAllHelperReads(code)
+    return at.singleOrNull()
+}
+
+/**
+ * 452's form of the same read (`0Sa5.G0L` on 385810270): the search state's own static helper
+ * (`0Wpm.A00`, checked by [requireSeeAllListHelper]) loads the results and casts them, and the
+ * reader keeps what it answers, then casts the screen. The index of the move-result holding the
+ * list, for each place that reads it so.
+ */
+private fun Method.seeAllHelperReads(code: List<Instruction>): List<Int> = code.indices.filter { index ->
+    val call = code[index].visualReference() as? MethodReference
+    index + 3 < code.size && code[index].opcode == Opcode.INVOKE_STATIC && call != null && call.isSeeAllListHelperOf(this) &&
+        code[index + 1].opcode == Opcode.MOVE_RESULT_OBJECT &&
+        code[index + 2].opcode == Opcode.IGET_OBJECT &&
+        code[index + 3].opcode == Opcode.CHECK_CAST && (code[index + 3].visualReference() as? TypeReference)?.type == SEE_ALL_SCREEN
+}.map { it + 1 }
+
+/** A static call on the search state the reader is handed first, taking that state and answering a list. */
+private fun MethodReference.isSeeAllListHelperOf(reader: Method): Boolean {
+    val state = reader.parameterTypes.firstOrNull()?.toString() ?: return false
+    return definingClass == state && parameterTypes.map(CharSequence::toString) == listOf(state) && returnType == LIST
+}
+
+/**
+ * The 452 helper the See all reader calls at [listAt]'s invoke, which must be nothing but the
+ * state's own read of its results and their cast to a list, so the list it answers is the one the
+ * older reader cast itself. Refuses otherwise.
+ */
+private fun BytecodePatchContext.requireSeeAllListHelper(reader: Method, listAt: Int) {
+    val call = reader.visualCode()[listAt - 1].visualReference() as MethodReference
+    val helper = classDefByOrNull(call.definingClass)?.methods?.singleOrNull {
+        it.name == call.name && it.parameterTypes.map(CharSequence::toString) == call.parameterTypes.map(CharSequence::toString) &&
+            it.returnType == call.returnType
+    } ?: refuse("the See all search reader's list helper ${call.definingClass}->${call.name} is missing")
+    val code = helper.visualCode()
+    val read = code.getOrNull(0)
+    val readCall = read?.visualReference() as? MethodReference
+    val state = helper.implementation!!.registerCount - 1
+    val shaped = AccessFlags.STATIC.isSet(helper.accessFlags) && code.size == 4 &&
+        read?.opcode == Opcode.INVOKE_INTERFACE && readCall != null && readCall.definingClass == call.definingClass &&
+        readCall.parameterTypes.isEmpty() && readCall.returnType == "Ljava/lang/Object;" &&
+        (read as FiveRegisterInstruction).registerCount == 1 && read.registerC == state &&
+        code[1].opcode == Opcode.MOVE_RESULT_OBJECT &&
+        code[2].opcode == Opcode.CHECK_CAST && (code[2].visualReference() as? TypeReference)?.type == LIST &&
+        code[3].opcode == Opcode.RETURN_OBJECT &&
+        setOf((code[1] as OneRegisterInstruction).registerA, (code[2] as OneRegisterInstruction).registerA,
+            (code[3] as OneRegisterInstruction).registerA).size == 1
+    if (!shaped) refuse("the See all search reader's list helper ${call.definingClass}->${call.name} doesn't just read and cast the results")
 }
 
 /** A place that hands the search's results to the extension: the method, where, and the register the list is in. */
@@ -483,6 +575,7 @@ internal fun BytecodePatchContext.findSearchTargets(): SearchTargets {
     if (0 in rows.jumpTargets()) refuse("something jumps back to the inbox search row builder's first instruction")
     val seeAll = uniqueMethod(LOCK_PATCH, "See all search reader", SeeAllRowsFingerprint)
     val cast = seeAll.seeAllListAt() ?: refuse("the See all search reader lost its shape")
+    if (seeAll.visualCode()[cast].opcode == Opcode.MOVE_RESULT_OBJECT) requireSeeAllListHelper(seeAll, cast)
     if (cast + 1 in seeAll.jumpTargets()) refuse("something jumps into the See all search reader after it reads its results")
     val listRegister = (seeAll.visualCode()[cast] as OneRegisterInstruction).registerA
     if (listRegister > 255) refuse("the See all search reader keeps its results in v$listRegister, past v255")

@@ -1,4 +1,4 @@
-"""Holds the release notes to Morphe Manager's changelog parser.
+"""Holds the bundle description to Morphe Manager's changelog parser, and the GitHub body to its layout.
 
 Manager draws the notes as cards (New, Fixes, Improvements) from the headings, scopes and version
 heading it reads. This ports the parts of its ChangelogParser that decide those (sections(),
@@ -15,10 +15,14 @@ GPL-3.0-only.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
+import json
 import pathlib
 import re
 import sys
+import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -193,11 +197,13 @@ def feature(text):
 
 
 class RefusalTests(unittest.TestCase):
-    SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
+    SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram:** `Hide Meta AI` has a fix.\n"
+    # The shape sections from 0.0.17 and before were written in.
+    OLD_SECTION = "\n### Features\n\n* **Instagram:** A new row.\n\n### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n"
     VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
 
-    def build(self, section, patches=None):
-        return notes.build_notes(section, self.VALIDATION, "1.0.0", "2026-01-02", "0.9.0", patches)
+    def build(self, section, patches=None, version="1.0.0"):
+        return notes.build_notes(section, self.VALIDATION, version, "2026-01-02", "0.9.0", patches)
 
     def test_clean_section_builds(self):
         body, carried = self.build(self.SECTION, {"Hide Meta AI"})
@@ -228,7 +234,10 @@ class RefusalTests(unittest.TestCase):
 
     def test_refusals(self):
         cases = {
-            "bullet outside a heading": ("* **Instagram:** A new row.\n", "outside a type sub-heading"),
+            "bullet outside a heading": ("* **Instagram:** A summary.\n* **Instagram:** A new row.\n", "outside a type sub-heading"),
+            "tooling summary": ("* **Tooling:** A summary.\n" + self.SECTION,"only one **Instagram:** summary"),
+            "summary inside a version wrapper": ("\n### HushGram v1.0.0\n* **Instagram:** A summary.\n#### Features\n* **Instagram:** A row.\n",
+                                                 "outside a type sub-heading"),
             "unknown sub-heading": ("\n### Changes\n\n* **Instagram:** A row.\n", "unknown sub-heading"),
             "unscoped bullet": ("\n### Features\n\n* A new row.\n", "has no scope"),
             "unknown scope": ("\n### Features\n\n* **Docs:** A new row.\n", "unknown scope Docs"),
@@ -258,8 +267,18 @@ class RefusalTests(unittest.TestCase):
 
     def test_unknown_patch_scope(self):
         with self.assertRaises(notes.NotesError) as error:
-            self.build(self.SECTION, {"Something else"})
+            self.build(self.OLD_SECTION, {"Something else"}, version="0.0.17")
         self.assertIn("isn't a patch", str(error.exception))
+
+    def test_patch_scopes_end_after_0_0_17(self):
+        for version in ("0.0.2", "0.0.16", "0.0.17"):
+            with self.subTest(version):
+                self.assertEqual(self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)[1], 2)
+        for version in ("0.0.18", "0.1.0", "1.0.0"):
+            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
+                self.build(self.OLD_SECTION, {"Hide Meta AI"}, version)
+            self.assertIn("name the patch in the text", str(error.exception))
+        self.assertFalse(notes.takes_patch_scopes(None))
 
     def test_validation_is_one_line(self):
         with self.assertRaises(notes.NotesError):
@@ -268,6 +287,117 @@ class RefusalTests(unittest.TestCase):
     def test_first_release_heading_has_no_compare_link(self):
         body, _ = notes.build_notes(self.SECTION, self.VALIDATION, "1.0.0", "2026-01-02", None)
         self.assertTrue(body.startswith("## 1.0.0 (2026-01-02)\n"))
+
+    def test_summary_stays_out_of_the_description(self):
+        body, carried = self.build("* **Instagram:** The summary.\n" + self.SECTION, {"Hide Meta AI"})
+        self.assertEqual(carried, 2)
+        self.assertNotIn("The summary.", body)
+        self.assertEqual(body, self.build(self.SECTION, {"Hide Meta AI"})[0])
+
+    def test_long_summary_and_dash(self):
+        for summary, said in ((words(121), "summary runs 121 words"), ("A summary - here.", "dash")):
+            with self.subTest(said), self.assertRaises(notes.NotesError) as error:
+                self.build("* **Instagram:** " + summary + "\n" + self.SECTION)
+            self.assertIn(said, str(error.exception))
+        self.build("* **Instagram:** " + words(120) + "\n" + self.SECTION)
+
+    def test_unreleased_takes_no_patch_scope(self):
+        found = notes.read_bullets(self.OLD_SECTION)
+        notes.check_scopes(found, {"Hide Meta AI"})
+        with self.assertRaises(notes.NotesError) as error:
+            notes.check_scopes(found, {"Hide Meta AI"}, patch_scopes=False)
+        self.assertIn("name the patch in the text", str(error.exception))
+
+
+class CheckCommandTests(unittest.TestCase):
+    """release_notes.py --check, which hands --version to the patch scope rule."""
+
+    def check(self, *version):
+        changelog = "# Changelog\n\n## Unreleased\n" + "".join(
+            f"{RefusalTests.OLD_SECTION}\n## {heading}\n" for heading in ("0.0.18 (2026-11-01)", "0.0.17 (2026-10-28)"))
+        changelog += RefusalTests.OLD_SECTION
+        with tempfile.TemporaryDirectory() as folder:
+            path = pathlib.Path(folder)
+            (path / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
+            (path / "patches-list.json").write_text(json.dumps({"patches": [{"name": "Hide Meta AI"}]}), encoding="utf-8")
+            said = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(said):
+                code = notes.main(["--changelog", str(path / "CHANGELOG.md"), "--check", *version])
+        return code, said.getvalue()
+
+    def test_version_picks_the_scope_rule(self):
+        self.assertEqual(self.check("--version", "0.0.17"), (0, ""))
+        for version in (("--version", "0.0.18"), ()):
+            with self.subTest(version):
+                code, said = self.check(*version)
+                self.assertEqual(code, 1)
+                self.assertIn("name the patch in the text", said)
+
+
+class GitHubNotesTests(unittest.TestCase):
+    """The GitHub release body, laid out like Hushfacebook's."""
+    SECTION = ("* **Instagram:** The **summary** of it.\n\n### Improvements\n\n* **Tooling:** A script.\n"
+               "* **Instagram:** A clearer row.\n\n### Features\n\n* **Instagram:** `Hide Meta AI` has a new row.\n\n"
+               "### Bug Fixes\n\n* **Instagram - Hide Meta AI:** A fix.\n")
+    VALIDATION = "Validation: 1 runtime tests passed locally. All 1 patch tests passed too."
+
+    # SECTION's patch scope is the 0.0.17 shape, which plain() still has to write out.
+    def build(self, section, summary=None, checked=None, version: str | None = "0.0.17"):
+        return notes.build_github_notes(section, self.VALIDATION, "453.0.0.57.79", "2.0.0", {"Hide Meta AI"},
+                                        summary, checked, version)
+
+    def test_layout(self):
+        body, carried = self.build(self.SECTION, checked="The walk passed.")
+        self.assertEqual(carried, 4)
+        self.assertEqual(body, "\n\n".join([
+            "The `summary` of it.",
+            "New in this release", "- `Hide Meta AI` has a new row.",
+            "Fixes", "- `Hide Meta AI`: A fix.",
+            "Other changes", "- A clearer row.",
+            "Behind the scenes", "- A script.",
+            f"The [changelog]({notes.REPO_URL}/blob/main/CHANGELOG.md) has every earlier release too.",
+            "How to update",
+            "1. Update Morphe Manager to 2.0.0 or newer, then refresh the HushGram source.\n"
+            f"2. Patch Instagram `453.0.0.57.79`. [Supported Instagram builds]({notes.REPO_URL}#supported-instagram-builds) "
+            "lists the builds that work.\n"
+            "3. Install over your current patched Instagram with the manager's existing signing key. Keep that key so "
+            "updates keep working.",
+            f"The `.mpp` download is a patch bundle, not an Instagram APK. [Installation instructions]({notes.REPO_URL}#install).",
+            "What was checked", "1 runtime tests passed locally. All 1 patch tests passed too.", "The walk passed.",
+        ]) + "\n")
+        self.assertNotIn("**", body)
+
+    def test_summary_from_a_file_when_the_section_has_none(self):
+        section = self.SECTION.split("\n", 1)[1]
+        body, _ = self.build(section, summary="A summary\nover two lines.\n")
+        self.assertTrue(body.startswith("A summary over two lines.\n\nNew in this release\n"))
+        for summary, said in ((None, "no **Instagram:** summary"), ("Too - dashed.", "dash")):
+            with self.subTest(said), self.assertRaises(notes.NotesError) as error:
+                self.build(section, summary=summary)
+            self.assertIn(said, str(error.exception))
+        with self.assertRaises(notes.NotesError) as error:
+            self.build(self.SECTION, summary="Another.")
+        self.assertIn("pick one", str(error.exception))
+
+    def test_newer_release_refuses_a_patch_scope(self):
+        for version in ("0.0.18", None):
+            with self.subTest(version), self.assertRaises(notes.NotesError) as error:
+                self.build(self.SECTION, version=version)
+            self.assertIn("name the patch in the text", str(error.exception))
+
+    def test_newest_changelog_section(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        newest = re.search(r"^## (\d+\.\d+\.\d+) \(", changelog, re.M).group(1)
+        section, _, _ = notes.read_section(changelog, newest)
+        summary = None if notes.read_summary(section) else "A summary."
+        body, carried = notes.build_github_notes(
+            section, "Validation: 1 runtime tests passed locally.", notes.read_target(ROOT / "patches-list.json"),
+            notes.read_manager_floor(ROOT / "gradle" / "libs.versions.toml"), notes.read_patches(ROOT / "patches-list.json"),
+            summary, version=newest)
+        self.assertEqual(carried, sum(len(b) for b in notes.read_bullets(section).values()))
+        self.assertNotIn("**Instagram", body)
+        self.assertNotIn("**Tooling", body)
+        self.assertFalse([line for line in body.split("\n") if line.startswith("- Instagram")])
 
 
 if __name__ == "__main__":

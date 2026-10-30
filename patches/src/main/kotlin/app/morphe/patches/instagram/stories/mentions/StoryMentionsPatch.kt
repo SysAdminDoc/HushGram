@@ -17,11 +17,12 @@ import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.accountBridges
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -35,7 +36,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 internal const val PATCH = "See who a story mentions"
@@ -133,14 +133,15 @@ internal class StoryMentionSites(
  * since that's an Instagram this patch hasn't seen.
  */
 internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
-    val binders = classesHolding(BIND_MEDIA).flatMap { classDef ->
-        classDef.methods.filter { method -> method.code().any { it.loadsString(BIND_MEDIA) } }.map { classDef.type to it }
+    // 452's 385810270 catch-up binder asks Redex's string pool for the name, and the pool holds it.
+    val binders = classesLoadingString(BIND_MEDIA).flatMap { classDef ->
+        classDef.methods.filter { method -> !method.isStringPool() && bindMediaAt(method) >= 0 }.map { classDef.type to it }
     }
     if (binders.isEmpty()) refuse("no method loads $BIND_MEDIA")
 
     val binds = binders.map { (type, method) ->
         val code = method.code()
-        val named = code.indexOfFirst { it.loadsString(BIND_MEDIA) }
+        val named = bindMediaAt(method)
         val puts = (named + 1 until code.size).filter { index ->
             code[index].opcode == Opcode.IPUT_OBJECT && code[index].fieldReference()?.type == STORY_ITEM
         }
@@ -292,8 +293,14 @@ internal fun hookPillTouch(touch: MutableMethod) {
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
-private fun Instruction.loadsString(value: String) =
-    (opcode == Opcode.CONST_STRING || opcode == Opcode.CONST_STRING_JUMBO) &&
-        ((this as ReferenceInstruction).reference as StringReference).string == value
+/** Where this method first loads [BIND_MEDIA], held or asked of a string pool, or -1. */
+private fun BytecodePatchContext.bindMediaAt(method: Method): Int {
+    val code = method.code()
+    return code.indices.firstOrNull { stringLoadedAt(code, it) == BIND_MEDIA } ?: -1
+}
+
+/** A static `(I)String` method: the shape of Redex's pools of shared strings. */
+private fun Method.isStringPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING &&
+    parameterTypes.map(Any::toString) == listOf("I")
 
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference

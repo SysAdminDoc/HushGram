@@ -16,6 +16,7 @@ import app.morphe.patches.instagram.NeutralNativePath
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
@@ -53,6 +54,370 @@ class HideThreadsButtonHookTest {
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$BUTTONS is not in the extension: $declared", BUTTONS.substringAfter("->") in declared)
         assertTrue("the $ICON_STUB stub is not in the extension: $declared", "$ICON_STUB(Ljava/lang/Object;)I" in declared)
+        assertTrue("$HIDE_BANNER is not in the extension: $declared", HIDE_BANNER.substringAfter("->") in declared)
+        assertTrue("$HIDE_CREATE is not in the extension: $declared", HIDE_CREATE.substringAfter("->") in declared)
+    }
+
+    /** Share profile's hook and the stub the patch writes are in the ShareProfileButton the bundle ships, public and static. */
+    @Test
+    fun theShareHookAndStubAreInTheExtension() {
+        val declared = ExtensionDex.classDef(SHARE_BUTTON).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$SHARE_HOOK is not in the extension: $declared", SHARE_HOOK.substringAfter("->") in declared)
+        assertTrue("the $SHARE_STUB stub is not in the extension: $declared", "$SHARE_STUB(Ljava/lang/Object;)Z" in declared)
+    }
+
+    /**
+     * #253: the stub tells Share profile's model, and each builder hands its button and model over
+     * right before its return, with the branches that went to the return going through the hook.
+     */
+    @Test
+    fun eachRowButtonGoesToTheExtensionBeforeItsReturned() {
+        val context = PatchContexts.of(shareClasses())
+        val site = context.findShareButton()
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+
+        context.hideShareButton(site)
+
+        assertShareHooked("the stand-in", context, site, before)
+        val text = site.builders.first()
+        assertTrue("the stand-in: the branch to the return goes through the hook", text.returnAt in context.shareMethod(text).jumpTargets())
+    }
+
+    /** A Share profile button the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aShareButtonThePatchCantPlaceFails() {
+        val cases = listOf(
+            shareClasses(models = 0) to "expected one Share profile button loading \"$SHARE_URL\" and \"$SHARE_TRAY\" when tapped, found 0",
+            shareClasses(kinds = 2) to "expected Share profile's $shareModel to be one kind of action button, found 2 interfaces",
+            shareClasses(icons = 0) to "expected one method building Share profile as an icon from a $kind, found 0",
+            shareClasses(texts = 0) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 0",
+            shareClasses(texts = 2) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 2",
+            shareClasses(writesModel = true) to "$rowButtons->A01 writes over its model in v2",
+            shareClasses(extension = null) to "the extension has no $SHARE_BUTTON",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findShareButton() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build both of the row's builders hand Share profile over once, before their return. */
+    @Test
+    fun eachDeclaredBuildHandsShareProfileToTheExtension() {
+        forEachFixture { share(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildHandsShareProfileToTheExtensionToo() {
+        for (base in Fixtures.otherBuilds()) share(base, base.parentFile.name)
+    }
+
+    private fun share(bundle: File, label: String) {
+        val loading = (FixtureDex.classesLoading(bundle, SHARE_URL) + FixtureDex.classesLoading(bundle, SHARE_ICON_TAG)).distinctBy { it.type }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading) + ExtensionDex.classDef(SHARE_BUTTON))
+        val site = context.findShareButton()
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+
+        context.hideShareButton(site)
+
+        assertShareHooked(label, context, site, before)
+    }
+
+    /** The stub's check, then for each builder one hook right before its return, Instagram's own code otherwise untouched. */
+    private fun assertShareHooked(what: String, context: BytecodePatchContext, site: ShareButtonSite, before: List<List<String>>) {
+        val stub = context.mutableClassDefBy(SHARE_BUTTON).methods.single { it.name == SHARE_STUB }.code()
+        assertEquals("$what: the stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), stub.map { it.opcode })
+        assertEquals("$what: the stub's type", site.model, (stub[0].reference() as TypeReference).type)
+        assertEquals("$what: the builders", 2, site.builders.size)
+        for ((index, builder) in site.builders.withIndex()) {
+            val method = context.shareMethod(builder)
+            val code = method.code()
+            val where = "$what: ${builder.type}->${builder.name}"
+            assertEquals("$where: hooks", listOf(builder.returnAt), code.indices.filter { code[it].referenceText() == SHARE_HOOK })
+            assertEquals("$where: hands over the button and its model", listOf(builder.view, builder.from), code[builder.returnAt].arguments())
+            assertEquals("$where: the return after it", Opcode.RETURN_OBJECT, code[builder.returnAt + 1].opcode)
+            assertEquals("$where: the button returned", builder.view, (code[builder.returnAt + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$where: a jump skips the hook", builder.returnAt + 1 !in method.jumpTargets())
+            val expected = before[index].toMutableList().apply { add(builder.returnAt, code[builder.returnAt].describe()) }
+            assertEquals("$where: Instagram's own code", expected, code.map { it.describe() })
+        }
+    }
+
+    private fun BytecodePatchContext.shareMethod(builder: ShareBuilder): MutableMethod =
+        mutableClassDefBy(builder.type).methods.single { it.name == builder.name && it.parameterTypes.map(CharSequence::toString) == builder.parameters }
+
+    private val kind = "Lfixture/ActionButton;"
+    private val shareModel = "Lfixture/ShareModel;"
+    private val rowButtons = "Lfixture/RowButtons;"
+
+    /**
+     * Share profile's model, an action button whose onClick loads the share link and the tray it
+     * opens; the class building the row's buttons, the text ones (with a branch to the return, as
+     * 451's has) and Share profile as an icon; and the extension.
+     */
+    private fun shareClasses(
+        models: Int = 1,
+        kinds: Int = 1,
+        icons: Int = 1,
+        texts: Int = 1,
+        writesModel: Boolean = false,
+        extension: ClassDef? = ExtensionDex.classDef(SHARE_BUTTON),
+    ): List<ClassDef> {
+        val view = "Landroid/view/View;"
+        val classes = mutableListOf<ClassDef>()
+        if (models == 1) {
+            val onClick = method(shareModel, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nconst-string v0, \"$SHARE_TRAY\"\nreturn-void")
+            val interfaces = List(kinds) { if (it == 0) kind else "Lfixture/Other$it;" }
+            classes += ImmutableClassDef(shareModel, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+                interfaces, null, null, emptyList(), listOf(onClick))
+        }
+        val builders = mutableListOf<Method>()
+        builders += (0 until texts).map {
+            method(rowButtons, "A0${it + 1}", listOf(kind, "Ljava/lang/Integer;", "I"), view, 2, static = true, body = """
+                const-string v1, "$TEXT_TAG"
+                ${if (writesModel) "const/4 p0, 0x0" else ""}
+                const/4 v0, 0x0
+                if-eqz p2, :done
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object v0
+                :done
+                return-object v0
+            """)
+        }
+        builders += (0 until icons).map {
+            method(rowButtons, "B0$it", listOf(kind), view, 2, static = true, body = """
+                const-string v1, "$SHARE_ICON_TAG"
+                const/4 v0, 0x0
+                return-object v0
+            """)
+        }
+        // The share link loaded beside the row's builders by a method that isn't Share's onClick.
+        builders += method(rowButtons, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nreturn-void")
+        classes += classDef(rowButtons, builders)
+        if (extension != null) classes += extension
+        return classes
+    }
+
+    /** The method adding the Threads chip asks the extension first and returns before the chip is made when told to. */
+    @Test
+    fun theThreadsChipIsSkippedWhenTheExtensionSaysSo() {
+        val context = PatchContexts.of(bannerClasses() + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findThreadsBanner()
+        val before = context.adder(site).code().map { it.describe() }
+
+        context.hideThreadsBanner(site)
+
+        assertEquals("the chip", chip, site.banner)
+        assertBannerHooked("the stand-in", context, site, before)
+    }
+
+    /** A chip or an adder the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aThreadsChipThePatchCantPlaceFails() {
+        val cases = listOf(
+            bannerClasses(impression = false) to "expected one Threads chip loading \"$BANNER_TAP\" and \"$BANNER_IMPRESSION\", found 0",
+            bannerClasses(adders = 0) to "expected one method adding the Threads chip $chip to a profile's banners, found 0",
+            bannerClasses(adders = 2) to "expected one method adding the Threads chip $chip to a profile's banners, found 2",
+            bannerClasses(session = "Ljava/lang/Object;") to "expected one method adding the Threads chip $chip to a profile's banners, found 0",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes + ExtensionDex.classDef(THREADS_BUTTON))
+            val failure = assertThrows(expected, PatchException::class.java) { context.findThreadsBanner() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build the one method adding the Threads chip under a profile's bio asks the extension first. */
+    @Test
+    fun eachDeclaredBuildAsksBeforeAddingTheThreadsChip() {
+        forEachFixture { banner(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildAsksBeforeAddingTheThreadsChipToo() {
+        for (base in Fixtures.otherBuilds()) banner(base, base.parentFile.name)
+    }
+
+    private fun banner(bundle: File, label: String) {
+        val loading = (FixtureDex.classesLoading(bundle, BANNER_TAP) + FixtureDex.classesLoading(bundle, BANNER_IMPRESSION)).distinctBy { it.type }
+        val candidates = loading.map { it.type }.toSet()
+        val creators = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it in candidates } }) { method ->
+            method.code().any { it.opcode == Opcode.NEW_INSTANCE && (it.reference() as? TypeReference)?.type in candidates }
+        }.map { it.definingClass }.toSet()
+        val classes = (loading + FixtureDex.classes(bundle, creators).values).distinctBy { it.type }
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findThreadsBanner()
+        val before = context.adder(site).code().map { it.describe() }
+
+        context.hideThreadsBanner(site)
+
+        assertBannerHooked(label, context, site, before)
+    }
+
+    /** The ask, its answer, the skip and Instagram's own code after it, untouched. */
+    private fun assertBannerHooked(what: String, context: BytecodePatchContext, site: ThreadsBannerSite, before: List<String>) {
+        val adder = context.adder(site)
+        val code = adder.code()
+        assertEquals("$what: the ask", HIDE_BANNER, code[0].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals("$what: the branch", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: the skip", Opcode.RETURN_VOID, code[3].opcode)
+        assertEquals("$what: Instagram's code after it", before, code.drop(4).map { it.describe() })
+        assertTrue("$what: the branch goes to Instagram's first instruction", 4 in adder.jumpTargets())
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == HIDE_BANNER })
+    }
+
+    private fun BytecodePatchContext.adder(site: ThreadsBannerSite): MutableMethod =
+        mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+
+    private val chip = "Lfixture/ThreadsChip;"
+    private val banners = "Lfixture/Banners;"
+
+    /** A chip whose constructor loads its two events, and the static method that makes one and adds it to the list. */
+    private fun bannerClasses(adders: Int = 1, impression: Boolean = true, session: String = USER_SESSION): List<ClassDef> {
+        val events = "const-string v0, \"$BANNER_TAP\"" + if (impression) "\nconst-string v0, \"$BANNER_IMPRESSION\"" else ""
+        val init = method(chip, "<init>", emptyList(), "V", 1, body = "$events\ninvoke-direct { p0 }, Ljava/lang/Object;-><init>()V\nreturn-void")
+        val adds = (0 until adders).map { index ->
+            method(banners, "A0$index", listOf(session, "Ljava/lang/Object;", "Ljava/lang/Object;", "Ljava/util/List;"), "V", 1, static = true, body = """
+                new-instance v0, $chip
+                invoke-direct { v0 }, $chip-><init>()V
+                invoke-interface { p3, v0 }, Ljava/util/List;->add(Ljava/lang/Object;)Z
+                return-void
+            """)
+        }
+        return listOf(classDef(chip, listOf(init)), classDef(banners, adds))
+    }
+
+    /**
+     * #254: right after the guard lets your own profile through, the action bar asks the extension,
+     * jumps where the guard jumps for someone else's profile when told to, and otherwise puts the
+     * flag back and builds the plus as before.
+     */
+    @Test
+    fun theCreateButtonIsSkippedWhenTheExtensionSaysSo() {
+        val context = PatchContexts.of(createClasses() + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findCreateInBar()
+        val original = NeutralNativePath(context.createAdder(site))
+
+        context.hideCreateInBar(site)
+
+        assertEquals("the guard", 2, site.guard)
+        assertEquals("the flag's register", 0, site.register)
+        assertCreateHooked("the stand-in", context, site, original)
+    }
+
+    /** A Create button the patch can't place fails at patch time, saying what it found. */
+    @Test
+    fun aCreateButtonThePatchCantPlaceFails() {
+        val notOne = "expected one Create button stored with its id 0x${CREATE_BUTTON_ID.toString(16)}, found"
+        val guarded = "$profileBar->Ady guards the Create button with something other than a flag of $USER_DETAIL"
+        val cases = listOf(
+            createClasses(stores = 0) to "$notOne 0",
+            createClasses(stores = 2) to "$notOne 2",
+            createClasses(guard = null) to "$profileBar->Ady adds the Create button with no guard before it",
+            createClasses(guard = "if-nez") to guarded,
+            createClasses(flagOwner = "Lfixture/Other;") to guarded,
+            createClasses(jumpIn = true) to "something jumps in between $profileBar->Ady's guard and the Create button",
+            createClasses(extension = fakeExtension()) to "the extension has no public static $HIDE_CREATE",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.findCreateInBar() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    /** In each declared build the profile screen's action bar asks the extension once before adding the plus on your own profile. */
+    @Test
+    fun eachDeclaredBuildAsksBeforeAddingTheCreateButton() {
+        forEachFixture { create(it, it.name) }
+    }
+
+    /** The same on every other build of the version. */
+    @Test
+    fun eachOtherBuildAsksBeforeAddingTheCreateButtonToo() {
+        for (base in Fixtures.otherBuilds()) create(base, base.parentFile.name)
+    }
+
+    private fun create(bundle: File, label: String) {
+        // Every dex, so another method storing the id would show up here as it would when patching.
+        val owners = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            method.code().any { (it as? NarrowLiteralInstruction)?.narrowLiteral == CREATE_BUTTON_ID }
+        }.map { it.definingClass }.toSet()
+        val context = PatchContexts.of(FixtureDex.classes(bundle, owners).values + ExtensionDex.classDef(THREADS_BUTTON))
+        val site = context.findCreateInBar()
+        val original = NeutralNativePath(context.createAdder(site))
+
+        context.hideCreateInBar(site)
+
+        assertCreateHooked(label, context, site, original)
+    }
+
+    /** The guard, the ask, its answer, the jump to where the guard goes, the flag put back, and Instagram's own code untouched. */
+    private fun assertCreateHooked(what: String, context: BytecodePatchContext, site: CreateInBarSite, original: NeutralNativePath) {
+        val adder = context.createAdder(site)
+        val code = adder.code()
+        val written = adder.implementation!!.instructions.toList()
+        val at = site.guard + 1
+        val skip = site.skip + 4
+        assertEquals("$what: the guard", Opcode.IF_EQZ, code[site.guard].opcode)
+        assertEquals("$what: the guard still goes past the button", skip, (written[site.guard] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: the ask", HIDE_CREATE, code[at].referenceText())
+        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[at + 1].opcode)
+        assertEquals("$what: the answer's register", site.register, (code[at + 1] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the branch", Opcode.IF_NEZ, code[at + 2].opcode)
+        assertEquals("$what: the branch's register", site.register, (code[at + 2] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the branch goes where the guard does", skip, (written[at + 2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("$what: the flag put back", Opcode.CONST_4, code[at + 3].opcode)
+        assertEquals("$what: the flag's register", site.register, (code[at + 3] as OneRegisterInstruction).registerA)
+        assertEquals("$what: the flag's value", 1, (code[at + 3] as NarrowLiteralInstruction).narrowLiteral)
+        assertTrue("$what: a jump lands on the hook", (at..at + 3).none { it in adder.jumpTargets() })
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == HIDE_CREATE })
+        original.assertPreserved(what, adder, (at..at + 3).toSet())
+    }
+
+    private fun BytecodePatchContext.createAdder(site: CreateInBarSite): MutableMethod =
+        mutableClassDefBy(site.type).methods.single {
+            it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters && it.returnType == site.returnType
+        }
+
+    private val profileBar = "Lfixture/ProfileBar;"
+    private val barButton = "Lfixture/BarButton;"
+
+    /**
+     * The profile screen's action bar, shaped like 451's: a flag of the profile screen, true on your
+     * own profile, guards the build of the plus, whose builder gets the button's view id first.
+     * [stores] is how many methods store the id; 0 leaves one that only loads it.
+     */
+    private fun createClasses(
+        stores: Int = 1,
+        guard: String? = "if-eqz",
+        flagOwner: String = USER_DETAIL,
+        jumpIn: Boolean = false,
+        extension: ClassDef = ExtensionDex.classDef(THREADS_BUTTON),
+    ): List<ClassDef> {
+        val store = if (stores == 0) "invoke-virtual { v1, v2 }, $barButton->setId(I)V" else "iput v2, v1, $barButton->A05:I"
+        val body = """
+            ${if (jumpIn) "if-nez p1, :inside" else ""}
+            const/4 v1, 0x0
+            iget-boolean v0, p1, $flagOwner->A2V:Z
+            ${if (guard == null) "" else "$guard v0, :after"}
+            new-instance v1, $barButton
+            :inside
+            invoke-direct { v1 }, $barButton-><init>()V
+            const v2, 0x${CREATE_BUTTON_ID.toString(16)}
+            $store
+            :after
+            return-void
+        """
+        val names = if (stores == 2) listOf("Ady", "A00") else listOf("Ady")
+        val methods = names.map { method(profileBar, it, listOf(USER_DETAIL), "V", 3, body = body) }
+        return listOf(classDef(profileBar, methods), extension)
     }
 
     /**

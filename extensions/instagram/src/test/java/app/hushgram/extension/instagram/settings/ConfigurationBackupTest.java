@@ -29,6 +29,8 @@ import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import app.hushgram.extension.instagram.download.DownloadQuality;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
+import app.hushgram.extension.instagram.stories.StoryRingColor;
+import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -38,12 +40,13 @@ import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.SharedPrefCategory;
 
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = 30)
+@Config(sdk = {30, 37})
 public class ConfigurationBackupTest {
     @Rule public final SettingsContextRule context = new SettingsContextRule();
     private SharedPreferences original;
 
     @Before public void setup() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
         original = Setting.preferences.preferences;
         ConfigurationBackup.forgetUndo();
@@ -109,12 +112,17 @@ public class ConfigurationBackupTest {
         original.edit().putString("private-session", "secret-token").commit();
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
-        assertEquals(6, values.length());
+        assertEquals(10, values.length());
+        assertFalse(values.getJSONObject(Settings.DATE_SETTINGS_EXPORT.key).getBoolean("value"));
+        assertFalse(values.getJSONObject(Settings.DESCRIPTIONS_BEHIND_INFO.key).getBoolean("value"));
         assertTrue(values.getJSONObject(Settings.HIDE_ADS.key).getBoolean("value"));
         assertTrue(values.has(BaseSettings.DEBUG.key));
         assertEquals("OFF", values.getJSONObject(Settings.NAVIGATION_SETTINGS_TARGET.key).getString("value"));
         assertFalse(values.getJSONObject(Settings.HIDE_MENU_ROW.key).getBoolean("value"));
         assertFalse(values.getJSONObject(Settings.PROFILE_MENU_LONG_PRESS.key).getBoolean("value"));
+        assertTrue("a pause doesn't change what the shortcut's switch exports",
+                values.getJSONObject(Settings.SETTINGS_SHORTCUT.key).getBoolean("value"));
+        assertTrue(values.getJSONObject(Settings.SETTINGS_LOGO_PRESS.key).getBoolean("value"));
         assertTrue("categories are the default page now (#80)", values.getJSONObject(Settings.CATEGORY_PAGES.key).getBoolean("value"));
         assertFalse(values.has(BaseSettings.PAUSED.key));
         assertFalse(values.has(BaseSettings.SAFE_MODE.key));
@@ -143,6 +151,18 @@ public class ConfigurationBackupTest {
         assertEquals("Trip_{date}", Settings.FILENAME_TEMPLATE.savedValue());
         assertEquals("HIGHEST", original.getString(Settings.PLAYBACK_QUALITY.key, ""));
         assertTrue(ConfigurationBackup.canUndo());
+    }
+
+    @Test public void shortcodeTemplatesImportAndRoundTripWithoutAnAddedDate() throws Exception {
+        ConfigurationBackup.Result imported = ConfigurationBackup.restore(file(
+                entry(Settings.FILENAME_TEMPLATE.key, "string", "{shortcode}")));
+        assertEquals(1, imported.applied);
+        assertEquals(0, imported.skipped);
+        assertEquals("{shortcode}", Settings.FILENAME_TEMPLATE.savedValue());
+        byte[] exported = ConfigurationBackup.export();
+        Settings.FILENAME_TEMPLATE.save("Old_{date}");
+        assertEquals(0, ConfigurationBackup.restore(exported).skipped);
+        assertEquals("{shortcode}", Settings.FILENAME_TEMPLATE.savedValue());
     }
 
     @Test public void unknownAndAbsentFamilyKeysSkipWithoutChangingThemOrPause() throws Exception {
@@ -246,6 +266,38 @@ public class ConfigurationBackupTest {
         assertEquals("  ", Settings.SPOOF_LOCATION_PLACE.savedValue());
     }
 
+    /**
+     * The blocked words come back with their line breaks and up to the row's own limit, which is
+     * longer than any other text's, and a list holding another control character is skipped (#192).
+     */
+    @Test public void blockedWordsRoundTripUpToTheirRowsLimit() throws Exception {
+        String words = "spoiler, #ad\ngiveaway\r\nlink in bio";
+        Settings.REELS_BLOCKED_WORDS.save(words);
+        byte[] exported = ConfigurationBackup.export();
+        Settings.REELS_BLOCKED_WORDS.resetToDefault();
+        ConfigurationBackup.Result result = ConfigurationBackup.restore(exported);
+        assertEquals(0, result.skipped);
+        assertEquals(words, Settings.REELS_BLOCKED_WORDS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        String longest = new String(new char[ConfigurationBackup.MAX_WORDS_TEXT]).replace('\0', 'a');
+        assertEquals(1, ConfigurationBackup.restore(file(entry(Settings.REELS_BLOCKED_WORDS.key, "string", longest))).applied);
+        assertEquals(longest, Settings.REELS_BLOCKED_WORDS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", longest + "a"));
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", "spoiler\tgiveaway"));
+        assertNull(ConfigurationBackup.accepted(Settings.REELS_BLOCKED_WORDS, "string", "spoiler\u0000"));
+        assertNull("other text keeps its own limit",
+                ConfigurationBackup.accepted(Settings.LIKE_ANIMATION, "string", new String(new char[ConfigurationBackup.MAX_TEXT + 1]).replace('\0', 'A')));
+        Settings.REELS_BLOCKED_WORDS.save("cat");
+        ConfigurationBackup.Result refused = ConfigurationBackup.restore(file(entry(Settings.HIDE_ADS.key, "boolean", false)
+                + "," + entry(Settings.REELS_BLOCKED_WORDS.key, "string", "dog\u0007")));
+        assertEquals(1, refused.applied);
+        assertEquals(1, refused.skipped);
+        assertEquals("cat", Settings.REELS_BLOCKED_WORDS.savedValue());
+    }
+
     // A text choice added to the file without a check of its own would never restore; its default
     // must pass the check too, or a file exported before it was ever changed would lose it.
     @Test public void everyExportedTextChoiceHasACheckItsDefaultPasses() {
@@ -274,19 +326,161 @@ public class ConfigurationBackupTest {
     }
 
     @Test public void undoIsOneUseAndRestartRequirementsDescribeActualChanges() throws Exception {
-        ConfigurationBackup.Result applied = ConfigurationBackup.restore(file(entry(Settings.DISABLE_ANALYTICS.key, "boolean", false)));
+        ConfigurationBackup.Result applied = ConfigurationBackup.restore(file(entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", false)));
         assertTrue(applied.restart);
-        assertFalse(Settings.DISABLE_ANALYTICS.savedValue());
+        assertFalse(Settings.HIDE_META_AI_SEARCH.savedValue());
         assertTrue(ConfigurationBackup.undo().restart);
-        assertTrue(Settings.DISABLE_ANALYTICS.savedValue());
+        assertTrue(Settings.HIDE_META_AI_SEARCH.savedValue());
         assertNull(ConfigurationBackup.undo());
-        assertFalse(ConfigurationBackup.restore(file(entry(Settings.DISABLE_ANALYTICS.key, "boolean", true))).restart);
+        assertFalse(ConfigurationBackup.restore(file(entry(Settings.HIDE_META_AI_SEARCH.key, "boolean", true))).restart);
         assertFalse(ConfigurationBackup.canUndo());
+    }
+
+    // The ring's color travels beside its size: a file carries it by name and gives it back, and a
+    // name this build has no color for is skipped while the size beside it applies.
+    @Test public void ringColorIsCarriedAndRestoredBesideTheSize() throws Exception {
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_RING_COLOR.key));
+        Settings.STORY_RING_COLOR.save(StoryRingColor.GOLD);
+        JSONObject values = new JSONObject(new String(ConfigurationBackup.export(), StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertEquals("GOLD", values.getJSONObject(Settings.STORY_RING_COLOR.key).getString("value"));
+        assertEquals("INSTAGRAM", values.getJSONObject(Settings.STORY_RING_SCALE.key).getString("value"));
+        Settings.STORY_RING_COLOR.resetToDefault();
+
+        ConfigurationBackup.Result restored = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_COLOR.key, "enum", "BLUE") + "," + entry(Settings.STORY_RING_SCALE.key, "enum", "LARGER")));
+        assertEquals(2, restored.applied);
+        assertTrue("a new color shows after a restart", restored.restart);
+        assertEquals(StoryRingColor.BLUE, Settings.STORY_RING_COLOR.savedValue());
+        assertEquals(StoryRingSize.LARGER, Settings.STORY_RING_SCALE.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result unknown = ConfigurationBackup.restore(file(
+                entry(Settings.STORY_RING_COLOR.key, "enum", "GREEN") + "," + entry(Settings.STORY_RING_SCALE.key, "enum", "SMALLER")));
+        assertEquals(1, unknown.applied);
+        assertEquals(1, unknown.skipped);
+        assertEquals(StoryRingColor.BLUE, Settings.STORY_RING_COLOR.savedValue());
+        assertEquals(StoryRingSize.SMALLER, Settings.STORY_RING_SCALE.savedValue());
+    }
+
+    // The glass sliders (#391) travel as whole numbers and come back without a restart. A number outside
+    // the slider's range, or one that isn't a whole number, is skipped while the rest of the file applies.
+    @Test public void glassSlidersRoundTripAsWholeNumbersInsideTheirRange() throws Exception {
+        Settings.GLASS_TAB_BAR_OPACITY.save(65);
+        Settings.GLASS_TAB_BAR_BLUR_RADIUS.save(36);
+        byte[] exported = ConfigurationBackup.export();
+        JSONObject values = new JSONObject(new String(exported, StandardCharsets.UTF_8)).getJSONObject("settings");
+        assertEquals("integer", values.getJSONObject(Settings.GLASS_TAB_BAR_OPACITY.key).getString("type"));
+        assertEquals(65, values.getJSONObject(Settings.GLASS_TAB_BAR_OPACITY.key).getInt("value"));
+        assertEquals(36, values.getJSONObject(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key).getInt("value"));
+        Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
+
+        ConfigurationBackup.Result restored = ConfigurationBackup.restore(exported);
+        assertEquals(0, restored.skipped);
+        assertFalse("the sliders show at once", restored.restart);
+        assertEquals(65, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertEquals(36, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals("65", original.getString(Settings.GLASS_TAB_BAR_OPACITY.key, ""));
+        ConfigurationBackup.forgetUndo();
+
+        for (String entry : new String[]{
+                entry(Settings.GLASS_TAB_BAR_OPACITY.key, "integer", 151),
+                entry(Settings.GLASS_TAB_BAR_OPACITY.key, "integer", -1),
+                entry(Settings.GLASS_TAB_BAR_OPACITY.key, "integer", 12.5),
+                entry(Settings.GLASS_TAB_BAR_OPACITY.key, "integer", "80"),
+                entry(Settings.GLASS_TAB_BAR_OPACITY.key, "enum", "FROSTED"),
+                entry(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, "integer", 1),
+                entry(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, "integer", 49),
+                entry(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, "string", "20"),
+        }) {
+            ConfigurationBackup.Result refused = ConfigurationBackup.restore(file(entry(Settings.HIDE_ADS.key, "boolean", false) + "," + entry));
+            assertEquals(entry, 1, refused.skipped);
+            assertFalse(entry, Settings.HIDE_ADS.savedValue());
+            assertEquals(entry, 65, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+            assertEquals(entry, 36, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+            Settings.HIDE_ADS.resetToDefault();
+            ConfigurationBackup.forgetUndo();
+        }
+        assertEquals(0, ConfigurationBackup.accepted(Settings.GLASS_TAB_BAR_OPACITY, "integer", 0));
+        assertEquals(150, ConfigurationBackup.accepted(Settings.GLASS_TAB_BAR_OPACITY, "integer", 150));
+        assertEquals(2, ConfigurationBackup.accepted(Settings.GLASS_TAB_BAR_BLUR_RADIUS, "integer", 2));
+        assertEquals(48, ConfigurationBackup.accepted(Settings.GLASS_TAB_BAR_BLUR_RADIUS, "integer", 48));
+    }
+
+    // A file an older build exported carries the glass steps under their old keys. Each comes back as the
+    // value it drew, a step this build never had is skipped, and a file that carries a slider too keeps the slider.
+    @Test public void glassStepsFromAnOlderFileComeBackAsTheValueTheyDrew() throws Exception {
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.OLD_GLASS_BLUR_KEY));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.OLD_GLASS_OPACITY_KEY));
+        ConfigurationBackup.Result restored = ConfigurationBackup.restore(file(
+                entry(Settings.OLD_GLASS_BLUR_KEY, "enum", "STRONG") + "," + entry(Settings.OLD_GLASS_OPACITY_KEY, "enum", "FROSTED")));
+        assertEquals(2, restored.applied);
+        assertEquals(0, restored.skipped);
+        assertEquals(30, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(135, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertFalse("nothing is saved under the old keys", original.contains(Settings.OLD_GLASS_BLUR_KEY));
+        assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result light = ConfigurationBackup.restore(file(
+                entry(Settings.OLD_GLASS_BLUR_KEY, "enum", "LIGHT") + "," + entry(Settings.OLD_GLASS_OPACITY_KEY, "enum", "CLEAR")));
+        assertEquals(2, light.applied);
+        assertEquals(9, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(50, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result unknown = ConfigurationBackup.restore(file(
+                entry(Settings.OLD_GLASS_BLUR_KEY, "enum", "HEAVY") + "," + entry(Settings.OLD_GLASS_OPACITY_KEY, "string", "STANDARD")
+                        + "," + entry(Settings.HIDE_ADS.key, "boolean", false)));
+        assertEquals(1, unknown.applied);
+        assertEquals(2, unknown.skipped);
+        assertEquals(9, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(50, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        ConfigurationBackup.Result both = ConfigurationBackup.restore(file(
+                entry(Settings.OLD_GLASS_BLUR_KEY, "enum", "STRONG") + "," + entry(Settings.GLASS_TAB_BAR_BLUR_RADIUS.key, "integer", 12)));
+        assertEquals(1, both.applied);
+        assertEquals(1, both.skipped);
+        assertEquals(12, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        ConfigurationBackup.forgetUndo();
+
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
+        assertNull("no glass bar in the build, no slider to carry a step to", ConfigurationBackup.oldGlassStep(
+                Settings.OLD_GLASS_BLUR_KEY, "enum", "STRONG", ConfigurationBackup.eligible()));
+    }
+
+    // A step saved on the phone by an older build becomes the slider's value the first time this build's
+    // settings load, its key goes, and a slider the user already moved is left alone (#391).
+    @Test public void glassStepsSavedByAnOlderBuildCarryOverOnceToTheSliders() {
+        original.edit().putString(Settings.OLD_GLASS_BLUR_KEY, "STRONG").putString(Settings.OLD_GLASS_OPACITY_KEY, "CLEAR").commit();
+        Settings.carryOverGlassSteps();
+        assertEquals(30, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(50, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertFalse(original.contains(Settings.OLD_GLASS_BLUR_KEY));
+        assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));
+
+        original.edit().putString(Settings.OLD_GLASS_BLUR_KEY, "LIGHT").putString(Settings.OLD_GLASS_OPACITY_KEY, "FROSTED").commit();
+        Settings.carryOverGlassSteps();
+        assertEquals("the slider already moved, so the step is dropped", 30, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(50, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertFalse(original.contains(Settings.OLD_GLASS_BLUR_KEY));
+        assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));
+
+        Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
+        Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        original.edit().putString(Settings.OLD_GLASS_BLUR_KEY, "HEAVY").putString(Settings.OLD_GLASS_OPACITY_KEY, "STANDARD").commit();
+        Settings.carryOverGlassSteps();
+        assertEquals("a step this build never had draws the standard", 18, (int) Settings.GLASS_TAB_BAR_BLUR_RADIUS.savedValue());
+        assertEquals(100, (int) Settings.GLASS_TAB_BAR_OPACITY.savedValue());
+        assertFalse(original.contains(Settings.OLD_GLASS_BLUR_KEY));
+        assertFalse(original.contains(Settings.OLD_GLASS_OPACITY_KEY));
+        assertFalse("standard saves nothing", original.contains(Settings.GLASS_TAB_BAR_OPACITY.key));
     }
 
     @Test public void documentedRestartChoicesShareMetadataWithRowAndImportFeedback() throws Exception {
         Setting<?>[] choices = {Settings.START_ON_FOLLOWING, Settings.ONLY_FOLLOWING,
-                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.HIDE_META_AI_SEARCH,
+                Settings.STORY_RING, Settings.STORY_RING_SCALE, Settings.STORY_RING_COLOR, Settings.HIDE_META_AI_SEARCH,
                 Settings.REMOVE_BOTTOM_SPACE};
         for (Setting<?> setting : choices) assertTrue(setting.key, setting.rebootApp);
         assertFalse(Settings.HIDE_ADS.rebootApp);

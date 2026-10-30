@@ -9,15 +9,19 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.reels.fullscreen.barHeightsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
 
 /**
  * Draws Instagram's tab bar as a floating, rounded glass pill. See GlassTabBar in the extension.
  *
- * It changes no Instagram code. The extension finds the bar by the id Instagram's own code looks it
- * up by, once an activity resumes, and the application-start hook the settings patch already writes
- * is what starts the watching; this patch only switches the status method on, so the settings screen
- * offers the switches and the extension acts. In the default selection with its switch off.
+ * The extension finds the bar by the id Instagram's own code looks it up by, once an activity
+ * resumes, and the application-start hook the settings patch already writes is what starts the
+ * watching. This patch switches the status method on, so the settings screen offers the switches and
+ * the extension acts. The one change to Instagram's code is shared with Full screen Reels and Home
+ * ([barHeightsPatch]): the navigation bar's height Instagram pads its screens by asks the extension
+ * first, which answers 0 while a floating pill shows, so the screens run down behind the gesture
+ * handle and the pill keeps itself above it (#144). In the default selection with its switch off.
  */
 @Suppress("unused")
 val glassTabBarPatch = bytecodePatch(
@@ -27,7 +31,7 @@ val glassTabBarPatch = bytecodePatch(
         "Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
 ) {
     category("Interface")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

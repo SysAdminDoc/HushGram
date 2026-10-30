@@ -33,7 +33,7 @@ public class CommentPhotoSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.SAVE_COMMENT_PHOTOS.resetToDefault();
         Settings.COPY_COMMENTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -82,7 +82,7 @@ public class CommentPhotoSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.SAVE_COMMENT_PHOTOS.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
     @Test public void bothCommentSwitchesShareOneCategoryAndStayIndependent() throws Exception {
         open(EnumSet.of(PatchFamily.COMMENT_COPY, PatchFamily.COMMENT_PHOTO));

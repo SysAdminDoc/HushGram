@@ -9,10 +9,9 @@ package app.hushgram.extension.instagram.settings;
 import android.content.res.ColorStateList;
 import android.database.DataSetObserver;
 import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
-import android.graphics.drawable.StateListDrawable;
+import android.graphics.drawable.RippleDrawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -65,11 +64,12 @@ final class DialogChoices extends BaseAdapter {
                 for (android.graphics.drawable.Drawable drawable : choice.getCompoundDrawablesRelative()) {
                     if (drawable != null) drawable.mutate().setTintList(indicator);
                 }
-                StateListDrawable background = new StateListDrawable();
-                background.addState(new int[]{android.R.attr.state_checked},
-                        new ColorDrawable((colors.accent & 0xFFFFFF) | 0x22000000));
-                background.addState(new int[]{}, new ColorDrawable(android.graphics.Color.TRANSPARENT));
-                choice.setBackground(background);
+                GradientDrawable background = new GradientDrawable();
+                background.setColor(colors.choiceFill(android.graphics.Color.TRANSPARENT));
+                background.setStroke(Math.round(density), colors.interactionOutline(android.graphics.Color.TRANSPARENT));
+                background.setCornerRadius(Math.round(8 * density));
+                choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
+                        background, null).mutate());
                 // A native choice is a compact full-width row, with room to grow when text wraps.
                 int verticalPadding = (int) (8 * density);
                 choice.setPaddingRelative(Math.round(24 * density), verticalPadding,
@@ -79,19 +79,12 @@ final class DialogChoices extends BaseAdapter {
             int gap = Math.round(4 * density);
             int side = Math.round(18 * density);
             choice.setMinHeight(Math.round(48 * density) + 2 * gap);
-            StateListDrawable background = new StateListDrawable();
-            GradientDrawable selected = new GradientDrawable();
-            selected.setColor((colors.accent & 0xFFFFFF) | 0x22000000);
-            selected.setStroke(Math.round(density), colors.heading);
-            selected.setCornerRadius(Math.round(12 * density));
-            GradientDrawable ordinary = new GradientDrawable();
-            ordinary.setColor(colors.card);
-            ordinary.setStroke(Math.round(density), colors.outline);
-            ordinary.setCornerRadius(Math.round(12 * density));
-            background.addState(new int[]{android.R.attr.state_checked},
-                    new InsetDrawable(selected, side, gap, side, gap));
-            background.addState(new int[]{}, new InsetDrawable(ordinary, side, gap, side, gap));
-            choice.setBackground(background);
+            GradientDrawable surface = new GradientDrawable();
+            surface.setColor(colors.choiceFill(colors.card));
+            surface.setStroke(Math.round(density), colors.interactionOutline(colors.outline));
+            surface.setCornerRadius(Math.round(12 * density));
+            choice.setBackground(new RippleDrawable(ScreenColors.interactionRipple(colors.heading),
+                    new InsetDrawable(surface, side, gap, side, gap), null).mutate());
             // Rounding both sides up at densities such as 450dpi exceeds the measured 48dp row.
             int verticalPadding = (int) (12 * density) + gap;
             choice.setPaddingRelative(side + Math.round(16 * density), verticalPadding,

@@ -56,15 +56,23 @@ public final class SaveFolder {
      */
     public static String leaf(PostDetails details) {
         String leaf = leaf();
+        String account = account(details);
+        return account.isEmpty() ? leaf : leaf + "/" + account;
+    }
+
+    /**
+     * The poster's folder Folder per account adds for [details], cleaned to one name, or empty when
+     * it adds none. A folder picked in settings takes it too ({@link SaveTree}). Never throws.
+     */
+    static String account(PostDetails details) {
         try {
             if (details == null || !details.hasOwner() || !Utils.settingsReady()
                     || !Settings.SAVE_FOLDER_PER_ACCOUNT.get()) {
-                return leaf;
+                return "";
             }
-            String account = clean(details.owner, MAX_CODE_POINTS);
-            return account.isEmpty() ? leaf : leaf + "/" + account;
+            return clean(details.owner, MAX_CODE_POINTS);
         } catch (Throwable t) {
-            return leaf;
+            return "";
         }
     }
 

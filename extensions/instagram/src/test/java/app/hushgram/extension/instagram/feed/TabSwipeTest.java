@@ -85,6 +85,21 @@ public class TabSwipeTest {
     }
 
     @Test
+    public void aHoldKeepsTheMainTabsWithTheSwitchOff() {
+        Settings.STOP_TAB_SWIPING.save(false);
+        TabSwipe.mainPager(main);
+        FrameLayout other = new FrameLayout(RuntimeEnvironment.getApplication());
+        View otherList = new View(RuntimeEnvironment.getApplication());
+        other.addView(otherList);
+
+        TabSwipe.hold(true);
+        assertFalse(TabSwipe.input(mainList, 1));
+        assertTrue("every other pager keeps its answer", TabSwipe.input(otherList, 1));
+        TabSwipe.hold(false);
+        assertTrue(TabSwipe.input(mainList, 1));
+    }
+
+    @Test
     public void beforeTheMainTabsAreSetUpEveryListKeepsItsAnswer() {
         assertTrue(TabSwipe.input(mainList, 1));
     }

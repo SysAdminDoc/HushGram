@@ -8,20 +8,26 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.smali.ExternalLabel
-import app.morphe.patches.instagram.misc.analytics.pooledString
+import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.pooledString
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
+import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedClassDef
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedMethod
 import com.android.tools.smali.dexlib2.iface.Annotation as DexAnnotation
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.MethodImplementation
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -38,6 +44,7 @@ import com.android.tools.smali.dexlib2.iface.value.ArrayEncodedValue
 import com.android.tools.smali.dexlib2.iface.value.EncodedValue
 import com.android.tools.smali.dexlib2.iface.value.MethodEncodedValue
 import com.android.tools.smali.dexlib2.iface.value.MethodHandleEncodedValue
+import java.util.IdentityHashMap
 
 /** The native queue location before ownership changes, proved before any patch is written. */
 internal class StoryRetryQueue(
@@ -87,14 +94,32 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
         !AccessFlags.PUBLIC.isSet(bridge.accessFlags) || !AccessFlags.PUBLIC.isSet(build.accessFlags)) refuseQueue("bridge has an unsupported type")
 
     val callers = mutableListOf<Pair<Method, Int>>()
+    // Reading every method of the app was a measured share of patching (#173). A call to the bridge or
+    // the builder names its class and name, which the patcher's index keeps, but a call site or method
+    // handle isn't indexed. So code is read only in the classes the index names, the extension, classes
+    // a patch replaced and any dex holding call sites or method handles. Declarations are read in all.
+    // An Object owner only counts with the bridge's parameters and return type, which the index also
+    // keeps; asked for Object and the name alone, it named most of the app.
+    val calling = listOf(store.type, base.type).flatMapTo(HashSet()) { owner -> classesCalling(owner, bridge.name).map { it.type } }
+    classesCalling(OBJECT, bridge.name, retry.parameters, bridge.returnType).mapTo(calling) { it.type }
+    val indirect = IdentityHashMap<DexBackedDexFile, Boolean>()
+    fun readsCode(type: ClassDef) = type.type in calling || type.type.startsWith(EXTENSION_ROOT) ||
+        (type as? DexBackedClassDef)?.dexFile?.let { dex ->
+            indirect.getOrPut(dex) { dex.callSiteSection.isNotEmpty() || dex.methodHandleSection.isNotEmpty() }
+        } ?: true
     classDefForEach { type ->
         if (type.superclass == store.type) refuseQueue("final story store has a subclass ${type.type}")
         if (type.annotations.callsQueue(bridge, build) || type.fields.any {
                 it.initialValue?.callsQueue(bridge, build) == true || it.annotations.callsQueue(bridge, build)
             }) refuseQueue("encoded story builder reference bypasses the protected queue")
+        val reads = readsCode(type)
         for (method in type.methods) {
-            if (method.annotations.callsQueue(bridge, build) || method.parameters.any { it.annotations.callsQueue(bridge, build) }) {
+            if (method.annotations.callsQueue(bridge, build) || method.parameterAnnotations().any { it.callsQueue(bridge, build) }) {
                 refuseQueue("encoded story builder reference bypasses the protected queue")
+            }
+            if (!reads) {
+                method.executableBody()
+                continue
             }
             for ((at, instruction) in method.code().withIndex()) {
                 if (instruction.indirectlyCalls(bridge, build)) refuseQueue("indirect story builder reference bypasses the protected queue")
@@ -230,7 +255,7 @@ internal fun BytecodePatchContext.findStoryRetryQueue(store: ClassDef, retry: St
 
     base.requireSnapshot(code.call(3), pending, monitor)
     base.requireLookup(code.call(14), pending, inFlight, monitor)
-    requireDiskCleanup(reader, run, move.call(1))
+    requireDiskCleanup(store, reader, run, move.call(1))
     val scratch = run.freeLocalsAt(PATCH, 17, 1, targets = listOf(8)).single()
     return StoryRetryQueue(base.type, run.name, 17, 8, item, scratch)
 }
@@ -452,11 +477,16 @@ private fun ClassDef.requireLookup(reference: MethodReference, pending: FieldRef
     method.requireThisIntact(PATCH, listOf(0, 2, 6))
 }
 
-private fun BytecodePatchContext.requireDiskCleanup(reader: Method, run: Method, parameterCheck: MethodReference) {
+/**
+ * 452's reader keys its disk copy with a private helper of the store ([requireDiskKey]): it reads
+ * through the store's storage field with that key, runs the queue, then asks the helper again and
+ * removes what it read. The receiver reaches both calls from its one field read.
+ */
+private fun BytecodePatchContext.requireDiskCleanup(store: ClassDef, reader: Method, run: Method, parameterCheck: MethodReference) {
     val code = reader.code()
     val at = code.indices.singleOrNull { code[it].call()?.same(run) == true } ?: refuseQueue("disk reader doesn't run the queue once")
     val self = reader.localRegisterCount()
-    val cleanup = code.getOrNull(at + 4)?.call() ?: refuseQueue("disk reader no longer reaches its native cleanup after the loop")
+    val cleanup = code.getOrNull(at + 3)?.call() ?: refuseQueue("disk reader no longer reaches its native cleanup after the loop")
     val storage = classDefByOrNull(cleanup.definingClass) ?: refuseQueue("disk cleanup has no native receiver class")
     val remove = storage.methods.filter { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(STRING) && method.returnType == "V" &&
@@ -465,104 +495,91 @@ private fun BytecodePatchContext.requireDiskCleanup(reader: Method, run: Method,
     }.singleOrNull() ?: refuseQueue("disk reader no longer reaches its unique native cleanup")
     if (!cleanup.same(remove)) refuseQueue("disk reader no longer reaches its native cleanup after the loop")
     requireDiskRemoval(storage, remove, parameterCheck)
-    val key = code.getOrNull(at + 2)?.call() ?: refuseQueue("disk cleanup has no native account key builder")
-    requireDiskKey(key)
+    val key = code.getOrNull(at + 1)?.call() ?: refuseQueue("disk cleanup has no native account key builder")
+    requireDiskKey(store, key, run.code()[28].call()!!)
     val read = storage.methods.singleOrNull { method ->
         !AccessFlags.STATIC.isSet(method.accessFlags) && method.parameterTypes.map(Any::toString) == listOf(STRING, "Z") && method.returnType == OBJECT
     } ?: refuseQueue("disk cleanup has no unique native read")
-    if (code.size <= at + 4 || code[at + 1].opcode != Opcode.IGET_OBJECT ||
-        (code[at + 1].reference() as? FieldReference)?.let { it.definingClass == USER_SESSION && it.name == "userId" && it.type == STRING } != true ||
-        code[at].opcode != Opcode.INVOKE_VIRTUAL || code[at].namedRegisters() != listOf(self) ||
-        code[at + 2].opcode != Opcode.INVOKE_STATIC || !code[at + 2].call()!!.same(key) ||
-        code[at + 3].opcode != Opcode.MOVE_RESULT_OBJECT || code[at + 4].opcode != Opcode.INVOKE_VIRTUAL ||
-        !code[at + 4].call()!!.same(remove) ||
-        code[at + 4].namedRegisters().lastOrNull() != code[at + 3].namedRegisters().singleOrNull() ||
-        // A stock null disk read skips the queue and enters at the account read, then still cleans up.
-        reader.jumpTargets().any { it in at + 2..at + 4 }) refuseQueue("disk reader no longer reaches its native cleanup after the loop")
+    if (code.size <= at + 3 || code[at].opcode != Opcode.INVOKE_VIRTUAL || code[at].namedRegisters() != listOf(self) ||
+        code[at + 1].opcode != Opcode.INVOKE_DIRECT || !code[at + 1].call()!!.same(key) ||
+        code[at + 2].opcode != Opcode.MOVE_RESULT_OBJECT || code[at + 3].opcode != Opcode.INVOKE_VIRTUAL ||
+        !code[at + 3].call()!!.same(remove) ||
+        code[at + 3].namedRegisters().lastOrNull() != code[at + 2].namedRegisters().singleOrNull() ||
+        // A stock null disk read skips the queue and enters at the key, then still cleans up.
+        reader.jumpTargets().any { it in at + 2..at + 3 }) refuseQueue("disk reader no longer reaches its native cleanup after the loop")
+    if (code[at + 1].namedRegisters() != listOf(self)) refuseQueue("disk cleanup doesn't key by the store's own account")
 
-    val cleanupRegisters = code[at + 4].namedRegisters()
-    val join = code[at + 2].namedRegisters()
-    val account = code[at + 1].namedRegisters()
-    if (cleanupRegisters.size != 2 || join.size != 2 || account.size != 2 || account.first() != join.last()) {
-        refuseQueue("disk cleanup doesn't use its account key")
-    }
+    val cleanupRegisters = code[at + 3].namedRegisters()
+    if (cleanupRegisters.size != 2) refuseQueue("disk cleanup doesn't use its account key")
     val receiver = cleanupRegisters.first()
-    val prefix = join.first()
-    val session = account.last()
     val receiverAt = (0 until at).singleOrNull { index ->
         code[index].opcode == Opcode.IGET_OBJECT && code[index].namedRegisters() == listOf(receiver, self) &&
             (code[index].reference() as? FieldReference)?.let { it.definingClass == reader.definingClass && it.type == storage.type } == true
     } ?: refuseQueue("disk cleanup doesn't use the store's native receiver")
-    val prefixAt = (0 until at).singleOrNull { index ->
-        (code[index].reference() as? StringReference)?.string == DISK_PREFIX && code[index].namedRegisters() == listOf(prefix)
-    } ?: refuseQueue("disk cleanup doesn't use the pending-story prefix")
-    val sessionAt = (1 until at).singleOrNull { index ->
-        code[index].opcode == Opcode.MOVE_RESULT_OBJECT && code[index].namedRegisters() == listOf(session) &&
-            code[index - 1].opcode == Opcode.INVOKE_VIRTUAL && code[index - 1].namedRegisters() == listOf(self) &&
-            code[index - 1].call()?.let { it.definingClass == run.definingClass && it.parameterTypes.isEmpty() && it.returnType == USER_SESSION &&
-                it.same(run.code()[28].call()!!) } == true
-    } ?: refuseQueue("disk cleanup doesn't use the store's native account")
 
     val readAt = (0 until at).singleOrNull { code[it].call()?.same(read) == true }
         ?: refuseQueue("disk cleanup has no unique native read")
-    if (readAt < 4 || code[readAt].opcode != Opcode.INVOKE_VIRTUAL || code[readAt - 1].opcode != Opcode.CONST_4 ||
+    if (readAt < 3 || code[readAt].opcode != Opcode.INVOKE_VIRTUAL || code[readAt - 1].opcode != Opcode.CONST_4 ||
         (code[readAt - 1] as? NarrowLiteralInstruction)?.narrowLiteral != 1 ||
-        code[readAt - 2].opcode != Opcode.MOVE_RESULT_OBJECT || code[readAt - 3].opcode != Opcode.INVOKE_STATIC ||
-        code[readAt - 3].call()?.same(key) != true || code[readAt - 3].namedRegisters().size != 2 ||
+        code[readAt - 2].opcode != Opcode.MOVE_RESULT_OBJECT || code[readAt - 3].opcode != Opcode.INVOKE_DIRECT ||
+        code[readAt - 3].call()?.same(key) != true || code[readAt - 3].namedRegisters() != listOf(self) ||
         code[readAt].namedRegisters() != listOf(receiver, code[readAt - 2].namedRegisters().single(), code[readAt - 1].namedRegisters().single()) ||
-        code[readAt - 3].namedRegisters().first() != prefix || reader.jumpTargets().any { it in readAt - 2..readAt }) {
+        code[readAt - 1].namedRegisters() == code[readAt - 2].namedRegisters() || reader.jumpTargets().any { it in readAt - 2..readAt }) {
         refuseQueue("disk cleanup no longer consumes the copy it read")
     }
-    val readId = code[readAt - 3].namedRegisters().last()
-    val readAccountAt = (0 until readAt - 3).singleOrNull { index ->
-        code[index].opcode == Opcode.IGET_OBJECT && code[index].reference().toString() == "$USER_SESSION->userId:$STRING" &&
-            code[index].namedRegisters() == listOf(readId, session)
-    } ?: refuseQueue("disk cleanup no longer consumes the copy it read")
-    reader.requireOrigin(readId, readAt - 3, readAccountAt)
     reader.requireOrigin(receiver, readAt, receiverAt)
-    reader.requireOrigin(receiver, at + 4, receiverAt)
-    reader.requireOrigin(prefix, readAt - 3, prefixAt)
-    reader.requireOrigin(prefix, at + 2, prefixAt)
-    reader.requireOrigin(session, readAccountAt, sessionAt)
-    reader.requireOrigin(session, at + 1, sessionAt)
-    reader.requireThisIntact(PATCH, listOf(at, receiverAt, sessionAt - 1))
+    reader.requireOrigin(receiver, at + 3, receiverAt)
+    reader.requireThisIntact(PATCH, listOf(at, at + 1, readAt - 3, receiverAt))
 }
 
-/** Resolve the assertion helpers by the declared native bodies, never an obfuscated name. */
+/** 452's parameter assertion, which builds its message in a StringBuilder of its own instead of calling a concat helper. */
+private val PARAMETER_CHECK = listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE,
+    Opcode.INVOKE_DIRECT, Opcode.CONST_STRING, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL,
+    Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT,
+    Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID)
+
+/**
+ * Resolve the assertion helpers by the declared native bodies, never an obfuscated name. A build
+ * may load the parameter message with const-string/jumbo where another has const-string, so the
+ * bodies compare with a jumbo load read as a plain one, as [Shape] does.
+ */
 private fun BytecodePatchContext.requireClaimAssertions(parameter: MethodReference, present: MethodReference) {
     val owner = classDefByOrNull(parameter.definingClass) ?: refuseQueue("claim has no native assertions")
     val checkParameter = owner.methods.singleOrNull { AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf(OBJECT, "I") && it.returnType == "V" &&
-        it.code().map { instruction -> instruction.opcode } == listOf(Opcode.IF_NEZ, Opcode.INVOKE_STATIC,
-            Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
-            Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT,
-            Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID) &&
-        it.code()[8].reference().toString() == "Ljava/lang/NullPointerException;" }
+        it.code().map { instruction -> instruction.opcode.unjumbo() } == PARAMETER_CHECK &&
+        it.code()[12].reference().toString() == "Ljava/lang/NullPointerException;" }
     val checkPresent = owner.methods.singleOrNull { AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf(OBJECT, STRING) && it.returnType == "V" &&
         it.code().map { instruction -> instruction.opcode } == listOf(Opcode.IF_NEZ, Opcode.NEW_INSTANCE,
             Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID) }
     if (checkParameter?.same(parameter) != true || checkPresent?.same(present) != true) refuseQueue("claim changed its native assertions")
-    val parameterCode = Shape(checkParameter, Opcode.IF_NEZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
-        Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_STATIC,
-        Opcode.MOVE_RESULT_OBJECT, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID)
+    val parameterCode = Shape(checkParameter, *PARAMETER_CHECK.toTypedArray())
     val code = Shape(checkPresent, Opcode.IF_NEZ, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_STATIC, Opcode.THROW, Opcode.RETURN_VOID)
     if (listOf(checkParameter, checkPresent).any { it.implementation!!.tryBlocks.isNotEmpty() }) refuseQueue("claim changes its assertion control flow")
     parameterCode.registers(0, checkParameter.parameterRegisterNumber(0))
-    parameterCode.branch(0, 12)
+    parameterCode.branch(0, 16)
+    val builder = "Ljava/lang/StringBuilder;"
+    val message = parameterCode.reg(3)
     if (parameterCode.call(1).toString() != "Ljava/lang/Integer;->toString(I)$STRING" ||
-        (parameterCode.reference(3) as? StringReference)?.string != "param at index = " ||
-        parameterCode.call(9).toString() != "Ljava/lang/NullPointerException;-><init>($STRING)V") refuseQueue("claim changed its native parameter assertion")
+        parameterCode.reference(3).toString() != builder || parameterCode.call(4).toString() != "$builder-><init>()V" ||
+        (parameterCode.reference(5) as? StringReference)?.string != "param at index = " ||
+        parameterCode.call(6).toString() != "$builder->append($STRING)$builder" || parameterCode.call(7).toString() != parameterCode.call(6).toString() ||
+        parameterCode.call(8).toString() !in setOf("$OBJECT->toString()$STRING", "$builder->toString()$STRING") ||
+        parameterCode.call(13).toString() != "Ljava/lang/NullPointerException;-><init>($STRING)V") refuseQueue("claim changed its native parameter assertion")
+    if (setOf(message, parameterCode.reg(2), parameterCode.reg(5)).size != 3) refuseQueue("claim changed its native parameter assertion")
     parameterCode.registers(1, checkParameter.parameterRegisterNumber(1))
-    parameterCode.registers(4, parameterCode.reg(3), parameterCode.reg(2))
-    requireDiskKey(parameterCode.call(4))
-    owner.methods.singleOrNull { it.same(parameterCode.call(6)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
+    parameterCode.registers(4, message)
+    parameterCode.registers(6, message, parameterCode.reg(5))
+    parameterCode.registers(7, message, parameterCode.reg(2))
+    parameterCode.registers(8, message)
+    owner.methods.singleOrNull { it.same(parameterCode.call(10)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == STRING }
         ?: refuseQueue("claim changed its native assertion message")
-    parameterCode.registers(6, parameterCode.reg(5))
-    parameterCode.registers(9, parameterCode.reg(8), parameterCode.reg(7))
-    parameterCode.registers(10, parameterCode.reg(8))
-    parameterCode.registers(11, parameterCode.reg(8))
+    parameterCode.registers(10, parameterCode.reg(9))
+    parameterCode.registers(13, parameterCode.reg(12), parameterCode.reg(11))
+    parameterCode.registers(14, parameterCode.reg(12))
+    parameterCode.registers(15, parameterCode.reg(12))
     code.registers(0, checkPresent.parameterRegisterNumber(0))
     code.branch(0, 5)
     if (code.reference(1).toString() != "Ljava/lang/NullPointerException;" ||
@@ -571,31 +588,42 @@ private fun BytecodePatchContext.requireClaimAssertions(parameter: MethodReferen
     val trim = owner.methods.singleOrNull { it.same(code.call(3)) && AccessFlags.STATIC.isSet(it.accessFlags) &&
         it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Throwable;") && it.returnType == "V" }
         ?: refuseQueue("claim changed its native assertion stack helper")
-    if (!parameterCode.call(10).same(trim)) refuseQueue("claim changed its native assertion stack helper")
+    if (!parameterCode.call(14).same(trim)) refuseQueue("claim changed its native assertion stack helper")
     code.registers(3, code.reg(1))
     code.registers(4, code.reg(1))
 }
 
-/** The persisted key is precisely prefix followed by account, built from a fresh StringBuilder. */
-private fun BytecodePatchContext.requireDiskKey(reference: MethodReference) {
-    val method = classDefByOrNull(reference.definingClass)?.method(reference) ?: refuseQueue("disk cleanup has no native key builder")
-    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.parameterTypes.map(Any::toString) != listOf(STRING, STRING) || method.returnType != STRING) {
-        refuseQueue("disk cleanup changes its native key builder")
-    }
-    val code = Shape(method, Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL,
-        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT)
+/**
+ * The persisted key is precisely the pending-story prefix followed by the store's own account's
+ * user ID, from a fresh StringBuilder. On 452 that's a private helper of the store asking the
+ * loop's own [accountGetter], so nothing else can override it or key by another account.
+ */
+private fun requireDiskKey(store: ClassDef, reference: MethodReference, accountGetter: MethodReference) {
+    val method = store.methods.singleOrNull { it.same(reference) }?.takeIf { reference.definingClass == store.type }
+        ?: refuseQueue("disk cleanup has no native key builder")
+    if (AccessFlags.STATIC.isSet(method.accessFlags) || !AccessFlags.PRIVATE.isSet(method.accessFlags) ||
+        method.parameterTypes.isNotEmpty() || method.returnType != STRING) refuseQueue("disk cleanup changes its native key builder")
+    val code = Shape(method, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IGET_OBJECT, Opcode.CONST_STRING,
+        Opcode.NEW_INSTANCE, Opcode.INVOKE_DIRECT, Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT,
+        Opcode.RETURN_OBJECT)
     if (method.implementation!!.tryBlocks.isNotEmpty()) refuseQueue("disk cleanup changes its key control flow")
+    if (!code.call(0).same(accountGetter)) refuseQueue("disk cleanup doesn't key by the store's native account")
+    code.registers(0, method.localRegisterCount())
+    if (code.reference(2).toString() != "$USER_SESSION->userId:$STRING") refuseQueue("disk cleanup doesn't key by the account's user ID")
+    if ((code.reference(3) as? StringReference)?.string != DISK_PREFIX) refuseQueue("disk cleanup doesn't use the pending-story prefix")
     val builder = "Ljava/lang/StringBuilder;"
-    if (code.reference(0).toString() != builder || code.call(1).toString() != "$builder-><init>()V" ||
-        code.call(2).toString() != "$builder->append($STRING)$builder" || code.call(3).toString() != code.call(2).toString() ||
-        code.call(4).toString() != "$OBJECT->toString()$STRING") refuseQueue("disk cleanup changes its native key builder")
-    code.registers(1, code.reg(0))
-    code.registers(2, code.reg(0), method.parameterRegisterNumber(0))
-    code.registers(3, code.reg(0), method.parameterRegisterNumber(1))
-    code.registers(4, code.reg(0))
-    code.registers(6, code.reg(5))
-    method.requireParameterIntact(PATCH, 0, listOf(2))
-    method.requireParameterIntact(PATCH, 1, listOf(3))
+    if (code.reference(4).toString() != builder || code.call(5).toString() != "$builder-><init>($STRING)V" ||
+        code.call(6).toString() != "$builder->append($STRING)$builder" ||
+        code.call(7).toString() !in setOf("$OBJECT->toString()$STRING", "$builder->toString()$STRING")) refuseQueue("disk cleanup changes its native key builder")
+    val id = code.reg(2)
+    val prefix = code.reg(3)
+    val key = code.reg(4)
+    if (setOf(id, prefix, key).size != 3) refuseQueue("disk cleanup aliases its key parts")
+    code.registers(2, id, code.reg(1))
+    code.registers(5, key, prefix)
+    code.registers(6, key, id)
+    code.registers(7, key)
+    code.registers(9, code.reg(8))
 }
 
 /** 449 schedules task 509, passing the same native storage and key to the backend's null-map write. */
@@ -690,11 +718,13 @@ private fun Method.requireOrigin(register: Int, read: Int, definition: Int) {
     if (seen[read] != setOf(definition)) refuseQueue("disk cleanup has changed receiver, prefix or account dataflow")
 }
 
+/** A string's load turns jumbo once the dex holds more strings than a short index reaches, as in 450. */
+private fun Opcode.unjumbo(): Opcode = if (this == Opcode.CONST_STRING_JUMBO) Opcode.CONST_STRING else this
+
 private class Shape(val method: Method, vararg expected: Opcode) {
     private val code = method.code()
-    // A string's load turns jumbo once the dex holds more strings than a short index reaches, as in 450.
     init {
-        if (code.map { if (it.opcode == Opcode.CONST_STRING_JUMBO) Opcode.CONST_STRING else it.opcode } != expected.toList()) {
+        if (code.map { it.opcode.unjumbo() } != expected.toList()) {
             refuseQueue("${method.name} changed its native shape")
         }
     }
@@ -753,10 +783,13 @@ private fun Method.nativeMethod(parameters: List<String>, result: String) {
 }
 private fun ClassDef.method(reference: MethodReference): Method = methods.singleOrNull { it.same(reference) }
     ?: refuseQueue("can't resolve ${reference.name} in the owner")
-private fun Method.code(): List<Instruction> {
-    val body = implementation ?: return emptyList()
+private fun Method.code(): List<Instruction> = executableBody()?.instructions?.toList() ?: emptyList()
+
+/** This method's body, refusing one a native or abstract method carries, which never runs. */
+private fun Method.executableBody(): MethodImplementation? {
+    val body = implementation ?: return null
     if (AccessFlags.NATIVE.isSet(accessFlags) || AccessFlags.ABSTRACT.isSet(accessFlags)) refuseQueue("$name has no executable DEX body")
-    return body.instructions.toList()
+    return body
 }
 private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
 private fun Instruction.call() = reference() as? MethodReference
@@ -766,6 +799,13 @@ internal fun Instruction.indirectlyCalls(bridge: MethodReference, build: MethodR
         reference.extraArguments.any { it.callsQueue(bridge, build) }
     else -> false
 }
+/**
+ * Each parameter's annotations, as [Method.getParameters] pairs them. A method read from the app's
+ * dex gives its sets directly, since getParameters also decodes every parameter's type and debug
+ * name, which the declaration walk paid for on every method (#173).
+ */
+private fun Method.parameterAnnotations(): List<Set<DexAnnotation>> =
+    (this as? DexBackedMethod)?.let { it.parameterAnnotations.take(it.parameterTypes.size) } ?: parameters.map { it.annotations }
 private fun Iterable<DexAnnotation>.callsQueue(bridge: MethodReference, build: MethodReference): Boolean =
     any { annotation -> annotation.elements.any { it.value.callsQueue(bridge, build) } }
 

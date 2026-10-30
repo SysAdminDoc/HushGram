@@ -44,7 +44,7 @@ import app.hushgram.extension.shared.Utils;
 public class SettingsScreenRowLayoutTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
     @Before public void hostTarget() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
     }
 
     @After

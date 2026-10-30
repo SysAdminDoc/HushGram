@@ -4,9 +4,17 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.app.Activity;
+import android.app.Application;
+import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.view.ViewParent;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -15,6 +23,7 @@ import java.util.Set;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.SettingsStatus;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -36,6 +45,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A third switch keeps Instagram's logo at the top of Home where the picked feed's name would
  * be: {@link #keepLogo} is asked as the header's title view is about to show that name, and a yes
  * has it show the logo with its arrow instead. The arrow still opens the picker.
+ *
+ * <p>The end of Following links back to the plain Home feed, which the picker doesn't offer, so
+ * {@link #picked} answers a feed the picker switches Home to in place. When that's Following, the
+ * feed Home is already on, the link then taps the Home tab, which takes Home back to its top.
  */
 public final class FollowingFeed {
     /** The name Instagram 449 saves for the Following feed, its feed type constant's. */
@@ -47,11 +60,35 @@ public final class FollowingFeed {
      */
     static final Set<String> FOR_YOU = new HashSet<>(Arrays.asList("BLENDED", "BLENDED_FOR_YOU"));
 
+    /** The plain Home feed, which the end of Following's "Back to home" link asks for. */
+    static final String PLAIN_HOME = "BLENDED";
+
+    /** The picker's For you. */
+    static final String PICKER_FOR_YOU = "BLENDED_FOR_YOU";
+
+    /** What's counted each time a link to the plain Home feed gets a feed the picker switches to in place. */
+    static final String HOME_LINK_KEPT = "Back to home kept on Home";
+
+    /** What's counted each time Back to home, with Home already on Following, taps the Home tab to go back to the top. */
+    static final String HOME_LINK_TOP = "Back to home took Home back to its top";
+
+    /** What's counted each time Back to home found no Home tab on screen to tap. */
+    static final String HOME_LINK_NO_TAB = "Back to home found no Home tab to tap";
+
+    /** The id name of the bottom bar's Home tab. A tap on it while Home shows takes the feed back to its top. */
+    static final String HOME_TAB = "feed_tab";
+
+    private static volatile boolean registered;
+
+    /** The activity in front, from its resume to its pause, whose Home tab Back to home taps. Main thread. */
+    private static WeakReference<Activity> front = new WeakReference<>(null);
+
     private static volatile boolean loggedFlag;
     private static volatile boolean loggedDefault;
     private static volatile boolean loggedLimit;
     private static volatile boolean loggedPicker;
     private static volatile boolean loggedLogo;
+    private static volatile boolean loggedLink;
 
     /** The name of Home's header, whose title view shows the picked feed's name. Instagram's layouts name it, so it keeps its name. */
     static final String HOME_BAR = "instagram.features.feed.mainfeed.actionbar.MainFeedActionBar";
@@ -66,6 +103,20 @@ public final class FollowingFeed {
     private static volatile Field feedField;
 
     private FollowingFeed() {
+    }
+
+    /**
+     * Called as the application starts. Does nothing in a build without the patch, and watches
+     * which activity is in front otherwise, for Back to home to tap its Home tab.
+     */
+    public static void install(Context context) {
+        try {
+            if (registered || !(context instanceof Application) || !SettingsStatus.followingFeed()) return;
+            registered = true;
+            ((Application) context).registerActivityLifecycleCallbacks(new Watcher());
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FOLLOWING_FEED, "start", failure);
+        }
     }
 
     /**
@@ -156,6 +207,58 @@ public final class FollowingFeed {
     }
 
     /**
+     * Injected first thing where Instagram switches Home to a feed, with the feed type constant.
+     * With the picker on, Home switches in place only to For you or Following, and any other feed
+     * opens as a page of its own. The end of Following's "Back to home" link asks for the plain
+     * Home feed, which has no page, and Instagram closed on the empty one it opened. While the
+     * switch is on, answers For you for it, or Following while For you is taken out. Following is
+     * the feed Home is already on, so Instagram's switch does nothing and the link then taps the
+     * Home tab, a moment later, to take Home back to its newest post. Answers [feed] otherwise, or
+     * when anything goes wrong. Never throws.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Object picked(Object feed) {
+        if (!(feed instanceof Enum) || !PLAIN_HOME.equals(((Enum<?>) feed).name())) return feed;
+        try {
+            HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
+            if (!Utils.settingsReady() || !Settings.START_ON_FOLLOWING.get()) return feed;
+            boolean following = Settings.ONLY_FOLLOWING.get();
+            String name = following ? FOLLOWING : PICKER_FOR_YOU;
+            Object kept = Enum.valueOf((Class) ((Enum<?>) feed).getDeclaringClass(), name);
+            HookStatus.counted(FamilyNames.FOLLOWING_FEED, HOME_LINK_KEPT);
+            if (following) Utils.runOnMainThread(FollowingFeed::backToTop);
+            if (!loggedLink) {
+                loggedLink = true;
+                Logger.printDebug(() -> "Following feed: Back to home switches Home to " + name);
+            }
+            return kept;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed link", failure);
+            return feed;
+        }
+    }
+
+    /** Taps the Home tab of the activity in front, which takes Home back to its top. Never throws. */
+    static void backToTop() {
+        try {
+            Activity activity = front.get();
+            int tab = activity == null ? 0
+                    : activity.getResources().getIdentifier(HOME_TAB, "id", activity.getPackageName());
+            boolean tapped = tapHome(activity, tab);
+            HookStatus.counted(FamilyNames.FOLLOWING_FEED, tapped ? HOME_LINK_TOP : HOME_LINK_NO_TAB);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed link top", failure);
+        }
+    }
+
+    /** Clicks the view with id [tab] in [activity]'s window, as a finger would, when it's shown. Answers whether it did. */
+    static boolean tapHome(@Nullable Activity activity, int tab) {
+        if (activity == null || tab == 0 || activity.getWindow() == null) return false;
+        View home = activity.getWindow().getDecorView().findViewById(tab);
+        return home != null && home.isShown() && home.performClick();
+    }
+
+    /**
      * Injected just before Instagram freezes the list of feeds Home's picker offers. While both
      * switches are on, takes For you out of it, unless that would leave the picker empty. Leaves
      * the list as it was otherwise, or when anything goes wrong. Never throws.
@@ -202,5 +305,22 @@ public final class FollowingFeed {
         }
         Object feed = field.get(item);
         return feed instanceof Enum ? ((Enum<?>) feed).name() : null;
+    }
+
+    /** Keeps {@link #front} to the activity between its resume and its pause. */
+    static final class Watcher implements Application.ActivityLifecycleCallbacks {
+        @Override public void onActivityResumed(@NonNull Activity activity) {
+            front = new WeakReference<>(activity);
+        }
+
+        @Override public void onActivityPaused(@NonNull Activity activity) {
+            if (front.get() == activity) front = new WeakReference<>(null);
+        }
+
+        @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
+        @Override public void onActivityStarted(@NonNull Activity activity) { }
+        @Override public void onActivityStopped(@NonNull Activity activity) { }
+        @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
+        @Override public void onActivityDestroyed(@NonNull Activity activity) { }
     }
 }

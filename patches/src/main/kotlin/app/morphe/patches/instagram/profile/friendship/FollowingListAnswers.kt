@@ -6,8 +6,9 @@ package app.morphe.patches.instagram.profile.friendship
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.util.ControlFlow
 import app.morphe.util.namedRegisters
@@ -81,12 +82,15 @@ private fun Site(classDef: ClassDef, method: Method) =
 internal fun BytecodePatchContext.findFollowAnswers(): FollowAnswers {
     val fetches = mutableListOf<Pair<ClassDef, Method>>()
     val parsers = mutableListOf<Pair<ClassDef, Method>>()
-    val holders = (classesHolding(NON_RECIP_FOLLOWERS) + classesHolding(FRIENDSHIP_STATUSES)).mapTo(HashSet()) { it.type }
+    // Either key may be held or asked of a string pool by number: 451's 385713073 pools friendship_statuses.
+    val holders = (classesLoadingString(NON_RECIP_FOLLOWERS) + classesLoadingString(FRIENDSHIP_STATUSES)).mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
         if (classDef.type !in holders || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method ->
-            if (method.holdsString(NON_RECIP_FOLLOWERS)) fetches += classDef to method
-            if (method.holdsString(FRIENDSHIP_STATUSES)) parsers += classDef to method
+            val code = method.implementation?.instructions?.toList() ?: return@forEach
+            val loaded = code.indices.mapNotNullTo(HashSet()) { stringLoadedAt(code, it) }
+            if (NON_RECIP_FOLLOWERS in loaded) fetches += classDef to method
+            if (FRIENDSHIP_STATUSES in loaded) parsers += classDef to method
         }
     }
 
@@ -194,10 +198,10 @@ private fun BytecodePatchContext.statusParses(method: Method): List<StatusParse>
     }
 }
 
-/** The Boolean field of [status] that [parser] writes first after loading [FOLLOWED_BY], when it's the same each time. */
-private fun followedByField(parser: Method, status: String): FieldReference? {
+/** The Boolean field of [status] that [parser] writes first after loading [FOLLOWED_BY], held or pooled, when it's the same each time. */
+private fun BytecodePatchContext.followedByField(parser: Method, status: String): FieldReference? {
     val code = parser.implementation?.instructions?.toList() ?: return null
-    val fields = code.indices.filter { code[it].loadsString(FOLLOWED_BY) }.map { loaded ->
+    val fields = code.indices.filter { stringLoadedAt(code, it) == FOLLOWED_BY }.map { loaded ->
         (loaded + 1 until code.size).map { code[it] }.firstOrNull { it.opcode == Opcode.IPUT_OBJECT || it.opcode == Opcode.RETURN_VOID }
             ?.fieldReference()?.takeIf { it.definingClass == status && it.type == "Ljava/lang/Boolean;" }
     }

@@ -17,7 +17,7 @@ import app.morphe.patches.instagram.feed.reels.FILTER
 import app.morphe.patches.instagram.feed.reels.filterParsedFeedItems
 import app.morphe.patches.instagram.feed.suggested.emptiedFeedEndPatch
 import app.morphe.patches.instagram.feed.suggested.hideSuggestedPostsPatch
-import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef

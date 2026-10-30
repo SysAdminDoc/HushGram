@@ -127,6 +127,19 @@ class NativeThreadSeenTest {
             val providers = classes.getValue(handler.definingClass).methods.single { it.name == "<clinit>" }.visualCode()
                 .mapNotNull { (it.visualReference() as? FieldReference)?.definingClass }.toSet() - handler.definingClass
             classes += FixtureDex.classes(bundle, providers)
+            // 453's 32-bit build names the chat receipt's mutation in its concrete class.
+            val mutation = (handler.visualCode().first().visualReference() as? TypeReference)?.type
+            if (mutation != null && mutation !in classes) classes += FixtureDex.classes(bundle, setOf(mutation))
+            // Some builds override it a class further down, so the classes naming it come with their supers.
+            FixtureDex.forEach(bundle) { dex ->
+                if (dex.stringSection.any { it == THREAD_SEEN_MUTATION }) for (candidate in dex.classes) {
+                    if (candidate.type !in classes && candidate.methods.any { m -> m.visualCode().any { it.visualString() == THREAD_SEEN_MUTATION } }) {
+                        classes[candidate.type] = ImmutableClassDef.of(candidate)
+                    }
+                }
+            }
+            val supers = classes.values.mapNotNull { it.superclass }.filter { it.startsWith("LX/") && it !in classes }.toSet()
+            if (supers.isNotEmpty()) classes += FixtureDex.classes(bundle, supers)
             // 450's 385611395 and 385611400 keep the callback's completion helper on another class,
             // and 385611440 keeps none, so the queue's other handlers come along too (#95).
             val callback = handler.parameterTypes[1].toString()

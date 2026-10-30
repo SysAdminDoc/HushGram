@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -17,6 +18,7 @@ import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.direct.ghost.ghostModeEntryPatch
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
@@ -40,13 +42,14 @@ internal val FOUND_PARAMETERS = listOf("J", "Ljava/lang/String;", "Ljava/util/Li
 
 /** The media detector's session starter, the one method writing both of its log lines. */
 internal object ContentDetectorFingerprint : Fingerprint(
-    strings = listOf(CONTENT_DETECTOR, DETECTOR_SESSION),
+    filters = listOf(string(CONTENT_DETECTOR)),
+    custom = { method, _ -> method.loadsConstString(DETECTOR_SESSION) },
 )
 
 /** The folder detector's static (detector, path, list) report, the one method logging [FOLDER_REPORT]. */
 internal object FolderReportFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(FOLDER_REPORT),
+    filters = listOf(string(FOLDER_REPORT)),
     custom = { method, _ ->
         AccessFlags.STATIC.isSet(method.accessFlags) &&
             method.parameterTypes.map(CharSequence::toString).drop(1) == listOf("Ljava/lang/String;", "Ljava/util/List;")

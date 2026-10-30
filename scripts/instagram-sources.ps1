@@ -390,6 +390,39 @@ function Test-SourceLedger {
                 $problems.Add("$label contaminatedBy has no https evidence link.")
             }
         }
+        # A relicensed source keeps each earlier licence pinned to a commit read under it, so a
+        # copy taken back then is still judged by what it was offered under.
+        foreach ($earlier in @(Get-SourceProperty $entry 'licenseHistory' | Where-Object { $null -ne $_ })) {
+            $earlierSpdx = [string](Get-SourceProperty $earlier 'spdx')
+            if (-not $earlierSpdx) { $problems.Add("$label has an earlier licence with no SPDX identifier.") }
+            if (-not (Test-SourceHttpsUrl (Get-SourceProperty $earlier 'url'))) { $problems.Add("$label earlier licence $earlierSpdx has no https url.") }
+            if ([string](Get-SourceProperty $earlier 'sha256') -notmatch '^[0-9a-f]{64}$') {
+                $problems.Add("$label earlier licence $earlierSpdx has no sha256 of its text.")
+            }
+            if ([string](Get-SourceProperty $earlier 'commit') -notmatch '^[0-9a-f]{40}$') {
+                $problems.Add("$label earlier licence $earlierSpdx is pinned to no commit read under it.")
+            }
+            Add-DateProblem (Get-SourceProperty $earlier 'until') "$label earlier licence $earlierSpdx until"
+        }
+        # Code a source took from another lineage (HushGram's downloader in InstaEclipse) is that
+        # lineage's work, so it never counts as independent evidence for this one.
+        foreach ($inherited in @(Get-SourceProperty $entry 'inherits' | Where-Object { $null -ne $_ })) {
+            $inheritedSource = [string](Get-SourceProperty $inherited 'source')
+            if (-not (ConvertTo-SourceKey $inheritedSource)) { $problems.Add("$label inherits code from no source repository.") }
+            if ([string]::IsNullOrWhiteSpace([string](Get-SourceProperty $inherited 'lineage'))) {
+                $problems.Add("$label inherits code from $inheritedSource with no lineage named.")
+            }
+            if (-not (Test-SourceHttpsUrl (Get-SourceProperty $inherited 'evidence'))) {
+                $problems.Add("$label inherits code from $inheritedSource with no https evidence link.")
+            }
+            $inheritedPaths = @(Get-SourceProperty $inherited 'paths' | Where-Object { $null -ne $_ })
+            if ($inheritedPaths.Count -eq 0) { $problems.Add("$label inherits code from $inheritedSource without saying where it sits.") }
+            foreach ($path in $inheritedPaths) {
+                if ("$path" -match '^[/\\]' -or "$path" -match '\.\.' -or [string]::IsNullOrWhiteSpace("$path")) {
+                    $problems.Add("$label inherited path '$path' must be a path inside the repository.")
+                }
+            }
+        }
         if ($dispositions -notcontains $disposition) {
             $problems.Add("$label disposition '$disposition' is not one of $($dispositions -join ', ').")
         }

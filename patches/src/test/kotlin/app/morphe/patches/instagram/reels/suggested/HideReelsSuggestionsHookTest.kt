@@ -47,8 +47,9 @@ class HideReelsSuggestionsHookTest {
     private val unit = "Lfixture/NetegoUnit;"
     private val binders = "Lfixture/Binders;"
     private val items = "Lfixture/Items;"
+    private val pages = "Lfixture/Pages;"
     private val session = "Lcom/instagram/common/session/UserSession;"
-    private val hooks = setOf(REELS_FILTER, NETEGO_FILTER)
+    private val hooks = setOf(REELS_FILTER, NETEGO_FILTER, FRIENDS_TAB_FILTER)
 
     /** The hooks the patch writes are in the ReelsSuggestions the bundle ships, public and static. */
     @Test
@@ -77,6 +78,25 @@ class HideReelsSuggestionsHookTest {
         val none = code.indices.last { code[it].opcode == Opcode.RETURN_OBJECT }
         assertEquals("the branch to the last return lands on its filter", none - 3, method.targetOf(2))
         assertNetegoAsked("the stand-in", method, unitRegister = 0, itemRegister = 1)
+        assertTrue("the converter has no friends tab filter", code.none { it.referenceText() == FRIENDS_TAB_FILTER })
+    }
+
+    /**
+     * The friends tab's page of people to follow (#167) passes through its own filter at every return
+     * of the method making it, a branch straight to the null return included, and through nothing else.
+     */
+    @Test
+    fun everyReturnOfTheFriendsTabPageIsFiltered() {
+        val context = PatchContexts.of(classes())
+
+        context.hide()
+
+        val page = context.mutableClassDefBy(pages).methods.single { it.name == "friendsTab" }
+        assertEveryReturnFiltered("the stand-in page", page, item, FRIENDS_TAB_FILTER)
+        val code = page.code()
+        val none = code.indices.last { code[it].opcode == Opcode.RETURN_OBJECT }
+        assertEquals("the branch to the null return lands on its filter", none - 3, page.targetOf(2))
+        assertTrue("the page has only its own filter", code.none { it.referenceText() == REELS_FILTER || it.referenceText() == NETEGO_FILTER })
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
@@ -90,9 +110,9 @@ class HideReelsSuggestionsHookTest {
             classes(converterAnswers = "Ljava/lang/Object;") to "answers Ljava/lang/Object;, which isn't a class of the app",
             classes(kindNames = SUGGESTED_KINDS.drop(1)) to "expected one enum field of $item whose type names all of $SUGGESTED_KINDS",
             classes(kindField = "Ljava/lang/String;") to "expected one enum field of $item whose type names all of $SUGGESTED_KINDS",
-            classes(dispatches = 0) to "comparing $CREATORS_TO_FOLLOW and $FRIENDS_TO_FOLLOW in this Instagram build, found none",
-            classes(dispatches = 2) to "comparing $CREATORS_TO_FOLLOW and $FRIENDS_TO_FOLLOW in this Instagram build, found Lfixture/",
-            classes(friends = "${FRIENDS_TO_FOLLOW}_v2") to "comparing $CREATORS_TO_FOLLOW and $FRIENDS_TO_FOLLOW in this Instagram build, found none",
+            classes(dispatches = 0) to "comparing $CREATORS_TO_FOLLOW in this Instagram build, found none",
+            classes(dispatches = 2) to "comparing $CREATORS_TO_FOLLOW in this Instagram build, found Lfixture/",
+            classes(creators = "${CREATORS_TO_FOLLOW}_v2") to "comparing $CREATORS_TO_FOLLOW in this Instagram build, found none",
             classes(dispatchTakes = "Lfixture/OtherItem;") to "doesn't take a $item",
             classes(unitTypeReads = listOf("iget v1, v0, $unit->size:I")) to "$oneType []",
             classes(unitTypeReads = listOf("iget-object v1, v0, $unit->type:Ljava/lang/String;", "iget-object v1, v0, $unit->subtype:Ljava/lang/String;")) to
@@ -103,6 +123,12 @@ class HideReelsSuggestionsHookTest {
             classes(madeByInstance = true) to "makes its netego item with invoke-virtual, not a static call",
             classes(jumpToNetegoReturn = true) to "something in $converter->convert jumps to the return of its netego item",
             classes(locals = 2) to "needs 2",
+            classes(pageMakers = 0) to "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found none",
+            classes(pageMakers = 2) to "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found Lfixture/",
+            classes(pageMarker = "${TO_FRIENDS_TAB_PAGE}_v2") to
+                "Reels friends tab page maker holding \"$TO_FRIENDS_TAB_PAGE\" in this Instagram build, found none",
+            classes(pageAnswers = "Lfixture/OtherItem;") to "$pages->friendsTab answers Lfixture/OtherItem;, not a $item",
+            classes(pageReturns = false) to "$pages->friendsTab returns no item",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -135,19 +161,27 @@ class HideReelsSuggestionsHookTest {
 
     private fun builds(bundle: File, label: String) {
         val converters = FixtureDex.classesHolding(bundle, TO_CLIPS_ITEM)
-        val dispatches = FixtureDex.classesHolding(bundle, FRIENDS_TO_FOLLOW)
+        val pageMakers = FixtureDex.classesHolding(bundle, TO_FRIENDS_TAB_PAGE)
+        val dispatches = FixtureDex.classesHolding(bundle, CREATORS_TO_FOLLOW)
         val itemType = converters.flatMap { it.methods }.single { method -> method.code().any { it.string() == TO_CLIPS_ITEM } }.returnType
         val itemClass = FixtureDex.classes(bundle, setOf(itemType)).values
         val fieldTypes = itemClass.flatMap { it.fields }.map { it.type }.filter { it.startsWith("L") }.toSet()
         val kinds = FixtureDex.classes(bundle, fieldTypes).values
-        val context = PatchContexts.of((converters + dispatches + itemClass + kinds).distinctBy { it.type })
+        val context = PatchContexts.of((converters + pageMakers + dispatches + itemClass + kinds).distinctBy { it.type })
 
         context.hide()
 
-        val written = converters.map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
-            .filter { method -> method.code().any { it.referenceText() in hooks } }
+        val methods = (converters + pageMakers).map { it.type }.distinct().flatMap { context.mutableClassDefBy(it).methods }
+        val page = methods.filter { method -> method.code().any { it.referenceText() == FRIENDS_TAB_FILTER } }
+        assertEquals("${label}: friends tab page makers hooked", 1, page.size)
+        assertTrue("${label}: the friends tab page maker", page.single().code().any { it.string() == TO_FRIENDS_TAB_PAGE })
+        assertEveryReturnFiltered("$label friends tab page", page.single(), itemType, FRIENDS_TAB_FILTER)
+        // The DexDiff rule for this hook counts its sites, one per return.
+        assertEquals("${label}: friends tab page returns", 2, page.single().code().count { it.opcode == Opcode.RETURN_OBJECT })
+        val written = methods.filter { method -> method.code().any { it.referenceText() == REELS_FILTER || it.referenceText() == NETEGO_FILTER } }
         assertEquals("${label}: methods hooked", 1, written.size)
         val method = written.single()
+        assertTrue("${label}: the converter has no friends tab filter", method.code().none { it.referenceText() == FRIENDS_TAB_FILTER })
         assertTrue("${label}: the converter", method.code().any { it.string() == TO_CLIPS_ITEM })
         assertEveryReturnFiltered(label, method, itemType)
         val code = method.code()
@@ -167,15 +201,15 @@ class HideReelsSuggestionsHookTest {
      * return's register; the filter is called once per return; nothing lands between the filter
      * and its return.
      */
-    private fun assertEveryReturnFiltered(what: String, method: MutableMethod, itemType: String) {
+    private fun assertEveryReturnFiltered(what: String, method: MutableMethod, itemType: String, filter: String = REELS_FILTER) {
         val code = method.code()
         val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
         assertTrue("$what: no returns", returns.isNotEmpty())
-        assertEquals("$what: filter calls", returns.size, code.count { it.referenceText() == REELS_FILTER })
+        assertEquals("$what: filter calls", returns.size, code.count { it.referenceText() == filter })
         val targets = method.jumpTargets()
         for (at in returns) {
             val register = (code[at] as OneRegisterInstruction).registerA
-            assertEquals("$what: the filter before return $at", REELS_FILTER, code[at - 3].referenceText())
+            assertEquals("$what: the filter before return $at", filter, code[at - 3].referenceText())
             assertEquals("$what: the filter's register at $at", listOf(register), code[at - 3].arguments())
             assertEquals("$what: the answer at $at", Opcode.MOVE_RESULT_OBJECT, code[at - 2].opcode)
             assertEquals("$what: the answer's register at $at", register, (code[at - 2] as OneRegisterInstruction).registerA)
@@ -221,8 +255,9 @@ class HideReelsSuggestionsHookTest {
 
     /**
      * The converter, which returns a new item, the item a call makes from a netego unit, and null
-     * through a branch straight to its return; the clips item with its kind enum; and the Reels
-     * binder dispatch, which reads the netego unit's type and compares it with both types.
+     * through a branch straight to its return; the clips item with its kind enum; the Reels binder
+     * dispatch, which reads the netego unit's type and compares it with both types; and the friends
+     * tab's page maker, which returns a new item, or null through a branch straight to its return.
      */
     private fun classes(
         converters: Int = 1,
@@ -231,7 +266,7 @@ class HideReelsSuggestionsHookTest {
         kindNames: List<String> = SUGGESTED_KINDS,
         kindField: String = kind,
         dispatches: Int = 1,
-        friends: String = FRIENDS_TO_FOLLOW,
+        creators: String = CREATORS_TO_FOLLOW,
         dispatchTakes: String = item,
         unitTypeReads: List<String> = listOf("iget-object v1, v0, $unit->type:Ljava/lang/String;"),
         madeFrom: String = unit,
@@ -240,6 +275,10 @@ class HideReelsSuggestionsHookTest {
         jumpToNetegoReturn: Boolean = false,
         madeByInstance: Boolean = false,
         locals: Int = 4,
+        pageMakers: Int = 1,
+        pageMarker: String = TO_FRIENDS_TAB_PAGE,
+        pageAnswers: String = item,
+        pageReturns: Boolean = true,
     ): List<ClassDef> {
         // An instance call's first register is its receiver, so the unit isn't where a static call keeps it.
         val fromUnit = if (madeByInstance) {
@@ -287,8 +326,7 @@ class HideReelsSuggestionsHookTest {
             val bind = method(type, "bind", listOf(dispatchTakes, "I"), "Lfixture/Binder;", 3, body = """
                 iget-object v0, p1, $item->unit:$unit
                 ${unitTypeReads.joinToString("\n")}
-                const-string v2, "$CREATORS_TO_FOLLOW"
-                const-string v2, "$friends"
+                const-string v2, "$creators"
                 iget-object v1, p0, $type->name:Ljava/lang/String;
                 iget-object v1, p1, $item->id:Ljava/lang/String;
                 const/4 v0, 0x0
@@ -296,7 +334,30 @@ class HideReelsSuggestionsHookTest {
             """)
             classDef(type, listOf(bind), fields = listOf("name" to "Ljava/lang/String;"))
         }
-        return converterClasses + kindEnum + itemClass + unitClass + dispatchClasses
+        val made = if (pageReturns) {
+            """
+                const/4 v1, 0x0
+                if-eqz p0, :none
+                new-instance v1, $item
+                invoke-direct { v1 }, $item-><init>()V
+                return-object v1
+                :none
+                return-object v1
+            """
+        } else {
+            """
+                new-instance v1, Ljava/lang/IllegalStateException;
+                invoke-direct { v1 }, Ljava/lang/IllegalStateException;-><init>()V
+                throw v1
+            """
+        }
+        val pageClasses = (0 until pageMakers).map { copy ->
+            val type = if (copy == 0) pages else "Lfixture/OtherPages;"
+            val friendsTab = method(type, "friendsTab", listOf("Lfixture/ServerPage;"), pageAnswers, 2, static = true,
+                body = "const-string v0, \"$pageMarker\"\n" + made.trimIndent())
+            classDef(type, listOf(friendsTab))
+        }
+        return converterClasses + kindEnum + itemClass + unitClass + dispatchClasses + pageClasses
     }
 
     private fun method(

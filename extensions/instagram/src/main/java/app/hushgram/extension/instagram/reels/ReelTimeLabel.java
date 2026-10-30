@@ -20,6 +20,7 @@ import android.graphics.drawable.LayerDrawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -27,6 +28,7 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -111,6 +113,15 @@ final class ReelTimeLabel {
     static final int BIG_TRACK_COLOR = 0x55FFFFFF;
     static final int BIG_FADE_COLOR = 0x66000000;
 
+    /**
+     * The bar like DM videos (#10), from Instagram's own player for a video opened in a chat: its
+     * video_seek_bar_drawable, a 3dp track in grey_5 (#999999) with the played part white, and its
+     * seek_bar_thumb, a plain white circle 16dp across. No fade, as there's none in that player.
+     */
+    static final float DM_TRACK_DP = 3f;
+    static final float DM_THUMB_DP = 16f;
+    static final int DM_TRACK_COLOR = 0xFF999999;
+
     /** The space between the label and the bar's track, and around the label's text. */
     private static final float GAP_DP = 4f;
 
@@ -132,6 +143,8 @@ final class ReelTimeLabel {
         final WeakReference<SeekBar> bar;
         /** The reel tag and the length the label was laid out for; a change of either starts it over. */
         String reel;
+        /** The reel tag the bar's container was last bound to, or null before a bind with one. */
+        String bound;
         int max = -1;
         /** The label's width, enough for the longest time this length can show. */
         int width;
@@ -147,10 +160,14 @@ final class ReelTimeLabel {
         Drawable originalThumb;
         GradientDrawable thumb;
         int originalThumbOffset;
+        /** Whether the thumb is the DM look's, with no outline. */
+        boolean thumbDm;
         /** The bigger bar: Instagram's own track and background, ours in their place, and the views let draw past their edges. */
         boolean styled;
         Drawable originalProgress;
         LayerDrawable bigTrack;
+        /** Whether the track drawn is the DM look's rather than the bigger bar's. */
+        boolean trackDm;
         Drawable originalBackground;
         LayerDrawable backdrop;
         int fadeIndex;
@@ -304,6 +321,7 @@ final class ReelTimeLabel {
                     State state = (State) tracker.label.getTag();
                     if (ad) updateThumb(bar, state, false);
                     if (!stillOrdinary || !Objects.equals(state.reel, reelOf(bar))) hide(bar, tracker.label);
+                    if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) startOver(bar, state);
                     tracker.queue(bar);
                 } else if (!ad && (on.getAsBoolean() || ReelSeekBar.thumbOn())) {
                     MAIN.post(() -> update(bar, bar.getProgress(), on));
@@ -313,6 +331,26 @@ final class ReelTimeLabel {
             HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek bar reel", failure);
         }
     }
+
+    /**
+     * A bar Instagram moves on to another reel keeps the last reel's position until the new reel's
+     * player first moves it, so its thumb and played part showed a few percent in and then jumped back
+     * to the start (#10). Bound to a reel tag other than the one before, the bar starts at 0, as
+     * the player's own first update would set it. Bound again to the same reel, or with no tag to
+     * tell, it's left where it is.
+     */
+    private static void startOver(SeekBar bar, State state) {
+        String reel = reelOf(bar);
+        if (reel == null || reel.equals(state.bound)) return;
+        state.bound = reel;
+        if (bar.getProgress() != 0 && !bar.isPressed()) {
+            bar.setProgress(0);
+            HookStatus.counted(FamilyNames.REEL_SEEK_BAR, COUNT_STARTED_OVER);
+        }
+    }
+
+    /** What's counted each time a bar moved on to another reel goes back to its start. */
+    static final String COUNT_STARTED_OVER = "Seek bar back to the start for a new reel";
 
     /**
      * Shows [bar]'s position and length in its label while the switch is on, and hides the label
@@ -338,7 +376,10 @@ final class ReelTimeLabel {
             if (tracker == null && thumbOn) tracker = track(bar, on);
             if (tracker != null) {
                 label = tracker.label;
-                updateThumb(bar, (State) label.getTag(), thumbOn);
+                State state = (State) label.getTag();
+                // A bar first seen playing learns its reel here, so binding that reel again doesn't start it over.
+                if (state.bound == null) state.bound = reelOf(bar);
+                updateThumb(bar, state, thumbOn);
             }
             if (!labelOn || max <= 0) {
                 if (label != null) hide(bar, label);
@@ -367,8 +408,9 @@ final class ReelTimeLabel {
     private static void updateThumb(SeekBar bar, State state, boolean wanted) {
         float density = bar.getResources().getDisplayMetrics().density;
         boolean big = wanted && ReelSeekBar.bigOn();
-        updateStyle(bar, state, big);
-        int diameter = Math.min(Math.round((big ? BIG_THUMB_DP : 10) * density), bar.getHeight());
+        boolean dm = big && ReelSeekBar.dmOn();
+        updateStyle(bar, state, big, dm);
+        int diameter = Math.min(Math.round((dm ? DM_THUMB_DP : big ? BIG_THUMB_DP : 10) * density), bar.getHeight());
         if (!wanted || diameter <= 0) {
             if (state.thumb != null && bar.getThumb() == state.thumb) {
                 bar.setThumb(state.originalThumb);
@@ -379,17 +421,19 @@ final class ReelTimeLabel {
             return;
         }
         if (state.thumb == null || bar.getThumb() != state.thumb
-                || state.thumb.getIntrinsicWidth() != diameter) {
+                || state.thumb.getIntrinsicWidth() != diameter || state.thumbDm != dm) {
             if (state.thumb == null || bar.getThumb() != state.thumb) {
                 state.originalThumb = bar.getThumb();
                 state.originalThumbOffset = bar.getThumbOffset();
             }
-            GradientDrawable thumb = new GradientDrawable();
+            GradientDrawable thumb = new Thumb();
             thumb.setShape(GradientDrawable.OVAL);
             thumb.setColor(Color.WHITE);
-            thumb.setStroke(Math.max(1, Math.round(density)), Color.BLACK);
+            // Instagram's DM thumb is a plain white circle; the others keep a thin outline for light videos.
+            if (!dm) thumb.setStroke(Math.max(1, Math.round(density)), Color.BLACK);
             thumb.setSize(diameter, diameter);
             state.thumb = thumb;
+            state.thumbDm = dm;
             // AbsSeekBar only positions a replacement when its old thumb is non-null. A same-call
             // seed makes Android lay out a previously absent thumb without changing playback progress.
             if (bar.getThumb() == null) bar.setThumb(new GradientDrawable());
@@ -417,8 +461,11 @@ final class ReelTimeLabel {
      * the bar's parent up to the first with room for the fade are let draw past their edges for it.
      * Costs nothing per frame once set; it starts over only if the bar's size or place changes or
      * Instagram swaps a drawable. Off, it gives Instagram's drawables and clipping back.
+     *
+     * <p>With [dm], the track is the DM look's thin one and there's no fade, so the bar keeps
+     * Instagram's background and the views around it keep their clipping.
      */
-    private static void updateStyle(SeekBar bar, State state, boolean big) {
+    private static void updateStyle(SeekBar bar, State state, boolean big, boolean dm) {
         ViewParent parent = bar.getParent();
         if (!big || !(parent instanceof ViewGroup)) {
             unstyle(bar, state);
@@ -427,10 +474,21 @@ final class ReelTimeLabel {
         int height = bar.getHeight();
         if (height <= 0) return;
         float density = bar.getResources().getDisplayMetrics().density;
-        if (state.bigTrack == null) state.bigTrack = bigTrack(density);
+        if (state.bigTrack == null || state.trackDm != dm) {
+            LayerDrawable before = state.bigTrack;
+            state.bigTrack = dm ? track(density, DM_TRACK_DP, DM_TRACK_COLOR) : track(density, BIG_TRACK_DP, BIG_TRACK_COLOR);
+            state.trackDm = dm;
+            // Switching looks keeps the drawable Instagram had before either.
+            if (before != null && bar.getProgressDrawable() == before) bar.setProgressDrawable(state.bigTrack);
+        }
         if (bar.getProgressDrawable() != state.bigTrack) {
             state.originalProgress = bar.getProgressDrawable();
             bar.setProgressDrawable(state.bigTrack);
+        }
+        if (dm) {
+            dropBackdrop(bar, state);
+            state.styled = true;
+            return;
         }
         boolean moved = state.styledHeight != height || state.styledBottom != bar.getBottom();
         if (state.backdrop == null || bar.getBackground() != state.backdrop) {
@@ -473,9 +531,14 @@ final class ReelTimeLabel {
         if (!state.styled) return;
         state.styled = false;
         if (bar.getProgressDrawable() == state.bigTrack) bar.setProgressDrawable(state.originalProgress);
-        if (bar.getBackground() == state.backdrop) bar.setBackground(state.originalBackground);
-        restoreClipping(state);
         state.originalProgress = null;
+        dropBackdrop(bar, state);
+    }
+
+    /** Gives the bar Instagram's background back, and the views around it their clipping, when the fade is up. */
+    private static void dropBackdrop(SeekBar bar, State state) {
+        if (state.backdrop != null && bar.getBackground() == state.backdrop) bar.setBackground(state.originalBackground);
+        restoreClipping(state);
         state.originalBackground = null;
         state.backdrop = null;
         state.styledHeight = -1;
@@ -491,16 +554,16 @@ final class ReelTimeLabel {
     }
 
     /**
-     * A translucent track with the progress over it in white, both [BIG_TRACK_DP] thick, drawn in code (#10).
+     * A track in [color] with the progress over it in white, both [thicknessDp] thick, drawn in code (#10).
      * The progress draws as far across as its level says. A ClipDrawable clipped it to the track's bounds,
      * which Instagram keeps a few pixels high at the bottom of the bar, so the thicker line came out no
      * thicker than Instagram's. The bar puts how much of the reel has loaded on the layer called
      * secondaryProgress, or on the whole drawable when there's none, and from there it reached the progress
      * layer as well: once a reel had loaded, the line was white from end to end. The empty layer takes it.
      */
-    private static LayerDrawable bigTrack(float density) {
-        float thickness = BIG_TRACK_DP * density;
-        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(BIG_TRACK_COLOR, thickness, false),
+    private static LayerDrawable track(float density, float thicknessDp, int color) {
+        float thickness = thicknessDp * density;
+        LayerDrawable track = new LayerDrawable(new Drawable[] {new Pill(color, thickness, false),
                 new ColorDrawable(Color.TRANSPARENT), new Pill(Color.WHITE, thickness, true)});
         track.setId(0, android.R.id.background);
         track.setId(1, android.R.id.secondaryProgress);
@@ -520,13 +583,31 @@ final class ReelTimeLabel {
      * A rounded bar of a fixed thickness, as wide as its bounds, or as far across them as its level says
      * when it's the progress, from the start side. It's centered on the handle's middle once that's known,
      * which can be above the track's own bounds, and on the middle of its bounds until then.
+     *
+     * <p>Instagram moves a reel's bar about ten times a second, so the progress jumped along in steps
+     * (#10). It eases from where it's drawn to each new spot over the time since the one before, so it
+     * moves steadily and arrives as the next one comes. A spot that goes back (a new reel, a seek back)
+     * or comes more than {@link #EASE_MAX_MS} after the last one (a reel that was paused) is drawn at once.
+     *
+     * <p>The spot is the bar's own progress, not the level. Instagram moves the bar with an animated
+     * setProgress, and on the S22 Android sets the new level, then starts its own short animation over
+     * from the old one: the level went new, old, new within a frame, and taking the old one as a step
+     * back left the ease about 15 ms to cover a step, so the line still jumped.
      */
     static final class Pill extends Drawable {
+        /** The longest gap between spots that's eased over; a longer one draws the new spot at once. */
+        static final long EASE_MAX_MS = 250L;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF rect = new RectF();
         private final float thickness;
         private final boolean progress;
         private float center = Float.NaN;
+        /** The progress eases from [easeFrom] to [easeTo] (levels) over [easeLength] from [easeStart]. */
+        private float easeFrom;
+        private int easeTo;
+        private long easeStart;
+        private long easeLength;
+        private long movedAt = -1L;
 
         Pill(int color, float thickness, boolean progress) {
             this.paint.setColor(color);
@@ -547,7 +628,10 @@ final class ReelTimeLabel {
             float left = bounds.left;
             float right = bounds.right;
             if (progress) {
-                float across = bounds.width() * (getLevel() / 10000f);
+                long now = SystemClock.uptimeMillis();
+                float across = bounds.width() * (shownLevel(now) / 10000f);
+                // Still on its way to the spot: draw again next frame.
+                if (now < easeStart + easeLength) invalidateSelf();
                 if (across <= 0f) return;
                 if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) left = right - across;
                 else right = left + across;
@@ -556,11 +640,52 @@ final class ReelTimeLabel {
             canvas.drawRoundRect(rect, thickness / 2f, thickness / 2f, paint);
         }
 
+        /** The level drawn at [now], on its way from the one drawn when the spot last moved to the new one. */
+        float shownLevel(long now) {
+            if (easeLength <= 0L || now >= easeStart + easeLength) return easeTo;
+            return easeFrom + (easeTo - easeFrom) * ((now - easeStart) / (float) easeLength);
+        }
+
+        /**
+         * How far the drawn line is from the level Android has the bar at, at [now], as a share of the bar:
+         * where Android put the handle. 0 once the line is there.
+         */
+        float behind(long now) {
+            return (shownLevel(now) - getLevel()) / 10000f;
+        }
+
         @Override
         protected boolean onLevelChange(int level) {
             if (!progress) return false;
+            int spot = spot(level);
+            if (spot != easeTo || movedAt < 0L) {
+                long now = SystemClock.uptimeMillis();
+                float shown = shownLevel(now);
+                long since = movedAt < 0L ? Long.MAX_VALUE : now - movedAt;
+                movedAt = now;
+                easeStart = now;
+                easeTo = spot;
+                if (spot < shown || since > EASE_MAX_MS) {
+                    easeFrom = spot;
+                    easeLength = 0L;
+                } else {
+                    easeFrom = shown;
+                    easeLength = since;
+                }
+            }
             invalidateSelf();
             return true;
+        }
+
+        /** The bar's own progress as a level, or [level] when the drawable isn't on a bar. */
+        private int spot(int level) {
+            Drawable.Callback up = getCallback();
+            if (up instanceof Drawable) up = ((Drawable) up).getCallback();
+            if (!(up instanceof ProgressBar)) return level;
+            ProgressBar bar = (ProgressBar) up;
+            int range = bar.getMax() - bar.getMin();
+            if (range <= 0) return level;
+            return Math.round((bar.getProgress() - bar.getMin()) * 10000f / range);
         }
 
         @Override
@@ -576,6 +701,44 @@ final class ReelTimeLabel {
         @Override
         public int getOpacity() {
             return PixelFormat.TRANSLUCENT;
+        }
+    }
+
+    /**
+     * The handle, drawn where the eased progress line ends (#10). Android places it at Instagram's level,
+     * which comes in steps, so on the S22 it hid the line's end and still jumped about ten times a second.
+     * It draws itself back by as much as the line is behind, so the two slide along together. With
+     * Instagram's own track there's no {@link Pill} and it draws where Android put it.
+     */
+    static final class Thumb extends GradientDrawable {
+        @Override
+        public void draw(Canvas canvas) {
+            float shift = shift();
+            if (shift == 0f) {
+                super.draw(canvas);
+                return;
+            }
+            int saved = canvas.save();
+            canvas.translate(shift, 0f);
+            super.draw(canvas);
+            canvas.restoreToCount(saved);
+        }
+
+        /** Pixels from Android's place to the eased line's end: back toward the start, or 0. */
+        float shift() {
+            if (!(getCallback() instanceof SeekBar)) return 0f;
+            SeekBar bar = (SeekBar) getCallback();
+            Drawable track = bar.getProgressDrawable();
+            if (!(track instanceof LayerDrawable)) return 0f;
+            Drawable line = ((LayerDrawable) track).findDrawableByLayerId(android.R.id.progress);
+            if (!(line instanceof Pill)) return 0f;
+            float behind = ((Pill) line).behind(SystemClock.uptimeMillis());
+            if (behind == 0f) return 0f;
+            // AbsSeekBar moves the handle across the track less its width, plus the offset on each side.
+            int room = bar.getWidth() - bar.getPaddingLeft() - bar.getPaddingRight()
+                    - getIntrinsicWidth() + 2 * bar.getThumbOffset();
+            float shift = behind * room;
+            return bar.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -shift : shift;
         }
     }
 
@@ -658,6 +821,7 @@ final class ReelTimeLabel {
     /** Makes the bar's one label and listener, and has the bar keep them. */
     private static Tracker track(SeekBar bar, BooleanSupplier on) {
         Tracker tracker = new Tracker(create(bar), on);
+        ((State) tracker.label.getTag()).bound = reelOf(bar);
         synchronized (TRACKERS) {
             TRACKERS.put(bar, new WeakReference<>(tracker));
         }

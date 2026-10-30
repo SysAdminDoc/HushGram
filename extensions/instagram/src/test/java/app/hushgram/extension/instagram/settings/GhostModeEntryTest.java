@@ -39,6 +39,7 @@ public class GhostModeEntryTest {
         GHOST = new BooleanSetting[] {Settings.VIEW_STORIES_ANONYMOUSLY, Settings.VIEW_LIVE_ANONYMOUSLY,
                 Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.VIEW_DM_MEDIA_ANONYMOUSLY, Settings.HIDE_TYPING, Settings.HIDE_SCREENSHOTS};
         for (BooleanSetting setting : GHOST) setting.resetToDefault();
+        Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -48,6 +49,7 @@ public class GhostModeEntryTest {
     @After public void close() {
         PatchFamily.inBuildForTests = null;
         for (BooleanSetting setting : GHOST) setting.resetToDefault();
+        Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -85,6 +87,21 @@ public class GhostModeEntryTest {
         assertTrue(longPress());
         for (BooleanSetting setting : GHOST) assertFalse(setting.key, setting.savedValue());
         assertEquals("Ghost mode is off, and so is each of its switches.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** #251: with some switches picked, the long press turns only those and leaves the rest as set. */
+    @Test public void aPressTurnsOnlyThePickedSwitches() {
+        Settings.GHOST_MODE_PICKS.save(Settings.HIDE_TYPING.key + "," + Settings.READ_WITHOUT_SEEN_RECEIPT.key);
+        Settings.HIDE_SCREENSHOTS.save(true);
+        assertTrue(longPress());
+        assertTrue(Settings.HIDE_TYPING.savedValue());
+        assertTrue(Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
+        assertFalse(Settings.VIEW_STORIES_ANONYMOUSLY.savedValue());
+        assertEquals("Ghost mode is on, and so is each of its switches.", ShadowToast.getTextOfLatestToast());
+        assertTrue(longPress());
+        assertFalse(Settings.HIDE_TYPING.savedValue());
+        assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
+        assertTrue("a switch left out keeps what you set", Settings.HIDE_SCREENSHOTS.savedValue());
     }
 
     @Test public void withSomeSwitchesAlreadyOnAPressTurnsThemAllOn() {

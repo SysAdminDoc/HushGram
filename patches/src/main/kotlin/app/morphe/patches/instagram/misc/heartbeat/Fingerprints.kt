@@ -5,6 +5,8 @@
 package app.morphe.patches.instagram.misc.heartbeat
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.string
+import app.morphe.patches.instagram.misc.extension.loadsConstStringContaining
 
 /**
  * The method that sets Instagram's next heartbeat alarm. The heartbeat is Instagram's note to itself
@@ -15,7 +17,8 @@ import app.morphe.patcher.Fingerprint
 internal object HeartbeatAlarmFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf("L"),
-    strings = listOf("WarmHeartbeat", "AlarmManager not available, cannot schedule heartbeat"),
+    filters = listOf(string("AlarmManager not available, cannot schedule heartbeat")),
+    custom = { method, _ -> method.loadsConstStringContaining("WarmHeartbeat") },
 )
 
 /**
@@ -25,5 +28,6 @@ internal object HeartbeatAlarmFingerprint : Fingerprint(
  */
 internal object UploadAlarmFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf("AnalyticsUploadAlarm", "action_batch_upload"),
+    filters = listOf(string("action_batch_upload")),
+    custom = { method, _ -> method.loadsConstStringContaining("AnalyticsUploadAlarm") },
 )

@@ -55,13 +55,11 @@ public final class NotesRow {
         if (sections == null) return null;
         try {
             HookStatus.invoked(FamilyNames.NOTES_ROW);
-            int at = indexOfNotes(sections);
+            int at = indexOf(sections, NOTES);
             if (at < 0) return sections;
             FeedFilterCounters.sawKind(ROUTE, ROW);
             if (!on.getAsBoolean()) return sections;
-            Object[] kept = (Object[]) Array.newInstance(sections.getClass().getComponentType(), sections.length - 1);
-            System.arraycopy(sections, 0, kept, 0, at);
-            System.arraycopy(sections, at + 1, kept, at, sections.length - at - 1);
+            Object[] kept = without(sections, at);
             FeedFilterCounters.removed(ROUTE, 1, ROW);
             if (!logged) {
                 logged = true;
@@ -74,13 +72,21 @@ public final class NotesRow {
         }
     }
 
-    /** Where the notes row's section is in [sections], or -1 when Instagram didn't name it this time. */
-    private static int indexOfNotes(Object[] sections) {
+    /** Where the section Instagram calls [name] is in [sections], or -1 when it didn't name it this time. */
+    static int indexOf(Object[] sections, String name) {
         for (int at = 0; at < sections.length; at++) {
             Object section = sections[at];
-            if (section instanceof Enum && NOTES.equals(((Enum<?>) section).name())) return at;
+            if (section instanceof Enum && name.equals(((Enum<?>) section).name())) return at;
         }
         return -1;
+    }
+
+    /** A copy of [sections], of the same array type, without the section at [at]. */
+    static Object[] without(Object[] sections, int at) {
+        Object[] kept = (Object[]) Array.newInstance(sections.getClass().getComponentType(), sections.length - 1);
+        System.arraycopy(sections, 0, kept, 0, at);
+        System.arraycopy(sections, at + 1, kept, at, sections.length - at - 1);
+        return kept;
     }
 
     private static boolean switchedOn() {

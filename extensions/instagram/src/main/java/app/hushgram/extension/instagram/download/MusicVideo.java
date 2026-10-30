@@ -146,7 +146,7 @@ final class MusicVideo {
         for (MediaSave.Rendition picture : pictures) {
             if (picture != null && MediaUrlPolicy.shapeRefusal(picture.url) == null) meta.add(picture);
         }
-        return RenditionPicker.pickImage(meta);
+        return MediaSave.pictureOf(meta);
     }
 
     // ---------------------------------------------------------------- the save

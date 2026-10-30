@@ -45,7 +45,7 @@ public class StoryTimeSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.SHOW_STORY_TIME.resetToDefault();
         Settings.STORY_TIME_MODE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -98,7 +98,7 @@ public class StoryTimeSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.SHOW_STORY_TIME.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 
     @Test public void theChoiceSitsBelowTheSwitchStartsAtTheDateAndTimeAndSaysWhatItShows() throws Exception {

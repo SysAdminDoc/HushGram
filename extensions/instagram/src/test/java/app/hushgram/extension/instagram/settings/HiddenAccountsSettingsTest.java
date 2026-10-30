@@ -43,7 +43,7 @@ public class HiddenAccountsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         clear();
         Settings.FEED_ACCOUNT.save("1");
         BaseSettings.SAFE_MODE.save(false);

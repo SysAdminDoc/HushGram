@@ -8,15 +8,17 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.SystemClock;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -60,7 +62,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The list is a small file in HushGram's private folder holding at most {@link #MAX_ENTRIES}
  * saves, the oldest going first. It isn't a setting, so a settings backup leaves it out, and nothing
  * of it goes in the diagnostic report, which only counts skips. With the switch off nothing is read or
- * written, and Clear download history deletes the file.
+ * written, and Clear download history deletes the file. A damaged file is read only within fixed
+ * budgets, its bad lines skipped, and is written afresh at the next save.
  */
 public final class DownloadHistory {
 
@@ -92,6 +95,21 @@ public final class DownloadHistory {
 
     /** Lines read from the file at most, so a damaged file can't hold a save up for long. */
     private static final int MAX_LINES_READ = 4 * MAX_ENTRIES;
+
+    /**
+     * The longest line read. A save's line is a few hundred characters, so a longer one is damage,
+     * skipped as it's read and never held whole (#150).
+     */
+    static final int MAX_LINE_CHARS = 2048;
+
+    /**
+     * Characters read from the file at most. A full file, twice the list's lines at 500 characters
+     * each, fits, and a damaged or swollen one stops here (#150).
+     */
+    static final long MAX_CHARS_READ = 16L * 1024 * 1024;
+
+    /** What the file's reader puts in place of bytes that aren't UTF-8. */
+    private static final char NOT_UTF8 = (char) 0xFFFD;
 
     /** What a save kept of a media item. One letter each in a key. */
     enum Kind {
@@ -304,11 +322,7 @@ public final class DownloadHistory {
             load(application);
             ENTRIES.remove(key);
             ENTRIES.put(key, entry);
-            Iterator<String> oldest = ENTRIES.keySet().iterator();
-            while (ENTRIES.size() > MAX_ENTRIES && oldest.hasNext()) {
-                oldest.next();
-                oldest.remove();
-            }
+            dropOldest();
             if (lines + 1 > 2 * MAX_ENTRIES) rewrite(application);
             else append(application, line(key, entry));
         }
@@ -382,6 +396,8 @@ public final class DownloadHistory {
             return path != null && !path.isEmpty() && new File(path).isFile();
         }
         if (!"content".equals(item.getScheme())) return false;
+        // A save into a folder picked in settings: the folder's own app answers for its file.
+        if (DocumentsContract.isTreeUri(item)) return SaveTree.exists(application, item);
         try (Cursor row = application.getContentResolver().query(item,
                 new String[] { MediaStore.MediaColumns.RELATIVE_PATH }, null, null, null)) {
             if (row == null || !row.moveToFirst()) return false;
@@ -422,7 +438,12 @@ public final class DownloadHistory {
         }
     }
 
-    /** Reads the file once, or again when it's another file (another test's). Keeps what it read on a failure. */
+    /**
+     * Reads the file once, or again when it's another file (another test's). Keeps what it read on a
+     * failure. A file found damaged, with a line too long, not UTF-8 or cut short, or more of it than
+     * {@link #MAX_CHARS_READ}, is written afresh from what was read at the next save or forget, so
+     * what's added after it can be read back (#150).
+     */
     private static void load(Context application) {
         File file = file(application);
         if (file.equals(loadedFrom)) return;
@@ -430,15 +451,23 @@ public final class DownloadHistory {
         lines = 0;
         loadedFrom = file;
         if (!file.isFile()) return;
-        try (BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8))) {
+        try (Reader in = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+            Lines each = new Lines(in);
             String line;
-            while (lines < MAX_LINES_READ && (line = in.readLine()) != null) {
+            while (lines < MAX_LINES_READ && (line = each.next()) != null) {
                 lines++;
                 read(line);
+                dropOldest();
             }
+            if (each.damaged) lines = Math.max(lines, 2 * MAX_ENTRIES);
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "download history read", failure);
         }
+    }
+
+    /** Drops the oldest saves past {@link #MAX_ENTRIES}. */
+    private static void dropOldest() {
+        if (ENTRIES.size() <= MAX_ENTRIES) return;
         Iterator<String> oldest = ENTRIES.keySet().iterator();
         while (ENTRIES.size() > MAX_ENTRIES && oldest.hasNext()) {
             oldest.next();
@@ -446,9 +475,65 @@ public final class DownloadHistory {
         }
     }
 
+    /**
+     * The file's lines, read within {@link #MAX_LINE_CHARS} and {@link #MAX_CHARS_READ}, so a damaged
+     * file is never held whole. A line too long or holding bytes that aren't UTF-8 is skipped as it's
+     * read, and so is a last line the file ends inside, a write cut short.
+     */
+    private static final class Lines {
+        private final Reader in;
+        private final char[] buffer = new char[8192];
+        private final StringBuilder line = new StringBuilder();
+        private int at;
+        private int end;
+        private long read;
+        /** Whether a line was skipped, or reading stopped at the budget with more to read. */
+        boolean damaged;
+
+        Lines(Reader in) {
+            this.in = in;
+        }
+
+        /** The next whole line, or null at the file's end or the budget. */
+        String next() throws IOException {
+            line.setLength(0);
+            boolean skipping = false;
+            while (true) {
+                if (at == end && !fill()) {
+                    if (line.length() > 0 || skipping) damaged = true;
+                    return null;
+                }
+                char c = buffer[at++];
+                if (c == '\n') {
+                    if (!skipping) return line.toString();
+                    damaged = true;
+                    skipping = false;
+                    line.setLength(0);
+                } else if (!skipping) {
+                    if (line.length() == MAX_LINE_CHARS || c == NOT_UTF8) skipping = true;
+                    else line.append(c);
+                }
+            }
+        }
+
+        /** Reads on. False at the file's end or the budget. */
+        private boolean fill() throws IOException {
+            if (read >= MAX_CHARS_READ) {
+                if (in.read() != -1) damaged = true;
+                return false;
+            }
+            int count = in.read(buffer, 0, (int) Math.min(buffer.length, MAX_CHARS_READ - read));
+            if (count <= 0) return false;
+            read += count;
+            at = 0;
+            end = count;
+            return true;
+        }
+    }
+
     /** One line of the file: a save ({@code +}) or one forgotten ({@code -}). Anything else is skipped. */
     private static void read(String line) {
-        String[] fields = line.split("\t", -1);
+        String[] fields = line.split("\t", 8);
         if (fields.length == 2 && fields[0].equals("-")) {
             ENTRIES.remove(fields[1]);
             return;
@@ -485,17 +570,28 @@ public final class DownloadHistory {
         return clean.toString();
     }
 
+    interface Append { OutputStream open(File file) throws IOException; }
+    static volatile Append appendForTests;
+
     private static void append(Context application, String line) throws IOException {
         File file = file(application);
         File folder = file.getParentFile();
         if (folder != null && !folder.isDirectory() && !folder.mkdirs() && !folder.isDirectory()) {
             throw new IOException("the history folder could not be made");
         }
-        try (Writer out = new OutputStreamWriter(new FileOutputStream(file, true), StandardCharsets.UTF_8)) {
-            out.write(line);
-            out.write('\n');
+        try {
+            try (Writer out = new OutputStreamWriter(appendForTests == null ? new FileOutputStream(file, true)
+                    : appendForTests.open(file), StandardCharsets.UTF_8)) {
+                out.write(line);
+                out.write('\n');
+            }
+            lines++;
+        } catch (IOException | RuntimeException failure) {
+            // A failed write or close may have left a partial tail in the already-loaded file.
+            // Rewrite from the retained entries before any later save or forget appends to it.
+            lines = Math.max(lines, 2 * MAX_ENTRIES);
+            throw failure;
         }
-        lines++;
     }
 
     /** The whole list written afresh beside the file, then put in its place. */

@@ -8,6 +8,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.direct.seen.AccountIdBridge
 import app.morphe.patches.instagram.direct.seen.USER_SESSION
@@ -33,7 +34,7 @@ private const val OBJECT = "Ljava/lang/Object;"
 /** Instagram's base screen's onResume: the one method logging [SCREEN_RESUME]. */
 internal object ScreenResumeFingerprint : Fingerprint(
     returnType = "V",
-    strings = listOf(SCREEN_RESUME),
+    filters = listOf(string(SCREEN_RESUME)),
     custom = { method, _ -> method.name == "onResume" && method.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(method.accessFlags) },
 )
 

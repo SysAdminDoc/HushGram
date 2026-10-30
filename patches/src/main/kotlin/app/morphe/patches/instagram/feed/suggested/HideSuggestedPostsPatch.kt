@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.feed.suggested
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
@@ -16,6 +17,7 @@ import app.morphe.patches.instagram.feed.filterParsedFeedItems
 import app.morphe.patches.instagram.feed.home.HomeFeedReads
 import app.morphe.patches.instagram.feed.home.findHomeFeedReads
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.patchLog
@@ -27,6 +29,8 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 
 private const val PATCH = "Hide suggested posts"
 internal const val SUGGESTIONS_FILTER =
@@ -64,7 +68,7 @@ val hideSuggestedPostsPatch = bytecodePatch(
     description = "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows " +
         "from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. " +
         "Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' " +
-        "question, all videos, photos, carousels, posts " +
+        "question on Home and Reels, the caught up card, all videos, photos, carousels, posts " +
         "you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one " +
         "to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram " +
         "settings > Feed.",
@@ -84,18 +88,31 @@ val hideSuggestedPostsPatch = bytecodePatch(
         val interest = findInterestQuestion()
         // And where the feed item binder group adds the same row, which Home can be built with too (#131).
         val groupedInterest = findGroupedInterestQuestion(interest)
+        // Reels ask the same question in their footer (#131). A build without it keeps Reels' row.
+        val reelsInterest = reelsInterestControlOrWarn()
         // Asking for For you's next page after a page the switches left short (#52), found before the
         // show check changes. A build without it waits for the scroll as Instagram has it.
         val nextPage = homeNextPageOrWarn()
+        // The Suggested for you header after Home's end of feed card (#104). A build without it keeps the title.
+        val sectionHeader = suggestedSectionHeaderOrWarn()
+        // On 451 the end of feed card shows that title itself, over the same section (#104).
+        val caughtUpTitle = caughtUpCardTitleOrWarn(sectionHeader)
+        // Hide the caught up card folds the same card's row (#307). A build without it keeps the card.
+        val caughtUpCard = hideCaughtUpCardOrWarn()
         filterSuggestedFeedItems()
         endFollowingAtItsCard()
         // The Older Posts page's loading row, a separate builder; a build without it keeps Instagram's row.
         endOlderPostsSpinnerOrWarn()
         nextPage?.write(this)
+        val itemsFilled = sectionHeader?.write(this) == true
+        caughtUpTitle?.write(this, itemsFilled)
+        // After the title's hook, which checks the binder's code by index.
+        caughtUpCard?.write(this)
         exploreShops.write(this)
         productTags.write(this)
         interest.write(this)
         groupedInterest.write(this)
+        reelsInterest?.write(this)
         // The post type switches are found whole before their part changes anything, so a build
         // where Home's reads or a post's type moved gets the rest of the patch alone.
         homeFeedTypesOrWarn()?.let {
@@ -124,49 +141,61 @@ internal const val HOME_PAGE_PARSED = "$FEED_SUGGESTIONS->homePageParsed()V"
 
 /**
  * Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts, found:
- * Home's reads, the feed item's post field, the post's media_type, has_liked and user getters, the
- * user's username getter and the extension's stubs reading them. [write] passes each item Home reads
- * through FeedSuggestions.homeItem and fills the stubs. It also marks each page of Home's feed
- * response, so FeedSuggestions can tell a page of Home's own that the suggestion switches emptied
- * from Home's store and other feeds (#105, #28).
+ * Home's reads, the feed item's post field, the suggested post unit's posts when the build has one
+ * ([story]), the post's media_type, has_liked and user getters, the user's username getter and the
+ * extension's stubs reading them. [write] passes each item Home reads through
+ * FeedSuggestions.homeItem and fills the stubs. It also marks each page of Home's feed response, so
+ * FeedSuggestions can tell a page of Home's own that the suggestion switches emptied from Home's
+ * store and other feeds (#105, #28).
  */
 internal class HomeFeedTypes(
     private val reads: HomeFeedReads,
     private val post: FieldReference,
+    private val story: ExploreStoryPosts?,
+    private val stubs: Map<String, MutableMethod>,
     private val mediaType: Method,
-    private val stub: MutableMethod,
     private val hasLiked: Method,
-    private val likedStub: MutableMethod,
     private val owner: Method,
     private val username: Method,
-    private val authorStub: MutableMethod,
     private val postAuthorStub: MutableMethod,
 ) {
     fun write(): Int {
-        fillIntStub(stub, mediaType, "Ljava/lang/Integer;->intValue()I")
-        fillIntStub(likedStub, hasLiked, "Ljava/lang/Boolean;->booleanValue()Z")
-        fillAuthorStub()
+        fillFieldStub(stubs.getValue("itemPost"), reads.itemType, post)
+        story?.let {
+            fillFieldStub(stubs.getValue("exploreStory"), reads.itemType, it.story)
+            fillFieldStub(stubs.getValue("storyPost"), it.story.type, it.mediaOrAd)
+            fillFieldStub(stubs.getValue("storyMedia"), it.story.type, it.media)
+        }
+        fillIntStub(stubs.getValue("mediaType"), mediaType, "Ljava/lang/Integer;->intValue()I")
+        fillIntStub(stubs.getValue("liked"), hasLiked, "Ljava/lang/Boolean;->booleanValue()Z")
         fillPostAuthorStub()
         val filtered = reads.filterWith(HOME_TYPES_FILTER)
         reads.markPages(HOME_PAGE_STARTS, HOME_PAGE_PARSED)
         return filtered
     }
 
+    /** Fills [target], a static (Object)Object stub, to cast p0 to [type] and answer its [field]. */
+    private fun fillFieldStub(target: MutableMethod, type: String, field: FieldReference) {
+        target.addInstructions(
+            0,
+            """
+                check-cast p0, $type
+                iget-object p0, p0, ${field.definingClass}->${field.name}:${field.type}
+                return-object p0
+            """,
+        )
+    }
+
     /**
-     * Fills [target], a static (Object)I stub, to read the item's post and answer [getter]'s boxed
-     * value through [unbox], or 0 when the item has no post or the post doesn't say. Each way out
-     * returns on its own, so p0 never merges an object and an int at one return.
+     * Fills [target], a static (Object)I stub taking a post, to answer [getter]'s boxed value through
+     * [unbox], or 0 when the post doesn't say. Each way out returns on its own, so p0 never merges
+     * an object and an int at one return.
      */
     private fun fillIntStub(target: MutableMethod, getter: Method, unbox: String) {
         target.addInstructionsWithLabels(
             0,
             """
-                check-cast p0, ${reads.itemType}
-                iget-object p0, p0, ${post.definingClass}->${post.name}:${post.type}
-                if-nez p0, :post
-                const/4 p0, 0x0
-                return p0
-                :post
+                check-cast p0, $MEDIA
                 invoke-virtual { p0 }, $MEDIA->${getter.name}()${getter.returnType}
                 move-result-object p0
                 if-nez p0, :boxed
@@ -203,33 +232,62 @@ internal class HomeFeedTypes(
         )
     }
 
-    /**
-     * Fills FeedSuggestions.author, a static (Object)String stub, to read the item's post, the
-     * post's user and the user's username, or null when the item has no post or the post no user.
-     * Each way out returns on its own, so p0 never merges two types at one return.
-     */
-    private fun fillAuthorStub() {
-        authorStub.addInstructionsWithLabels(
-            0,
-            """
-                check-cast p0, ${reads.itemType}
-                iget-object p0, p0, ${post.definingClass}->${post.name}:${post.type}
-                if-nez p0, :post
-                const/4 p0, 0x0
-                return-object p0
-                :post
-                invoke-virtual { p0 }, $MEDIA->${owner.name}()${owner.returnType}
-                move-result-object p0
-                if-nez p0, :user
-                const/4 p0, 0x0
-                return-object p0
-                :user
-                invoke-virtual { p0 }, $USER->${username.name}()${username.returnType}
-                move-result-object p0
-                return-object p0
-            """,
-        )
+}
+
+/**
+ * A feed item's suggested post unit ("explore_story", which Instagram 451 sends every suggested
+ * post on Home as) and the unit's two post fields, its "media_or_ad" and its "media".
+ */
+internal class ExploreStoryPosts(val story: FieldReference, val mediaOrAd: FieldReference, val media: FieldReference)
+
+/** The constructor of the suggested post unit names its GraphQL type with this string. */
+private const val EXPLORE_STORY_TYPE = "XDTExploreStory"
+
+/**
+ * The field of [itemType] holding the suggested post unit, the one whose type's constructor names
+ * [EXPLORE_STORY_TYPE], and the unit's post fields: the Media field read right before the unit's
+ * own map of itself puts it under "media_or_ad", and the one under "media". All of them public, since
+ * the extension reads them. A failure names [patch].
+ */
+internal fun BytecodePatchContext.exploreStoryPosts(itemType: String, patch: String = PATCH): ExploreStoryPosts {
+    val fields = classDefBy(itemType).fields.filter { field ->
+        !AccessFlags.STATIC.isSet(field.accessFlags) && classDefByOrNull(field.type)?.methods?.any { method ->
+            method.name == "<init>" && method.implementation?.instructions?.any {
+                ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == EXPLORE_STORY_TYPE
+            } == true
+        } == true
     }
+    val field = fields.singleOrNull()
+        ?: throw PatchException("$patch: expected one field of $itemType holding a suggested post unit, found ${fields.map { it.name }}")
+    val unit = classDefBy(field.type)
+    if (!AccessFlags.PUBLIC.isSet(field.accessFlags) || !AccessFlags.PUBLIC.isSet(unit.accessFlags)) {
+        throw PatchException("$patch: the suggested post unit ${field.type} or its field ${field.name} isn't public")
+    }
+    fun postUnder(key: String): FieldReference {
+        // 451 wrote the unit's map in the unit itself. 452 moves it into serializer classes that read the
+        // unit's fields, so every class holding the key is read for reads off the unit.
+        val found = (listOf(unit) + classesHolding(key)).distinctBy { it.type }.flatMap { it.methods }.flatMap { method ->
+            val code = method.implementation?.instructions?.toList().orEmpty()
+            code.indices.filter { ((code[it] as? ReferenceInstruction)?.reference as? StringReference)?.string == key }
+                .mapNotNull { at ->
+                    (at - 1 downTo maxOf(0, at - 4)).asSequence().map { code[it] }
+                        .firstOrNull { it.opcode == Opcode.IGET_OBJECT }
+                        ?.let { (it as ReferenceInstruction).reference as FieldReference }
+                        ?.takeIf { it.definingClass == unit.type && it.type == MEDIA }
+                }
+        }.distinctBy { it.name }
+        val post = found.singleOrNull()
+            ?: throw PatchException("$patch: expected one post field of ${unit.type} under \"$key\", found ${found.map { it.name }}")
+        val declared = unit.fields.singleOrNull { it.name == post.name && it.type == MEDIA }
+        if (declared == null || !AccessFlags.PUBLIC.isSet(declared.accessFlags)) {
+            throw PatchException("$patch: ${unit.type}'s post field ${post.name} isn't public")
+        }
+        return post
+    }
+    val mediaOrAd = postUnder("media_or_ad")
+    val media = postUnder("media")
+    if (mediaOrAd.name == media.name) throw PatchException("$patch: ${unit.type} keeps \"media_or_ad\" and \"media\" in one field")
+    return ExploreStoryPosts(ImmutableFieldReference(itemType, field.name, field.type), mediaOrAd, media)
 }
 
 /**
@@ -240,16 +298,22 @@ internal class HomeFeedTypes(
 internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
     val reads = findHomeFeedReads(PATCH)
     if (reads.pageReturns() == 0) throw PatchException("$PATCH: Home's feed response parser never returns")
-    val stub = staticStub(FEED_SUGGESTIONS, "mediaType", "I")
-    val likedStub = staticStub(FEED_SUGGESTIONS, "liked", "I")
-    val authorStub = staticStub(FEED_SUGGESTIONS, "author", STRING)
+    val stubs = listOf("itemPost", "exploreStory", "storyPost", "storyMedia").associateWith { staticStub(FEED_SUGGESTIONS, it, OBJECT) } +
+        listOf("mediaType", "liked").associateWith { staticStub(FEED_SUGGESTIONS, it, "I") }
     val postAuthorStub = staticStub(HIDDEN_ACCOUNTS, "authorOfPost", STRING)
     val post = itemPost(reads.itemType)
     val mediaType = publicGetter(MEDIA, "media_type", "Ljava/lang/Integer;")
     val hasLiked = publicGetter(MEDIA, "has_liked", "Ljava/lang/Boolean;")
     val owner = publicGetter(MEDIA, "user", USER)
     val username = publicGetter(USER, "username", STRING)
-    HomeFeedTypes(reads, post, mediaType, stub, hasLiked, likedStub, owner, username, authorStub, postAuthorStub)
+    // Without the suggested post unit the switches still read posts from accounts you follow.
+    val story = try {
+        exploreStoryPosts(reads.itemType)
+    } catch (moved: PatchException) {
+        patchLog.warning("${moved.message}. Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts leave suggested posts on Home.")
+        null
+    }
+    HomeFeedTypes(reads, post, story, stubs, mediaType, hasLiked, owner, username, postAuthorStub)
 } catch (moved: PatchException) {
     patchLog.warning(
         "${moved.message}. Hide suggested posts goes in without Hide videos, Hide photos, Hide carousels, " +
@@ -259,6 +323,7 @@ internal fun BytecodePatchContext.homeFeedTypesOrWarn(): HomeFeedTypes? = try {
 }
 
 private const val STRING = "Ljava/lang/String;"
+private const val OBJECT = "Ljava/lang/Object;"
 
 /** The extension's static (Object) stub [name] on [owner], answering [returns], which the patch fills. */
 internal fun BytecodePatchContext.staticStub(owner: String, name: String, returns: String): MutableMethod =

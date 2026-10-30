@@ -51,16 +51,29 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * time the header lays out, which also covers buttons that change between draws. They're only set
  * when they differ, so a layout never asks for another one that changes nothing.
  *
- * <p>With the switch off, HushGram paused or the settings not read yet, the header is left as it is.
- * What an earlier draw changed goes back at the next draw, and only what HushGram set and nothing
+ * <p>Logo and titles at the start (#310) does the opposite for accounts whose header centers the
+ * logo itself: the views the title switches between go to its start, keeping their vertical
+ * gravity, and both rows' minimum widths are cleared, so the title view begins right after the
+ * start row's buttons. It wins over the centering switch.
+ *
+ * <p>With both switches off, HushGram paused or the settings not read yet, the header is left as it
+ * is. What an earlier draw changed goes back at the next draw, and only what HushGram set and nothing
  * has changed since. Anything thrown leaves the header as it is.
  */
 public final class HomeLogo {
     /** What's counted each time the logo is centered after a draw. */
     static final String CENTERED = "Home header logo centered";
 
+    /** What's counted each time the logo is put at the start after a draw. */
+    static final String AT_START = "Home header logo at the start";
+
     /** What's counted when the header's rows or title view can't be read. */
     static final String NOT_FOUND = "Home header logo not centered, no rows or title view";
+
+    /** Where the logo goes: left as Instagram drew it, in the middle, or at the start. */
+    static final int AS_IS = 0;
+    static final int MIDDLE = 1;
+    static final int START = 2;
 
     /** A minimum width HushGram hasn't set. */
     private static final int NONE = -1;
@@ -79,19 +92,31 @@ public final class HomeLogo {
 
     /** Whether the logo goes in the middle now: the switch on, HushGram not paused, the settings read. */
     static boolean wanted() {
-        return Utils.settingsReady() && !HushgramPause.isPaused() && Settings.CENTER_HOME_LOGO.get();
+        return placement() == MIDDLE;
+    }
+
+    /**
+     * Where the logo goes now: {@link #AS_IS} with HushGram paused or the settings not read,
+     * {@link #START} with Logo and titles at the start on, {@link #MIDDLE} with only the centering
+     * switch on.
+     */
+    static int placement() {
+        if (!Utils.settingsReady() || HushgramPause.isPaused()) return AS_IS;
+        if (Settings.TITLES_AT_START.get()) return START;
+        return Settings.CENTER_HOME_LOGO.get() ? MIDDLE : AS_IS;
     }
 
     /**
      * Called on the main thread once Home's header has drawn from its state and HushGram's own header
-     * buttons are in. Centers the logo while {@link #wanted} says so, and otherwise puts back what an
-     * earlier call changed. Never throws.
+     * buttons are in. Centers the logo or puts it at the start, as {@link #placement} says, and
+     * otherwise puts back what an earlier call changed. Never throws.
      */
     public static void center(View header) {
         try {
             if (header == null) return;
             Changes changes = CHANGED.get(header);
-            if (!wanted()) {
+            int placement = placement();
+            if (placement == AS_IS) {
                 if (changes != null) undo(header, changes);
                 return;
             }
@@ -107,25 +132,38 @@ public final class HomeLogo {
                 CHANGED.put(header, changes);
                 header.addOnLayoutChangeListener(changes);
             }
-            centerTitle(title, changes);
+            placeTitle(title, changes, placement);
+            if (placement == START) {
+                changes.startSet = widen(start, 0);
+                changes.endSet = widen(end, 0);
+            }
             // The buttons the header just put in haven't been measured yet, so the rows are evened
             // out by the layout check once the layout this asks for has measured them.
             header.requestLayout();
-            HookStatus.counted(FamilyNames.REELS_TAB, CENTERED);
+            HookStatus.counted(FamilyNames.REELS_TAB, placement == START ? AT_START : CENTERED);
             if (!logged) {
                 logged = true;
-                Logger.printDebug(() -> "Home header: Instagram's logo is in the middle");
+                Logger.printDebug(() -> placement == START
+                        ? "Home header: Instagram's logo is at the start"
+                        : "Home header: Instagram's logo is in the middle");
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "home header logo", failure);
         }
     }
 
+    /** Centers each view [title] switches between across it, as {@link #placeTitle} does. */
+    static void centerTitle(ViewGroup title, Changes changes) throws IllegalAccessException {
+        placeTitle(title, changes, MIDDLE);
+    }
+
     /**
      * Centers each view [title] switches between, and each LinearLayout it keeps in a field, across
-     * [title], where its layout params are a FrameLayout's. Notes the gravity it had first.
+     * [title], or puts it at [title]'s start, where its layout params are a FrameLayout's. Notes the
+     * gravity it had before HushGram changed it, so a switch from one placement to the other still
+     * puts back Instagram's.
      */
-    static void centerTitle(ViewGroup title, Changes changes) throws IllegalAccessException {
+    static void placeTitle(ViewGroup title, Changes changes, int placement) throws IllegalAccessException {
         List<View> views = new ArrayList<>();
         for (int i = 0; i < title.getChildCount(); i++) views.add(title.getChildAt(i));
         views.addAll(heldBy(title));
@@ -134,9 +172,9 @@ public final class HomeLogo {
             if (!(view.getLayoutParams() instanceof FrameLayout.LayoutParams)) continue;
             FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) view.getLayoutParams();
             int[] noted = changes.gravities.get(params);
-            if (noted != null && params.gravity == noted[1]) continue;
-            int wanted = centered(params.gravity);
-            changes.gravities.put(params, new int[] {params.gravity, wanted});
+            int original = noted != null && params.gravity == noted[1] ? noted[0] : params.gravity;
+            int wanted = placement == START ? started(original) : centered(original);
+            changes.gravities.put(params, new int[] {original, wanted});
             if (params.gravity != wanted) {
                 params.gravity = wanted;
                 moved = true;
@@ -149,6 +187,12 @@ public final class HomeLogo {
     static int centered(int gravity) {
         int vertical = gravity == FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY ? 0 : gravity & Gravity.VERTICAL_GRAVITY_MASK;
         return vertical | Gravity.CENTER_HORIZONTAL;
+    }
+
+    /** [gravity] at the start: its vertical part kept, its horizontal part the start. */
+    static int started(int gravity) {
+        int vertical = gravity == FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY ? 0 : gravity & Gravity.VERTICAL_GRAVITY_MASK;
+        return vertical | Gravity.START;
     }
 
     /** The LinearLayouts [title] keeps in its own fields: on Instagram, the logo's and the feed name's. */
@@ -256,7 +300,7 @@ public final class HomeLogo {
     /**
      * What HushGram changed on one header: the rows' minimum widths before and after, and each title
      * view's layout params' gravity before and after. Also the header's layout check, which evens the
-     * rows out again when its buttons change. It holds no view, so the header it's kept for can go.
+     * rows out again when its buttons change, or keeps them cleared for the start. It holds no view, so the header it's kept for can go.
      */
     static final class Changes implements View.OnLayoutChangeListener {
         final int startOriginal;
@@ -274,11 +318,17 @@ public final class HomeLogo {
         public void onLayoutChange(View header, int left, int top, int right, int bottom,
                                    int oldLeft, int oldTop, int oldRight, int oldBottom) {
             try {
-                if (!wanted()) return;
+                int placement = placement();
+                if (placement == AS_IS) return;
                 LinearLayout start = HomeHeader.startRowOf(header);
                 LinearLayout end = HomeHeader.endRowOf(header);
                 if (start == null || end == null) return;
-                balance(header, start, end, this);
+                if (placement == START) {
+                    startSet = widen(start, 0);
+                    endSet = widen(end, 0);
+                } else {
+                    balance(header, start, end, this);
+                }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REELS_TAB, "home header logo", failure);
             }

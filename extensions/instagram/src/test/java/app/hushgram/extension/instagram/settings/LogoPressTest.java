@@ -36,7 +36,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 /**
  * A long press on the Instagram logo at the top of Home opens HushGram, on a stand-in of Instagram
  * 450's header title: the view holding the logo, with Instagram's tap and the long
- * press Instagram gives it, which only takes the press on some accounts. The patch sends
+ * press Instagram gives it, which only takes the press on some accounts (an Instagram Plus account
+ * gets its Change your app icon sheet there). The patch sends
  * Instagram's call giving that long press to {@link SettingsEntry#setLogoLongClickListener}.
  */
 @RunWith(RobolectricTestRunner.class)
@@ -100,7 +101,7 @@ public class LogoPressTest {
 
         assertTrue(title.isLongClickable());
         assertTrue(title.performLongClick());
-        assertEquals("Instagram's long press wasn't asked first", 1, asked.get());
+        assertEquals("Instagram's long press ran as well as HushGram's", 0, asked.get());
         assertEquals(1, shown());
         assertEquals("the long press was also a tap", 0, taps.get());
 
@@ -110,13 +111,17 @@ public class LogoPressTest {
         assertEquals(0, shown());
     }
 
-    @Test public void instagramsOwnLongPressStaysInstagrams() {
+    /**
+     * On an Instagram Plus account Instagram's long press on the logo opens its Change your app
+     * icon sheet and takes the press. Asked first, it kept the logo from ever opening HushGram.
+     */
+    @Test public void instagramsAppIconSheetCantTakeTheLogoFromHushGram() {
         AtomicInteger asked = new AtomicInteger();
         SettingsEntry.setLogoLongClickListener(title, instagrams(asked, true));
 
         assertTrue(title.performLongClick());
-        assertEquals(1, asked.get());
-        assertEquals("HushGram opened over a long press Instagram took", 0, shown());
+        assertEquals("Instagram's app icon sheet took the long press", 0, asked.get());
+        assertEquals(1, shown());
     }
 
     @Test public void drawingTheHeaderAgainKeepsTheLongPressWithInstagramsNewestListener() {
@@ -126,17 +131,23 @@ public class LogoPressTest {
         SettingsEntry.setLogoLongClickListener(title, instagrams(second, false));
 
         assertTrue(title.performLongClick());
-        assertEquals("the listener Instagram replaced was asked", 0, first.get());
-        assertEquals(1, second.get());
         assertEquals(1, shown());
         closeSettings();
 
         // HushGram's own listener handed back in wraps Instagram's once, not twice.
         View.OnLongClickListener current = shadowOf(title).getOnLongClickListener();
         SettingsEntry.setLogoLongClickListener(title, current);
-        assertTrue(title.performLongClick());
-        assertEquals("Instagram's listener was asked more than once for one press", 2, second.get());
-        assertEquals(1, shown());
+        View.OnLongClickListener listener = shadowOf(title).getOnLongClickListener();
+        assertTrue(listener instanceof SettingsEntry.LogoPress);
+        assertFalse("HushGram's listener wrapped its own",
+                ((SettingsEntry.LogoPress) listener).instagrams instanceof SettingsEntry.LogoPress);
+
+        // Once the logo is off screen the press is Instagram's, and only its newest listener hears it.
+        ((ViewGroup) title.getParent()).removeView(title);
+        assertFalse(listener.onLongClick(title));
+        assertEquals("the listener Instagram replaced was asked", 0, first.get());
+        assertEquals("Instagram's listener was asked more than once for one press", 1, second.get());
+        assertEquals(0, shown());
     }
 
     @Test public void pausedTheLogoStillOpensHushGram() {
@@ -155,12 +166,39 @@ public class LogoPressTest {
         assertEquals(1, shown());
     }
 
+    /**
+     * Home's newer header keeps its logo in an image view with no listener of Instagram's; the
+     * patch hands that view over once, as the header finds it.
+     */
+    @Test public void theNewerHeadersLogoOpensHushGram() {
+        ImageView logo = new ImageView(activity);
+        ((ViewGroup) title.getParent()).addView(logo);
+        assertFalse(logo.isLongClickable());
+
+        SettingsEntry.watchLogo(logo);
+
+        assertTrue(logo.isLongClickable());
+        assertTrue(logo.performLongClick());
+        assertEquals(1, shown());
+        assertEquals("a tap on the older header's title came with it", 0, taps.get());
+    }
+
+    @Test public void noLogoViewIsLeftAlone() {
+        SettingsEntry.watchLogo(null);
+        assertEquals(0, shown());
+    }
+
     @Test public void aLogoNoLongerOnScreenLeavesThePressToInstagram() {
         AtomicInteger asked = new AtomicInteger();
         SettingsEntry.setLogoLongClickListener(title, instagrams(asked, false));
+        View.OnLongClickListener listener = shadowOf(title).getOnLongClickListener();
+        assertNotNull(listener);
         ((ViewGroup) title.getParent()).removeView(title);
+        assertNull("the real logo was removed from its header", title.getParent());
 
-        assertFalse(title.performLongClick());
+        // A callback already in flight can outlive removal. performLongClick also runs Android's
+        // unhandled context-menu fallback, which requires a parent that this view no longer has.
+        assertFalse(listener.onLongClick(title));
         assertEquals(1, asked.get());
         assertEquals(0, shown());
     }

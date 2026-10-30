@@ -19,6 +19,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
@@ -27,6 +28,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -203,11 +205,11 @@ class GroupNotificationsHookTest {
         val byShape = NOTIFY_SHAPES.associateWith { shape ->
             methods.count { method -> method.instructions().any { it.notifyCall() == shape } }
         }
-        assertEquals("${label}: methods posting by shape", mapOf(untagged to 9, tagged to 7), byShape)
+        assertEquals("${label}: methods posting by shape", mapOf(untagged to 10, tagged to 7), byShape)
         val cancelsByShape = CANCEL_SHAPES.associateWith { shape ->
             methods.count { method -> method.instructions().any { it.cancelCall() == shape } }
         }
-        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 23), cancelsByShape)
+        assertEquals("${label}: methods cancelling by shape", mapOf(cancelUntagged to 4, cancelTagged to 24), cancelsByShape)
 
         val context = PatchContexts.of(callers)
         val sent = context.groupNotifications()
@@ -232,6 +234,45 @@ class GroupNotificationsHookTest {
             }
         }
         assertEquals("${label}: calls sent", Sent(posts, cancels), sent)
+    }
+
+    /**
+     * Instagram names its notification types in one class's static setup, ig_direct and
+     * ig_posting_status among them, promo pushes too. Each of those ids fits the muted list's
+     * pattern, so any type the settings list offers can be muted and kept through a backup.
+     */
+    @Test
+    fun eachDeclaredBuildsChannelIdsFitTheMutedList() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                channels(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildsChannelIdsFitToo() {
+        for (base in Fixtures.otherBuilds()) channels(base, base.parentFile.name)
+    }
+
+    private fun channels(bundle: File, label: String) {
+        val pattern = Regex(ExtensionDex.stringConstant(NOTIFICATION_GROUPS, "CHANNEL_ID"))
+        assertFalse("two ids with a comma between fit as one", pattern.matches("ig_a,ig_b"))
+        assertFalse("an id with a space fits", pattern.matches("ig likes"))
+        val setups = FixtureDex.classesHolding(bundle, "ig_posting_status").mapNotNull { classDef ->
+            classDef.methods.firstOrNull { it.name == "<clinit>" }?.instructions()
+                ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+                ?.takeIf { "ig_direct" in it && "ig_posting_status" in it }
+        }
+        assertEquals("${label}: classes naming the notification types", 1, setups.size)
+        val ids = setups.single().filter { it.startsWith("ig_") }.toSet()
+        assertTrue("${label}: only ${ids.size} notification types: $ids", ids.size >= 20)
+        ids.forEach { assertTrue("${label}: $it doesn't fit ${pattern.pattern}", pattern.matches(it)) }
+        assertTrue("${label}: no promo types in $ids", ids.containsAll(setOf("ig_product_announcements", "ig_shopping_drops")))
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

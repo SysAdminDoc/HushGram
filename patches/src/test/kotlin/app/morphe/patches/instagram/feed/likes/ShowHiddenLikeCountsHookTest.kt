@@ -126,7 +126,7 @@ class ShowHiddenLikeCountsHookTest {
         LikeFixture.classes().map { if (it.type == LikeFixture.ROWS) LikeFixture.rows(count = 2) else it })
     @Test fun rowsAskingTwoDecidersAreRefused() = refuses("ask one method whether to hide the count, found 2",
         LikeFixture.classes().map { if (it.type == LikeFixture.ROWS) LikeFixture.rows(otherDecider = true) else it })
-    @Test fun aDeciderTestingSomethingElseFirstIsRefused() = refuses("doesn't test the flag first",
+    @Test fun aDeciderTestingSomethingElseFirstIsRefused() = refuses("doesn't test the flag",
         LikeFixture.classes().map { if (it.type == LikeFixture.DECIDER) LikeFixture.deciderClass(tested = 3) else it })
     @Test fun aDeciderAnsweringShownForTheFlagIsRefused() = refuses("doesn't answer hidden at once",
         LikeFixture.classes().map { if (it.type == LikeFixture.DECIDER) LikeFixture.deciderClass(answer = 0) else it })
@@ -160,6 +160,8 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals(original.map { it.shape() }, code.drop(2).map { it.shape() })
         }
 
+        private fun List<Instruction>.withoutNops() = filter { it.opcode != Opcode.NOP }
+
         /**
          * The reader hands its tree and the count it read to the extension right after the read, at
          * [countAt] + 1, and nothing else changes.
@@ -173,8 +175,9 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals(Opcode.INVOKE_STATIC, code[countAt + 1].opcode)
             assertEquals(SAW_LIKE_COUNT, code[countAt + 1].reference())
             assertEquals("the tree and the count", listOf(tree, count), code[countAt + 1].namedRegisters())
-            assertEquals(original.size + 1, code.size)
-            assertEquals(original.map { it.shape() }, (code.take(countAt + 1) + code.drop(countAt + 2)).map { it.shape() })
+            // Dex alignment may add or drop a nop around a switch payload when an odd-sized call goes in.
+            assertEquals(original.withoutNops().size + 1, code.withoutNops().size)
+            assertEquals(original.withoutNops().map { it.shape() }, (code.take(countAt + 1) + code.drop(countAt + 2)).withoutNops().map { it.shape() })
         }
 
         /**
@@ -189,8 +192,9 @@ class ShowHiddenLikeCountsHookTest {
             assertEquals(Opcode.INVOKE_STATIC, code[flagAt + 1].opcode)
             assertEquals(ROW_READ, code[flagAt + 1].reference())
             assertEquals("the tree and the flag", listOf(tree, flag), code[flagAt + 1].namedRegisters())
-            assertEquals(original.size + 1, code.size)
-            assertEquals(original.map { it.shape() }, (code.take(flagAt + 1) + code.drop(flagAt + 2)).map { it.shape() })
+            // Dex alignment may add or drop a nop around a switch payload when an odd-sized call goes in.
+            assertEquals(original.withoutNops().size + 1, code.withoutNops().size)
+            assertEquals(original.withoutNops().map { it.shape() }, (code.take(flagAt + 1) + code.drop(flagAt + 2)).withoutNops().map { it.shape() })
         }
 
         /** The stub reads the flag off the tree it's given, by the key it's given, with [read]. */

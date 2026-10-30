@@ -33,9 +33,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <ul>
  *   <li>Each builder of the menu tells {@link #building} which story's menu it's building, then
- *       hands its labels through {@link #labels} before the menu shows them. With the switch on,
+ *       hands its labels through {@link #labels} ({@link #labelList} for your own highlights'
+ *       menu, a list) before the menu shows them. With the switch on,
  *       the menu gets Download at the end. A photo story with music, which Instagram serves as a
- *       video, gets Download as video and Download as photo instead.
+ *       video, gets Download as video and Download as photo instead, and a filmed video gets
+ *       Download and Download as photo, which saves the still Instagram shows before it plays (#215).
  *   <li>Each handler asks {@link #save} first. A tap on Download saves the story from the
  *       addresses its Media already holds, through {@link MediaSave}: a video at the Download
  *       quality, a photo at its largest size. Download as photo saves the picture even when the
@@ -61,24 +63,37 @@ public final class StoryDownload {
     /** Instagram's media type for a photo, which a story keeps as the type it was posted as. */
     static final int POSTED_PHOTO = 1;
 
+    /** The rows a story's menu gets: Download alone, or two that tell the video and the picture apart. */
+    enum Rows {
+        DOWNLOAD(Choice.STORY),
+        VIDEO_AND_PHOTO(Choice.VIDEO, Choice.PHOTO),
+        DOWNLOAD_AND_PHOTO(Choice.STORY, Choice.PHOTO);
+
+        final Choice[] choices;
+
+        Rows(Choice... choices) {
+            this.choices = choices;
+        }
+    }
+
     /**
      * What a story's menu is built for, under the fixed name the diagnostic report counts it by,
-     * and whether it gets Download as video and Download as photo.
+     * and the rows it gets.
      */
     enum Kind {
-        UNREAD("story not read", false),
-        PHOTO("photo", false),
-        FLAGGED("video flagged as a photo with music", true),
-        POSTED_AS_PHOTO("video posted as a photo", true),
-        POSTED_AS_VIDEO("video posted as a video", false),
-        NO_POSTED_TYPE("video with no posted type", false);
+        UNREAD("story not read", Rows.DOWNLOAD),
+        PHOTO("photo", Rows.DOWNLOAD),
+        FLAGGED("video flagged as a photo with music", Rows.VIDEO_AND_PHOTO),
+        POSTED_AS_PHOTO("video posted as a photo", Rows.VIDEO_AND_PHOTO),
+        POSTED_AS_VIDEO("video posted as a video", Rows.DOWNLOAD_AND_PHOTO),
+        NO_POSTED_TYPE("video with no posted type", Rows.DOWNLOAD_AND_PHOTO);
 
         final String counted;
-        final boolean bothSaves;
+        final Rows rows;
 
-        Kind(String counted, boolean bothSaves) {
+        Kind(String counted, Rows rows) {
             this.counted = counted;
-            this.bothSaves = bothSaves;
+            this.rows = rows;
         }
     }
 
@@ -99,22 +114,24 @@ public final class StoryDownload {
 
     /**
      * The labels [labels] of a story's menu, with HushGram's rows at the end when the switch is on:
-     * Download, or Download as video and Download as photo for a photo story with music. A menu
-     * that has the rows already is left alone. Never throws.
+     * Download, Download as video and Download as photo for a photo story with music, or Download
+     * and Download as photo for a filmed video. A menu that has the rows already is left alone.
+     * Never throws.
      */
     public static CharSequence[] labels(CharSequence[] labels) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
             if (labels == null || !on()) return labels;
-            return labels(labels, photoWithMusic(building.get()));
+            return labels(labels, rows(building.get()));
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
             return labels;
         }
     }
 
-    static CharSequence[] labels(CharSequence[] labels, boolean photoWithMusic) {
-        String[] rows = photoWithMusic ? new String[] {label(Choice.VIDEO), label(Choice.PHOTO)} : new String[] {label(Choice.STORY)};
+    static CharSequence[] labels(CharSequence[] labels, Rows which) {
+        String[] rows = new String[which.choices.length];
+        for (int i = 0; i < rows.length; i++) rows[i] = label(which.choices[i]);
         for (CharSequence label : labels) {
             if (label != null && rows[0].contentEquals(label)) return labels;
         }
@@ -124,18 +141,36 @@ public final class StoryDownload {
     }
 
     /**
-     * Whether the story [menu] is open on is a photo with music, which Instagram serves as a video,
-     * counting what the story was for the diagnostic report. No when it can't tell, so the menu
-     * keeps its one Download. Never throws.
+     * The labels [labels] of a highlight's menu on your own profile, which Instagram builds as a
+     * list where other story menus build an array (#339). HushGram's rows go at its end, as
+     * {@link #labels} adds them. A list that has the rows already is left alone. Never throws.
      */
-    static boolean photoWithMusic(Object menu) {
+    public static void labelList(List<Object> labels) {
+        try {
+            HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
+            if (labels == null || !on()) return;
+            CharSequence[] more = labels(new CharSequence[0], rows(building.get()));
+            for (Object label : labels) {
+                if (label instanceof CharSequence && more[0].toString().contentEquals((CharSequence) label)) return;
+            }
+            labels.addAll(Arrays.asList(more));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.STORY_DOWNLOAD, "story menu", t);
+        }
+    }
+
+    /**
+     * The rows for the story [menu] is open on, counting what the story was for the diagnostic
+     * report. Download alone when it can't tell. Never throws.
+     */
+    static Rows rows(Object menu) {
         try {
             Kind kind = kind(menu == null ? null : InstagramMedia.storyMedia(menu));
             HookStatus.counted(FamilyNames.STORY_DOWNLOAD, kind.counted);
-            return kind.bothSaves;
+            return kind.rows;
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.STORY_DOWNLOAD, MUSIC_CHECK, t);
-            return false;
+            return Rows.DOWNLOAD;
         }
     }
 
@@ -187,7 +222,7 @@ public final class StoryDownload {
     private static boolean saveMedia(Context context, Object media) {
         List<MediaSave.Rendition> videos = ReelDownload.renditions(media);
         String manifest = InstagramMedia.dashManifest(media);
-        PostDetails details = ReelDownload.details(media);
+        PostDetails details = details(media);
         if (!videos.isEmpty() || manifest != null) {
             final int files = videos.size();
             final boolean dash = manifest != null;
@@ -203,7 +238,12 @@ public final class StoryDownload {
         List<MediaSave.Rendition> pictures = pictures(media);
         final int sizes = pictures.size();
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "story photo download tapped: " + sizes + " size(s)");
-        return MediaSave.savePhoto(context, pictures, ReelDownload.details(media));
+        return MediaSave.savePhoto(context, pictures, details(media));
+    }
+
+    /** A story has a numeric story URL, not a public post shortcode. */
+    static PostDetails details(Object media) {
+        return ReelDownload.details(media).withPostId(null);
     }
 
     /** The sizes [media] lists for its picture, with the size each states. Never null. */
@@ -239,6 +279,14 @@ public final class StoryDownload {
             if (best < 0) return "none";
             MediaSave.Rendition r = sizes.get(best);
             return sources.get(best) + (r.width > 0 && r.height > 0 ? " " + r.width + "x" + r.height : "");
+        }
+
+        /**
+         * Whether the cover is the video's first frame: a first frame still, which {@link #cover}
+         * keeps only when it shares the cover's file, is one of its sizes.
+         */
+        boolean firstFrame() {
+            return sources.contains("first_frame") || sources.contains("igtv_first_frame");
         }
 
         /** A line for the log: how many sizes, per place, and where the largest is from. */

@@ -11,11 +11,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.ToIntFunction;
 
+import app.hushgram.extension.instagram.download.InstagramMedia;
+import app.hushgram.extension.instagram.reels.CaptionWordReels;
+import app.hushgram.extension.instagram.reels.FeedReels;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.PatchFamily;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -107,6 +111,39 @@ public final class FeedSuggestions {
     /** The report's count of posts Hide posts you've liked took out of Home. */
     static final String LIKED_REMOVED = "liked posts removed";
 
+    /** The kind counted for a post Hide reels by caption words' Also on Home took out of Home. */
+    static final String CAPTION_WORD = "caption word";
+
+    /** The report's count of posts Also on Home took out of Home for a word in their caption. */
+    static final String CAPTION_WORD_REMOVED = "caption word posts removed";
+
+    /** The report's count of Suggested for you titles {@link #sectionTitle} left off a header with nothing under it. */
+    static final String SECTION_TITLE_DROPPED = "suggested section titles left off with nothing under them";
+
+    /** The diagnostic counter route of the kinds {@link #sectionTitle} found in the Suggested for you section. */
+    static final String SECTION_ROUTE = "Suggested section";
+
+    /** The report's counts of how each {@link #sectionTitle} call went. */
+    static final String SECTION_CHECKED = "suggested section titles checked";
+    static final String SECTION_KEPT_SHOWS = "suggested section titles kept, something shows";
+    static final String SECTION_KEPT_NOTHING_TAKEN = "suggested section titles kept, empty with nothing taken out";
+    static final String SECTION_KEPT_UNREAD = "suggested section titles kept, section unreadable";
+
+    /** The report's counts of how each {@link #caughtUpTitle} call went, before {@link #sectionTitle}'s decision. */
+    static final String CAUGHT_UP_CHECKED = "caught up card titles checked";
+    static final String CAUGHT_UP_KEPT_NO_SECTION = "caught up card titles kept, no section under them";
+
+    private static final String END_CARD_KIND = "END_OF_FEED_DEMARCATOR";
+
+    /** The end of feed card's kind. Instagram moves one that opens a section above that section's header. */
+    static final Set<String> END_CARD = Collections.singleton("END_OF_FEED_DEMARCATOR");
+
+    /** Reads the items a section holds, as {@link #sectionItems} does. Tests stand in. */
+    static volatile Function<Object, List<?>> sections = FeedSuggestions::sectionItems;
+
+    /** Reads the section an end of feed card shows under its title, as {@link #caughtUpSection} does. Tests stand in. */
+    static volatile Function<Object, Object> caughtUpSections = FeedSuggestions::caughtUpSection;
+
     /** Set once {@link #filter} has taken an item out of the home feed in this run. Tests clear it. */
     static volatile boolean tookOut;
 
@@ -125,7 +162,8 @@ public final class FeedSuggestions {
 
     /**
      * The page of Home's feed response being parsed on this thread, from {@link #homePageStarts} to
-     * {@link #homePageParsed}: how many items it read, and how many of them {@link #filter} took out.
+     * {@link #homePageParsed}: how many items it read, how many were taken out, and whether a real
+     * MEDIA post with a positive media_type stayed.
      * Null outside a page, so Home's store and every other feed's reads, on this thread or another,
      * never count toward one.
      */
@@ -133,6 +171,9 @@ public final class FeedSuggestions {
 
     /** Set when the latest page of Home's own feed response that held items lost one to {@link #filter}. Tests clear it. */
     static volatile boolean homePageLost;
+
+    /** Whether that page kept a real MEDIA post, even if its adapter has not shown it yet. Tests clear it. */
+    static volatile boolean homePageKeptMedia;
 
     /** Set once the report has counted {@link #HOME_ENDED} for that page. Tests clear it. */
     static volatile boolean homePageEndCounted;
@@ -233,8 +274,10 @@ public final class FeedSuggestions {
      * <p>Instagram reads that flag only beside its own checks that the feed is empty and no page is
      * loading. With both true and a next page left it draws its loading placeholder, and nothing asks
      * for that page while the feed is empty, so a Home emptied of suggestions kept the placeholder for
-     * good. Saying there's no next page gets Instagram's own empty feed card instead. A feed with posts
-     * left, or one waiting on a page, draws what it did.
+     * good. Saying there's no next page gets Instagram's own empty feed card instead, and
+     * {@link HomeNextPage} still asks for For you's next page (#28), so posts it brings replace the
+     * card. While that page is on its way the card waits a few seconds, so it doesn't flash before
+     * the posts (#126). A feed with posts left, or one waiting on a page, draws what it did.
      */
     public static int feedEnded(int noMorePages) {
         Object feed = READING.get();
@@ -244,21 +287,28 @@ public final class FeedSuggestions {
         if (!tookOut && !typesTookOut && !adsTookOut) return noMorePages;
         try {
             if (!Utils.settingsReady()) return noMorePages;
-            boolean suggestions = tookOut && suggestionSwitchOn();
-            boolean posts = typesTookOut && postSwitchOn();
-            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
-            return (suggestions || posts || ads) && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
+            return switchesTookOut() && suggestionsEmptiedHome(feed) ? 1 : noMorePages;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "empty feed", failure);
             return noMorePages;
         }
     }
 
+    /**
+     * Whether a switch that took something out of Home in this run is still on: a suggestion switch
+     * after {@link #filter} took an item out, a post switch after {@link #homeItem} took a post out,
+     * or Hide ads after it took an ad out of a page. Callers check {@link Utils#settingsReady} first.
+     */
+    static boolean switchesTookOut() {
+        return (tookOut && suggestionSwitchOn()) || (typesTookOut && postSwitchOn())
+                || (adsTookOut && Settings.HIDE_ADS.get());
+    }
+
     /** Whether any switch {@link #homeItem} takes posts out for is on, a name on Hidden accounts included. */
     private static boolean postSwitchOn() {
         return Settings.HIDE_FEED_VIDEOS.get() || Settings.HIDE_FEED_PHOTOS.get()
                 || Settings.HIDE_FEED_CAROUSELS.get() || Settings.HIDE_FEED_LIKED.get()
-                || !HiddenAccounts.hidden().isEmpty();
+                || !HiddenAccounts.hidden().isEmpty() || !CaptionWordReels.homeWordsWhenOn().isEmpty();
     }
 
     /** Whether any switch {@link #filter} takes items out for is on. */
@@ -280,18 +330,21 @@ public final class FeedSuggestions {
      * to Instagram card there for a few seconds at startup (#28). None of those reads is a page of
      * Home's response, so none of them ends Home now.
      *
-     * <p>The page's kept items don't hold the end off: an account that follows nobody gets a page of
-     * suggestions with an item or two Instagram keeps and then draws elsewhere or not at all (#105).
+     * <p>A retained MEDIA post with a real media_type keeps Instagram's answer even while its
+     * adapter is empty or unreadable. Other kept items don't hold the end off: an account that
+     * follows nobody gets suggestions with metadata Instagram draws elsewhere or not at all (#105).
      * Instagram itself only ends a feed it finds empty, and the feed is asked here too, so a Home
      * showing posts keeps Instagram's answer and the report counts {@link #HOME_ENDED} only for a
-     * Home that really is empty. Without Home's reads in the build, it's once anything's been taken
-     * out.
+     * Home that really is empty. An empty Home whose next page is on its way keeps Instagram's
+     * loading row a few seconds longer ({@link HomeNextPage#holdsEnd}), since that page usually
+     * brings the followed posts (#126). Without Home's reads in the build, it's once anything's been
+     * taken out.
      */
     private static boolean suggestionsEmptiedHome(@Nullable Object feed) {
         Boolean forced = homeReadsForTests;
         boolean homeReads = forced != null ? forced : PatchFamily.feedTypesInBuild();
         if (!homeReads) return true;
-        if (!homePageLost) return false;
+        if (!homePageLost || homePageKeptMedia) return false;
         if (feed != null) {
             WeakReference<Object> bound = verdictFeed;
             if (bound == null) verdictFeed = new WeakReference<>(feed);
@@ -299,6 +352,7 @@ public final class FeedSuggestions {
         }
         int empty = feedIsEmpty(feed);
         if (empty == 0) return false;
+        if (HomeNextPage.holdsEnd(feed)) return false;
         if (empty == 1 && !homePageEndCounted) {
             homePageEndCounted = true;
             FeedFilterCounters.sawKind(ROUTE, HOME_ENDED);
@@ -335,7 +389,7 @@ public final class FeedSuggestions {
      */
     public static void homePageStarts() {
         try {
-            PAGE.set(new int[2]);
+            PAGE.set(new int[3]);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home page start", failure);
         }
@@ -358,6 +412,7 @@ public final class FeedSuggestions {
                 return;
             }
             HomeNextPage.pageParsed(page[0], page[1]);
+            homePageKeptMedia = page[2] != 0;
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
             pageSeq++;
@@ -457,11 +512,7 @@ public final class FeedSuggestions {
         try {
             long seqAtOpen = seqAtOpen(policy);
             if (!pageLostEverything || pageSeq <= seqAtOpen) return loading;
-            if (!Utils.settingsReady()) return loading;
-            boolean suggestions = tookOut && suggestionSwitchOn();
-            boolean posts = typesTookOut && postSwitchOn();
-            boolean ads = adsTookOut && Settings.HIDE_ADS.get();
-            if (!suggestions && !posts && !ads) return loading;
+            if (!Utils.settingsReady() || !switchesTookOut()) return loading;
             long age = clock.getAsLong() - pageLostEverythingAt;
             if (age < 0 || age > OLDER_WINDOW_NANOS) return loading;
             if (!olderEndCounted) {
@@ -532,26 +583,33 @@ public final class FeedSuggestions {
      * Injected right after Home keeps each item it reads, from its feed response and from its store
      * of the last run, beside Hide the home feed's filter when both are in. Answers null for a post
      * of one video, one photo or a carousel while that type's switch is on, a post you've liked
-     * while Hide posts you've liked is on, or a post by an account on {@link HiddenAccounts}, and
+     * while Hide posts you've liked is on, a post by an account on {@link HiddenAccounts}, or a post
+     * whose caption holds one of Hide reels by caption words' words while its Also on Home is on, and
      * [item] itself otherwise, or when anything goes wrong. An item with no post, a row of suggested
      * accounts for one, stays. Inside a page of Home's feed response it also counts the item toward
      * that page, and whether it was lost to {@link #filter} or to its own removals, for
      * {@link #homePageParsed}. Never throws.
      */
     public static Object homeItem(Object item) {
-        return homeItem(item, FeedSuggestions::mediaType, FeedSuggestions::liked, FeedSuggestions::author);
+        return homeItem(item, FeedSuggestions::itemType, FeedSuggestions::itemLiked, FeedSuggestions::author,
+                FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf) {
-        return homeItem(item, typeOf, FeedSuggestions::liked, FeedSuggestions::author);
+        return homeItem(item, typeOf, FeedSuggestions::itemLiked, FeedSuggestions::author, FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf) {
-        return homeItem(item, typeOf, likedOf, FeedSuggestions::author);
+        return homeItem(item, typeOf, likedOf, FeedSuggestions::author, FeedSuggestions::captionOf);
     }
 
     static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
             Function<Object, String> authorOf) {
+        return homeItem(item, typeOf, likedOf, authorOf, FeedSuggestions::captionOf);
+    }
+
+    static Object homeItem(Object item, ToIntFunction<Object> typeOf, ToIntFunction<Object> likedOf,
+            Function<Object, String> authorOf, Function<Object, String> captionOf) {
         boolean lost = Boolean.TRUE.equals(JUST_TOOK_OUT.get());
         JUST_TOOK_OUT.remove();
         int[] page = PAGE.get();
@@ -561,9 +619,51 @@ public final class FeedSuggestions {
         }
         if (item == null) return null;
         Object kept = byType(item, typeOf) == null ? null
-                : byLiked(item, likedOf) == null ? null : byAuthor(item, authorOf);
+                : byLiked(item, likedOf) == null ? null
+                : byAuthor(item, authorOf) == null ? null : byCaption(item, captionOf);
         if (kept == null && page != null) page[1]++;
+        if (kept != null && page != null) {
+            try {
+                if ("MEDIA".equals(FeedItemKinds.kindOf(kept, "MEDIA", FamilyNames.FEED_SUGGESTIONS))
+                        && typeOf.applyAsInt(kept) > 0) page[2] = 1;
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "retained home media", failure);
+            }
+        }
         return kept;
+    }
+
+    /**
+     * [item], or null while Also on Home is on and its post's caption holds one of Hide reels by
+     * caption words' words (#192). The caption isn't read while there are no words. A post with no
+     * caption, or one that can't be read, stays.
+     */
+    private static Object byCaption(Object item, Function<Object, String> captionOf) {
+        try {
+            List<String> words = CaptionWordReels.homeWordsWhenOn();
+            if (words.isEmpty()) return item;
+            if (!CaptionWordReels.holdsAny(captionOf.apply(item), words)) return item;
+            FeedFilterCounters.removed(TYPES_ROUTE, 1, CAPTION_WORD);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD_REMOVED);
+            typesTookOut = true;
+            Logger.printDebug(() -> "Feed suggestions: took a post with a blocked caption word out of Home");
+            return null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, CAPTION_WORD, failure);
+            return item;
+        }
+    }
+
+    /**
+     * The caption text of the post {@link #homePost} finds in a feed item, or null when it carries
+     * none or the post has no caption. Reads the caption through the caption bridges Hide reels by
+     * caption words writes.
+     */
+    static String captionOf(Object item) {
+        Object media = homePost(item);
+        if (media == null) return null;
+        Object caption = InstagramMedia.caption(media);
+        return caption == null ? null : InstagramMedia.captionText(caption);
     }
 
     /** [item], or null while the switch for its post's type is on. */
@@ -629,29 +729,233 @@ public final class FeedSuggestions {
     }
 
     /**
-     * The media_type of the post a feed item carries: 1 for one photo, 2 for one video, 8 for a
-     * carousel, and 0 when it carries none or the post doesn't say. The patch writes the body, which
-     * reads the item's post field and the post's media_type.
+     * The post a feed item carries: its own post field (a post from an account you follow, or an
+     * ad), else the post of the suggested post unit it holds ("explore_story", its "media_or_ad" and
+     * then its "media"), which is where Instagram 451 puts every suggested post on Home. Null when it
+     * carries none, or when anything goes wrong.
      */
-    public static int mediaType(Object item) {
+    static Object homePost(Object item) {
+        return homePost(item, FeedSuggestions::itemPost, FeedSuggestions::exploreStory,
+                FeedSuggestions::storyPost, FeedSuggestions::storyMedia);
+    }
+
+    static Object homePost(Object item, Function<Object, Object> postOf, Function<Object, Object> storyOf,
+            Function<Object, Object> storyPostOf, Function<Object, Object> storyMediaOf) {
+        if (item == null) return null;
+        try {
+            Object post = postOf.apply(item);
+            if (post != null) return post;
+            Object story = storyOf.apply(item);
+            if (story == null) return null;
+            post = storyPostOf.apply(story);
+            return post != null ? post : storyMediaOf.apply(story);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "post read", failure);
+            return null;
+        }
+    }
+
+    /** {@link #mediaType} of the post {@link #homePost} finds in [item], 0 without one. */
+    static int itemType(Object item) {
+        Object post = homePost(item);
+        return post == null ? 0 : mediaType(post);
+    }
+
+    /** {@link #liked} of the post {@link #homePost} finds in [item], 0 without one. */
+    static int itemLiked(Object item) {
+        Object post = homePost(item);
+        return post == null ? 0 : liked(post);
+    }
+
+    /**
+     * The username of whoever posted the post {@link #homePost} finds in [item], or null when there's
+     * none or the post doesn't say.
+     */
+    static String author(Object item) {
+        Object post = homePost(item);
+        return post == null ? null : HiddenAccounts.authorOfPost(post);
+    }
+
+    /**
+     * Answers an Object: the post in a feed item's own post field, the one its factory from a post
+     * writes, or null. The patch writes the body. Null as built.
+     */
+    public static Object itemPost(Object item) {
+        return null;
+    }
+
+    /**
+     * Answers an Object: the suggested post unit ("explore_story") a feed item holds, or null. The
+     * patch writes the body. Null as built.
+     */
+    public static Object exploreStory(Object item) {
+        return null;
+    }
+
+    /**
+     * Answers an Object: a suggested post unit's "media_or_ad" post, or null. The patch writes the
+     * body. Null as built.
+     */
+    public static Object storyPost(Object story) {
+        return null;
+    }
+
+    /**
+     * Answers an Object: a suggested post unit's "media" post, or null. The patch writes the body.
+     * Null as built.
+     */
+    public static Object storyMedia(Object story) {
+        return null;
+    }
+
+    /**
+     * The media_type of a post: 1 for one photo, 2 for one video, 8 for a carousel, and 0 when it
+     * doesn't say. The patch writes the body, which reads the post's media_type. 0 as built.
+     */
+    public static int mediaType(Object post) {
         return 0;
     }
 
     /**
-     * Whether you've liked the post a feed item carries: 1 when its has_liked says so, and 0 when it
-     * says not, doesn't say or the item carries no post. The patch writes the body, which reads the
-     * item's post field and the post's has_liked.
+     * Whether you've liked a post: 1 when its has_liked says so, and 0 when it says not or doesn't
+     * say. The patch writes the body, which reads the post's has_liked. 0 as built.
      */
-    public static int liked(Object item) {
+    public static int liked(Object post) {
         return 0;
     }
 
     /**
-     * The username of whoever posted the post a feed item carries, or null when it carries none or
-     * the post doesn't say. The patch writes the body, which reads the item's post field, the post's
-     * user and that user's username. Null as built.
+     * Injected in the binder of the header Instagram draws after Home's end of feed card, right before
+     * it sets the header's title to its section's name ("Suggested for you"), with that name and the
+     * section. Answers "" while Hide suggested posts is on and the section shows nothing, and
+     * [title] otherwise, or when anything goes wrong. It shows nothing when it holds only end of feed
+     * cards and units a switch hides (suggestions, Threads, Hide Reels in the feed), or when it's
+     * empty after a switch took something out of Home in this run. A section that's empty for
+     * another reason, one still loading or one Instagram fills after the bind, keeps its title.
+     * Every call is counted with why the title stayed or went, and the kinds the section held go to
+     * the {@link #SECTION_ROUTE} route.
+     *
+     * <p>Instagram reads the header and its section's items out of the end of feed card's own data, and
+     * the feed item helper {@link #filter} sits on reads those items too, so with every suggestion
+     * taken out the section came in empty and the title stood over nothing (#104). The header's link
+     * on the right ("Older posts") is set before the title, from another section, and stays: it's how
+     * you reach the posts you've already seen. Never throws.
      */
-    public static String author(Object item) {
+    public static String sectionTitle(String title, Object section) {
+        if (title == null || section == null) return title;
+        try {
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_CHECKED);
+            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get()) return title;
+            return titleOver(title, section);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "suggested section title", failure);
+            return title;
+        }
+    }
+
+    /**
+     * Injected in the binder of Home's end of feed card where it draws the card's group set link
+     * beside the title, with the title and the card, and the binder sets the card's title and
+     * subtitle again with the answer. On 451 the caught up card draws the Suggested for you header
+     * itself: "You've seen the latest posts from accounts you follow" on top, then the title with the
+     * Older posts link beside it, so {@link #sectionTitle}'s header binder never runs for it (#104,
+     * seen on a phone 2026-10-17). The title is the card's own text, not the section's name.
+     * Answers "" while Hide suggested posts is on and the section the card's group set has open
+     * shows nothing, as {@link #sectionTitle} decides, and [title] otherwise: for a card without a
+     * group set or with the switch off, and when anything goes wrong. 451's caught up card drops a
+     * title it's handed empty (seen on a phone), and other end of feed holders may leave a blank row
+     * instead. Its subtitle and the link stay. Never throws.
+     */
+    public static String caughtUpTitle(String title, Object card) {
+        if (title == null || title.isEmpty() || card == null) return title;
+        try {
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_CHECKED);
+            if (!Utils.settingsReady() || !Settings.HIDE_SUGGESTED_POSTS.get()) return title;
+            Object section = caughtUpSections.apply(card);
+            if (section == null) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, CAUGHT_UP_KEPT_NO_SECTION);
+                return title;
+            }
+            return titleOver(title, section);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "caught up card title", failure);
+            return title;
+        }
+    }
+
+    /** [title], or "" when [section] shows nothing under it, with the switch on. Counted as {@link #sectionTitle} says. */
+    private static String titleOver(String title, Object section) throws IllegalAccessException {
+        List<?> items = sections.apply(section);
+        if (items == null) {
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_UNREAD);
+            return title;
+        }
+        String kinds = kindsIn(items);
+        if (items.isEmpty()) {
+            if (!tookOut && !FeedReels.tookOut) {
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_NOTHING_TAKEN);
+                Logger.printDebug(() -> "Feed suggestions: the suggested section is empty but nothing was taken out of Home, so it keeps its title");
+                return title;
+            }
+        } else if (showsAny(items)) {
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_KEPT_SHOWS);
+            Logger.printDebug(() -> "Feed suggestions: the suggested section keeps its title, it holds " + kinds);
+            return title;
+        }
+        HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, SECTION_TITLE_DROPPED);
+        Logger.printDebug(() -> "Feed suggestions: the suggested section shows nothing (" + kinds + "), so its header keeps only its link");
+        return "";
+    }
+
+    /**
+     * The section an end of feed card shows under its title: the one its group set has open, found by
+     * the group set's own id for it, or null when the card has no group set or no section by that id.
+     * The patch writes the body. Null as built, so the card keeps its title.
+     */
+    public static Object caughtUpSection(Object card) {
+        return null;
+    }
+
+    /** Whether any of [items] shows under the header: anything but an end of feed card or a unit a switch hides. */
+    private static boolean showsAny(List<?> items) throws IllegalAccessException {
+        for (Object item : items) {
+            if (item == null) continue;
+            String kind = FeedItemKinds.kindOf(item, END_CARD_KIND, FamilyNames.FEED_SUGGESTIONS);
+            if (kind == null || !hiddenInSection(kind)) return true;
+        }
+        return false;
+    }
+
+    private static boolean hiddenInSection(String kind) {
+        if (END_CARD.contains(kind) || FeedReels.hides(kind)) return true;
+        return KINDS.contains(kind) && switchFor(kind).get();
+    }
+
+    /** The kinds [items] hold, counted on the Suggested section route and listed for the debug log. */
+    private static String kindsIn(List<?> items) {
+        if (items.isEmpty()) return "no items";
+        StringBuilder out = new StringBuilder();
+        for (Object item : items) {
+            String kind = null;
+            try {
+                kind = item == null ? null : FeedItemKinds.kindOf(item, END_CARD_KIND, FamilyNames.FEED_SUGGESTIONS);
+            } catch (IllegalAccessException ignored) {
+                // The kind stays unknown, which counts as showing.
+            }
+            String seen = kind == null ? "unknown" : kind;
+            FeedFilterCounters.sawKind(SECTION_ROUTE, seen);
+            if (out.length() > 0) out.append(", ");
+            out.append(seen);
+        }
+        return out.toString();
+    }
+
+    /**
+     * The items a section of the group set holds, as read (the items {@link #filter} took out aren't
+     * among them), or null when it can't be told. The patch writes the body, which reads the
+     * section's one list field. Null as built, so the header keeps its title.
+     */
+    public static List<?> sectionItems(Object section) {
         return null;
     }
 

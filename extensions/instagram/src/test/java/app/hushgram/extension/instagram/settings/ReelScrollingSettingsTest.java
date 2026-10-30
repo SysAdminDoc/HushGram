@@ -34,7 +34,7 @@ public class ReelScrollingSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.STOP_REELS_SCROLLING.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -87,6 +87,6 @@ public class ReelScrollingSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.STOP_REELS_SCROLLING.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

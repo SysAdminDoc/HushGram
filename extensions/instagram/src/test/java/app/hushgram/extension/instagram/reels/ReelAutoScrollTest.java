@@ -68,6 +68,7 @@ public class ReelAutoScrollTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.KEEP_REEL_AUTO_SCROLL.save(true);
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
         HookStatus.clear();
     }
@@ -75,6 +76,7 @@ public class ReelAutoScrollTest {
     @After
     public void restore() {
         Settings.KEEP_REEL_AUTO_SCROLL.resetToDefault();
+        Settings.REEL_AUTO_ADVANCE.resetToDefault();
         Settings.REEL_AUTO_SCROLL_ON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -261,11 +263,11 @@ public class ReelAutoScrollTest {
     public void nothingIsWrittenWhenTheChoiceIsUnchanged() {
         CountingMemory memory = new CountingMemory(false);
 
-        for (int i = 0; i < 5; i++) assertFalse(ReelAutoScroll.answer(0, () -> true, () -> true, memory));
+        for (int i = 0; i < 5; i++) assertFalse(ReelAutoScroll.answer(0, () -> true, () -> true, () -> false, memory));
         assertEquals(0, memory.writes);
-        for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(1, () -> true, () -> true, memory));
+        for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(1, () -> true, () -> true, () -> false, memory));
         assertEquals(1, memory.writes);
-        for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(0, () -> true, () -> true, memory));
+        for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(0, () -> true, () -> true, () -> false, memory));
         assertEquals(1, memory.writes);
 
         ReelAutoScroll.chosen(1, () -> true, memory);
@@ -297,7 +299,7 @@ public class ReelAutoScrollTest {
         assertEquals("one summary before learning is allowed", 1, summaryCount());
         answerTogether(true);
         assertEquals("one additional summary once learning is allowed", 2, summaryCount());
-        for (int i = 0; i < 5; i++) ReelAutoScroll.answer(0, () -> false, () -> false, new CountingMemory(false));
+        for (int i = 0; i < 5; i++) ReelAutoScroll.answer(0, () -> false, () -> false, () -> false, new CountingMemory(false));
         assertEquals("the completed summary never reopens", 2, summaryCount());
     }
 
@@ -325,7 +327,7 @@ public class ReelAutoScrollTest {
                         }
                     }
                     return learning;
-                }, () -> true, new CountingMemory(false))));
+                }, () -> true, () -> false, new CountingMemory(false))));
             }
             assertTrue("every answer reaches the summary before any can report", reached.await(10, TimeUnit.SECONDS));
             release.countDown();
@@ -394,14 +396,17 @@ public class ReelAutoScrollTest {
             }
         };
 
-        assertFalse(ReelAutoScroll.answer(0, () -> true, () -> true, broken));
-        assertTrue(ReelAutoScroll.answer(1, () -> true, () -> true, broken));
+        assertFalse(ReelAutoScroll.answer(0, () -> true, () -> true, () -> false, broken));
+        assertTrue(ReelAutoScroll.answer(1, () -> true, () -> true, () -> false, broken));
         assertFalse(ReelAutoScroll.answer(0, () -> true, () -> {
             throw new IllegalStateException("settings went away");
-        }, new CountingMemory(true)));
+        }, () -> false, new CountingMemory(true)));
+        assertFalse("a move on switch that throws moves nothing on", ReelAutoScroll.answer(0, () -> true, () -> false, () -> {
+            throw new IllegalStateException("settings went away");
+        }, new CountingMemory(false)));
         assertTrue(ReelAutoScroll.answer(1, () -> {
             throw new IllegalStateException("settings went away");
-        }, () -> true, new CountingMemory(false)));
+        }, () -> true, () -> false, new CountingMemory(false)));
         ReelAutoScroll.chosen(0, () -> true, broken);
         ReelAutoScroll.stored(1, () -> true, broken);
         ReelAutoScroll.timerSet(2000, () -> 1000, () -> true, broken);
@@ -413,6 +418,12 @@ public class ReelAutoScrollTest {
         assertFalse(ReelAutoScroll.saved(0, () -> {
             throw new IllegalStateException("settings went away");
         }, new CountingMemory(true)));
+        assertFalse("the viewer builds no scroller on a switch that throws", ReelAutoScroll.install(0, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+        assertTrue("and still builds the one Instagram offers", ReelAutoScroll.install(1, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
 
         String missing = HookStatus.missing(FamilyNames.REEL_AUTO_SCROLL).toString();
         assertTrue(missing, missing.contains("'auto scroll answer'"));
@@ -420,6 +431,94 @@ public class ReelAutoScrollTest {
         assertTrue(missing, missing.contains("'auto scroll saved'"));
         assertTrue(missing, missing.contains("'auto scroll stored'"));
         assertTrue(missing, missing.contains("'auto scroll timer'"));
+        assertTrue(missing, missing.contains("'auto scroll install'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    /**
+     * Move on when a reel ends: the viewer builds Instagram's scroller where Instagram doesn't offer
+     * auto scroll, and every check of whether auto scroll is on answers yes, so the scroller's own
+     * rules decide each reel that ends. Off, nothing changes.
+     */
+    @Test
+    public void moveOnBuildsTheScrollerAndAnswersOn() {
+        Settings.KEEP_REEL_AUTO_SCROLL.save(false);
+        assertFalse("off to start", Settings.REEL_AUTO_ADVANCE.get());
+        assertFalse("off, Instagram's no stands", ReelAutoScroll.install(0));
+        assertTrue("off, Instagram's yes stands", ReelAutoScroll.install(1));
+        assertFalse(ReelAutoScroll.answer(0));
+        assertFalse(ReelAutoScroll.saved(0));
+
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        assertTrue("the viewer builds the scroller", ReelAutoScroll.install(0));
+        assertTrue(ReelAutoScroll.install(1));
+        assertTrue("any non-zero is yes", ReelAutoScroll.install(0x7f));
+        assertTrue("the scroller is told auto scroll is on", ReelAutoScroll.answer(0));
+        assertFalse("the Reels tab's long press shows the remembered choice", ReelAutoScroll.saved(0));
+        assertFalse("with Keep auto scroll on off and nothing remembered",
+                Settings.KEEP_REEL_AUTO_SCROLL.get() || Settings.REEL_AUTO_SCROLL_ON.savedValue());
+
+        Settings.REEL_AUTO_ADVANCE.save(false);
+        assertFalse(ReelAutoScroll.install(0));
+        assertFalse(ReelAutoScroll.answer(0));
+        assertFalse(ReelAutoScroll.saved(0));
+    }
+
+    /**
+     * The remembered choice follows Instagram's own switches alone. Move on when a reel ends
+     * answers on without writing it, so a choice kept before it was turned on comes back as it was,
+     * and one that was never made isn't made by it.
+     */
+    @Test
+    public void moveOnNeverWritesTheRememberedChoice() {
+        CountingMemory memory = new CountingMemory(false);
+        for (int i = 0; i < 5; i++) assertTrue(ReelAutoScroll.answer(0, () -> true, () -> true, () -> true, memory));
+        assertFalse("the saved getter answers what's remembered, not the switch", ReelAutoScroll.saved(0, () -> true, memory));
+        assertTrue(ReelAutoScroll.install(0, () -> true));
+        assertEquals("answering on for the switch is no choice of Instagram's", 0, memory.writes);
+        assertFalse(memory.on);
+        assertFalse("turned off, the choice that was never made stays unmade",
+                ReelAutoScroll.answer(0, () -> true, () -> true, () -> false, memory));
+
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        assertTrue(ReelAutoScroll.answer(0));
+        assertFalse("nothing is remembered for the switch", Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        ReelAutoScroll.chosen(1);
+        ReelAutoScroll.stored(1);
+        assertTrue("Instagram's own switch is still remembered", Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        ReelAutoScroll.chosen(0);
+        ReelAutoScroll.stored(0);
+        assertFalse(Settings.REEL_AUTO_SCROLL_ON.savedValue());
+        assertTrue("the switch keeps answering on", ReelAutoScroll.answer(0));
+        Settings.REEL_AUTO_ADVANCE.save(false);
+        assertFalse("and its off leaves what Instagram's switch last said", ReelAutoScroll.answer(0));
+    }
+
+    /** Paused or before the settings are read, the viewer and every check get Instagram's own answer. */
+    @Test
+    public void moveOnStandsDownWhilePausedOrUnread() {
+        Settings.KEEP_REEL_AUTO_SCROLL.save(false);
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        assertTrue(ReelAutoScroll.install(0));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelAutoScroll.install(0));
+        assertTrue(ReelAutoScroll.install(1));
+        assertFalse(ReelAutoScroll.answer(0));
+        assertFalse(ReelAutoScroll.saved(0));
+        assertTrue("a pause keeps the saved switch", Settings.REEL_AUTO_ADVANCE.savedValue());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(ReelAutoScroll.install(0));
+
+        SettingsContextRule.withoutContext(() -> {
+            assertFalse(ReelAutoScroll.install(0));
+            assertTrue(ReelAutoScroll.install(1));
+            assertFalse(ReelAutoScroll.answer(0));
+            assertFalse(ReelAutoScroll.saved(0));
+        });
+        assertFalse("a paused scroller's check moves nothing on",
+                ReelAutoScroll.answer(0, () -> false, () -> true, () -> true, new CountingMemory(true)));
     }
 }

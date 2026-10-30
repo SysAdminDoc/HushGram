@@ -28,7 +28,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 @RunWith(RobolectricTestRunner.class)
 public class ReelsTabTest {
     /** Named like Instagram's tab enum, which is all the hooks go by. */
-    enum Tab { FEED, SEARCH, CLIPS, DIRECT, PROFILE }
+    enum Tab { FEED, SEARCH, CLIPS, DIRECT, NEWS, PROFILE }
 
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
 
@@ -42,6 +42,7 @@ public class ReelsTabTest {
         Settings.HIDE_REELS_TAB.resetToDefault();
         Settings.SHOW_REELS_TAB.resetToDefault();
         Settings.SHOW_MESSAGES_TAB.resetToDefault();
+        Settings.SHOW_ACTIVITY_TAB.resetToDefault();
         Settings.TAB_ORDER.resetToDefault();
     }
 
@@ -109,6 +110,52 @@ public class ReelsTabTest {
         List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.PROFILE);
 
         assertEquals(Arrays.asList(Tab.DIRECT, Tab.FEED, Tab.SEARCH, Tab.PROFILE), ReelsTab.tabs(built));
+    }
+
+    /** Show Activity on, a list without Activity gets it before Profile, after an added Messages, counted (#156). */
+    @Test
+    public void withShowActivityOnAListWithoutItGetsItBeforeProfile() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        HookStatus.clear();
+        List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.CLIPS, Tab.PROFILE);
+
+        assertEquals(Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.CLIPS, Tab.NEWS, Tab.PROFILE), ReelsTab.tabs(built));
+        assertEquals("the built list was changed", 4, built.size());
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(ReelsTab.ACTIVITY_ADDED));
+
+        Settings.SHOW_MESSAGES_TAB.save(true);
+        assertEquals("Messages, then Activity, as Instagram lists them",
+                Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.CLIPS, Tab.DIRECT, Tab.NEWS, Tab.PROFILE), ReelsTab.tabs(built));
+    }
+
+    /** Show Activity on, a list that has it, has no Profile, is empty, isn't tabs or has no Activity in its enum. */
+    @Test
+    public void withShowActivityOnAListItCantGiveActivityStaysAndNoProfileMeansLast() {
+        Settings.HIDE_REELS_TAB.save(false);
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        List<Tab> has = Arrays.asList(Tab.FEED, Tab.NEWS, Tab.PROFILE);
+        List<Tab> none = Arrays.asList();
+        List<String> strings = Arrays.asList("FEED", "PROFILE");
+
+        assertSame(has, ReelsTab.tabs(has));
+        assertSame(none, ReelsTab.tabs(none));
+        assertSame(strings, ReelsTab.tabs(strings));
+        assertSame("an enum with no Activity keeps its list", NoReels.list, ReelsTab.tabs(NoReels.list));
+        assertEquals(Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.NEWS), ReelsTab.tabs(Arrays.asList(Tab.FEED, Tab.SEARCH)));
+    }
+
+    /** Show Activity off, a list without it is left alone, and Tab order moves an added one like any tab. */
+    @Test
+    public void showActivityOffLeavesTheListAndTabOrderMovesAnAddedOne() {
+        Settings.HIDE_REELS_TAB.save(false);
+        List<Tab> built = Arrays.asList(Tab.FEED, Tab.SEARCH, Tab.PROFILE);
+        assertSame(built, ReelsTab.tabs(built));
+
+        Settings.SHOW_ACTIVITY_TAB.save(true);
+        Settings.TAB_ORDER.save("NEWS,FEED");
+        assertEquals(Arrays.asList(Tab.NEWS, Tab.FEED, Tab.SEARCH, Tab.PROFILE), ReelsTab.tabs(built));
     }
 
     /** Show on and Hide off, a list without Reels comes back as a copy with Reels right after Home. */

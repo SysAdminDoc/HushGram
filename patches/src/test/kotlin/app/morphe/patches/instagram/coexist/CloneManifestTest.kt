@@ -41,7 +41,7 @@ class CloneManifestTest {
         .flatMap { it.getAttribute("android:authorities").split(';') }
 
     /**
-     * Each of the seven builds' manifests moves whole: package, launcher names, every provider
+     * Each build's manifest moves whole: package, launcher names, every provider
      * authority, Instagram's three permissions by full name and their uses, every task affinity,
      * the push category and the custom tab host. Actions, meta-data names, the Pages app's provider
      * Instagram queries and a permission Instagram uses but doesn't declare stay.
@@ -51,7 +51,7 @@ class CloneManifestTest {
             val manifest = CloneFixtures.manifest(file)
             val facts = readCloneManifest(manifest)
             val label = facts.label
-            assertEquals("[$build] authorities", 23, facts.authorities.size)
+            assertEquals("[$build] authorities", 24, facts.authorities.size)
             assertEquals("[$build] permissions", setOf(
                 "com.instagram.android.permission.SYSTEM_ONLY",
                 "com.instagram.android.permission.CROSS_PROCESS_BROADCAST_MANAGER",
@@ -66,7 +66,7 @@ class CloneManifestTest {
 
             val renamed = renameManifest(manifest, clone, "Second")
 
-            assertEquals("[$build]", ManifestRename(labels = 18, authorities = 24, permissions = 3, permissionUses = 3,
+            assertEquals("[$build]", ManifestRename(labels = 20, authorities = 25, permissions = 3, permissionUses = 3,
                 affinities = 19, categories = 2, hosts = 1, processes = 0, classNames = 0), renamed)
             assertEquals(clone, manifest.documentElement.getAttribute("package"))
             assertEquals("Second", manifest.elements("application").single().getAttribute("android:label"))

@@ -101,7 +101,7 @@ internal fun BytecodePatchContext.findFeedShareState(): FeedShareState {
     if (flags[0].sameAs(flags[1])) refuse("${state.type}->toString prints one flag for both the button and the count")
     val stored = mutableClassDefBy(state.type)
     val writes = flags.zip(labels).flatMap { (flag, label) ->
-        stored.flagWrites(PATCH, flag).ifEmpty {
+        flagWrites(PATCH, stored, flag).ifEmpty {
             refuse("${state.type}'s constructor never sets what it prints as \"$label\"")
         }
     }

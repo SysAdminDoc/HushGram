@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.settings
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.Opcode
@@ -35,7 +36,10 @@ private const val LOGO_LONG_LISTENER = "Landroid/view/View\$OnLongClickListener;
  */
 internal const val LOGO_LONG_PRESS_STAND_IN = "$ENTRY->setLogoLongClickListener(Landroid/view/View;$LOGO_LONG_LISTENER)V"
 
-/** Where Instagram gives the title view its long press: the call at [index] in [method]. */
+/**
+ * Where a logo hook goes: the instruction at [index] in [method]. For the older header, the call
+ * giving the title view its long press; for the newer one, the store keeping its logo view.
+ */
 internal class LogoSite(val method: Method, val index: Int)
 
 /** Whether this is a setOnLongClickListener call, the framework's or the title view's, taking one listener. */
@@ -97,7 +101,7 @@ internal fun BytecodePatchContext.logoLongPressSites(): List<LogoSite> =
  * Sends Instagram's call that gives Home's title view its long press to [LOGO_LONG_PRESS_STAND_IN],
  * on the same registers, so a long press on the Instagram logo at the top of the feed opens the
  * HushGram screen. Instagram's tap on the logo isn't touched, and its own long
- * press there still runs first. Answers false and changes nothing when this build doesn't give the
+ * press there (the app icon sheet on Instagram Plus accounts) runs only when the screen can't open. Answers false and changes nothing when this build doesn't give the
  * title view a long press in exactly one place: the logo then stays as it was, and the icon
  * shortcut and the row in Settings and activity still open the screen.
  */
@@ -121,6 +125,67 @@ internal fun BytecodePatchContext.hookLogoLongPress(): Boolean {
     }
     // The stand-in takes the call's place, so a branch landing on the call lands on it.
     method.sendToStandIn(index, LOGO_LONG_PRESS_STAND_IN)
+    return true
+}
+
+/**
+ * Home's newer header, on accounts Instagram moved to its merged feeds. A class Instagram's layouts
+ * name, so every build keeps it. It shows the Instagram logo (`wordmark_logo`) as Home opens, and
+ * on some accounts keeps it there, but gives the logo no long press or tap of its own.
+ */
+internal const val MERGED_LOGO_BAR = "Lcom/instagram/homecoming/feeds/mergedfeed/actionbar/MergedFeedsActionBar;"
+
+/** The view the newer header holds its logo in. The header keeps one field of this type, the logo's. */
+internal const val MERGED_LOGO_VIEW = "Lcom/instagram/common/ui/base/IgSimpleImageView;"
+
+/** SettingsEntry's call that gives a logo Instagram left without a long press the one opening the HushGram screen. */
+internal const val MERGED_LOGO_STAND_IN = "$ENTRY->watchLogo(Landroid/view/View;)V"
+
+/** Every place [method] stores a view in a field of [MERGED_LOGO_BAR] holding the logo's type. */
+internal fun mergedLogoStoresIn(method: Method): List<LogoSite> {
+    val code = method.implementation?.instructions?.toList() ?: return emptyList()
+    return code.indices.filter { at ->
+        code[at].opcode == Opcode.IPUT_OBJECT &&
+            ((code[at] as ReferenceInstruction).reference as? FieldReference)
+                ?.let { it.definingClass == MERGED_LOGO_BAR && it.type == MERGED_LOGO_VIEW } == true
+    }.map { LogoSite(method, it) }
+}
+
+/**
+ * Every place [MERGED_LOGO_BAR] keeps its logo view. In 450 that's one store, in the constructor,
+ * right after it finds the view in its layout, in each of the seven builds (the field's name and
+ * the finding helper differ between them).
+ */
+internal fun BytecodePatchContext.mergedLogoStores(): List<LogoSite> =
+    classDefByOrNull(MERGED_LOGO_BAR)?.methods?.flatMap(::mergedLogoStoresIn).orEmpty()
+
+/**
+ * Hands the newer header's logo view to [MERGED_LOGO_STAND_IN] right after the header keeps it, so a
+ * long press on the logo opens the HushGram screen there too. Instagram's own code isn't changed.
+ * Answers false and changes nothing when this build doesn't keep the view in exactly one place,
+ * or has no such header: the older header's logo, the icon shortcut and the row in Settings and
+ * activity still open the screen.
+ */
+internal fun BytecodePatchContext.hookMergedLogoLongPress(): Boolean {
+    val stores = mergedLogoStores()
+    val store = stores.singleOrNull() ?: run {
+        patchLog.warning(
+            "HushGram settings: ${stores.size} places keep the Instagram logo in Home's newer header, " +
+                "not one, so that logo doesn't open the settings",
+        )
+        return false
+    }
+    val method = mutableClassDefBy(store.method.definingClass).methods.single { it.sameShapeAs(store.method) }
+    // Looked for again in the method as it stands now, since another patch may have written into it.
+    val index = mergedLogoStoresIn(method).singleOrNull()?.index ?: run {
+        patchLog.warning(
+            "HushGram settings: ${store.method.definingClass}->${store.method.name} changed before the newer header's " +
+                "logo could be found again, so that logo doesn't open the settings",
+        )
+        return false
+    }
+    val logo = (method.implementation!!.instructions[index] as OneRegisterInstruction).registerA
+    method.addInstruction(index + 1, "invoke-static/range { v$logo .. v$logo }, $MERGED_LOGO_STAND_IN")
     return true
 }
 

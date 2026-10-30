@@ -36,7 +36,7 @@ function Enter-HushgramDeviceLease {
     $lease = [pscustomobject]@{ File = $file; Path = [IO.Path]::GetFullPath($path); Verified = $false; InstructionSet = $null
         Record = [ordered]@{schemaVersion=1;serial=$Serial;project='HushGram';chatIdentity=$ChatIdentity
             ownershipToken=[guid]::NewGuid().ToString();processId=$PID;expectedModel=$ExpectedModel;expectedAvd=$ExpectedAvd
-            acquiredUtc=[DateTimeOffset]::UtcNow.ToString('o');expiresUtc=''} }
+            acquiredUtc=[DateTime]::UtcNow.ToString('o');expiresUtc=''} }
     try { Update-HushgramDeviceLease $lease; return $lease }
     catch { $file.Dispose(); Remove-Item -LiteralPath $path -ErrorAction SilentlyContinue; throw }
 }
@@ -45,7 +45,9 @@ function Update-HushgramDeviceLease {
     param($DeviceLease)
     if ($null -eq $DeviceLease -or $DeviceLease.File -isnot [IO.FileStream] -or -not $DeviceLease.File.CanWrite -or
         [IO.Path]::GetFullPath($DeviceLease.File.Name) -cne $DeviceLease.Path) { throw 'No active owned device lease.' }
-    $DeviceLease.Record.expiresUtc = [DateTimeOffset]::UtcNow.AddMinutes(15).ToString('o')
+    # A Z time, not +00:00: ConvertFrom-Json reads an offset time as local, so another session's
+    # lease reader saw this lease as hours expired and could take the device over.
+    $DeviceLease.Record.expiresUtc = [DateTime]::UtcNow.AddMinutes(15).ToString('o')
     $bytes = [Text.Encoding]::UTF8.GetBytes(($DeviceLease.Record | ConvertTo-Json -Compress))
     $DeviceLease.File.Position = 0
     $DeviceLease.File.SetLength(0)

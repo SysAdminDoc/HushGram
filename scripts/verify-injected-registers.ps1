@@ -209,6 +209,7 @@ if ($clean.package -ne $patched.package -or $clean.versionName -ne $patched.vers
     throw ("The clean APK is $($clean.package) $($clean.versionName) ($($clean.versionCode)) and the " +
         "patched one $($patched.package) $($patched.versionName) ($($patched.versionCode)); they have to be the same build.")
 }
+# The tracked catalog, read without patch-report.ps1's strict ConvertFrom-PatchJson, which this script doesn't load.
 $catalog = Get-Content -LiteralPath (Join-Path $root 'patches-list.json') -Raw | ConvertFrom-Json
 $metaSigners = @($catalog.patches | ForEach-Object { $_.compatibility } |
     Where-Object { $_.packageName -eq 'com.instagram.android' } |

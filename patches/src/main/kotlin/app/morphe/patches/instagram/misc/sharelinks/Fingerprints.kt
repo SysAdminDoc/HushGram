@@ -5,6 +5,8 @@
 package app.morphe.patches.instagram.misc.sharelinks
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.string
+import app.morphe.patches.instagram.misc.extension.loadsConstString
 
 /**
  * The server's answer to "copy link" on a post or reel: the link is its [PERMALINK_FIELD] field,
@@ -29,7 +31,8 @@ internal object BrowserMenuHandlerFingerprint : Fingerprint(
     name = "handleMessage",
     returnType = "V",
     parameters = listOf("Landroid/os/Message;"),
-    strings = listOf(BROWSER_SHARE_FAILURE, BROWSER_COPY_FAILURE),
+    filters = listOf(string(BROWSER_SHARE_FAILURE)),
+    custom = { method, _ -> method.loadsConstString(BROWSER_COPY_FAILURE) },
 )
 
 internal const val BROWSER_SHARE_FAILURE =

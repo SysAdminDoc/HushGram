@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 
 import java.io.File;
@@ -38,7 +39,8 @@ import app.hushgram.extension.shared.Utils;
  *
  * <p>The pending rows are known by a list kept here, not found by a query. The app's own save
  * can write into the same folders with the same kind of names, and a query can't tell its rows from
- * these. On Android 9 the list holds the hidden work file itself ({@link MediaStoreWriter}).
+ * these. On Android 9 the list holds the hidden work file itself ({@link MediaStoreWriter}), and
+ * in a folder picked in settings the hidden work file's document ({@link SaveTree}).
  */
 public final class SaveLeftovers {
 
@@ -332,6 +334,13 @@ public final class SaveLeftovers {
                     boolean existed = file.exists();
                     if (existed && !file.delete()) retry.add(row);
                     else if (existed) removed++;
+                    continue;
+                }
+                if (DocumentsContract.isTreeUri(address)) {
+                    // A picked folder's hidden work file (SaveTree), on the same terms as Android 9's.
+                    int outcome = SaveTree.removeStopped(application, address);
+                    if (outcome == SaveTree.RETRY) retry.add(row);
+                    else if (outcome == SaveTree.REMOVED) removed++;
                     continue;
                 }
                 // Only while it's still pending: a row the stopped save had already published is a

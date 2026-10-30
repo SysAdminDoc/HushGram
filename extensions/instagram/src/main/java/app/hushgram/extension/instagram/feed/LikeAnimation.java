@@ -4,6 +4,9 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.content.Context;
+import android.graphics.drawable.Drawable;
+
 import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -26,12 +29,16 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the plain heart. The patch hands each set-up's animation through {@link #pick} first, so while the
  * switch is on it gets the one picked in settings, and passes the check Instagram makes before it
  * plays any of its own animations through {@link #allow}, so that check doesn't put the plain heart
- * back. Nothing Instagram stores is written, so with the switch off or HushGram paused the plain
- * heart (or a Rings creator's own animation) is back on the next post set up.
+ * back. Since 452 feed posts and reels draw the heart without the old view, so a post's animation
+ * goes through {@link #pick} where Instagram reads it off the post, each heart's where it's kept, and
+ * every check after a comparison with the plain heart through {@link #allow}. Nothing Instagram
+ * stores is written, so with the switch off or HushGram paused the plain heart (or a Rings
+ * creator's own animation) is back on the next post set up.
  *
  * <p>The animations are Instagram's own enum. The patch fills {@link #noAnimation} in with its
  * plain heart, and {@link #animationType} reads the enum off that, which is how the settings
- * screen lists them by name.
+ * screen lists them by name. It fills {@link #heart} with the factory a post's heart is built with
+ * and {@link #play} with the call that plays it, so the list can show each one before it's picked.
  *
  * <p>Both hooks fail open: with the switch off, nothing picked, HushGram paused, the settings not
  * read yet, a picked name this Instagram doesn't have or anything thrown, Instagram decides as it
@@ -41,6 +48,7 @@ public final class LikeAnimation {
     /** The steps a failure is reported under. */
     static final String SET_UP = "heart set-up";
     static final String CHECK = "animation check";
+    static final String PREVIEW = "preview";
 
     private static final String RINGS_PREFIX = "RINGS_LIKE_";
     private static final String ACTIVATION_SUFFIX = "_LIKE_ACTIVATION";
@@ -66,6 +74,44 @@ public final class LikeAnimation {
     @Nullable
     static Object noAnimation() {
         return null;
+    }
+
+    /**
+     * Filled in by the patch (#299): the heart Instagram draws for [animation], one of the type's
+     * values, built by the same factory a post's heart is, or null unpatched.
+     */
+    @Nullable
+    static Object heart(Context context, Object animation) {
+        return null;
+    }
+
+    /** Filled in by the patch (#299): plays [heart], one {@link #heart} built, as a double tap does. Unpatched, nothing. */
+    static void play(Object heart) {
+    }
+
+    /**
+     * The heart for the animation [name], for the settings list to show before it's picked (#299), or
+     * null when the patch isn't in, this Instagram has no such animation or anything throws.
+     */
+    @Nullable
+    public static Drawable preview(Context context, @Nullable String name) {
+        try {
+            Object animation = find(animationType(), noAnimation(), name);
+            Object heart = animation == null ? null : heart(context, animation);
+            return heart instanceof Drawable ? (Drawable) heart : null;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.LIKE_ANIMATION, PREVIEW, failure);
+            return null;
+        }
+    }
+
+    /** Plays [heart], one {@link #preview} answered. Never throws. */
+    public static void playPreview(Drawable heart) {
+        try {
+            play(heart);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.LIKE_ANIMATION, PREVIEW, failure);
+        }
     }
 
     /**

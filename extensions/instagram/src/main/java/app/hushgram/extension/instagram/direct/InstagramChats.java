@@ -9,8 +9,9 @@ package app.hushgram.extension.instagram.direct;
  * with every release, so none is named here: each method below answers null or does nothing as
  * built, and the "Read messages without the seen receipt" patch writes its body at patch time
  * ({@link #accountId} is written by "Lock your messages" too), as
- * the call or field read it finds in Instagram's own handler for marking a chat read, or in its
- * handler that sends a chat's seen receipt. A method whose body wasn't written answers null, and
+ * the call or field read it finds in Instagram's own handler for marking a chat read, in its
+ * handler that sends a chat's seen receipt, in its chat store, or in the summary its inbox rows
+ * are drawn from. A method whose body wasn't written answers null, and
  * the chat is then left as it is, its receipt held.
  *
  * <p>Every argument is Instagram's own object, handed over as an Object, of the type the method
@@ -70,5 +71,23 @@ public final class InstagramChats {
 
     /** Puts a chat's unread mark on, or with false takes it off, through Instagram's own call. */
     public static void markUnread(Object session, Object key, boolean unread) {
+    }
+
+    /** The session of the account a chat store belongs to, the store that records which chats were seen. */
+    public static Object storeSession(Object store) {
+        return null;
+    }
+
+    /** The key of the chat an inbox row's summary is for. */
+    public static Object chatKey(Object thread) {
+        return null;
+    }
+
+    /**
+     * The id of a chat's newest message, read off the inbox row's summary the way it reads it when
+     * asked whether the chat shows unread. Null when the summary has none.
+     */
+    public static String newestMessage(Object thread) {
+        return null;
     }
 }

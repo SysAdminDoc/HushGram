@@ -47,7 +47,7 @@
     named by a helper added to a host class, as the upper half of a long read from the last
     register, as a long an extension method writes there, and in the feed guard. Each framework
     call a patch sends to an extension stand-in (the ShortcutManager, NotificationManager, Window,
-    Location, SurfaceView and SurfaceControl.Transaction calls) is left in Facebook's code by a build of its own, which has to fail that call's no-call
+    Location, SurfaceView, SurfaceControl.Transaction and PackageManager calls) is left in Facebook's code by a build of its own, which has to fail that call's no-call
     rule and no other, and the contract file may hold no no-call rule without such a build. The
     call that gives the Facebook logo its touch listener is left as Facebook makes it, the stand-in
     is sent in place of the container's call instead, made on the container's register, sent
@@ -709,11 +709,13 @@ try {
     # The settings patch sends each of these ShortcutManager calls to SettingsEntry, Group
     # notifications sends both NotificationManager.notify and both cancel calls to its stand-ins,
     # Allow screenshots sends Window.setFlags and Window.addFlags to ScreenshotBlock, Spoof location
-    # sends Location's reads to SpoofLocation and Turn off HDR brightness boosts sends the headroom,
-    # color mode and extended range brightness calls to HdrBoost. The fixture's publisher makes each one from a method of its
+    # sends Location's reads to SpoofLocation, Turn off HDR brightness boosts sends the headroom,
+    # color mode and extended range brightness calls to HdrBoost and Pick the app icon sends
+    # PackageManager's two component calls to AppIcon. The fixture's publisher makes each one from a method of its
     # own (Caller).
     $shortcutManager = 'Landroid/content/pm/ShortcutManager;'
     $notificationManager = 'Landroid/app/NotificationManager;'
+    $packageManager = 'Landroid/content/pm/PackageManager;'
     $location = 'Landroid/location/Location;'
     $window = 'Landroid/view/Window;'
     $shortcutCalls = @(
@@ -736,6 +738,8 @@ try {
         [pscustomobject]@{ Case = 'extended-range'; Manager = 'Landroid/view/SurfaceControl$Transaction;'; Call = 'setExtendedRangeBrightness'; Takes = 'Landroid/view/SurfaceControl;FF'; Answers = 'Landroid/view/SurfaceControl$Transaction;'; Caller = 'extendedRange' }
         [pscustomobject]@{ Case = 'cancel'; Manager = $notificationManager; Call = 'cancel'; Takes = 'I'; Answers = 'V'; Caller = 'cancel' }
         [pscustomobject]@{ Case = 'cancel-tagged'; Manager = $notificationManager; Call = 'cancel'; Takes = 'Ljava/lang/String;I'; Answers = 'V'; Caller = 'cancelTagged' }
+        [pscustomobject]@{ Case = 'component-setting'; Manager = $packageManager; Call = 'setComponentEnabledSetting'; Takes = 'Landroid/content/ComponentName;II'; Answers = 'V'; Caller = 'componentSetting' }
+        [pscustomobject]@{ Case = 'component-settings'; Manager = $packageManager; Call = 'setComponentEnabledSettings'; Takes = 'Ljava/util/List;'; Answers = 'V'; Caller = 'componentSettings' }
     )
     foreach ($shortcut in $shortcutCalls) {
         $shortcut | Add-Member -NotePropertyName Callee -NotePropertyValue (
@@ -886,7 +890,7 @@ try {
     # The token host's three, each picking its method by one thing Redex leaves alone. Their bad
     # builds are with the home tab's below.
     $tokenHookRoot = 'Lapp/hushgram/extension/fixture/misc/TokenHook;'
-    $tokenLiteralRule = "once-call $tokenHookRoot->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda"
+    $tokenLiteralRule = "once-call $tokenHookRoot->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda const:0x8263c5ae"
     $tokenCallRule = "once-call $tokenHookRoot->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V"
     $tokenFieldRule = "once-call $tokenHookRoot->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;"
     $tokenLackRule = "once-call $tokenHookRoot->lack(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Byte;)V lacking static LX/*;->*(LX/*;)V holding fixture_token"

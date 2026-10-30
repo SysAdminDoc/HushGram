@@ -110,7 +110,7 @@ class HomeHeaderHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("the declared build and the six others", 7, bundles.size)
+        assertEquals("the declared build and the others", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val name = bundle.parentFile?.name ?: bundle.name
             val bar = FixtureDex.classes(bundle, setOf(MAIN_FEED_ACTION_BAR)).values.single()

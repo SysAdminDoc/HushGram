@@ -36,6 +36,7 @@ class FriendshipStatusPartsTest {
         assertEquals("the list's hook", 1, calls(context, FOLLOWING_ROW))
         assertEquals(1, answer(context, "friendshipStatus"))
         assertEquals(1, answer(context, FOLLOWING_LIST_STATUS))
+        assertEquals(1, answer(context, UNFOLLOWERS_STATUS))
     }
 
     @Test
@@ -51,6 +52,24 @@ class FriendshipStatusPartsTest {
         assertFollowingListStubsStock(context)
         assertEquals(1, answer(context, "friendshipStatus"))
         assertEquals(0, answer(context, FOLLOWING_LIST_STATUS))
+        assertEquals(0, answer(context, UNFOLLOWERS_STATUS))
+    }
+
+    /** A follow list whose pager moved keeps the Following list switches and leaves Recent unfollowers out (#208). */
+    @Test
+    fun aPagerThatMovedLeavesRecentUnfollowersOut() {
+        val context = PatchContexts.of(classes(FollowingListHookTest.standIns(pagerParts = false)))
+        val warnings = PatchLogCapture.warnings { friendshipStatusPatch.execute(context) }
+
+        assertEquals(warnings.toString(), 1, warnings.size)
+        assertTrue(warnings.single(), warnings.single().endsWith("The Following list switches go in without Recent unfollowers."))
+        assertEquals("the list's hook", 1, calls(context, FOLLOWING_ROW))
+        val stock = ExtensionDex.classDef(UNFOLLOWERS).methods.associate { it.key() to it.implementation?.instructions?.count() }
+        context.classDefByOrNull(UNFOLLOWERS)!!.methods.forEach {
+            assertEquals("${it.key()} was filled", stock[it.key()], it.implementation?.instructions?.count())
+        }
+        assertEquals(1, answer(context, FOLLOWING_LIST_STATUS))
+        assertEquals(0, answer(context, UNFOLLOWERS_STATUS))
     }
 
     /**
@@ -84,6 +103,7 @@ class FriendshipStatusPartsTest {
         assertFollowingListStubsStock(context)
         assertEquals(0, answer(context, "friendshipStatus"))
         assertEquals(0, answer(context, FOLLOWING_LIST_STATUS))
+        assertEquals(0, answer(context, UNFOLLOWERS_STATUS))
     }
 
     /** The profile's and the list's stand-ins and the status class, with a class both declare merged into one. */

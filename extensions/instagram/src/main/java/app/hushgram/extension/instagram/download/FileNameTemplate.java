@@ -19,10 +19,11 @@ import app.hushgram.extension.shared.Utils;
  *
  * <p>The default is {@code IG_VID_} and the date and time, Hushfacebook's {@code FB_VID_} naming
  * with Instagram's initials, so with the template as it ships every video is named the same way.
- * Four tokens fill in per save: {@link #DATE} is the moment the file goes into the gallery, as
+ * Five tokens fill in per save: {@link #DATE} is the moment the file goes into the gallery, as
  * {@code yyyyMMdd_HHmmss}; {@link #VIDEO_ID} is the media's number on Instagram; {@link #OWNER} is
  * the name of whoever posted it, cleaned the way the folder name is; and {@link #POSTED} is the day
- * the post went up, as {@code yyyyMMdd} in the phone's time zone. The last three fill in when the save knows them
+ * the post went up, as {@code yyyyMMdd} in the phone's time zone. {@link #SHORTCODE} is the public
+ * parent post's shortcode, never a carousel child's id or a story id. These fill in when the save knows them
  * ({@link PostDetails}) and as nothing when it doesn't. Anything else in braces stays as written.
  *
  * <p>A template is typed by a person or read from a settings file, and MediaStore takes the name
@@ -53,8 +54,9 @@ import app.hushgram.extension.shared.Utils;
  * folder, the writer takes {@link #takenVideoName} instead, the same name with the time of the save
  * on the end, before MediaStore's numbering can run out.
  *
- * <p>Photos keep their {@code IG_IMG_} names. A photo has no video id, and one template for both
- * would name every photo a video.
+ * <p>Photos keep their {@code IG_IMG_} names unless the template explicitly includes
+ * {@link #SHORTCODE}. That choice applies the template to photos too, with the photo's usual
+ * prefix when nothing known fills in.
  *
  * <p>Name saves by account and post time ({@link #byPost}, #20) sets all of that aside for a save
  * that knows who posted and when: {@link #postName} names a photo and a video alike for the account
@@ -77,13 +79,16 @@ public final class FileNameTemplate {
     /** Fills in as the day the post went up, {@code yyyyMMdd} in the phone's time zone, or nothing when unknown. */
     public static final String POSTED = "{posted}";
 
+    /** Fills in as the public parent post's shortcode, or nothing when it isn't known. */
+    public static final String SHORTCODE = "{shortcode}";
+
     /** Every token, in the order the dialog names them. */
-    static final String[] TOKENS = {DATE, VIDEO_ID, OWNER, POSTED};
+    static final String[] TOKENS = {DATE, VIDEO_ID, OWNER, POSTED, SHORTCODE};
 
     /** What stands between the account and the time of the save in a profile picture's name by post. */
     static final String PROFILE = "_profile_";
 
-    /** What the name of a saved photo starts with. Photos keep it, whatever the template. */
+    /** What a photo's default name starts with, including an unknown shortcode's empty result. */
     public static final String PHOTO_PREFIX = "IG_IMG_";
 
     /** What the name of a saved video starts with, as the template ships. */
@@ -216,6 +221,10 @@ public final class FileNameTemplate {
         return template != null && template.contains(POSTED);
     }
 
+    public static boolean usesShortcode(String template) {
+        return template != null && template.contains(SHORTCODE);
+    }
+
     /** Whether [template] has any token at all. Without one it names every video the same. */
     static boolean usesAnyToken(String template) {
         for (String token : TOKENS) {
@@ -231,8 +240,13 @@ public final class FileNameTemplate {
      * know: then {@link #videoName} puts the date and time on the end.
      */
     static boolean keepsApart(String template, boolean hasId, boolean hasOwner, boolean hasPosted) {
+        return keepsApart(template, hasId, hasOwner, hasPosted, false);
+    }
+
+    static boolean keepsApart(String template, boolean hasId, boolean hasOwner, boolean hasPosted, boolean hasShortcode) {
         if (usesDate(template)) return true;
         if (usesVideoId(template) && hasId) return true;
+        if (usesShortcode(template) && hasShortcode) return true;
         boolean owner = usesOwner(template);
         boolean posted = usesPosted(template);
         if (!owner && !posted) return false;
@@ -271,22 +285,32 @@ public final class FileNameTemplate {
         return videoName(template, when, details, true);
     }
 
+    /** The explicitly opted-in photo template, with its usual prefix when every token is unknown. */
+    static String photoName(String template, Date when, PostDetails details, boolean taken) {
+        return name(template, when, details, taken, PHOTO_PREFIX);
+    }
+
     /** {@link #videoName} or, when [taken], {@link #takenVideoName}. */
     private static String videoName(String template, Date when, PostDetails details, boolean taken) {
+        return name(template, when, details, taken, VIDEO_PREFIX);
+    }
+
+    private static String name(String template, Date when, PostDetails details, boolean taken, String fallbackPrefix) {
         if (details == null) details = PostDetails.NONE;
         String stamp = stamp(when);
         String clean = sanitize(template);
         boolean hasId = details.hasVideoId();
         String rest = clean.replace(DATE, stamp)
             .replace(VIDEO_ID, hasId ? details.videoId : "")
+            .replace(SHORTCODE, details.hasShortcode() ? details.shortcode : "")
             .replace(POSTED, details.hasPosted() ? postedStamp(details.posted) : "");
         String owner = ownerFor(rest, details, MAX_NAME_BYTES);
         String name = filledIn(rest, owner);
         // Nothing left but the separators typed between tokens the save didn't know ({owner}_{posted}
         // with neither) is nothing.
-        if (!hasLetterOrDigit(name)) return taken ? null : VIDEO_PREFIX + stamp;
+        if (!hasLetterOrDigit(name)) return taken ? null : fallbackPrefix + stamp;
 
-        if (!keepsApart(clean, hasId, !owner.isEmpty(), details.hasPosted())) {
+        if (!keepsApart(clean, hasId, !owner.isEmpty(), details.hasPosted(), details.hasShortcode())) {
             // Something this template counts on is missing, so the date and time keep the name apart.
             return taken ? null : joined(cut(name, MAX_NAME_BYTES - 1 - stamp.length()), stamp);
         }

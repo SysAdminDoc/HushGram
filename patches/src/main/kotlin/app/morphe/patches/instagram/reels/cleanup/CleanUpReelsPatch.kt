@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.extension.parameterRegister
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
+import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.requireThisIntact
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -42,18 +43,30 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Clean up Reels"
 
 /**
- * Takes seven things off the Reels viewer, each behind its own switch: the Follow button beside a
+ * Takes eleven things off the Reels viewer, each behind its own switch: the Follow button beside a
  * reel's author, the pills that prompt you to make something or promote something, and friends'
  * activity with the comment preview, and the Add comment bar under a reel opened from a profile's
- * reposts, and the same bar under every reel, the Reels tab's included, the Save button in a reel's
- * button column, and the Reels tab's top bar.
+ * reposts, and the same bar under every reel, the Reels tab's included, the reply bar under a reel
+ * opened from a chat, the Save button in a reel's button column, the Reels tab's top bar, the
+ * Create (+) and Your algorithm buttons in the top bar of reels, and the Friends tab beside Reels.
  * The patch is in the default selection and every switch starts off. Friends' activity covers the
  * floating bubbles and the Liked by or Followed by line with its faces. See ReelParts.kt for each
  * part.
  *
- * The top bar changes no Instagram code: the extension's ReelsTopBar, started by the application
- * hook the settings patch writes once this patch switches its status method on, finds the bar by
- * the class and id names Instagram keeps and hides it at runtime when its viewer is the Reels tab's.
+ * The top bar and its two buttons change no Instagram code: the extension's ReelsTopBar, started by
+ * the application hook the settings patch writes once this patch switches its status method on,
+ * finds the bar by the class and id names Instagram keeps and hides it at runtime when its viewer
+ * is the Reels tab's. It finds the Create button by the kind Instagram tags it with and Your
+ * algorithm by its class, in the bar of any reel viewer, and sets just that button gone.
+ *
+ * The Friends tab has no name, id or tag to find it by, so the one place Instagram builds it, where
+ * the tab gets its facepile icon, hands the tab's view to ReelsTopBar, which hides it the same way.
+ * See FriendsTab.kt.
+ *
+ * A twelfth switch, Keep clear mode on, has Instagram's own clear mode carry from the reel you
+ * turned it on for to the next reels, and keeps the seek bar of a long reel off while it's in clear
+ * mode (#277). See ClearMode.kt. Its places are found and checked before any part is hidden, so a
+ * build that lacks one changes nothing.
  *
  * Every part is required: a build where one can't be found once, in the shape its kind has, stops
  * the patch with what's wrong, rather than shipping a switch that quietly does nothing.
@@ -62,9 +75,10 @@ private const val PATCH = "Clean up Reels"
 val cleanUpReelsPatch = bytecodePatch(
     name = "Clean up Reels",
     description = "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban " +
-        "Meta glasses, friends' activity, the Add a comment bar, the Save button and the Reels tab's top bar. Each one has its own " +
-        "switch, and Burn-in guard can dim a reel's buttons while you aren't touching the screen. Starts off. Turn it on " +
-        "in HushGram settings > Reels.",
+        "Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button, the " +
+        "Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons while you aren't " +
+        "touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels. " +
+        "Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
     dependsOn(settingsPatch)
@@ -72,7 +86,16 @@ val cleanUpReelsPatch = bytecodePatch(
     dependsOn(instagramExtensionPatch)
 
     execute {
+        requireStatusMethod("reelDeclutter")
+        val clearMode = findClearModeWhereItFits()
+        val clearModeStubs = clearModeStubs()
+        val friendsTab = findFriendsTab()
         hideReelParts()
+        markFriendsTab(friendsTab)
+        if (clearMode != null) {
+            applyClearMode(clearMode)
+            clearModeStubs.fill(clearMode)
+        }
         enableStatus("reelDeclutter")
     }
 }
@@ -116,6 +139,15 @@ internal fun BytecodePatchContext.hideReelParts() {
     val none = noBubbles(bubbles)
     val line = socialContextType(socialContext)
     val bar = commentBar(holding(COMMENT_BAR_SHOW), holding(COMMENT_BAR_HIDE), holding(COMMENT_BAR_CREATED), holding(COMMENT_BAR_UNVANISH))
+    val replyBar = directReplyBar(holding(DIRECT_REPLY_BAR_SHOW), holding(DIRECT_REPLY_BAR_HIDE), holding(DIRECT_REPLY_BAR_CREATED))
+    // The reply bar's hooks go in further down their methods, at places worked out before anything
+    // changes, so neither method may be one another part writes into.
+    val written = (methods.values + saves.values + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
+        .map { it.signature() }
+    val replyBarMethods = listOf(replyBar.show, replyBar.created).map { it.signature() }
+    if (replyBarMethods.toSet().size != replyBarMethods.size || replyBarMethods.any { it in written }) {
+        throw PatchException("$PATCH: the direct reply bar's show or onViewCreated is a method another part changes: $replyBarMethods")
+    }
 
     (methods + saves).forEach { (part, found) ->
         val method = mutable(found)
@@ -136,7 +168,10 @@ internal fun BytecodePatchContext.hideReelParts() {
     hideFloatingBubbles(bubbles, none)
     hideFriendsSocialContext(socialContext, line)
     hideCommentBar(bar)
+    hideDirectReplyBar(replyBar)
 }
+
+private fun Method.signature() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 /**
  * The comment bar's controller: [show], its showCommentBar, [hide], its hideCommentBar, and
@@ -331,6 +366,138 @@ private fun BytecodePatchContext.hideCommentBar(bar: CommentBar) {
         """,
         ExternalLabel("hide", unVanish.getInstruction(back.hidden)),
     )
+}
+
+/**
+ * The reply bar's controller under a reel opened from a chat: [show], its showReplyBar, and
+ * [created], its onViewCreated, each read the controller's hidden flag once, at [shown] and [made].
+ * The viewer's source is in [source].
+ */
+internal class DirectReplyBar(val show: Method, val shown: FlagRead, val created: Method, val made: FlagRead, val source: String)
+
+/** A read of the reply bar's hidden flag: instruction [at], into v[flag], off the controller in v[controller]. */
+internal class FlagRead(val at: Int, val flag: Int, val controller: Int)
+
+/**
+ * Checks the reply bar's controller before anything changes. Its onViewCreated names its class,
+ * which holds the viewer's source in one field, an enum naming [CHAT_SOURCE]. Its show and hide
+ * take nothing and sit in the controller or, merged with the Spotlight reply bar's, in a class it
+ * extends. The show reads one boolean field of the controller, once: the flag Instagram sets to
+ * keep the bar hidden, which the show turns into visible or gone. The onViewCreated reads the same
+ * flag once and, when it's set, calls the hide on the controller it read it off, which is what
+ * makes it the hidden flag. A hook right after either read only adds to the flag. It reads the
+ * source off the register the flag came off, which the read itself proves is the controller, so
+ * the two registers have to differ, and nothing may jump to just past the read.
+ */
+private fun BytecodePatchContext.directReplyBar(show: Method, hide: Method, created: Method): DirectReplyBar {
+    val type = created.definingClass
+    val what = "$PATCH: the direct reply bar's controller $type"
+    if (created.name != "onViewCreated" || AccessFlags.STATIC.isSet(created.accessFlags) || created.implementation == null) {
+        throw PatchException("$what: ${created.name}, holding the $DIRECT_REPLY_BAR_CREATED marker, isn't its onViewCreated")
+    }
+    val controller = classDefBy(type)
+    val extended = generateSequence(controller.superclass) { classDefByOrNull(it)?.superclass }.toSet()
+    for (method in listOf(show, hide)) {
+        if (AccessFlags.STATIC.isSet(method.accessFlags) || method.parameterTypes.isNotEmpty() || method.returnType != "V" ||
+            method.implementation == null
+        ) throw PatchException("$what: ${method.definingClass}->${method.name} isn't an instance method taking nothing")
+        if (method.definingClass != type && method.definingClass !in extended) {
+            throw PatchException("$what: ${method.definingClass}->${method.name} is in neither the controller nor a class it extends")
+        }
+    }
+    val sources = controller.fields.filter { it.type == CLIPS_VIEWER_SOURCE && !AccessFlags.STATIC.isSet(it.accessFlags) }
+    val source = sources.singleOrNull() ?: throw PatchException("$what: expected one field holding the viewer's source, found ${sources.size}")
+    if (show.definingClass != type && !AccessFlags.PUBLIC.isSet(source.accessFlags)) {
+        throw PatchException("$what: its show, in ${show.definingClass}, can't read the viewer's source, which isn't public")
+    }
+    val named = classDefByOrNull(CLIPS_VIEWER_SOURCE)?.methods?.filter { it.name == "<clinit>" }.orEmpty().flatMap { initializer ->
+        initializer.implementation?.instructions?.toList().orEmpty().mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+    }
+    if (CHAT_SOURCE !in named) throw PatchException("$what: the viewer's source doesn't name $CHAT_SOURCE, which tells a reel from a chat")
+    fun Method.flagReads(): List<Pair<Int, String>> = implementation!!.instructions.withIndex().mapNotNull { (at, instruction) ->
+        val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+        if (instruction.opcode == Opcode.IGET_BOOLEAN && field != null && field.definingClass == type) at to field.name else null
+    }
+    val shown = show.flagReads()
+    val (shownAt, flag) = shown.singleOrNull()
+        ?: throw PatchException("$what: expected its show to read one flag of the controller once, found ${shown.map { it.second }}")
+    val made = created.flagReads().filter { it.second == flag }
+    val madeAt = made.singleOrNull()?.first
+        ?: throw PatchException("$what: expected onViewCreated to read the hidden flag $flag once, found ${made.size} read(s)")
+    val code = created.implementation!!.instructions.toList()
+    val read = code[madeAt] as TwoRegisterInstruction
+    val check = code.getOrNull(madeAt + 1)
+    val call = code.getOrNull(madeAt + 2)
+    val called = (call as? ReferenceInstruction)?.reference as? MethodReference
+    // The call may name the hide on a class the controller extends (on 451's 385713073 onViewCreated
+    // calls the abstract LX/0Fk2;->A0r, which LX/0P82, the controller, overrides with the hide): on the
+    // controller it reads the flag off, it has to reach the hide all the same.
+    val hides = check != null && check.opcode == Opcode.IF_EQZ && (check as OneRegisterInstruction).registerA == read.registerA &&
+        call != null && call.opcode == Opcode.INVOKE_VIRTUAL && called != null && called.name == hide.name &&
+        called.parameterTypes.isEmpty() && called.returnType == "V" &&
+        (called.definingClass == type || called.definingClass in extended) && resolvesTo(type, called, hide) &&
+        (call as FiveRegisterInstruction).let { it.registerCount == 1 && it.registerC == read.registerB }
+    if (!hides) {
+        throw PatchException("$what: onViewCreated doesn't call the hide on the controller right after finding the hidden flag $flag set")
+    }
+    return DirectReplyBar(
+        show, flagRead(show, shownAt, "$what: its show"),
+        created, flagRead(created, madeAt, "$what: onViewCreated"),
+        "${source.definingClass}->${source.name}:${source.type}",
+    )
+}
+
+/**
+ * Whether a virtual call of [called] on an object of [type] runs [target]: the first class from
+ * [type] up through its superclasses declaring a method of that name and shape with a body is
+ * [target]'s.
+ */
+private fun BytecodePatchContext.resolvesTo(type: String, called: MethodReference, target: Method): Boolean {
+    val shape = called.parameterTypes.map(Any::toString)
+    val declaring = generateSequence(classDefByOrNull(type)) { it.superclass?.let(::classDefByOrNull) }.firstOrNull { owner ->
+        owner.methods.any {
+            it.name == called.name && it.returnType == called.returnType && it.parameterTypes.map(Any::toString) == shape &&
+                it.implementation != null && !AccessFlags.STATIC.isSet(it.accessFlags)
+        }
+    }
+    return declaring?.type == target.definingClass && target.name == called.name
+}
+
+/** The registers of the hidden flag's read at instruction [at] of [method], checked for a hook right after it. */
+private fun flagRead(method: Method, at: Int, what: String): FlagRead {
+    val code = method.implementation!!.instructions.toList()
+    val read = code[at] as TwoRegisterInstruction
+    if (read.registerA == read.registerB) {
+        throw PatchException("$what reads the hidden flag over the controller, so the hook can't read the viewer's source off it")
+    }
+    if (at + 1 >= code.size || at + 1 in method.jumpTargets()) {
+        throw PatchException("$what jumps to just after it reads the hidden flag, so the hook would be skipped")
+    }
+    return FlagRead(at, read.registerA, read.registerB)
+}
+
+/**
+ * Keeps the reply bar under a reel from a chat hidden when the hook says so for the viewer's
+ * source, by adding to Instagram's own hidden flag right where the show and onViewCreated read it:
+ * a flag already set stays set, and a clear one becomes the hook's answer. The show then sets the
+ * bar gone through its own visibility call, and onViewCreated takes its own branch to Instagram's
+ * hide. The flag's field is never written, so a no from the hook is Instagram's own behavior.
+ */
+private fun BytecodePatchContext.hideDirectReplyBar(bar: DirectReplyBar) {
+    for ((found, read) in listOf(bar.show to bar.shown, bar.created to bar.made)) {
+        val method = mutable(found)
+        val after = read.at + 1
+        method.addInstructionsWithLabels(
+            after,
+            """
+                if-nez v${read.flag}, :hidden
+                iget-object v${read.flag}, v${read.controller}, ${bar.source}
+                invoke-static { v${read.flag} }, $HIDE_DIRECT_REPLY_BAR
+                move-result v${read.flag}
+            """,
+            ExternalLabel("hidden", method.getInstruction(after)),
+        )
+    }
 }
 
 private const val VIEW = "Landroid/view/View;"

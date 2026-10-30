@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.Collections
 import java.util.UUID
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -799,6 +800,20 @@ tasks.withType<Test>().configureEach {
     inputs.files(fixtureDirectory.map { if (it.isBlank()) emptyList() else listOf(File(it)) }.orElse(emptyList()))
         .withPropertyName("fixtures")
         .withPathSensitivity(PathSensitivity.RELATIVE)
+    // Morphe's inline assembler prints a smali error such as "[7,0] Invalid register: v16. Must be between
+    // v0 and v15, inclusive." and leaves the instruction out instead of throwing, so the test that applied
+    // the patch still passes and ART rejects the class on the phone. Any such line fails the task.
+    val droppedSmali = Collections.synchronizedList(mutableListOf<String>())
+    addTestOutputListener { test, output ->
+        if (Regex("""(?m)^\[\d+,\d+\] """).containsMatchIn(output.message)) {
+            droppedSmali += "${test.className}.${test.name}: ${output.message.trim()}"
+        }
+    }
+    doLast {
+        if (droppedSmali.isNotEmpty()) {
+            throw GradleException("The inline assembler left instructions out:\n" + droppedSmali.joinToString("\n"))
+        }
+    }
 }
 
 // Split the long patch suite by its source area. Each worker gets only the compiled classes in

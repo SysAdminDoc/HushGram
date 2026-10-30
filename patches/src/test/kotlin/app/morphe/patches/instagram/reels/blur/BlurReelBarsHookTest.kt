@@ -83,8 +83,8 @@ class BlurReelBarsHookTest {
             classes(switches = 2) to "expected exactly one Reels pager switch holding \"$ENABLE_SCROLLING\" in this Instagram build, found $pagerImpl",
             classes(switchReadsPager = false) to "expected $pagerImpl->enable to read one $VIEW_PAGER field of its class, found 0",
             classes(switchSetsInput = false) to "$pagerImpl->enable doesn't call $VIEW_PAGER->$SET_USER_INPUT",
-            classes(viewers = 0) to "expected exactly one Reels viewer onViewCreated holding \"$PAGER_SETUP\" in this Instagram build, found none",
-            classes(viewers = 2) to "expected exactly one Reels viewer onViewCreated holding \"$PAGER_SETUP\" in this Instagram build, found Lfixture/",
+            classes(viewers = 0) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found none",
+            classes(viewers = 2) to "expected exactly one Reels pager setup holding \"$PAGER_SETUP\" in this Instagram build, found Lfixture/",
             classes(stores = 0) to "$stored 0",
             classes(stores = 2) to "$stored 2",
             classes(jumpsToTheInstructionAfter = true) to "something in $viewerType->onViewCreated jumps to the instruction after its store of $pagerField",
@@ -145,7 +145,7 @@ class BlurReelBarsHookTest {
             val asking = holders.flatMap { type ->
                 context.mutableClassDefBy(type).methods.filter { method -> method.code().any { it.referenceText() == BLUR_PAGER_HOOK } }
             }
-            assertEquals("$what: methods handing over the pager", listOf("onViewCreated"), asking.map { it.name })
+            assertEquals("$what: methods handing over the pager", 1, asking.size)
             val viewer = asking.single()
             val code = viewer.code()
             val ask = code.indexOfFirst { it.referenceText() == BLUR_PAGER_HOOK }

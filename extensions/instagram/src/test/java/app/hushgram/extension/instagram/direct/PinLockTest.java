@@ -16,12 +16,16 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Looper;
 import android.text.InputType;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.junit.After;
@@ -42,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
@@ -145,11 +150,13 @@ public class PinLockTest {
         assertTrue(results.isEmpty());
         assertFalse(PinLock.matches("55556"));
         assertTrue("the old PIN stays", PinLock.matches(PIN));
+        assertTrue("a mismatch returns to confirmation", field(dialog, PinLock.CONFIRM_TAG).hasFocus());
 
         type(dialog, PinLock.FIELD_TAG, "123");
         type(dialog, PinLock.CONFIRM_TAG, "123");
         click(dialog, DialogInterface.BUTTON_POSITIVE);
         assertEquals("Use 4 to 8 digits.", message(dialog));
+        assertTrue("an invalid new PIN returns to the first field", field(dialog, PinLock.FIELD_TAG).hasFocus());
         assertTrue(PinLock.matches(PIN));
 
         type(dialog, PinLock.FIELD_TAG, "55556");
@@ -173,6 +180,107 @@ public class PinLockTest {
         assertEquals(List.of(false), results);
         assertTrue(PinLock.matches(PIN));
         assertFalse(PinLock.matches("777777"));
+        assertEquals("", field(dialog, PinLock.FIELD_TAG).getText().toString());
+        assertEquals("", field(dialog, PinLock.CONFIRM_TAG).getText().toString());
+    }
+
+    @Test
+    public void settingAPinHasPersistentLabelsAndNextThenDoneActions() {
+        Activity activity = MessagesLockTest.focused().get();
+        List<Boolean> results = new ArrayList<>();
+        PinLock.promptNew(activity, results::add);
+        AlertDialog dialog = latest();
+        EditText first = field(dialog, PinLock.FIELD_TAG);
+        EditText again = field(dialog, PinLock.CONFIRM_TAG);
+        ScrollView scroll = dialog.getWindow().getDecorView().findViewWithTag(PinLock.SCROLL_TAG);
+        assertNotNull("the form can scroll above the keyboard", scroll);
+        LinearLayout form = (LinearLayout) scroll.getChildAt(0);
+        TextView newLabel = (TextView) form.getChildAt(0);
+        TextView confirmLabel = (TextView) form.getChildAt(2);
+        assertEquals("New PIN", newLabel.getText().toString());
+        assertEquals(first.getId(), newLabel.getLabelFor());
+        assertEquals("Confirm PIN", confirmLabel.getText().toString());
+        assertEquals(again.getId(), confirmLabel.getLabelFor());
+        assertTrue(first.hasFocus());
+        assertEquals(again.getId(), first.getNextFocusForwardId());
+        assertEquals(EditorInfo.IME_ACTION_NEXT, first.getImeOptions() & EditorInfo.IME_MASK_ACTION);
+        assertEquals(EditorInfo.IME_ACTION_DONE, again.getImeOptions() & EditorInfo.IME_MASK_ACTION);
+        assertTrue((first.getImeOptions() & EditorInfo.IME_FLAG_NO_EXTRACT_UI) != 0);
+        assertTrue((again.getImeOptions() & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0);
+        assertFalse("PIN text must not enter saved view state", first.isSaveEnabled());
+        assertFalse(again.isSaveEnabled());
+        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE,
+                dialog.getWindow().getAttributes().softInputMode & WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST);
+
+        type(dialog, PinLock.FIELD_TAG, "5678");
+        first.onEditorAction(EditorInfo.IME_ACTION_NEXT);
+        assertTrue(again.hasFocus());
+        assertEquals("the label stays after typing", "New PIN", newLabel.getText().toString());
+        type(dialog, PinLock.CONFIRM_TAG, "5678");
+        again.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(true), results);
+        assertTrue(PinLock.matches("5678"));
+        assertEquals("", first.getText().toString());
+        assertEquals("", again.getText().toString());
+    }
+
+    @Test
+    public void aShortViewportScrollsToTheConfirmationField() {
+        Activity activity = MessagesLockTest.focused().get();
+        PinLock.promptNew(activity, saved -> { });
+        AlertDialog dialog = latest();
+        ScrollView scroll = dialog.getWindow().getDecorView().findViewWithTag(PinLock.SCROLL_TAG);
+        int width = Math.round(320 * activity.getResources().getDisplayMetrics().density);
+        int height = Math.round(80 * activity.getResources().getDisplayMetrics().density);
+        scroll.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY));
+        scroll.layout(0, 0, width, height);
+        assertTrue("the form keeps its full content height", scroll.getChildAt(0).getHeight() > scroll.getHeight());
+        scroll.setSmoothScrollingEnabled(false);
+        scroll.fullScroll(View.FOCUS_DOWN);
+        assertTrue("confirmation can be reached when the IME leaves little height", scroll.getScrollY() > 0);
+        dialog.dismiss();
+    }
+
+    @Test
+    public void anUnexpectedSetupDismissalReportsCancelOnceAndForgetsTheDigits() {
+        Activity activity = MessagesLockTest.focused().get();
+        List<Boolean> results = new ArrayList<>();
+        PinLock.promptNew(activity, results::add);
+        AlertDialog dialog = latest();
+        type(dialog, PinLock.FIELD_TAG, "7777");
+        type(dialog, PinLock.CONFIRM_TAG, "7777");
+        dialog.dismiss();
+        ShadowLooper.idleMainLooper();
+        assertEquals(List.of(false), results);
+        assertEquals("", field(dialog, PinLock.FIELD_TAG).getText().toString());
+        assertEquals("", field(dialog, PinLock.CONFIRM_TAG).getText().toString());
+        assertTrue("a dismiss leaves the existing PIN", PinLock.matches(PIN));
+        dialog.cancel();
+        ShadowLooper.idleMainLooper();
+        assertEquals("cancel after dismissal can't report twice", List.of(false), results);
+    }
+
+    @Test
+    public void anIncompleteUnlockDoesNotSpendATryAndDoneCanUnlock() {
+        Activity activity = MessagesLockTest.focused().get();
+        boolean[] opened = {false};
+        PinLock.ask(activity, () -> opened[0] = true, () -> { });
+        AlertDialog dialog = latest();
+        EditText field = field(dialog, PinLock.FIELD_TAG);
+        type(dialog, PinLock.FIELD_TAG, "123");
+        field.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        assertEquals("Use 4 to 8 digits.", message(dialog));
+        assertEquals(0L, (long) Settings.LOCK_PIN_MISSES.get());
+        assertEquals("123", field.getText().toString());
+        assertFalse(opened[0]);
+        type(dialog, PinLock.FIELD_TAG, PIN);
+        assertEquals("typing a correction removes the old error", "", message(dialog));
+        field.onEditorAction(EditorInfo.IME_ACTION_DONE);
+        ShadowLooper.idleMainLooper();
+        assertTrue(opened[0]);
+        assertFalse(dialog.isShowing());
     }
 
     @Test
@@ -336,9 +444,12 @@ public class PinLockTest {
         type(dialog, PinLock.FIELD_TAG, "0005");
         click(dialog, DialogInterface.BUTTON_POSITIVE);
         assertEquals("Too many tries. Wait 30 seconds.", message(dialog));
+        assertFalse("typing waits with the countdown", field(dialog, PinLock.FIELD_TAG).isEnabled());
+        assertFalse(dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled());
 
         // The right PIN doesn't count during the wait, and the wait doesn't grow.
         now.addAndGet(10_000);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(1, TimeUnit.SECONDS);
         type(dialog, PinLock.FIELD_TAG, PIN);
         click(dialog, DialogInterface.BUTTON_POSITIVE);
         assertFalse("the wait was skipped", opened[0]);
@@ -352,11 +463,33 @@ public class PinLockTest {
         assertEquals(PinLock.Result.WAIT, PinLock.attempt(PIN));
 
         now.addAndGet(20_000);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(1, TimeUnit.SECONDS);
         assertEquals(0, PinLock.waitLeftMs());
+        assertEquals("the countdown clears without another tap", "", message(dialog));
+        assertTrue(field(dialog, PinLock.FIELD_TAG).isEnabled());
+        assertTrue(dialog.getButton(DialogInterface.BUTTON_POSITIVE).isEnabled());
         type(dialog, PinLock.FIELD_TAG, PIN);
         click(dialog, DialogInterface.BUTTON_POSITIVE);
         assertTrue(opened[0]);
         assertEquals(0L, (long) Settings.LOCK_PIN_MISSES.get());
+    }
+
+    @Test
+    public void dismissingAWaitingDialogStopsItsCountdownAndForgetsTheDigits() {
+        for (int i = 0; i < 5; i++) PinLock.attempt("9999");
+        Activity activity = MessagesLockTest.focused().get();
+        List<Boolean> results = new ArrayList<>();
+        PinLock.ask(activity, () -> results.add(true), () -> results.add(false));
+        AlertDialog dialog = latest();
+        type(dialog, PinLock.FIELD_TAG, PIN);
+        String waiting = message(dialog);
+        dialog.dismiss();
+        ShadowLooper.idleMainLooper();
+        now.addAndGet(PinLock.WAIT_MS);
+        Shadows.shadowOf(Looper.getMainLooper()).idleFor(2, TimeUnit.SECONDS);
+        assertEquals(List.of(false), results);
+        assertEquals("", field(dialog, PinLock.FIELD_TAG).getText().toString());
+        assertEquals("the dismissed dialog has no active countdown", waiting, message(dialog));
     }
 
     @Test

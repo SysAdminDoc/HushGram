@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.feed.following
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
@@ -12,12 +13,14 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.flags.FlagRead
 import app.morphe.patches.instagram.misc.flags.answerFlagReads
 import app.morphe.patches.instagram.misc.flags.findFlagReads
 import app.morphe.patches.instagram.misc.settings.settingsPatch
@@ -40,6 +43,11 @@ internal const val FEED_FLAG = "$EXTENSION_PACKAGE/feed/FollowingFeed;->flag(I)Z
 internal const val SAVED_FEED = "$EXTENSION_PACKAGE/feed/FollowingFeed;->saved(Ljava/lang/String;)Ljava/lang/String;"
 internal const val LIMIT_PICKER = "$EXTENSION_PACKAGE/feed/FollowingFeed;->limitPicker(Ljava/util/List;)V"
 internal const val KEEP_LOGO = "$EXTENSION_PACKAGE/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I"
+internal const val PICKED_FEED = "$EXTENSION_PACKAGE/feed/FollowingFeed;->picked(Ljava/lang/Object;)Ljava/lang/Object;"
+
+/** The picker's For you feed type. The enum loading it is the feed types Home switches between. */
+internal const val FOR_YOU_FEED = "BLENDED_FOR_YOU"
+private const val ENUM = "Ljava/lang/Enum;"
 
 /** Home's title view: a view Instagram's layouts name, so its class keeps its name across builds. */
 internal const val TITLE_SWITCHER = "Lcom/instagram/actionbar/ActionBarTitleViewSwitcher;"
@@ -55,15 +63,15 @@ private const val FREEZE_REACH = 6
 /** The preference Instagram keeps the feed you last picked from Home's feed picker in. */
 internal const val SAVED_FEED_KEY = "last_selected_feed_type"
 
-/** The server flag that has Instagram remember the feed you pick. On 450 it's read twelve times. */
-internal const val REMEMBERED_FEED_FLAG = 0x810e6b00064f9bL
+/** The server flag that has Instagram remember the feed you pick. 451 had it as 810e5f00064f24. */
+internal const val REMEMBERED_FEED_FLAG = 0x810e3300064e36L
 
 /**
  * The server flag that puts For you first in Home's feed picker and the picked feed's name at the
- * top of Home. On 450 it's read three times. Without it the picker has no For you, since Home
+ * top of Home. 451 had it as 810e5f00004f1e. Without it the picker has no For you, since Home
  * stands for it, and Home's top shows only the picker's arrow.
  */
-internal const val FOR_YOU_PICKER_FLAG = 0x810e6b00004f95L
+internal const val FOR_YOU_PICKER_FLAG = 0x810e3300004e30L
 
 /** The flags the patch answers on: together they're Instagram's own For you and Following picker. */
 internal val FEED_PICKER_FLAGS = listOf(REMEMBERED_FEED_FLAG, FOR_YOU_PICKER_FLAG)
@@ -88,6 +96,7 @@ val startOnFollowingPatch = bytecodePatch(
         val reads = findFlagReads(PATCH, FEED_PICKER_FLAGS)
         val saved = findSavedFeedReturn()
         val title = findTitleLabel()
+        val switches = findFeedSwitches(reads)
         // The getter reads its flag before it returns, so its return is hooked first, while the
         // reads' indexes still hold.
         defaultSavedFeed(saved)
@@ -95,6 +104,8 @@ val startOnFollowingPatch = bytecodePatch(
         // Found after the flags are answered, since the picker reads them in the same method.
         limitPicker(findPickerFreeze(saved))
         keepLogoInTitle(title)
+        // Hooked at their starts once the reads in them are answered, so the reads' indexes held.
+        keepFeedLinksInPlace(switches)
         enableStatus("followingFeed")
     }
 }
@@ -266,6 +277,54 @@ internal fun BytecodePatchContext.keepLogoInTitle(title: TitleLabel) {
         """,
         ExternalLabel("name", method.getInstruction(0)),
     )
+}
+
+/** A method that switches Home to a feed: its class, its name and the feed type enum it takes. */
+internal class FeedSwitch(val type: String, val name: String, val feedType: String)
+
+/**
+ * Finds where Home switches to a feed: each instance method among [reads] that reads
+ * [REMEMBERED_FEED_FLAG], takes only a feed type (a constant of the enum loading [FOR_YOU_FEED]) and
+ * returns nothing. On 452 that's the picker's switch, LX/02tF.A00, and the listener it hands the
+ * feed to, LX/02tL.A00. With the flag on, the listener switches Home in place to For you or
+ * Following and opens any other feed as a page of its own, named by the feed type. Fails when
+ * there's no feed type enum or no such method, since that's an update the patch hasn't seen.
+ */
+internal fun BytecodePatchContext.findFeedSwitches(reads: List<FlagRead>): List<FeedSwitch> {
+    val feedTypes = classesLoadingString(FOR_YOU_FEED).filter { it.superclass == ENUM }.mapTo(HashSet()) { it.type }
+    if (feedTypes.isEmpty()) refuse("no enum loads $FOR_YOU_FEED")
+    val switches = reads.filter { read ->
+        read.flag == REMEMBERED_FEED_FLAG && read.returnType == "V" && read.parameters.singleOrNull() in feedTypes &&
+            classDefByOrNull(read.type)?.methods?.any {
+                it.name == read.name && it.returnType == "V" && !AccessFlags.STATIC.isSet(it.accessFlags) &&
+                    it.parameterTypes.map(CharSequence::toString) == read.parameters
+            } == true
+    }.distinctBy { it.type to it.name }.map { FeedSwitch(it.type, it.name, it.parameters.single()) }
+    if (switches.isEmpty()) refuse("no instance method taking only a feed type reads the remembered feed flag")
+    return switches
+}
+
+/**
+ * First thing in each of [switches], hands the feed through [PICKED_FEED]. Following's end card
+ * asks for the plain Home feed, which the picker this patch turns on doesn't offer, so Instagram
+ * opened it as a page whose feed has no name and closed on it. The extension answers a feed the
+ * picker switches to in place.
+ */
+internal fun BytecodePatchContext.keepFeedLinksInPlace(switches: List<FeedSwitch>) {
+    switches.forEach { switch ->
+        val method = mutableClassDefBy(switch.type).methods.single {
+            it.name == switch.name && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(switch.feedType)
+        }
+        method.addInstructions(
+            0,
+            """
+                invoke-static/range { p1 .. p1 }, $PICKED_FEED
+                move-result-object p1
+                check-cast p1, ${switch.feedType}
+            """,
+        )
+    }
 }
 
 /** Whether this calls setDisplayedChild with [child], set by the constant right before the call. */

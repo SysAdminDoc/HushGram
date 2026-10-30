@@ -48,7 +48,7 @@ class CoverBridgesHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
         val bundles = declared + Fixtures.otherBuilds()
-        assertTrue("every build of 450 is read: ${bundles.map { it.parent }}", bundles.size >= 7)
+        assertEquals("every build of 452 is read: ${bundles.map { it.parent }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val what = if (bundle.extension == "apks") bundle.name else bundle.parentFile.name
             val pool = FixtureDex.classes(bundle, chain)

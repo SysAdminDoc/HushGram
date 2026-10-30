@@ -75,7 +75,7 @@ class NativeBackLeavesHomeTest {
             }
             checked += name
         }
-        for (code in BUILDS) assertTrue("no fixture of 450 build $code among $checked", checked.any { it.contains("-$code") })
+        for (code in BUILDS) assertTrue("no fixture of build $code among $checked", checked.any { it.contains("-$code") })
     }
 
     @Test fun dexBackedInstructionReReadsFindTheSameAnchor() {
@@ -97,7 +97,7 @@ class NativeBackLeavesHomeTest {
     }
 
     private companion object {
-        val BUILDS = listOf(385611395, 385611400, 385611404, 385611431, 385611438, 385611439, 385611440)
+        val BUILDS = listOf(385914557, 385914503, 385914510, 385914517, 385914518, 385914546, 385914556, 385914558)
 
         fun bundles(): List<File> {
             val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()

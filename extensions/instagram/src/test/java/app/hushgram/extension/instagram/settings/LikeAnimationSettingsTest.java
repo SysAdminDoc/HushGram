@@ -6,14 +6,24 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
+import android.view.View;
+import android.widget.ListView;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,7 +53,7 @@ public class LikeAnimationSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CHANGE_LIKE_ANIMATION.resetToDefault();
         Settings.LIKE_ANIMATION.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -111,6 +121,108 @@ public class LikeAnimationSettingsTest {
         Settings.LIKE_ANIMATION.save("RINGS_LIKE_GONE");
         assertEquals("a name this Instagram doesn't have", "Pick an animation. Until you do, the heart stays Instagram's.",
                 HushgramPreferenceFragment.likeAnimationRow(controller.get(), names).getSummary().toString());
+    }
+
+    /** #299: with Instagram's hearts to hand, a tap shows and plays the heart under the list, and only OK saves it. */
+    @Test public void theListShowsEachHeartBeforeItsPicked() throws Exception {
+        HushgramPreferenceFragment.LikeAnimationRow row = rowWithTwo();
+        Map<String, Drawable> hearts = new HashMap<>();
+        for (CharSequence name : row.getEntryValues()) hearts.put(name.toString(), new ColorDrawable());
+        List<Drawable> played = new ArrayList<>();
+        row.hearts = hearts::get;
+        row.player = played::add;
+        row.setValue("RINGS_LIKE_ADRIAN");
+
+        row.showDialog(null);
+        AlertDialog dialog = (AlertDialog) row.getDialog();
+        assertTrue(dialog.isShowing());
+        assertSame("the picked one shows", hearts.get("RINGS_LIKE_ADRIAN"), row.preview.getDrawable());
+        assertEquals("and plays as the list opens", Collections.singletonList(hearts.get("RINGS_LIKE_ADRIAN")), played);
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, row.preview.getImportantForAccessibility());
+
+        tap(dialog.getListView(), 1);
+        assertTrue("a tap leaves the list open", dialog.isShowing());
+        assertSame(hearts.get("RINGS_LIKE_AKI_KOICHI"), row.preview.getDrawable());
+        assertSame("and plays the one tapped", hearts.get("RINGS_LIKE_AKI_KOICHI"), played.get(played.size() - 1));
+        assertEquals("nothing saved yet", "RINGS_LIKE_ADRIAN", row.getValue());
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(dialog.isShowing());
+        assertEquals("OK saves it", "RINGS_LIKE_AKI_KOICHI", row.getValue());
+        assertNull(row.preview);
+
+        row.showDialog(null);
+        dialog = (AlertDialog) row.getDialog();
+        tap(dialog.getListView(), 0);
+        dialog.getButton(DialogInterface.BUTTON_NEGATIVE).performClick();
+        ShadowLooper.idleMainLooper();
+        assertFalse(dialog.isShowing());
+        assertEquals("Cancel keeps the saved one", "RINGS_LIKE_AKI_KOICHI", row.getValue());
+    }
+
+    /**
+     * Instagram has dozens of animations. A list that long took the whole dialog, leaving the heart
+     * and the buttons no room, so the list gives way for them.
+     */
+    @Test public void aLongListLeavesRoomForTheHeartAndButtons() throws Exception {
+        HushgramPreferenceFragment.LikeAnimationRow row = rowWithTwo();
+        CharSequence[] entries = new CharSequence[60];
+        CharSequence[] values = new CharSequence[60];
+        for (int i = 0; i < entries.length; i++) {
+            entries[i] = "Animation " + i;
+            values[i] = "RINGS_LIKE_" + i;
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.hearts = name -> new ColorDrawable();
+        row.player = heart -> { };
+
+        row.showDialog(null);
+        AlertDialog dialog = (AlertDialog) row.getDialog();
+        View window = dialog.getWindow().getDecorView();
+        window.measure(View.MeasureSpec.makeMeasureSpec(600, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(1000, View.MeasureSpec.AT_MOST));
+        window.layout(0, 0, window.getMeasuredWidth(), window.getMeasuredHeight());
+        assertTrue("the list scrolls inside the dialog", dialog.getListView().getHeight() < 1000);
+        assertTrue("the heart has room", row.preview.getHeight() > 0);
+        assertTrue("OK has room", dialog.getButton(DialogInterface.BUTTON_POSITIVE).getHeight() > 0);
+        assertTrue("Cancel has room", dialog.getButton(DialogInterface.BUTTON_NEGATIVE).getHeight() > 0);
+    }
+
+    /** Without Instagram's hearts (the patch couldn't fill them in) the list saves on a tap, as before. */
+    @Test public void withoutHeartsATapSavesAsBefore() throws Exception {
+        HushgramPreferenceFragment.LikeAnimationRow row = rowWithTwo();
+        List<Drawable> played = new ArrayList<>();
+        row.hearts = name -> null;
+        row.player = played::add;
+
+        row.showDialog(null);
+        AlertDialog dialog = (AlertDialog) row.getDialog();
+        assertNull("no heart under the list", row.preview);
+        ShadowLooper.idleMainLooper();
+        tap(dialog.getListView(), 1);
+        assertFalse(dialog.isShowing());
+        assertEquals("RINGS_LIKE_AKI_KOICHI", row.getValue());
+        assertTrue(played.isEmpty());
+    }
+
+    private HushgramPreferenceFragment.LikeAnimationRow rowWithTwo() throws Exception {
+        Settings.CHANGE_LIKE_ANIMATION.save(true);
+        open(true);
+        HushgramPreferenceFragment.LikeAnimationRow row = (HushgramPreferenceFragment.LikeAnimationRow)
+                page.getPreferenceScreen().findPreference(Settings.LIKE_ANIMATION.key);
+        assertNotNull(row);
+        row.setEntries(new CharSequence[]{"Adrian", "Aki Koichi"});
+        row.setEntryValues(new CharSequence[]{"RINGS_LIKE_ADRIAN", "RINGS_LIKE_AKI_KOICHI"});
+        return row;
+    }
+    /**
+     * A tap on a choice. Android 17's list dismisses through a post on the dialog's window, which runs
+     * only once that window is attached, so a test idles the main thread after opening the list.
+     */
+    private static void tap(ListView list, int at) {
+        assertTrue(list.performItemClick(list.getAdapter().getView(at, null, list), at, list.getItemIdAtPosition(at)));
+        ShadowLooper.idleMainLooper();
     }
     private static int indexIn(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

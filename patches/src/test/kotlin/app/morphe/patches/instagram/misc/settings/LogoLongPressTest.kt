@@ -55,6 +55,67 @@ class LogoLongPressTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$LOGO_LONG_PRESS_STAND_IN is not in the extension: $declared", LOGO_LONG_PRESS_STAND_IN.substringAfter("->") in declared)
+        assertTrue("$MERGED_LOGO_STAND_IN is not in the extension: $declared", MERGED_LOGO_STAND_IN.substringAfter("->") in declared)
+    }
+
+    /**
+     * Home's newer header gives its logo no long press. The logo view goes to the stand-in right
+     * after the header keeps it, on the register it was kept from, and nothing of Instagram's moves.
+     */
+    @Test
+    fun theNewerHeadersLogoGoesToTheStandInOnceKept() {
+        val context = PatchContexts.of(listOf(mergedBar(mergedInit())))
+
+        assertTrue(context.hookMergedLogoLongPress())
+
+        val code = context.mergedInitMethod().code()
+        val hooks = code.indices.filter { code[it].referenceText() == MERGED_LOGO_STAND_IN }
+        assertEquals("one stand-in, after the store", listOf(4), hooks)
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, code[4].opcode)
+        assertEquals("the kept logo", listOf(1), code[4].arguments())
+        assertEquals("the logo's store", Opcode.IPUT_OBJECT, code[3].opcode)
+        assertEquals("the other view's store stays", Opcode.IPUT_OBJECT, code[5].opcode)
+        assertEquals("one added", 7, code.size)
+    }
+
+    /**
+     * No newer header, one that keeps no logo view, or one that keeps it twice: the patch says how
+     * many it found, answers false and changes nothing.
+     */
+    @Test
+    fun withoutExactlyOneLogoStoreTheNewerHeaderIsLeftAlone() {
+        val noLogo = """
+            const/4 v1, 0x0
+            iput-object v1, p0, $mergedOther
+            return-void
+        """
+        val twice = """
+            const/4 v1, 0x0
+            iput-object v1, p0, $mergedLogo
+            iput-object v1, p0, $mergedLogo
+            return-void
+        """
+        val cases = listOf(
+            listOf(bar(draw())) to 0,
+            listOf(mergedBar(mergedInit(noLogo))) to 0,
+            listOf(mergedBar(mergedInit(twice))) to 2,
+        )
+        for ((classes, found) in cases) {
+            val context = PatchContexts.of(classes)
+            var hooked = true
+            val warnings = PatchLogCapture.warnings { hooked = context.hookMergedLogoLongPress() }
+            assertFalse("$found stores: hooked anyway", hooked)
+            assertTrue("$found stores: $warnings", warnings.single().contains("$found places keep the Instagram logo in Home's newer header"))
+            for (original in classes) {
+                val now = context.mutableClassDefBy(original.type).methods.associateBy { it.name }
+                for (method in original.methods) {
+                    assertEquals(
+                        "$found stores: ${original.type}->${method.name} changed",
+                        method.code().map { it.describe() }, now.getValue(method.name).code().map { it.describe() },
+                    )
+                }
+            }
+        }
     }
 
     /**
@@ -156,6 +217,7 @@ class LogoLongPressTest {
         for (version in versions) {
             for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
                 hooks(bundle, bundle.name)
+                hooksMerged(bundle, bundle.name)
                 checked += version
             }
         }
@@ -165,7 +227,36 @@ class LogoLongPressTest {
     /** The same on every other build of the version, each compiled on its own. */
     @Test
     fun eachOtherBuildSendsTheLogosLongPressToTheStandInToo() {
-        for (base in Fixtures.otherBuilds()) hooks(base, base.parentFile.name)
+        for (base in Fixtures.otherBuilds()) {
+            hooks(base, base.parentFile.name)
+            hooksMerged(base, base.parentFile.name)
+        }
+    }
+
+    /**
+     * The newer header keeps its logo once, in its constructor, from the view its layout finder
+     * answered (the field's name and the finder differ between builds). The stand-in goes right
+     * after the store, on the stored register, and the rest of the constructor stays as it was.
+     */
+    private fun hooksMerged(bundle: File, label: String) {
+        val bar = FixtureDex.classes(bundle, setOf(MERGED_LOGO_BAR)).values.single()
+        val context = PatchContexts.of(listOf(bar))
+        val store = context.mergedLogoStores().singleOrNull()
+            ?: throw AssertionError("$label: expected the newer header to keep its logo once, found ${context.mergedLogoStores().size}")
+        val stock = bar.methods.single { it.key() == store.method.key() }
+        assertEquals("$label: kept in the constructor", "<init>", stock.name)
+        val kept = (stock.code()[store.index] as OneRegisterInstruction).registerA
+        val original = NeutralNativePath(stock)
+
+        assertTrue("$label: not hooked", context.hookMergedLogoLongPress())
+
+        val after = context.mutableClassDefBy(MERGED_LOGO_BAR).methods.single { it.key() == stock.key() }
+        val code = after.code()
+        val hook = store.index + 1
+        assertEquals("$label: the stand-in right after the store", MERGED_LOGO_STAND_IN, code[hook].referenceText())
+        assertEquals("$label: on the kept logo", listOf(kept), code[hook].arguments())
+        assertEquals("$label: one stand-in", 1, code.count { it.referenceText() == MERGED_LOGO_STAND_IN })
+        original.assertPreserved(label, after, added = setOf(hook))
     }
 
     private fun hooks(bundle: File, label: String) {
@@ -224,6 +315,26 @@ class LogoLongPressTest {
     private fun bar(vararg methods: Method): ClassDef = classDef(LOGO_BAR, methods.toList(), "Landroid/widget/FrameLayout;")
 
     private fun BytecodePatchContext.drawMethod(): MutableMethod = mutableClassDefBy(LOGO_BAR).methods.single { it.name == "draw" }
+
+    private val mergedLogo = "$MERGED_LOGO_BAR->logo:$MERGED_LOGO_VIEW"
+    private val mergedOther = "$MERGED_LOGO_BAR->tabs:Landroid/view/View;"
+
+    /** The newer header's constructor: finds the logo in its layout, keeps it, then keeps another view. */
+    private fun mergedInit(body: String = stockMergedInit): Method =
+        method(MERGED_LOGO_BAR, "<init>", listOf("Landroid/content/Context;"), "V", 2, body = body)
+
+    private val stockMergedInit get() = """
+        invoke-virtual { p0 }, $MERGED_LOGO_BAR->findLogo()Landroid/view/View;
+        move-result-object v1
+        check-cast v1, $MERGED_LOGO_VIEW
+        iput-object v1, p0, $mergedLogo
+        iput-object v1, p0, $mergedOther
+        return-void
+    """
+
+    private fun mergedBar(vararg methods: Method): ClassDef = classDef(MERGED_LOGO_BAR, methods.toList(), "Landroid/widget/LinearLayout;")
+
+    private fun BytecodePatchContext.mergedInitMethod(): MutableMethod = mutableClassDefBy(MERGED_LOGO_BAR).methods.single { it.name == "<init>" }
 
     private fun method(
         owner: String,

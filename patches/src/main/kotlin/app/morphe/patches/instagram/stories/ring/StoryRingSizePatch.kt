@@ -37,16 +37,17 @@ internal val ITEMS_A_SCREEN = 3.75.toRawBits()
 internal const val SETTLED_PER_METHOD = 3
 
 /**
- * Draws the rings in the stories row at the top of Home at a share of their size. Included in the
- * default selection. Its switch starts on and the size starts as Instagram's own, so
- * nothing changes until a size is chosen.
+ * Draws the rings in the stories row at the top of Home at a share of their size, and the ring of
+ * a story that hasn't been watched in a chosen color. Included in the default selection. Its
+ * switch starts on and the size and the color start as Instagram's own, so nothing changes until
+ * one is chosen.
  */
 @Suppress("unused")
 val storyRingSizePatch = bytecodePatch(
     name = "Story ring size",
     description = "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or " +
-        "larger. Nothing changes until you pick a size. On by default. Turn it off in HushGram settings > " +
-        "Stories.",
+        "larger, and the ring of a story you haven't watched in a color you pick. Nothing changes until you " +
+        "pick a size or a color. On by default. Turn it off in HushGram settings > Stories.",
     default = true,
 ) {
     category("Stories")
@@ -55,7 +56,11 @@ val storyRingSizePatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storyRingSize")
-        scaleRingSizes(findRingSizes())
+        // Both are found before either is changed, so a build missing one is left as it was.
+        val sizings = findRingSizes()
+        val gradient = findRingGradient()
+        scaleRingSizes(sizings)
+        colorRingGradient(gradient)
         enableStatus("storyRingSize")
     }
 }

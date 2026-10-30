@@ -12,7 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -58,16 +58,16 @@ class SummaryCardHookTest {
     }
 
     @Test
-    fun noRowMakerFailsThePatch() = refused("0 search results row makers inflate layout 0x7f0e100e", classes(plugin = null))
+    fun noRowMakerFailsThePatch() = refused("0 search results row makers inflate layout $PLUGIN_LAYOUT", classes(plugin = null))
 
     @Test
-    fun twoRowMakersFailThePatch() = refused("2 search results row makers inflate layout 0x7f0e0b28", classes(second = true))
+    fun twoRowMakersFailThePatch() = refused("2 search results row makers inflate layout $CARD_LAYOUT", classes(second = true))
 
     @Test
-    fun aMakerLoadingItsLayoutTwiceFailsThePatch() = refused("loads layout 0x7f0e0b28 2 times", classes(card = "twice"))
+    fun aMakerLoadingItsLayoutTwiceFailsThePatch() = refused("loads layout $CARD_LAYOUT 2 times", classes(card = "twice"))
 
     @Test
-    fun aMakerThatInflatesSomethingElseFailsThePatch() = refused("doesn't inflate layout 0x7f0e0b28", classes(card = "notaview"))
+    fun aMakerThatInflatesSomethingElseFailsThePatch() = refused("doesn't inflate layout $CARD_LAYOUT", classes(card = "notaview"))
 
     @Test
     fun aMakerThatDropsItsRowFailsThePatch() = refused("drops the row it inflates", classes(card = "dropped"))
@@ -95,12 +95,12 @@ class SummaryCardHookTest {
         assertEquals("a declared build has no fixture", versions, checked)
     }
 
-    /** The same in the six other arm64 builds of 450, which Redex names differently. */
+    /** The same in the two other builds of 452, which Redex names differently. */
     @Test
     fun eachOtherBuildFoldsTheSummaryRows() {
         val builds = Fixtures.otherBuilds()
         for (base in builds) foldsTheSummaryRowsIn(base, base.parentFile.name)
-        assertEquals("the declared build and these six make the seven 450 builds", 6, builds.size)
+        assertEquals("the builds besides the declared one", Fixtures.OTHER_BUILDS, builds.size)
     }
 
     /**
@@ -155,6 +155,10 @@ class SummaryCardHookTest {
     private companion object {
         const val CARD = "Lfixture/CardDefinition;"
         const val PLUGIN = "Lfixture/PluginDefinition;"
+
+        /** How the refusals name the two layouts, which Instagram renumbers each version. */
+        val CARD_LAYOUT = "0x${SUMMARY_LAYOUTS[0].toString(16)}"
+        val PLUGIN_LAYOUT = "0x${SUMMARY_LAYOUTS[1].toString(16)}"
         const val HOLDER = "Lfixture/Holder;"
         const val INFLATE = "Lfixture/Inflate;->A06(Landroid/view/LayoutInflater;Landroid/view/ViewGroup;IZ)Landroid/view/View;"
 

@@ -129,13 +129,22 @@ final class RenditionPicker {
 
         // Facebook asks for a thumbnail by putting the size into the address. A saved thumbnail
         // looks like a success and is worthless, so these lose outright rather than rank low.
-        if (lower.contains("stp=dst-jpg_s") || lower.matches(".*[/_]([sp])\\d{2,3}x\\d{2,3}.*")) {
-            return TIER_NONE;
-        }
+        if (namesASize(lower)) return TIER_NONE;
 
         if (hasImageSuffix(pathOf(lower))) return TIER_PROGRESSIVE;
 
         return isMetaHost(lower) ? TIER_PLAUSIBLE : TIER_NONE;
+    }
+
+    /**
+     * Whether this picture's address asks for a size of its own, as a thumbnail's does. On a phone
+     * whose screen is 720 pixels wide every size Instagram sends of a photo asks for one (#261),
+     * so {@link MediaSave#pictureOf} takes the largest of these when nothing else is there.
+     */
+    static boolean namesASize(String url) {
+        if (!isHttpUrl(url) || isManifest(url)) return false;
+        String lower = url.toLowerCase(Locale.US);
+        return lower.contains("stp=dst-jpg_s") || lower.matches(".*[/_]([sp])\\d{2,3}x\\d{2,3}.*");
     }
 
     /**

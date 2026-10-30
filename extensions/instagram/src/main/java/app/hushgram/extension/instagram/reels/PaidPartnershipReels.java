@@ -83,6 +83,7 @@ public final class PaidPartnershipReels {
         "clips_viewer_clips_voice_translation_dogfooding",
         "clips_viewer_clips_translated_stickers_dogfooding",
         "clips_viewer_clips_translated_closed_captions_dogfooding",
+        "clips_viewer_clips_blend",
     };
 
     /** Reads what decides an item; the patch-filled stubs below outside tests. */

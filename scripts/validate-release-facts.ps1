@@ -158,6 +158,43 @@ function Get-DescriptionFacts {
     }
 }
 
+function Get-TaggedCatalogFacts {
+    <#
+    .SYNOPSIS
+        The patch count and the Instagram build of the catalog committed at tag v<Version>, or $null
+        when this checkout has no such tag or the file there can't be read.
+    .DESCRIPTION
+        The index description has named neither since 0.0.9, so while it lags the source this is
+        where the published release's facts come from. Answers @{ PatchCount; TargetVersion }, read
+        the way the source's own are. Continue for the call alone: git writes "unknown revision" on
+        stderr, which Windows PowerShell 5.1 turns into a terminating error under Stop, and the exit
+        code decides.
+    #>
+    param([string]$Root, [string]$Version)
+
+    $preference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'Continue'
+        $global:LASTEXITCODE = -1
+        $text = @(& git -C $Root show "refs/tags/v$($Version):patches-list.json" 2>$null)
+        $status = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $preference
+    }
+    if ($status -ne 0 -or $text.Count -eq 0) { return $null }
+    try {
+        $tagged = ($text -join "`n") | ConvertFrom-Json
+    } catch {
+        return $null
+    }
+    $count = @($tagged.patches).Count
+    if ($count -eq 0) { return $null }
+    return [pscustomobject]@{
+        PatchCount    = $count
+        TargetVersion = [string](Get-PatchTarget -PatchList $tagged).PackageVersion
+    }
+}
+
 $rootPath = (Resolve-Path -LiteralPath $Root).Path
 # The ZipFile reads below would take a relative -ArtifactPath from the process directory, which
 # Set-Location doesn't move, after Test-Path had found it in PowerShell's location.
@@ -273,14 +310,17 @@ $indexLagsSource = $false
 $publishedVersion = $releaseVersion
 $descriptionVersion = $sourceVersion
 $descriptionPatchCount = $patchCount
+$heldPatchCount = $null
 $descriptionTargetVersion = $targetVersion
 if ($hasIndex) {
 $bundleVersion = [string]$bundle.version
 $publishedFacts = Get-DescriptionFacts -Text ([string]$bundle.description) -Source 'The patches-bundle.json description'
+# Either fact the description names is enough. It has named no count since 0.0.9, so a retarget
+# held at the published version read as this release's own index and was refused.
 $publishedFactsDifferAtSameVersion = $AllowPublishedIndexLag -and
     $bundleVersion -eq $releaseVersion -and
-    $null -ne $publishedFacts.PatchCount -and $null -ne $publishedFacts.TargetVersion -and
-    ($publishedFacts.PatchCount -ne $patchCount -or $publishedFacts.TargetVersion -ne $targetVersion)
+    (($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) -or
+        ($null -ne $publishedFacts.TargetVersion -and $publishedFacts.TargetVersion -ne $targetVersion))
 $indexLagsSource = $bundleVersion -ne $releaseVersion -or $publishedFactsDifferAtSameVersion
 if ($indexLagsSource) {
     if (-not $AllowPublishedIndexLag) {
@@ -342,20 +382,39 @@ Require-Match -Text $readme -Pattern "\b$patchCount patches\b" -Description 'REA
 # release_notes.py writes: "## [X.Y.Z](compare link) (date)", or "## X.Y.Z (date)" for a first release.
 # The patch count and the Instagram build live in the GitHub description and the README, and a
 # description that names them anyway has to name them right.
-if ($indexLagsSource) {
-    $descriptionVersion = "v$publishedVersion"
-    if ($null -ne $publishedFacts.PatchCount) { $descriptionPatchCount = $publishedFacts.PatchCount }
-    if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
-} else {
-    # Only an index this release wrote is held to the new layout. While it lags, the old
-    # description is history and stands as it is.
+# Only an index a release of this version wrote is held to the new layout, the published one at this
+# version included. An index left on an older version is history and stands as it is.
+if (-not $indexLagsSource -or $publishedFactsDifferAtSameVersion) {
     Require-Match -Text ([string]$bundle.description) -Pattern "\A\s*##\s+(?:\[$([regex]::Escape($publishedVersion))\]\(|$([regex]::Escape($publishedVersion))\s+\()" `
             -Description 'published bundle description version heading'
+}
+if ($indexLagsSource) {
+    $descriptionVersion = "v$publishedVersion"
+    $taggedFacts = if ($null -eq $publishedFacts.PatchCount -or $null -eq $publishedFacts.TargetVersion) {
+        Get-TaggedCatalogFacts -Root $rootPath -Version $publishedVersion
+    }
+    if ($taggedFacts) {
+        Write-Host ("[release] v$publishedVersion's catalog at its tag lists $($taggedFacts.PatchCount) patches " +
+            "for Instagram $($taggedFacts.TargetVersion)")
+    }
+    if ($null -ne $publishedFacts.PatchCount) { $descriptionPatchCount = $publishedFacts.PatchCount }
+    elseif ($taggedFacts) { $descriptionPatchCount = $taggedFacts.PatchCount }
+    if ($null -ne $publishedFacts.TargetVersion) { $descriptionTargetVersion = $publishedFacts.TargetVersion }
+    elseif ($taggedFacts) { $descriptionTargetVersion = $taggedFacts.TargetVersion }
+} else {
     if ($null -ne $publishedFacts.PatchCount -and $publishedFacts.PatchCount -ne $patchCount) {
         throw 'bundle description patch count does not match the generated release facts.'
     }
     if ($null -ne $publishedFacts.TargetVersion -and $publishedFacts.TargetVersion -ne $targetVersion) {
         throw 'bundle description target version does not match the generated release facts.'
+    }
+    # Patches added on main while the version waits at the published one: the README's sentence
+    # still counts the release's own, read from its tag. No tag, or a tag that agrees, adds nothing.
+    $heldFacts = Get-TaggedCatalogFacts -Root $rootPath -Version $publishedVersion
+    if ($heldFacts -and $null -ne $heldFacts.PatchCount -and $heldFacts.PatchCount -ne $patchCount) {
+        Write-Host ("[release] v$publishedVersion's catalog at its tag lists $($heldFacts.PatchCount) patches; " +
+            "the source held at that version lists $patchCount")
+        $heldPatchCount = $heldFacts.PatchCount
     }
 }
 # Once a release is out, the README's line saying there isn't one is wrong.
@@ -373,7 +432,7 @@ Require-Match -Text $readme -Pattern "Instagram\s+$([regex]::Escape($targetVersi
 # version, they may name the source's version and count or the published ones (the badge moves with
 # the source, the sentence with the release), and nothing else.
 $readmeVersions = @(@($releaseVersion, $publishedVersion) | Select-Object -Unique)
-$readmeCounts = @(@($patchCount, $descriptionPatchCount) | Select-Object -Unique)
+$readmeCounts = @(@($patchCount, $descriptionPatchCount, $heldPatchCount) | Where-Object { $null -ne $_ } | Select-Object -Unique)
 $readmeExpected = if ($readmeVersions.Count -eq 1) { "this release is $releaseVersion" } else {
     "the source is $releaseVersion and the published release $publishedVersion"
 }
@@ -450,7 +509,9 @@ if (-not $hasIndex) {
     $githubFacts = Get-DescriptionFacts -Text $description -Source "The GitHub description of $slug"
     $missing = @()
     if ($description -notmatch "\b$([regex]::Escape($descriptionVersion))\b") { $missing += $descriptionVersion }
-    if ($githubFacts.PatchCount -ne $descriptionPatchCount) { $missing += "$descriptionPatchCount patches" }
+    # Held at the published version, it may still count that release's patches, as the README may.
+    $describedCounts = @(@($descriptionPatchCount, $heldPatchCount) | Where-Object { $null -ne $_ })
+    if ($describedCounts -notcontains $githubFacts.PatchCount) { $missing += "$descriptionPatchCount patches" }
     if ($githubFacts.TargetVersion -ne $descriptionTargetVersion) { $missing += "Instagram $descriptionTargetVersion" }
     if ($missing.Count -gt 0) {
         throw ("The GitHub description of $slug does not say " + ($missing -join ', ') + '. It reads: ' +
@@ -459,7 +520,7 @@ if (-not $hasIndex) {
             ': ... ' + $descriptionPatchCount + ' patches for Instagram ' + $descriptionTargetVersion + '."')
     }
     Write-Host ("[release] the GitHub description of " + $slug + " names " + $descriptionVersion +
-        ", " + $descriptionPatchCount + " patches and Instagram " + $descriptionTargetVersion)
+        ", " + $githubFacts.PatchCount + " patches and Instagram " + $descriptionTargetVersion)
 }
 
 $testRoot = if ($gateRun) { Join-Path $gateRun.Directory 'test-results/testDebugUnitTest' } else {
@@ -607,9 +668,8 @@ if (-not $SkipDescriptionTestCount) {
     $patchTestSourceRoot = Join-Path $rootPath 'patches/src/test'
     if (Test-Path -LiteralPath $patchTestSourceRoot) {
         # Gradle writes one result per test class, and a Kotlin file can declare more than one:
-        # AlternateSetupScreensTest.kt carries AlternateSetupScreensRefusalTest, whose result read
-        # as left over from a deleted class. Top-level declarations only, since a nested class is
-        # part of the class around it.
+        # a second class in FooTest.kt once read as left over from a deleted class. Top-level
+        # declarations only, since a nested class is part of the class around it.
         $patchClasses = @(Get-ChildItem -LiteralPath $patchTestSourceRoot -Recurse -File -Filter '*Test.kt' |
             ForEach-Object {
                 $_.BaseName
@@ -968,9 +1028,10 @@ Require-Match -Text $bugForm -Pattern "(?m)^\s*placeholder:\s*$([regex]::Escape(
 Require-Match -Text $bugForm -Pattern "(?m)^\s*placeholder:\s*Morphe Manager $([regex]::Escape($managerFloor))\s*$" `
     -Description 'bug report form Manager placeholder'
 # The file line: which APKMirror file the patches were checked on. Only when the catalog pins the
-# newest declared build to one version code, which is the one a reporter can compare with theirs.
+# newest declared build to a version code: the arm64 one, first in the list, which is the file a
+# reporter is most likely to compare with theirs. The other ABIs' builds are declared beside it (#346).
 $pinnedCodes = @($target.PackageVersionCodes[$targetVersion] | Where-Object { $_ })
-if ($pinnedCodes.Count -eq 1) {
+if ($pinnedCodes.Count -ge 1) {
     Require-Match -Text $bugForm -Pattern "(?m)^\s*placeholder:.*\bbuild $([regex]::Escape([string]$pinnedCodes[0]))\s*$" `
         -Description 'bug report form build placeholder'
 }
@@ -1146,6 +1207,9 @@ function Test-ReleaseReceiptHere {
         -WorkingPath (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt')
     if ($resolvedAllowlist.Note) { Write-Host "[release] $($resolvedAllowlist.Note)" }
     $approvedDelta = @($resolvedAllowlist.Entries)
+    # And the coverage census it reviewed: a retarget replaces the old build's entry.
+    $resolvedCoverage = Resolve-ReceiptCoveragePolicy -Root $rootPath -Commit $receiptCommit
+    if ($resolvedCoverage.Note) { Write-Host "[release] $($resolvedCoverage.Note)" }
     $receiptTarget = Get-PatchTarget -PatchList $resolvedList.PatchList
     # From schema 2 a receipt names the release SBOM, and which schema is read at the receipt's own
     # commit, so a release cut before there was an SBOM is read as it was written.
@@ -1189,7 +1253,7 @@ function Test-ReleaseReceiptHere {
         -ExpectedManagerFloor $expectedToolchain.ManagerFloor `
         -ExpectedPackageName $receiptTarget.PackageName -ExpectedPackageVersions $receiptTarget.PackageVersions `
         -ExpectedPackageVersionCodes $receiptTarget.PackageVersionCodes `
-        -BundlePath $BundleForComparison -ApprovedManifestDelta $approvedDelta `
+        -BundlePath $BundleForComparison -ApprovedManifestDelta $approvedDelta -CoveragePolicy $resolvedCoverage.Policy `
         -ActualCommitTimestamp $actualEpoch -ExpectedCommit $expectedCommit `
         -ExpectedSchemaVersion $schema.Version -SbomPath $sbomForComparison
     if (-not $receiptCheck.Valid) {

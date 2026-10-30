@@ -50,7 +50,10 @@ class CleanUpReelsHookTest {
     /** The hooks the patch writes are in the ReelDeclutter the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR, HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT)) {
+        for (hook in listOf(
+            HIDE_FOLLOW_BUTTON, HIDE_CHIPS, HIDE_SOCIAL_FOOTER, HIDE_SOCIAL_CONTEXT, HIDE_COMMENT_BAR, HIDE_EVERY_COMMENT_BAR,
+            HIDE_SAVE_BUTTON, HIDE_SAVE_COUNT, HIDE_DIRECT_REPLY_BAR,
+        )) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -81,6 +84,52 @@ class CleanUpReelsHookTest {
             "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", "$BAR->bar:$VIEW", 0)
         val back = context.mutableClassDefBy(UNVANISH).methods.single()
         assertUnVanishGuarded("stand-in", back, 5, 2, "$BAR->source:$CLIPS_VIEWER_SOURCE", "$BAR->A0r()V", 0)
+        val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
+        val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
+        val before = classes().flatMap { it.methods }
+        assertEquals("the show grows by the guard", before.single { DIRECT_REPLY_BAR_SHOW in it.markers() }.instructions().size + 4,
+            show.instructions().size)
+        assertEquals("onViewCreated grows by the guard", before.single { DIRECT_REPLY_BAR_CREATED in it.markers() }.instructions().size + 4,
+            created.instructions().size)
+        assertReplyBarGuarded("stand-in", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+        // The flag's registers, as the stand-in wrote them: v0 off the controller in v1, and v0 off v4.
+        val shown = show.instructions().first { it.opcode == Opcode.IGET_BOOLEAN } as TwoRegisterInstruction
+        assertEquals(0 to 1, shown.registerA to shown.registerB)
+        val made = created.instructions().last { it.opcode == Opcode.IGET_BOOLEAN } as TwoRegisterInstruction
+        assertEquals(0 to 4, made.registerA to made.registerB)
+        // Instagram's hide and the Spotlight reply bar's branch of the merged show are as they were.
+        assertEquals(2, context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0t" }.instructions().size)
+    }
+
+    /**
+     * On 451's 385713073 the controller declares the hide itself, over an abstract one of the class it
+     * extends, and onViewCreated calls it through that class. The call still runs the hide.
+     */
+    @Test
+    fun aHideTheControllerDeclaresIsCalledThroughTheClassItExtends() {
+        val context = PatchContexts.of(classes(replyBar = "hide in the controller"))
+
+        context.hideReelParts()
+
+        val show = context.mutableClassDefBy(REPLY_BASE).methods.single { it.name == "A0u" }
+        val created = context.mutableClassDefBy(REPLY).methods.single { it.name == "onViewCreated" }
+        assertReplyBarGuarded("hide in the controller", show, created, "$REPLY->hidden:Z", "$REPLY->source:$CLIPS_VIEWER_SOURCE", "A0t")
+    }
+
+    /**
+     * A reply bar controller without the viewer's source, or whose hidden flag can't be told, or
+     * read where a hook right after it would be skipped or lose the controller, fails the patch,
+     * and so does a viewer's source that doesn't name a chat.
+     */
+    @Test
+    fun aReplyBarControllerItCantReadFailsThePatch() {
+        for (case in listOf(
+            "no source", "two flags", "over the controller", "jumped", "read twice", "no hide", "hide on another register",
+            "show elsewhere", "no chat source", "hide overridden",
+        )) {
+            val failure = assertThrows(case, PatchException::class.java) { PatchContexts.of(classes(replyBar = case)).hideReelParts() }
+            assertTrue("$case: ${failure.message}", failure.message!!.contains("direct reply bar"))
+        }
     }
 
     /** A controller that doesn't keep where its viewer was opened from, or keeps its bar twice, fails the patch. */
@@ -236,7 +285,7 @@ class CleanUpReelsHookTest {
                 ((asked as? ReferenceInstruction)?.reference as? MethodReference)?.name == "ordinal"
         }.first
         val typeField = (typeRead as ReferenceInstruction).reference as FieldReference
-        classes += FixtureDex.classes(bundle, setOf(typeField.type)).values.map { ImmutableClassDef.of(it) }
+        classes += FixtureDex.classes(bundle, setOf(typeField.type, CLIPS_VIEWER_SOURCE)).values.map { ImmutableClassDef.of(it) }
         val context = PatchContexts.of(classes.distinctBy { it.type })
 
         context.hideReelParts()
@@ -302,6 +351,92 @@ class CleanUpReelsHookTest {
         assertEquals("$label: unVanish size", unVanishCode.size + 4, after(unVanish).instructions().size)
         assertUnVanishGuarded("$label: unVanish", after(unVanish), traced, hideCall.registerC,
             "${source.definingClass}->${source.name}:${source.type}", "${hide.definingClass}->${hide.name}()V", null)
+        // The reply bar of a reel from a chat (#177): the controller its onViewCreated names keeps the
+        // viewer's source in one field, its show reads one flag of it, and that flag gets the hook's
+        // answer where the show and onViewCreated read it. Nothing else in the build asks the hook.
+        val replyShow = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_SHOW in it.markers() }
+        val replyHide = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_HIDE in it.markers() }
+        val replyCreated = classes.flatMap { it.methods }.single { DIRECT_REPLY_BAR_CREATED in it.markers() }
+        val controller = classes.single { it.type == replyCreated.definingClass }
+        val replySource = controller.fields.single { it.type == CLIPS_VIEWER_SOURCE }
+        val hidden = replyShow.instructions().filter { it.opcode == Opcode.IGET_BOOLEAN }
+            .map { (it as ReferenceInstruction).reference as FieldReference }.single { it.definingClass == controller.type }
+        assertEquals("$label: the reply bar's show size", replyShow.instructions().size + 4, after(replyShow).instructions().size)
+        assertEquals("$label: the reply bar's onViewCreated size", replyCreated.instructions().size + 4, after(replyCreated).instructions().size)
+        assertReplyBarGuarded("$label: reply bar", after(replyShow), after(replyCreated), hidden.toString(),
+            "${replySource.definingClass}->${replySource.name}:${replySource.type}", replyHide.name)
+        val askers = classes.flatMap { classDef -> context.mutableClassDefBy(classDef.type).methods.map { classDef.type to it } }
+            .filter { (_, method) -> method.instructions().any { (it as? ReferenceInstruction)?.reference?.toString() == HIDE_DIRECT_REPLY_BAR } }
+        assertEquals("$label: who asks $HIDE_DIRECT_REPLY_BAR",
+            setOf("${replyShow.definingClass}->${replyShow.name}", "${replyCreated.definingClass}->${replyCreated.name}"),
+            askers.map { (type, method) -> "$type->${method.name}" }.toSet())
+        aChatHandsItsReelsTheDirectSource(bundle, label)
+    }
+
+    /**
+     * A reel opened from a chat is told by its source: the viewer's source enum names DIRECT in the
+     * build, and a method of the build makes the reply bar's data with that constant.
+     */
+    private fun aChatHandsItsReelsTheDirectSource(bundle: File, label: String) {
+        val source = FixtureDex.classes(bundle, setOf(CLIPS_VIEWER_SOURCE)).getValue(CLIPS_VIEWER_SOURCE)
+        val initializer = source.methods.single { it.name == "<clinit>" }.instructions()
+        val named = initializer.indexOfFirst { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == CHAT_SOURCE }
+        assertTrue("$label: the viewer's source names $CHAT_SOURCE", named >= 0)
+        val constant = initializer.drop(named).first {
+            it.opcode == Opcode.SPUT_OBJECT && ((it as ReferenceInstruction).reference as FieldReference).type == CLIPS_VIEWER_SOURCE
+        }.let { (it as ReferenceInstruction).reference.toString() }
+        val builders = FixtureDex.methodsWhere(bundle, { dex -> dex.stringSection.any { it == REPLY_BAR_DATA } }) { method ->
+            val code = method.implementation?.instructions
+            code != null &&
+                code.any { it.opcode == Opcode.NEW_INSTANCE && (it as ReferenceInstruction).reference.toString() == REPLY_BAR_DATA } &&
+                code.any { it.opcode == Opcode.SGET_OBJECT && (it as ReferenceInstruction).reference.toString() == constant }
+        }
+        assertTrue("$label: nothing makes the reply bar's data with $constant", builders.isNotEmpty())
+    }
+
+    /**
+     * Right after each read of the hidden flag, a flag that's clear becomes the hook's answer for
+     * the source read off the same controller, and a flag that's set skips the hook. The show goes
+     * on to its own next instruction, and onViewCreated to its own check and Instagram's [hide].
+     */
+    private fun assertReplyBarGuarded(what: String, show: Method, created: Method, flag: String, source: String, hide: String) {
+        fun Method.flagRead() = instructions().indexOfFirst {
+            it.opcode == Opcode.IGET_BOOLEAN && (it as ReferenceInstruction).reference.toString() == flag
+        }
+        for ((where, method) in listOf("show" to show, "onViewCreated" to created)) {
+            val code = method.instructions()
+            val read = method.flagRead()
+            assertTrue("$what: the $where reads the flag", read >= 0)
+            val registers = code[read] as TwoRegisterInstruction
+            val guard = code.subList(read + 1, read + 5)
+            assertEquals(
+                "$what: the $where's guard",
+                listOf(Opcode.IF_NEZ, Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT),
+                guard.map { it.opcode },
+            )
+            assertEquals("$what: the $where checks the flag", registers.registerA, (guard[0] as OneRegisterInstruction).registerA)
+            assertEquals("$what: the $where reads the source off the controller", registers.registerB, (guard[1] as TwoRegisterInstruction).registerB)
+            assertEquals("$what: the $where reads the source over the flag", registers.registerA, (guard[1] as TwoRegisterInstruction).registerA)
+            assertEquals("$what: the $where's source", source, (guard[1] as ReferenceInstruction).reference.toString())
+            assertEquals("$what: the $where's hook", HIDE_DIRECT_REPLY_BAR, (guard[2] as ReferenceInstruction).reference.toString())
+            assertEquals("$what: the $where hands the source over", registers.registerA, (guard[2] as FiveRegisterInstruction).registerC)
+            assertEquals("$what: the $where's answer is the flag", registers.registerA, (guard[3] as OneRegisterInstruction).registerA)
+            assertEquals("$what: a set flag skips the hook in the $where", guard.sumOf { it.codeUnits }, (guard[0] as OffsetInstruction).codeOffset)
+            assertEquals("$what: the $where asks once", 1, code.count { (it as? ReferenceInstruction)?.reference?.toString() == HIDE_DIRECT_REPLY_BAR })
+            assertEquals("$what: the $where reads the flag once", 1, code.count {
+                it.opcode == Opcode.IGET_BOOLEAN && (it as ReferenceInstruction).reference.toString() == flag
+            })
+        }
+        val made = created.instructions()
+        val read = created.flagRead()
+        val registers = made[read] as TwoRegisterInstruction
+        val check = made[read + 5]
+        assertEquals("$what: onViewCreated's own check follows the guard", Opcode.IF_EQZ, check.opcode)
+        assertEquals("$what: the check reads the answer", registers.registerA, (check as OneRegisterInstruction).registerA)
+        val call = made[read + 6]
+        assertEquals("$what: Instagram's hide follows the check", Opcode.INVOKE_VIRTUAL, call.opcode)
+        assertEquals("$what: Instagram's hide", hide, ((call as ReferenceInstruction).reference as MethodReference).name)
+        assertEquals("$what: the hide on the controller", registers.registerB, (call as FiveRegisterInstruction).registerC)
     }
 
     /** The no-bubbles state answered first, when the hook says to hide, before the use case's own code. */
@@ -438,6 +573,7 @@ class CleanUpReelsHookTest {
         barStores: Int = 1,
         barThisReused: Boolean = false,
         unVanish: String = "ok",
+        replyBar: String = "ok",
     ): List<ClassDef> {
         val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render")
             .filter { it != leaveOut }
@@ -495,7 +631,96 @@ class CleanUpReelsHookTest {
             null,
         )
         return renders + saves + checks + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
-            unVanish(unVanish)
+            unVanish(unVanish) + replyBar(replyBar)
+    }
+
+    /**
+     * A direct reply bar controller shaped like Instagram 450's: its show and hide merged into its
+     * superclass, the show reaching its code through an instance check and turning the controller's
+     * hidden flag into the bar's visibility, and its onViewCreated calling the hide when the flag is
+     * already set, with the viewer's source in a field of its own, an enum naming DIRECT. [shape]
+     * breaks one part of that.
+     */
+    private fun replyBar(shape: String): List<ClassDef> {
+        val fields = listOfNotNull(
+            ImmutableField(REPLY, "bar", VIEW, AccessFlags.PUBLIC.value, null, null, null),
+            ImmutableField(REPLY, "hidden", "Z", AccessFlags.PUBLIC.value, null, null, null),
+            ImmutableField(REPLY, "typing", "Z", AccessFlags.PUBLIC.value, null, null, null),
+            if (shape == "no source") null else ImmutableField(REPLY, "source", CLIPS_VIEWER_SOURCE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null),
+        )
+        val jump = if (shape == "jumped") "if-eqz v0, :visibility" else ""
+        val landing = if (shape == "jumped") ":visibility" else ""
+        val read = if (shape == "over the controller") "iget-boolean v1, v1, $REPLY->hidden:Z" else "iget-boolean v0, v1, $REPLY->hidden:Z"
+        val other = if (shape == "two flags") "iget-boolean v2, v1, $REPLY->typing:Z" else ""
+        val show = method(REPLY_BASE, "A0u", emptyList(), "V", 4, """
+            instance-of v0, p0, $REPLY
+            if-eqz v0, :spotlight
+            move-object v1, p0
+            check-cast v1, $REPLY
+            const-string v0, "android_purge_26_q3_$DIRECT_REPLY_BAR_SHOW"
+            invoke-static { v0 }, Lfixture/Trace;->A00(Ljava/lang/String;)V
+            iget-object v2, v1, $REPLY->bar:$VIEW
+            if-eqz v2, :done
+            $jump
+            $read
+            $landing
+            $other
+            invoke-static { v0 }, Lfixture/Visibility;->A00(I)I
+            move-result v1
+            invoke-virtual { v2, v1 }, Landroid/view/View;->setVisibility(I)V
+            :done
+            return-void
+            :spotlight
+            const-string v0, "android_purge_26_q3_ClipsViewerSpotlightReplyBarController_showReplyBar"
+            return-void
+        """, static = false)
+        val marked = """
+            const-string v0, "android_purge_26_q3_$DIRECT_REPLY_BAR_HIDE"
+            return-void
+        """
+        // On 451 the controller declares the hide itself, over an abstract one of the class it extends.
+        val hide = if (shape == "hide in the controller") {
+            ImmutableMethod(REPLY_BASE, "A0t", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.ABSTRACT.value, null, null, null)
+        } else {
+            method(REPLY_BASE, "A0t", emptyList(), "V", 2, marked, static = false)
+        }
+        val own = when (shape) {
+            "hide in the controller" -> method(REPLY, "A0t", emptyList(), "V", 2, marked, static = false)
+            "hide overridden" -> method(REPLY, "A0t", emptyList(), "V", 1, "return-void", static = false)
+            else -> null
+        }
+        val again = if (shape == "read twice") "iget-boolean v0, v4, $REPLY->hidden:Z" else ""
+        val hidden = when (shape) {
+            "no hide" -> "const/4 v1, 0x0"
+            "hide on another register" -> "invoke-virtual { p0 }, $REPLY_BASE->A0t()V"
+            else -> "invoke-virtual { v4 }, $REPLY_BASE->A0t()V"
+        }
+        // Like 450's, it copies the controller out of p0 first, and something jumps to the flag's read.
+        val created = method(REPLY, "onViewCreated", listOf(VIEW, "Landroid/os/Bundle;"), "V", 8, """
+            const-string v0, "android_purge_26_q3_$DIRECT_REPLY_BAR_CREATED"
+            move-object v4, p0
+            iput-object p1, v4, $REPLY->bar:$VIEW
+            iget-boolean v0, v4, $REPLY->typing:Z
+            if-eqz v0, :flag
+            const/4 v1, 0x0
+            :flag
+            iget-boolean v0, v4, $REPLY->hidden:Z
+            $again
+            if-eqz v0, :done
+            $hidden
+            :done
+            return-void
+        """, static = false)
+        val controller = ImmutableClassDef(
+            REPLY, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, if (shape == "show elsewhere") "Ljava/lang/Object;" else REPLY_BASE,
+            null, null, null, fields, listOfNotNull(created, own),
+        )
+        val name = if (shape == "no chat source") "DIRECT_SEARCH" else CHAT_SOURCE
+        val source = classOf(
+            CLIPS_VIEWER_SOURCE, "Ljava/lang/Enum;",
+            method(CLIPS_VIEWER_SOURCE, "<clinit>", emptyList(), "V", 1, "const-string v0, \"direct\"\nconst-string v0, \"$name\"\nreturn-void", constructor = true),
+        )
+        return listOf(classOf(REPLY_BASE, "Ljava/lang/Object;", show, hide), controller, source)
     }
 
     /**
@@ -663,6 +888,9 @@ class CleanUpReelsHookTest {
         const val LINE_TYPE = "Lfixture/SocialContextType;"
         const val BAR = "Lfixture/ClipsViewerCommentBarController;"
         const val UNVANISH = "Lfixture/CommentBarLambda;"
+        const val REPLY_BASE = "Lfixture/ClipsViewerReplyBarController;"
+        const val REPLY = "Lfixture/ClipsViewerDirectReplyBarController;"
+        const val REPLY_BAR_DATA = "Lcom/instagram/clips/model/ClipsReplyBarData;"
         const val VIEW = "Landroid/view/View;"
     }
 }

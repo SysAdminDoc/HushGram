@@ -37,14 +37,12 @@ import app.hushgram.extension.shared.Utils;
 @SuppressWarnings("deprecation")
 public class DocumentRequestIdentityTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
-    private static final String[] PICKERS = {"hushgram_export_configuration", "hushgram_import_configuration",
-            "hushgram_export_overrides", "hushgram_validate_overrides", "hushgram_import_overrides"};
+    private static final String[] PICKERS = {"hushgram_export_configuration", "hushgram_import_configuration"};
     private static final Uri OLD = Uri.parse("content://documents/earlier.json");
     private static final Uri CURRENT = Uri.parse("content://documents/current.json");
 
     @Before public void setup() {
         PatchFamily.inBuildForTests = EnumSet.allOf(PatchFamily.class);
-        Settings.ALLOW_OVERRIDE_IMPORT.save(true);
     }
 
     @After public void restore() throws Exception {

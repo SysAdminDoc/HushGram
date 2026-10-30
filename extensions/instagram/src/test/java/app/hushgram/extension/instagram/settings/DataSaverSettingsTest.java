@@ -37,7 +37,7 @@ public class DataSaverSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.DATA_SAVER.resetToDefault();
         Settings.DATA_SAVER_MOBILE_DATA_ONLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -103,7 +103,7 @@ public class DataSaverSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.DATA_SAVER.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

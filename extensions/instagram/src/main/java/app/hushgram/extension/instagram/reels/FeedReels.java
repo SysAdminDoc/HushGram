@@ -37,7 +37,20 @@ public final class FeedReels {
     /** The diagnostic counter route: every feed item parsed, and the reels units taken out. */
     static final String ROUTE = "Feed reels";
 
+    /** Set once {@link #filter} has taken a reels unit out of Home in this run. Tests clear it. */
+    public static volatile boolean tookOut;
+
     private FeedReels() {
+    }
+
+    /** Whether Hide Reels in the feed is on and [kind] is one of the units it takes out. */
+    public static boolean hides(String kind) {
+        try {
+            return kind != null && REEL_UNITS.contains(kind) && Utils.settingsReady() && Settings.HIDE_FEED_REELS.get();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_REELS, "reels unit check", failure);
+            return false;
+        }
     }
 
     /**
@@ -54,6 +67,7 @@ public final class FeedReels {
             FeedFilterCounters.sawKind(ROUTE, kind);
             if (!Utils.settingsReady() || !Settings.HIDE_FEED_REELS.get()) return item;
             FeedFilterCounters.removed(ROUTE, 1, kind);
+            tookOut = true;
             Logger.printDebug(() -> "Feed reels: took out a " + kind + " unit");
             return null;
         } catch (Throwable failure) {

@@ -10,6 +10,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -46,7 +47,7 @@ internal const val LIST_ADD_AT = "Ljava/util/List;->add(ILjava/lang/Object;)V"
 internal object RegisterRecentSearchFingerprint : Fingerprint(
     returnType = "V",
     parameters = listOf(USER_SESSION, "Ljava/lang/String;", "Ljava/lang/String;", "I"),
-    strings = listOf(REGISTER_RECENT),
+    filters = listOf(string(REGISTER_RECENT)),
 )
 
 @Suppress("unused")

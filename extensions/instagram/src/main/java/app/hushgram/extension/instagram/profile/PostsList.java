@@ -17,7 +17,9 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
+import app.hushgram.extension.instagram.reels.ReelOrigin;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -87,6 +89,11 @@ public final class PostsList {
     }
 
     static void resumed(Object tab, BooleanSupplier on) {
+        resumed(tab, on, ReelOrigin::searchesPosts);
+    }
+
+    /** [photoSearch] answers whether Find the reel you came from is about to look for a photo in the tab. */
+    static void resumed(Object tab, BooleanSupplier on, Predicate<Object> photoSearch) {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_POSTS_LIST);
             if (tab == null || !on.getAsBoolean()) return;
@@ -102,14 +109,16 @@ public final class PostsList {
             if (page != null && page.getBoolean(OPENED_KEY)) return;
             bundle.putBoolean(OPENED_KEY, true);
             if (page != null) page.putBoolean(OPENED_KEY, true);
-            main().post(new Look(tab, bundle, page, SystemClock.uptimeMillis() + GIVE_UP_MS));
+            // The photo reel this profile was opened from is looked for in the grid, so it stays up (#225).
+            if (photoSearch.test(tab)) return;
+            main().post(new Look(tab, bundle, page, SystemClock.uptimeMillis() + GIVE_UP_MS, on));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_POSTS_LIST, RESUME, failure);
         }
     }
 
     /**
-     * Looks for the first post until it shows, the tab is left, or time runs out. Left first, it
+     * Looks for the first post until it shows, the choice turns off, the tab is left, or time runs out. Cancelled first, it
      * takes the marks back off the tab's and the page's arguments, so the page's posts tab looks
      * again the next time it's resumed.
      */
@@ -118,19 +127,21 @@ public final class PostsList {
         private final WeakReference<Bundle> tabMark;
         private final WeakReference<Bundle> pageMark;
         private final long until;
+        private final BooleanSupplier on;
         private final Rect area = new Rect();
 
-        Look(Object tab, Bundle tabArguments, Bundle pageArguments, long until) {
+        Look(Object tab, Bundle tabArguments, Bundle pageArguments, long until, BooleanSupplier on) {
             this.tab = new WeakReference<>(tab);
             this.tabMark = new WeakReference<>(tabArguments);
             this.pageMark = new WeakReference<>(pageArguments);
             this.until = until;
+            this.on = on;
         }
 
         @Override public void run() {
             try {
                 Object tab = this.tab.get();
-                if (tab == null) {
+                if (tab == null || !on.getAsBoolean()) {
                     left();
                     return;
                 }
@@ -163,7 +174,7 @@ public final class PostsList {
             }
         }
 
-        /** The tab went before its first post showed: nothing opened, and the marks come off. */
+        /** The tab left or its choice turned off before a post opened, so both marks come off. */
         private void left() {
             HookStatus.counted(FamilyNames.PROFILE_POSTS_LIST, LEFT);
             Bundle tabArguments = tabMark.get();

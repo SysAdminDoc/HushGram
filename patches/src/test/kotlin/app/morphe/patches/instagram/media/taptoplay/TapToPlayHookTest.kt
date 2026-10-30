@@ -187,7 +187,7 @@ class TapToPlayHookTest {
         assertEquals("$what: the hook names no register", 0, (code[hook] as FiveRegisterInstruction).registerCount)
         val move = code[hook + 1]
         val moved = move.referenceText()!!
-        assertEquals("$what: right in front of a virtual call", Opcode.INVOKE_VIRTUAL, move.opcode)
+        assertTrue("$what: right in front of a virtual call", move.opcode in setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_INTERFACE))
         assertTrue("$what: $moved takes nothing and returns nothing", moved.endsWith("()V"))
         val pagerRegister = (move as FiveRegisterInstruction).registerC
         assertEquals(
@@ -487,6 +487,8 @@ class TapToPlayHookTest {
                 FixtureDex.classesHolding(bundle, AUTOPLAY_CHECKER.last()) +
                 listOfNotNull(FixtureDex.classes(bundle, setOf(FRAGMENT_ACTIVITY))[FRAGMENT_ACTIVITY]) +
                 reel + near + returned + playButtonClasses(bundle) + viewer + storyPlayers + scrollToNextReelClasses(bundle) + madeWithConfig +
+                // Some builds ask Redex's string pool for the story viewer's resume strings.
+                FixtureDex.withStringPools(bundle, viewer) +
                 ExtensionDex.classDef(TAP_TO_PLAY) + ExtensionDex.classDef(REEL_STATE_READER) + ExtensionDex.classDef(STORY_PLAYER_READER)
             ).distinctBy { it.type }
         val context = PatchContexts.of(classes)
@@ -498,9 +500,21 @@ class TapToPlayHookTest {
             ?: throw AssertionError("$label: no method carries $SCROLL_TO_NEXT_REEL")
         // The call the patch found by its shape is the Reels pager's smooth scroll to the next item.
         val moveCall = (autoScroll.move.code()[autoScroll.call] as ReferenceInstruction).reference as MethodReference
-        val pagerClass = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
+        val declared = FixtureDex.classes(bundle, setOf(moveCall.definingClass)).values.single()
+        // 451 called the pager class itself. 452 calls its interface, so the class holding the ViewPager2 is
+        // the one implementing that interface and the method.
+        val pagerClass = if (AccessFlags.INTERFACE.isSet(declared.accessFlags)) {
+            val implementers = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                dex.classes.filterTo(implementers) { classDef ->
+                    declared.type in classDef.interfaces.map(CharSequence::toString) &&
+                        classDef.methods.any { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
+                }
+            }
+            implementers.single()
+        } else declared
         val target = pagerClass.methods.single { it.name == moveCall.name && it.parameterTypes.isEmpty() && it.returnType == "V" }
-        assertTrue("$label: ${moveCall.definingClass} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
+        assertTrue("$label: ${pagerClass.type} holds a ViewPager2", pagerClass.fields.any { it.type == viewPager2 })
         assertEquals("$label: $moveCall", listOf(smoothScrollToNextItem), target.markers())
         assertEquals("$label: the player's IgGrootPlayer field", hooks.prepare.definingClass, hooks.grootField.type)
         assertEquals("$label: play and prepare are one class's", hooks.prepare.definingClass, hooks.play.definingClass)
@@ -723,8 +737,11 @@ class TapToPlayHookTest {
             ),
             madeWithConfig(clipsHelper, objectType),
         ) + (0 until reelsLoggers).map { madeWithConfig(if (it == 0) reelsLogger else "Lfixture/ClipsVideoLogger$it;", logger) }
+        // Shaped like 451's: the pause notes whether the reason is a tap's, then hands the reason on.
         val pause = { name: String ->
             method(groot, name, listOf(string), "V", 3, static = false, body = """
+                const-string v0, "tapped"
+                invoke-virtual { p1, v0 }, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
                 iget-object v0, p0, $groot->core:$core
                 invoke-virtual { v0, p1 }, $core->A0b(Ljava/lang/String;)V
                 return-void
@@ -744,8 +761,13 @@ class TapToPlayHookTest {
                 """),
                 pause("A0V"),
                 if (secondPause) pause("A0U") else null,
-                method(groot, "A0W", listOf(string), "V", 3, static = false, body = """
+                // The other String method hands its parameter on beside a name of its own, and hands
+                // the player underneath a String it loads, not its parameter: it isn't the pause.
+                method(groot, "A0W", listOf(string), "V", 4, static = false, body = """
+                    iget-object v1, p0, $groot->core:$core
                     const-string v0, "current_watching_module"
+                    invoke-virtual { v1, v0, p1 }, $core->A07(Ljava/lang/String;Ljava/lang/String;)V
+                    invoke-virtual { v1, v0 }, $core->A0b(Ljava/lang/String;)V
                     return-void
                 """),
             ),

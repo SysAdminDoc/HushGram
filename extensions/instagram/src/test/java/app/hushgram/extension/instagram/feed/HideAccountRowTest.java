@@ -16,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowToast;
 
@@ -254,5 +255,34 @@ public class HideAccountRowTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(HiddenAccounts.saved().isEmpty());
+    }
+
+    /**
+     * The row draws a crossed-out eye, not the download arrow of the option it was made from. The
+     * names are looked up in the package Download's icon comes from; Android's own stand in here
+     * for Instagram's, which a test app doesn't have.
+     */
+    @Test
+    public void theRowDrawsTheFirstIconTheBuildHas() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        assertEquals(android.R.drawable.ic_menu_close_clear_cancel,
+                HideAccountRow.icon(download, context, "no_such_icon", "ic_menu_close_clear_cancel", "ic_menu_delete"));
+        assertEquals(android.R.drawable.ic_menu_delete,
+                HideAccountRow.icon(download, context, "ic_menu_delete", "ic_menu_close_clear_cancel"));
+    }
+
+    /** Without the icon, a context or an icon to start from, the row keeps Download's, and nothing throws. */
+    @Test
+    public void withoutTheIconTheRowKeepsDownloads() {
+        android.content.Context context = RuntimeEnvironment.getApplication();
+        int download = android.R.drawable.ic_menu_save;
+
+        assertEquals(download, HideAccountRow.icon(download, context, HideAccountRow.ICON_NAMES));
+        assertEquals(download, HideAccountRow.icon(download, null, "ic_menu_delete"));
+        assertEquals(0, HideAccountRow.icon(0, context, "ic_menu_delete"));
+        assertEquals("an id no package owns", 0x7f7f7f7f, HideAccountRow.icon(0x7f7f7f7f, context, "ic_menu_delete"));
+        assertTrue(report(), report().contains("hide account icon"));
     }
 }

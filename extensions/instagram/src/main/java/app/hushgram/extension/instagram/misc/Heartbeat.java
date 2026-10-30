@@ -37,9 +37,9 @@ public final class Heartbeat {
     /**
      * Stands in for the AlarmManager.set call that sets Instagram's analytics upload alarm, which wakes the
      * phone five minutes on to send the usage events it has gathered. With the switch on the alarm isn't set,
-     * and the events go when Instagram next uploads while you're using it, or, with Disable analytics,
-     * nowhere, as before. Off, or with the settings not ready, it sets the alarm as Instagram would, and
-     * anything AlarmManager throws reaches Instagram's own handler as before.
+     * and the events go when Instagram next uploads while you're using it. Off, or with the settings not
+     * ready, it sets the alarm as Instagram would, and anything AlarmManager throws reaches Instagram's own
+     * handler as before.
      */
     public static void setUploadAlarm(AlarmManager alarms, int type, long at, PendingIntent operation) {
         HookStatus.invoked(FamilyNames.STOP_HEARTBEAT);

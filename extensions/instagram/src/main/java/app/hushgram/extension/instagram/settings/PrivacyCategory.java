@@ -1,0 +1,71 @@
+/*
+ * Copyright 2026 Hushfacebook contributors
+ * https://github.com/SysAdminDoc/Hushfacebook
+ *
+ * Modified for HushGram (Instagram), 2026.
+ */
+package app.hushgram.extension.instagram.settings;
+
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostTabRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.placeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sharingDomainRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.withCoverage;
+
+import android.content.Context;
+import android.preference.Preference;
+import android.preference.PreferenceCategory;
+import android.preference.PreferenceScreen;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
+import app.hushgram.extension.shared.L10n;
+
+/** Builds the Ads and privacy category of HushGram settings. */
+final class PrivacyCategory {
+    private PrivacyCategory() { }
+
+    static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
+        List<Preference> privacy = new ArrayList<>();
+        page.ghostSwitches = GhostMode.switches(build);
+        if (GhostMode.offered(page.ghostSwitches)) {
+            page.ghostMode = page.ghostModeRow(context);
+            privacy.add(page.ghostMode);
+            page.ghostPicks = page.ghostPicksRow(context);
+            privacy.add(page.ghostPicks);
+            page.ghostTab = ghostTabRow(context);
+            privacy.add(page.ghostTab);
+        }
+        if (build.contains(PatchFamily.HIDE_ADS)) {
+            privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),
+                    L10n.t("Hides sponsored posts, reels and stories. No empty gap is left where an ad would have "
+                            + "been.")));
+        }
+        if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
+            privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),
+                    withCoverage(L10n.t("Removes tracking tags from links you copy or share, and opens bio links without "
+                            + "Instagram's click tracker. The link still opens the same post, reel or profile."),
+                            SettingsStatus.sanitizeSharingLinksCoverage())));
+            privacy.add(sharingDomainRow(context));
+        }
+        if (build.contains(PatchFamily.EXTERNAL_BROWSER)) {
+            privacy.add(toggle(context, Settings.OPEN_LINKS_EXTERNALLY, L10n.t("Open links in external browser"),
+                    L10n.t("Web links you tap open in your usual browser, without Instagram's click tracker. "
+                            + "Instagram pages and ads still open in the app.")));
+        }
+        if (build.contains(PatchFamily.SPOOF_LOCATION)) {
+            privacy.add(toggle(context, Settings.SPOOF_LOCATION, L10n.t("Spoof location"),
+                    L10n.t("Tells Instagram your phone is at the place set below, for the location sticker, nearby "
+                            + "places and maps. Photos keep their own places.")));
+            privacy.add(placeRow(context));
+        }
+        if (!privacy.isEmpty()) {
+            PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,
+                    L10n.t("Hide ads and share less with Instagram."));
+            for (Preference row : privacy) section.addPreference(row);
+        }
+    }
+}

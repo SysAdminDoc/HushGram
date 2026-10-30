@@ -27,6 +27,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -37,14 +38,18 @@ class FollowListSuggestionsHookTest {
     private val list = "Lfixture/FollowList;"
     private val opener = "Lfixture/FollowListOpener;"
     private val getBoolean = "Landroid/os/BaseBundle;->getBoolean(Ljava/lang/String;Z)Z"
+    /** The tab key is read without a default (#302). */
+    private val getBooleanNoDefault = "Landroid/os/BaseBundle;->getBoolean(Ljava/lang/String;)Z"
 
-    /** The hook the patch writes is in the ProfileSuggestions the bundle ships, public and static. */
+    /** The hooks the patch writes are in the ProfileSuggestions the bundle ships, public and static. */
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(FOLLOW_LIST.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$FOLLOW_LIST is not in the extension: $declared", FOLLOW_LIST.substringAfter("->") in declared)
+        for (hook in listOf(FOLLOW_LIST, SUGGESTED_TAB)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
 
     /** The list's read gets its answer passed through the extension, the other read and the opener left alone. */
@@ -83,6 +88,22 @@ class FollowListSuggestionsHookTest {
         }
     }
 
+    /** #302: a build without the Suggested tab's read refuses that part at patch time, and the follow list's hook still goes in. */
+    @Test
+    fun aBuildWithoutTheTabsReadStillHidesTheSection() {
+        val context = PatchContexts.of(classes())
+        val failure = assertThrows(PatchException::class.java) { context.findSuggestedTab() }
+        val expected = "expected one read of the follow list's $HAS_SIMILAR_ACCOUNTS, found 0"
+        assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        assertNull(context.findSuggestedTabOrWarn())
+
+        context.hideFollowListSuggestions(context.findFollowListSuggestions())
+
+        val patched = context.mutableClassDefBy(list).methods.single()
+        assertAnswered("stand-in", patched)
+        assertTrue("no tab hook", patched.code().none { it.referenceText() == SUGGESTED_TAB })
+    }
+
     /**
      * In each declared build the one read of the key is the follow list fragment's, in its
      * onCreate, and it's answered. On 450's 385611438 that's LX/0E6X (FollowListFragment).onCreate.
@@ -92,7 +113,7 @@ class FollowListSuggestionsHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
@@ -115,18 +136,52 @@ class FollowListSuggestionsHookTest {
         }
     }
 
+    /**
+     * #302: in each declared build the one read of the Suggested tab's key is the follow list pager's,
+     * in its onCreate, and it's answered. The places opening the pager put the key or ask whether
+     * it's there, and stay as they were. On 452.1 that's UnifiedFollowFragment.onCreate, which reads
+     * the key without a default.
+     */
+    @Test
+    fun eachDeclaredBuildHidesTheSuggestedTab() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
+        for (bundle in bundles) {
+            val holders = mutableListOf<ClassDef>()
+            FixtureDex.forEach(bundle) { dex ->
+                for (classDef in dex.classes) {
+                    if (classDef.methods.any { m -> m.code().any { it.string() == HAS_SIMILAR_ACCOUNTS } }) holders += ImmutableClassDef.of(classDef)
+                }
+            }
+            val context = PatchContexts.of(holders)
+
+            val site = context.findSuggestedTab()
+            context.hideSuggestedTab(site)
+
+            assertEquals("${bundle.name}: the read", "onCreate($arguments)V", "${site.name}(${site.parameters.joinToString("")})V")
+            assertTrue("${bundle.name}: the pager ${site.type}", site.type.endsWith("/UnifiedFollowFragment;"))
+            val patched = context.mutableClassDefBy(site.type).methods.single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
+            assertAnswered(bundle.name, patched, HAS_SIMILAR_ACCOUNTS, SUGGESTED_TAB, getBooleanNoDefault)
+            assertEquals(
+                "${bundle.name}: methods hooked", 1,
+                holders.map { it.type }.distinct().sumOf { type -> context.mutableClassDefBy(type).methods.count { m -> m.code().any { it.referenceText() == SUGGESTED_TAB } } },
+            )
+        }
+    }
+
     /** Right after the read's move-result: the range call with that register, and its answer back in it. */
-    private fun assertAnswered(what: String, method: Method) {
+    private fun assertAnswered(what: String, method: Method, argument: String = FETCH_SUGGESTED, hook: String = FOLLOW_LIST, reads: String = getBoolean) {
         val code = method.code()
-        val key = code.indexOfFirst { it.string() == FETCH_SUGGESTED }
-        assertTrue("$what: no load of $FETCH_SUGGESTED", key >= 0)
-        val read = (key + 1 until code.size).first { code[it].referenceText() == getBoolean }
+        val key = code.indexOfFirst { it.string() == argument }
+        assertTrue("$what: no load of $argument", key >= 0)
+        val read = (key + 1 until code.size).first { code[it].referenceText() == reads }
         val result = read + 1
         assertEquals("$what: the read's result", Opcode.MOVE_RESULT, code[result].opcode)
         val register = (code[result] as OneRegisterInstruction).registerA
-        assertEquals("$what: hooks", 1, code.count { it.referenceText() == FOLLOW_LIST })
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == hook })
         assertEquals("$what: the call", Opcode.INVOKE_STATIC_RANGE, code[result + 1].opcode)
-        assertEquals("$what: the hook", FOLLOW_LIST, code[result + 1].referenceText())
+        assertEquals("$what: the hook", hook, code[result + 1].referenceText())
         assertEquals("$what: what it's handed", register, (code[result + 1] as RegisterRangeInstruction).startRegister)
         assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[result + 2].opcode)
         assertEquals("$what: the register", register, (code[result + 2] as OneRegisterInstruction).registerA)

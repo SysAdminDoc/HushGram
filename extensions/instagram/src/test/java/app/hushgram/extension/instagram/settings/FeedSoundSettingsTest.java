@@ -35,7 +35,7 @@ public class FeedSoundSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.START_FEED_VIDEOS_WITH_SOUND.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

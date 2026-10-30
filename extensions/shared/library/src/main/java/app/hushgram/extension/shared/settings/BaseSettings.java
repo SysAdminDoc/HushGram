@@ -24,8 +24,6 @@ import app.hushgram.extension.shared.Logger;
 public class BaseSettings {
     public static final BooleanSetting DEBUG = new BooleanSetting("morphe_debug", FALSE);
     public static final StringSetting DEBUG_LOG_FILTERS = new StringSetting("morphe_debug_log_filters", "all", false, false);
-    public static final BooleanSetting CAPTURE_JAVA_CRASHES =
-            new BooleanSetting("morphe_capture_java_crashes", FALSE, true);
     public static final BooleanSetting DEBUG_STACKTRACE = new BooleanSetting("morphe_debug_stacktrace", FALSE, parent(DEBUG));
     /**
      * Whether a failure inside the bundle is also put on screen while {@link #DEBUG} is on.
@@ -62,7 +60,7 @@ public class BaseSettings {
 
     static {
         // HushGram's own state and its diagnostics, which keep working while it is paused.
-        Setting.keepWhenPaused(DEBUG, DEBUG_LOG_FILTERS, CAPTURE_JAVA_CRASHES, DEBUG_STACKTRACE,
+        Setting.keepWhenPaused(DEBUG, DEBUG_LOG_FILTERS, DEBUG_STACKTRACE,
                 DEBUG_TOAST_ON_ERROR, CHECK_ENVIRONMENT_WARNINGS_ISSUED, MORPHE_LANGUAGE, SHOW_MENU_ICONS,
                 FIRST_TIME_APP_LAUNCHED, EXPERIMENTAL_APP_CONFIRMED, PAUSED, SAFE_MODE);
 

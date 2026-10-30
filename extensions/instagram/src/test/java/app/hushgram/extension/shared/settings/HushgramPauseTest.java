@@ -17,6 +17,7 @@ import android.content.Context;
 import android.os.Looper;
 
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,9 +30,13 @@ import org.robolectric.shadows.ShadowActivityManager;
 import org.robolectric.shadows.ShadowSystemClock;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/** Three crashed starts in a row, the marker file and the way back, for Pause HushGram. */
+/** Three crashed starts in a row, the crash report, the marker file and the way back, for Pause HushGram. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 30, 37})
 public class HushgramPauseTest {
@@ -41,7 +46,7 @@ public class HushgramPauseTest {
 
     @Before public void setUp() {
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36; // Instagram 449's target on every runtime.
+        context.getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
         Utils.setContext(context);
         HushgramPause.resetForTests();
         record = new File(context.getFilesDir(), HushgramPause.START_RECORD_NAME);
@@ -299,6 +304,126 @@ public class HushgramPauseTest {
 
     private static boolean stored(BooleanSetting setting) {
         return Setting.preferences.preferences.getBoolean(setting.key, setting.defaultValue);
+    }
+
+    /** The handlers after ours: each records what it was handed, and returns, so a test lives on. */
+    private static final class Delegate implements Thread.UncaughtExceptionHandler {
+        final List<Throwable> handed = new ArrayList<>();
+
+        @Override public void uncaughtException(Thread thread, Throwable throwable) {
+            handed.add(throwable);
+        }
+    }
+
+    /**
+     * A section standing in for the patches' switches. It says [switchLine] while that holds one and
+     * nothing otherwise, so it stays out of every other test's report once registered.
+     */
+    private static volatile String switchLine;
+
+    private static final LogBufferManager.ReportSection SWITCHES = new LogBufferManager.ReportSection() {
+        @Override public String title() {
+            return "SWITCH PROBE";
+        }
+
+        @Override public List<String> lines() {
+            String line = switchLine;
+            return line == null ? Collections.emptyList() : Collections.singletonList(line);
+        }
+    };
+
+    @Test public void aCrashInTheFirstMinuteKeepsItsReportForTheNextExportAndHandsTheCrashOn() {
+        LogBufferManager.clearLogBuffer();
+        LogBufferManager.registerReportSection(SWITCHES);
+        switchLine = "Hide suggested posts: on";
+        try {
+            start(null);
+            Delegate delegate = new Delegate();
+            Throwable crash = new IllegalStateException("feed went away", new java.io.IOException("socket closed"));
+            HushgramPause.crashMarkForTests(delegate).uncaughtException(Thread.currentThread(), crash);
+
+            assertEquals("the crash was not handed on", Collections.singletonList(crash), delegate.handed);
+            assertTrue("the safe mode count lost its mark", HushgramPause.read(record).trim().endsWith("crashed"));
+            String report = LogBufferManager.readCrashReport(context);
+            for (String part : new String[]{"complete: true\n", "thread: " + Thread.currentThread().getName() + "\n",
+                    "exception: java.lang.IllegalStateException\n", "java.lang.IllegalStateException: feed went away",
+                    "Caused by: java.io.IOException: socket closed", "[SWITCH PROBE]\nHide suggested posts: on\n"}) {
+                assertTrue("the report lost " + part + ": " + report, report.contains(part));
+            }
+
+            // The next start's export carries it.
+            start(null);
+            String export = LogBufferManager.buildExportText();
+            assertTrue(export, export.contains("[LATEST JAVA CRASH]\n"));
+            assertTrue(export, export.contains("java.lang.IllegalStateException: feed went away"));
+        } finally {
+            switchLine = null;
+            LogBufferManager.clearLogBuffer();
+        }
+    }
+
+    @Test public void aCrashAfterTheFirstMinuteKeepsNoReportUnlessDebugLoggingIsOn() {
+        LogBufferManager.clearLogBuffer();
+        try {
+            start(null);
+            ShadowSystemClock.advanceBy(HushgramPause.START_WINDOW_MS + 1000, TimeUnit.MILLISECONDS);
+            Delegate delegate = new Delegate();
+            Thread.UncaughtExceptionHandler handler = HushgramPause.crashMarkForTests(delegate);
+            Throwable late = new IllegalStateException("late");
+            handler.uncaughtException(Thread.currentThread(), late);
+            assertEquals("a late crash kept a report", "", LogBufferManager.readCrashReport(context));
+            assertEquals(Collections.singletonList(late), delegate.handed);
+
+            BaseSettings.DEBUG.save(true);
+            Throwable debugged = new IllegalStateException("late, with Debug logging on");
+            handler.uncaughtException(Thread.currentThread(), debugged);
+            assertTrue("Debug logging kept no report of a late crash",
+                    LogBufferManager.readCrashReport(context).contains("late, with Debug logging on"));
+            assertEquals(Arrays.asList(late, debugged), delegate.handed);
+            assertFalse("a late crash marked the start", HushgramPause.read(record).trim().endsWith("crashed"));
+        } finally {
+            BaseSettings.DEBUG.save(false);
+            LogBufferManager.clearLogBuffer();
+        }
+    }
+
+    @Test public void anExceptionSwallowedOffTheMainThreadPutsTheReportBack() throws Exception {
+        LogBufferManager.clearLogBuffer();
+        try {
+            LogBufferManager.persistCrashReport(context, "complete: true\nan earlier start's crash\n");
+            start(null);
+            Thread worker = new Thread("worker");
+            HushgramPause.crashMarkForTests(new Delegate()).uncaughtException(worker, new IllegalStateException("swallowed"));
+            assertEquals("complete: true\nan earlier start's crash\n", LogBufferManager.readCrashReport(context));
+
+            // On the main thread the app is frozen after it, so that report stays.
+            HushgramPause.crashMarkForTests(new Delegate())
+                    .uncaughtException(Thread.currentThread(), new IllegalStateException("main thread"));
+            assertTrue(LogBufferManager.readCrashReport(context).contains("main thread"));
+        } finally {
+            LogBufferManager.clearLogBuffer();
+        }
+    }
+
+    @Test public void aReportThatCanNotBeBuiltStillHandsTheCrashOn() throws Exception {
+        LogBufferManager.clearLogBuffer();
+        try {
+            LogBufferManager.persistCrashReport(context, "complete: true\nan earlier start's crash\n");
+            start(null);
+            Delegate delegate = new Delegate();
+            Throwable unprintable = new IllegalStateException("unprintable") {
+                @Override public void printStackTrace(java.io.PrintWriter writer) {
+                    throw new IllegalStateException("no trace");
+                }
+            };
+            HushgramPause.crashMarkForTests(delegate).uncaughtException(Thread.currentThread(), unprintable);
+            // The earlier report standing shows the build threw before anything was written.
+            assertEquals("complete: true\nan earlier start's crash\n", LogBufferManager.readCrashReport(context));
+            assertEquals(Collections.singletonList(unprintable), delegate.handed);
+            assertTrue(HushgramPause.read(record).trim().endsWith("crashed"));
+        } finally {
+            LogBufferManager.clearLogBuffer();
+        }
     }
 
     @Test public void theStreakFileSurvivesNonsense() {

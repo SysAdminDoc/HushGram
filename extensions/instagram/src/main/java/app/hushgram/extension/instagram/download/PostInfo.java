@@ -26,6 +26,8 @@ import androidx.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
@@ -46,8 +48,9 @@ import app.hushgram.extension.shared.ui.Dim;
  * it. A video Download would join from its manifest's picture and sound tracks has no one address,
  * so the button copies that single file, and its own size is shown beside the saved one. Under the
  * facts, Copy username copies who posted it and Copy caption the post's own words, exactly as
- * written, each only when the post has one. Both read the post whose menu was opened, and a
- * carousel's caption is the post's, never a page's. Nothing is fetched to show it.
+ * written, each only when the post has one. Copy caption without hashtags follows when the caption
+ * has any. All read the post whose menu was opened, and a carousel's caption is the post's, never a
+ * page's. Nothing is fetched to show it.
  *
  * <p>The address is a signed link to the file on Meta's servers, so it goes on the clipboard marked
  * sensitive and never into a log.
@@ -62,6 +65,19 @@ public final class PostInfo {
 
     /** Past this many seconds, the time in milliseconds no longer fits a long. */
     private static final long LAST_SECOND = Long.MAX_VALUE / 1000L;
+
+    /**
+     * A hashtag as Instagram links one: a # no word or link runs into, then letters, digits and
+     * underscores with at least one that isn't a digit, so #1 stays text. "#a#b" is one run, and a
+     * Persian word's zero-width non-joiner stays inside its tag.
+     */
+    private static final Pattern HASHTAG = Pattern.compile(
+            "(?<![\\p{L}\\p{M}\\p{N}_&#/])#(?=\\p{N}*[\\p{L}\\p{M}_])[\\p{L}\\p{M}\\p{N}_\\x{200C}]+"
+                    + "(?:#[\\p{L}\\p{M}\\p{N}_\\x{200C}]+)*");
+    /** A letter or digit, which keeps a hashtag before it inside the sentence. */
+    private static final Pattern WORDY = Pattern.compile("[\\p{L}\\p{N}]");
+    /** A line holding only the dots and dashes people stack above a hashtag block, or nothing. */
+    private static final Pattern SPACER = Pattern.compile("[\\s.,|_\\-\\x{2022}\\x{00B7}]*");
 
     private static Object option;
 
@@ -224,9 +240,9 @@ public final class PostInfo {
     }
 
     /**
-     * Copy username and Copy caption, as rows under the facts, for what [facts] knows. Each closes
-     * [dialog] and copies. Null when the post has neither. [themed] is the dialog's own context, so
-     * the rows take its colors.
+     * Copy username, Copy caption and Copy caption without hashtags, as rows under the facts, for
+     * what [facts] knows. Each closes [dialog] and copies. Null when the post has neither a username
+     * nor a caption. [themed] is the dialog's own context, so the rows take its colors.
      */
     @Nullable
     static View copies(Context themed, Activity activity, Facts facts, AlertDialog dialog) {
@@ -249,8 +265,74 @@ public final class PostInfo {
                 copy(activity, "copy caption", L10n.t(activity, "Caption"), caption,
                         L10n.t(activity, "Caption copied"), L10n.t(activity, "Couldn't copy the caption"));
             }));
+            String words = withoutHashtags(caption);
+            if (words != null) {
+                rows.addView(row(themed, L10n.t(activity, "Copy caption without hashtags"), () -> {
+                    dialog.dismiss();
+                    copy(activity, "copy caption without hashtags", L10n.t(activity, "Caption"), words,
+                            L10n.t(activity, "Caption copied"), L10n.t(activity, "Couldn't copy the caption"));
+                }));
+            }
         }
         return rows.getChildCount() == 0 ? null : rows;
+    }
+
+    /**
+     * [caption] without its hashtags (#282), for Copy caption without hashtags. A run of tags that
+     * ends its line goes, with any line it leaves holding only dots or dashes and the spacer lines
+     * above a closing block. A tag with words after it on its line keeps its word and loses the #,
+     * so the sentence still reads. Null when the caption has no hashtag or nothing else.
+     */
+    @Nullable
+    static String withoutHashtags(String caption) {
+        List<String> kept = new ArrayList<>();
+        boolean tagged = false;
+        for (String line : caption.split("\r?\n", -1)) {
+            Matcher tags = HASHTAG.matcher(line);
+            List<int[]> found = new ArrayList<>();
+            while (tags.find()) found.add(new int[]{tags.start(), tags.end()});
+            if (found.isEmpty()) {
+                kept.add(line);
+                continue;
+            }
+            tagged = true;
+            StringBuilder left = new StringBuilder(line);
+            boolean closing = true;
+            int after = line.length();
+            int deletedFrom = -1;
+            for (int i = found.size() - 1; i >= 0; i--) {
+                int start = found.get(i)[0];
+                int end = found.get(i)[1];
+                if (WORDY.matcher(line.substring(end, after)).find()) closing = false;
+                if (closing) {
+                    while (start > 0 && (Character.isWhitespace(line.charAt(start - 1))
+                            || Character.isSpaceChar(line.charAt(start - 1)))) start--;
+                    // A comma or dot between two closing tags goes with them.
+                    int to = deletedFrom >= 0 && SPACER.matcher(line.substring(end, deletedFrom)).matches()
+                            ? deletedFrom : end;
+                    left.delete(start, to);
+                    deletedFrom = start;
+                } else {
+                    left.replace(start, end, line.substring(start + 1, end).replace('#', ' '));
+                }
+                after = found.get(i)[0];
+            }
+            if (!SPACER.matcher(left).matches()) kept.add(left.toString().trim());
+        }
+        if (!tagged) return null;
+        int last = kept.size();
+        while (last > 0 && SPACER.matcher(kept.get(last - 1)).matches()) last--;
+        StringBuilder words = new StringBuilder();
+        boolean blank = false;
+        for (String line : kept.subList(0, last)) {
+            boolean empty = line.trim().isEmpty();
+            if (empty && blank) continue;
+            if (words.length() > 0) words.append('\n');
+            words.append(line);
+            blank = empty;
+        }
+        String text = words.toString().trim();
+        return text.isEmpty() ? null : text;
     }
 
     /** A row reading [label], in the dialog's accent like its buttons, that runs [action] on a tap. */
@@ -300,7 +382,7 @@ public final class PostInfo {
     static void copy(Context context, String link) {
         try {
             copy(context, "copy media link", L10n.t(context, "Media link"), link,
-                    L10n.t(context, "Media link copied"), L10n.t(context, "Couldn't copy the media link"));
+                    L10n.t(context, "Media link copied. It stops working after a few days."), L10n.t(context, "Couldn't copy the media link"));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.VIDEO_DOWNLOAD, "copy media link", failure);
         }

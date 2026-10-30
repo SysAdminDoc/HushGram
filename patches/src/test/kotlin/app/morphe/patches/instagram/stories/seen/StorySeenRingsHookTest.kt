@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -132,7 +133,8 @@ class StorySeenRingsHookTest {
 
     /**
      * On each declared build the viewer's write is found and hooked, the declared build's viewer is
-     * the method the contract rule picks (it holds nux_story), and a second copy of the viewer is refused.
+     * the method the contract rule picks (it holds nux_story), and a copy of the viewer in a class the
+     * story viewer doesn't keep is passed over.
      */
     @Test
     fun eachDeclaredBuildKeepsWatchedStoriesNew() {
@@ -147,7 +149,9 @@ class StorySeenRingsHookTest {
                 assertTrue("${bundle.name}: the viewer doesn't hold nux_story, which the contract rule picks it by", method.code().any { it.string() == "nux_story" })
                 assertEquals("${bundle.name}: the contract rule's shape", 2, found.viewerParameters.size)
                 assertTrue("${bundle.name}: the contract rule's viewer is an instance method", !AccessFlags.STATIC.isSet(method.accessFlags))
-                assertRefused(classes + copyOf(viewer, "Lfixture/SecondViewer;"), "as its reel's seen time, found 2")
+                // A copy the story viewer doesn't keep is another helper's write, like 453's own second one.
+                val withCopy = PatchContexts.of(classes + copyOf(viewer, "Lfixture/SecondViewer;")).findStoryRings()
+                assertEquals("${bundle.name}: the viewer with a helper's copy beside it", found.viewer, withCopy.viewer)
                 checked += version
             }
         }
@@ -248,7 +252,7 @@ class StorySeenRingsHookTest {
         val stateWriters = callersOf(bundle, stateWrite)
         val reelWrite = stateWriters.single { it.definingClass != state && stores.none { store -> store.type == it.definingClass } }.key()
         val reelWriters = callersOf(bundle, reelWrite)
-        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass }).toSet()
+        val types = (stores.map { it.type } + state + stateWriters.map { it.definingClass } + reelWriters.map { it.definingClass } + STORY_VIEWER).toSet()
         return (FixtureDex.withStringPools(bundle, FixtureDex.classes(bundle, types).values) + ExtensionDex.classDef(STORY_SEEN_RINGS))
             .map { ImmutableClassDef.of(it) }.distinctBy { it.type }
     }

@@ -110,21 +110,61 @@ public final class ProfilePicture {
 
     /** [reads] with the row adder swapped for one that appends to a pop-up list's items. */
     static Native popupReads(final Native reads) {
-        return new Native() {
+        return new Delegating(reads) {
             public boolean addRow(Object items, Context context, View.OnClickListener listener, String label) {
                 return items instanceof List && PopupRows.add((List<?>) items, listener, label);
             }
-            public Object fullSize(Object user) { return reads.fullSize(user); }
-            public String fullSizeUrl(Object info) { return reads.fullSizeUrl(info); }
-            public int fullSizeWidth(Object info) { return reads.fullSizeWidth(info); }
-            public int fullSizeHeight(Object info) { return reads.fullSizeHeight(info); }
-            public Object shown(Object user) { return reads.shown(user); }
-            public String shownUrl(Object image) { return reads.shownUrl(image); }
-            public int shownWidth(Object image) { return reads.shownWidth(image); }
-            public int shownHeight(Object image) { return reads.shownHeight(image); }
-            public String username(Object user) { return reads.username(user); }
-            public String biography(Object user) { return reads.biography(user); }
         };
+    }
+
+    /** Every read of [reads] as it is; a subclass says what to do with a row. */
+    abstract static class Delegating implements Native {
+        private final Native reads;
+
+        Delegating(Native reads) {
+            this.reads = reads;
+        }
+
+        public Object fullSize(Object user) { return reads.fullSize(user); }
+        public String fullSizeUrl(Object info) { return reads.fullSizeUrl(info); }
+        public int fullSizeWidth(Object info) { return reads.fullSizeWidth(info); }
+        public int fullSizeHeight(Object info) { return reads.fullSizeHeight(info); }
+        public Object shown(Object user) { return reads.shown(user); }
+        public String shownUrl(Object image) { return reads.shownUrl(image); }
+        public int shownWidth(Object image) { return reads.shownWidth(image); }
+        public int shownHeight(Object image) { return reads.shownHeight(image); }
+        public String username(Object user) { return reads.username(user); }
+        public String biography(Object user) { return reads.biography(user); }
+    }
+
+    /** One row [offer] would add: its label and what a tap runs. */
+    static final class Entry {
+        final String label;
+        final View.OnClickListener click;
+
+        Entry(String label, View.OnClickListener click) {
+            this.label = label;
+            this.click = click;
+        }
+    }
+
+    /**
+     * The rows [offer] would add for [user], with the switches as they are now, for the profile
+     * extras button's menu ({@link ProfileExtras}). Empty when nothing is switched on or the account
+     * has nothing to offer. Never throws.
+     */
+    static List<Entry> entries(Object user, Context context) {
+        return entries(user, context, NATIVE, SAVE, VIEWER);
+    }
+
+    static List<Entry> entries(Object user, Context context, Native reads, Save save, Viewer viewer) {
+        final List<Entry> rows = new ArrayList<>(4);
+        offer(rows, user, context, new Delegating(reads) {
+            public boolean addRow(Object sheet, Context at, View.OnClickListener listener, String label) {
+                return rows.add(new Entry(label, listener));
+            }
+        }, save, viewer);
+        return Collections.unmodifiableList(rows);
     }
 
     static void offer(Object sheet, Object user, Context context, Native reads, Save save) {

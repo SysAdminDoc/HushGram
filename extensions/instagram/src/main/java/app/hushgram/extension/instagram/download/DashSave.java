@@ -33,7 +33,8 @@ import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
  * <p>A DASH manifest keeps the picture and the sound in two files. One plain fetch gets each file.
  * Then {@code MediaMuxer} copies the samples of both into one file, or {@link Mp4Join} does for a
  * picture the muxer won't write ({@link #ownWriter}). Neither decodes or encodes them again. So the
- * file has the quality that the player streams, and the join takes less than a second.
+ * file has the quality that the player streams, and the join takes less than a second. Only a save
+ * that converts a VP9 or AV1 picture to H.264 for other apps encodes it ({@link VideoConvert}).
  *
  * <p>The two tracks and the result go into the cache of the app first, because the muxer must seek
  * in its files. Only the finished file goes into the gallery, through the same
@@ -122,8 +123,50 @@ final class DashSave {
         long maxBytes,
         Downloader.Progress progress
     ) {
+        return save(application, video, audio, false, false, sink, policy, maxBytes, progress);
+    }
+
+    /**
+     * As above. With [convert], the fetched picture is converted to H.264 ({@link VideoConvert})
+     * before the join. A conversion that fails ends the save with its reason, or with [orAsItIs],
+     * the picture already fetched is joined as it is.
+     */
+    static Downloader.Result save(
+        Context application,
+        DashManifest.Track video,
+        DashManifest.Track audio,
+        boolean convert,
+        boolean orAsItIs,
+        Downloader.Sink sink,
+        MediaUrlPolicy policy,
+        long maxBytes,
+        Downloader.Progress progress
+    ) {
+        return save(application, video, audio, null, convert, orAsItIs, sink, policy, maxBytes, progress);
+    }
+
+    /**
+     * As above. With [soundFrom] and no [audio], the sound is the one in the single file at
+     * [soundFrom], fetched whole: the join takes its sound track and leaves its picture (#236, #242).
+     * On the [convert] path a conversion that fails ends the save, since only the converted picture is
+     * joined with that sound; with [convert] off the picture is joined as it is, with no transcode.
+     */
+    static Downloader.Result save(
+        Context application,
+        DashManifest.Track video,
+        DashManifest.Track audio,
+        String soundFrom,
+        boolean convert,
+        boolean orAsItIs,
+        Downloader.Sink sink,
+        MediaUrlPolicy policy,
+        long maxBytes,
+        Downloader.Progress progress
+    ) {
+        String soundUrl = audio != null ? audio.url : soundFrom;
         File videoFile = null;
         File audioFile = null;
+        File converted = null;
         File joined = null;
 
         try {
@@ -135,12 +178,36 @@ final class DashSave {
                 progress);
             if (!result.ok()) return result;
 
-            if (audio != null) {
+            if (soundUrl != null) {
                 audioFile = File.createTempFile("audio", ".mp4", folder);
                 // One count for the pair: the sound's bytes go on from the picture's.
-                result = fetchWork(audio.url, Downloader.Kind.AUDIO, audioFile, policy,
-                    maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
+                result = fetchWork(soundUrl, audio != null ? Downloader.Kind.AUDIO : Downloader.Kind.VIDEO, audioFile,
+                    policy, maxBytes - videoFile.length(), Downloader.after(videoFile.length(), progress));
                 if (!result.ok()) return result;
+            }
+
+            boolean isH264 = false;
+            if (convert) {
+                if (progress.cancelled()) {
+                    return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the conversion");
+                }
+                converted = File.createTempFile("converted", ".mp4", folder);
+                result = VideoConvert.convert(videoFile, converted, video.bandwidth, progress);
+                if (result.ok()) {
+                    // The picture is in the converted file now, which grows no more.
+                    videoFile = discard(videoFile);
+                    videoFile = converted;
+                    converted = null;
+                    holdTo(videoFile, videoFile.length());
+                    isH264 = true;
+                } else if (!orAsItIs || audio == null && soundFrom != null || result.status == Downloader.Status.CANCELLED) {
+                    return result;
+                } else {
+                    Downloader.Result failed = result;
+                    MediaSave.failure(() -> "the conversion ended with " + failed + ", joining the picture as it is",
+                        null);
+                    converted = discard(converted);
+                }
             }
 
             if (progress.cancelled()) return Downloader.Result.fail(Downloader.Status.CANCELLED, "cancelled before the join");
@@ -151,7 +218,8 @@ final class DashSave {
             if (reserve(joined, room) < room) {
                 return Downloader.Result.fail(Downloader.Status.WRITE_ERROR, "not enough free space to join the tracks");
             }
-            boolean own = ownWriter(video.codecs, Build.VERSION.SDK_INT);
+            // A converted picture is H.264, which the muxer writes.
+            boolean own = !isH264 && ownWriter(video.codecs, Build.VERSION.SDK_INT);
             if (own) {
                 String codec = video.codecs.startsWith("vp09") ? "VP9" : "AV1 before Android 14";
                 MediaSave.info(() -> "joining the tracks without MediaMuxer, which can't write " + codec
@@ -185,6 +253,7 @@ final class DashSave {
         } finally {
             discard(videoFile);
             discard(audioFile);
+            discard(converted);
             discard(joined);
         }
     }

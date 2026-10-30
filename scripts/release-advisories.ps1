@@ -70,7 +70,7 @@ function Read-AdvisoryExceptions {
         if (-not $text -or $text.StartsWith('#')) { continue }
         $scope = 'shipped'
         if ($Scoped) {
-            $prefix = [regex]::Match($text, '^(?<scope>settings-plugin|project-plugin|build|test|host-contract|tooling-distribution)\s+(?<line>.+)$')
+            $prefix = [regex]::Match($text, '^(?<scope>settings-plugin|project-plugin|build|test|host-contract|tooling-distribution|external-desktop)\s+(?<line>.+)$')
             if (-not $prefix.Success) { throw "Line $number of $Path has no reviewed tooling scope: $text" }
             $scope = $prefix.Groups['scope'].Value
             $text = $prefix.Groups['line'].Value
@@ -92,6 +92,17 @@ function Read-AdvisoryExceptions {
                 "90 days out. Read the advisory again when the date comes, and give it a date within 90 days.")
         }
         $reason = $shape.Groups['reason'].Value
+        # A reachability review holds for the JAR it read, so it names that JAR's bytes.
+        $desktopSha256 = $null
+        if ($scope -ceq 'external-desktop') {
+            $bound = [regex]::Match($reason, '^jar-sha256=(?<sha>[0-9A-Fa-f]{64})\s+(?<why>.*\S)$')
+            if (-not $bound.Success) {
+                throw ("Line $number of $Path reviews $advisory for $package without naming the Desktop JAR it read. " +
+                    "Start the reason with jar-sha256=<the JAR's SHA-256>: $text")
+            }
+            $desktopSha256 = $bound.Groups['sha'].Value.ToUpperInvariant()
+            $reason = $bound.Groups['why'].Value
+        }
         if (@($reason -split '\s+' | Where-Object { $_ -match '[A-Za-z]' }).Count -lt 3) {
             throw ("Line $number of $Path accepts $advisory for $package without saying why. Give the reason it " +
                 "doesn't apply to what the bundle does with the library: $text")
@@ -107,6 +118,7 @@ function Read-AdvisoryExceptions {
             Line     = $number
             Expired  = $until -lt $Today
             Scope    = $scope
+            DesktopSha256 = $desktopSha256
         })
     }
     # No comma wrap: an empty list comes back as nothing, and every caller writes @(...).
@@ -512,7 +524,7 @@ function Assert-DependencyInputsMatch {
 
 function Get-CurrentDependencyAuditSubject {
     param([Parameter(Mandatory = $true)][string]$Root, [Parameter(Mandatory = $true)]$Graphs,
-        [Parameter(Mandatory = $true)]$Sbom, [Parameter(Mandatory = $true)][string]$BundlePath)
+        [Parameter(Mandatory = $true)]$Sbom, [Parameter(Mandatory = $true)][string]$BundlePath, [string]$DesktopJar)
     Assert-NoIgnoredCanonicalProductionInputs -Root $Root
     $inputs = Get-DependencyAuditInputs -Root $Root
     if ((Get-Sha256Hex -Path $Graphs.Path) -cne $Graphs.Sha256) { throw 'The dependency graph bytes changed after they were read.' }
@@ -530,11 +542,14 @@ function Get-CurrentDependencyAuditSubject {
     if ((Get-Sha256Hex -Path $Sbom.Path) -cne $Sbom.Sha256) { throw 'The current SBOM bytes changed after they were read.' }
     $bound = Test-ReleaseSbom -Sbom $Sbom -BundlePath $BundlePath -BundleName $bundleName
     if (-not $bound.Valid) { throw "The current SBOM does not describe the bundle: $($bound.Reason)" }
-    return [ordered]@{ inputs = $inputs
+    $desktop = if ($DesktopJar) { Get-ExternalDesktopGraph -JarPath $DesktopJar }
+    $subject = [ordered]@{ inputs = $inputs
         bundle = [ordered]@{ name = $bundleName; version = $inputs.version; sha256 = Get-Sha256Hex -Path $BundlePath }
         sbom = [ordered]@{ name = $sbomName; sha256 = $Sbom.Sha256 }
         graphReport = [ordered]@{ name = Split-Path -Leaf $Graphs.Path; sha256 = $Graphs.Sha256
-            graphsSha256 = Get-DependencyGraphsDigest -Graphs (Get-DependencyAuditGraphs -Graphs $Graphs -Sbom $Sbom -Root $Root) } }
+            graphsSha256 = Get-DependencyGraphsDigest -Graphs (Get-DependencyAuditGraphs -Graphs $Graphs -Sbom $Sbom -Root $Root -Desktop $desktop) } }
+    if ($desktop) { $subject.externalDesktop = [ordered]@{ name = $desktop.configuration; sha256 = $desktop.sha256 } }
+    return $subject
 }
 
 function Get-GradleDistributionGraph {
@@ -559,12 +574,117 @@ function Get-GradleDistributionGraph {
         dependencies = @([pscustomobject]@{ ref = 'root'; dependsOn = @($purl) }, [pscustomobject]@{ ref = $purl; dependsOn = @() }) }
 }
 
+# The classes each reviewed advisory names, as JAR entries. A shaded, minimized JAR can keep a
+# library's metadata after dropping the classes an advisory is about, and only the classes are
+# exposure. An advisory missing here is unreviewed and is never read as absent.
+# GHSA-xxph-c9ww-hj94, reviewed 2026-10-18: the CompactHash* family and MapMaker's internal map.
+$script:ReviewedAdvisoryClasses = @{
+    'GHSA-xxph-c9ww-hj94' = @('CompactHashMap', 'CompactHashSet', 'CompactLinkedHashMap', 'CompactLinkedHashSet',
+        'CompactHashing', 'MapMakerInternalMap', 'MapMaker') | ForEach-Object { "com/google/common/collect/$_.class" }
+}
+
+function Get-ExternalDesktopGraph {
+    <#
+    .SYNOPSIS
+        The Morphe Desktop JAR a release gate patches with, as its own audit graph.
+    .DESCRIPTION
+        Desktop is shaded and minimized upstream, so the repository's Bouncy Castle and Guava
+        overrides never reach the copies inside it. The graph is bound to the JAR's SHA-256 and
+        keeps its evidence apart: libraries whose Maven metadata (META-INF/maven/*/*/pom.properties)
+        the JAR embeds, and Bouncy Castle, which embeds none and is read from its provider's
+        version string, with its PKIX classes counted as the same release's bcpkix. Metadata says a
+        library was packed, not that its classes survived, so the graph also records which classes
+        each reviewed advisory names are in the JAR. A JAR that can't be read, or metadata or a
+        provider that can't be, certifies nothing.
+    #>
+    param([Parameter(Mandatory = $true)][string]$JarPath)
+    if (-not (Test-Path -LiteralPath $JarPath -PathType Leaf)) { throw "The Desktop JAR is missing, so it can't be audited: $JarPath" }
+    $full = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($JarPath)
+    $name = Split-Path -Leaf $full
+    $sha256 = Get-Sha256Hex -Path $full
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    try { $archive = [System.IO.Compression.ZipFile]::OpenRead($full) }
+    catch { throw "The Desktop JAR $name can't be read, so no advisory result is certified: $($_.Exception.Message)" }
+    $libraries = [ordered]@{}
+    $entries = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    try {
+        foreach ($entry in $archive.Entries) {
+            [void]$entries.Add($entry.FullName)
+            $path = [regex]::Match($entry.FullName, '^META-INF/maven/([^/]+)/([^/]+)/pom\.properties$')
+            if (-not $path.Success) { continue }
+            $reader = [IO.StreamReader]::new($entry.Open())
+            try { $text = $reader.ReadToEnd() } finally { $reader.Dispose() }
+            $fields = @{}
+            foreach ($line in $text -split "`r?`n") {
+                $pair = [regex]::Match($line, '^\s*(groupId|artifactId|version)\s*=\s*(\S+)\s*$')
+                if ($pair.Success) { $fields[$pair.Groups[1].Value] = $pair.Groups[2].Value }
+            }
+            if ($fields['groupId'] -cne $path.Groups[1].Value -or $fields['artifactId'] -cne $path.Groups[2].Value -or
+                [string]$fields['version'] -cnotmatch '^[A-Za-z0-9][A-Za-z0-9._+-]*$') {
+                throw "The Desktop JAR's $($entry.FullName) doesn't name the library its path does, so its inventory can't be read."
+            }
+            $purl = "pkg:maven/$($fields['groupId'])/$($fields['artifactId'])@$($fields['version'])"
+            $libraries[$purl] = [pscustomobject]@{ group = $fields['groupId']; name = $fields['artifactId']
+                version = $fields['version']; purl = $purl; evidence = 'embedded-metadata'; source = $entry.FullName }
+        }
+        $provider = 'org/bouncycastle/jce/provider/BouncyCastleProvider.class'
+        if (@($entries | Where-Object { $_.StartsWith('org/bouncycastle/') -and $_.EndsWith('.class') } | Select-Object -First 1).Count) {
+            $release = $null
+            if ($entries.Contains($provider)) {
+                $stream = [IO.MemoryStream]::new()
+                $open = $archive.GetEntry($provider).Open()
+                try { $open.CopyTo($stream) } finally { $open.Dispose() }
+                $release = [regex]::Match([Text.Encoding]::GetEncoding(28591).GetString($stream.ToArray()),
+                    'BouncyCastle Security Provider v(\d+\.\d+(?:\.\d+)?)')
+            }
+            if (-not $release -or -not $release.Success) {
+                throw "The Desktop JAR $name carries Bouncy Castle classes without a provider version, so their release can't be read."
+            }
+            $version = $release.Groups[1].Value
+            # 1.71 renamed the Java 8+ artifacts from jdk15on to jdk18on.
+            $suffix = if ([version]$version -ge [version]'1.71') { 'jdk18on' } else { 'jdk15on' }
+            $artifacts = @("bcprov-$suffix") + @(if (@($entries | Where-Object { $_.StartsWith('org/bouncycastle/cert/') }).Count) { "bcpkix-$suffix" })
+            foreach ($artifact in $artifacts) {
+                $purl = "pkg:maven/org.bouncycastle/$artifact@$version"
+                if (-not $libraries.Contains($purl)) {
+                    $libraries[$purl] = [pscustomobject]@{ group = 'org.bouncycastle'; name = $artifact; version = $version
+                        purl = $purl; evidence = 'provider-version'; source = $provider }
+                }
+            }
+        }
+    } finally { $archive.Dispose() }
+    $classes = @(foreach ($advisory in @($script:ReviewedAdvisoryClasses.Keys | Sort-Object)) {
+        foreach ($class in $script:ReviewedAdvisoryClasses[$advisory]) {
+            [pscustomobject]@{ advisory = $advisory; class = $class; present = $entries.Contains($class) }
+        }
+    })
+    $purls = @($libraries.Keys | Sort-Object)
+    return [pscustomobject]@{ scope = 'external-desktop'; owner = 'morphe-desktop'; configuration = $name; sha256 = $sha256
+        root = 'root'; libraries = @($purls | ForEach-Object { $libraries[$_] }); advisoryClasses = $classes
+        dependencies = @([pscustomobject]@{ ref = 'root'; dependsOn = $purls }) + @($purls | ForEach-Object {
+            [pscustomobject]@{ ref = $_; dependsOn = @() } }) }
+}
+
+function Get-DesktopClassPresence {
+    <#
+    .SYNOPSIS
+        Whether the classes a finding's advisory names are in the Desktop JAR: present, absent, or
+        unreviewed when no reviewed class list covers the advisory or any of its aliases.
+    #>
+    param([Parameter(Mandatory = $true)]$Finding, [Parameter(Mandatory = $true)]$Graph)
+    $names = @(@($Finding.Advisory) + @($Finding.Aliases) | Where-Object { $_ })
+    $reviewed = @(@($Graph.advisoryClasses) | Where-Object { $_ -and $names -contains $_.advisory })
+    if (-not $reviewed.Count) { return 'unreviewed' }
+    if (@($reviewed | Where-Object { $_.present -eq $true }).Count) { return 'present' }
+    return 'absent'
+}
+
 function Get-DependencyAuditGraphs {
-    param($Graphs, $Sbom, [Parameter(Mandatory = $true)][string]$Root)
+    param($Graphs, $Sbom, [Parameter(Mandatory = $true)][string]$Root, $Desktop)
     return @($Graphs.Graphs) + @([pscustomobject]@{ scope = 'shipped'; owner = 'bundle'
         configuration = Split-Path -Leaf $Sbom.Path; libraries = @($Sbom.Libraries)
         dependencies = (Get-Content -LiteralPath $Sbom.Path -Raw | ConvertFrom-Json).dependencies }) +
-        @(Get-GradleDistributionGraph -Root $Root)
+        @(Get-GradleDistributionGraph -Root $Root) + @(if ($Desktop) { $Desktop })
 }
 
 function Get-DependencyGraphsDigest {
@@ -584,7 +704,9 @@ function Read-CurrentDependencyAdvisoryReport {
         throw 'The current dependency advisory report is uncertified or uses an old schema.'
     }
     Assert-DependencyInputsMatch -Expected $Subject.inputs -Actual $report.subject.inputs -Label 'The advisory report'
-    foreach ($part in 'bundle', 'sbom', 'graphReport') {
+    # A gate that patches with a Desktop JAR holds the report to that JAR's bytes and scope.
+    $desktop = $Subject.Contains('externalDesktop')
+    foreach ($part in @(if ($desktop) { 'externalDesktop' }) + @('bundle', 'sbom', 'graphReport')) {
         foreach ($field in @($Subject[$part].Keys)) {
             if ($report.subject.$part.$field -cne $Subject[$part][$field]) { throw "The advisory report names a different $part $field." }
         }
@@ -595,7 +717,8 @@ function Read-CurrentDependencyAdvisoryReport {
     try { $stamp = [DateTimeOffset]::Parse((ConvertTo-UtcStamp $report.checkedAt)).UtcDateTime }
     catch { throw 'The advisory report has no valid check date.' }
     if ($stamp -gt $Now.AddMinutes(5) -or $stamp -lt $Now.AddDays(-1)) { throw 'The advisory report is stale or dated in the future. Run the current audit again.' }
-    foreach ($scope in 'shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution') {
+    foreach ($scope in @('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution') +
+            @(if ($desktop) { 'external-desktop' })) {
         if (-not $report.scopeVerdicts.PSObject.Properties[$scope] -or $report.scopeVerdicts.$scope.Valid -isnot [bool] -or
             -not $report.scopeVerdicts.$scope.Valid -or
             -not @($report.graphs | Where-Object scope -CEQ $scope).Count) { throw "The advisory report omits or refuses the $scope scope." }
@@ -672,14 +795,21 @@ function Test-AdvisoryFindings {
         print. A serious finding needs an exception naming its advisory, or one of the advisory's
         aliases, and its package, dated today or later. An exception that matches no finding at
         all, of any severity, is stale and refused too.
+        In the external-desktop scope a finding carries DesktopClassPresence. One whose reviewed
+        classes are all absent from the JAR is packed metadata, not exposure, and is listed
+        rather than refused. Present or unreviewed classes need the reviewed-reachability
+        exception like any other scope, and only one naming -DesktopSha256 counts. A review of
+        another JAR is left out, neither used nor stale, so a new Desktop's findings stay refused
+        until that JAR is read again.
     #>
     param(
         [object[]]$Findings = @(),
         [object[]]$Exceptions = @(),
         [string]$Subject = 'what the bundle carries',
         [string]$ExceptionsLabel = 'scripts/advisory-exceptions.txt',
-        [ValidateSet('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution')]
-        [string]$Scope = 'shipped'
+        [ValidateSet('shipped', 'settings-plugin', 'project-plugin', 'build', 'test', 'host-contract', 'tooling-distribution', 'external-desktop')]
+        [string]$Scope = 'shipped',
+        [string]$DesktopSha256
     )
 
     $findingsIn = @(@($Findings) | Where-Object { $null -ne $_ })
@@ -687,6 +817,10 @@ function Test-AdvisoryFindings {
     $exceptionsIn = @(@($Exceptions) | Where-Object {
         $null -ne $_ -and ($_.Scope -ceq $Scope -or ($Scope -ceq 'shipped' -and -not $_.Scope))
     })
+    if ($Scope -ceq 'external-desktop') {
+        $DesktopSha256 = "$DesktopSha256".ToUpperInvariant()
+        $exceptionsIn = @($exceptionsIn | Where-Object { $DesktopSha256 -and $_.DesktopSha256 -ceq $DesktopSha256 })
+    }
     $refused = New-Object System.Collections.Generic.List[string]
     $excused = New-Object System.Collections.Generic.List[string]
     $minor = New-Object System.Collections.Generic.List[string]
@@ -704,6 +838,15 @@ function Test-AdvisoryFindings {
         $aliases = if (@($finding.Aliases).Count -gt 0) { ", $(@($finding.Aliases) -join ', ')" } else { '' }
         $described = ("$($finding.Advisory) ($($finding.Severity.Level)$aliases) in $($finding.Package) " +
             "$($finding.Version): $($finding.Summary)")
+        if ($Scope -ceq 'external-desktop') {
+            $presence = [string]$finding.DesktopClassPresence
+            if ($presence -cnotin @('present', 'absent', 'unreviewed')) { $presence = 'unreviewed' }
+            $described += "; its reviewed classes in the Desktop JAR: $presence"
+            if ($finding.Severity.Serious -and $presence -ceq 'absent') {
+                $minor.Add("$described, so the packed metadata is not exposure; $($finding.Severity.Why)")
+                continue
+            }
+        }
         if (-not $finding.Severity.Serious) {
             $minor.Add("$described; $($finding.Severity.Why)")
             continue

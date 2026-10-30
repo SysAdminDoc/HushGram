@@ -265,17 +265,21 @@ public class CompatibleSaveTest {
 
     /**
      * A 580 reel on 2026-09-28 listed eight AV1 pictures and four sound tracks, every one xHE-AAC,
-     * and its Best save kept xHE-AAC, which some players can't play (#14). The save still keeps it,
-     * since a file some players play silent beats a silent file, and its line now says so in words.
-     * Beside AAC-LC the save takes AAC-LC at every quality, switch on or off, and says nothing of it.
+     * and its Best save kept xHE-AAC, which some players can't play (#14). With a single file beside
+     * it the save now keeps the best picture and takes that file's sound, which plays everywhere
+     * (#242). With no single file xHE-AAC is still kept, since a file some players play silent beats
+     * a silent one, and its line says so. Beside AAC-LC the save takes AAC-LC at every quality,
+     * switch on or off, and says nothing of it.
      */
     @Test
     public void xheAacIsSavedOnlyWhenItIsTheOnlySoundAndTheLineSaysSo() throws Exception {
         String xheOnly = manifest(representation(AV1, 1080, 1920, 1_265_000, "1080p", "v1080"),
                 sound("mp4a.40.42", 39_000, "xhe39") + sound("mp4a.40.42", 120_000, "xhe120"));
+        // A single file is offered, so the best picture is kept and that file's sound taken (#242).
         String report = reelSave(false, new ReelSource(HD, null, xheOnly));
         assertTrue(report, report.contains("saving the video from its DASH manifest: video/mp4 " + AV1
-                + " 1080x1920 1265kbps 1080p + audio/mp4 mp4a.40.42 0x0 120kbps, instead of mp4 (720p)" + XHE + "\n"));
+                + " 1080x1920 1265kbps 1080p + the sound of mp4 (720p), instead of mp4 (720p)"
+                + ", the manifest's sound being only xHE-AAC\n"));
         // With the switch on and no single file, it's still the only sound there is.
         report = reelSave(true, new ReelSource(null, null, xheOnly));
         assertTrue(report, report.contains("nothing of the video is in a format other apps can open"));

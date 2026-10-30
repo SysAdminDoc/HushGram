@@ -116,6 +116,10 @@ function ConvertFrom-ManifestXmlTree {
     $packageName = $null
     $versionName = $null
     $versionCode = $null
+    $minSdkVersion = 1
+    $sdkElements = 0
+    $hasMinimum = $false
+    $ancestors = [Collections.Generic.Stack[object]]::new()
     $permissions = New-Object System.Collections.Generic.List[string]
     $exported = New-Object System.Collections.Generic.List[string]
 
@@ -130,17 +134,27 @@ function ConvertFrom-ManifestXmlTree {
 
     foreach ($raw in $Lines) {
         $line = [string]$raw
-        $elementMatch = [regex]::Match($line, '^\s*E:\s*([A-Za-z0-9_\-]+)\s*\(line=')
+        $elementMatch = [regex]::Match($line, '^(\s*)E:\s*([A-Za-z0-9_\-]+)\s*\(line=')
         if ($elementMatch.Success) {
             Complete-Component -Name $componentName -Kind $element -IsExported $componentExported -List $exported
-            $element = $elementMatch.Groups[1].Value
+            $element = $elementMatch.Groups[2].Value
+            $depth = $elementMatch.Groups[1].Length
+            while ($ancestors.Count -gt 0 -and $ancestors.Peek().Depth -ge $depth) { [void]$ancestors.Pop() }
+            if ($element -eq 'uses-sdk') {
+                if ($ancestors.Count -ne 1 -or $ancestors.Peek().Name -cne 'manifest') {
+                    throw "The uses-sdk element is not a manifest child in $Source."
+                }
+                $sdkElements++
+                if ($sdkElements -gt 1) { throw "Multiple uses-sdk elements in the manifest of $Source." }
+            }
+            $ancestors.Push(@{ Name = $element; Depth = $depth })
             $componentName = $null
             $componentExported = $false
             continue
         }
 
         $attributeMatch = [regex]::Match($line,
-            '^\s*A:\s*(?:http://schemas\.android\.com/apk/res/android:)?([A-Za-z0-9_\-]+)(?:\(0x[0-9a-fA-F]+\))?=(.*)$')
+            '^\s*A:\s*(?:(?<android>http://schemas\.android\.com/apk/res/android):)?([A-Za-z0-9_\-]+)(?:\(0x[0-9a-fA-F]+\))?=(.*)$')
         if (-not $attributeMatch.Success) { continue }
         $name = $attributeMatch.Groups[1].Value
         $value = ConvertFrom-XmlTreeValue -Text $attributeMatch.Groups[2].Value
@@ -156,6 +170,20 @@ function ConvertFrom-ManifestXmlTree {
             }
             'uses-permission-sdk-23' {
                 if ($name -eq 'name' -and $value) { $permissions.Add($value) }
+            }
+            'uses-sdk' {
+                if ($name -eq 'minSdkVersion') {
+                    if (-not $attributeMatch.Groups['android'].Success) {
+                        throw "The minimum Android API attribute has no Android namespace in $Source."
+                    }
+                    if ($hasMinimum) { throw "Repeated minSdkVersion in the manifest of $Source." }
+                    $hasMinimum = $true
+                    if ($value -match '^\d+$') { $minSdkVersion = [int]$value }
+                    elseif ($value -match '^(?:\(type 0x10\))?0x([0-9a-fA-F]+)$') {
+                        $minSdkVersion = [Convert]::ToInt32($Matches[1], 16)
+                    } else { throw "Unknown minimum Android API '$value' in the manifest of $Source." }
+                    if ($minSdkVersion -lt 1) { throw "Invalid minimum Android API in the manifest of $Source." }
+                }
             }
             default {
                 if ($componentElements -contains $element) {
@@ -183,15 +211,34 @@ function ConvertFrom-ManifestXmlTree {
         package     = $packageName
         versionName = $versionName
         versionCode = $versionCode
+        minSdkVersion = $minSdkVersion
         permissions = @($permissions | Sort-Object -Unique -CaseSensitive)
         exported    = @($qualified | Sort-Object -Unique -CaseSensitive)
+    }
+}
+
+function Assert-HushgramRuntimeFloor {
+    param([Parameter(Mandatory = $true)]$Manifest, $Stock)
+
+    $minimum = $Manifest.PSObject.Properties['minSdkVersion']
+    if (-not $minimum -or ($minimum.Value -isnot [int] -and $minimum.Value -isnot [long])) {
+        throw 'The patched APK has no verified minimum Android API. HushGram needs API 28.'
+    }
+    if ($minimum.Value -lt 28) {
+        throw "The patched APK permits API $($minimum.Value), but HushGram needs API 28."
+    }
+    if ($Stock) {
+        $expected = [Math]::Max(28, [int]$Stock.minSdkVersion)
+        if ($minimum.Value -ne $expected) {
+            throw "The patched APK requires API $($minimum.Value), but its vendor/runtime floors require API $expected."
+        }
     }
 }
 
 function Get-ManifestDelta {
     <#
     .SYNOPSIS
-        What patching did to the manifest, as five sorted lists.
+        What patching changed in the manifest, including its minimum Android API.
     .DESCRIPTION
         versionCodeChanged holds the patched build's version code when patching changed it (Change
         version code raises it), and nothing otherwise.
@@ -204,6 +251,10 @@ function Get-ManifestDelta {
         exportedComponentsAdded   = @(Compare-Sets -Left $Patched.exported -Right $Stock.exported)
         exportedComponentsRemoved = @(Compare-Sets -Left $Stock.exported -Right $Patched.exported)
         versionCodeChanged        = @(if ([string]$Patched.versionCode -cne [string]$Stock.versionCode) { [string]$Patched.versionCode })
+        minSdkChanged             = @(if ($Stock.PSObject.Properties['minSdkVersion'] -and
+            $Patched.PSObject.Properties['minSdkVersion'] -and $Patched.minSdkVersion -ne $Stock.minSdkVersion) {
+            [string]$Patched.minSdkVersion
+        })
     }
 }
 
@@ -233,6 +284,7 @@ function ConvertTo-ManifestDeltaEntries {
     foreach ($value in @($Delta.exportedComponentsRemoved)) { $entries.Add("exported-removed $value") }
     # A receipt written before the version code was part of the delta has no such field.
     foreach ($value in @($Delta.versionCodeChanged | Where-Object { $_ })) { $entries.Add("version-code $value") }
+    foreach ($value in @($Delta.minSdkChanged | Where-Object { $_ })) { $entries.Add("min-sdk $value") }
     return @($entries | Sort-Object -Unique -CaseSensitive)
 }
 
@@ -263,7 +315,7 @@ function ConvertFrom-ManifestDeltaAllowlist {
         # A byte order mark is read as text when the lines come out of git rather than Get-Content.
         $text = ([string]$line).TrimStart([char]0xFEFF).Trim()
         if (-not $text -or $text.StartsWith('#')) { continue }
-        if ($text -notmatch '^(permission-added|permission-removed|exported-added|exported-removed|version-code) \S+$') {
+        if ($text -notmatch '^(permission-added|permission-removed|exported-added|exported-removed|version-code|min-sdk) \S+$') {
             throw "The manifest delta allowlist$Source has a line that is not `"<kind> <value>`": $text"
         }
         $entries.Add($text)

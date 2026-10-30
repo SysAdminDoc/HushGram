@@ -22,6 +22,7 @@ import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.Setting;
 import app.hushgram.extension.shared.settings.preference.LogBufferManager;
 
 /**
@@ -42,7 +43,6 @@ public enum PatchFamily {
     SANITIZE_SHARING_LINKS(FamilyNames.SANITIZE_SHARING_LINKS, "sanitizeSharingLinks", null,
             Settings.SANITIZE_SHARING_LINKS),
     EXTERNAL_BROWSER(FamilyNames.EXTERNAL_BROWSER, "externalBrowser", null, Settings.OPEN_LINKS_EXTERNALLY),
-    DISABLE_ANALYTICS(FamilyNames.DISABLE_ANALYTICS, "disableAnalytics", null, Settings.DISABLE_ANALYTICS),
     BUILD_EXPIRED_POPUP(FamilyNames.BUILD_EXPIRED_POPUP, "buildExpiredPopup", null,
             Settings.REMOVE_BUILD_EXPIRED_POPUP),
     RESTORE_TRUST(FamilyNames.RESTORE_TRUST, "restoreTrust", "the re-signed build fix"),
@@ -53,56 +53,75 @@ public enum PatchFamily {
             Settings.BLOCK_STORY_AUTO_ADVANCE),
     STORY_TIME(FamilyNames.STORY_TIME, "storyTime", null, Settings.SHOW_STORY_TIME),
     STORY_MENTIONS(FamilyNames.STORY_MENTIONS, "storyMentions", null, Settings.SHOW_STORY_MENTIONS),
+    STORY_FOLLOW(FamilyNames.STORY_FOLLOW, "storyFollow", null, Settings.HIDE_STORY_FOLLOW),
     POST_TIME(FamilyNames.POST_TIME, "postTime", null, Settings.SHOW_POST_TIME),
     HIDDEN_LIKE_COUNTS(FamilyNames.HIDDEN_LIKE_COUNTS, "hiddenLikeCounts", null, Settings.SHOW_HIDDEN_LIKE_COUNTS),
     BACK_LEAVES_HOME(FamilyNames.BACK_LEAVES_HOME, "backLeavesHome", null, Settings.BACK_LEAVES_HOME),
+    HOME_PLACE(FamilyNames.HOME_PLACE, "homePlace", null, Settings.KEEP_HOME_PLACE),
     STORY_LOOP(FamilyNames.STORY_LOOP, "storyLoop", null, Settings.LOOP_STORIES),
     STORY_SOUND(FamilyNames.STORY_SOUND, "storySound", null, Settings.START_STORIES_WITH_SOUND),
+    STORY_SWIPE_REPLY(FamilyNames.STORY_SWIPE_REPLY, "storySwipeReply", null, Settings.STOP_STORY_SWIPE_REPLY),
+    STORY_FONTS(FamilyNames.STORY_FONTS, "storyFonts", null, Settings.STORY_FONTS, Settings.STORY_EMOJI),
     STORY_UPLOAD_QUALITY(FamilyNames.STORY_UPLOAD_QUALITY, "storyUploadQuality", null, Settings.UPLOAD_STORIES_AT_FULL_QUALITY),
     FEED_SOUND(FamilyNames.FEED_SOUND, "feedSound", null, Settings.START_FEED_VIDEOS_WITH_SOUND),
+    FEED_TAP_PAUSE(FamilyNames.FEED_TAP_PAUSE, "feedTapPause", null, Settings.TAP_FEED_VIDEO_TO_PAUSE),
+    FEED_SEEK_BAR(FamilyNames.FEED_SEEK_BAR, "feedSeekBar", null, Settings.FEED_SEEK_BAR),
     LONG_PRESS_ZOOM(FamilyNames.LONG_PRESS_ZOOM, "longPressZoom", null, Settings.LONG_PRESS_TO_ZOOM,
             Settings.LONG_PRESS_ZOOM_STAYS_OPEN),
-    ROUNDED_POST_CORNERS(FamilyNames.ROUNDED_POST_CORNERS, "roundedPostCorners", null, Settings.ROUNDED_POST_CORNERS),
+    ROUNDED_POST_CORNERS(FamilyNames.ROUNDED_POST_CORNERS, "roundedPostCorners", null, Settings.ROUNDED_POST_CORNERS,
+            Settings.ROUNDED_REEL_CORNERS, Settings.ROUNDED_STORY_CORNERS, Settings.PEEK_CAROUSEL_PAGES),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null, Settings.VIEW_STORIES_ANONYMOUSLY,
             Settings.MARK_STORIES_SEEN, Settings.GRAY_OUT_WATCHED_STORIES),
     LIVE_SEEN(FamilyNames.LIVE_SEEN, "liveSeen", null, Settings.VIEW_LIVE_ANONYMOUSLY),
     DM_MEDIA_SEEN(FamilyNames.DM_MEDIA_SEEN, "visualSeen", null, Settings.VIEW_DM_MEDIA_ANONYMOUSLY),
     SPOOF_LOCATION(FamilyNames.SPOOF_LOCATION, "spoofLocation", null, Settings.SPOOF_LOCATION),
-    THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT),
+    THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
+            Settings.KEEP_CHATS_UNREAD),
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),
     ACTIVE_STATUS(FamilyNames.ACTIVE_STATUS, "activeStatus", null, Settings.HIDE_ACTIVE_STATUS),
     LAST_ACTIVE(FamilyNames.LAST_ACTIVE, "lastActive", null, Settings.SHOW_LAST_ACTIVE),
-    MESSAGES_LOCK(FamilyNames.MESSAGES_LOCK, "messagesLock", null, Settings.LOCK_MESSAGES, Settings.LOCK_APP),
+    MESSAGES_LOCK(FamilyNames.MESSAGES_LOCK, "messagesLock", null, Settings.LOCK_MESSAGES, Settings.LOCK_APP,
+            Settings.DOUBLE_TAP_HIDDEN_CHATS),
     DELETED_MESSAGES(FamilyNames.DELETED_MESSAGES, "deletedMessages", null, Settings.SAVE_DELETED_MESSAGES),
     SCREENSHOT_REPORTS(FamilyNames.SCREENSHOT_REPORTS, "screenshotReports", null, Settings.HIDE_SCREENSHOTS),
     SCREENSHOT_BLOCK(FamilyNames.SCREENSHOT_BLOCK, "screenshotBlock", null, Settings.ALLOW_SCREENSHOTS),
     KEEP_IN_CHAT(FamilyNames.KEEP_IN_CHAT, "keepInChat", null, Settings.KEEP_IN_CHAT),
-    ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL),
+    CHAT_REELS(FamilyNames.CHAT_REELS, "chatReels", null, Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS),
+    ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL,
+            Settings.HIDE_CALL_BUTTONS),
+    MESSAGE_BOX(FamilyNames.MESSAGE_BOX, "messageBox", null),
     ASK_BEFORE_LIKE(FamilyNames.ASK_BEFORE_LIKE, "askBeforeLike", null, Settings.ASK_BEFORE_LIKE),
     ASK_BEFORE_REFRESH(FamilyNames.ASK_BEFORE_REFRESH, "askBeforeRefresh", null, Settings.ASK_BEFORE_REFRESH),
+    SAVE_TRAY(FamilyNames.SAVE_TRAY, "saveTray", null, Settings.SKIP_COLLECTIONS_TRAY),
     STORIES_TRAY(FamilyNames.STORIES_TRAY, "storiesTray", null, Settings.HIDE_SUGGESTED_STORIES,
             Settings.HIDE_STORY_REWINDS, Settings.HIDE_STORY_RECAPS, Settings.STOP_LOADING_STORIES,
-            Settings.HIDE_STORIES_TRAY, Settings.HIDE_MUSIC_CARD, Settings.HIDE_STORY_SUGGESTIONS),
+            Settings.HIDE_STORIES_TRAY, Settings.KEEP_TRAY_IN_FEED, Settings.HIDE_MUSIC_CARD, Settings.HIDE_STORY_SUGGESTIONS,
+            Settings.HIDE_ADD_YOURS_CARDS, Settings.FILTER_TRAY_BY_BADGE),
     STORY_RING(FamilyNames.STORY_RING, "storyRingSize", null, Settings.STORY_RING),
+    STORY_PROGRESS_BAR(FamilyNames.STORY_PROGRESS_BAR, "storyProgressBar", null, Settings.THICKER_STORY_BAR),
+    STORY_SEEK_BAR(FamilyNames.STORY_SEEK_BAR, "storySeekBar", null, Settings.STORY_SEEK_BAR),
     FEED_REELS(FamilyNames.FEED_REELS, "feedReels", null, Settings.HIDE_FEED_REELS),
     FEED_SUGGESTIONS(FamilyNames.FEED_SUGGESTIONS, "feedSuggestions", null, Settings.HIDE_SUGGESTED_ACCOUNTS,
             Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS,
-            Settings.HIDE_FEED_SHOPPING, Settings.HIDE_FEED_INTEREST, Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS,
-            Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED),
+            Settings.HIDE_FEED_SHOPPING, Settings.HIDE_FEED_INTEREST, Settings.HIDE_CAUGHT_UP_CARD, Settings.HIDE_FEED_VIDEOS,
+            Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED),
     HOME_FEED(FamilyNames.HOME_FEED, "homeFeed", null, Settings.HIDE_HOME_FEED),
     FOLLOWING_FEED(FamilyNames.FOLLOWING_FEED, "followingFeed", null, Settings.START_ON_FOLLOWING,
             Settings.ONLY_FOLLOWING, Settings.LOGO_ON_FOLLOWING),
     SWIPE_TO_CREATE(FamilyNames.SWIPE_TO_CREATE, "swipeToCreate", null, Settings.STOP_SWIPE_TO_CREATE),
     TAB_SWIPE(FamilyNames.TAB_SWIPE, "tabSwipe", null, Settings.STOP_TAB_SWIPING),
+    TAB_BAR_LAYOUT(FamilyNames.TAB_BAR_LAYOUT, "tabBarLayout", null),
     FULL_RESOLUTION(FamilyNames.FULL_RESOLUTION, "fullResolution", null, Settings.FULL_RESOLUTION_PHOTOS,
-            Settings.ASK_FOR_LARGER_PHOTOS),
+            Settings.ASK_FOR_LARGER_PHOTOS, Settings.FULL_SIZE_COVERS),
     META_AI(FamilyNames.META_AI, "metaAi", null, Settings.HIDE_META_AI_SEARCH, Settings.HIDE_META_AI_POSTS,
             Settings.HIDE_ABOUT_THIS_REEL, Settings.HIDE_ASK_META_AI, Settings.HIDE_META_AI_SHARE_TARGET,
             Settings.HIDE_META_AI_PROFILE_BANNER, Settings.HIDE_META_AI_PROFILE_BUTTON, Settings.HIDE_META_AI_BLEND),
     EXPLORE_GRID(FamilyNames.EXPLORE_GRID, "exploreGrid", null, Settings.HIDE_EXPLORE_GRID,
             Settings.HIDE_SEARCH_SUGGESTIONS),
     RECENT_SEARCHES(FamilyNames.RECENT_SEARCHES, "recentSearches", null, Settings.DONT_SAVE_RECENT_SEARCHES),
+    ALL_RECENT_SEARCHES(FamilyNames.ALL_RECENT_SEARCHES, "allRecentSearches", null, Settings.SHOW_ALL_RECENT_SEARCHES),
     NOTES_ROW(FamilyNames.NOTES_ROW, "notesRow", null, Settings.HIDE_NOTES_ROW),
+    INBOX_SEARCH(FamilyNames.INBOX_SEARCH, "inboxSearch", null, Settings.HIDE_INBOX_SEARCH),
     INBOX_SUGGESTIONS(FamilyNames.INBOX_SUGGESTIONS, "inboxSuggestions", null, Settings.HIDE_INBOX_SUGGESTIONS),
     INSTANTS(FamilyNames.INSTANTS, "instants", null, Settings.HIDE_INSTANTS),
     SHARE_SHEET(FamilyNames.SHARE_SHEET, "shareSheet", null, Settings.HIDE_SHARE_SHEET_GROUP),
@@ -111,15 +130,19 @@ public enum PatchFamily {
     BOTTOM_SPACE(FamilyNames.BOTTOM_SPACE, "bottomSpace", null, Settings.REMOVE_BOTTOM_SPACE),
     GLASS_TAB_BAR(FamilyNames.GLASS_TAB_BAR, "glassTabBar", null, Settings.GLASS_TAB_BAR,
             Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT, Settings.GLASS_TAB_BAR_HAPTICS,
-            Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL),
+            Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE, Settings.GLASS_TAB_BAR_LIQUID,
+            Settings.GLASS_TAB_BAR_KEEP_SIZE),
     FULL_SCREEN_BARS(FamilyNames.FULL_SCREEN_BARS, "fullScreenBars", null, Settings.FULL_SCREEN_REELS,
-            Settings.FULL_SCREEN_HOME),
+            Settings.FILL_REEL_SCREEN, Settings.FIT_REEL_SCREEN, Settings.FULL_SCREEN_HOME, Settings.FULL_SCREEN_MESSAGES),
     SAVED_ON_PROFILE(FamilyNames.SAVED_ON_PROFILE, "savedOnProfile", null, Settings.SAVED_ON_PROFILE),
     STOP_HEARTBEAT(FamilyNames.STOP_HEARTBEAT, "stopHeartbeat", null, Settings.STOP_HEARTBEAT,
             Settings.STOP_UPLOAD_ALARM),
     EMOJI_STYLE(FamilyNames.EMOJI_STYLE, "emojiStyle", null, Settings.NOTO_EMOJI),
-    ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR),
+    ACCENT_COLOR(FamilyNames.ACCENT_COLOR, "accentColor", null, Settings.ACCENT_COLOR, Settings.ACCENT_BADGES),
     LAUNCH_SCREEN(FamilyNames.LAUNCH_SCREEN, "launchScreen", null, Settings.LAUNCH_SCREEN),
+    APP_ICON(FamilyNames.APP_ICON, "appIcon", "the home screen icon you picked"),
+    SETTINGS_ROWS(FamilyNames.SETTINGS_ROWS, "settingsRows", null),
+    FONT(FamilyNames.FONT, "font", null),
     NOTIFICATION_GROUPS(FamilyNames.NOTIFICATION_GROUPS, "notificationGroups", null, Settings.GROUP_NOTIFICATIONS),
     HDR_BOOST(FamilyNames.HDR_BOOST, "hdrBoost", null, Settings.TURN_OFF_HDR_BOOSTS),
     MEDIA_CACHE(FamilyNames.MEDIA_CACHE, "mediaCache", null, Settings.CLEAR_MEDIA_CACHE),
@@ -127,20 +150,29 @@ public enum PatchFamily {
             Settings.MARK_FOLLOWING_LIST, Settings.FRIENDSHIP_STATUS_CHIP, Settings.FOLLOWING_NOT_BACK_FIRST,
             Settings.TRACK_UNFOLLOWERS),
     PROFILE_SUGGESTIONS(FamilyNames.PROFILE_SUGGESTIONS, "profileSuggestions", null, Settings.HIDE_PROFILE_SUGGESTIONS,
-            Settings.HIDE_FOLLOW_LIST_SUGGESTIONS, Settings.HIDE_PROFILE_COMPLETION),
+            Settings.HIDE_FOLLOW_LIST_SUGGESTIONS, Settings.HIDE_PROFILE_COMPLETION, Settings.HIDE_FOLLOW_BACK_SUGGESTIONS,
+            Settings.HIDE_NOTIFICATION_SUGGESTIONS, Settings.HIDE_NOTIFICATION_FEATURED),
     PROFILE_HIGHLIGHTS(FamilyNames.PROFILE_HIGHLIGHTS, "profileHighlights", null, Settings.HIDE_HIGHLIGHTS),
-    THREADS_BUTTON(FamilyNames.THREADS_BUTTON, "threadsButton", null, Settings.HIDE_THREADS_BUTTON),
+    PROFILE_TABS(FamilyNames.PROFILE_TABS, "profileTabs", null),
+    THREADS_BUTTON(FamilyNames.THREADS_BUTTON, "threadsButton", null, Settings.HIDE_THREADS_BUTTON,
+            Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON),
     PROFILE_NOTES(FamilyNames.PROFILE_NOTES, "profileNotes", null, Settings.HIDE_PROFILE_NOTES),
     PROFILE_POSTS_LIST(FamilyNames.PROFILE_POSTS_LIST, "profilePostsList", null, Settings.PROFILE_POSTS_LIST),
-    COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS),
+    COMMENT_COPY(FamilyNames.COMMENT_COPY, "commentCopy", null, Settings.COPY_COMMENTS, Settings.COPY_COMMENT_AUTHORS,
+            Settings.COPY_COMMENTS_WITHOUT_MENTIONS),
     COMMENT_PHOTO(FamilyNames.COMMENT_PHOTO, "commentPhoto", null, Settings.SAVE_COMMENT_PHOTOS),
     PROFILE_PICTURE(FamilyNames.PROFILE_PICTURE, "profilePicture", null, Settings.SAVE_PROFILE_PICTURES,
-            Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT),
+            Settings.VIEW_PROFILE_PICTURES, Settings.COPY_PROFILE_TEXT, Settings.PROFILE_EXTRAS_BUTTON),
     VOICE_MESSAGE(FamilyNames.VOICE_MESSAGE, "voiceMessage", null, Settings.DOWNLOAD_VOICE_MESSAGES),
     HIDE_COMMENTS(FamilyNames.HIDE_COMMENTS, "hideComments", null, Settings.HIDE_COMMENTS),
+    COMMENT_EMOJI_ROW(FamilyNames.COMMENT_EMOJI_ROW, "commentEmojiRow", null, Settings.HIDE_COMMENT_EMOJI_ROW),
+    COMMENT_KEYBOARD(FamilyNames.COMMENT_KEYBOARD, "commentKeyboard", null, Settings.COMMENT_KEYBOARD_DOWN),
+    FEED_FOLLOW(FamilyNames.FEED_FOLLOW, "feedFollow", null, Settings.HIDE_FEED_FOLLOW),
     REEL_DECLUTTER(FamilyNames.REEL_DECLUTTER, "reelDeclutter", null, Settings.HIDE_REEL_FOLLOW_BUTTON,
             Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.HIDE_REEL_COMMENT_BAR,
-            Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, Settings.HIDE_REELS_TOP_BAR, Settings.HIDE_REEL_SAVE_BUTTON),
+            Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, Settings.HIDE_REEL_REPLY_BAR, Settings.HIDE_REELS_TOP_BAR,
+            Settings.HIDE_REELS_CREATE_BUTTON, Settings.HIDE_REELS_YOUR_ALGORITHM, Settings.HIDE_REELS_FRIENDS_TAB,
+            Settings.HIDE_REEL_SAVE_BUTTON, Settings.KEEP_REEL_CLEAR_MODE),
     REEL_DOWNLOAD(FamilyNames.REEL_DOWNLOAD, "reelDownload", null, Settings.DOWNLOAD_REELS),
     DOUBLE_TAP_LIKE(FamilyNames.DOUBLE_TAP_LIKE, "doubleTapLike", null, Settings.TURN_OFF_DOUBLE_TAP_LIKE,
             Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_POSTS, Settings.TURN_OFF_DOUBLE_TAP_LIKE_ON_REELS,
@@ -149,17 +181,28 @@ public enum PatchFamily {
     REELS_TAB(FamilyNames.REELS_TAB, "reelsTab", null, Settings.HIDE_REELS_TAB, Settings.HIDE_SEARCH_TAB,
             Settings.HIDE_CREATE_TAB, Settings.HIDE_PROFILE_TAB, Settings.HIDE_HOME_CREATE_BUTTON,
             Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, Settings.SEARCH_BUTTON_ON_HOME, Settings.GHOST_BUTTON_ON_HOME,
-            Settings.CENTER_HOME_LOGO, Settings.CENTER_PROFILE_NAME, Settings.SHOW_REELS_TAB, Settings.SHOW_MESSAGES_TAB),
+            Settings.CENTER_HOME_LOGO, Settings.CENTER_PROFILE_NAME, Settings.CENTER_SCREEN_TITLES,
+            Settings.TITLES_AT_START, Settings.SHOW_REELS_TAB,
+            Settings.SHOW_MESSAGES_TAB, Settings.MESSAGES_BUTTON_ON_HOME, Settings.HIDE_HOME_MESSAGES_BUTTON,
+            Settings.SHOW_ACTIVITY_TAB, Settings.HIDE_HOME_TAB, Settings.HIDE_MESSAGES_TAB),
     REELS_SUGGESTIONS(FamilyNames.REELS_SUGGESTIONS, "reelsSuggestions", null, Settings.HIDE_REELS_SUGGESTIONS),
     PAID_PARTNERSHIP_REELS(FamilyNames.PAID_PARTNERSHIP_REELS, "paidPartnershipReels", null,
             Settings.HIDE_PAID_PARTNERSHIP_REELS),
+    AI_LABELED_REELS(FamilyNames.AI_LABELED_REELS, "aiLabeledReels", null, Settings.HIDE_AI_LABELED_REELS),
+    CAPTION_WORD_REELS(FamilyNames.CAPTION_WORD_REELS, "captionWordReels", null, Settings.HIDE_CAPTION_WORD_REELS),
     KEEP_REEL_SPEED(FamilyNames.KEEP_REEL_SPEED, "keepReelSpeed", null, Settings.KEEP_REEL_SPEED),
-    REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR),
+    REEL_POST_TIME(FamilyNames.REEL_POST_TIME, "reelPostTime", null, Settings.SHOW_REEL_POST_TIME),
+    REEL_SEEK_BAR(FamilyNames.REEL_SEEK_BAR, "reelSeekBar", null, Settings.REEL_SEEK_BAR, Settings.REEL_SEEK_THUMB, Settings.BIG_REEL_SEEK_BAR,
+            Settings.DM_REEL_SEEK_BAR),
     REEL_BLUR_BARS(FamilyNames.REEL_BLUR_BARS, "reelBlurBars", null, Settings.BLUR_REEL_BARS),
     REEL_TAP_AND_VOLUME(FamilyNames.REEL_TAP_AND_VOLUME, "reelTapAndVolume", null, Settings.KEEP_REELS_MUTED),
-    REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL),
+    REEL_SOUND(FamilyNames.REEL_SOUND, "reelSound", null, Settings.START_REELS_WITH_SOUND),
+    REEL_ZOOM(FamilyNames.REEL_ZOOM, "reelZoom", null, Settings.PINCH_ZOOM_REELS),
+    REEL_AUTO_SCROLL(FamilyNames.REEL_AUTO_SCROLL, "reelAutoScroll", null, Settings.KEEP_REEL_AUTO_SCROLL,
+            Settings.REEL_AUTO_ADVANCE),
     REEL_SCROLLING(FamilyNames.REEL_SCROLLING, "reelScrolling", null, Settings.STOP_REELS_SCROLLING,
             Settings.REEL_CAP),
+    SWIPE_TO_PROFILE(FamilyNames.SWIPE_TO_PROFILE, "swipeToProfile", null, Settings.REEL_SWIPE_TO_PROFILE),
     REEL_ORIGIN(FamilyNames.REEL_ORIGIN, "reelOrigin", null, Settings.FIND_REEL_ORIGIN,
             Settings.FIND_REEL_ORIGIN_ON_TAP),
     STORY_DOWNLOAD(FamilyNames.STORY_DOWNLOAD, "storyDownload", null, Settings.DOWNLOAD_STORIES),
@@ -171,7 +214,6 @@ public enum PatchFamily {
             Settings.DEFAULT_PLAYBACK_QUALITY),
     DATA_SAVER(FamilyNames.DATA_SAVER, "dataSaver", null, Settings.DATA_SAVER),
     TRANSLATED_START(FamilyNames.TRANSLATED_START, "translatedStart", "the start-up fix for x86 devices"),
-    DEVELOPER_OPTIONS(FamilyNames.DEVELOPER_OPTIONS, "developerOptions", null, Settings.OPEN_DEVELOPER_OPTIONS),
     PURE_BLACK(FamilyNames.PURE_BLACK, "pureBlack", "the pure black dark mode"),
     VERSION_CODE(FamilyNames.VERSION_CODE, "versionCode", "the raised version code");
 
@@ -232,6 +274,21 @@ public enum PatchFamily {
         return FRIENDSHIP_STATUS.inBuild() && SettingsStatus.followingListMark();
     }
 
+    /** Whether a test says this build keeps Recent unfollowers, instead of asking {@link SettingsStatus}. */
+    @Nullable
+    static volatile Boolean unfollowersForTests;
+
+    /**
+     * Whether this build keeps Recent unfollowers. It goes in only with the Following list switches,
+     * and without them or when Instagram's follow list pager has moved, it isn't offered.
+     */
+    public static boolean unfollowersInBuild() {
+        Boolean forced = unfollowersForTests;
+        if (forced != null) return forced;
+        if (!followingListMarkInBuild()) return false;
+        return inBuildForTests != null || SettingsStatus.unfollowers();
+    }
+
     /** Whether a test says this build copies a commenter's username, instead of asking {@link SettingsStatus}. */
     @Nullable
     static volatile Boolean commentAuthorForTests;
@@ -263,46 +320,6 @@ public enum PatchFamily {
         Set<PatchFamily> families = inBuildForTests;
         if (families != null) return families.contains(FEED_SUGGESTIONS);
         return FEED_SUGGESTIONS.inBuild() && SettingsStatus.feedTypes();
-    }
-
-    /** Whether a test says this build reads, or writes, MetaConfig overrides, instead of asking {@link SettingsStatus}. */
-    @Nullable
-    static volatile Boolean overrideExchangeForTests, overrideImportForTests;
-
-    /**
-     * Whether this build reads MetaConfig overrides, for Export and Validate. Open developer options
-     * goes in without it when Instagram's override reader has moved.
-     */
-    public static boolean overrideExchangeInBuild() {
-        Boolean forced = overrideExchangeForTests;
-        if (forced != null) return forced;
-        Set<PatchFamily> families = inBuildForTests;
-        if (families != null) return families.contains(DEVELOPER_OPTIONS);
-        return DEVELOPER_OPTIONS.inBuild() && SettingsStatus.overrideExchange();
-    }
-
-    /** Whether this build writes them too, for Import, Restore and Reset. The writer needs the reader. */
-    public static boolean overrideImportInBuild() {
-        if (!overrideExchangeInBuild()) return false;
-        Boolean forced = overrideImportForTests;
-        if (forced != null) return forced;
-        return inBuildForTests != null || SettingsStatus.overrideImport();
-    }
-
-    /** Whether a test says this build shows imported flag names in MetaConfig, instead of asking {@link SettingsStatus}. */
-    @Nullable
-    static volatile Boolean flagNamesForTests;
-
-    /**
-     * Whether this build shows imported flag names in Instagram's MetaConfig list, for Import flag
-     * names. Open developer options goes in without it when that list has moved.
-     */
-    public static boolean flagNamesInBuild() {
-        Boolean forced = flagNamesForTests;
-        if (forced != null) return forced;
-        Set<PatchFamily> families = inBuildForTests;
-        if (families != null) return families.contains(DEVELOPER_OPTIONS);
-        return DEVELOPER_OPTIONS.inBuild() && SettingsStatus.flagNames();
     }
 
     /** The families this build carries, in declaration order. */
@@ -355,17 +372,11 @@ public enum PatchFamily {
                 }
                 if (family == FRIENDSHIP_STATUS && !followingListMarkInBuild()) {
                     lines.add("  Mark who doesn't follow you back: not in this build (Instagram's follow list didn't match)");
-                }
-                if (family == DEVELOPER_OPTIONS && !overrideExchangeInBuild()) {
-                    lines.add("  Export, Validate and Import overrides: not in this build (Instagram's override reader didn't match)");
-                } else if (family == DEVELOPER_OPTIONS && !overrideImportInBuild()) {
-                    lines.add("  Import overrides: not in this build (Instagram's override writer didn't match)");
-                }
-                if (family == DEVELOPER_OPTIONS && !flagNamesInBuild()) {
-                    lines.add("  Import flag names: not in this build (Instagram's MetaConfig list didn't match)");
+                } else if (family == FRIENDSHIP_STATUS && !unfollowersInBuild()) {
+                    lines.add("  Recent unfollowers: not in this build (Instagram's follow list pager didn't match)");
                 }
                 if (family == VERSION_CODE) lines.add("  " + VersionCode.reportLine());
-                if (family == DISABLE_ANALYTICS || family == SANITIZE_SHARING_LINKS || family == TRANSLATED_START) {
+                if (family == SANITIZE_SHARING_LINKS || family == TRANSLATED_START) {
                     try {
                         String encoded = (String) SettingsStatus.class.getMethod(family.statusMethod + "Coverage").invoke(null);
                         lines.add("  " + coverageLine(encoded));
@@ -442,31 +453,97 @@ public enum PatchFamily {
         StringBuilder line = new StringBuilder(patchName).append(": ");
         if (switches.isEmpty() && staysWhilePaused == null) {
             // A choice, not a switch: paused, it answers Instagram's own.
-            return line.append(paused ? "disabled while paused" : "a choice, not a switch").toString();
+            line.append(paused ? "disabled while paused" : "a choice, not a switch");
+            String chosen = choiceText();
+            if (!chosen.isEmpty()) line.append(" (").append(chosen).append(')');
+            return line.toString();
         }
         if (switches.isEmpty()) {
             return line.append("no switch, stays in while paused: ").append(staysWhilePaused).toString();
         }
         boolean anyOn = false;
-        // A switch with switches under it acts only through them, and one under a switch that's off
-        // does nothing, whatever it holds.
+        // One under a switch that's off does nothing, whatever it holds. Turn off double tap to like
+        // acts only through the places under it, while every other switch with switches under it
+        // acts on its own and those only change how.
         Set<Object> parents = new HashSet<>();
-        for (BooleanSetting setting : switches) parents.addAll(setting.getParentSettings());
+        if (this == DOUBLE_TAP_LIKE) {
+            for (BooleanSetting setting : switches) parents.addAll(setting.getParentSettings());
+        }
         for (BooleanSetting setting : switches) {
-            anyOn |= setting.savedValue() && setting.isAvailable() && !parents.contains(setting);
+            anyOn |= setting.savedValue() && reachable(setting) && !parents.contains(setting);
         }
         // What a tap on a reel does is a choice beside the switch, and a saved Pause or Mute counts as on.
         anyOn |= this == REEL_TAP_AND_VOLUME
                 && Settings.REEL_TAP_CHOICE.savedValue() != app.hushgram.extension.instagram.reels.ReelTapChoice.DEFAULT;
+        // Share sheet buttons picked to hide act with the group switch off (#252).
+        anyOn |= this == SHARE_SHEET && !Settings.HIDDEN_SHARE_SHEET_BUTTONS.savedValue().trim().isEmpty();
+        // Muted notification types act with the group switch off.
+        anyOn |= this == NOTIFICATION_GROUPS && !Settings.MUTED_NOTIFICATION_CHANNELS.savedValue().trim().isEmpty();
         line.append(paused ? "disabled while paused (saved " : anyOn ? "on (" : "disabled by its switch (");
         for (int i = 0; i < switches.size(); i++) {
             if (i > 0) line.append(", ");
             BooleanSetting setting = switches.get(i);
             line.append(setting.key).append(setting.savedValue() ? "=on" : "=off");
         }
+        String chosen = choiceText();
+        if (!chosen.isEmpty()) line.append(", ").append(chosen);
         line.append(')');
         if (staysWhilePaused != null) line.append("; stays in while paused: ").append(staysWhilePaused);
         return line.toString();
+    }
+
+    /**
+     * Whether a switch is reachable all the way up. {@code parent()} walks the chain itself now, but
+     * a hand-written availability (Tab bar corners) may name a parent without asking whether that
+     * parent is reachable, so the report still climbs the listed parents.
+     */
+    private static boolean reachable(Setting<?> setting) {
+        if (!setting.isAvailable()) return false;
+        List<Setting<?>> above = setting.getParentSettings();
+        if (above.isEmpty()) return true;
+        for (Setting<?> parent : above) {
+            boolean on = !(parent instanceof BooleanSetting) || ((BooleanSetting) parent).savedValue();
+            if (on && reachable(parent)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * The choices a report prints beside the switches, so it shows what a switch that's on picked
+     * (#85 needed the playback quality and the report left it out).
+     */
+    List<Setting<?>> choices() {
+        switch (this) {
+            case FONT:
+                return Collections.singletonList(Settings.FONT);
+            case MESSAGE_BOX:
+                return Collections.singletonList(Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
+            case NOTIFICATION_GROUPS:
+                return Collections.singletonList(Settings.MUTED_NOTIFICATION_CHANNELS);
+            case PROFILE_TABS:
+                return Arrays.asList(Settings.HIDDEN_OWN_PROFILE_TABS, Settings.HIDDEN_PROFILE_TABS);
+            case PLAYBACK_QUALITY:
+                return Collections.singletonList(Settings.PLAYBACK_QUALITY);
+            case SHARE_SHEET:
+                return Collections.singletonList(Settings.HIDDEN_SHARE_SHEET_BUTTONS);
+            case SETTINGS_ROWS:
+                return Collections.singletonList(Settings.HIDDEN_SETTINGS_ROWS);
+            case REEL_TAP_AND_VOLUME:
+                return Collections.singletonList(Settings.REEL_TAP_CHOICE);
+            case TAB_BAR_LAYOUT:
+                return Collections.singletonList(Settings.TAB_BAR_LAYOUT);
+            default:
+                return Collections.emptyList();
+        }
+    }
+
+    private String choiceText() {
+        StringBuilder text = new StringBuilder();
+        for (Setting<?> choice : choices()) {
+            if (text.length() > 0) text.append(", ");
+            text.append(choice.key).append('=').append(choice.savedValue());
+        }
+        return text.toString();
     }
 
     /**

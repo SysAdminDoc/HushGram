@@ -9,6 +9,7 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -24,7 +25,7 @@ internal const val HOME_SESSION = "$HIDDEN_ACCOUNTS->homeSession(Ljava/lang/Obje
 
 /**
  * Home's cache source, which Instagram makes once for each signed-in session. It keeps its name in
- * every 450 build, and so does the session's getUserId().
+ * every 450 and 451 build, and so does the session's getUserId().
  */
 internal const val MAIN_FEED_CACHE_SOURCE = "Lcom/instagram/mainfeed/network/MainFeedCacheDataSource;"
 private const val SESSION = "Lcom/instagram/common/session/UserSession;"
@@ -43,12 +44,14 @@ internal class HomeStart(val start: MutableMethod, val sessionField: FieldRefere
 
 /**
  * Hidden accounts' account hook, found: the cache source's one constructor taking a boolean and the
- * session, the session's public getUserId(), and HiddenAccounts.accountOf, the stub reading it.
+ * session (in that order on 450, the other way round on 451), the register the session comes in,
+ * the session's public getUserId(), and HiddenAccounts.accountOf, the stub reading it.
  * [write] fills the stub and hands the session over first thing in the constructor, so the list
  * Home leaves out is the signed-in account's own.
  */
 internal class HomeAccount(
     private val constructor: MutableMethod,
+    private val session: Int,
     private val userId: Method,
     private val stub: MutableMethod,
     private val start: HomeStart? = null,
@@ -63,9 +66,8 @@ internal class HomeAccount(
                 return-object p0
             """,
         )
-        // The session is the last parameter, so its register is the method's last, past what a
-        // plain invoke can name. Put first, before the parent constructor runs, it's still the caller's.
-        val session = constructor.implementation!!.registerCount - 1
+        // The session's register is a parameter's, past what a plain invoke can name. Put first, before
+        // the parent constructor runs, it's still the caller's.
         constructor.addInstructions(0, "invoke-static/range { v$session .. v$session }, $HOME_SESSION")
         start?.let { found ->
             // Nothing is live at the first instruction but the parameters, so v0 is free to carry the session.
@@ -87,10 +89,10 @@ internal class HomeAccount(
 internal fun BytecodePatchContext.homeAccountOrWarn(): HomeAccount? = try {
     classDefByOrNull(MAIN_FEED_CACHE_SOURCE) ?: throw PatchException("Hidden accounts: Instagram has no $MAIN_FEED_CACHE_SOURCE")
     val constructors = mutableClassDefBy(MAIN_FEED_CACHE_SOURCE).methods.filter {
-        it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf("Z", SESSION)
+        it.name == "<init>" && it.parameterTypes.map(Any::toString).sorted() == listOf(SESSION, "Z")
     }
     val constructor = constructors.singleOrNull()
-        ?: throw PatchException("Hidden accounts: expected one constructor of $MAIN_FEED_CACHE_SOURCE taking (boolean, UserSession), found ${constructors.size}")
+        ?: throw PatchException("Hidden accounts: expected one constructor of $MAIN_FEED_CACHE_SOURCE taking a boolean and the UserSession, found ${constructors.size}")
     if (constructor.implementation == null) throw PatchException("Hidden accounts: $MAIN_FEED_CACHE_SOURCE's constructor has no code")
     val session = classDefByOrNull(SESSION) ?: throw PatchException("Hidden accounts: Instagram has no $SESSION")
     if (!AccessFlags.PUBLIC.isSet(session.accessFlags)) throw PatchException("Hidden accounts: $SESSION isn't public")
@@ -98,7 +100,8 @@ internal fun BytecodePatchContext.homeAccountOrWarn(): HomeAccount? = try {
         it.name == "getUserId" && it.parameterTypes.isEmpty() && it.returnType == "Ljava/lang/String;" &&
             AccessFlags.PUBLIC.isSet(it.accessFlags) && !AccessFlags.STATIC.isSet(it.accessFlags)
     } ?: throw PatchException("Hidden accounts: $SESSION has no public getUserId()")
-    HomeAccount(constructor, userId, staticStub(HIDDEN_ACCOUNTS, "accountOf", "Ljava/lang/String;"), homeStartOrWarn())
+    val sessionAt = constructor.parameterRegisterNumber(constructor.parameterTypes.indexOfFirst { it.toString() == SESSION })
+    HomeAccount(constructor, sessionAt, userId, staticStub(HIDDEN_ACCOUNTS, "accountOf", "Ljava/lang/String;"), homeStartOrWarn())
 } catch (moved: PatchException) {
     patchLog.warning("${moved.message}. Hidden accounts keeps one list for every account you sign in to.")
     null

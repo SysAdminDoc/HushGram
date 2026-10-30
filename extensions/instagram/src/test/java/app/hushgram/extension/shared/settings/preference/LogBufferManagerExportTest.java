@@ -52,7 +52,7 @@ import java.util.Map;
 public class LogBufferManagerExportTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
     @Before public void hostTarget() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
     }
     @Config(sdk = {28, 30, 37})
     @Test public void noExitOnRecordMeansNoLastExitSection() {

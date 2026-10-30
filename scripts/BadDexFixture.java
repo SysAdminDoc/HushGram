@@ -232,6 +232,8 @@ public class BadDexFixture {
     private static final String TRANSACTION = "Landroid/view/SurfaceControl$Transaction;";
     private static final String LOCATION = "Landroid/location/Location;";
     private static final String WINDOW = "Landroid/view/Window;";
+    private static final String PACKAGE_MANAGER = "Landroid/content/pm/PackageManager;";
+    private static final String COMPONENT_NAME = "Landroid/content/ComponentName;";
     private static final String SETTINGS_ENTRY = "Lapp/hushgram/extension/fixture/settings/SettingsEntry;";
     private static final String OVERRIDE_TABLE = "Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;";
     private static final String OVERRIDE_WRITER = "Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;";
@@ -470,6 +472,8 @@ public class BadDexFixture {
             "no-call Landroid/view/SurfaceControl$Transaction;->setExtendedRangeBrightness(Landroid/view/SurfaceControl;FF)Landroid/view/SurfaceControl$Transaction; outside Lapp/hushgram/extension/",
             "no-call Landroid/app/NotificationManager;->cancel(I)V outside Lapp/hushgram/extension/",
             "no-call Landroid/app/NotificationManager;->cancel(Ljava/lang/String;I)V outside Lapp/hushgram/extension/",
+            "no-call Landroid/content/pm/PackageManager;->setComponentEnabledSetting(Landroid/content/ComponentName;II)V outside Lapp/hushgram/extension/",
+            "no-call Landroid/content/pm/PackageManager;->setComponentEnabledSettings(Ljava/util/List;)V outside Lapp/hushgram/extension/",
             "no-call Lcom/facebook/mobileconfig/troubleshooting/MobileConfigOverridesWriterHolder;->importOverridesFromUser(Ljava/lang/String;)Ljava/lang/String; outside Lcom/facebook/mobileconfig/",
             "no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->reload()V outside Lcom/facebook/mobileconfig/",
             "no-call Lcom/facebook/mobileconfig/MobileConfigOverridesTableHolder;->removeAllOverrides()V outside Lcom/facebook/mobileconfig/",
@@ -494,7 +498,7 @@ public class BadDexFixture {
             "once-call Lapp/hushgram/extension/fixture/feed/SwipeToCreate;->enabled()I in instance (Lfixture/PositionConfig;)V calling instance Lfixture/SwipeContainer;->setEndPanelExtraParameter(Lfixture/PositionConfig;)V holding Lfixture/PositionConfig;->animate:Z",
             "once-call Lapp/hushgram/extension/fixture/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\\scannot\\sbe\\scast\\sto\\snon-null\\stype\\sT\\sof\\scom.instagram.store.PendingActionStore",
             "retry-call Lapp/hushgram/extension/fixture/stories/StorySeen;->toRetry(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; in instance ()V calling instance Ljava/util/Iterator;->hasNext()Z class-holding null\\scannot\\sbe\\scast\\sto\\snon-null\\stype\\sT\\sof\\scom.instagram.store.PendingActionStore",
-            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda",
+            "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->literal(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Integer;)V holding const:0x1ce57a65 const:0x811116000d5cda const:0x8263c5ae",
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->call(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Long;)V holding LX/*;->*(LX/*;)V",
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->field(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Short;)V holding LX/*;->A07:Ljava/util/List; LX/*;->*:Ljava/lang/String;",
             "once-call Lapp/hushgram/extension/fixture/misc/TokenHook;->lack(Ljava/lang/Object;)Ljava/lang/Object; in instance (Ljava/lang/Byte;)V lacking static LX/*;->*(LX/*;)V holding fixture_token",
@@ -514,8 +518,9 @@ public class BadDexFixture {
     /**
      * One of the framework calls a patch sends to an extension stand-in (the settings patch's
      * ShortcutManager calls, Group notifications' NotificationManager.notify and cancel, Allow
-     * screenshots' Window.setFlags and Window.addFlags, Spoof location's Location reads and Turn off
-     * HDR brightness boosts' headroom and color mode calls): the manager it's made on, its name,
+     * screenshots' Window.setFlags and Window.addFlags, Spoof location's Location reads, Turn off
+     * HDR brightness boosts' headroom and color mode calls and Pick the app icon's PackageManager
+     * component calls): the manager it's made on, its name,
      * what it answers, the publisher method that makes it, whether that method makes it as a range
      * call and what it takes after the manager. Its bad build is "bad-shortcut-[caseName]-left".
      * The case name tells calls of one name apart.
@@ -558,7 +563,7 @@ public class BadDexFixture {
         }
     }
 
-    /** All nineteen, as the contract file names them. The update and the transaction's two calls go as range calls. */
+    /** All twenty-one, as the contract file names them. The update and the transaction's two calls go as range calls. */
     private static final List<ShortcutCall> SHORTCUT_CALLS = Arrays.asList(
             new ShortcutCall(SHORTCUT_MANAGER, "pushDynamicShortcut", "V", "push", "push", false, SHORTCUT_INFO),
             new ShortcutCall(SHORTCUT_MANAGER, "addDynamicShortcuts", "Z", "add", "add", false, SHORTCUT_LIST),
@@ -582,7 +587,11 @@ public class BadDexFixture {
                     true, SURFACE_CONTROL, "F", "F"),
             new ShortcutCall(NOTIFICATION_MANAGER, "cancel", "V", "cancel", "cancel", false, "I"),
             new ShortcutCall(NOTIFICATION_MANAGER, "cancel", "V", "cancelTagged", "cancel-tagged", false,
-                    "Ljava/lang/String;", "I"));
+                    "Ljava/lang/String;", "I"),
+            new ShortcutCall(PACKAGE_MANAGER, "setComponentEnabledSetting", "V", "componentSetting", "component-setting",
+                    false, COMPONENT_NAME, "I", "I"),
+            new ShortcutCall(PACKAGE_MANAGER, "setComponentEnabledSettings", "V", "componentSettings", "component-settings",
+                    false, "Ljava/util/List;"));
 
     /** A real native override boundary, with a receiver followed by its exact typed arguments. */
     private static final class OverrideCall {
@@ -2314,14 +2323,18 @@ public class BadDexFixture {
     }
 
     /**
-     * One method of the token host: a string into v0, then what [content] says (a wide and a narrow
-     * literal, a narrow one, a call, two field reads or nothing), then the hook the patch writes
+     * One method of the token host: a string into v0, then what [content] says (a wide literal and two
+     * narrow ones, one negative, a narrow one, a call, two field reads or nothing), then the hook the patch writes
      * when [hook] isn't null.
      */
     private static Method tokenMethod(String name, String parameter, String content, ImmutableMethodReference hook) {
         List<Instruction> code = new ArrayList<>();
         code.add(new ImmutableInstruction21c(Opcode.CONST_STRING, 0, new ImmutableStringReference("fixture_token")));
-        if (content.equals("literals")) code.add(new ImmutableInstruction51l(Opcode.CONST_WIDE, 1, 0x811116000d5cdaL));
+        if (content.equals("literals")) {
+            code.add(new ImmutableInstruction51l(Opcode.CONST_WIDE, 1, 0x811116000d5cdaL));
+            // A negative narrow literal, held by its 32 bits and not sign-extended to 64.
+            code.add(new ImmutableInstruction31i(Opcode.CONST, 1, 0x8263c5ae));
+        }
         if (content.equals("literals") || content.equals("narrow")) {
             code.add(new ImmutableInstruction31i(Opcode.CONST, 1, 0x1ce57a65));
         }
@@ -2339,8 +2352,8 @@ public class BadDexFixture {
     }
 
     /**
-     * The token host, with its hooks in the methods named by [hooked]. literalPick holds a wide and a
-     * narrow literal and literalHalf only the narrow one, callPick calls a method of a Redex class
+     * The token host, with its hooks in the methods named by [hooked]. literalPick holds a wide and two
+     * narrow literals and literalHalf only the positive narrow one, callPick calls a method of a Redex class
      * and callTwin doesn't, fieldPick reads two fields of Redex classes and fieldTwin doesn't, and
      * tokenSite is where the site hook goes, tokenElsewhere where it must not.
      */

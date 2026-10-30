@@ -89,6 +89,27 @@ public class StorySuggestionsTest {
         assertTrue(HookStatus.missing(FamilyNames.STORIES_TRAY).toString(), HookStatus.missing(FamilyNames.STORIES_TRAY).isEmpty());
     }
 
+    /** Every unit the viewer checks is counted by its type, ads too, with the switch on or off. */
+    @Test
+    public void everyUnitTheViewerChecksIsCountedByType() {
+        StoriesTray.netego(null);
+        StoriesTray.netego("story_survey");
+        StoriesTray.netego("suggested_users_in_story");
+        Settings.HIDE_STORY_SUGGESTIONS.save(true);
+        StoriesTray.netego(null);
+        StoriesTray.netego("suggested_users_in_story");
+
+        String units = null;
+        for (String line : FeedFilterCounters.report()) {
+            if (line.startsWith(StoriesTray.UNITS_ROUTE + ":")) units = line;
+        }
+        assertTrue(FeedFilterCounters.report().toString(), units != null);
+        assertTrue(units, units.contains("0 removed"));
+        assertTrue(units, units.contains("ad 2"));
+        assertTrue(units, units.contains("suggested_users_in_story 2"));
+        assertTrue(units, units.contains("story_survey 1"));
+    }
+
     /** On, the empty story state's reel goes and nothing else does; the other switches never take it. */
     @Test
     public void theEmptyStoryStateGoesOnlyWithThisSwitch() {

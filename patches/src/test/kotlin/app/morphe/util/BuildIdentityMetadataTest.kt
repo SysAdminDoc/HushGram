@@ -42,7 +42,7 @@ class BuildIdentityMetadataTest {
     }
 
     @Test fun unsupportedAndCoercedSchemaNumbersAreRefused() {
-        for (value in listOf("\"1\"", "1.0", "1.5", "2", "null")) {
+        for (value in listOf("\"1\"", "1.0", "1.5", "2", "null", "1e0", "1E0", "10e-1")) {
             val changed = inputs().apply { add("schemaVersion", com.google.gson.JsonParser.parseString(value)) }
             assertThrows(IllegalArgumentException::class.java) { BuildIdentityMetadata.requireInputs(changed) }
         }

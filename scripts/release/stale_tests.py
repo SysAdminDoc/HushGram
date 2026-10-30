@@ -6,6 +6,7 @@ Two checks, both reading sources only:
 2. Every text the settings tests expect (assertEquals' expected value and contains()'s argument)
    still occurs in the extension sources or the translation tables. A source format string counts
    for any text its fixed parts match, so "Stop after 20 reels" is found in "Stop after %1$d reels".
+   A diagnostic report line, "<patch name>: <state> (<saved keys>)", is looked for piece by piece.
 
 Exit 0 when both pass, 1 with one line per stale name or text otherwise.
 
@@ -43,6 +44,8 @@ MIN_FIXED = 4
 SENTENCE_WORDS = 3
 # Punctuation a test keeps around a piece it checks, like ": on (".
 EDGES = " \t\n:;,.()[]-"
+# Where a text built from several pieces splits: lines, sentences, and a report line's ": " and " (".
+PIECE_BREAK = re.compile(r"\n|(?<=[.!?])\s+|: | \(")
 ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f", "0": "\0", "'": "'", '"': '"', "\\": "\\", "s": " "}
 
 
@@ -236,11 +239,11 @@ def printed(pattern: re.Pattern, text: str) -> bool:
 
 def found_in(value: str, joined: str, numbers: str, patterns: list[re.Pattern]) -> bool:
     """In a source text or table (numbers aside), or printed by a format string, whole or cut
-    short, sentence by sentence and line by line when it's built from several."""
+    short, piece by piece when it's built from several."""
     text = value.strip(EDGES)
     if not text or text in joined or numbered(text) in numbers or any(printed(p, text) for p in patterns):
         return True
-    parts = [part for part in re.split(r"\n|(?<=[.!?])\s+", text) if part.strip(EDGES)]
+    parts = [part for part in PIECE_BREAK.split(text) if part.strip(EDGES)]
     return len(parts) > 1 and all(not sentence_like(part) or found_in(part, joined, numbers, patterns) for part in parts)
 
 

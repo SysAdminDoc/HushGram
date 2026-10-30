@@ -2,30 +2,30 @@
   "schemaVersion": 1,
   "artifacts": [
     {
-      "purl": "pkg:maven/com.google.code.gson/gson@2.14.0",
-      "file": "gson-2.14.0.jar",
-      "sha256": "2cbd119bf1961c28788310963dc80ba65f58cdeec1dd139c8bdb1240faa2c36f",
+      "purl": "pkg:maven/com.google.code.gson/gson@2.15.0",
+      "file": "gson-2.15.0.jar",
+      "sha256": "96d3dd843dc2911de01cdabcd50064cb9e860353102a0a78c96fd833d396fc7d",
       "license": {
         "id": "Apache-2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
       },
       "evidence": {
-        "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.14.0/gson-2.14.0.pom",
-        "sha256": "1fa0122c0e3733192642861c36be4c6f799a795327a23bdd2922691b6e9ba480",
+        "url": "https://repo.maven.apache.org/maven2/com/google/code/gson/gson/2.15.0/gson-2.15.0.pom",
+        "sha256": "426bc968a4e521865a58dd17a60389fed6195a1c357e3eb8bcb7cae31387bcae",
         "declaredLicense": "Apache-2.0"
       }
     },
     {
-      "purl": "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib@2.4.20",
-      "file": "kotlin-stdlib-2.4.20.jar",
-      "sha256": "2226de463d309d4a5500a481320b3dea515a6981dcae1def531fbc158884e25f",
+      "purl": "pkg:maven/org.jetbrains.kotlin/kotlin-stdlib@2.4.21",
+      "file": "kotlin-stdlib-2.4.21.jar",
+      "sha256": "bd8250210584cb659847dce9cda660f8e9906e5def7fbebcea93dc6dcb6a88a3",
       "license": {
         "id": "Apache-2.0",
         "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
       },
       "evidence": {
-        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.20/kotlin-stdlib-2.4.20.pom",
-        "sha256": "bd69b382dba8e2b7ae3846375eb2f1389017eb908987277051ae4e3acec8c938",
+        "url": "https://repo.maven.apache.org/maven2/org/jetbrains/kotlin/kotlin-stdlib/2.4.21/kotlin-stdlib-2.4.21.pom",
+        "sha256": "b92b23ec9c444b2578b9852447565efc72c24b3ea77b4c3bf4e644f685eeef07",
         "declaredLicense": "Apache-2.0"
       }
     },

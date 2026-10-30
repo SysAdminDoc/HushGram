@@ -8,8 +8,10 @@
     reads as a build change. The stand-ins write what a real build would leave in the gate's
     worktree (test results, the bundle, its SBOM) and log what they were asked, so the order of
     the builds, the queue slot and the release priority can be read back. Nothing is compiled.
-    The last cases push an index commit over a gated release commit, with the release check and
-    the suites it starts as stand-ins, to see which pushes skip the build and which don't.
+    The full gate cases push with HUSHGRAM_FULL_GATE=1 or as a release. Later cases push an index
+    commit over a gated release commit, with the release check and the suites it starts as
+    stand-ins, to see which pushes skip the build and which don't, and ordinary pushes of sources
+    with and without tests beside them, to see what the focused build runs and when it refuses.
 .NOTES
     Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
     GPL-3.0-only.
@@ -25,7 +27,7 @@ $scratch = [IO.Path]::GetFullPath((Join-Path ([IO.Path]::GetTempPath()) ('hushgr
 $passed = 0
 $version = '450.0.0.50.77'
 $hookScripts = @('pre-push.ps1', 'common.ps1', 'patch-target.ps1', 'build-jobs.ps1', 'gate-evidence.ps1')
-$hookVariables = @('HUSHGRAM_SKIP_PRE_PUSH', 'HUSHGRAM_ALLOW_RELEASE', 'HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR',
+$hookVariables = @('HUSHGRAM_SKIP_PRE_PUSH', 'HUSHGRAM_ALLOW_RELEASE', 'HUSHGRAM_FULL_GATE', 'HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR',
     'HUSHGRAM_WORKDIR', 'HUSHGRAM_BUILD_WRAPPER', 'BUILD_QUEUE_SCRIPT', 'BUILD_QUEUE_PRIORITY', 'BUILD_QUEUE_TICKET',
     'HUSHGRAM_GATE_CACHE', 'HUSHGRAM_GATE_TEST_LOG', 'HUSHGRAM_GATE_TEST_FAIL', 'HUSHGRAM_GATE_TEST_STALE',
     'HUSHGRAM_GATE_TEST_FACTS_EXIT')
@@ -183,9 +185,11 @@ exit 0
     $tip = New-FixtureCommit 'change a patch'
     $short = $tip.Substring(0, 12)
 
-    # Cheap checks first, in one build, then the patch tests and the bundle, all in one slot.
-    $run = Invoke-Push -Tip $tip -Base $base
-    $builds = Get-GradleRuns
+    # The full gate: cheap checks first, in one build, then the patch tests and the bundle, all in
+    # one slot.
+    $full = @{ HUSHGRAM_FULL_GATE = '1' }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment $full
+    $builds = @(Get-GradleRuns)
     Assert-True ($run.Exit -eq 0) "The gate refused a clean change: $($run.Output)"
     Assert-True ($builds.Count -eq 2) "The gate ran $($builds.Count) builds, not two: $($builds -join '; ')"
     Assert-True ($builds[0] -like '*:patches:generatePatchesList*' -and $builds[0] -like '*:extensions:instagram:lint*' -and
@@ -212,7 +216,7 @@ exit 0
         "The gate didn't keep its SBOM and test results."
 
     # A lint that fails stops the push before the quarter hour of patch tests.
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_GATE_TEST_FAIL = ':extensions:instagram:lint' }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_GATE_TEST_FAIL = ':extensions:instagram:lint' })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 1 -and $run.Output -like '*the runtime tests, a lint or the catalog failed*') `
         "A failed quick build didn't stop the gate before the patch tests: $((Get-GradleRuns) -join '; ') $($run.Output)"
     Assert-True ((@(Read-Log | Where-Object { $_ -like 'queue *' }) -join ',') -eq "queue enter hushgram gate $short normal,queue exit") `
@@ -224,17 +228,17 @@ exit 0
         "The refused gate's manifest doesn't say where it stopped: $($manifest | ConvertTo-Json -Depth 6 -Compress)"
 
     # So does a catalog that doesn't match the patches.
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_GATE_TEST_STALE = '1' }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_GATE_TEST_STALE = '1' })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 1 -and $run.Output -like '*patches-list.json is stale*') `
         "A stale catalog didn't stop the gate before the patch tests: $($run.Output)"
 
     # A catalog that differs only in letter case is just as stale.
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_GATE_TEST_STALE = 'case' }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_GATE_TEST_STALE = 'case' })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 1 -and $run.Output -like '*patches-list.json is stale*') `
         "A catalog regenerated with other letter case didn't stop the gate: $($run.Output)"
 
     # A failed patch test or bundle is still a refusal.
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_GATE_TEST_FAIL = ':patches:test' }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_GATE_TEST_FAIL = ':patches:test' })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 2 -and $run.Output -like '*the patch tests failed or the bundle did not build*') `
         "A failed patch test didn't stop the gate: $($run.Output)"
 
@@ -243,18 +247,19 @@ exit 0
     New-Item -ItemType Directory -Path $fixtureDir | Out-Null
     $desktop = Join-Path $scratch 'morphe-desktop-stand-in.jar'
     Set-Content -LiteralPath $desktop -Value 'jar'
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_FIXTURE_DIR = $fixtureDir; HUSHGRAM_DESKTOP_JAR = $desktop }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_FIXTURE_DIR = $fixtureDir; HUSHGRAM_DESKTOP_JAR = $desktop })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 0 -and $run.Output -like "*no fixture for the declared build $version*") `
         "A missing fixture didn't stop the gate before the build: $((Get-GradleRuns) -join '; ') $($run.Output)"
 
     # Another build of the declared version (a full bundle that sorts first) is not the declared one.
     $otherBuild = Join-Path $fixtureDir "instagram-$version-385611395.apkm"
     Set-Content -LiteralPath $otherBuild -Value 'bundle of another build'
-    $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_FIXTURE_DIR = $fixtureDir; HUSHGRAM_DESKTOP_JAR = $desktop }
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($full + @{ HUSHGRAM_FIXTURE_DIR = $fixtureDir; HUSHGRAM_DESKTOP_JAR = $desktop })
     Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 0 -and $run.Output -like "*no fixture for the declared build $version*") `
         "A fixture of another build of the version was taken for the declared one: $((Get-GradleRuns) -join '; ') $($run.Output)"
 
-    # A push made for a release is first in line, and its builds know it.
+    # A push made for a release gets the full gate without asking for it, first in line, and its
+    # builds know it.
     $run = Invoke-Push -Tip $tip -Base $base -Environment @{ HUSHGRAM_ALLOW_RELEASE = '1' }
     Assert-True ($run.Exit -eq 0 -and @(Get-GradleRuns | Where-Object { $_ -like '*priority=release slot=True' }).Count -eq 2 -and
         (Read-Log) -contains "queue enter hushgram gate $short release") `
@@ -268,14 +273,14 @@ exit 0
         -Version $version -Folder $fixtureDir
     Assert-True ($null -ne $picked -and $picked.Name -eq (Split-Path -Leaf $fixtureApk)) "The declared fixture wasn't picked over a file that sorts first: $($picked.Name)"
     $withFixtures = @{ HUSHGRAM_FIXTURE_DIR = $fixtureDir; HUSHGRAM_DESKTOP_JAR = $desktop }
-    $run = Invoke-Push -Tip $tip -Base $base -Environment ($withFixtures + @{ HUSHGRAM_GATE_TEST_FAIL = 'verify' })
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($withFixtures + $full + @{ HUSHGRAM_GATE_TEST_FAIL = 'verify' })
     $manifest = Read-Manifest
     Assert-True ($run.Exit -ne 0 -and $manifest.passed -eq $false -and $manifest.stage -eq 'fixtures' -and
         $manifest.fixtures[0].reports -eq 2 -and $manifest.fixtures[0].kept -eq $false -and $manifest.fixturesPatched -eq $false) `
         "A failed patch run wasn't kept as a failure with its reports: $($manifest | ConvertTo-Json -Depth 6 -Compress) $($run.Output)"
 
     # A passing one is kept with the stamped run, made inside the gate's slot.
-    $run = Invoke-Push -Tip $tip -Base $base -Environment $withFixtures
+    $run = Invoke-Push -Tip $tip -Base $base -Environment ($withFixtures + $full)
     $manifest = Read-Manifest
     Assert-True ($run.Exit -eq 0 -and (Read-Log) -contains "verify $(Split-Path -Leaf $fixtureApk) keep=True slot=True") `
         "The gate didn't patch the declared build with -KeepIn inside its slot: $((Read-Log) -join '; ') $($run.Output)"
@@ -499,6 +504,219 @@ exit 0
     Invoke-FixtureGit checkout -q -- scripts/stand-in-helper.ps1 | Out-Null
     Invoke-FixtureGit reset -q --hard $tip | Out-Null
 
+    # An ordinary push gets one build: everything compiles, the catalog is regenerated and the tests
+    # beside what changed run, and nothing is kept for the release scripts. The stand-in patch file
+    # has no test, so its push stops before anything is built and says how to gate it in full.
+    $run = Invoke-Push -Tip $tip -Base $base
+    Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 0 -and @(Read-Log | Where-Object { $_ -like 'queue *' }).Count -eq 0 -and
+        $run.Output -like '*patches/src/main/kotlin/StandIn.kt*' -and $run.Output -like '*no test covers 1 changed file(s)*HUSHGRAM_FULL_GATE=1*') `
+        "An ordinary push of a file no test covers wasn't stopped before the build: $((Read-Log) -join '; ') $($run.Output)"
+    $runtimeTests = 'extensions/instagram/src/test/java/app/hushgram/feed'
+    $areaSources = 'patches/src/main/kotlin/app/morphe/patches/instagram'
+    $areaTests = 'patches/src/test/kotlin/app/morphe/patches/instagram'
+    Write-FixtureFile 'extensions/instagram/src/main/java/app/hushgram/feed/Pager.java' "// first`n"
+    Write-FixtureFile "$runtimeTests/PagerTest.java" "// beside it`n"
+    Write-FixtureFile "$runtimeTests/PagerFakes.java" "// a helper, not a test`n"
+    Write-FixtureFile "$runtimeTests/deeper/DeeperTest.java" "// another folder`n"
+    Write-FixtureFile 'extensions/shared/library/src/main/java/app/hushgram/shared/Strings.java' "// first`n"
+    # feed is imported by a test in ads and a source in explore, which has no tests of its own but is
+    # imported by a test in reels. stories names the extension's Pager class. profile is a leaf, and
+    # coexist has neither tests nor importers.
+    Write-FixtureFile "$areaSources/feed/FeedPatch.kt" "// first`n"
+    Write-FixtureFile "$areaTests/feed/deeper/FeedPatchTest.kt" "// the area's`n"
+    Write-FixtureFile "$areaTests/feed/FeedFakes.kt" "// the area's helper`n"
+    Write-FixtureFile "$areaTests/ads/AdsPatchTest.kt" "import app.morphe.patches.instagram.feed.FeedPatch`n"
+    Write-FixtureFile "$areaSources/explore/ExplorePatch.kt" "import app.morphe.patches.instagram.feed.FeedPatch`n"
+    Write-FixtureFile "$areaTests/reels/ReelsPatchTest.kt" "import app.morphe.patches.instagram.explore.ExplorePatch`n"
+    Write-FixtureFile "$areaSources/stories/StoriesPatch.kt" "private const val PAGER = `"`$EXTENSION_PACKAGE/feed/Pager;`"`n"
+    Write-FixtureFile "$areaTests/stories/StoriesPatchTest.kt" "// reads the built extension`n"
+    Write-FixtureFile "$areaSources/profile/ProfilePatch.kt" "// first`n"
+    Write-FixtureFile "$areaTests/profile/ProfilePatchTest.kt" "// a leaf`n"
+    Write-FixtureFile "$areaSources/coexist/CoexistPatch.kt" "// first`n"
+    Write-FixtureFile "$areaSources/Shared.kt" "// first`n"
+    Write-FixtureFile 'patches/src/test/kotlin/app/morphe/SourceNoticeTest.kt' "// scans every source`n"
+    Write-FixtureFile 'patches/src/test/kotlin/app/morphe/ObfuscatedIdentityTest.kt' "// scans every source, reads the list`n"
+    Write-FixtureFile 'patches/src/test/kotlin/app/morphe/ProvenanceTest.kt' "// scans every source and every file the ledger names`n"
+    Write-FixtureFile 'provenance.json' '{"rules": [{"paths": ["extensions/shared/**", "scripts/named-table.txt"]}]}'
+    Write-FixtureFile 'scripts/named-table.txt' "first`n"
+    Write-FixtureFile 'scripts/unnamed-table.txt' "first`n"
+    Write-FixtureFile 'patches/src/test/kotlin/app/morphe/Fixtures.kt' "// first`n"
+    Write-FixtureFile 'patches/src/test/resources/obfuscated-identities.txt' "first`n"
+    Write-FixtureFile 'extensions/instagram/build.gradle.kts' "// first`n"
+    Write-FixtureFile 'settings.gradle.kts' "// first`n"
+    Write-FixtureFile 'extensions/instagram/lint.xml' "<lint/>`n"
+    foreach ($n in 1..121) { Write-FixtureFile "extensions/instagram/src/test/java/app/hushgram/many/Many${n}Test.java" "// one of many`n" }
+    Write-FixtureFile 'scripts/test-android-boundaries.ps1' @'
+param([string]$Root)
+Add-Content -LiteralPath $env:HUSHGRAM_GATE_TEST_LOG -Value "suite $(Split-Path -Leaf $PSCommandPath)"
+exit 0
+'@
+    Write-FixtureFile 'scripts/test-translations.ps1' @'
+param([string]$Root)
+Add-Content -LiteralPath $env:HUSHGRAM_GATE_TEST_LOG -Value "suite $(Split-Path -Leaf $PSCommandPath)"
+exit 0
+'@
+    $focusBase = New-FixtureCommit 'sources with tests beside them'
+    Write-FixtureFile 'extensions/instagram/src/main/java/app/hushgram/feed/Pager.java' "// second`n"
+    Write-FixtureFile "$areaSources/feed/FeedPatch.kt" "// second`n"
+    $focusTip = New-FixtureCommit 'change a runtime source and a patch'
+    $focusShort = $focusTip.Substring(0, 12)
+    $focusSlot = "queue enter hushgram focused $focusShort normal,queue exit"
+    $run = Invoke-Push -Tip $focusTip -Base $focusBase
+    $builds = @(Get-GradleRuns)
+    Assert-True ($run.Exit -eq 0 -and $builds.Count -eq 1 -and $run.Output -like '*the focused checks passed*') `
+        "An ordinary push with tests beside its changes wasn't one focused build: $((Read-Log) -join '; ') $($run.Output)"
+    # The runtime source runs every runtime test and the area that names its class, and the patch
+    # runs its area and the areas importing it, through explore to reels.
+    $guards = '--tests app.morphe.ObfuscatedIdentityTest --tests app.morphe.ProvenanceTest --tests app.morphe.SourceNoticeTest'
+    Assert-True ($builds[0] -like '*--continue*' -and $builds[0] -like '*:patches:generatePatchesList*' -and $builds[0] -like '*:patches:testClasses*' -and
+        $builds[0] -like ('*:extensions:instagram:compileDebugUnitTestJavaWithJavac :extensions:instagram:testDebugUnitTest ' +
+            ":patches:test $guards " +
+            '--tests app.morphe.patches.instagram.ads.? --tests app.morphe.patches.instagram.feed.? ' +
+            '--tests app.morphe.patches.instagram.reels.? --tests app.morphe.patches.instagram.stories.? priority=*') -and
+        $builds[0] -like '*slot=True' -and $builds[0] -notlike '*lint*' -and $builds[0] -notlike '*buildAndroid*' -and
+        $builds[0] -notlike '*verifyAndroidBoundaries*' -and $builds[0] -notlike '*instagram.profile*' -and $builds[0] -notlike '*instagram.explore*') `
+        "The focused build isn't the compile, the catalog and the tests the change reaches: $($builds[0])"
+    Assert-True ((@(Read-Log | Where-Object { $_ -like 'queue *' }) -join ',') -eq $focusSlot -and
+        -not (Test-Path -LiteralPath (Join-Path $script:gateCache $focusTip)) -and @(Read-Log | Where-Object { $_ -like 'verify *' }).Count -eq 0 -and
+        (Read-Log) -contains 'suite test-translations.ps1') `
+        "The focused build didn't run in one slot with its suites and leave nothing kept: $((Read-Log) -join '; ')"
+
+    # Every failure it shows stops the push, and the slot is given back.
+    $run = Invoke-Push -Tip $focusTip -Base $focusBase -Environment @{ HUSHGRAM_GATE_TEST_FAIL = ':patches:test' }
+    Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 1 -and $run.Output -like '*the focused build failed*' -and
+        (@(Read-Log | Where-Object { $_ -like 'queue *' }) -join ',') -eq $focusSlot -and
+        -not (Test-Path -LiteralPath (Join-Path $script:gateCache $focusTip))) `
+        "A failed focused build didn't stop the push and give its slot back: $((Read-Log) -join '; ') $($run.Output)"
+    $run = Invoke-Push -Tip $focusTip -Base $focusBase -Environment @{ HUSHGRAM_GATE_TEST_STALE = '1' }
+    Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 1 -and $run.Output -like '*patches-list.json is stale*') `
+        "A stale catalog didn't stop a focused push: $($run.Output)"
+
+    # HUSHGRAM_FULL_GATE=1 gates the same push in full.
+    $run = Invoke-Push -Tip $focusTip -Base $focusBase -Environment $full
+    Assert-True ($run.Exit -eq 0 -and (Get-GradleRuns).Count -eq 2 -and (Get-GradleRuns)[0] -like '*:extensions:instagram:lint*' -and
+        (Test-Path -LiteralPath (Join-Path $script:gateCache "$focusTip/manifest.json"))) `
+        "HUSHGRAM_FULL_GATE=1 didn't run the full gate: $((Get-GradleRuns) -join '; ') $($run.Output)"
+
+    # A patch source with no tests in its area and nothing importing it stops the push before the
+    # build. Once it's deleted there's nothing left to test, so the compile and the source-wide
+    # checks cover it.
+    Write-FixtureFile "$areaSources/coexist/CoexistPatch.kt" "// second`n"
+    $lonely = New-FixtureCommit 'change a patch no test reaches'
+    $run = Invoke-Push -Tip $lonely -Base $focusTip
+    Assert-True ($run.Exit -ne 0 -and (Get-GradleRuns).Count -eq 0 -and $run.Output -like '*no test covers 1 changed file(s)*' -and
+        $run.Output -like "*$areaSources/coexist/CoexistPatch.kt*") `
+        "A patch no test reaches went out on a focused push: $($run.Output)"
+    Invoke-FixtureGit reset -q --hard $focusTip | Out-Null
+    Invoke-FixtureGit rm -q "$areaSources/coexist/CoexistPatch.kt" | Out-Null
+    $removed = New-FixtureCommit 'remove a patch no test reaches'
+    $run = Invoke-Push -Tip $removed -Base $focusTip
+    $builds = @(Get-GradleRuns)
+    Assert-True ($run.Exit -eq 0 -and $builds.Count -eq 1 -and
+        $builds[0] -like "*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test $guards priority=*") `
+        "A deleted patch wasn't left to the compile and the source-wide checks: $((Read-Log) -join '; ') $($run.Output)"
+
+    # A shared library change runs every runtime test, unfiltered, and the source-wide checks.
+    Write-FixtureFile 'extensions/shared/library/src/main/java/app/hushgram/shared/Strings.java' "// second`n"
+    $shared = New-FixtureCommit 'change the shared library'
+    $run = Invoke-Push -Tip $shared -Base $removed
+    $builds = @(Get-GradleRuns)
+    Assert-True ($run.Exit -eq 0 -and $builds.Count -eq 1 -and $builds[0] -like "*:extensions:instagram:testDebugUnitTest :patches:test $guards priority=*") `
+        "A shared library change didn't run every runtime test and the source-wide checks: $($builds -join '; ') $($run.Output)"
+
+    # The rest, each as a push of one changed file: what it runs, and what it leaves out.
+    $cases = @(
+        @{ Name = 'a file a patch test reads'; File = 'patches/src/test/resources/obfuscated-identities.txt'
+            Like = '*:patches:test --tests app.morphe.ObfuscatedIdentityTest priority=*'; NotLike = @('*testDebugUnitTest*', '*SourceNoticeTest*') },
+        @{ Name = 'a source beside every area'; File = 'patches/src/main/kotlin/app/morphe/patches/instagram/Shared.kt'
+            Like = "*:patches:test $guards --tests app.morphe.patches.instagram.? priority=*"; NotLike = @('*testDebugUnitTest*') },
+        @{ Name = 'a shared patch test helper'; File = 'patches/src/test/kotlin/app/morphe/Fixtures.kt'
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test priority=*'; NotLike = @('*testDebugUnitTest*', '*--tests*') },
+        @{ Name = 'a runtime test helper'; File = "$runtimeTests/PagerFakes.java"
+            Like = '*:extensions:instagram:testDebugUnitTest priority=*'; NotLike = @('*:patches:test *', '*--tests*') },
+        @{ Name = 'a build file'; File = 'settings.gradle.kts'
+            Like = '*:extensions:instagram:testDebugUnitTest :patches:test priority=*'; NotLike = @('*--tests*', '*verifyAndroidBoundaries*') },
+        @{ Name = 'a file the build reads beside the sources'; File = 'extensions/instagram/lint.xml'
+            Like = '*:extensions:instagram:testDebugUnitTest :patches:test priority=*'; NotLike = @('*--tests*') },
+        @{ Name = 'a runtime test'; File = "$runtimeTests/PagerTest.java"
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :extensions:instagram:testDebugUnitTest --tests app.hushgram.feed.PagerTest priority=*'
+            NotLike = @('*:patches:test *', '*Deeper*', '*Fakes*') },
+        @{ Name = 'a runtime test with more than 120 tests beside it'; File = 'extensions/instagram/src/test/java/app/hushgram/many/Many1Test.java'
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :extensions:instagram:testDebugUnitTest priority=*'
+            NotLike = @('*app.hushgram.*', '*:patches:test *') },
+        @{ Name = 'a translation table'; File = 'extensions/shared/library/src/main/l10n/de.tsv'; Suite = 'test-translations.ps1'
+            Like = "*:extensions:instagram:testDebugUnitTest :patches:test $guards priority=*"; NotLike = @('*app.morphe.patches.*') },
+        @{ Name = 'a patch area nothing imports'; File = "$areaSources/profile/ProfilePatch.kt"
+            Like = "*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test $guards --tests app.morphe.patches.instagram.profile.? priority=*"
+            NotLike = @('*testDebugUnitTest*', '*instagram.feed*') },
+        @{ Name = 'a patch test another area imports'; File = "$areaTests/feed/deeper/FeedPatchTest.kt"
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test --tests app.morphe.patches.instagram.feed.? priority=*'
+            NotLike = @('*testDebugUnitTest*', '*instagram.ads*', '*SourceNoticeTest*') },
+        @{ Name = 'a patch test helper in an area'; File = "$areaTests/feed/FeedFakes.kt"
+            Like = ('*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test --tests app.morphe.patches.instagram.ads.? ' +
+                '--tests app.morphe.patches.instagram.feed.? --tests app.morphe.patches.instagram.reels.? priority=*')
+            NotLike = @('*testDebugUnitTest*', '*instagram.stories*', '*SourceNoticeTest*') },
+        @{ Name = 'a script provenance.json names'; File = 'scripts/named-table.txt'
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test --tests app.morphe.ProvenanceTest priority=*'
+            NotLike = @('*testDebugUnitTest*', '*SourceNoticeTest*') },
+        @{ Name = 'a patch utility'; File = 'patches/src/main/kotlin/app/morphe/util/Bytecode.kt'
+            Like = '*:extensions:instagram:compileDebugUnitTestJavaWithJavac :patches:test priority=*'; NotLike = @('*testDebugUnitTest*', '*--tests*') },
+        @{ Name = 'the Android boundaries'; File = 'extensions/instagram/build.gradle.kts'; Suite = 'test-android-boundaries.ps1'
+            Like = '*:extensions:instagram:testDebugUnitTest :extensions:instagram:verifyAndroidBoundaries :patches:test priority=*'
+            NotLike = @('*--tests*') }
+    )
+    $caseBase = $shared
+    foreach ($case in $cases) {
+        Write-FixtureFile $case.File "// changed for $($case.Name)`n"
+        $caseTip = New-FixtureCommit "change $($case.Name)"
+        $run = Invoke-Push -Tip $caseTip -Base $caseBase
+        $builds = @(Get-GradleRuns)
+        Assert-True ($run.Exit -eq 0 -and $builds.Count -eq 1 -and $builds[0] -like $case.Like -and
+            @($case.NotLike | Where-Object { $builds[0] -like $_ }).Count -eq 0 -and
+            (-not $case.Suite -or (Read-Log) -contains "suite $($case.Suite)")) `
+            "A push of $($case.Name) didn't run what it should: $((Read-Log) -join '; ') $($run.Output)"
+        $caseBase = $caseTip
+    }
+    # A script the ledger doesn't name is no build input.
+    Write-FixtureFile 'scripts/unnamed-table.txt' "second`n"
+    $caseTip = New-FixtureCommit 'change a script the ledger does not name'
+    $run = Invoke-Push -Tip $caseTip -Base $caseBase
+    Assert-True ($run.Exit -eq 0 -and (Get-GradleRuns).Count -eq 0 -and $run.Output -like '*no build input changed*') `
+        "A script provenance.json doesn't name was built: $((Read-Log) -join '; ') $($run.Output)"
+    Invoke-FixtureGit reset -q --hard $tip | Out-Null
+
+    # A push that moves where a patch hooks Instagram with the contracts file left as it was gets a
+    # one-line hint naming the patch, on a skipped push too, and still goes out. With the contracts
+    # file in the push, or a change to a comment or an ordinary line, there's no hint.
+    $hookFolder = 'patches/src/main/kotlin/app/morphe/patches/instagram/hinted'
+    $hookSource = @'
+fun hook() {
+    method.addInstructions(0, "invoke-static { }, $HINTED->first()V")
+}
+'@
+    Write-FixtureFile "$hookFolder/HintedPatch.kt" "val hintedPatch = bytecodePatch(`n    name = `"Hinted patch`",`n)`n"
+    Write-FixtureFile "$hookFolder/HintedHook.kt" $hookSource
+    Write-FixtureFile 'scripts/injected-mutation-contracts.txt' "once-call Lapp/Hinted;->first()V`n"
+    $hintBase = New-FixtureCommit 'add a hooked patch'
+    $skipped = @{ HUSHGRAM_SKIP_PRE_PUSH = '1' }
+    Write-FixtureFile "$hookFolder/HintedHook.kt" $hookSource.Replace('first()V', 'second()V')
+    $hookMoved = New-FixtureCommit 'move a hook'
+    $run = Invoke-Push -Tip $hookMoved -Base $hintBase -Environment $skipped
+    $hints = @($run.Output -split "`n" | Where-Object { $_ -like '*hint:*' })
+    Assert-True ($run.Exit -eq 0 -and $hints.Count -eq 1 -and $hints[0] -like '*hint: Hinted patch moved where it hooks Instagram (HintedHook.kt)*' -and
+        $hints[0] -like '*scripts/injected-mutation-contracts.txt*' -and $run.Output -like '*skipped by HUSHGRAM_SKIP_PRE_PUSH*') `
+        "A moved hook with no contracts change didn't get one hint on a skipped push: $($run.Output)"
+    Write-FixtureFile 'scripts/injected-mutation-contracts.txt' "once-call Lapp/Hinted;->second()V`n"
+    $ruleMoved = New-FixtureCommit 'move its rule too'
+    $run = Invoke-Push -Tip $ruleMoved -Base $hintBase -Environment $skipped
+    Assert-True ($run.Exit -eq 0 -and $run.Output -notlike '*hint:*') "A hook moved with its rule still got a hint: $($run.Output)"
+    Write-FixtureFile "$hookFolder/HintedHook.kt" ($hookSource.Replace('first()V', 'second()V').Replace('fun hook() {',
+        "// invoke-static goes in front of the call`nfun hook() {`n    val tries = 2"))
+    $plainChange = New-FixtureCommit 'change a comment and a plain line'
+    $run = Invoke-Push -Tip $plainChange -Base $ruleMoved -Environment $skipped
+    Assert-True ($run.Exit -eq 0 -and $run.Output -notlike '*hint:*') "A comment or a plain line got a hint: $($run.Output)"
+    Invoke-FixtureGit reset -q --hard $tip | Out-Null
+
     # Only the newest runs are kept, and a folder still being written is left alone for a while.
     $pruneCache = Join-Path $scratch 'prune-cache'
     $env:HUSHGRAM_GATE_CACHE = $pruneCache
@@ -551,6 +769,23 @@ exit 0
     . (Join-Path $PSScriptRoot 'script-wiring.ps1')
     Assert-True (Test-PushGateRunsSuite (Join-Path $Root 'scripts/pre-push.ps1') 'scripts/test-push-gate.ps1') `
         'The push gate does not run this suite when the hook changes.'
+    # The hook starts every suite with -Root, and an advanced script without it dies before its first check.
+    $hookAst = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $Root 'scripts/pre-push.ps1'), [ref]$null, [ref]$null)
+    $gatedSuites = @($hookAst.FindAll({ param($node)
+            $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Operator -eq [System.Management.Automation.Language.TokenKind]::PlusEquals -and
+            $node.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $node.Left.VariablePath.UserPath -eq 'suites' }, $true) |
+        ForEach-Object { $_.Right.Find({ param($node) $node -is [System.Management.Automation.Language.StringConstantExpressionAst] }, $true).Value } |
+        Where-Object { $_ -like '*.ps1' } | Sort-Object -Unique)
+    Assert-True ($gatedSuites -contains 'scripts/test-walk-capture.ps1') 'The suite list was not read out of the hook.'
+    foreach ($gatedSuite in $gatedSuites) {
+        $suiteParams = [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $Root $gatedSuite), [ref]$null, [ref]$null).ParamBlock
+        $advanced = $null -ne $suiteParams -and (@($suiteParams.Attributes | Where-Object { $_.TypeName.Name -eq 'CmdletBinding' }).Count -gt 0 -or
+            @($suiteParams.Parameters.Attributes | Where-Object { $_.TypeName.Name -eq 'Parameter' }).Count -gt 0)
+        Assert-True (-not $advanced -or @($suiteParams.Parameters | Where-Object { $_.Name.VariablePath.UserPath -eq 'Root' }).Count -eq 1) `
+            "$gatedSuite takes no -Root, so the push gate can't start it."
+    }
     Write-Host "[push-gate] $passed checks passed"
 } finally {
     foreach ($name in $saved.Keys) { [Environment]::SetEnvironmentVariable($name, $saved[$name], [EnvironmentVariableTarget]::Process) }

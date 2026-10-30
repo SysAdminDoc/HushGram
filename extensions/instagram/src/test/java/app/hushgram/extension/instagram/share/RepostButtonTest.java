@@ -68,6 +68,25 @@ public class RepostButtonTest {
         assertNull(RepostButton.eligible(null));
     }
 
+    /**
+     * 452 compares the tree's value with a Boolean in place. On, the compare answers as if the tree
+     * had said FALSE; off, it answers what Instagram found, handed over as an int that reads any
+     * non-zero as a match.
+     */
+    @Test
+    public void theInPlaceCompareReadsFalseWhileOnAndInstagramsMatchOtherwise() {
+        assertFalse(RepostButton.eligibleMatch(1, Boolean.TRUE));
+        assertTrue(RepostButton.eligibleMatch(0, Boolean.FALSE));
+        assertTrue(RepostButton.eligibleMatch(1, Boolean.FALSE));
+        assertFalse(RepostButton.eligibleMatch(1, null));
+
+        Settings.HIDE_REPOST_BUTTON.save(false);
+        assertTrue(RepostButton.eligibleMatch(1, Boolean.TRUE));
+        assertFalse(RepostButton.eligibleMatch(0, Boolean.TRUE));
+        assertTrue("2 is a match too", RepostButton.eligibleMatch(2, Boolean.FALSE));
+        assertFalse(RepostButton.eligibleMatch(0, null));
+    }
+
     /** The Feed UFI binder gets a last pass because its state can be built before settings are ready. */
     @Test
     public void withTheSwitchOnTheFeedUfiRepostViewsHide() {

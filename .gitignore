@@ -72,12 +72,10 @@ CODEX_CHANGELOG.md
 RESEARCH.md
 Roadmap_Blocked.md
 
-# Keep working documents local; publish usage, release notes and the contributing guide.
+# Keep working documents local; publish usage and release notes.
 *.md
 !README.md
 !CHANGELOG.md
-!CONTRIBUTING.md
-!docs/**/*.md
 
 # One-off helper scripts never belong at the root
 /*.py

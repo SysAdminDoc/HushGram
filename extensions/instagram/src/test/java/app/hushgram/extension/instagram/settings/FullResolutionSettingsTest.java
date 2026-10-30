@@ -37,7 +37,7 @@ public class FullResolutionSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.FULL_RESOLUTION_PHOTOS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -73,11 +73,11 @@ public class FullResolutionSettingsTest {
         PreferenceCategory feed = categoryHolding(page.getPreferenceScreen(), row);
         assertNotNull(feed);
         assertEquals("Feed", feed.getTitle().toString());
-        assertEquals(2, feed.getPreferenceCount());
+        assertEquals(3, feed.getPreferenceCount());
         assertFalse(row.isChecked());
         assertFalse(Settings.FULL_RESOLUTION_PHOTOS.get());
-        assertEquals(java.util.Arrays.asList(Settings.FULL_RESOLUTION_PHOTOS, Settings.ASK_FOR_LARGER_PHOTOS),
-                PatchFamily.FULL_RESOLUTION.switches);
+        assertEquals(java.util.Arrays.asList(Settings.FULL_RESOLUTION_PHOTOS, Settings.ASK_FOR_LARGER_PHOTOS,
+                Settings.FULL_SIZE_COVERS), PatchFamily.FULL_RESOLUTION.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_RESOLUTION_PHOTOS.key));
         SwitchPreference larger = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.ASK_FOR_LARGER_PHOTOS.key);
         assertNotNull(larger);
@@ -87,6 +87,12 @@ public class FullResolutionSettingsTest {
         assertFalse(larger.isChecked());
         assertFalse(Settings.ASK_FOR_LARGER_PHOTOS.get());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ASK_FOR_LARGER_PHOTOS.key));
+        SwitchPreference covers = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.FULL_SIZE_COVERS.key);
+        assertNotNull(covers);
+        assertEquals("Full size covers", covers.getTitle().toString());
+        assertTrue(covers.getSummary().toString(), covers.getSummary().toString().contains("Download cover"));
+        assertFalse(covers.isChecked());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FULL_SIZE_COVERS.key));
     }
     @Test public void photoSwitchPersistsAndHonorsPause() throws Exception {
         open(true);
@@ -99,7 +105,7 @@ public class FullResolutionSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.FULL_RESOLUTION_PHOTOS.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
     private static PreferenceCategory categoryHolding(PreferenceGroup group, Preference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) {

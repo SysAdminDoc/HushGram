@@ -40,6 +40,11 @@ internal const val FEED_EMPTY_STUB = "feedEmpty"
 internal const val BUILD_MODELS = "MainfeedAdapter.buildModels"
 internal const val SHIMMER_KEY = "shimmer"
 
+/** The loading row's key is read through a string table on some 452 builds, which leaves this upper case label as its literal. */
+private const val SHIMMER_LABEL = "SHIMMER"
+
+internal fun String.isShimmerKey(): Boolean = this == SHIMMER_KEY || this == SHIMMER_LABEL
+
 internal const val MORE_AFTER_FOLLOWING = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->moreAfterFollowing(I)I"
 internal const val END_CARD_RULE = "$EXTENSION_PACKAGE/feed/FeedSuggestions;->endCardRule(I)I"
 
@@ -74,27 +79,43 @@ internal class FeedEnd(val adapter: String, val flag: FieldReference, val empty:
  * nothing else to show, when it adds Instagram's own empty feed card instead. The flag is the last
  * boolean field it reads before that key, right before asking the same object whether it's empty, which
  * it asks again just before adding the loading row.
+ *
+ * The same object is the register the flag is read off or, when that register is a copy moved in
+ * right before the read, the register it was copied from, which the read doesn't write. On 451's
+ * 385713073 the builder copies the feed out of v27 into v6, reads the flag off v6 into v6 and asks
+ * v27 (an invoke-virtual/range) whether it's empty.
  */
-internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
-    val found = mutableListOf<Pair<String, Method>>()
-    classesHolding(BUILD_MODELS, SHIMMER_KEY).forEach { classDef ->
-        classDef.methods.forEach { method ->
-            if (method.holds(BUILD_MODELS) && method.holds(SHIMMER_KEY)) found += classDef.type to method
-        }
+/**
+ * The home feed adapter's list builder (the method holding [BUILD_MODELS]) and the method of the same
+ * class holding [SHIMMER_KEY], the one that adds the loading row. 451 had them in one method. 452 splits
+ * the loading row's work into a static method the builder calls, so the two are told apart, and a
+ * class with several of either gives no candidate.
+ */
+internal fun BytecodePatchContext.feedBuilders(): List<Triple<ClassDef, Method, Method>> =
+    classesHolding(BUILD_MODELS).mapNotNull { classDef ->
+        val builder = classDef.methods.singleOrNull { it.holds(BUILD_MODELS) }
+        val shimmer = classDef.methods.singleOrNull { method -> method.implementation?.instructions?.any { (((it as? ReferenceInstruction)?.reference as? StringReference)?.string)?.isShimmerKey() == true } == true }
+        if (builder == null || shimmer == null) null else Triple(classDef, builder, shimmer)
     }
-    val (adapter, method) = found.singleOrNull()
+
+internal fun BytecodePatchContext.findFeedEnd(): FeedEnd {
+    val found = feedBuilders()
+    val (classDef, _, method) = found.singleOrNull()
         ?: refuse("expected one method holding $BUILD_MODELS and $SHIMMER_KEY, found ${found.size}")
+    val adapter = classDef.type
     val code = method.implementation!!.instructions.toList()
     val where = "$adapter->${method.name}"
-    val shimmer = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string == SHIMMER_KEY } }
+    val shimmer = code.indexOfFirst { (it as? ReferenceInstruction)?.reference.let { r -> r is StringReference && r.string.isShimmerKey() } }
     val read = (shimmer - 1 downTo 0).firstOrNull { code[it].opcode == Opcode.IGET_BOOLEAN }
         ?: refuse("$where reads no flag before its loading row")
-    val owner = (code[read] as TwoRegisterInstruction).registerB
+    val flagRead = code[read] as TwoRegisterInstruction
+    val owner = flagRead.registerB
+    val copiedFrom = (code.getOrNull(read - 1) as? TwoRegisterInstruction)
+        ?.takeIf { code[read - 1].opcode in OBJECT_MOVES && it.registerA == owner && it.registerB != flagRead.registerA }?.registerB
+    val feeds = setOfNotNull(owner.takeIf { it != flagRead.registerA }, copiedFrom)
     val asked = code.getOrNull(read + 2)
     val empty = (asked as? ReferenceInstruction)?.reference as? MethodReference
-    if (asked?.opcode != Opcode.INVOKE_VIRTUAL || (asked as FiveRegisterInstruction).registerC != owner ||
-        empty?.returnType != "Z" || empty.parameterTypes.isNotEmpty()
-    ) {
+    if (asked == null || asked.receiver() !in feeds || empty?.returnType != "Z" || empty.parameterTypes.isNotEmpty()) {
         refuse("$where doesn't ask its feed whether it's empty after reading the flag")
     }
     val again = (read + 3 until shimmer).any { code[it].calls(empty) }
@@ -328,6 +349,15 @@ internal fun BytecodePatchContext.endOlderPostsSpinnerOrWarn() {
 }
 
 private const val STRING_EQUALS = "Ljava/lang/String;->equals(Ljava/lang/Object;)Z"
+
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/** The register an invoke-virtual, plain or /range, calls its method on, or null for anything else. */
+private fun Instruction.receiver(): Int? = when (opcode) {
+    Opcode.INVOKE_VIRTUAL -> (this as FiveRegisterInstruction).registerC
+    Opcode.INVOKE_VIRTUAL_RANGE -> (this as RegisterRangeInstruction).startRegister
+    else -> null
+}
 
 /** The names of the boolean methods without parameters this method calls on [type]. */
 internal fun Method.ownQuestions(type: String): Set<String> = implementation?.instructions?.toList().orEmpty().mapNotNull {

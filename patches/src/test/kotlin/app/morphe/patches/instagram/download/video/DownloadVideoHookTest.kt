@@ -23,6 +23,7 @@ import app.morphe.patches.instagram.download.VIDEO_VERSION
 import app.morphe.patches.instagram.download.reel.DOWNLOAD
 import app.morphe.patches.instagram.download.reel.ELIGIBLE_MARKER
 import app.morphe.patches.instagram.download.reel.OPTION
+import app.morphe.patches.instagram.download.reel.ROW_ICON
 import app.morphe.patches.instagram.feed.suggested.HideRowAsserts
 import app.morphe.patches.instagram.feed.suggested.ALLOW_HIDE
 import app.morphe.patches.instagram.feed.suggested.OFFER_HIDE
@@ -67,6 +68,8 @@ class DownloadVideoHookTest {
     private val session = "Lcom/instagram/common/session/UserSession;"
     private val activity = "Landroidx/fragment/app/FragmentActivity;"
     private val check = "$util->A08($session$MEDIA)Z"
+    private val tree = "Lfixture/MediaTree;"
+    private val treeCheck = "$util->A08($session$tree)Z"
     private val flag = "Lfixture/MobileConfig;->A1A(Ljava/lang/Object;J)Z"
     private val state = "Lfixture/State;"
     private val kind = "Lfixture/Kind;"
@@ -84,7 +87,7 @@ class DownloadVideoHookTest {
     @Test
     fun theHooksAreInTheExtension() {
         for (hook in listOf(OFFER_VIDEO, SAVE_VIDEO, ALLOW_VIDEO, OFFER_ALL, SAVE_ALL, ALL_OPTION, OWN_POST, OFFER_PLAYER, PLAYER_OPTION, PLAY_VIDEO,
-            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER)) {
+            OFFER_DETAILS, DETAILS_OPTION, SHOW_DETAILS, OFFER_COVER, COVER_OPTION, SAVE_COVER, CHOOSE_OPTION, CHOOSE_PAGES)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -132,6 +135,37 @@ class DownloadVideoHookTest {
         assertEquals("the answer goes back where the branch reads it", 1, (code[checked + 3] as OneRegisterInstruction).registerA)
         assertEquals("the branch to the Download row", Opcode.IF_EQZ, code[checked + 4].opcode)
         assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+    }
+
+    /**
+     * 451's check takes Instagram's tree of the post, which the builder makes out of the state's
+     * Media with one static call just before, from a copy of the read in another register. ownPost()
+     * still goes right after the check's answer.
+     */
+    @Test
+    fun aCheckOfThePostsTreeStillAsksOwnPost() {
+        val context = PatchContexts.of(classes(wrapped = "Lfixture/Trees;->of($MEDIA)$tree"))
+
+        context.offerDownloadOnEveryVideo()
+
+        val code = context.method(lambda, "invoke").code()
+        val checked = code.indexOfFirst { it.referenceText() == treeCheck }
+        assertEquals("the check's answer", Opcode.MOVE_RESULT, code[checked + 1].opcode)
+        val own = code[checked + 2] as Instruction35c
+        assertEquals(OWN_POST, own.referenceText())
+        assertEquals("ownPost()'s arguments: the answer, then the state", listOf(1, 0), listOf(own.registerC, own.registerD))
+        assertEquals("one ownPost() call", 1, code.count { it.referenceText() == OWN_POST })
+    }
+
+    /** A check handed something not made out of a Media, or made out of something else, fails before anything changes. */
+    @Test
+    fun aCheckOfSomethingNotMadeFromThePostFailsBeforeAnythingChanges() {
+        for (wrapped in listOf("Lfixture/Trees;->of(Ljava/lang/Object;)$tree", "Lfixture/Trees;->of($MEDIA)Ljava/lang/Object;")) {
+            val context = PatchContexts.of(classes(wrapped = wrapped))
+            val failure = assertThrows(wrapped, PatchException::class.java) { context.offerDownloadOnEveryVideo() }
+            assertTrue(failure.message!!, failure.message!!.contains("isn't handed a Media or one made out of one"))
+            assertUntouched(context)
+        }
     }
 
     /**
@@ -276,8 +310,10 @@ class DownloadVideoHookTest {
         val save = code[8] as Instruction35c
         assertEquals(SAVE_VIDEO, save.referenceText())
         assertEquals("save()'s arguments", listOf(1, 0, 2), listOf(save.registerC, save.registerD, save.registerE))
-        assertEquals("the original code moved", Opcode.CONST_STRING, code[12].opcode)
-        for (branch in listOf(2, 10)) assertEquals("the branch at $branch", 12, code.target(branch))
+        assertEquals("any other option goes on to the Choose pages check", CHOOSE_OPTION, code[12].referenceText())
+        assertEquals("the branch at 2", 12, code.target(2))
+        assertEquals("the original code moved", Opcode.CONST_STRING, code[22].opcode)
+        assertEquals("a save that didn't start, to the original code", 22, code.target(10))
     }
 
     /** The separate batch action never changes the enum's native constants or Download's route. */
@@ -326,6 +362,12 @@ class DownloadVideoHookTest {
         assertTrue("the name isn't the one handed over", factory.any {
             it.opcode == Opcode.MOVE_OBJECT && (it as TwoRegisterInstruction).registerA == 1 && it.registerB == 4
         })
+        // The name and Download's icon go through rowIcon, so the feed's Details row draws the info glyph.
+        val icon = factory.indexOfFirst { it.referenceText() == ROW_ICON }
+        assertEquals("rowIcon takes the name and the icon", listOf(1, 3),
+            (factory[icon] as Instruction35c).let { listOf(it.registerC, it.registerD) })
+        assertEquals(Opcode.MOVE_RESULT, factory[icon + 1].opcode)
+        assertTrue("before the option is made", icon < factory.indexOfFirst { it.opcode == Opcode.INVOKE_DIRECT })
         val builder = context.method(lambda, "invoke").code()
         val cover = builder.indexOfFirst { it.referenceText() == OFFER_COVER }
         assertEquals("offered right after Download cover", cover + 1, builder.indexOfFirst { it.referenceText() == OFFER_PLAYER })
@@ -396,6 +438,28 @@ class DownloadVideoHookTest {
         assertEquals("the cover tap stops native dispatch", Opcode.RETURN_VOID, menu[43].opcode)
         for (branch in listOf(35, 36)) assertEquals("native options reach current-page handling", 44, menu.target(branch))
         assertEquals(DOWNLOAD, menu[45].referenceText())
+    }
+
+    /**
+     * Choose pages, which offerAll() adds after Save all, has a tap of its own: an option that
+     * isn't Download goes on to it, and choosePages() gets the post and the activity. Every other
+     * option goes on to Instagram's own handling, as before.
+     */
+    @Test
+    fun choosePagesHasItsOwnTap() {
+        val context = PatchContexts.of(classes())
+        context.offerDownloadOnEveryVideo()
+        val menu = context.method(helper, "A09").code()
+        assertEquals("not Download, on to Choose pages", 56, menu.target(46))
+        assertEquals(CHOOSE_OPTION, menu[56].referenceText())
+        assertEquals("the getter that reads the post", "$helper->A01($helper)$MEDIA", menu[61].referenceText())
+        assertEquals("$helper->activity:$activity", menu[63].referenceText())
+        val choose = menu[64] as Instruction35c
+        assertEquals(CHOOSE_PAGES, choose.referenceText())
+        assertEquals("choosePages()'s arguments", listOf(1, 2), listOf(choose.registerC, choose.registerD))
+        assertEquals("the Choose pages tap stops native dispatch", Opcode.RETURN_VOID, menu[65].opcode)
+        for (branch in listOf(54, 58, 59)) assertEquals("everything else reaches Instagram's own handling", 66, menu.target(branch))
+        assertEquals(1, menu.count { it.referenceText() == CHOOSE_PAGES })
     }
 
     /** Unknown enum initialization and ambiguous or branching entry anchors cannot write half a patch. */
@@ -666,12 +730,18 @@ class DownloadVideoHookTest {
         val rowBuilders = FixtureDex.methodsWhere(bundle, { true }) { method ->
             val loads = method.implementation?.instructions?.filter { it is NarrowLiteralInstruction && it.opcode == Opcode.CONST }
                 ?.map { (it as NarrowLiteralInstruction).narrowLiteral }.orEmpty()
-            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && SAVE_BUTTON_ID in loads && ROW_BUTTONS_ID in loads
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && SAVE_BUTTON_ID in loads
         }
         val specs = rowBuilders.flatMap { it.code() }.mapNotNull { (it as? ReferenceInstruction)?.reference as? MethodReference }
             .filter { it.name == "<init>" && it.parameterTypes.size == 6 && it.parameterTypes[0] == "Landroid/widget/ImageView${'$'}ScaleType;" }
             .map { it.definingClass }
-        val lithoTypes = (rowBuilders.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
+        // 452 composes the row in another method of the class that builds Save's spec.
+        val rowComposers = FixtureDex.methodsWhere(bundle, { true }) { method ->
+            !AccessFlags.CONSTRUCTOR.isSet(method.accessFlags) && method.implementation?.instructions?.any {
+                it is NarrowLiteralInstruction && it.opcode == Opcode.CONST && it.narrowLiteral == ROW_BUTTONS_ID
+            } == true
+        }
+        val lithoTypes = (rowBuilders.map { it.definingClass } + rowComposers.map { it.definingClass } + specs).filter { type -> classes.none { it.type == type } }.toSet()
         if (lithoTypes.isNotEmpty()) classes += FixtureDex.classes(bundle, lithoTypes).values
         // Save's modifier and the styles the builder gives it, then what the modifier is made of: its
         // part, its empty one, and the parts and kinds the styles (and the calls they make) build.
@@ -723,6 +793,7 @@ class DownloadVideoHookTest {
         assertEquals("$label: one player tap", 1, handled.count { it.referenceText() == PLAY_VIDEO })
         assertEquals("$label: one Details tap", 1, handled.count { it.referenceText() == SHOW_DETAILS })
         assertEquals("$label: one Download cover tap", 1, handled.count { it.referenceText() == SAVE_COVER })
+        assertEquals("$label: one Choose pages tap", 1, handled.count { it.referenceText() == CHOOSE_PAGES })
         val constructor = context.method(INSTAGRAM_MEDIA, "saveAllOption").code().single { it.opcode == Opcode.INVOKE_DIRECT }
         assertEquals("$label: direct native construction", "$OPTION-><init>(Ljava/lang/String;II)V", constructor.referenceText())
         assertEquals("$label: the native option class was preserved", classes.single { it.type == OPTION }.methods.map { it.code().map { instruction -> instruction.referenceText() } },
@@ -815,8 +886,12 @@ class DownloadVideoHookTest {
         val code = context.method(site.type, site.name, site.parameters).code()
         val hook = code.indexOfFirst { it.referenceText() == LITHO_BUTTON }
         assertEquals("$label: one component hook", 1, code.count { it.referenceText() == LITHO_BUTTON })
-        assertEquals("$label: three moves then the call, right after the constructor", site.at + 3, hook)
-        assertEquals("$label: Save's icon spec", site.specConstructor.toString(), code[site.at - 1].referenceText())
+        assertEquals("$label: three moves then the call, right after Save's spec", site.at + 3, hook)
+        if (code[site.at - 1].opcode == Opcode.MOVE_RESULT_OBJECT) {
+            assertEquals("$label: the spec's register", site.spec, (code[site.at - 1] as OneRegisterInstruction).registerA)
+        } else {
+            assertEquals("$label: Save's icon spec", site.specConstructor.toString(), code[site.at - 1].referenceText())
+        }
         val moves = (0..2).map { code[site.at + it] as TwoRegisterInstruction }
         assertEquals("$label: the list, the spec and the state", listOf(site.list, site.spec, site.state), moves.map { it.registerB })
         assertTrue("$label: low registers of their own", moves.map { it.registerA }.let { it.toSet().size == 3 && it.all { r -> r < 16 } })
@@ -834,7 +909,11 @@ class DownloadVideoHookTest {
             assertEquals("$label: the icon bridge calls $used", 1, icon.count { it == used.toString() })
         }
         assertEquals("$label: the icon never takes Save's modifier whole", 0, icon.count { it == site.modifier.toString() })
-        assertDownloadModifierHasNoneOfSavesOwnParts(context, site, code, label)
+        // 451 builds Save in the hooked method; 452 builds its spec in another method of the class.
+        val saveCode = context.classDefBy(site.type).methods.map { it.code() }.single { instructions ->
+            instructions.any { (it as? NarrowLiteralInstruction)?.narrowLiteral == SAVE_BUTTON_ID }
+        }
+        assertDownloadModifierHasNoneOfSavesOwnParts(context, site, saveCode, label)
     }
 
     /**
@@ -937,6 +1016,7 @@ class DownloadVideoHookTest {
         outlinedList: Boolean = false,
         outlinedLabel: Boolean = false,
         outlinesOnlyDoThat: Boolean = true,
+        wrapped: String? = null,
     ): List<ClassDef> {
         val menu = ImmutableClassDef(
             helper, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
@@ -981,8 +1061,9 @@ class DownloadVideoHookTest {
             move-result v1
             if-eqz v1, :others
             ${if (ownPostFromState) "iget-object v12, v0, $state->media:$MEDIA" else "const/4 v12, 0x0"}
+            ${if (wrapped != null) "move-object v4, v12\ninvoke-static { v4 }, $wrapped\nmove-result-object v12" else ""}
             const/4 v2, 0x0
-            invoke-virtual { v2, v2, v12 }, $check
+            invoke-virtual { v2, v2, v12 }, ${if (wrapped != null) treeCheck else check}
             move-result v1
             if-eqz v1, ${if (lateJump) ":others" else ":mine"}
             iget-boolean v1, v0, $state->flagged:Z
@@ -1019,7 +1100,7 @@ class DownloadVideoHookTest {
             invoke-static { v6, v0, v3, v5 }, $state->A01($OPTION${state}Ljava/util/ArrayList;I)V
             return-object v3
         """)))
-        val eligible = classDef(util, listOf(method(util, "A08", listOf(session, MEDIA), "Z", 4, static = false, body = """
+        val eligible = classDef(util, listOf(method(util, "A08", listOf(session, if (wrapped != null) tree else MEDIA), "Z", 4, static = false, body = """
             const-string v0, "android_purge_26_q3_$ELIGIBLE_MARKER"
             const/4 v0, 0x0
             return v0

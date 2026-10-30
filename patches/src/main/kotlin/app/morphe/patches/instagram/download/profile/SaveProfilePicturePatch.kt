@@ -15,6 +15,9 @@ import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.profilePictureBridges
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -23,6 +26,7 @@ import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.ControlFlow
 import app.morphe.util.literalReads
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -62,6 +66,12 @@ internal val ADD_ROW_PARAMETERS = listOf(OBJECT, CONTEXT, CLICK, STRING)
 internal val ROW_ADDER_PARAMETERS = listOf(CONTEXT, CLICK, STRING, "I", "Z")
 
 /**
+ * 452 folds the plain row adder into its callers, which call the sheet's general row adder with the
+ * defaults the plain one gave it: no second listener, no subtitle, full opacity, no flags but one.
+ */
+internal val WIDE_ROW_ADDER_PARAMETERS = listOf(CONTEXT, CLICK, CLICK, STRING, STRING, "F", "I", "I", "Z", "Z", "Z", "Z", "Z")
+
+/**
  * The names of the two helpers that build the menu on someone's profile, one a bottom sheet and the
  * other its newer form. Each helper's class keeps its name, and the method that shows the menu
  * hands the same name to the sheet it builds for that helper.
@@ -87,8 +97,10 @@ val saveProfilePicturePatch = bytecodePatch(
     execute {
         requireStatusMethod("profilePicture")
         val menus = findProfileMenus()
+        val extras = findProfileExtras()
         val bridges = profilePictureBridges(PROFILE_PICTURE_PATCH)
         applyProfileMenus(menus)
+        applyProfileExtras(extras)
         bridges()
         enableStatus("profilePicture")
     }
@@ -102,12 +114,20 @@ private fun refuse(why: String): Nothing = throw PatchException("$PROFILE_PICTUR
  * hold the profile's account and the context the sheet is shown with. [free] are two locals
  * nothing reads after [index].
  */
+internal class AccountSource(val field: FieldReference?, val getter: MethodReference?) {
+    fun load(destination: Int, owner: Int): String = if (field != null) {
+        "iget-object v$destination, v$owner, $field"
+    } else {
+        "invoke-static { v$owner }, $getter\n                move-result-object v$destination"
+    }
+}
+
 internal class ProfileMenuSite(
     val name: String,
     val index: Int,
     val sheet: Int,
     val owner: Int,
-    val user: FieldReference,
+    val user: AccountSource,
     val context: FieldReference,
     val free: List<Int>,
 )
@@ -125,7 +145,7 @@ internal class ProfilePopupSite(
     val list: Int,
     val context: Int,
     val owner: Int,
-    val user: FieldReference,
+    val user: AccountSource,
     val free: Int,
     val item: String,
     val fields: List<String>,
@@ -149,9 +169,9 @@ internal class ProfileMenus(
  * one adder of a plain row (context, click listener, label, int, boolean), which the method calls.
  */
 internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
-    val hosts = classesHolding(*PROFILE_MENUS.toTypedArray())
+    val hosts = classesLoadingString(PROFILE_MENUS[0]).filter { host -> PROFILE_MENUS.all { name -> host in classesLoadingString(name) } }
     val candidates = hosts.flatMap { host ->
-        host.methods.filter { method -> PROFILE_MENUS.all { it in method.strings() } }.map { host.type to it }
+        host.methods.filter { method -> !(method.returnType == STRING && method.parameters() == listOf("I")) && PROFILE_MENUS.all { loadsString(method, it) } }.map { host.type to it }
     }
     val (hostType, found) = candidates.singleOrNull()
         ?: refuse("expected one method loading ${PROFILE_MENUS.joinToString(" and ")}, found ${candidates.size}")
@@ -162,7 +182,10 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
     var sheetType: String? = null
     var showType: String? = null
     val sites = PROFILE_MENUS.map { name ->
-        val loads = code.indices.filter { (code[it].reference() as? StringReference)?.string == name }
+        val loads = code.indices.filter { at ->
+            if (code[at].opcode == Opcode.CONST_STRING || code[at].opcode == Opcode.CONST_STRING_JUMBO) (code[at].reference() as? StringReference)?.string == name
+            else stringLoadedAt(code, at) == name && code.getOrNull(at + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT
+        }.map { if (code[it].opcode == Opcode.INVOKE_STATIC) it + 1 else it }
         val load = loads.singleOrNull() ?: refuse("expected one load of \"$name\", found ${loads.size}")
         val made = code.getOrNull(load + 1)
         val built = code.getOrNull(load + 2)
@@ -210,18 +233,26 @@ internal fun BytecodePatchContext.findProfileMenus(): ProfileMenus {
         val helper = classDefByOrNull(context.definingClass) ?: refuse("the \"$name\" helper ${context.definingClass} isn't in the app")
         if (helper.originalName() != name) refuse("${helper.type} isn't the helper named \"$name\"")
         val users = helper.fields.filter { it.type == USER && !AccessFlags.STATIC.isSet(it.accessFlags) }
-        val user = users.singleOrNull() ?: refuse("expected one account field on the \"$name\" helper, found ${users.size}")
+        val getters = helper.methods.filter {
+            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == USER &&
+                it.parameterTypes.map(CharSequence::toString) == listOf(helper.type)
+        }
+        val user = users.singleOrNull()?.let { AccountSource(it, null) }
+            ?: getters.singleOrNull()?.let { AccountSource(null, it) }
+            ?: refuse("expected one account field or static getter on the \"$name\" helper, found ${users.size} fields and ${getters.size} getters")
         val free = method.freeLocalsAt(PROFILE_PICTURE_PATCH, index, 2)
         ProfileMenuSite(name, index, sheet, owner, user, context, free)
     }
 
     val sheetClass = classDefByOrNull(sheetType!!) ?: refuse("the sheet $sheetType isn't in the app")
-    val adders = sheetClass.methods.filter {
-        it.parameters() == ROW_ADDER_PARAMETERS && it.returnType == "V" && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
+    fun adders(parameters: List<String>) = sheetClass.methods.filter {
+        it.parameters() == parameters && it.returnType == "V" && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
             !AccessFlags.STATIC.isSet(it.accessFlags)
     }
+    val adders = adders(ROW_ADDER_PARAMETERS).ifEmpty { adders(WIDE_ROW_ADDER_PARAMETERS) }
     val adder = adders.singleOrNull() ?: refuse("expected one adder of a plain row on $sheetType, found ${adders.size}")
-    if (code.none { it.call()?.let { call -> call.definingClass == sheetType && call.name == adder.name && call.parameters() == ROW_ADDER_PARAMETERS } == true }) {
+    val adderParameters = adder.parameters()
+    if (code.none { it.call()?.let { call -> call.definingClass == sheetType && call.name == adder.name && call.parameters() == adderParameters } == true }) {
         refuse("the menu doesn't add its rows with ${adder.name}")
     }
     stub()
@@ -282,16 +313,31 @@ private fun BytecodePatchContext.findProfilePopup(
     val item = classDefByOrNull(items.single())!!
     val fields = popupItemFields(item)
 
-    // The context was read off the newer helper, which holds the account too.
+    // The context was read off the newer helper, which holds the account too. Other branches
+    // write the same register, so only writes that can reach the pop-up list count.
+    val flow = ControlFlow.of(method)
+    val predecessors = HashMap<Int, MutableList<Int>>()
+    for (from in code.indices) {
+        (flow.normal[from] + flow.exceptional[from]).filter { it in code.indices }.forEach { to ->
+            predecessors.getOrPut(to) { mutableListOf() } += from
+        }
+    }
+    val reachesList = HashSet<Int>().apply {
+        val pending = ArrayDeque<Int>()
+        add(index); pending += index
+        while (pending.isNotEmpty()) {
+            predecessors[pending.removeFirst()].orEmpty().forEach { from -> if (add(from)) pending += from }
+        }
+    }
     val read = (init - 1 downTo 0).firstOrNull { at ->
-        code[at].opcode == Opcode.IGET_OBJECT && (code[at] as TwoRegisterInstruction).registerA == context &&
+        at in reachesList && code[at].opcode == Opcode.IGET_OBJECT && (code[at] as TwoRegisterInstruction).registerA == context &&
             code[at].field()?.toString() == newer.context.toString()
     } ?: refuse("the pop-up list's context isn't read off the newer helper")
     val owner = (code[read] as TwoRegisterInstruction).registerB
     if (owner > 15 || owner == list || owner == popup) refuse("the newer helper's register is over v15 or reused at the pop-up list")
     val overwritten = (read + 1 until index).filter { at ->
         val written = (code[at] as? OneRegisterInstruction)?.registerA
-        code[at].opcode.setsRegister() && written != null &&
+        at in reachesList && code[at].opcode.setsRegister() && written != null &&
             (written == owner || written == context || (code[at].opcode.setsWideRegister() && (written + 1 == owner || written + 1 == context)))
     }
     if (overwritten.isNotEmpty()) refuse("the newer helper or the popup's context is overwritten before the pop-up list gets its items")
@@ -370,10 +416,34 @@ internal fun ProfilePopupSite.layout(): String =
 
 /** Only called once [findProfileMenus] found everything. */
 internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
-    val adder = "${menus.sheetType}->${menus.adder.name}(${ROW_ADDER_PARAMETERS.joinToString("")})V"
+    val parameters = menus.adder.parameterTypes.joinToString("")
+    val adder = "${menus.sheetType}->${menus.adder.name}($parameters)V"
+    val wide = menus.adder.parameterTypes.size == WIDE_ROW_ADDER_PARAMETERS.size
     // Six locals for the adder's arguments in a row, then the stub's four parameters. No icon (-1), and
     // false for the plain text color: true draws the row in the red Instagram gives Report.
-    replace(stub(), 10, """
+    // The general adder takes the plain adder's defaults after the label: no second listener or subtitle, full
+    // opacity, the icon -1, and the flags the plain one passed (only the fourth set). p2 and p3 are v16 and v17
+    // there, past a plain move's four bits, and the assembler drops a plain move-object from them without a word.
+    val call = if (wide) """
+        check-cast p0, ${menus.sheetType}
+        move-object v0, p0
+        move-object v1, p1
+        move-object/from16 v2, p2
+        const/4 v3, 0x0
+        move-object/from16 v4, p3
+        const/4 v5, 0x0
+        const/high16 v6, 0x3f800000
+        const/4 v7, -0x1
+        const/4 v8, 0x0
+        const/4 v9, 0x0
+        const/4 v10, 0x0
+        const/4 v11, 0x0
+        const/4 v12, 0x1
+        const/4 v13, 0x0
+        invoke-virtual/range { v0 .. v13 }, $adder
+        const/4 v0, 0x1
+        return v0
+    """ else """
         check-cast p0, ${menus.sheetType}
         move-object v0, p0
         move-object v1, p1
@@ -384,7 +454,8 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
         invoke-virtual/range { v0 .. v5 }, $adder
         const/4 v0, 0x1
         return v0
-    """)
+    """
+    replace(stub(), if (wide) 18 else 10, call)
     // No parameters, so v0 is the stub's own.
     replace(fieldsStub(), 1, """
         const-string v0, "${menus.popup.layout()}"
@@ -398,7 +469,7 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
             menus.method.addInstructions(
                 index,
                 """
-                    iget-object v${popup.free}, v${popup.owner}, ${popup.user}
+                    ${popup.user.load(popup.free, popup.owner)}
                     invoke-static { v${popup.list}, v${popup.free}, v${popup.context} }, $OFFER_POPUP
                 """,
             )
@@ -408,7 +479,7 @@ internal fun BytecodePatchContext.applyProfileMenus(menus: ProfileMenus) {
         menus.method.addInstructions(
             index,
             """
-                iget-object v$user, v${site.owner}, ${site.user}
+                ${site.user.load(user, site.owner)}
                 iget-object v$context, v${site.owner}, ${site.context}
                 invoke-static { v${site.sheet}, v$user, v$context }, $OFFER_PICTURE
             """,

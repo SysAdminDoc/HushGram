@@ -32,16 +32,17 @@ pluginManagement {
     }
 }
 
-// app.morphe:morphe-patches-gradle-plugin 1.3.4 brings kotlin-gradle-plugin 2.4.10 as a
-// runtimeElements dependency, and 2.4.10 is inside CVE-2026-53914 (GHSA-r937-wjx7-w2jp), a
-// deserialisation flaw in the Kotlin build cache. 2.4.20 is the first release outside it.
-// Nothing in this tree requests a Kotlin plugin by id, so pluginManagement's eachPlugin has
-// nothing to rewrite: the version has to be forced on the settings classpath itself. Take this
-// out when the plugin moves past 2.4.20 on its own; gradle/verification-metadata.xml is what
-// says which version actually resolved. It does not reach :patches:patcherProvidedClasspath,
-// where the patcher's own kotlin-stdlib and kotlin-reflect stay at 2.4.10.
+// app.morphe:morphe-patches-gradle-plugin 2.0.0 brings kotlin-gradle-plugin 2.4.21, outside
+// CVE-2026-53914 (GHSA-r937-wjx7-w2jp); 1.3.4 brought 2.4.10, inside it. Without a force this
+// classpath still resolved kotlin-stdlib and kotlin-reflect 2.4.10, the Kotlin Gradle 9.8.2
+// embeds, and stdlib-jdk7/jdk8 2.2.10 for AGP 9.1.0's tools, under that 2.4.21 plugin. Every
+// org.jetbrains.kotlin request here is held to the plugin's 2.4.21, which is also the runtime
+// patcher 2.0.1 keeps in :patches:patcherProvidedClasspath. Nothing in this tree requests a
+// Kotlin plugin by id, so pluginManagement's eachPlugin has nothing to rewrite: the version has
+// to be forced on the settings classpath itself. Move it with the plugin's kotlin-gradle-plugin;
+// gradle/verification-metadata.xml says which version actually resolved.
 //
-// The same classpath brings Bouncy Castle 1.79, by way of the patcher's 1.77 pin and the
+// The settings classpath brings Bouncy Castle 1.79, by way of the patcher's 1.77 pin and the
 // Android build tools' own 1.79 request: 1.77 is inside all six advisories (CVE-2025-8916
 // 1.44 to 1.78, CVE-2026-5588 1.67 to 1.83, CVE-2025-14813, CVE-2026-0636 fixed in 1.84,
 // CVE-2026-8763, CVE-2026-13506 fixed in 1.85) and 1.79 is inside all but CVE-2025-8916.
@@ -55,7 +56,7 @@ buildscript {
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "org.jetbrains.kotlin") {
-                useVersion("2.4.20")
+                useVersion("2.4.21")
             }
             if (requested.group == "org.bouncycastle") {
                 useVersion("1.86")
@@ -77,7 +78,7 @@ buildscript {
             // Settings plugins bring Commons Compress, which requested affected Lang 3.16.0.
             // https://www.openwall.com/lists/oss-security/2025/07/11/1
             if (requested.group == "org.apache.commons" && requested.name == "commons-lang3") {
-                useVersion("3.20.0")
+                useVersion("3.21.0")
             }
         }
     }
@@ -88,7 +89,7 @@ val allowMavenLocal = providers.gradleProperty("allowMavenLocal")
     .getOrElse(false)
 
 plugins {
-    id("app.morphe.patches") version "1.3.4"
+    id("app.morphe.patches") version "2.0.0"
 }
 
 settings {

@@ -37,7 +37,7 @@ public class HiddenLikeCountsSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.SHOW_HIDDEN_LIKE_COUNTS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

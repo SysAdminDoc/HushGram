@@ -6,7 +6,12 @@ package app.morphe.patches.instagram.misc.theme
 
 import app.morphe.Fixtures
 import app.morphe.PatchContexts
+import app.morphe.patcher.Patcher
+import app.morphe.patcher.PatcherConfig
+import app.morphe.patcher.PatcherContext
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.ResourcePatchContext
+import app.morphe.patcher.resource.ResourceMode
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -21,19 +26,22 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.w3c.dom.Element
 import javax.xml.parsers.DocumentBuilderFactory
 import java.io.File
+import java.nio.file.Files
+import java.util.zip.ZipFile
 
 class PureBlackTest {
     private val bottomTabTint = "Lfixture/BottomTabTint;"
     private val extension = "Lapp/hushgram/extension/instagram/settings/Colors;"
 
     /**
-     * A background Prism's black fills goes to the stock pure black; the light theme's text, a gray
-     * sheet and another color stay.
+     * A background Prism's black fills goes to the stock pure black; the light theme's text, another
+     * color and the sheet's gray, which blackenSheets owns, stay.
      */
     @Test
     fun theStylesGetPureBlack() {
@@ -75,6 +83,188 @@ class PureBlackTest {
             items,
         )
         assertEquals("a second pass finds nothing", emptyList<String>(), blackenStyles(styles))
+    }
+
+    /**
+     * The sheet's surface goes pure black in each dark style that sets it (#171). What sits on a
+     * sheet, the surfaces Instagram keeps dark in both themes, the light theme's white sheet and
+     * another screen's dark style stay.
+     */
+    @Test
+    fun theDarkSheetsGetPureBlack() {
+        val styles = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            """
+                <resources>
+                    <style name="IgdsPrismSemanticColorsExperimentDark" parent="IgdsSemanticColorsDark">
+                        <item name="igds_color_elevated_background">@color/igds_prism_gray_10</item>
+                        <item name="igds_color_secondary_background">@color/igds_prism_gray_09</item>
+                    </style>
+                    <style name="IgdsPrismGrayOverridesDark">
+                        <item name="igds_color_elevated_background">@color/igds_prism_gray_1500</item>
+                        <item name="igds_color_elevated_highlight_background">@color/igds_prism_gray_08</item>
+                        <item name="igds_color_elevated_separator">@color/igds_prism_gray_08</item>
+                        <item name="igds_color_secondary_background_on_media">@color/igds_prism_gray_1500</item>
+                    </style>
+                    <style name="IgdsElevatedBackgroundFixDark">
+                        <item name="igds_color_elevated_background">@color/igds_prism_gray_1500</item>
+                        <item name="igds_color_elevated_background_dark">@color/igds_prism_gray_1500</item>
+                        <item name="igds_color_elevated_background_dark_pressed">@color/igds_prism_gray_09</item>
+                    </style>
+                    <style name="IgdsElevatedBackgroundFixLight">
+                        <item name="igds_color_elevated_background_dark">@color/igds_prism_gray_1500</item>
+                    </style>
+                    <style name="IgdsPrismSemanticColorsExperimentLight">
+                        <item name="igds_color_elevated_background">@color/abc_decor_view_status_guard_light</item>
+                    </style>
+                    <style name="StoryCommentColorsDark" parent="IgdsSemanticColorsDark">
+                        <item name="igds_color_elevated_background">@color/bds_grey_9_95_transparent</item>
+                    </style>
+                </resources>
+            """.trimIndent().byteInputStream(),
+        )
+
+        assertEquals(DARK_SHEETS, blackenSheets(styles))
+
+        val items = styles.getElementsByTagName("item").let { list ->
+            (0 until list.length).map { list.item(it) as Element }.map { it.getAttribute("name") to it.textContent }
+        }
+        assertEquals(
+            listOf(
+                "igds_color_elevated_background" to PURE_BLACK_COLOR,
+                "igds_color_secondary_background" to "@color/igds_prism_gray_09",
+                "igds_color_elevated_background" to PURE_BLACK_COLOR,
+                "igds_color_elevated_highlight_background" to "@color/igds_prism_gray_08",
+                "igds_color_elevated_separator" to "@color/igds_prism_gray_08",
+                "igds_color_secondary_background_on_media" to "@color/igds_prism_gray_1500",
+                "igds_color_elevated_background" to PURE_BLACK_COLOR,
+                "igds_color_elevated_background_dark" to "@color/igds_prism_gray_1500",
+                "igds_color_elevated_background_dark_pressed" to "@color/igds_prism_gray_09",
+                "igds_color_elevated_background_dark" to "@color/igds_prism_gray_1500",
+                "igds_color_elevated_background" to "@color/abc_decor_view_status_guard_light",
+                "igds_color_elevated_background" to "@color/bds_grey_9_95_transparent",
+            ),
+            items,
+        )
+        assertEquals("a second pass finds nothing", emptyList<String>(), blackenSheets(styles))
+    }
+
+    /**
+     * The story viewer's gray goes pure black in both dark styles that set it (#279). The light
+     * theme's stories, a story's other grays and the sheets, which blackenSheets owns, stay.
+     */
+    @Test
+    fun theDarkStoriesGetPureBlack() {
+        val styles = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+            """
+                <resources>
+                    <style name="IgdsPrismGrayOverridesDark" parent="IgdsPrismSemanticColorsDark">
+                        <item name="igds_color_stories_loading_background">@color/igds_prism_gray_09</item>
+                        <item name="igds_color_elevated_background">@color/igds_prism_gray_1500</item>
+                    </style>
+                    <style name="IgdsPrismSemanticColorsExperimentDark" parent="IgdsSemanticColorsDark">
+                        <item name="igds_color_creation_tools_grey_09">@color/igds_prism_gray_09</item>
+                        <item name="igds_color_stories_loading_background">@color/igds_prism_gray_09</item>
+                    </style>
+                    <style name="IgdsPrismSemanticColorsExperimentLight">
+                        <item name="igds_color_stories_loading_background">@color/igds_prism_gray_09</item>
+                    </style>
+                    <style name="IgdsSemanticColorsDark">
+                        <item name="igds_color_stories_loading_background">@color/bds_grey_9</item>
+                    </style>
+                </resources>
+            """.trimIndent().byteInputStream(),
+        )
+
+        assertEquals(listOf("IgdsPrismGrayOverridesDark", "IgdsPrismSemanticColorsExperimentDark"), blackenStories(styles))
+
+        val items = styles.getElementsByTagName("item").let { list ->
+            (0 until list.length).map { list.item(it) as Element }.map { it.getAttribute("name") to it.textContent }
+        }
+        assertEquals(
+            listOf(
+                "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
+                "igds_color_elevated_background" to "@color/igds_prism_gray_1500",
+                "igds_color_creation_tools_grey_09" to "@color/igds_prism_gray_09",
+                "igds_color_stories_loading_background" to PURE_BLACK_COLOR,
+                "igds_color_stories_loading_background" to "@color/igds_prism_gray_09",
+                "igds_color_stories_loading_background" to "@color/bds_grey_9",
+            ),
+            items,
+        )
+        assertEquals("a second pass finds nothing", emptyList<String>(), blackenStories(styles))
+    }
+
+    /**
+     * On every build of Instagram 452, decoded as Manager decodes it: the three dark styles hold
+     * a sheet's gray (on the two overlays the #ff191c1f a reel's menu showed, #171) and lose it to
+     * pure black, and every other style that sets a sheet's color, the light theme's among them,
+     * keeps the one it had. The two dark styles that set the story viewer's #ff25292e (#279) lose
+     * it the same way, and the light theme's stories keep it.
+     */
+    @Test
+    fun eachBuildsDarkSheetsGoPureBlackAndEveryOtherSheetStays() {
+        val dark = DARK_SHEETS.map { "values/$it" }
+        val darkStories = DARK_STORIES.map { "values/$it" }
+        val light = "values/IgdsPrismSemanticColorsExperimentLight"
+        val builds = resourceBuilds()
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
+        for ((code, build) in builds) {
+            val work = Files.createTempDirectory("hushgram-black-$code").toFile()
+            try {
+                val apk = if (build.extension == "apks") File(work, "base.apk").also { base ->
+                    ZipFile(build).use { bundle ->
+                        bundle.getInputStream(bundle.getEntry("base.apk")).use { input -> base.outputStream().use(input::copyTo) }
+                    }
+                } else build
+                decoded(apk, File(work, "patch")) { context ->
+                    val res = context.get("res")
+                    assertTrue(
+                        "$code: the sheet's gray is #ff191c1f",
+                        Regex("""<color name="igds_prism_gray_1500">#(ff)?191c1f</color>""", RegexOption.IGNORE_CASE)
+                            .containsMatchIn(File(res, "values/colors.xml").readText()),
+                    )
+                    assertTrue(
+                        "$code: the story viewer's gray is #ff25292e",
+                        Regex("""<color name="igds_prism_gray_09">#(ff)?25292e</color>""", RegexOption.IGNORE_CASE)
+                            .containsMatchIn(File(res, "values/colors.xml").readText()),
+                    )
+                    val before = attributeColors(res, SHEET_BACKGROUND)
+                    val storiesBefore = attributeColors(res, STORY_BACKGROUND)
+                    assertEquals(
+                        "$code: the dark stories' gray",
+                        darkStories.associateWith { "@color/igds_prism_gray_09" },
+                        storiesBefore.filterKeys { it in darkStories },
+                    )
+                    assertEquals("$code: the light stories' gray", "@color/igds_prism_gray_09", storiesBefore[light])
+                    assertEquals(
+                        "$code: the dark sheets' grays",
+                        mapOf(
+                            "values/IgdsPrismSemanticColorsExperimentDark" to "@color/igds_prism_gray_10",
+                            "values/IgdsPrismGrayOverridesDark" to "@color/igds_prism_gray_1500",
+                            "values/IgdsElevatedBackgroundFixDark" to "@color/igds_prism_gray_1500",
+                        ),
+                        before.filterKeys { it in dark },
+                    )
+                    assertTrue("$code: the light theme sets a sheet's color", light in before)
+
+                    context.blackenThemes()
+
+                    val after = attributeColors(res, SHEET_BACKGROUND)
+                    assertEquals("$code: the dark sheets", dark.associateWith { PURE_BLACK_COLOR }, after.filterKeys { it in dark })
+                    assertEquals("$code: every other sheet", before - dark, after - dark)
+                    assertNotEquals("$code: the light sheet", PURE_BLACK_COLOR, after[light])
+                    val storiesAfter = attributeColors(res, STORY_BACKGROUND)
+                    assertEquals(
+                        "$code: the dark stories",
+                        darkStories.associateWith { PURE_BLACK_COLOR },
+                        storiesAfter.filterKeys { it in darkStories },
+                    )
+                    assertEquals("$code: every other story style", storiesBefore - darkStories, storiesAfter - darkStories)
+                }
+            } finally {
+                work.deleteRecursively()
+            }
+        }
     }
 
     /**
@@ -176,6 +366,51 @@ class PureBlackTest {
                     method.implementation?.instructions?.any(::isPrismBlack) == true
                 })
         }
+    }
+
+    /** Each build by its version code: the declared one's bundle and the other builds' base APKs. */
+    private fun resourceBuilds(): Map<String, File> {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val declared = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        return (declared + Fixtures.otherBuilds()).associateBy { file ->
+            (if (file.extension == "apks") file.nameWithoutExtension else file.parentFile.name).substringAfterLast('-')
+        }.toSortedMap()
+    }
+
+    /**
+     * [apk]'s resources decoded in full into [workspace], as Manager decodes them for a resource
+     * patch. The patcher keeps the resource context and its decode internal, so they're reached by
+     * their JVM names, pinned to morphe-patcher 1.15.1 (LaunchScreenPatchTest reads them the same way).
+     */
+    private fun <T> decoded(apk: File, workspace: File, block: (ResourcePatchContext) -> T): T {
+        val config = PatcherConfig(apkFile = apk, temporaryFilesPath = workspace)
+        PatcherConfig::class.java.getMethod("setResourceMode\$morphe_patcher", ResourceMode::class.java)
+            .invoke(config, ResourceMode.FULL)
+        return Patcher(config).use { patcher ->
+            val context = PatcherContext::class.java.getMethod("getResourceContext\$morphe_patcher")
+                .invoke(patcher.context) as ResourcePatchContext
+            ResourcePatchContext::class.java.getMethod("decodeResources\$morphe_patcher", ResourceMode::class.java)
+                .invoke(context, ResourceMode.FULL)
+            block(context)
+        }
+    }
+
+    /** Each style that sets [attribute], as its values folder and its name, with the color it sets. */
+    private fun attributeColors(res: File, attribute: String): Map<String, String> {
+        val builder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        val found = sortedMapOf<String, String>()
+        res.listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty().forEach { directory ->
+            val file = File(directory, "styles.xml")
+            if (!file.isFile || attribute !in file.readText()) return@forEach
+            val styles = builder.parse(file).getElementsByTagName("style")
+            for (style in (0 until styles.length).map { styles.item(it) as Element }) {
+                val items = style.getElementsByTagName("item")
+                (0 until items.length).map { items.item(it) as Element }
+                    .filter { it.getAttribute("name").substringAfter(':') == attribute }
+                    .forEach { found["${directory.name}/${style.getAttribute("name")}"] = it.textContent.trim() }
+            }
+        }
+        return found
     }
 
     private fun app.morphe.patcher.patch.BytecodePatchContext.code(type: String): List<Instruction> =

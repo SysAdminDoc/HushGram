@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import app.hushgram.extension.instagram.feed.FeedItemKinds;
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -70,8 +72,8 @@ public final class MetaAi {
     static final Set<String> FEED_UNITS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "VIBES_IN_FEED_UNIT", "HATCH_IMMERSIVE_IN_FEED_UNIT", "MEMU_IN_FEED_UNIT")));
 
-    /** The name Home's top bar list gives Meta AI's button on 449. */
-    static final String HOME_BUTTON = "meta_ai";
+    /** The names Home's top bar list gives Meta AI's button (449 on) and its Meta AI chats button. */
+    static final Set<String> HOME_BUTTONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList("meta_ai", "hatch")));
 
     /** The three Meta AI buttons in Instagram's native message composer button enum. */
     static final Set<String> COMPOSER_BUTTONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -215,7 +217,7 @@ public final class MetaAi {
      * is on, and the name otherwise, or when anything goes wrong. Never throws.
      */
     public static String homeButton(String name) {
-        if (!HOME_BUTTON.equals(name)) return name;
+        if (!HOME_BUTTONS.contains(name)) return name;
         try {
             HookStatus.invoked(FamilyNames.META_AI);
             if (!Utils.settingsReady() || !Settings.HIDE_META_AI_SEARCH.get()) return name;
@@ -314,6 +316,103 @@ public final class MetaAi {
             HookStatus.threw(FamilyNames.META_AI, "share target", failure);
             return true;
         }
+    }
+
+    /** The quick promotion slots of Home's feed header and your own profile's header. */
+    static final Set<String> MUSE_SLOTS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            "MAIN_FEED", "PERSONAL_PROFILE")));
+
+    private static final Pattern MUSE_WORD = Pattern.compile("(?<![\\p{L}\\p{N}])muse(?![\\p{L}\\p{N}])",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+
+    /** Reads a promotion as {slot, text, text, text}. Tests stand in. */
+    static volatile Function<Object, String[]> promotionReader = MetaAi::readPromotion;
+
+    /**
+     * Whether any of the texts names Muse as a whole word, in any case. "Muse" is the product's
+     * name, so it reads the same in every language; "museum" and "amused" don't count.
+     */
+    static boolean mentionsMuse(String... texts) {
+        if (texts == null) return false;
+        for (String text : texts) {
+            if (text != null && !text.isEmpty() && MUSE_WORD.matcher(text).find()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Injected at the head of the method that turns a quick promotion into the card Instagram builds
+     * for it, passed the promotion. Answers true, which the patch turns into "no card" (a promotion
+     * with nothing to show is a case that method already handles), for a promotion bound for Home's
+     * feed header or your own profile whose title or text names Muse, while Hide the Muse card on
+     * profiles is on. Every other promotion, and every failure, answers false. Logs each promotion
+     * it sees with its slot and texts when debug logging is on. Never throws.
+     */
+    public static boolean dropsPromotion(Object promotion) {
+        if (promotion == null) return false;
+        try {
+            HookStatus.invoked(FamilyNames.META_AI);
+            boolean on = Utils.settingsReady() && Settings.HIDE_META_AI_PROFILE_BANNER.get();
+            String[] fields = promotionReader.apply(promotion);
+            if (fields == null || fields.length == 0) return false;
+            String slot = fields[0];
+            boolean inSlot = slot == null || MUSE_SLOTS.contains(slot);
+            boolean drop = on && inSlot && mentionsMuse(Arrays.copyOfRange(fields, 1, fields.length));
+            Logger.printDebug(() -> "Meta AI: promotion slot=" + slot + " texts=" + quoted(fields)
+                    + " drop=" + drop);
+            return drop;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.META_AI, "promotion", failure);
+            return false;
+        }
+    }
+
+    private static String quoted(String[] fields) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 1; i < fields.length; i++) {
+            String text = fields[i];
+            if (text != null && text.length() > 80) text = text.substring(0, 80) + "...";
+            out.append(i > 1 ? " | " : "").append('"').append(text).append('"');
+        }
+        return out.toString();
+    }
+
+    static String[] readPromotion(Object promotion) {
+        String[] fields = new String[4];
+        fields[0] = guarded(() -> promotionSlot(promotion));
+        fields[1] = guarded(() -> promotionText1(promotion));
+        fields[2] = guarded(() -> promotionText2(promotion));
+        fields[3] = guarded(() -> promotionText3(promotion));
+        return fields;
+    }
+
+    private static String guarded(java.util.concurrent.Callable<String> read) {
+        try {
+            return read.call();
+        } catch (Throwable unreadable) {
+            return null;
+        }
+    }
+
+    /**
+     * Stubs the patch fills to read a quick promotion: the name of its slot, and the three texts of
+     * its creative (title, content and the other, as Instagram orders them). Null as built, so a
+     * build where the patch couldn't fill them drops nothing.
+     */
+    public static String promotionSlot(Object promotion) {
+        return null;
+    }
+
+    public static String promotionText1(Object promotion) {
+        return null;
+    }
+
+    public static String promotionText2(Object promotion) {
+        return null;
+    }
+
+    public static String promotionText3(Object promotion) {
+        return null;
     }
 
     /**

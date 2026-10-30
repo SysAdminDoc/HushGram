@@ -47,6 +47,7 @@ private const val STORY_DOWNLOAD = "$EXTENSION_PACKAGE/download/StoryDownload;"
 internal const val LABELS = "$STORY_DOWNLOAD->labels([Ljava/lang/CharSequence;)[Ljava/lang/CharSequence;"
 internal const val SAVE_STORY = "$STORY_DOWNLOAD->save(Ljava/lang/CharSequence;Ljava/lang/Object;)Z"
 internal const val BUILDING = "$STORY_DOWNLOAD->building(Ljava/lang/Object;)V"
+internal const val LABEL_LIST = "$STORY_DOWNLOAD->labelList(Ljava/util/List;)V"
 
 /** The name Instagram's build keeps, in a static field, for the class that runs a story's menu. */
 internal const val HELPER_NAME = "ReelOptionsOverflowHelper"
@@ -54,6 +55,7 @@ internal const val HELPER_NAME = "ReelOptionsOverflowHelper"
 /** A story, which keeps its name. Instagram calls stories reels, and Reels clips. */
 internal const val REEL_ITEM = "Lcom/instagram/model/reels/ReelItem;"
 private const val LABEL_ARRAY = "[Ljava/lang/CharSequence;"
+private const val LABEL_LIST_TYPE = "Ljava/util/ArrayList;"
 private const val LABEL = "Ljava/lang/CharSequence;"
 private const val CLICK_LISTENER = "Landroid/content/DialogInterface\$OnClickListener;"
 private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
@@ -67,7 +69,9 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
  * first tells the extension which menu it's building, from the parameter that holds it, since a
  * builder can reuse that register before it returns. Its labels get Download added where it returns
  * them (Download as video and Download as photo for a photo story with music), and each handler asks
- * the extension first, which saves the story when the label is one of those. A few older dialogs, shown for special story items,
+ * the extension first, which saves the story when the label is one of those. Your own highlights'
+ * menus are built as a list, which gets the same rows added in place before it's returned (#339).
+ * A few older dialogs, shown for special story items,
  * skip the handlers: their click listener looks the tapped label up in a builder's labels itself,
  * so right after that lookup the listener asks the extension too.
  *
@@ -78,7 +82,7 @@ private val CLICK_PARAMETERS = listOf("Landroid/content/DialogInterface;", "I")
 val downloadStoryPatch = bytecodePatch(
     name = "Download any story",
     description = "Adds Download to the menu of anyone's story. Videos save at the quality you choose and photos " +
-        "at their largest size. On by default. Turn it off in HushGram settings > Stories.",
+        "at their largest size, and Download as photo saves a still from a video story. On by default. Turn it off in HushGram settings > Stories.",
     default = true,
 ) {
     category("Downloads")
@@ -119,7 +123,9 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
         method.returnType == "V" && parameters.lastOrNull() == LABEL && type in parameters
     }
     if (handlers.isEmpty()) throw PatchException("$PATCH: $type handles no tapped label")
-    val returns = builders.associateWith { builder ->
+    // Your own highlights' menus are built as a list instead (#339), and their taps reach the same handlers.
+    val listBuilders = statics.filter { it.returnType == LABEL_LIST_TYPE && type in it.parameterTypes.map(Any::toString) }
+    val returns = (builders + listBuilders).associateWith { builder ->
         builder.labelReturns().ifEmpty { throw PatchException("$PATCH: $type->${builder.name} never returns its labels") }
     }
 
@@ -142,7 +148,7 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
     val writeImageBridges = imageBridges(PATCH)
     val writeMusicBridges = storyMusicBridges(PATCH)
     // Each builder's menu, its parameter of the menu's class, read before the body can reuse it.
-    val menus = builders.associateWith { builder ->
+    val menus = returns.keys.associateWith { builder ->
         val parameters = builder.parameterTypes.map(Any::toString)
         val words = parameters.sumOf { if (it == "J" || it == "D") 2 else 1 }
         builder.implementation!!.registerCount - words +
@@ -152,18 +158,20 @@ internal fun BytecodePatchContext.offerDownloadOnEveryStory() {
     // Each return of a builder hands its labels through the extension first. The return is
     // replaced rather than preceded, because a jump to the return lands on what replaces it and
     // would skip anything put in front of it. Then the builder's first instruction tells the
-    // extension which menu the labels are for.
+    // extension which menu the labels are for. A list gets the rows added in place.
     returns.forEach { (builder, found) ->
         val method = mutable(builder)
+        val list = builder.returnType == LABEL_LIST_TYPE
+        val hook = if (list) LABEL_LIST else LABELS
         found.sortedDescending().forEach { index ->
             val register = (method.getInstruction(index) as OneRegisterInstruction).registerA
             method.replaceInstruction(
                 index,
-                if (register > 15) "invoke-static/range { v$register .. v$register }, $LABELS" else "invoke-static { v$register }, $LABELS",
+                if (register > 15) "invoke-static/range { v$register .. v$register }, $hook" else "invoke-static { v$register }, $hook",
             )
             method.addInstructions(
                 index + 1,
-                """
+                if (list) "return-object v$register" else """
                     move-result-object v$register
                     return-object v$register
                 """,

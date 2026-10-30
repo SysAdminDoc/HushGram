@@ -14,6 +14,7 @@ internal const val HIDE_EVERY_COMMENT_BAR = "$DECLUTTER->hideEveryCommentBar()Z"
 internal const val HIDE_SAVE_BUTTON = "$DECLUTTER->hideSaveButton()Z"
 internal const val HIDE_SAVE_COUNT = "$DECLUTTER->hideSaveCount()Z"
 internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Object;)Z"
+internal const val HIDE_DIRECT_REPLY_BAR = "$DECLUTTER->hideDirectReplyBar(Ljava/lang/Object;)Z"
 
 /**
  * A part of the Reels viewer the patch hides: the method whose marker ends in [marker], and the
@@ -22,8 +23,16 @@ internal const val HIDE_COMMENT_BAR = "$DECLUTTER->hideCommentBar(Ljava/lang/Obj
  */
 internal data class ReelPart(val marker: String, val hook: String, val check: Boolean = false)
 
-/** The Follow button beside a reel's author. The suggested accounts' cards draw a Legacy one, which stays. */
-internal val FOLLOW_PARTS = listOf(ReelPart("ClipsFollowButtonComponent_render", HIDE_FOLLOW_BUTTON))
+/**
+ * The Follow button beside a reel's author, and the Subscribe button the author-info component draws
+ * in its place for a creator who sells subscriptions (#248). Both are renders of their own, and the
+ * Subscribe one is built only by the author-info component, so no other screen loses its button. The
+ * suggested accounts' cards draw a Legacy Follow button, which stays.
+ */
+internal val FOLLOW_PARTS = listOf(
+    ReelPart("ClipsFollowButtonComponent_render", HIDE_FOLLOW_BUTTON),
+    ReelPart("SubscriptionCtaButtonComponent_render", HIDE_FOLLOW_BUTTON),
+)
 
 /**
  * The pills that prompt you to make something or promote something. On Instagram 449 the first
@@ -108,8 +117,28 @@ internal const val COMMENT_BAR_HIDE = "ClipsViewerCommentBarController_hideComme
 internal const val COMMENT_BAR_CREATED = "ClipsViewerCommentBarController_onViewCreated"
 internal const val COMMENT_BAR_UNVANISH = "ClipsViewerCommentBarController_unVanishCommentBar"
 
+/**
+ * The controller of the reply bar under a reel opened with something to reply to, such as from a
+ * chat (#177): the Reply to field with its quick reactions and plus button. Its show sets the bar
+ * visible or gone by the controller's own hidden flag, its onViewCreated inflates the bar and calls
+ * the hide when that flag is already set, and the hide is Instagram's own. On 450 the show and the
+ * hide are merged into the controller's superclass, shared with the Spotlight reply bar, and reach
+ * this controller's code through an instance check, so only the onViewCreated names its class.
+ */
+internal const val DIRECT_REPLY_BAR_SHOW = "ClipsViewerDirectReplyBarController_showReplyBar"
+internal const val DIRECT_REPLY_BAR_HIDE = "ClipsViewerDirectReplyBarController_hideReplyBar"
+internal const val DIRECT_REPLY_BAR_CREATED = "ClipsViewerDirectReplyBarController_onViewCreated"
+
+/**
+ * The source a chat hands the viewer of a reel shared in it, by the name the enum keeps. The
+ * extension's hook answers yes for this one alone, so a build whose enum doesn't name it has no
+ * chat for the switch to work on.
+ */
+internal const val CHAT_SOURCE = "DIRECT"
+
 /** Where the viewer was opened from, an enum that keeps its name, which the controller holds. */
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
 internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
-    COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH
+    COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
+    DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED

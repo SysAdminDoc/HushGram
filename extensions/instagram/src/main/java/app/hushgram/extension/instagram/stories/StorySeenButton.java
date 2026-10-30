@@ -37,20 +37,20 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Helper for the second switch of the "View stories anonymously" patch: a Mark as seen button in
  * the story viewer's header.
  *
- * <p>Every story on screen goes through Instagram's header binder, and the patch calls {@link #bind}
- * first thing there with the account signed in, the story and its view holder. The button goes in
- * the row of buttons at the top end of the header, before the three-dot menu, and shows where the
- * story stands ({@link StoryMarks}): an eye crossed out while it's held back, a solid eye once it's
- * marked, dimmed once it's been sent. A tap marks the story, or takes the mark back before it goes.
- * A story a batch already held back is sent straight away, through Instagram's own send.
+ * <p>Every story on screen goes through Instagram's story item binder, and the patch calls
+ * {@link #bind} first thing in its toolbar bind with the account signed in, the story and its view
+ * holder (451 has no header binder; its media bind and item bind call the toolbar bind instead).
+ * The button goes in the row of buttons at the top end of the header, before the three-dot menu,
+ * and shows where the story stands ({@link StoryMarks}): an eye crossed out while it's held back, a
+ * solid eye once it's marked, dimmed once it's been sent. A tap marks the story, or takes the mark
+ * back before it goes. A story a batch already held back is sent straight away, through
+ * Instagram's own send.
  *
  * <p>The button shows only while views are anonymous and its own switch is on. With either off,
  * HushGram paused or the settings not read yet, it's hidden, and the patch's send hook holds
  * every batch back or lets every batch through as it would without it. Holders are recycled, so a
- * button already in a header is shown, hidden or pointed at the new story on each bind. On
- * Instagram 449 every bind of a story to a holder runs the header binder: the item bind and the
- * animation shim's both go through the media bind, and every way through that, the placeholder's
- * included, ends in the header bind. A hidden button forgets its story, so it can't mark one later.
+ * button already in a header is shown, hidden or pointed at the new story on each bind. A hidden
+ * button forgets its story, so it can't mark one later.
  *
  * <p>A mark belongs to the account signed in when it was made ({@link StoryMarks}), so a story
  * marked on one account is never sent for another.
@@ -122,8 +122,8 @@ public final class StorySeenButton {
     }
 
     /**
-     * Injected first thing in the story header binder. Shows the button for [item] in [holder]'s
-     * header while the switches are on, and hides it otherwise. Never throws.
+     * Injected first thing in the story item binder's toolbar bind. Shows the button for [item] in
+     * [holder]'s header while the switches are on, and hides it otherwise. Never throws.
      */
     public static void bind(Object session, Object item, Object holder) {
         bind(session, item, holder, PATCHED, StorySeenButton::switchedOn, StorySeen.MARKS, StorySeen::sendMarked);

@@ -35,7 +35,7 @@ public class StoryUploadQualitySettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.UPLOAD_STORIES_AT_FULL_QUALITY.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

@@ -10,7 +10,7 @@ Use Python 3.13 on Windows with a writable NTFS folder. No extra packages are ne
 py -3.13 scripts/crowdin-l10n.py prepare --output build/translation-review
 ```
 
-The output folder must be new. This protects a reviewer's edits. The package contains the English source JSON, the existing six language JSON files, and one review CSV per language. `manifest.json` binds the uploads to the current catalog. `REVIEW.txt` explains the worksheets.
+The output folder must be new. This protects a reviewer's edits. The package contains the English source JSON, the existing eight language JSON files, and one review CSV per language. `manifest.json` binds the uploads to the current catalog. `REVIEW.txt` explains the worksheets.
 
 Every worksheet starts with `pending` in `review_status`. A native reader records `accepted` or `change`, the replacement if needed, their notes and name. Check these points before calling a language reviewed:
 
@@ -19,7 +19,7 @@ Every worksheet starts with `pending` in `review_status`. A native reader record
 * Quantity forms agree with the listed plural category. The `english_key` is a lookup key and can include a category suffix. Translate `english_text`.
 * The translated screens fit at large text sizes. Check line wrapping and the controls beside long labels. For a language that reads right to left, check its real locale too.
 
-Spreadsheet review records don't approve translations on Crowdin or write into HushGram. A maintainer applies the reviewed wording to the TSV table and keeps the review record with its evidence. Don't change the identifiers or English keys. The existing German, Spanish, Indonesian, Brazilian Portuguese and Turkish seeds are drafts for this review. Korean came from a volunteer translator and goes through the same review.
+Spreadsheet review records don't approve translations on Crowdin or write into HushGram. A maintainer applies the reviewed wording to the TSV table and keeps the review record with its evidence. Don't change the identifiers or English keys. The existing German, Spanish, Indonesian, Italian, Brazilian Portuguese and Turkish seeds are drafts for this review. Korean came from a volunteer translator and goes through the same review.
 
 ## Set up Crowdin
 
@@ -31,9 +31,9 @@ Set `CROWDIN_PERSONAL_TOKEN` in the process environment through a trusted local 
 py -3.13 scripts/crowdin-l10n.py setup --package build/translation-review
 ```
 
-Setup uses the current [Crowdin API](https://support.crowdin.com/developer/api/v2/). It creates a public, file-based project named HushGram with identifier `hushgram`. English is the source. German, Spanish, Indonesian, Brazilian Portuguese, Turkish and Korean are targets. Use `--identifier` with another available identifier if the intended one is already owned by someone else.
+Setup uses the current [Crowdin API](https://support.crowdin.com/developer/api/v2/). It creates a public, file-based project named HushGram with identifier `hushgram`. English is the source. German, Spanish, Indonesian, Italian, Brazilian Portuguese, Turkish and Korean are targets. Use `--identifier` with another available identifier if the intended one is already owned by someone else.
 
-The tool uploads `en.json` as a flat JSON source, then the five existing language files as unapproved suggestions. Suggestions equal to English are preserved. Imports use the asynchronous translation-import API and check each completed report for missing or skipped rows. Tokens are sent only to `api.crowdin.com`. Redirects are refused, and the tool doesn't print server response bodies or credentials.
+The tool uploads `en.json` as a flat JSON source, then the existing language files as unapproved suggestions. Suggestions equal to English are preserved. Imports use the asynchronous translation-import API and check each completed report for missing or skipped rows. Tokens are sent only to `api.crowdin.com`. Redirects are refused, and the tool doesn't print server response bodies or credentials.
 
 The required project settings are `type: 0`, `sourceLanguageId: en`, `visibility: open`, `skipUntranslatedStrings: true`, `exportApprovedOnly: true` and `normalizePlaceholder: false`. Setup checks these settings when resuming. It refuses a mismatched existing project or source instead of replacing it. Any existing translations without an import receipt also stop draft seeding so a reader's work stays intact.
 

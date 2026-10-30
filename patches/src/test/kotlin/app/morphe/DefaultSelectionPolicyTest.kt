@@ -22,8 +22,6 @@ class DefaultSelectionPolicyTest {
             "and every later build needs it too.",
         "Install next to Instagram" to "Moves the build to a package of its own, so it installs as a second app " +
             "with its own data and sign-in instead of updating the Instagram already on the phone.",
-        "Open developer options" to "A developer tool for overriding Instagram's server flags, where a " +
-            "wrong flag breaks parts of the app.",
         "Pure black dark mode" to "Rewrites Instagram's colors when you patch, with no switch to turn it off.",
         "Save deleted messages" to "Keeps the text of other people's messages on the phone, which is a " +
             "choice to make, so it stays out of the default selection until picked.",

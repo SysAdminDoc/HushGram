@@ -43,7 +43,7 @@ import org.junit.Test
 
 /**
  * Hold to download's two calls and four reads: found by structure on stand-ins shaped like 450 and on
- * every one of the version's seven builds, each call first in its touch method (after Long press to
+ * every one of the version's three builds, each call first in its touch method (after Long press to
  * zoom's, in either order of the two patches), every other instruction in place, and a build that
  * differs stopping the patch before anything changes.
  */
@@ -186,7 +186,7 @@ class HoldToDownloadHookTest {
     }
 
     /**
-     * In each of the version's seven builds the feed's touch holder and the reel detector are found once,
+     * In each of the version's three builds the feed's touch holder and the reel detector are found once,
      * the holder keeps exactly one field of the type the carousel page is read from, both calls go in first
      * once each (the feed one right after Long press to zoom's, in either order), every other instruction of
      * the two classes keeps its place, and the reads name the fields found. Read as the patcher reads an
@@ -197,7 +197,7 @@ class HoldToDownloadHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("every 452 build", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val keeping = mutableMapOf<String, List<String>>()

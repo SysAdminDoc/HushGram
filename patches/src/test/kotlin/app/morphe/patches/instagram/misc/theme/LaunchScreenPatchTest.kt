@@ -107,14 +107,14 @@ class LaunchScreenPatchTest {
     }
 
     /**
-     * On every build of Instagram 450, decoded and encoded as Manager does: the launcher wears
+     * On every build of Instagram 452, decoded and encoded as Manager does: the launcher wears
      * Instagram's launch theme, the build's Android 12 styles name its icon, and the patched build
      * keeps every resource's number and gains just the theme and the mark, both as written.
      */
     @Test
     fun eachBuildGainsTheThemeAndTheMarkAndKeepsEveryResourceNumber() {
         val builds = builds()
-        assertEquals("every build of Instagram 450 has a fixture", 7, builds.size)
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, builds.size)
         for ((code, build) in builds) {
             val work = Files.createTempDirectory("hushgram-launch-$code").toFile()
             try {

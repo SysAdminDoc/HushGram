@@ -20,10 +20,6 @@ public final class SettingsStatus {
     }
 
     /** Input-derived subtarget coverage, filled by the corresponding selected patch. */
-    public static String disableAnalyticsCoverage() {
-        return "";
-    }
-
     public static String sanitizeSharingLinksCoverage() {
         return "";
     }
@@ -41,10 +37,6 @@ public final class SettingsStatus {
     }
 
     public static boolean externalBrowser() {
-        return false;
-    }
-
-    public static boolean disableAnalytics() {
         return false;
     }
 
@@ -76,11 +68,23 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyFollow() {
+        return false;
+    }
+
     public static boolean storyLoop() {
         return false;
     }
 
     public static boolean storySound() {
+        return false;
+    }
+
+    public static boolean storySwipeReply() {
+        return false;
+    }
+
+    public static boolean storyFonts() {
         return false;
     }
 
@@ -145,7 +149,15 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean allRecentSearches() {
+        return false;
+    }
+
     public static boolean notesRow() {
+        return false;
+    }
+
+    public static boolean inboxSearch() {
         return false;
     }
 
@@ -167,6 +179,16 @@ public final class SettingsStatus {
     }
 
     public static boolean storyRingSize() {
+        return false;
+    }
+
+    /** Rewritten by the Thicker story progress bar patch. */
+    public static boolean storyProgressBar() {
+        return false;
+    }
+
+    /** Rewritten by the Seek bar on stories patch. */
+    public static boolean storySeekBar() {
         return false;
     }
 
@@ -194,6 +216,18 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean appIcon() {
+        return false;
+    }
+
+    public static boolean settingsRows() {
+        return false;
+    }
+
+    public static boolean font() {
+        return false;
+    }
+
     public static boolean notificationGroups() {
         return false;
     }
@@ -215,11 +249,24 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Recent unfollowers, the friendship patch's switch reading your own Followers list, which a build can lack. */
+    public static boolean unfollowers() {
+        return false;
+    }
+
     public static boolean profileSuggestions() {
         return false;
     }
 
     public static boolean profileHighlights() {
+        return false;
+    }
+
+    public static boolean messageBox() {
+        return false;
+    }
+
+    public static boolean profileTabs() {
         return false;
     }
 
@@ -243,6 +290,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Tab bar layout patch. */
+    public static boolean tabBarLayout() {
+        return false;
+    }
+
     public static boolean swipeToCreate() {
         return false;
     }
@@ -256,6 +308,14 @@ public final class SettingsStatus {
     }
 
     public static boolean paidPartnershipReels() {
+        return false;
+    }
+
+    public static boolean aiLabeledReels() {
+        return false;
+    }
+
+    public static boolean captionWordReels() {
         return false;
     }
 
@@ -283,6 +343,18 @@ public final class SettingsStatus {
     }
 
     public static boolean hideComments() {
+        return false;
+    }
+
+    public static boolean commentEmojiRow() {
+        return false;
+    }
+
+    public static boolean commentKeyboard() {
+        return false;
+    }
+
+    public static boolean feedFollow() {
         return false;
     }
 
@@ -338,6 +410,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Show a reel's exact time patch. */
+    public static boolean reelPostTime() {
+        return false;
+    }
+
     /** Rewritten by the Blur the bars around Reels patch. */
     public static boolean reelBlurBars() {
         return false;
@@ -348,11 +425,25 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Start reels with sound patch. */
+    public static boolean reelSound() {
+        return false;
+    }
+
+    /** Rewritten by the Pinch to zoom on Reels patch. */
+    public static boolean reelZoom() {
+        return false;
+    }
+
     public static boolean reelAutoScroll() {
         return false;
     }
 
     public static boolean reelScrolling() {
+        return false;
+    }
+
+    public static boolean swipeToProfile() {
         return false;
     }
 
@@ -388,25 +479,6 @@ public final class SettingsStatus {
         return false;
     }
 
-    public static boolean developerOptions() {
-        return false;
-    }
-
-    /** Export and Validate overrides: Open developer options' reader, which a build can lack. */
-    public static boolean overrideExchange() {
-        return false;
-    }
-
-    /** Import, Restore and Reset overrides: Open developer options' writer, which a build can lack. */
-    public static boolean overrideImport() {
-        return false;
-    }
-
-    /** Import flag names: Open developer options' hook on Instagram's MetaConfig list, which a build can lack. */
-    public static boolean flagNames() {
-        return false;
-    }
-
     public static boolean pureBlack() {
         return false;
     }
@@ -438,6 +510,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Skip the collections tray patch. */
+    public static boolean saveTray() {
+        return false;
+    }
+
     /** Rewritten by the Show a post's exact time patch. */
     public static boolean postTime() {
         return false;
@@ -453,8 +530,23 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Keep your place in Home patch. */
+    public static boolean homePlace() {
+        return false;
+    }
+
     /** Rewritten by the Start feed videos with sound patch. */
     public static boolean feedSound() {
+        return false;
+    }
+
+    /** Rewritten by the Tap a feed video to pause it patch. */
+    public static boolean feedTapPause() {
+        return false;
+    }
+
+    /** Rewritten by the Seek bar on feed videos patch. */
+    public static boolean feedSeekBar() {
         return false;
     }
 
@@ -470,6 +562,11 @@ public final class SettingsStatus {
 
     /** Rewritten by the Keep in chat patch. */
     public static boolean keepInChat() {
+        return false;
+    }
+
+    /** Rewritten by the Swipe through a chat's reels patch. */
+    public static boolean chatReels() {
         return false;
     }
 

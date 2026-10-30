@@ -37,7 +37,7 @@ public class BackLeavesHomeSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.BACK_LEAVES_HOME.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();

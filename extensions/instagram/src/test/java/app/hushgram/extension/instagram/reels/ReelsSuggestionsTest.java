@@ -32,10 +32,10 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class ReelsSuggestionsTest {
-    /** Named like Instagram 449's clips item kinds, which is all the hook goes by. */
+    /** Named like Instagram 450's clips item kinds, which is all the hook goes by. */
     enum Kind {
-        MEDIA, AD, NETEGO, TYA_IN_REELS, SUGGESTED_USERS, CREATORS_YOU_MAY_FOLLOW,
-        NETEGO_SUGGESTED_USERS, NETEGO_SUGGESTED_CREATORS
+        ORGANIC, AD, AD_PREVIEW, MULTI_ADS, NETEGO, TYA_IN_REELS, QPMIDCARD, SCROLL_PIVOT, SUGGESTED_USERS,
+        CREATORS_YOU_MAY_FOLLOW, NETEGO_SUGGESTED_USERS, NETEGO_SUGGESTED_CREATORS
     }
 
     /** A clips item: one enum field holding its kind. */
@@ -84,15 +84,48 @@ public class ReelsSuggestionsTest {
         assertTrue(report, report.contains("CREATORS_YOU_MAY_FOLLOW"));
     }
 
-    /** On, reels, ads, Your algorithm and other netego units come back as they came. */
+    /**
+     * On, reels, ads, Your algorithm and other netego units come back as they came. None counts as a
+     * suggestion; the units that aren't reels or ads are named on the kept line, except a netego
+     * item, which the netego hook names by its type at the same return.
+     */
     @Test
     public void withTheSwitchOnEverythingElseStays() {
-        for (Kind kind : new Kind[]{Kind.MEDIA, Kind.AD, Kind.NETEGO, Kind.TYA_IN_REELS}) {
+        for (Kind kind : new Kind[]{Kind.ORGANIC, Kind.AD, Kind.NETEGO, Kind.TYA_IN_REELS}) {
             Item item = new Item(kind);
             assertSame(kind.name(), item, ReelsSuggestions.filter(item));
         }
         assertNull(ReelsSuggestions.filter(null));
-        assertTrue(FeedFilterCounters.report().toString(), FeedFilterCounters.report().isEmpty());
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 1, report.size());
+        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: TYA_IN_REELS 1",
+                report.get(0));
+    }
+
+    /**
+     * A unit the switch keeps is named in Diagnostics, by its kind or its netego type, so a screen of
+     * suggestions that still shows (#167) says what it is. Reels and ads are left out of that line.
+     * Named whether the switch is on or off.
+     */
+    @Test
+    public void aKeptUnitIsNamedInTheReport() {
+        for (Kind kind : new Kind[]{Kind.QPMIDCARD, Kind.SCROLL_PIVOT, Kind.AD_PREVIEW, Kind.MULTI_ADS, Kind.ORGANIC}) {
+            Item item = new Item(kind);
+            assertSame(kind.name(), item, ReelsSuggestions.filter(item));
+        }
+        Item netego = new Item(Kind.NETEGO);
+        assertSame(netego, ReelsSuggestions.netego(netego, "suggested_users"));
+        assertSame(netego, ReelsSuggestions.netego(netego, null));
+        Settings.HIDE_REELS_SUGGESTIONS.save(false);
+        assertSame(netego, ReelsSuggestions.netego(netego, "suggested_users"));
+        assertSame(netego, ReelsSuggestions.filter(netego));
+        Item scrollPivot = new Item(Kind.SCROLL_PIVOT);
+        assertSame(scrollPivot, ReelsSuggestions.filter(scrollPivot));
+
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 1, report.size());
+        assertEquals(ReelsSuggestions.KEPT_ROUTE + ": 0 lists, 0 items, 0 removed. Kinds: SCROLL_PIVOT 2, "
+                + "netego suggested_users 2, QPMIDCARD 1, netego untyped 1", report.get(0));
     }
 
     /** On, a netego unit of friends or creators to follow is answered null, and any other type stays. */
@@ -140,6 +173,64 @@ public class ReelsSuggestionsTest {
         String report = FeedFilterCounters.report().toString();
         assertTrue(report, report.contains("0 removed"));
         assertTrue(report, report.contains("SUGGESTED_USERS 3"));
+    }
+
+    /**
+     * On, the friends tab's page of people to follow (#167) is answered null, which Instagram reads
+     * as no page, and counted under its own name. Any other kind stays and is named on the kept line.
+     */
+    @Test
+    public void withTheSwitchOnTheFriendsTabPageIsTakenOut() {
+        assertNull(ReelsSuggestions.friendsTab(new Item(Kind.SUGGESTED_USERS)));
+        Item reel = new Item(Kind.ORGANIC);
+        assertSame(reel, ReelsSuggestions.friendsTab(reel));
+        assertNull(ReelsSuggestions.friendsTab(null));
+
+        List<String> report = FeedFilterCounters.report();
+        assertEquals(report.toString(), 2, report.size());
+        String all = report.toString();
+        assertTrue(all, all.contains(ReelsSuggestions.ROUTE + ": 0 lists, 0 items, 1 removed"));
+        assertTrue(all, all.contains("suggested_users_friends_lane 1"));
+        assertTrue(all, all.contains(ReelsSuggestions.KEPT_ROUTE));
+        assertTrue(all, all.contains("suggested_users_friends_lane ORGANIC 1"));
+    }
+
+    /** Off, paused or before the settings are read, the friends tab keeps its page, though it's still counted. */
+    @Test
+    public void offPausedAndUnreadyKeepTheFriendsTabPage() {
+        Item page = new Item(Kind.SUGGESTED_USERS);
+
+        Settings.HIDE_REELS_SUGGESTIONS.save(false);
+        assertSame(page, ReelsSuggestions.friendsTab(page));
+        Settings.HIDE_REELS_SUGGESTIONS.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertSame(page, ReelsSuggestions.friendsTab(page));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertSame(page, ReelsSuggestions.friendsTab(page)));
+
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains("0 removed"));
+        assertTrue(report, report.contains("suggested_users_friends_lane 3"));
+    }
+
+    /** A reader or a switch that throws keeps the friends tab's page, and the throw is reported. */
+    @Test
+    public void aFriendsTabPageThatCantBeReadStays() {
+        Item page = new Item(Kind.SUGGESTED_USERS);
+        assertSame(page, ReelsSuggestions.friendsTab(page, (item, names, family) -> {
+            throw new IllegalAccessException("field went private");
+        }, () -> true));
+        assertSame(page, ReelsSuggestions.friendsTab(page, (item, names, family) -> "SUGGESTED_USERS", () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+
+        String missing = HookStatus.missing(FamilyNames.REELS_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'friends tab page'"));
+        assertTrue(missing, missing.contains(IllegalAccessException.class.getName()));
     }
 
     /** An item with no kind to read stays, and the class with no kind is reported once. */

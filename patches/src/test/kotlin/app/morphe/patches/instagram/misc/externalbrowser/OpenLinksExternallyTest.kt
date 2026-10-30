@@ -392,6 +392,23 @@ class OpenLinksExternallyTest {
         assertTrue(refused.message, refused.message.orEmpty().contains("found 2"))
     }
 
+    /** 452's preserved-copy exit calls super.onCreate again and finishes the activity: it isn't the start. */
+    @Test
+    fun `a second super call that finishes the activity is an exit, not the start`() {
+        val exits = onCreate(
+            """
+                invoke-super { p0, p1 }, $superOnCreate
+                const/4 v0, 0x1
+                if-eqz v0, :done
+                invoke-super { p0, p1 }, $superOnCreate
+                invoke-virtual { p0 }, Landroid/app/Activity;->finish()V
+                :done
+                return-void
+            """,
+        )
+        assertEquals(0, exits.ownSuperCallIndex())
+    }
+
     @Test
     fun `the lifecycle method is picked by name and parameter, and a missing one is named`() {
         val create = onCreate("return-void")

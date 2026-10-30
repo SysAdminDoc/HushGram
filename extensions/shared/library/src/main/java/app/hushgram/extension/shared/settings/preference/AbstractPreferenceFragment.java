@@ -183,6 +183,19 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
         return pending;
     }
 
+    /**
+     * Records what a restart-gated setting runs with before something other than its row changes
+     * it, such as a settings file or its Undo. The row's listener reads the value only after the
+     * save, so without this it took the new value for the running one and owed no restart. An
+     * earlier record stays, since that is still what the process runs.
+     */
+    public static void noteRunningValue(Setting<?> setting, Object running) {
+        if (setting == null || !setting.rebootApp) return;
+        synchronized (runningValues) {
+            if (!runningValues.containsKey(setting.key)) runningValues.put(setting.key, running);
+        }
+    }
+
     /** The page's chance to show that a restart is owed. */
     protected void onRestartPendingChanged() {
     }
@@ -603,8 +616,16 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
 
     private static volatile RestartFeedbackPresenter restartFeedbackPresenter;
 
-    public static void setRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
+    public static synchronized void setRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
         restartFeedbackPresenter = presenter;
+    }
+
+    /**
+     * Drops [presenter] if it's still the one set. A screen closing after a newer one opened
+     * leaves the newer one's presenter alone.
+     */
+    public static synchronized void clearRestartFeedbackPresenter(RestartFeedbackPresenter presenter) {
+        if (restartFeedbackPresenter == presenter) restartFeedbackPresenter = null;
     }
 
     protected CharSequence initializationErrorTitle(@Nullable Context context) {
@@ -631,8 +652,38 @@ public abstract class AbstractPreferenceFragment extends PreferenceFragment {
         return L10n.t(context, "Settings couldn't refresh completely. Reopen settings and try again.");
     }
 
+    /** While several switches change in one go, a restart note is held here and given once at the end. */
+    private static boolean holdingRestartNote;
+    private static boolean restartNoteHeld;
+
+    /**
+     * Runs [changes], several switches set in one go, and gives the "restart
+     * to apply" note once at the end if any of them needed one, instead of once per switch.
+     */
+    public static void restartNoteOnce(Context context, Runnable changes) {
+        Utils.verifyOnMainThread();
+        if (holdingRestartNote) {
+            changes.run();
+            return;
+        }
+        holdingRestartNote = true;
+        restartNoteHeld = false;
+        try {
+            changes.run();
+        } finally {
+            holdingRestartNote = false;
+            boolean held = restartNoteHeld;
+            restartNoteHeld = false;
+            if (held) showRestartDialog(context);
+        }
+    }
+
     public static void showRestartDialog(Context context) {
         Utils.verifyOnMainThread();
+        if (holdingRestartNote) {
+            restartNoteHeld = true;
+            return;
+        }
         CharSequence message = savedMessage == null
                 ? L10n.t(context, "Saved. Restart Instagram to apply this change.")
                 : savedMessage;

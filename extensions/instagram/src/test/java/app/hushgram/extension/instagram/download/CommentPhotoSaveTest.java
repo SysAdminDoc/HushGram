@@ -68,7 +68,7 @@ public class CommentPhotoSaveTest {
 
     @Before public void setup() throws Exception {
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -196,7 +196,7 @@ public class CommentPhotoSaveTest {
             assertEquals(0, gallery.rows.values().iterator().next().getAsInteger(MediaStore.MediaColumns.IS_PENDING).intValue());
         }
         clean();
-        assertEquals(36, context.getApplicationInfo().targetSdkVersion);
+        assertEquals(37, context.getApplicationInfo().targetSdkVersion);
     }
 
     /** The server leaves media_type out of a comment's own media: with no video there, the photo saves all the same. */

@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import static org.junit.Assert.*;
 import android.app.Activity;
+import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
 import java.util.EnumSet;
 import java.util.List;
@@ -19,6 +20,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -34,9 +36,10 @@ public class CommentCopySettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.COPY_COMMENTS.resetToDefault();
         Settings.COPY_COMMENT_AUTHORS.resetToDefault();
+        Settings.COPY_COMMENTS_WITHOUT_MENTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +52,7 @@ public class CommentCopySettingsTest {
         PatchFamily.commentAuthorForTests = null;
         Settings.COPY_COMMENTS.resetToDefault();
         Settings.COPY_COMMENT_AUTHORS.resetToDefault();
+        Settings.COPY_COMMENTS_WITHOUT_MENTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -64,6 +68,7 @@ public class CommentCopySettingsTest {
         open(false);
         assertNull(page.getPreferenceScreen().findPreference(Settings.COPY_COMMENTS.key));
         assertNull(page.getPreferenceScreen().findPreference(Settings.COPY_COMMENT_AUTHORS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.COPY_COMMENTS_WITHOUT_MENTIONS.key));
         assertFalse(Settings.COPY_COMMENTS.get());
     }
     /** #35: the commenter's username has its own switch beside Copy comment, off to start. */
@@ -96,7 +101,7 @@ public class CommentCopySettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.COPY_COMMENTS.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
     /** #35: a build whose Copy username didn't go in keeps Copy comment and doesn't offer a switch that does nothing. */
     @Test public void aBuildWithoutCopyUsernameKeepsCopyWithoutTheSecondSwitch() throws Exception {
@@ -107,6 +112,29 @@ public class CommentCopySettingsTest {
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.COMMENT_COPY), false);
         assertTrue(report.toString(), report.contains("  Copy the commenter's username: not in this build "
                 + "(the comment menu's label or the comment's author didn't match)"));
+    }
+    /** #270: leaving out a reply's @names sits right under Copy comment, off to start and waiting for it. */
+    @Test public void theMentionSwitchSitsUnderCopyAndWaitsForIt() throws Exception {
+        open(true);
+        SwitchPreference copy = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.COPY_COMMENTS.key);
+        SwitchPreference mentions = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.COPY_COMMENTS_WITHOUT_MENTIONS.key);
+        assertNotNull(mentions);
+        assertEquals("Copy without the @names at the start", mentions.getTitle().toString());
+        PreferenceGroup section = copy.getParent();
+        assertSame(section, mentions.getParent());
+        int at = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) if (section.getPreference(i) == copy) at = i;
+        assertSame("right under Copy comment", mentions, section.getPreference(at + 1));
+        assertFalse("off to start", mentions.isChecked());
+        assertFalse("waits for Copy comment", mentions.isEnabled());
+        copy.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(mentions.isEnabled());
+        assertEquals("added after the switches tests count on",
+                Settings.COPY_COMMENTS_WITHOUT_MENTIONS, PatchFamily.COMMENT_COPY.switches.get(2));
+        page.searchSettings("copy comment");
+        assertNotNull("the patch's name finds it", mentions.getParent());
+        page.searchSettings("");
     }
     @Test public void aBuildCopyingUsernamesReportsNothingMissing() throws Exception {
         open(true);

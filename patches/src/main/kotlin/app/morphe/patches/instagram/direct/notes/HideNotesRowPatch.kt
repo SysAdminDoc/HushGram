@@ -8,6 +8,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patches.instagram.metaai.INBOX_SECTION_MARKER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -66,17 +67,15 @@ val hideNotesRowPatch = bytecodePatch(
     }
 }
 
-private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
-
 /** The inbox generator's diff update, found by its trace name. */
 internal object InboxDiffFingerprint : Fingerprint(
-    strings = listOf(INBOX_DIFF),
+    filters = listOf(string(INBOX_DIFF)),
     custom = { method, classDef -> !classDef.type.startsWith(EXTENSION_ROOT) && method.holdsString(INBOX_DIFF) },
 )
 
 /** The inbox's lookup of a section's generator, found by the message it fails with. */
 internal object InboxSectionLookupFingerprint : Fingerprint(
-    strings = listOf(INBOX_SECTION_MARKER),
+    filters = listOf(string(INBOX_SECTION_MARKER)),
     custom = { method, classDef -> !classDef.type.startsWith(EXTENSION_ROOT) && method.holdsString(INBOX_SECTION_MARKER) },
 )
 
@@ -92,30 +91,49 @@ internal class NotesSectionsSite(
 
 /**
  * Finds the one place your messages name their sections, failing before anything changes when an
- * update moved it, since that's a build this patch hasn't seen: in the method holding [INBOX_DIFF],
- * the one construction of a set from an array of an enum whose setup names [NOTES_SECTION] once.
+ * update moved it, since that's a build this patch hasn't seen: in the method holding [INBOX_DIFF]
+ * (or, when it builds none, the one static method it calls that does), the one construction of a
+ * set from an array of an enum whose setup names [NOTES_SECTION] once.
  * That enum has to be the one the inbox's section lookup (the method holding
  * [INBOX_SECTION_MARKER]) takes first, and the set has to be the one it checks: the set's class
  * keeps a [BIT_SET] its constructor fills, and the lookup's class reads one to decide each section.
  * Nothing after the construction may read the register holding the names, since the hook hands
- * the set a copy in that register.
+ * the set a copy in that register. Every other patch that drops an inbox section finds it the same
+ * way, refusing under its own [patch] name.
  */
-internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
-    val diff = uniqueMethod(PATCH, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
+internal fun BytecodePatchContext.findNotesSections(patch: String = PATCH): NotesSectionsSite {
+    fun refuse(detail: String): Nothing = throw PatchException("$patch: $detail")
+
+    val inboxDiff = uniqueMethod(patch, "inbox generator holding \"$INBOX_DIFF\"", InboxDiffFingerprint)
+    // 451 builds the set in the diff update itself. 452 moved it into a static factory the diff
+    // update calls with the inbox's mode (07SN.A00(05Ok)07SY), whose every mode jumps to the one
+    // construction, so when the diff update builds none the one method it calls that does is used.
+    val diff = inboxDiff.takeIf { setConstructions(it).isNotEmpty() } ?: run {
+        val builders = inboxDiff.instructions().asSequence()
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { it.methodCalled() }.distinctBy { it.toString() }
+            .mapNotNull { called ->
+                classDefByOrNull(called.definingClass)?.methods?.firstOrNull { method ->
+                    method.name == called.name && method.returnType == called.returnType &&
+                        method.parameterTypes.map(CharSequence::toString) == called.parameterTypes.map(CharSequence::toString)
+                }
+            }
+            .filter { setConstructions(it).isNotEmpty() }.toList()
+        if (builders.size > 1) {
+            refuse("expected ${inboxDiff.definingClass}->${inboxDiff.name} to call one method building the inbox's sections, found ${builders.size}")
+        }
+        builders.singleOrNull() ?: inboxDiff
+    }
     val code = diff.instructions()
     val where = "${diff.definingClass}->${diff.name}"
-    val constructions = code.indices.filter { at ->
-        val made = code[at].constructorCalled() ?: return@filter false
-        val array = made.parameterTypes.singleOrNull()?.toString() ?: return@filter false
-        array.startsWith("[L") && namesNotes(array.removePrefix("["))
-    }
+    val constructions = setConstructions(diff)
     val construction = constructions.singleOrNull()
         ?: refuse("expected $where to build one set from an array of the inbox's sections, found ${constructions.size}")
     val made = code[construction].constructorCalled()!!
     val sections = made.parameterTypes.single().toString().removePrefix("[")
     val set = classDefByOrNull(made.definingClass) ?: refuse("${made.definingClass} isn't in this build")
 
-    val lookup = uniqueMethod(PATCH, "inbox section lookup holding \"$INBOX_SECTION_MARKER\"", InboxSectionLookupFingerprint)
+    val lookup = uniqueMethod(patch, "inbox section lookup holding \"$INBOX_SECTION_MARKER\"", InboxSectionLookupFingerprint)
     val lookupClass = classDefBy(lookup.definingClass)
     if (!AccessFlags.STATIC.isSet(lookup.accessFlags) || lookup.parameterTypes.firstOrNull()?.toString() != sections) {
         refuse("${lookupClass.type}->${lookup.name} doesn't look a section up by $sections")
@@ -140,6 +158,16 @@ internal fun BytecodePatchContext.findNotesSections(): NotesSectionsSite {
     return NotesSectionsSite(diff.definingClass, diff.name, diff.parameterTypes.map(CharSequence::toString), construction, register, sections)
 }
 
+/** The indexes in [method] that construct an object from an array of an enum naming [NOTES_SECTION]. */
+private fun BytecodePatchContext.setConstructions(method: Method): List<Int> {
+    val code = method.instructions()
+    return code.indices.filter { at ->
+        val made = code[at].constructorCalled() ?: return@filter false
+        val array = made.parameterTypes.singleOrNull()?.toString() ?: return@filter false
+        array.startsWith("[L") && namesNotes(array.removePrefix("["))
+    }
+}
+
 /** Whether [enum] is an enum whose setup names [NOTES_SECTION] exactly once. */
 private fun BytecodePatchContext.namesNotes(enum: String): Boolean {
     val classDef = classDefByOrNull(enum) ?: return false
@@ -148,12 +176,17 @@ private fun BytecodePatchContext.namesNotes(enum: String): Boolean {
     return setup.instructions().count { it.stringLoaded() == NOTES_SECTION } == 1
 }
 
+/** Hands the sections to [KEEP_SECTIONS], see [askForSections]. */
+internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) = askForSections(site, KEEP_SECTIONS)
+
 /**
- * Hands the sections to [KEEP_SECTIONS] right before the set is built from them, at the
- * construction's own label so whatever jumps there asks too, and casts the answer back to the
- * array type the constructor takes.
+ * Hands the sections to [hook], a static `([Ljava/lang/Object;)[Ljava/lang/Object;` method, right
+ * before the set is built from them, at the construction's own label so whatever jumps there asks
+ * too, and casts the answer back to the array type the constructor takes. A second hook found at
+ * the same site afterwards lands between the first one and the construction, so both run, whichever
+ * goes in first.
  */
-internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) {
+internal fun BytecodePatchContext.askForSections(site: NotesSectionsSite, hook: String) {
     val diff = mutableClassDefBy(site.type).methods.single {
         it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }
@@ -161,7 +194,7 @@ internal fun BytecodePatchContext.hideNotesRow(site: NotesSectionsSite) {
     diff.addInstructionsAtControlFlowLabel(
         site.construction,
         """
-            invoke-static/range { v$register .. v$register }, $KEEP_SECTIONS
+            invoke-static/range { v$register .. v$register }, $hook
             move-result-object v$register
             check-cast v$register, [${site.sections}
         """,

@@ -109,10 +109,65 @@ $manifestLines = @(
     '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
 )
 
+# The inline assembler's dropped-instruction errors, and nothing else the CLI prints.
+$dropped = @(Select-DroppedSmali -Lines @(
+    'INFO: Saved to C:\out\patched.apk',
+    '[7,0] Invalid register: v16. Must be between v0 and v15, inclusive.',
+    'WARNING: [2,0] not at the start of the line',
+    '[12,4] Invalid register: v17. Must be between v0 and v15, inclusive.'))
+Assert-True ($dropped.Count -eq 2 -and $dropped[0].StartsWith('[7,0] ') -and $dropped[1].StartsWith('[12,4] ')) `
+    "The assembler's dropped instructions were not picked out: $($dropped -join ' | ')"
+Assert-True (@(Select-DroppedSmali -Lines @()).Count -eq 0) 'No output was read as a dropped instruction.'
+
 $facts = ConvertFrom-ManifestXmlTree -Lines $manifestLines -Source 'fixture'
 Assert-True ($facts.package -eq 'com.example.host') 'The manifest package was not read.'
 Assert-True ($facts.versionName -eq '46.7.3') 'The manifest version name was not read.'
 Assert-True ($facts.versionCode -eq '2024607030') 'The manifest version code was not read.'
+Assert-True ($facts.minSdkVersion -eq 1) 'A missing uses-sdk must have Android''s default floor of 1.'
+$sdk26 = ConvertFrom-ManifestXmlTree -Source 'sdk26' -Lines ($manifestLines + @(
+    '      E: uses-sdk (line=20)',
+    '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=26'))
+Assert-True ($sdk26.minSdkVersion -eq 26) 'The vendor minimum Android API was not read.'
+Assert-Throws { Assert-HushgramRuntimeFloor -Manifest $sdk26 } '*API 26*API 28*' `
+    'An APK below the extension runtime floor was accepted.'
+$sdk28 = ConvertFrom-ManifestXmlTree -Source 'sdk28' -Lines ($manifestLines + @(
+    '      E: uses-sdk (line=20)',
+    '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28'))
+Assert-HushgramRuntimeFloor -Manifest $sdk28
+Assert-Throws { Assert-HushgramRuntimeFloor -Manifest $sdk26 -Stock $sdk26 } '*API 26*API 28*' `
+    'A vendor API 26 manifest that was never raised was accepted.'
+Assert-HushgramRuntimeFloor -Manifest $sdk28 -Stock $sdk26
+$sdk31 = ConvertFrom-ManifestXmlTree -Source 'sdk31' -Lines ($manifestLines + @(
+    '      E: uses-sdk (line=20)',
+    '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=31'))
+Assert-HushgramRuntimeFloor -Manifest $sdk31 -Stock $sdk31
+Assert-Throws { Assert-HushgramRuntimeFloor -Manifest $sdk28 -Stock $sdk31 } '*API 28*API 31*' `
+    'A higher vendor floor was silently lowered.'
+$hexSdk = ConvertFrom-ManifestXmlTree -Source 'hex-sdk' -Lines ($manifestLines + @(
+    '      E: uses-sdk (line=20)',
+    '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=(type 0x10)0x1c'))
+Assert-True ($hexSdk.minSdkVersion -eq 28) 'A typed hexadecimal minimum was not read.'
+foreach ($badMinimum in @('0', '-1', 'FutureAndroid', '(type 0x10)0xffffffff')) {
+    Assert-Throws { ConvertFrom-ManifestXmlTree -Source 'bad-sdk' -Lines ($manifestLines + @(
+        '      E: uses-sdk (line=20)',
+        "        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=$badMinimum")) } `
+        '*minimum Android API*' "The minimum Android API '$badMinimum' was accepted."
+}
+foreach ($misplaced in @(
+        @('      E: application (line=50)', '        E: uses-sdk (line=51)',
+            '          A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28'),
+        @('      E: uses-sdk (line=50)', '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28',
+            '      E: uses-sdk (line=51)', '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28'),
+        @('  E: uses-sdk (line=50)', '    A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28'))) {
+    Assert-Throws { ConvertFrom-ManifestXmlTree -Source 'misplaced-sdk' -Lines ($manifestLines + $misplaced) } `
+        '*uses-sdk*' 'A nested, repeated or root-sibling SDK declaration was accepted.'
+}
+Assert-Throws { ConvertFrom-ManifestXmlTree -Source 'unqualified-sdk' -Lines ($manifestLines + @(
+    '      E: uses-sdk (line=50)', '        A: minSdkVersion=28')) } `
+    '*minimum Android API*namespace*' 'An unqualified minimum that Android ignores was accepted.'
+$raisedSdk = Get-ManifestDelta -Stock $sdk26 -Patched $sdk28
+Assert-True ((@(ConvertTo-ManifestDeltaEntries -Delta $raisedSdk) -join '; ') -ceq 'min-sdk 28') `
+    'The minimum Android API change was not included in the reviewed manifest delta.'
 Assert-True (($facts.permissions -join ',') -eq 'android.permission.CAMERA,android.permission.INTERNET') `
     'The requested permissions were not read and sorted.'
 Assert-True (($facts.exported -join ',') -eq 'activity:com.example.host.Main,service:com.example.host.Sync') `
@@ -168,9 +223,10 @@ $olderDelta = [pscustomobject]@{ permissionsAdded = @(); permissionsRemoved = @(
 Assert-True ((@(ConvertTo-ManifestDeltaEntries -Delta $olderDelta) -join '; ') -ceq 'permission-removed android.permission.CAMERA') `
     'A delta without a version code field did not flatten.'
 
-# The checked-in allowlist approves two changes and nothing else: Remove the advertising ID takes
+# The checked-in allowlist approves three changes and nothing else: Remove the advertising ID takes
 # the three advertising ID permissions out of the build, which the receipt reads as three
-# permissions no longer asked for, and Change version code raises the version code to the highest.
+# permissions no longer asked for, Change version code raises the version code to the highest, and
+# Pick the app icon adds one launcher alias per HushGram icon, exported like Instagram's own.
 $checkedInAllowlist = @(Read-ManifestDeltaAllowlist -Path (Join-Path $PSScriptRoot 'manifest-delta-allowlist.txt') |
     Where-Object { $_ })
 $removalEntries = @(
@@ -179,11 +235,13 @@ $removalEntries = @(
     'permission-removed com.google.android.gms.permission.AD_ID')
 $removedPermissions = @($removalEntries | ForEach-Object { $_ -replace '^permission-removed ', '' })
 $raisedVersionCode = '2147483647'
-$approvedEntries = @($removalEntries) + "version-code $raisedVersionCode"
+$iconAliasEntries = @('hushgram', 'dark', 'light', 'plum' | ForEach-Object {
+    "exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_$_" })
+$approvedEntries = @($removalEntries) + "version-code $raisedVersionCode" + $iconAliasEntries + 'min-sdk 28'
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq
         (@($approvedEntries | Sort-Object -CaseSensitive) -join "`n")) `
-    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals and the ' +
-     "raised version code, or less than all of them: $($checkedInAllowlist -join ', ')")
+    ('The checked-in manifest delta allowlist approves something besides the advertising ID removals, the ' +
+     "raised version code, runtime floor and icon aliases, or less than all of them: $($checkedInAllowlist -join ', ')")
 
 $allowlistRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("receipt-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $allowlistRoot | Out-Null
@@ -234,7 +292,7 @@ try {
     # the document before it's written.
     function New-TestSbom {
         param([string]$Path, [string]$Bundle,
-            [string[]]$Libraries = @('pkg:maven/com.google.code.gson/gson@2.14.0'), [scriptblock]$Mutate,
+            [string[]]$Libraries = @('pkg:maven/com.google.code.gson/gson@2.15.0'), [scriptblock]$Mutate,
             [string]$InputRoot, [string]$LicenseLedger, [object[]]$ReviewedLicenseRecords)
         $bundleName = Split-Path -Leaf $Bundle
         $facts = Get-BundleManifestFacts -BundlePath $Bundle
@@ -352,19 +410,19 @@ try {
         targets   = @([ordered]@{
             source = [ordered]@{ file = 'stock.apkm'; package = 'com.example.host'
                 versionName = '46.7.3'; versionCode = '2024607030'; sha256 = ('B' * 64)
-                forced = $false }
+                forced = $false; minSdkVersion = 28 }
             patches = @([ordered]@{ name = 'Alpha'; applied = $true; reason = $null },
                         [ordered]@{ name = 'Beta'; applied = $true; reason = $null })
-            coverage = @(); coverageReviewed = $true
+            coverage = @(); coverageReviewed = $true; minSdkVersion = 28
             manifestDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
                 exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
         }, [ordered]@{
             source = [ordered]@{ file = 'previous.apkm'; package = 'com.example.host'
                 versionName = '46.6.1'; versionCode = '2024606010'; sha256 = ('D' * 64)
-                forced = $false }
+                forced = $false; minSdkVersion = 28 }
             patches = @([ordered]@{ name = 'Alpha'; applied = $true; reason = $null },
                         [ordered]@{ name = 'Beta'; applied = $true; reason = $null })
-            coverage = @(); coverageReviewed = $true
+            coverage = @(); coverageReviewed = $true; minSdkVersion = 28
             manifestDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
                 exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
         })
@@ -624,21 +682,47 @@ try {
     Assert-True ($stale.Reason -like '*any more*') `
         "The stale allowlist entry was refused for the wrong reason: $($stale.Reason)"
 
-    # The checked-in allowlist, against receipts that carry the three removals and the raised version
-    # code on both builds. Those pass. They plus any other change are refused, naming only the other,
-    # and a removal that stopped part way is refused for the part no patch makes any more.
+    # The checked-in allowlist, against receipts that carry the three removals, the raised version
+    # code and the icon aliases on both builds. Those pass. They plus any other change are refused,
+    # naming only the other, and a removal that stopped part way is refused for the part no patch
+    # makes any more.
+    $iconAliases = @($iconAliasEntries -replace '^exported-added ', '')
     $withRemovals = {
         param($r)
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions)
             $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
+            $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
         }
     }
     $removed = Test-TestReceipt -Receipt (New-TestReceipt -Mutate $withRemovals) -Approved $checkedInAllowlist
     Assert-True $removed.Valid "A receipt carrying the approved advertising ID removals was refused: $($removed.Reason)"
+    foreach ($floorFault in @(
+            { param($t) $t.minSdkVersion = 26 },
+            { param($t) $t.minSdkVersion = '28' },
+            { param($t) $t.PSObject.Properties.Remove('minSdkVersion') },
+            { param($t) $t.source.PSObject.Properties.Remove('minSdkVersion') },
+            { param($t) $t.source.minSdkVersion = 31 })) {
+        $badFloor = New-TestReceipt -Mutate { param($r) & $withRemovals $r; & $floorFault $r.targets[0] }
+        $verdict = Test-TestReceipt -Receipt $badFloor -Approved $checkedInAllowlist
+        Assert-True (-not $verdict.Valid -and ($verdict.Reason -like '*Android API*' -or
+            $verdict.Reason -like '*runtime floor*')) `
+            "A receipt with missing, lowered or unverified SDK facts was accepted: $($verdict.Reason)"
+    }
+    $raisedFloor = New-TestReceipt -Mutate {
+        param($r)
+        & $withRemovals $r
+        $r.targets[0].source.minSdkVersion = 26
+        $r.targets[0].manifestDelta | Add-Member -NotePropertyName minSdkChanged -NotePropertyValue @('28') -Force
+    }
+    $raisedFloorVerdict = Test-TestReceipt -Receipt $raisedFloor -Approved $checkedInAllowlist
+    Assert-True $raisedFloorVerdict.Valid "A correctly raised API 26 manifest was refused: $($raisedFloorVerdict.Reason)"
     $unraised = Test-TestReceipt -Receipt (New-TestReceipt -Mutate {
             param($r)
-            foreach ($target in $r.targets) { $target.manifestDelta.permissionsRemoved = @($removedPermissions) }
+            foreach ($target in $r.targets) {
+                $target.manifestDelta.permissionsRemoved = @($removedPermissions)
+                $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
+            }
         }) -Approved $checkedInAllowlist
     Assert-True (-not $unraised.Valid -and $unraised.Reason -like "*any more: version-code $raisedVersionCode") `
         "A receipt whose version code was never raised passed the allowlist that approves raising it: $($unraised.Reason)"
@@ -651,7 +735,7 @@ try {
             @{ Name = 'another permission dropped'; Entry = 'permission-removed android.permission.CAMERA'
                 Change = { param($t) $t.manifestDelta.permissionsRemoved = @($t.manifestDelta.permissionsRemoved) + 'android.permission.CAMERA' } },
             @{ Name = 'a component exported'; Entry = 'exported-added receiver:com.example.host.Probe'
-                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @('receiver:com.example.host.Probe') } },
+                Change = { param($t) $t.manifestDelta.exportedComponentsAdded = @($t.manifestDelta.exportedComponentsAdded) + 'receiver:com.example.host.Probe' } },
             @{ Name = 'a component no longer exported'; Entry = 'exported-removed activity:com.example.host.Main'
                 Change = { param($t) $t.manifestDelta.exportedComponentsRemoved = @('activity:com.example.host.Main') } },
             @{ Name = 'another version code'; Entry = 'version-code 2147483646'
@@ -667,6 +751,7 @@ try {
         foreach ($target in $r.targets) {
             $target.manifestDelta.permissionsRemoved = @($removedPermissions | Select-Object -First 2)
             $target.manifestDelta.versionCodeChanged = @($raisedVersionCode)
+            $target.manifestDelta.exportedComponentsAdded = @($iconAliases)
         }
     }
     $part = Test-TestReceipt -Receipt $partWay -Approved $checkedInAllowlist
@@ -690,7 +775,7 @@ try {
     Assert-True ($sbomRead.BundleName -eq 'patches-9.9.9.mpp' -and $sbomRead.BundleVersion -eq '9.9.9' -and
         $sbomRead.BundleSha256 -ceq $bundleHash.ToLowerInvariant() -and $sbomRead.Timestamp -eq '2023-11-14T22:13:20Z' -and
         @($sbomRead.Components).Count -eq 3 -and @($sbomRead.Libraries).Count -eq 1 -and
-        $sbomRead.Libraries[0].Purl -eq 'pkg:maven/com.google.code.gson/gson@2.14.0' -and $sbomRead.Libraries[0].Name -eq 'gson' -and
+        $sbomRead.Libraries[0].Purl -eq 'pkg:maven/com.google.code.gson/gson@2.15.0' -and $sbomRead.Libraries[0].Name -eq 'gson' -and
         @($sbomRead.Payloads).Count -eq 1 -and $sbomRead.Payloads[0].Ref -eq 'extensions/instagram.mpe' -and
         $sbomRead.Sha256 -eq (Get-Sha256Hex -Path $sbomFile)) `
         "The SBOM was misread: $($sbomRead.BundleName) $($sbomRead.BundleVersion) $($sbomRead.Timestamp), $(@($sbomRead.Components).Count) components"
@@ -747,17 +832,17 @@ try {
             @{ Name = 'no bundle hash'; Mutate = { param($d) $d.metadata.component.Remove('hashes') }; Pattern = '*does not name the bundle it describes*' },
             @{ Name = 'a package URL for another version'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/com.google.code.gson/gson@2.8.8' }
                 Pattern = '*with the package URL pkg:maven/com.google.code.gson/gson@2.8.8, which doesn''t name its own group, name and version*' },
-            @{ Name = 'a package URL with no group'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/gson@2.14.0' }
-                Pattern = '*with the package URL pkg:maven/gson@2.14.0, which doesn''t name*' },
-            @{ Name = 'a package URL for another group'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/com.google.gson/gson@2.14.0' }
-                Pattern = '*with the package URL pkg:maven/com.google.gson/gson@2.14.0, which doesn''t name*' },
-            @{ Name = 'a package URL for another name'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/com.google.code.gson/gson-extras@2.14.0' }
-                Pattern = '*with the package URL pkg:maven/com.google.code.gson/gson-extras@2.14.0, which doesn''t name*' },
+            @{ Name = 'a package URL with no group'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/gson@2.15.0' }
+                Pattern = '*with the package URL pkg:maven/gson@2.15.0, which doesn''t name*' },
+            @{ Name = 'a package URL for another group'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/com.google.gson/gson@2.15.0' }
+                Pattern = '*with the package URL pkg:maven/com.google.gson/gson@2.15.0, which doesn''t name*' },
+            @{ Name = 'a package URL for another name'; Mutate = { param($d) $d.components[0].purl = 'pkg:maven/com.google.code.gson/gson-extras@2.15.0' }
+                Pattern = '*with the package URL pkg:maven/com.google.code.gson/gson-extras@2.15.0, which doesn''t name*' },
             @{ Name = 'something that is not a package URL, beside empty fields'
                 Mutate = { param($d) $d.components[0].purl = 'not-a-package-url'; $d.components[0].group = ''; $d.components[0].name = ''; $d.components[0].version = '' }
                 Pattern = '*with the package URL not-a-package-url, which doesn''t name*' },
-            @{ Name = 'a library with no package URL'; Mutate = { param($d) $d.components[0].Remove('purl') }; Pattern = '*the library pkg:maven/com.google.code.gson/gson@2.14.0 with no package URL*' },
-            @{ Name = 'the same component twice'; Mutate = { param($d) $d.components = @($d.components) + @($d.components[0]) }; Pattern = '*lists pkg:maven/com.google.code.gson/gson@2.14.0 twice*' },
+            @{ Name = 'a library with no package URL'; Mutate = { param($d) $d.components[0].Remove('purl') }; Pattern = '*the library pkg:maven/com.google.code.gson/gson@2.15.0 with no package URL*' },
+            @{ Name = 'the same component twice'; Mutate = { param($d) $d.components = @($d.components) + @($d.components[0]) }; Pattern = '*lists pkg:maven/com.google.code.gson/gson@2.15.0 twice*' },
             @{ Name = 'a component of another type'; Mutate = { param($d) $d.components[0].type = 'framework' }; Pattern = '*as a framework, which a release SBOM doesn''t hold*' },
             @{ Name = 'a payload with no hash'; Mutate = { param($d) @($d.components | Where-Object { $_.type -eq 'file' })[0].Remove('hashes') }; Pattern = '*the file extensions/instagram.mpe with no SHA-256*' },
             @{ Name = 'no component'; Mutate = { param($d) $d.components = @() }; Pattern = '*lists no component*' })) {
@@ -792,13 +877,13 @@ try {
 
     # A family may apply yet miss a subtarget. Certification must reject a required absence,
     # preserve an explicitly optional absence, and never take a forged count as evidence.
-    $partial = [pscustomobject]@{ family = 'disableAnalytics'; matched = 2; expected = 3
+    $partial = [pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 2; expected = 3
         targets = @('alpha', 'beta', 'gamma'); missing = @('gamma') }
     $policy = [pscustomobject]@{ schemaVersion = 1; fixtures = @([pscustomobject]@{
         package = 'com.example.host'; versionName = '46.7.3'; versionCode = '2024607030'
-        families = @([pscustomobject]@{ family = 'disableAnalytics'; patch = 'Disable analytics'
+        families = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; patch = 'Sanitize sharing links'
             targets = @('alpha', 'beta', 'gamma'); optional = @('gamma') }) }) }
-    $arguments = @{ Names = @('Disable analytics'); Package = 'com.example.host'; VersionName = '46.7.3'
+    $arguments = @{ Names = @('Sanitize sharing links'); Package = 'com.example.host'; VersionName = '46.7.3'
         VersionCode = '2024607030'; Policy = $policy }
     $optional = Test-TargetCoverage -Coverage @($partial) @arguments
     Assert-True ($optional.Valid -and $optional.Reviewed -and $partial.missing[0] -ceq 'gamma') `
@@ -835,18 +920,19 @@ try {
     $coverageTarget.source.package = 'com.instagram.android'
     $coverageTarget.source.versionName = $reviewedName
     $coverageTarget.source.versionCode = $reviewedCode
-    $coverageTarget.patches = @([pscustomobject]@{ name = 'Disable analytics'; applied = $true; reason = $null })
-    $coverageTarget.coverage = @([pscustomobject]@{ family = 'disableAnalytics'; matched = 7; expected = 7
-        targets = @('builder', 'graph', 'mqtt', 'reports', 'pings', 'stream', 'setup'); missing = @() })
-    $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Disable analytics')
+    $coverageTarget.patches = @([pscustomobject]@{ name = 'Sanitize sharing links'; applied = $true; reason = $null })
+    $coverageTarget.coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 6; expected = 6
+        targets = @('permalink parser', 'story link parser', 'clipboard copies', 'share sheets', 'direct shares',
+            'in-app browser menu'); missing = @() })
+    $receiptArguments = @{ ExpectedVersion = '9.9.9'; ExpectedPatchNames = @('Sanitize sharing links')
         ExpectedPatcherVersion = '1.12.0'; ExpectedManagerFloor = '1.29.0'; ExpectedPackageName = 'com.instagram.android'
         ExpectedPackageVersions = @($reviewedName); ExpectedPackageVersionCodes = @{ $reviewedName = @($reviewedCode) }
         BundlePath = $bundle }
     $certified = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
     Assert-True $certified.Valid "The reviewed coverage receipt failed: $($certified.Reason)"
-    $coverageTarget.coverage[0].matched = 6; $coverageTarget.coverage[0].missing = @('mqtt')
+    $coverageTarget.coverage[0].matched = 5; $coverageTarget.coverage[0].missing = @('share sheets')
     $lost = Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments
-    Assert-True (-not $lost.Valid -and $lost.Reason -like '*Required*mqtt*') 'A receipt hid missing required coverage.'
+    Assert-True (-not $lost.Valid -and $lost.Reason -like '*Required*share sheets*') 'A receipt hid missing required coverage.'
     $coverageTarget.coverage[0].matched = 7
     Assert-True (-not (Test-ReleaseReceipt -Receipt $coverageReceipt @receiptArguments).Valid) 'Forged receipt counts passed.'
 } finally {
@@ -1194,6 +1280,57 @@ Set-Content -LiteralPath $Result -Value $lines
         $factsSource -notmatch 'Read-ManifestDeltaAllowlist') `
         'validate-release-facts.ps1 no longer holds the receipt to the allowlist its own commit carried.'
 
+    # The coverage census, the same way. A retarget replaces the old build's entry, and the shipped
+    # receipt for that build read as uncertified on every push after it. A commit with no census,
+    # or no commit, gets the working one, the first with a note, and a census at the commit that
+    # isn't strict JSON says where it is.
+    $censusFile = Join-Path $toolchainRoot 'scripts/patch-coverage-expectations.json'
+    function Save-FixtureCensus([string]$Text) {
+        [System.IO.File]::WriteAllText($censusFile, $Text, (New-Object System.Text.UTF8Encoding($false)))
+        Invoke-FixtureGit -Root $toolchainRoot -Arguments @('add', '-A') | Out-Null
+        Invoke-FixtureGit -Root $toolchainRoot -Arguments @('commit', '-m', 'census', '--quiet') | Out-Null
+        return "$(Invoke-FixtureGit -Root $toolchainRoot -Arguments @('rev-parse', 'HEAD') | Select-Object -First 1)".Trim()
+    }
+    function Get-FixtureCensus([string]$Build) {
+        return ('{"schemaVersion": 1, "fixtures": [{"package": "com.example", "versionName": "' + $Build +
+            '", "versionCode": "1", "families": [{"family": "sanitizeSharingLinks", "patch": "Sanitize sharing links", ' +
+            '"targets": ["alpha"], "optional": []}]}]}' + "`n")
+    }
+    $censusReleased = Save-FixtureCensus (Get-FixtureCensus '1.0.0')
+    $censusNow = Save-FixtureCensus (Get-FixtureCensus '1.0.1')
+    $atCensusRelease = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $censusReleased
+    Assert-True ([string]@($atCensusRelease.Policy.fixtures)[0].versionName -eq '1.0.0' -and
+        $atCensusRelease.Note -like "*coverage census at its own commit $($censusReleased.Substring(0, 8))*") `
+        "The receipt was not held to the coverage census its own commit carried: $($atCensusRelease.Note)"
+    $atCensusHead = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $censusNow
+    Assert-True ([string]@($atCensusHead.Policy.fixtures)[0].versionName -eq '1.0.1' -and $null -eq $atCensusHead.Note) `
+        "A census the working tree still holds as committed reported a difference: $($atCensusHead.Note)"
+    # The verdict reads the census that comes back: the receipt's own build is certified against the
+    # census its commit carried, and the working one, which reviews only the newer build, can't.
+    $censusArguments = @{ Names = @('Sanitize sharing links'); Package = 'com.example'; VersionName = '1.0.0'; VersionCode = '1'
+        Coverage = @([pscustomobject]@{ family = 'sanitizeSharingLinks'; matched = 1; expected = 1; targets = @('alpha'); missing = @() }) }
+    $atReleaseVerdict = Test-TargetCoverage @censusArguments -Policy $atCensusRelease.Policy
+    Assert-True ($atReleaseVerdict.Valid -and $atReleaseVerdict.Reviewed) `
+        "The census at the receipt's commit did not certify the build it reviewed: $($atReleaseVerdict.Reason)"
+    $atHeadVerdict = Test-TargetCoverage @censusArguments -Policy $atCensusHead.Policy
+    Assert-True ($atHeadVerdict.Valid -and -not $atHeadVerdict.Reviewed) `
+        "The working census certified a build only the receipt's own census reviewed: $($atHeadVerdict.Reason)"
+    $atNoCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $releaseCommitSha
+    Assert-True ($null -eq $atNoCensus.Policy -and $atNoCensus.Note -like '*has no reviewed coverage census*') `
+        "A commit with no census did not fall back to the working one, saying so: $($atNoCensus.Note)"
+    $noCommitCensus = Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit ''
+    Assert-True ($null -eq $noCommitCensus.Policy -and $null -eq $noCommitCensus.Note) `
+        'A receipt naming no commit was not held quietly to the working census.'
+    $brokenCensus = Save-FixtureCensus '{"schemaVersion": 1, "schemaVersion": 1}'
+    Assert-Throws { Resolve-ReceiptCoveragePolicy -Root $toolchainRoot -Commit $brokenCensus } `
+        "*coverage census at $($brokenCensus.Substring(0, 8)) is not strict JSON*" `
+        'A census at the receipt''s commit that reads two ways was read without complaint.'
+    $receiptSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'release-receipt.ps1') -Raw
+    Assert-True ($factsSource -match '\$resolvedCoverage = Resolve-ReceiptCoveragePolicy -Root \$rootPath -Commit \$receiptCommit' -and
+        $factsSource -match '-CoveragePolicy \$resolvedCoverage\.Policy' -and
+        $receiptSource -match '-VersionCode \$target\.source\.versionCode `\s+-Policy \$CoveragePolicy') `
+        'validate-release-facts.ps1 no longer holds the receipt to the coverage census its own commit carried.'
+
     # The receipt schema, read the same way: out of scripts/release-receipt.ps1 at the receipt's
     # commit. A release cut before the SBOM is held to schema 1 and says so, one cut since to this
     # checkout's schema, one from a newer checkout is refused rather than misread, and a commit
@@ -1261,13 +1398,14 @@ $log4jVectorFour = '{"id":"GHSA-3pxv-7cmr-fjr4","summary":"Apache Log4j Core: Si
 $guavaModerate = '{"id":"GHSA-7g45-4rm6-3mm3","summary":"Guava vulnerable to insecure use of temporary directory","aliases":["CVE-2023-2976"],"modified":"2026-09-10T03:49:53.859811124Z","database_specific":{"severity":"MODERATE"},"severity":[{"type":"CVSS_V3","score":"CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"}]}'
 $guavaLow = '{"id":"GHSA-5mg8-w23w-74h3","summary":"Information Disclosure in Guava","aliases":["CVE-2020-8908"],"modified":"2026-09-10T03:49:26.651391253Z","database_specific":{"severity":"LOW"},"severity":[{"type":"CVSS_V3","score":"CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N"}]}'
 $gsonPurl = 'pkg:maven/com.google.code.gson/gson@2.8.8'
-$cleanPurl = 'pkg:maven/com.google.code.gson/gson@2.14.0'
+$cleanPurl = 'pkg:maven/com.google.code.gson/gson@2.15.0'
 $osvRecorded = @{
     $gsonPurl = "{`"vulns`":[$gsonAdvisory]}"
     'pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1' = "{`"vulns`":[$log4jCritical,$log4jModerate]}"
     'pkg:maven/com.google.guava/guava@31.1-jre' = "{`"vulns`":[$guavaModerate,$guavaLow]}"
     $cleanPurl = '{}'
     # OSV had none of Gradle's 2026-10-07 advisories on 2026-10-12; the publisher supplement does.
+    'pkg:maven/org.gradle/gradle-core@9.8.2' = '{}'
     'pkg:maven/org.gradle/gradle-core@9.8.1' = '{}'
     'pkg:maven/org.gradle/gradle-core@9.8.0' = '{}'
 }
@@ -1538,7 +1676,7 @@ try {
 
     # The gate. A clean library is asked about once and passes.
     $said = Invoke-Gate @($cleanPurl)
-    Assert-True ($said -like '*OSV has no advisory for the libraries patches-9.9.9.cdx.json lists: gson 2.14.0*' -and
+    Assert-True ($said -like '*OSV has no advisory for the libraries patches-9.9.9.cdx.json lists: gson 2.15.0*' -and
         ($osvAsked -join ', ') -eq $cleanPurl) "The gate did not ask OSV about the clean library, or did not say so: $said"
 
     # The deliberately vulnerable library is refused, naming the advisory, its alias and the version.
@@ -1767,7 +1905,7 @@ try {
     $certifiedReportHash = Get-Sha256Hex -Path $boundReportPath
     foreach ($case in @(
         @{ Name = 'omitted carried component'; Change = { param($d)
-            $d.components = @($d.components | Where-Object { $_.purl -cne 'pkg:maven/com.google.code.gson/gson@2.14.0' })
+            $d.components = @($d.components | Where-Object { $_.purl -cne 'pkg:maven/com.google.code.gson/gson@2.15.0' })
         } },
         @{ Name = 'downgraded license policy'; Change = { param($d)
             $d.metadata.properties = @($d.metadata.properties | Where-Object { $_.name -cnotlike 'hushgram:license-*' })
@@ -1847,6 +1985,50 @@ try {
         "The standalone audit didn't refuse changed inputs through its own imports: $standaloneOutput"
     Write-Host '[OK] Current advisory reports refuse stale inputs, edges, omitted scopes and artifact substitutions.'
 
+    # A gate that patches with a Desktop JAR holds the report to that JAR's bytes and its own
+    # scope. The fixture JAR embeds only the clean library's metadata, so OSV is asked nothing new.
+    $desktopJar = Join-Path $advisoryRoot 'morphe-desktop-fixture.jar'
+    $gsonMetadata = [ordered]@{
+        'META-INF/maven/com.google.code.gson/gson/pom.properties' = "groupId=com.google.code.gson`nartifactId=gson`nversion=2.15.0`n" }
+    New-TestBundleArchive -Path $desktopJar -Entries $gsonMetadata
+    $desktopSubject = Get-CurrentDependencyAuditSubject -Root $inputRoot -Graphs $boundGraphs -Sbom $boundSbom `
+        -BundlePath $boundBundle -DesktopJar $desktopJar
+    Assert-True ($desktopSubject.externalDesktop.sha256 -ceq (Get-Sha256Hex -Path $desktopJar) -and
+        $desktopSubject.graphReport.graphsSha256 -cne $subject.graphReport.graphsSha256) 'The audit subject did not bind the Desktop JAR.'
+    Assert-Throws { Read-CurrentDependencyAdvisoryReport -Path $boundReportPath -Subject $desktopSubject } '*externalDesktop*' `
+        'A report that never read the Desktop JAR certified a gate that patches with it.'
+    $desktopReportPath = Join-Path $advisoryRoot 'desktop-advisories.json'
+    & (Join-Path $PSScriptRoot 'audit-dependencies.ps1') -Root $inputRoot -GraphPath $boundGraphPath `
+        -SbomPath $boundSbomPath -OutputPath $desktopReportPath -DesktopJar $desktopJar 6>$null
+    $desktopReport = Read-CurrentDependencyAdvisoryReport -Path $desktopReportPath -Subject $desktopSubject
+    $desktopGraph = @($desktopReport.graphs | Where-Object scope -CEQ 'external-desktop')
+    Assert-True ($desktopGraph.Count -eq 1 -and $desktopGraph[0].sha256 -ceq $desktopSubject.externalDesktop.sha256 -and
+        $desktopGraph[0].libraries[0].evidence -ceq 'embedded-metadata' -and $desktopReport.scopeVerdicts.'external-desktop'.Valid) `
+        "The audit did not certify the Desktop JAR's own scope: $($desktopGraph | ConvertTo-Json -Depth 6 -Compress)"
+    $desktopJson = Get-Content -LiteralPath $desktopReportPath -Raw
+    foreach ($refusedScope in @($false, $true)) {
+        $variant = $desktopJson | ConvertFrom-Json
+        if ($refusedScope) { $variant.scopeVerdicts.'external-desktop'.Valid = $false }
+        else { $variant.scopeVerdicts.PSObject.Properties.Remove('external-desktop') }
+        $variant | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $desktopReportPath -Encoding UTF8
+        Assert-Throws { Read-CurrentDependencyAdvisoryReport -Path $desktopReportPath -Subject $desktopSubject } '*external-desktop scope*' `
+            "A report that $(if ($refusedScope) { 'refused' } else { 'omitted' }) the Desktop scope was certified."
+    }
+    Set-Content -LiteralPath $desktopReportPath -Encoding UTF8 -Value $desktopJson
+    $desktopBytes = [IO.File]::ReadAllBytes($desktopJar)
+    try {
+        Remove-Item -LiteralPath $desktopJar
+        $otherDesktop = [ordered]@{}
+        foreach ($name in $gsonMetadata.Keys) { $otherDesktop[$name] = $gsonMetadata[$name] }
+        $otherDesktop['app/morphe/desktop/Other.class'] = 'class'
+        New-TestBundleArchive -Path $desktopJar -Entries $otherDesktop
+        $otherSubject = Get-CurrentDependencyAuditSubject -Root $inputRoot -Graphs $boundGraphs -Sbom $boundSbom `
+            -BundlePath $boundBundle -DesktopJar $desktopJar
+        Assert-Throws { Read-CurrentDependencyAdvisoryReport -Path $desktopReportPath -Subject $otherSubject } '*different externalDesktop sha256*' `
+            'A report on one Desktop JAR certified another.'
+    } finally { [IO.File]::WriteAllBytes($desktopJar, $desktopBytes) }
+    Write-Host '[OK] The Desktop JAR is its own scope, bound to its SHA-256.'
+
     # The publisher's Guava advisory was absent from OSV on 2026-10-01. An empty database
     # result must not erase the known affected range, including both published editions.
     foreach ($version in @('4.0', '33.7.1-jre', '33.7.1-android')) {
@@ -1894,12 +2076,12 @@ try {
     # the same wrapper pointing at 9.8.0 exposes all three in the tooling-distribution scope.
     $ownDistribution = Get-GradleDistributionGraph -Root (Split-Path -Parent $PSScriptRoot)
     Assert-True ($ownDistribution.scope -ceq 'tooling-distribution' -and
-        $ownDistribution.libraries[0].purl -ceq 'pkg:maven/org.gradle/gradle-core@9.8.1') `
-        "The wrapper's own distribution was not audited as gradle-core 9.8.1: $($ownDistribution | ConvertTo-Json -Depth 5 -Compress)"
+        $ownDistribution.libraries[0].purl -ceq 'pkg:maven/org.gradle/gradle-core@9.8.2') `
+        "The wrapper's own distribution was not audited as gradle-core 9.8.2: $($ownDistribution | ConvertTo-Json -Depth 5 -Compress)"
     $osvAnswers = $osvRecorded
     $ownFindings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = $ownDistribution.libraries }))
     Assert-True ($ownFindings.Count -eq 0 -and (Test-AdvisoryFindings -Findings $ownFindings -Scope 'tooling-distribution').Valid) `
-        'Gradle 9.8.1 was reported as affected.'
+        'Gradle 9.8.2 was reported as affected.'
     $oldWrapperRoot = Join-Path $advisoryRoot 'old-wrapper'
     New-Item -ItemType Directory -Path (Join-Path $oldWrapperRoot 'gradle/wrapper') -Force | Out-Null
     $wrapperProperties = Join-Path $oldWrapperRoot 'gradle/wrapper/gradle-wrapper.properties'
@@ -1919,6 +2101,95 @@ try {
     Remove-Item -LiteralPath $wrapperProperties
     Assert-Throws { Get-GradleDistributionGraph -Root $oldWrapperRoot } '*wrapper properties are missing*' `
         'A checkout without wrapper properties skipped the distribution audit.'
+
+    # Desktop's inventory keeps embedded metadata and Bouncy Castle's provider version apart, and
+    # looks up the classes a reviewed advisory names in the JAR itself, as Desktop 1.18.1 packs them.
+    $desktopFixture = Join-Path $advisoryRoot 'desktop-inventory.jar'
+    $desktopEntries = [ordered]@{
+        'META-INF/maven/com.google.guava/guava/pom.properties' = "#Created by Maven`ngroupId=com.google.guava`nartifactId=guava`nversion=33.5.0-jre`n"
+        'com/google/common/collect/ImmutableList.class' = 'class'
+        'org/bouncycastle/jce/provider/BouncyCastleProvider.class' = 'constants BouncyCastle Security Provider v1.79 more'
+        'org/bouncycastle/cert/X509CertificateHolder.class' = 'class' }
+    New-TestBundleArchive -Path $desktopFixture -Entries $desktopEntries
+    $inventory = Get-ExternalDesktopGraph -JarPath $desktopFixture
+    Assert-True ($inventory.scope -ceq 'external-desktop' -and $inventory.sha256 -ceq (Get-Sha256Hex -Path $desktopFixture) -and
+        (@($inventory.libraries | ForEach-Object { "$($_.purl) $($_.evidence)" }) -join '; ') -ceq
+        ('pkg:maven/com.google.guava/guava@33.5.0-jre embedded-metadata; pkg:maven/org.bouncycastle/bcpkix-jdk18on@1.79 provider-version; ' +
+            'pkg:maven/org.bouncycastle/bcprov-jdk18on@1.79 provider-version')) `
+        "The Desktop inventory mixed or lost its evidence: $($inventory | ConvertTo-Json -Depth 6 -Compress)"
+    $osvAnswers = @{
+        'pkg:maven/com.google.guava/guava@33.5.0-jre' = '{}'
+        'pkg:maven/org.bouncycastle/bcprov-jdk18on@1.79' = '{"vulns":[{"id":"GHSA-qp49-qgx5-5m26","aliases":["CVE-2026-13506"],"database_specific":{"severity":"HIGH"}}]}'
+        'pkg:maven/org.bouncycastle/bcpkix-jdk18on@1.79' = '{}'
+    }
+    $desktopFindings = @(Get-SbomAdvisories -Sbom ([pscustomobject]@{ Libraries = $inventory.libraries }))
+    foreach ($finding in $desktopFindings) {
+        Add-Member -InputObject $finding -NotePropertyName DesktopClassPresence -NotePropertyValue (
+            Get-DesktopClassPresence -Finding $finding -Graph $inventory)
+    }
+    $guavaFinding = @($desktopFindings | Where-Object Advisory -CEQ 'GHSA-xxph-c9ww-hj94')
+    $bcFinding = @($desktopFindings | Where-Object Advisory -CEQ 'GHSA-qp49-qgx5-5m26')
+    Assert-True ($guavaFinding.Count -eq 1 -and $guavaFinding[0].DesktopClassPresence -ceq 'absent' -and
+        $bcFinding.Count -eq 1 -and $bcFinding[0].DesktopClassPresence -ceq 'unreviewed') `
+        'The Desktop JAR read a reviewed advisory class as present, or an unreviewed advisory as absent.'
+    # A serious advisory whose classes minimization removed is listed rather than refused, and only here.
+    $seriousGuava = $guavaFinding[0].PSObject.Copy()
+    $seriousGuava.Severity = [pscustomobject]@{ Level = 'HIGH'; Serious = $true; Why = 'a stand-in high rating' }
+    $absentVerdict = Test-AdvisoryFindings -Findings @($seriousGuava) -Scope 'external-desktop'
+    Assert-True ($absentVerdict.Valid -and $absentVerdict.Minor.Count -eq 1 -and $absentVerdict.Minor[0] -like '*absent*not exposure*') `
+        'Packed metadata whose advisory classes are absent was refused as exposure.'
+    Assert-True (-not (Test-AdvisoryFindings -Findings @($seriousGuava) -Scope 'build').Valid) `
+        "The Desktop JAR's class evidence excused the same advisory in another scope."
+    # A named class in the JAR, or no reviewed class list, needs a reviewed-reachability exception.
+    $desktopEntries['com/google/common/collect/MapMaker.class'] = 'class'
+    Remove-Item -LiteralPath $desktopFixture
+    New-TestBundleArchive -Path $desktopFixture -Entries $desktopEntries
+    $seriousGuava.DesktopClassPresence = Get-DesktopClassPresence -Finding $seriousGuava -Graph (Get-ExternalDesktopGraph -JarPath $desktopFixture)
+    Assert-True ($seriousGuava.DesktopClassPresence -ceq 'present' -and
+        -not (Test-AdvisoryFindings -Findings @($seriousGuava) -Scope 'external-desktop').Valid) `
+        'A high advisory whose named class is in the Desktop JAR passed without review.'
+    Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop').Valid) `
+        'An unreviewed high Desktop advisory passed.'
+    $desktopList = Join-Path $advisoryRoot 'desktop-exceptions.txt'
+    $desktopSha = Get-Sha256Hex -Path $desktopFixture
+    $reviewLine = "GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2026-10-15 jar-sha256=$($desktopSha.ToLowerInvariant()) Desktop parses only its own keystore"
+    Set-Content -LiteralPath $desktopList -Value "external-desktop $reviewLine"
+    $reviewed = Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 $desktopSha `
+        -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)
+    Assert-True ($reviewed.Valid -and $reviewed.Excused.Count -eq 1 -and $reviewed.Excused[0] -like '*unreviewed*own keystore*') `
+        'A reviewed-reachability exception did not cover its Desktop finding, or lost the class evidence.'
+    # The review holds for the JAR it read: another JAR's finding stays refused, and the review
+    # isn't stale there either, since it says nothing about that JAR.
+    $otherJar = Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 ('0' * 64) `
+        -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)
+    Assert-True (-not $otherJar.Valid -and $otherJar.Excused.Count -eq 0 -and $otherJar.Refused.Count -eq 1 -and
+        $otherJar.Stale.Count -eq 0) "A reachability review of one Desktop JAR excused another JAR's finding."
+    Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' `
+            -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)).Valid) `
+        'A reachability review excused a Desktop finding with no audited JAR named.'
+    Set-Content -LiteralPath $desktopList -Value 'external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2026-10-15 Desktop parses only its own keystore'
+    Assert-Throws { Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today } '*without naming the Desktop JAR*' `
+        'A Desktop reachability review that names no JAR was read.'
+    Set-Content -LiteralPath $desktopList -Value "build $reviewLine"
+    Assert-True (-not (Test-AdvisoryFindings -Findings $bcFinding -Scope 'external-desktop' -DesktopSha256 $desktopSha `
+            -Exceptions @(Read-AdvisoryExceptions -Path $desktopList -Scoped -Today $today)).Valid) `
+        'A build-scope review covered the Desktop JAR.'
+    # A JAR, metadata or provider that can't be read certifies nothing.
+    $brokenJar = Join-Path $advisoryRoot 'broken-desktop.jar'
+    Set-Content -LiteralPath $brokenJar -Value 'not a jar' -Encoding ASCII
+    Assert-Throws { Get-ExternalDesktopGraph -JarPath $brokenJar } "*can't be read*" 'An unreadable Desktop JAR was audited as empty.'
+    Assert-Throws { Get-ExternalDesktopGraph -JarPath (Join-Path $advisoryRoot 'absent.jar') } '*missing*' 'A missing Desktop JAR was audited.'
+    foreach ($bad in @(
+        [ordered]@{ 'org/bouncycastle/crypto/Digest.class' = 'class' },
+        [ordered]@{ 'org/bouncycastle/jce/provider/BouncyCastleProvider.class' = 'no release named' },
+        [ordered]@{ 'META-INF/maven/com.google.guava/guava/pom.properties' = "groupId=com.google.guava`nartifactId=failureaccess`nversion=1.0.3`n" },
+        [ordered]@{ 'META-INF/maven/com.google.guava/guava/pom.properties' = "groupId=com.google.guava`nartifactId=guava`n" })) {
+        Remove-Item -LiteralPath $brokenJar
+        New-TestBundleArchive -Path $brokenJar -Entries $bad
+        Assert-Throws { Get-ExternalDesktopGraph -JarPath $brokenJar } "*Desktop JAR*can't be read*" `
+            "Unreadable Desktop evidence was audited: $(@($bad.Keys) -join ', ')"
+    }
+    Write-Host '[OK] Desktop evidence keeps metadata, class presence and reviewed reachability apart.'
 
     # Actual OSV controls read on 2026-10-01, reduced to the fields this gate uses.
     $osvAnswers = @{
@@ -2334,8 +2605,9 @@ try {
             Edit = { param($text)
                 $dated = $text -replace ('(?ms)^## Unreleased\s+###\s+HushGram\s+v' + [regex]::Escape($versionHere) + '\s*$'),
                     "## $versionHere (2026-09-30)"
-                $at = $dated.IndexOf("## $versionHere (2026-09-30)")
-                ([regex]'(?m)^\* \*\*(?:Instagram|Tooling):\*\* ').Replace($dated, '* ', 1, [Math]::Max(0, $at)) } },
+                # The section may already be dated, and its bullets may all be scoped to a patch.
+                $at = $dated.IndexOf("## $versionHere (")
+                ([regex]'(?m)^\* \*\*(?:Instagram|Tooling)(?: - [^*\r\n]+)?:\*\* ').Replace($dated, '* ', 1, [Math]::Max(0, $at)) } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another HushGram version'; Pattern = '*bug report form version placeholder*'
             Edit = { param($text) $text -replace '(placeholder:\s*HushGram )\S+', '${1}0.0.1' } },
         @{ File = $bugFormRelative; Case = 'a bug form naming another Instagram build'; Pattern = '*bug report form version placeholder*'
@@ -2569,6 +2841,118 @@ param([string]$Root, [switch]$SkipDescriptionTestCount, [switch]$SkipTestResults
         foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md', 'patches-bundle.json')) { Reset-FactsFile $name }
     }
 
+    # Patches added since the published release: the README's sentence still counts the release's
+    # own. The index description has named no count since 0.0.9, so the lenient check reads the
+    # release's catalog at its tag, and without the tag holds the sentence to the source's count.
+    $releasedCount = $countHere - 1
+    Set-FactsFile 'gradle.properties' { param($text) $text -replace '(?m)^(\s*version\s*=\s*)\S+', "`${1}$nextVersion" }
+    Set-FactsFile 'patches-list.json' { param($text) $text.Replace("`"v$versionHere`"", "`"v$nextVersion`"") }
+    Set-FactsFile 'README.md' { param($text) ($text -replace 'badge/version-\d+(?:\.\d+)+-', "badge/version-$nextVersion-" -replace
+        'alt="Version \d+(?:\.\d+)+"', "alt=`"Version $nextVersion`"").Replace("with $countHere patches. Add", "with $releasedCount patches. Add") }
+    Set-FactsFile 'CHANGELOG.md' { param($text) $text.Replace("## $versionHere (", "## Unreleased`n`n### HushGram v$nextVersion`n`n* A change on its way.`n`n## $versionHere (") }
+    $factsGit = Join-Path $factsRoot '.git'
+    $releasedFile = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-tagged-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        Assert-Throws { Invoke-LenientFacts } "*latest release has $releasedCount patches, but it has $countHere*" `
+            'The lenient check took a count for the published release that no tag backs.'
+        # The release's catalog, one patch short, committed and tagged in a repository of the copy.
+        $releasedCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
+        $releasedCatalog.patches = @($releasedCatalog.patches | Select-Object -Skip 1)
+        [System.IO.File]::WriteAllText($releasedFile, ($releasedCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
+        & git -C $factsRoot init -q
+        $blob = [string](& git -C $factsRoot hash-object -w $releasedFile)
+        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
+        $tree = [string](& git -C $factsRoot write-tree)
+        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
+        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches for Instagram $buildHere*") `
+            "The lenient check didn't read the published release's count from its tag: $said"
+    } finally {
+        Remove-Item -LiteralPath $releasedFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $factsGit) { Remove-Item -LiteralPath $factsGit -Recurse -Force }
+        foreach ($name in @('gradle.properties', 'patches-list.json', 'README.md', 'CHANGELOG.md')) { Reset-FactsFile $name }
+    }
+
+    # The same patches added with the version held at the published one, since nothing is bumped
+    # until a release is called: the sentence still counts the release's own, and only the release's
+    # tag can back that count.
+    Set-FactsFile 'README.md' { param($text) $text.Replace("with $countHere patches. Add", "with $releasedCount patches. Add") }
+    $heldFile = Join-Path ([System.IO.Path]::GetTempPath()) ('hushgram-held-' + [guid]::NewGuid().ToString('N') + '.json')
+    try {
+        Assert-Throws { Invoke-Facts } "*latest release has $releasedCount patches, but it has $countHere*" `
+            'The check took a count for the held release that no tag backs.'
+        $heldCatalog = Get-Content -LiteralPath (Join-Path $factsRoot 'patches-list.json') -Raw | ConvertFrom-Json
+        $heldCatalog.patches = @($heldCatalog.patches | Select-Object -Skip 1)
+        [System.IO.File]::WriteAllText($heldFile, ($heldCatalog | ConvertTo-Json -Depth 20), (New-Object System.Text.UTF8Encoding($false)))
+        & git -C $factsRoot init -q
+        $blob = [string](& git -C $factsRoot hash-object -w $heldFile)
+        & git -C $factsRoot update-index --add --cacheinfo "100644,$($blob.Trim()),patches-list.json"
+        $tree = [string](& git -C $factsRoot write-tree)
+        $commit = [string](& git -C $factsRoot -c user.name=HushGram -c user.email=release@example.invalid commit-tree $tree.Trim() -m 'the release')
+        & git -C $factsRoot tag "v$versionHere" $commit.Trim()
+        Assert-True ($LASTEXITCODE -eq 0) "Could not tag the stand-in release's catalog in $factsRoot."
+        $said = Invoke-Facts
+        Assert-True ($said -like "*v$versionHere's catalog at its tag lists $releasedCount patches; the source held at that version lists $countHere*") `
+            "The check didn't read the held release's count from its tag: $said"
+        # The GitHub description says the same of the held release, read through stand-ins for the
+        # network and gh, and a count neither side has is refused there too.
+        & {
+            function Invoke-WebRequest { [pscustomobject]@{ StatusCode = 200; Content = [byte[]]@() } }
+            $heldDescription = "HushGram v$versionHere`: $releasedCount patches for Instagram $buildHere."
+            function gh { $global:LASTEXITCODE = 0; $heldDescription }
+            $said = Invoke-Facts -WithUrls
+            Assert-True ($said -like "*the GitHub description of $slugHere names v$versionHere, $releasedCount patches and Instagram $buildHere*") `
+                "The check refused a GitHub description counting the held release's patches: $said"
+            $heldDescription = "HushGram v$versionHere`: 13 patches for Instagram $buildHere."
+            Assert-Throws { Invoke-Facts -WithUrls } "*The GitHub description of $slugHere does not say $countHere patches*" `
+                'The check took a GitHub description count that neither the source nor the tag has.'
+        }
+        Set-FactsFile 'README.md' { param($text) $text.Replace("with $releasedCount patches. Add", "with 13 patches. Add") }
+        Assert-Throws { Invoke-Facts } "*latest release has 13 patches, but it has $countHere or $releasedCount*" `
+            'The check took a held release count that neither the source nor the tag has.'
+    } finally {
+        Remove-Item -LiteralPath $heldFile -Force -ErrorAction SilentlyContinue
+        if (Test-Path -LiteralPath $factsGit) { Remove-Item -LiteralPath $factsGit -Recurse -Force }
+        Reset-FactsFile 'README.md'
+    }
+
+    # A retarget held at the published version: the index description names the build it shipped
+    # for and no count. The lenient check the hook runs takes that as the published facts, and a
+    # release writing its own index can't.
+    Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace('Validation: ', 'Built for Instagram 448.0.0.1.1. Validation: ') }
+    try {
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*source $versionHere has an unreleased catalog while the working index remains on its published facts*") `
+            "The lenient check refused a held retarget whose index names only the published build: $said"
+        Assert-Throws { Invoke-Facts } '*bundle description target version*' `
+            'The strict check accepted an index naming a build the source no longer targets.'
+        # That index is still the one this version's release wrote, so it keeps the version heading.
+        Set-FactsFile 'patches-bundle.json' { param($text) $text -replace '## \[[^\]]+\]', '## [0.0.1]' }
+        Assert-Throws { Invoke-LenientFacts } '*bundle description version heading*' `
+            'The lenient check took a held retarget whose index opens on another version.'
+    } finally {
+        Reset-FactsFile 'patches-bundle.json'
+    }
+
+    # A patch removed on main while the version waits at the published one: an index that still names
+    # the release's own count, one more than the source has, is the published one, and only the
+    # lenient check takes it.
+    Set-FactsFile 'patches-bundle.json' { param($text) $text.Replace('Validation: ', "It has $($countHere + 1) patches. Validation: ") }
+    try {
+        $said = Invoke-LenientFacts
+        Assert-True ($said -like "*source $versionHere has an unreleased catalog while the working index remains on its published facts*") `
+            "The lenient check refused an index naming only the published count: $said"
+        Assert-Throws { Invoke-Facts } '*bundle description patch count*' `
+            'The strict check accepted an index counting patches the source no longer has.'
+        Set-FactsFile 'patches-bundle.json' { param($text) $text -replace '## \[[^\]]+\]', '## [0.0.1]' }
+        Assert-Throws { Invoke-LenientFacts } '*bundle description version heading*' `
+            'The lenient check took an index naming only the published count under another version heading.'
+    } finally {
+        Reset-FactsFile 'patches-bundle.json'
+    }
+
     # A dead link: the address has every right shape and names a release nobody published. GitHub
     # answers 404 for it; a stand-in for the request does here, so the case needs no network.
     & {
@@ -2668,7 +3052,7 @@ try {
                 $fixture.name + '/' + $fixture.version + '/' + $fixture.name + '-' + $fixture.version + '.pom')
                 sha256 = ('3' * 64); declaredLicense = 'test publisher license fixture' } }
     }
-    $baselineLicenses = @($licenseFixtures.artifacts | Where-Object purl -CEQ 'pkg:maven/com.google.code.gson/gson@2.14.0')
+    $baselineLicenses = @($licenseFixtures.artifacts | Where-Object purl -CEQ 'pkg:maven/com.google.code.gson/gson@2.15.0')
     $baselineLicenseLedger = [ordered]@{schemaVersion = 1; artifacts = $baselineLicenses}
     [IO.File]::WriteAllText($releaseLicenseLedger, ($baselineLicenseLedger | ConvertTo-Json -Depth 12),
         [Text.UTF8Encoding]::new($false))
@@ -2724,9 +3108,11 @@ try {
         -Text (Get-Content -LiteralPath (Join-Path $releaseRepo 'gradle/libs.versions.toml') -Raw)
     $releaseReceipt = Join-Path $releaseRepo "release-receipt-$releaseVersionHere.json"
     $declaredBuild = $releaseTarget.PackageVersion
+    # The arm64 build's code comes first; the other ABIs' builds are declared after it (#346).
     $declaredCode = [string]@($releaseTarget.PackageVersionCodes[$declaredBuild])[0]
+    $declaredCodes = @($releaseTarget.PackageVersionCodes[$declaredBuild]) -join ' or '
     Assert-True (@($releaseTarget.PackageVersions).Count -eq 1 -and $declaredCode -match '^\d+$') `
-        ("HushGram declares one Instagram build pinned to one version code, and the cases below are built on that. " +
+        ("HushGram declares one Instagram version, its arm64 build's code first, and the cases below are built on that. " +
             "The catalog declares $(Format-DeclaredBuilds -Target $releaseTarget).")
 
     $coverageFixture = (Get-Content (Join-Path $PSScriptRoot 'patch-coverage-expectations.json') -Raw | ConvertFrom-Json).fixtures |
@@ -2740,7 +3126,7 @@ try {
     # A receipt for this commit with a run of each build given, every patch applied and the
     # manifest changes the checked-in allowlist approves, written where the release check looks.
     $approvedDelta = [ordered]@{ permissionsAdded = @(); permissionsRemoved = @()
-        exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @() }
+        exportedComponentsAdded = @(); exportedComponentsRemoved = @(); versionCodeChanged = @(); minSdkChanged = @() }
     foreach ($entry in $checkedInAllowlist) {
         $kind, $value = $entry -split ' ', 2
         switch ($kind) {
@@ -2749,6 +3135,9 @@ try {
             'exported-added' { $approvedDelta.exportedComponentsAdded += $value }
             'exported-removed' { $approvedDelta.exportedComponentsRemoved += $value }
             'version-code' { $approvedDelta.versionCodeChanged += $value }
+            'min-sdk' {
+                if ($value -cne '28') { throw "The release fixture starts at API 28, not $value." }
+            }
             default { throw "The release fixture doesn't know the allowlist kind $kind." }
         }
     }
@@ -2758,10 +3147,12 @@ try {
             [ordered]@{
                 source        = [ordered]@{ file = "instagram-$($Builds[$i])-arm64-v8a.apkm"
                     package = $releaseTarget.PackageName; versionName = $Builds[$i]; versionCode = $code
+                    minSdkVersion = 28
                     sha256 = ([string]'ABCDEF'[$i % 6] * 64); forced = $releaseTarget.PackageVersions -notcontains $Builds[$i] }
                 patches       = @($releaseNames | ForEach-Object { [ordered]@{ name = $_; applied = $true; reason = $null } })
                 coverage      = $releaseCoverage
                 coverageReviewed = $Builds[$i] -ceq $declaredBuild -and $code -ceq $declaredCode
+                minSdkVersion = 28
                 manifestDelta = $approvedDelta
             }
         })
@@ -2900,15 +3291,18 @@ try {
         ':run',
         'if exist "%APK%.xmltree" (type "%APK%.xmltree") else (type "%APK%")',
         'exit /b %errorlevel%') -join "`r`n") + "`r`n"), [System.Text.Encoding]::ASCII)
-    Set-Content -LiteralPath $stubJar -Value 'not a jar' -Encoding ASCII
+    # The receipt audits the Desktop JAR it patches with, so the stand-in is a JAR whose one
+    # embedded library is the clean one OSV is asked about anyway. The stub java never reads it.
+    New-TestBundleArchive -Path $stubJar -Entries ([ordered]@{
+        'META-INF/maven/com.google.code.gson/gson/pom.properties' = "groupId=com.google.code.gson`nartifactId=gson`nversion=2.15.0`n" })
     New-TestBundleArchive -Path (Join-Path $tools 'patched.apk') -Entries ([ordered]@{
         'AndroidManifest.xml' = 'binary manifest'; 'classes.dex' = "dex`n035" })
 
     $androidName = 'http://schemas.android.com/apk/res/android:name(0x01010003)='
     $androidExported = '          A: http://schemas.android.com/apk/res/android:exported(0x01010010)=true'
-    # Instagram asks for the three advertising ID permissions, and the patched build doesn't, and
-    # carries the raised version code: the changes the checked-in allowlist approves, and the only
-    # ones the patches make here.
+    # Instagram asks for the three advertising ID permissions, and the patched build doesn't, carries
+    # the raised version code and exports the four icon aliases: the changes the checked-in
+    # allowlist approves, and the only ones the patches make here.
     function Get-FixtureManifest([string]$Build, [string]$Code, [switch]$WithSplit, [switch]$Patched,
             [string]$Package = $releaseTarget.PackageName) {
         $permissions = @('android.permission.INTERNET')
@@ -2919,7 +3313,9 @@ try {
             '  E: manifest (line=1)',
             "    A: http://schemas.android.com/apk/res/android:versionCode(0x0101021b)=$Code",
             "    A: http://schemas.android.com/apk/res/android:versionName(0x0101021c)=`"$Build`" (Raw: `"$Build`")",
-            "    A: package=`"$Package`" (Raw: `"$Package`")")
+            "    A: package=`"$Package`" (Raw: `"$Package`")",
+            '      E: uses-sdk (line=3)',
+            '        A: http://schemas.android.com/apk/res/android:minSdkVersion(0x0101020c)=28')
         $line = 10
         foreach ($permission in $permissions) {
             $lines += @("      E: uses-permission (line=$line)", "        A: $androidName`"$permission`" (Raw: `"$permission`")")
@@ -2930,6 +3326,15 @@ try {
             '        E: activity (line=21)',
             "          A: $androidName`"com.example.host.Main`" (Raw: `"com.example.host.Main`")",
             $androidExported)
+        if ($Patched) {
+            $aliasLine = 30
+            foreach ($alias in @($iconAliasEntries -replace '^exported-added activity-alias:', '')) {
+                $lines += @("        E: activity-alias (line=$aliasLine)",
+                    "          A: $androidName`"$alias`" (Raw: `"$alias`")",
+                    $androidExported)
+                $aliasLine++
+            }
+        }
         if ($WithSplit) {
             $lines += @('        E: activity (line=40)',
                 "          A: $androidName`"com.example.split.FeatureActivity`" (Raw: `"com.example.split.FeatureActivity`")",
@@ -2954,16 +3359,49 @@ try {
             -Value (Get-FixtureManifest -Build $build -Code "$versionCode" -WithSplit)
         Set-Content -LiteralPath "$apkm.patched.txt" -Encoding ASCII -NoNewline `
             -Value (Get-FixtureManifest -Build $build -Code "$versionCode" -WithSplit -Patched)
-        # The report the CLI writes: every patch and the internal dependencies applied, one step,
-        # and the input's own version.
+        # The report the CLI (1.19.0) writes: every patch and the internal dependencies applied,
+        # its steps, and the input's own version.
         Set-Content -LiteralPath "$apkm.result.json" -Encoding ASCII -Value ([ordered]@{
-            patchingSteps = @([ordered]@{ success = $true })
+            success = $true
+            stepResults = @([ordered]@{ step = 'PATCHING'; success = $true }, [ordered]@{ step = 'REBUILDING'; success = $true })
             appliedPatches = @(@($releaseNames) + @($dependencyNamesHere) | ForEach-Object { [ordered]@{ name = $_ } })
             failedPatches = @()
             packageName = $releaseTarget.PackageName
             packageVersion = $build } | ConvertTo-Json -Depth 6)
         $fixturePaths[$build] = $apkm
     }
+    # The 1.18 CLI's step list name still reads, and a result with no step list, or with a step
+    # that failed, is invalid rather than an error.
+    $reportApk = Join-Path $fixtures 'report-check.apk'
+    New-TestBundleArchive -Path $reportApk -Entries ([ordered]@{ 'AndroidManifest.xml' = 'manifest'; 'classes.dex' = "dex`n035" })
+    function Test-StepReport([object[]]$Steps, [string]$Name = 'stepResults') {
+        $report = [pscustomobject]@{ appliedPatches = @([pscustomobject]@{ name = 'Only' }); failedPatches = @()
+            packageName = 'com.instagram.android'; packageVersion = '1.0' }
+        if ($null -ne $Steps) { $report | Add-Member -NotePropertyName $Name -NotePropertyValue $Steps }
+        Test-PatchingReport -Report $report -ExpectedNames @('Only') -OutputPath $reportApk `
+            -ExpectedPackageName 'com.instagram.android' -ExpectedPackageVersion '1.0'
+    }
+    $passed = [pscustomobject]@{ step = 'PATCHING'; success = $true }
+    Assert-True (Test-StepReport @($passed)).Valid 'A 1.19 CLI result was rejected.'
+    Assert-True (Test-StepReport @([pscustomobject]@{ success = $true }) -Name 'patchingSteps').Valid 'A 1.18 CLI result was rejected.'
+    $stepless = Test-StepReport $null
+    Assert-True (-not $stepless.Valid -and $stepless.Reason -match 'step') "A result with no step list passed: $($stepless.Reason)"
+    Assert-True (-not (Test-StepReport @($passed, [pscustomobject]@{ step = 'REBUILDING'; success = $false })).Valid) `
+        'A result whose rebuild step failed passed.'
+    # A catalog, report or record that reads two ways proves neither, so the legacy readers take strict JSON only.
+    $slash = [string][char]92
+    foreach ($loose in @('{"success":false,"success":true}', '{"a":[{"b":1},{"b":1,"b":2}]}', '{"Name":1,"name":2}',
+        ('{"a":1,"' + $slash + 'u0061":2}'), '[{"a":1}]', '{"a":1} {"a":2}', ('{"a":1 // note' + "`n" + '}'), '{"a":/* note */1}',
+        "{'a':1}", '{a:1}', '{"a":1,}', '{"a":tru}', '', '{"a":[1,]}', '{"a":[,1]}', '{"a":[1,,2]}', '{"a":,"b":1}', '{"a":}')) {
+        $refused = $null
+        try { [void](ConvertFrom-PatchJson $loose) } catch { $refused = $_.Exception.Message }
+        Assert-True ($refused -like 'The JSON *') "Loose or ambiguous JSON was read, or refused by another parser: $loose ($refused)"
+    }
+    $strict = ConvertFrom-PatchJson ('{"success":true,"stepResults":[{"step":"PATCHING","success":true},{"step":"WRITING","success":false}],' +
+        '"name":"' + $slash + 'u00e9 ' + $slash + '"q' + $slash + '"","empty":{},"list":[],"nest":[[],[{}],[1,[2]]],"size":-1.5e2,"none":null}')
+    Assert-True ($strict.success -eq $true -and $strict.stepResults.Count -eq 2 -and $strict.stepResults[1].step -ceq 'WRITING' -and
+        $strict.stepResults[1].success -eq $false -and $strict.name -ceq ([string][char]0xe9 + ' "q"') -and $strict.size -eq -150 -and
+        $null -eq $strict.none -and $strict.nest.Count -eq 3 -and $strict.nest[2][1][0] -eq 2) 'A strict document did not read unchanged.'
     # And another build of the declared version, as APKMirror lists several arm64 builds of one
     # Instagram release: the declared name at a code the catalog doesn't pin. Only its base
     # manifest, since the builder has to refuse it before anything is merged or patched.
@@ -3077,7 +3515,11 @@ try {
         Assert-True (@($builtTarget.patches | Where-Object { $_.applied }).Count -eq $releaseNames.Count) `
             "The receipt does not record every patch applied to $label."
         $changes = @(ConvertTo-ManifestDeltaEntries -Delta $builtTarget.manifestDelta)
-        Assert-True (($changes -join "`n") -ceq (@($checkedInAllowlist | Sort-Object -Unique -CaseSensitive) -join "`n")) `
+        # These generated APK fixtures already require API 28, so no min-sdk delta is expected.
+        Assert-True ($builtTarget.source.minSdkVersion -eq 28 -and $builtTarget.minSdkVersion -eq 28) `
+            'The receipt builder lost its input/output SDK floor proof.'
+        Assert-True (($changes -join "`n") -ceq (@($checkedInAllowlist | Where-Object { $_ -cne 'min-sdk 28' } |
+                Sort-Object -Unique -CaseSensitive) -join "`n")) `
             ("The receipt records other manifest changes for $label than the advertising ID removals and the raised " +
                 "version code: $($changes -join ', ')")
     }
@@ -3094,13 +3536,14 @@ try {
     Assert-True ($built.sbom.file -eq "patches-$releaseVersionHere.cdx.json" -and
         $built.sbom.sha256 -ceq (Get-Sha256Hex -Path $releaseSbom) -and [int]$built.sbom.components -eq 3) `
         "The receipt does not record the SBOM beside the bundle: $($built.sbom | ConvertTo-Json -Compress)"
-    Assert-True ($cleanPurl -cin $osvAsked -and 'pkg:maven/org.gradle/gradle-core@9.8.1' -cin $osvAsked -and $builderSaid -like '*Checking 2 unique resolved packages against OSV*') `
+    Assert-True ($cleanPurl -cin $osvAsked -and 'pkg:maven/org.gradle/gradle-core@9.8.2' -cin $osvAsked -and $builderSaid -like '*Checking 2 unique resolved packages against OSV*') `
         "The receipt builder did not put the SBOM's libraries to OSV: $builderSaid"
     $builderReport = Read-CurrentDependencyAdvisoryReport -Path (Join-Path $releaseRepo 'build/reports/dependencies/advisories.json') `
         -Subject (Get-CurrentDependencyAuditSubject -Root $releaseRepo -Graphs (Read-DependencyGraphs -Path $releaseGraph) `
-            -Sbom (Read-ReleaseSbom -Path $releaseSbom) -BundlePath $releaseBundle)
-    Assert-True ($builderReport.graphs.Count -eq 7 -and $builderReport.subject.sbom.sha256 -eq $built.sbom.sha256) `
-        'The receipt builder omitted a tooling scope or certified a different SBOM.'
+            -Sbom (Read-ReleaseSbom -Path $releaseSbom) -BundlePath $releaseBundle -DesktopJar $stubJar)
+    Assert-True ($builderReport.graphs.Count -eq 8 -and $builderReport.subject.sbom.sha256 -eq $built.sbom.sha256 -and
+        $builderReport.subject.externalDesktop.sha256 -ceq (Get-Sha256Hex -Path $stubJar)) `
+        'The receipt builder omitted a tooling scope, certified a different SBOM or skipped the Desktop JAR it patched with.'
     # SHA256SUMS.txt beside the bundle: the three files a release publishes with it, as sha256sum
     # writes them, and nothing else. The index push reads it back.
     $sumsBytes = [System.IO.File]::ReadAllBytes($releaseSums)
@@ -3176,7 +3619,7 @@ try {
         'build-release-receipt.ps1 went ahead with a fixture of the newer build only.'
     Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'build-release-receipt.ps1 patched before it found the declared build missing.'
     $variantRefusal = "*No fixture is the declared $($releaseTarget.PackageName) $declaredBuild*" +
-        "$declaredBuild ($declaredCode)*$declaredBuild ($variantCode)*Nothing was patched*"
+        "$declaredBuild ($declaredCodes)*$declaredBuild ($variantCode)*Nothing was patched*"
     Assert-Throws { Invoke-ReceiptBuilder -Fixtures @($variantApkm) } $variantRefusal `
         'build-release-receipt.ps1 took another build of the declared version for the declared one.'
     Assert-True (-not (Test-Path -LiteralPath $javaLog)) 'build-release-receipt.ps1 patched another build of the declared version.'
@@ -3232,6 +3675,19 @@ try {
                 'build-release-receipt.ps1 wrote a receipt naming an SBOM that was replaced while it patched.'
         } finally {
             Remove-Item -LiteralPath $duringPatch -Force -ErrorAction SilentlyContinue
+        }
+        # The Desktop JAR was audited by its SHA-256 before patching, so a JAR swapped during the
+        # patch runs isn't the one the receipt's audit vouched for.
+        [System.IO.File]::WriteAllBytes($releaseSbom, $cleanSbomBytes)
+        $cleanStubJarBytes = [System.IO.File]::ReadAllBytes($stubJar)
+        [System.IO.File]::WriteAllText($duringPatch, "@echo swapped>>`"$stubJar`"`r`n", [System.Text.Encoding]::ASCII)
+        try {
+            Assert-Throws { Invoke-ReceiptBuilder -Fixtures $allFixtures } `
+                '*canonical inputs or final artifacts changed while the fixtures*' `
+                'build-release-receipt.ps1 wrote a receipt after the Desktop JAR it audited was swapped while it patched.'
+        } finally {
+            Remove-Item -LiteralPath $duringPatch -Force -ErrorAction SilentlyContinue
+            [System.IO.File]::WriteAllBytes($stubJar, $cleanStubJarBytes)
         }
     } finally {
         [System.IO.File]::WriteAllBytes($releaseSbom, $cleanSbomBytes)
@@ -3333,7 +3789,9 @@ try {
     $gateBundleBytes = [System.IO.File]::ReadAllBytes($gateBundle)
     $releaseBundleBytes = [System.IO.File]::ReadAllBytes($releaseBundle)
     $releaseSbomBytes = [System.IO.File]::ReadAllBytes($releaseSbom)
-    $gateAllowlist = @($checkedInAllowlist | Sort-Object -Unique -CaseSensitive) -join "`n"
+    # The saved-gate APK fixtures start at API 28, so the SDK floor is proved without a delta.
+    $gateAllowlist = @($checkedInAllowlist | Where-Object { $_ -cne 'min-sdk 28' } |
+        Sort-Object -Unique -CaseSensitive) -join "`n"
     try {
         Remove-Item -LiteralPath $releaseReceipt -Force
         Invoke-ReceiptBuilder -Fixtures $allFixtures -FromGate
@@ -3352,6 +3810,7 @@ try {
         $gateTarget = @($gateReceipt.targets | Where-Object { [string]$_.source.versionName -eq $declaredBuild })
         Assert-True (@($gateReceipt.targets).Count -eq 2 -and $gateTarget.Count -eq 1 -and -not $gateTarget[0].source.forced -and
             $gateTarget[0].source.sha256 -eq (Get-Sha256Hex -Path $declaredFixture) -and
+            $gateTarget[0].source.minSdkVersion -eq 28 -and $gateTarget[0].minSdkVersion -eq 28 -and
             @($gateTarget[0].patches | Where-Object { $_.applied }).Count -eq $releaseNames.Count -and
             (@(ConvertTo-ManifestDeltaEntries -Delta $gateTarget[0].manifestDelta) -join "`n") -ceq $gateAllowlist) `
             "The receipt read from the gate's run does not record the declared build as a run here does: $($gateTarget | ConvertTo-Json -Depth 6 -Compress)"
@@ -3565,7 +4024,7 @@ try {
             "*Morphe Manager can read the $releaseVersionHere entry*",
             "*the hosted release-receipt-$releaseVersionHere.json is the receipt checked here, as SHA256SUMS.txt lists it*",
             "*the hosted patches-$releaseVersionHere.cdx.json is the SBOM the receipt names and SHA256SUMS.txt lists*",
-            "*OSV has no advisory for the libraries patches-$releaseVersionHere.cdx.json lists: gson 2.14.0*")) {
+            "*OSV has no advisory for the libraries patches-$releaseVersionHere.cdx.json lists: gson 2.15.0*")) {
         Assert-True ($said -like $expected) "The index push after the release did not say $expected`: $said"
     }
     # The hosted asset checked on its own, from a checkout with no bundle built for it: the hook's

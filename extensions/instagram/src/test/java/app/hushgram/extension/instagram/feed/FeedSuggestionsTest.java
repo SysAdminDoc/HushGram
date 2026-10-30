@@ -26,6 +26,9 @@ import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.FeedFilterCounters;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BooleanSetting;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
 
 /** Which home feed items Hide suggested posts takes out, and which it leaves. */
 @RunWith(RobolectricTestRunner.class)
@@ -61,6 +64,7 @@ public class FeedSuggestionsTest {
     public void withoutHomeReads() {
         FeedSuggestions.homeReadsForTests = false;
         FeedSuggestions.homePageLost = false;
+        FeedSuggestions.homePageKeptMedia = false;
         FeedSuggestions.homePageEndCounted = false;
         FeedSuggestions.verdictFeed = null;
         FeedSuggestions.tookOut = false;
@@ -78,6 +82,7 @@ public class FeedSuggestionsTest {
         FeedSuggestions.homePageParsed();
         FeedSuggestions.homeReadsForTests = null;
         FeedSuggestions.homePageLost = false;
+        FeedSuggestions.homePageKeptMedia = false;
         FeedSuggestions.homePageEndCounted = false;
         FeedSuggestions.verdictFeed = null;
         FeedSuggestions.emptiness = FeedSuggestions::feedEmpty;
@@ -820,6 +825,79 @@ public class FeedSuggestionsTest {
         assertFalse("but not everything", FeedSuggestions.pageLostEverything);
         assertEquals(1, older(feed));
         assertEquals("a Home showing the post keeps Instagram's answer", 0, adapterReads(new Feed(false), 0));
+    }
+
+    /** #28: parsing retained a real post, but the adapter has not committed it when it reads EOF. */
+    @Test
+    public void aRealMediaPostBesideARemovedAdKeepsNativePagingForAnEmptyOrUnreadableFeed() {
+        withHomeReads();
+        Settings.HIDE_ADS.save(true);
+        for (int type : new int[] {FeedSuggestions.PHOTO, FeedSuggestions.VIDEO, FeedSuggestions.CAROUSEL}) {
+            FeedSuggestions.homePageStarts();
+            assertNull(homeAdRead());
+            Item kept = new Item(Kind.MEDIA);
+            assertSame(kept, homeTyped(kept, type));
+            FeedSuggestions.homePageParsed();
+
+            assertTrue("the page still records its removed ad", FeedSuggestions.homePageLost);
+            assertFalse(FeedSuggestions.pageLostEverything);
+            Feed waiting = new Feed(true);
+            assertEquals("a real post was retained before the adapter filled", 0, adapterReads(waiting, 0));
+            assertEquals("native EOF still wins", 1, adapterReads(waiting, 1));
+            FeedSuggestions.emptiness = feed -> -1;
+            assertEquals("an unreadable receiver cannot erase the retained post", 0, adapterReads(waiting, 0));
+            assertEquals("nor can a missing receiver", 0, FeedSuggestions.feedEnded(0));
+            withHomeReads();
+        }
+    }
+
+    /** A MEDIA-shaped metadata row with no real media type is still #105's empty-page case. */
+    @Test
+    public void metadataOrHeadersBesideRemovedAdsStillEndAnEmptyFeed() {
+        withHomeReads();
+        Settings.HIDE_ADS.save(true);
+        for (Kind kind : new Kind[] {Kind.MEDIA, Kind.END_OF_FEED_DEMARCATOR, Kind.STORIES_NETEGO}) {
+            FeedSuggestions.homePageStarts();
+            assertNull(homeAdRead());
+            Item kept = new Item(kind);
+            assertSame(kept, homeTyped(kept, kind == Kind.MEDIA ? 0 : FeedSuggestions.PHOTO));
+            FeedSuggestions.homePageParsed();
+            assertEquals("only metadata/header retained: " + kind, 1, adapterReads(new Feed(true), 0));
+        }
+    }
+
+    /** The next page replaces the retained-post guard; an account never inherits the other feed's EOF. */
+    @Test
+    public void theRetainedMediaVerdictIsReplacedPerPageWithoutChangingAccountOwnership() {
+        withHomeReads();
+        Settings.HIDE_ADS.save(true);
+        Feed first = new Feed(true);
+        Feed second = new Feed(true);
+        FeedSuggestions.homePageStarts();
+        assertNull(homeAdRead());
+        assertTrue(homeTyped(new Item(Kind.MEDIA), FeedSuggestions.PHOTO) != null);
+        FeedSuggestions.homePageParsed();
+        assertEquals(0, adapterReads(first, 0));
+        assertEquals(0, adapterReads(second, 0));
+
+        FeedSuggestions.homePageStarts();
+        assertNull(homeAdRead());
+        FeedSuggestions.homePageParsed();
+        assertEquals("its own page lost every post", 1, adapterReads(second, 0));
+        assertEquals("the other account keeps its native answer", 0, adapterReads(first, 0));
+        Settings.HIDE_ADS.save(false);
+        assertEquals("the responsible switch is off", 0, adapterReads(second, 0));
+        assertEquals("native EOF is never changed", 1, adapterReads(second, 1));
+        Settings.HIDE_ADS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        try {
+            assertEquals("Pause keeps the native answer", 0, adapterReads(second, 0));
+        } finally {
+            BaseSettings.PAUSED.save(false);
+            PauseForTests.resume();
+        }
+        SettingsContextRule.withoutContext(() -> assertEquals("unready keeps the native answer", 0, adapterReads(second, 0)));
     }
 
     /** A Home page Hide ads left with no posts ends an empty Home, as a page the switches emptied does. */

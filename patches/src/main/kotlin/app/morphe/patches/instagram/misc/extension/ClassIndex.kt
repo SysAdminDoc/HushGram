@@ -57,9 +57,23 @@ internal fun BytecodePatchContext.classesLoadingString(value: String): List<Clas
     val askers = holders.flatMap { holder ->
         holder.methods.mapNotNull { pool -> pool.numbersFor(value).takeIf { it.isNotEmpty() }?.let { pool to it } }
     }.flatMap { (pool, numbers) ->
-        classesCalling(pool.definingClass, pool.name).filter { caller -> caller.methods.any { it.asksPool(pool, numbers) } }
+        classesMightAsk(pool, numbers).filter { caller -> caller.methods.any { it.asksPool(pool, numbers) } }
     }
     return (holders + askers).distinctBy { it.type }
+}
+
+/**
+ * The classes [asksPool] reads for [pool] and [numbers], in the app's order: every class calling
+ * the pool, narrowed by the patcher's literal index to the ones that also load the number when
+ * there's only one. A pool is called from thousands of classes, and reading each of them for every
+ * pooled string was a measured share of patching (#173). A class asking for the number loads it
+ * right before the call, so it always passes both filters, and [asksPool] still decides.
+ */
+private fun BytecodePatchContext.classesMightAsk(pool: Method, numbers: Set<Int>): List<ClassDef> {
+    val number = numbers.singleOrNull() ?: return classesCalling(pool.definingClass, pool.name)
+    return classesMatching(
+        Fingerprint(filters = listOf(literal(number.toLong()), methodCall(definingClass = pool.definingClass, name = pool.name))),
+    )
 }
 
 /**
@@ -116,10 +130,25 @@ internal fun BytecodePatchContext.classesLoading(literal: Long): List<ClassDef> 
 /**
  * The classes outside the extension whose code calls [name] on [definingClass], in the app's
  * order. The patcher's index of the types each class refers to picks the classes to read; a class
- * a patch has changed since it indexed the app is always read.
+ * a patch has changed since it indexed the app is always read. The index also keeps each call's
+ * [parameters] and [returnType], so giving them narrows a search whose owner most classes name.
  */
-internal fun BytecodePatchContext.classesCalling(definingClass: String, name: String): List<ClassDef> =
-    classesMatching(Fingerprint(filters = listOf(methodCall(definingClass = definingClass, name = name))))
+internal fun BytecodePatchContext.classesCalling(
+    definingClass: String,
+    name: String,
+    parameters: List<String>? = null,
+    returnType: String? = null,
+): List<ClassDef> = classesMatching(Fingerprint(filters = listOf(
+    methodCall(definingClass = definingClass, name = name, parameters = parameters, returnType = returnType),
+)))
+
+/**
+ * Every method calling [name] on [definingClass], the extension's included, in the app's order. The
+ * same index picks the classes to read, and a walk over every class would decode each one's type.
+ */
+internal fun BytecodePatchContext.methodsCalling(definingClass: String, name: String): List<Method> =
+    Fingerprint(filters = listOf(methodCall(definingClass = definingClass, name = name))).matchAllOrNull().orEmpty()
+        .map { it.originalMethod }
 
 /**
  * The classes outside the extension whose code calls any method of [definingClass], in the app's
@@ -152,13 +181,89 @@ internal fun BytecodePatchContext.classesTouching(definingClass: String, name: S
 
 /**
  * The types of the classes outside the extension holding a purge marker (see [markers]) named one
- * of [names]. A marker named X is a string ending in `_X`, so a class this leaves out holds none.
- * Filter a class walk by it to keep the app's order.
+ * of [names]. A marker named X is an android_purge_ string ending in `_X`, so a class this leaves
+ * out holds none. Filter a class walk by it to keep the app's order.
  */
 internal fun BytecodePatchContext.typesMarked(vararg names: String): Set<String> {
     require(names.isNotEmpty()) { "no marker to look for" }
-    return names.flatMapTo(HashSet()) { name -> classDefByStrings("_$name", StringComparisonType.ENDS_WITH).map { it.type } }
+    val index = purgeIndex()
+    return names.flatMapTo(HashSet()) { name -> index.typesEnding("_$name") }
         .filterNotTo(HashSet()) { it.startsWith(EXTENSION_ROOT) }
+}
+
+/**
+ * Every android_purge_ string the app's code loads, by the part after its last underscore, with the
+ * types of the classes loading it. A string ends in `_X` only when that part is X's own, so a name
+ * reads one short list. Asking the patcher's string index for an ending tests each of the app's
+ * 400,000 strings, once per name, and the Reels patches ask for dozens (#173). It holds strings,
+ * plus the current class identities so a merge is read wherever it appears in the class list.
+ */
+private class PurgeIndex(classes: List<ClassDef>) {
+    private val byLastPart = HashMap<String, MutableList<Pair<String, String>>>()
+    private val owned = java.util.IdentityHashMap<ClassDef, List<Pair<String, String>>>()
+    private val read = java.util.IdentityHashMap<ClassDef, Boolean>().apply {
+        classes.forEach { put(it, false) }
+    }
+    private var present = false
+
+    fun add(classDef: ClassDef) {
+        val markers = ArrayList<Pair<String, String>>()
+        for (method in classDef.methods) {
+            for (instruction in method.implementation?.instructions ?: continue) {
+                if (instruction.opcode != Opcode.CONST_STRING && instruction.opcode != Opcode.CONST_STRING_JUMBO) continue
+                val string = ((instruction as ReferenceInstruction).reference as StringReference).string
+                if (string.startsWith("android_purge_")) {
+                    val marker = string to classDef.type
+                    byLastPart.getOrPut(string.substringAfterLast('_')) { ArrayList(1) } += marker
+                    markers += marker
+                }
+            }
+        }
+        if (markers.isNotEmpty()) owned[classDef] = markers
+    }
+
+    /** Reuse the identity snapshot without reading unchanged classes or retaining retired ones. */
+    fun refresh(classes: List<ClassDef>) {
+        present = !present
+        val added = ArrayList<ClassDef>()
+        for (classDef in classes) {
+            if (read.put(classDef, present) == null) added += classDef
+        }
+        val previous = read.keys.iterator()
+        while (previous.hasNext()) {
+            val classDef = previous.next()
+            if (read[classDef] == present) continue
+            for (marker in owned.remove(classDef).orEmpty()) {
+                val part = marker.first.substringAfterLast('_')
+                val bucket = byLastPart.getValue(part)
+                bucket.remove(marker)
+                if (bucket.isEmpty()) byLastPart.remove(part)
+            }
+            previous.remove()
+        }
+        added.forEach(::add)
+    }
+
+    fun typesEnding(ending: String): List<String> =
+        byLastPart[ending.substringAfterLast('_')].orEmpty().filter { it.first.endsWith(ending) }.map { it.second }
+}
+
+private val purgeIndexes = java.util.WeakHashMap<BytecodePatchContext, PurgeIndex>()
+
+/**
+ * This context's [PurgeIndex]. The first ask reads the classes the patcher's string index names
+ * for an android_purge_ string. Patcher 2.0.1 returns replacements at their original class-map
+ * positions, and classes can enter or leave its string-bearing list. Compare the current class
+ * identities on every ask, retire old marker entries, and read only new or replaced class bodies.
+ */
+private fun BytecodePatchContext.purgeIndex(): PurgeIndex = synchronized(purgeIndexes) {
+    val withStrings = getAllClassesWithStrings()
+    val index = purgeIndexes[this] ?: PurgeIndex(withStrings).also { index ->
+        classDefByStrings("android_purge_", StringComparisonType.STARTS_WITH).forEach(index::add)
+        purgeIndexes[this] = index
+    }
+    index.refresh(withStrings)
+    index
 }
 
 /** The classes outside the extension holding a method [fingerprint] matches, in the app's order. */

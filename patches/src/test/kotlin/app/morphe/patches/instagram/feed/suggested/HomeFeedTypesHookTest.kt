@@ -35,14 +35,17 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
@@ -66,7 +69,9 @@ class HomeFeedTypesHookTest {
     private val helper = ImmutableMethodReference(FeedItemStandIns.ITEM, "A02", listOf(json), FeedItemStandIns.ITEM)
     private val mediaType = "$FEED_SUGGESTIONS->mediaType(Ljava/lang/Object;)I"
     private val liked = "$FEED_SUGGESTIONS->liked(Ljava/lang/Object;)I"
-    private val author = "$FEED_SUGGESTIONS->author(Ljava/lang/Object;)Ljava/lang/String;"
+    private val objectStubs = listOf("itemPost", "exploreStory", "storyPost", "storyMedia")
+        .map { "$FEED_SUGGESTIONS->$it(Ljava/lang/Object;)Ljava/lang/Object;" }
+    private val story = "Lfixture/ExploreStory;"
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, vararg code: Instruction) =
         ImmutableMethod(
@@ -155,6 +160,34 @@ class HomeFeedTypesHookTest {
         return type(response, ImmutableMethod.of(parser))
     }
 
+    /**
+     * The suggested post unit as 451 has it: its constructor names XDTExploreStory, and its map of
+     * itself reads A02 right before "media" and A03 right before "media_or_ad".
+     */
+    private fun storyUnit(postFlags: Int = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value): ClassDef = ImmutableClassDef(
+        story, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null,
+        listOf("A02", "A03").map { ImmutableField(story, it, MEDIA, postFlags, null, null, null) },
+        listOf(
+            method(story, "<init>", emptyList(), "V", 1,
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("XDTExploreStory")),
+                ImmutableInstruction10x(Opcode.RETURN_VOID)),
+            method(story, "A00", emptyList(), "V", 2,
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 1, ImmutableFieldReference(story, "A02", MEDIA)),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("media")),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 1, ImmutableFieldReference(story, "A03", MEDIA)),
+                ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference("media_or_ad")),
+                ImmutableInstruction10x(Opcode.RETURN_VOID)),
+        ),
+    )
+
+    /** [built] with the feed item holding the suggested post unit [unit] in its field A04. */
+    private fun withStory(built: List<ClassDef>, unit: ClassDef = storyUnit()): List<ClassDef> = built.map { c ->
+        if (c.type != FeedItemStandIns.ITEM) c else ImmutableClassDef(
+            c.type, c.accessFlags, c.superclass, c.interfaces, c.sourceFile, c.annotations,
+            c.fields.toList() + ImmutableField(c.type, "A04", story, AccessFlags.PUBLIC.value, null, null, null), c.methods,
+        )
+    } + unit
+
     /** The feed item stand-ins, Home's response and store, Explore's chain, Media and the extension's FeedSuggestions. */
     private fun classes(postWrites: List<String> = listOf("A0u"), branching: Boolean = false): List<ClassDef> =
         FeedItemStandIns.classes(kindNames = listOf("MEDIA"), postWrites = postWrites) + listOf(
@@ -175,7 +208,7 @@ class HomeFeedTypesHookTest {
         val declared = ExtensionDex.classDef(FEED_SUGGESTIONS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$FEED_SUGGESTIONS->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(HOME_TYPES_FILTER, mediaType, liked, author, HOME_PAGE_STARTS, HOME_PAGE_PARSED)) assertTrue("$hook is not in the extension: $declared", hook in declared)
+        for (hook in listOf(HOME_TYPES_FILTER, mediaType, liked, HOME_PAGE_STARTS, HOME_PAGE_PARSED) + objectStubs) assertTrue("$hook is not in the extension: $declared", hook in declared)
     }
 
     /**
@@ -274,92 +307,109 @@ class HomeFeedTypesHookTest {
         assertEquals("the helper was touched", 5, item.methods.single { it.name == "A02" }.instructions().size)
     }
 
-    /**
-     * The stub casts the item, reads the post field the factory writes, and answers the post's
-     * media_type through the getter holding its hash, returning 0 on each path with nothing to read.
-     */
-    @Test
-    fun theStubReadsTheFactorysPostFieldAndItsType() {
-        val context = PatchContexts.of(classes())
+    /** The opcodes and the one reference of FeedSuggestions' stub [name] as written. */
+    private fun stub(context: app.morphe.patcher.patch.BytecodePatchContext, name: String) =
+        context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == name }.instructions()
 
-        requireNotNull(context.homeFeedTypesOrWarn()).write()
-
-        val code = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "mediaType" }.instructions()
-        assertEquals(
-            listOf(
-                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
-                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
-                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.RETURN,
-            ),
-            code.take(13).map { it.opcode },
-        )
-        assertEquals(FeedItemStandIns.ITEM, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
-        val post = (code[1] as ReferenceInstruction).reference as FieldReference
-        assertEquals("A0u", post.name)
-        assertEquals(MEDIA, post.type)
-        val type = (code[5] as ReferenceInstruction).reference as MethodReference
-        assertEquals("$MEDIA->A6M()Ljava/lang/Integer;", type.toString())
-        assertEquals("Ljava/lang/Integer;->intValue()I", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
+    /** [code] casts p0 to [type], reads [field] of it and answers it, with p0 alone. */
+    private fun assertReadsField(what: String, code: List<Instruction>, type: String, field: String) {
+        assertEquals(what, listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), code.take(3).map { it.opcode })
+        assertEquals(what, type, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals(what, field, ((code[1] as ReferenceInstruction).reference as FieldReference).toString())
         val p0 = (code[0] as OneRegisterInstruction).registerA
-        assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+        assertTrue("$what uses p0 alone", code.take(3).all { it !is OneRegisterInstruction || it.registerA == p0 })
     }
 
     /**
-     * Hide posts you've liked's stub reads the same post field and answers the post's has_liked,
-     * unboxed, through the Boolean getter holding its hash, returning 0 on each path with nothing to
-     * read, so a post that doesn't say stays.
+     * The item's post stub casts the item and answers the post field the factory writes. The type
+     * stub takes a post and answers its media_type through the getter holding its hash, returning
+     * 0 on its own when the post doesn't say.
      */
     @Test
-    fun theLikedStubReadsThePostFieldAndHasLiked() {
+    fun theStubsReadTheFactorysPostFieldAndItsType() {
         val context = PatchContexts.of(classes())
 
         requireNotNull(context.homeFeedTypesOrWarn()).write()
 
-        val code = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "liked" }.instructions()
+        assertReadsField("itemPost", stub(context, "itemPost"), FeedItemStandIns.ITEM, "${FeedItemStandIns.ITEM}->A0u:$MEDIA")
+        val code = stub(context, "mediaType")
         assertEquals(
             listOf(
-                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
-                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
+                Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
                 Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.RETURN,
             ),
-            code.take(13).map { it.opcode },
+            code.take(9).map { it.opcode },
         )
-        assertEquals(FeedItemStandIns.ITEM, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
-        assertEquals("A0u", ((code[1] as ReferenceInstruction).reference as FieldReference).name)
-        assertEquals("$MEDIA->A41()Ljava/lang/Boolean;", ((code[5] as ReferenceInstruction).reference as MethodReference).toString())
-        assertEquals("Ljava/lang/Boolean;->booleanValue()Z", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals(MEDIA, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("$MEDIA->A6M()Ljava/lang/Integer;", ((code[1] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("Ljava/lang/Integer;->intValue()I", ((code[6] as ReferenceInstruction).reference as MethodReference).toString())
         val p0 = (code[0] as OneRegisterInstruction).registerA
-        assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
-        val type = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "mediaType" }.instructions()
-        assertEquals("$MEDIA->A6M()Ljava/lang/Integer;", ((type[5] as ReferenceInstruction).reference as MethodReference).toString())
+        assertTrue("the body uses p0 alone", code.take(9).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
     }
 
     /**
-     * Hidden accounts' stub reads the same post field, the post's user through the getter holding
-     * the hash of "user", and that user's username, answering null on its own return wherever there's
-     * nothing to read, so a post without an author stays.
+     * Hide posts you've liked's stub takes a post and answers its has_liked, unboxed, through the
+     * Boolean getter holding its hash, returning 0 when the post doesn't say, so it stays.
      */
     @Test
-    fun theAuthorStubReadsThePostItsUserAndTheUsername() {
+    fun theLikedStubReadsThePostsHasLiked() {
         val context = PatchContexts.of(classes())
 
         requireNotNull(context.homeFeedTypesOrWarn()).write()
 
-        val code = context.mutableClassDefBy(FEED_SUGGESTIONS).methods.single { it.name == "author" }.instructions()
+        val code = stub(context, "liked")
         assertEquals(
             listOf(
-                Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT,
-                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT,
-                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.RETURN_OBJECT,
+                Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN,
+                Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.RETURN,
             ),
-            code.take(13).map { it.opcode },
+            code.take(9).map { it.opcode },
         )
-        assertEquals(FeedItemStandIns.ITEM, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
-        assertEquals("A0u", ((code[1] as ReferenceInstruction).reference as FieldReference).name)
-        assertEquals("$MEDIA->A3R()$USER", ((code[5] as ReferenceInstruction).reference as MethodReference).toString())
-        assertEquals("$USER->A89()Ljava/lang/String;", ((code[10] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals(MEDIA, ((code[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("$MEDIA->A41()Ljava/lang/Boolean;", ((code[1] as ReferenceInstruction).reference as MethodReference).toString())
+        assertEquals("Ljava/lang/Boolean;->booleanValue()Z", ((code[6] as ReferenceInstruction).reference as MethodReference).toString())
         val p0 = (code[0] as OneRegisterInstruction).registerA
-        assertTrue("the body uses p0 alone", code.take(13).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+        assertTrue("the body uses p0 alone", code.take(9).filterIsInstance<OneRegisterInstruction>().all { it.registerA == p0 })
+    }
+
+    /**
+     * With the suggested post unit in the item (451 sends every suggested post on Home that way, its
+     * own post field empty), its stubs read the item's unit field, the unit's "media_or_ad" post and
+     * its "media" post (#192).
+     */
+    @Test
+    fun theSuggestedPostUnitsStubsReadItsPosts() {
+        val context = PatchContexts.of(withStory(classes()))
+
+        requireNotNull(context.homeFeedTypesOrWarn()).write()
+
+        assertReadsField("exploreStory", stub(context, "exploreStory"), FeedItemStandIns.ITEM, "${FeedItemStandIns.ITEM}->A04:$story")
+        assertReadsField("storyPost", stub(context, "storyPost"), story, "$story->A03:$MEDIA")
+        assertReadsField("storyMedia", stub(context, "storyMedia"), story, "$story->A02:$MEDIA")
+        assertReadsField("itemPost", stub(context, "itemPost"), FeedItemStandIns.ITEM, "${FeedItemStandIns.ITEM}->A0u:$MEDIA")
+    }
+
+    /**
+     * Without a unit the item holds, or with one whose posts the extension can't reach, the unit's
+     * stubs keep answering null as built, and the rest is written, so posts from accounts you follow
+     * still go.
+     */
+    @Test
+    fun aUnitThatCantBeReadLeavesItsStubsAsBuilt() {
+        val asBuilt = ExtensionDex.classDef(FEED_SUGGESTIONS).methods.single { it.name == "exploreStory" }.instructions().map { it.opcode }
+        for ((case, built) in listOf(
+            "no unit" to classes(),
+            "private posts" to withStory(classes(), storyUnit(postFlags = AccessFlags.PRIVATE.value or AccessFlags.FINAL.value)),
+        )) {
+            val context = PatchContexts.of(built)
+
+            requireNotNull(context.homeFeedTypesOrWarn()) { case }.write()
+
+            for (name in listOf("exploreStory", "storyPost", "storyMedia")) {
+                assertEquals("$case: $name", asBuilt, stub(context, name).map { it.opcode })
+            }
+            assertReadsField("$case: itemPost", stub(context, "itemPost"), FeedItemStandIns.ITEM, "${FeedItemStandIns.ITEM}->A0u:$MEDIA")
+        }
     }
 
     /**
@@ -502,6 +552,10 @@ class HomeFeedTypesHookTest {
                 .filter { it.definingClass == fixture.itemType && it.type == MEDIA }
                 .map { it.name }
             assertTrue("$name: the parser fills ${post.name} among $filled", post.name in filled)
+
+            // Every suggested post on 451's Home comes in this unit, the item's own post field empty (#192).
+            val unit = context.exploreStoryPosts(fixture.itemType)
+            assertTrue("$name: the unit's two posts are two fields", unit.mediaOrAd.name != unit.media.name)
         }
     }
 

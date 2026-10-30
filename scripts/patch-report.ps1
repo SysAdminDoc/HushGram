@@ -18,9 +18,63 @@
     GPL-3.0-only. Modified for HushGram (Instagram), 2026.
 #>
 
+function ConvertFrom-PatchJson {
+    <#
+    .SYNOPSIS
+        ConvertFrom-Json for one strict JSON object, refusing a field it repeats anywhere.
+    .DESCRIPTION
+        ConvertFrom-Json keeps the last of a repeated key, so {"success":false,"success":true}
+        reads as a success, and pwsh's parser also takes comments, single quotes and bare names.
+        A catalog, report or record that reads two ways proves neither. Runs on Windows
+        PowerShell 5.1 and pwsh; the release walk keeps patch-record.ps1's stricter reader.
+    #>
+    param([AllowNull()][string]$Text)
+    if ($null -eq $Text -or $Text -cnotmatch '\A[ \t\r\n]*\{') { throw 'The JSON root must be one object.' }
+    $pattern = '"(?:[^"\\\x00-\x1f]|\\(?:["\\/bfnrt]|u[0-9A-Fa-f]{4}))*"|[{}\[\],:]|[^ \t\r\n{}\[\],:"]+|"'
+    $scalar = '\A(?:-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|true|false|null)\z'
+    $unescape = [Text.RegularExpressions.MatchEvaluator]{
+        param($escape)
+        if ($escape.Groups[1].Success) { return [string][char][Convert]::ToInt32($escape.Groups[1].Value, 16) }
+        switch -CaseSensitive ($escape.Groups[2].Value) { 'b' { "`b" } 'f' { "`f" } 'n' { "`n" } 'r' { "`r" } 't' { "`t" } default { $escape.Groups[2].Value } }
+    }
+    # One entry per open container: the names an object has used, or $null for an array.
+    $open = [Collections.Generic.List[object]]::new()
+    $expectName = $false; $closed = $false; $previous = $null
+    foreach ($match in [regex]::Matches($Text, $pattern)) {
+        $token = $match.Value
+        if ($closed) { throw 'The JSON document has data after its root object.' }
+        if ($expectName -and -not ($token -ceq '}' -and $previous -ceq '{')) {
+            if ($token.Length -lt 2 -or $token[0] -cne '"') { throw 'The JSON document has an object field without a quoted name.' }
+            $name = [regex]::Replace($token.Substring(1, $token.Length - 2), '\\(?:u([0-9A-Fa-f]{4})|(.))', $unescape)
+            if (-not $open[$open.Count - 1].Add($name)) { throw 'The JSON document repeats an object field.' }
+            $expectName = $false; $previous = $token
+            continue
+        }
+        $expectName = $false
+        # pwsh's parser reads [1,], [,1], [1,,2] and {"a":,"b":1} without complaint.
+        if (($previous -ceq ',' -or $previous -ceq ':' -or $previous -ceq '[') -and
+            ($token -ceq ',' -or $token -ceq '}' -or ($token -ceq ']' -and $previous -cne '['))) {
+            throw 'The JSON document is missing a value.'
+        }
+        if ($token -ceq '{') { $open.Add([Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)); $expectName = $true }
+        elseif ($token -ceq '[') { $open.Add($null) }
+        elseif ($token -ceq '}' -or $token -ceq ']') {
+            if ($open.Count -eq 0 -or ($null -eq $open[$open.Count - 1]) -ne ($token -ceq ']')) { throw 'The JSON document has unbalanced brackets.' }
+            $open.RemoveAt($open.Count - 1)
+            $closed = $open.Count -eq 0
+        } elseif ($token -ceq ',') { $expectName = $open.Count -gt 0 -and $null -ne $open[$open.Count - 1] }
+        elseif ($token -cne ':' -and -not ($token.Length -ge 2 -and $token[0] -ceq '"') -and $token -cnotmatch $scalar) {
+            throw 'The JSON document holds something other than strict JSON.'
+        }
+        $previous = $token
+    }
+    if (-not $closed) { throw 'The JSON document ends before its root object closes.' }
+    ConvertFrom-Json -InputObject $Text
+}
+
 function Get-ApkTargetCoverage {
     param([string]$Apk, [string]$Java, [string]$DesktopJar, [string[]]$Names)
-    if (@($Names | Where-Object { $_ -cin @('Disable analytics', 'Sanitize sharing links', 'Start on x86 devices') }).Count -eq 0) {
+    if (@($Names | Where-Object { $_ -cin @('Sanitize sharing links', 'Start on x86 devices') }).Count -eq 0) {
         return @()
     }
     $preference = $ErrorActionPreference
@@ -32,7 +86,7 @@ function Get-ApkTargetCoverage {
     } finally { $ErrorActionPreference = $preference }
     if ($code -ne 0) { throw "Could not read target coverage from the patched APK: $($lines -join ' ')" }
     foreach ($line in $lines) {
-        $match = [regex]::Match([string]$line, '^(disableAnalytics|sanitizeSharingLinks|translatedStart)=(.+)$')
+        $match = [regex]::Match([string]$line, '^(sanitizeSharingLinks|translatedStart)=(.+)$')
         if (-not $match.Success) { throw 'Unexpected output from the target coverage reader.' }
         $parts = $match.Groups[2].Value.Split('|')
         if ($parts.Count -ne 5 -or $parts[0] -cne '1' -or
@@ -48,8 +102,7 @@ function Test-TargetCoverage {
     param([object[]]$Coverage, [string[]]$Names, [string]$Package, [string]$VersionName, [string]$VersionCode,
         [object]$Policy)
     function Bad([string]$Reason) { return [pscustomobject]@{ Valid = $false; Reviewed = $false; Reason = $Reason } }
-    $families = [ordered]@{ disableAnalytics = 'Disable analytics'; sanitizeSharingLinks = 'Sanitize sharing links'
-        translatedStart = 'Start on x86 devices' }
+    $families = [ordered]@{ sanitizeSharingLinks = 'Sanitize sharing links'; translatedStart = 'Start on x86 devices' }
     $wanted = @($families.Keys | Where-Object { $families[$_] -cin $Names })
     $entries = @($Coverage)
     if ($entries.Count -ne $wanted.Count) { return Bad 'The APK/receipt does not record every selected coverage family exactly once.' }
@@ -78,8 +131,8 @@ function Test-TargetCoverage {
     if ($null -eq $Policy) {
         $path = Join-Path $PSScriptRoot 'patch-coverage-expectations.json'
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return Bad 'The reviewed coverage policy is missing.' }
-        try { $Policy = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json }
-        catch { return Bad 'The reviewed coverage policy is not JSON.' }
+        try { $Policy = ConvertFrom-PatchJson (Get-Content -LiteralPath $path -Raw) }
+        catch { return Bad "The reviewed coverage policy is not strict JSON: $($_.Exception.Message)" }
     }
     if (($Policy.schemaVersion -isnot [int] -and $Policy.schemaVersion -isnot [long]) -or
         $Policy.schemaVersion -ne 1) { return Bad 'Unknown coverage policy schema.' }
@@ -88,8 +141,10 @@ function Test-TargetCoverage {
     })
     if ($fixtures.Count -gt 1) { return Bad 'Duplicated reviewed coverage fixture.' }
     if ($fixtures.Count -eq 0) {
+        # Name the reviewed builds, so a device run refused here knows which APK to patch instead.
+        $reviewed = @($Policy.fixtures | ForEach-Object { "$($_.package) $($_.versionName) ($($_.versionCode))" }) -join ', '
         return [pscustomobject]@{ Valid = $true; Reviewed = $false
-            Reason = 'No reviewed coverage expectations for this exact APK. Counts are recorded, not certified.' }
+            Reason = "No reviewed coverage expectations for this exact APK. Counts are recorded, not certified. Reviewed: $reviewed." }
     }
     foreach ($entry in $entries) {
         $rules = @($fixtures[0].families | Where-Object { $_.family -ceq $entry.family })
@@ -254,8 +309,11 @@ function Test-PatchingReport {
     # read PatchingResult before relying on this. The step check below is the independent one,
     # and it is what catches the case these scripts exist for, a result file written from a
     # finally block after a failed compile, because the step that failed reports success false.
+    # morphe-desktop 1.19.0, the first CLI on patcher 2.0, writes the step list as stepResults and
+    # always writes success; 1.18.1 and older called the list patchingSteps.
     $success = $Report.PSObject.Properties['success']
-    $steps = @($Report.patchingSteps)
+    $stepList = if ($null -ne $Report.PSObject.Properties['stepResults']) { $Report.stepResults } else { $Report.patchingSteps }
+    $steps = @($stepList | Where-Object { $null -ne $_ })
     $stepsOk = $steps.Count -gt 0 -and @($steps | Where-Object {
         $property = $_.PSObject.Properties['success']
         $null -eq $property -or -not (Test-TrueBoolean $property.Value)

@@ -41,7 +41,7 @@ public class LogoOnFollowingSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
     }

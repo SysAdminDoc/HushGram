@@ -12,6 +12,7 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.pm.ShortcutManager;
 import android.os.Bundle;
 import android.os.Looper;
 import android.view.View;
@@ -54,6 +55,9 @@ public class SettingsScreenRowTest {
         Settings.NAVIGATION_SETTINGS_TARGET.resetToDefault();
         Settings.HIDE_MENU_ROW.resetToDefault();
         Settings.PROFILE_MENU_LONG_PRESS.resetToDefault();
+        // The long presses are the only other ways in here, unless a test turns these back on.
+        Settings.SETTINGS_SHORTCUT.save(false);
+        Settings.SETTINGS_LOGO_PRESS.save(false);
     }
 
     @After
@@ -222,6 +226,38 @@ public class SettingsScreenRowTest {
         assertRow("Pause left the menu without the row", activity);
     }
 
+    /**
+     * HushFacebook#146: the launcher shortcut and the logo's long press are ways in too, so with
+     * either switch on the row steps aside with no long press chosen. Both off, it comes back, and
+     * Pause brings it back while they stay on.
+     */
+    @Test
+    public void theRowStepsAsideWhileTheShortcutOrTheLogoOpensHushGram() {
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        Settings.HIDE_MENU_ROW.save(true);
+        assertRow("nothing else opens HushGram, yet the row went", activity);
+
+        Settings.SETTINGS_SHORTCUT.save(true);
+        assertFalse("the shortcut opens HushGram and the row stayed", SettingsEntry.withSettingsRow(
+                arguments(Screen.MAIN_SETTINGS_SCREEN), new FrameLayout(activity)) instanceof LinearLayout);
+        // A launcher that takes no shortcuts never shows it, so the row is the way in again.
+        shadowOf(activity.getSystemService(ShortcutManager.class)).setIsRequestPinShortcutSupported(false);
+        assertRow("a shortcut the launcher never shows took the row's place", activity);
+        shadowOf(activity.getSystemService(ShortcutManager.class)).setIsRequestPinShortcutSupported(true);
+        Settings.SETTINGS_SHORTCUT.save(false);
+        Settings.SETTINGS_LOGO_PRESS.save(true);
+        assertFalse("the logo opens HushGram and the row stayed", SettingsEntry.withSettingsRow(
+                arguments(Screen.MAIN_SETTINGS_SCREEN), new FrameLayout(activity)) instanceof LinearLayout);
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("Pause turned the logo press off", Settings.SETTINGS_LOGO_PRESS.get());
+        assertRow("Pause left the menu without the row", activity);
+        PauseForTests.resume();
+
+        Settings.HIDE_MENU_ROW.save(false);
+        assertRow("the hide switch is off", activity);
+    }
+
     /** A tab bar with one button, bound the way Instagram's tab factory binds it under the patch. */
     private static View tabBar(Activity activity, NativeTab tab) {
         LinearLayout bar = new LinearLayout(activity);
@@ -239,6 +275,11 @@ public class SettingsScreenRowTest {
         View shown = SettingsEntry.withSettingsRow(arguments(Screen.MAIN_SETTINGS_SCREEN), new FrameLayout(activity));
         assertTrue(why, shown instanceof LinearLayout);
         assertEquals(why, SettingsScreenRow.TAG, ((ViewGroup) shown).getChildAt(0).getTag());
+    }
+
+    /** The arguments Instagram's top settings screen comes with. */
+    static Bundle mainScreen() {
+        return arguments(Screen.MAIN_SETTINGS_SCREEN);
     }
 
     private static Bundle arguments(Screen screen) {

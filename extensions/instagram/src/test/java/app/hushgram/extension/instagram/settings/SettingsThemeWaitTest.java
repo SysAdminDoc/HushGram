@@ -47,7 +47,7 @@ public class SettingsThemeWaitTest {
     public void setUp() {
         SettingsEntry.onClosedByUser();
         Application app = RuntimeEnvironment.getApplication();
-        app.getApplicationInfo().targetSdkVersion = 36;
+        app.getApplicationInfo().targetSdkVersion = 37;
         app.registerActivityLifecycleCallbacks(callbacks);
     }
 

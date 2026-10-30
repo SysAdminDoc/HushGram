@@ -260,6 +260,8 @@ $sbomIdentity = Read-SbomCanonicalBuildIdentity -Path $Sbom
 if ($bundleManifest.buildIdentity -cne $buildIdentity.id -or $sbomIdentity.id -cne $buildIdentity.id) {
     throw 'The bundle or SBOM production identity differs from the current canonical inputs. Nothing was patched.'
 }
+# The JAR audited here is the one every fixture is patched with, so it is checked again at the end.
+$desktopHash = Get-Sha256Hex -Path $DesktopJar
 if ($SkipAdvisoryCheck) {
     # Offline preparation still verifies the producer's input identity. It cannot certify
     # tooling advisories, and published receipt readers keep their historical rules.
@@ -269,7 +271,9 @@ if ($SkipAdvisoryCheck) {
     Invoke-ReleaseAdvisoryGate -Sbom $sbomDocument -ExceptionsPath (Join-Path $PSScriptRoot 'advisory-exceptions.txt') `
         -SkipAdvisoryCheck
 } else {
-    & (Join-Path $PSScriptRoot 'audit-dependencies.ps1') -Root $Root -GraphPath $DependencyGraph -SbomPath $Sbom -BundlePath $Bundle
+    # The Desktop JAR the fixtures are patched with is audited as it is, bound to its SHA-256.
+    & (Join-Path $PSScriptRoot 'audit-dependencies.ps1') -Root $Root -GraphPath $DependencyGraph -SbomPath $Sbom -BundlePath $Bundle `
+        -DesktopJar $DesktopJar
 }
 
 function Get-PatchVerdicts {
@@ -442,6 +446,7 @@ foreach ($apk in $Fixture) {
         # bundle, not the base APK's: the merge rewrites the manifest itself, and a delta against
         # the base would record its changes as the patches' own.
         $baseline = Get-ApkManifestFacts -Apk $patchInput -Aapt2 $Aapt2
+        Assert-HushgramRuntimeFloor -Manifest $patched -Stock $stock
         $delta = Get-ManifestDelta -Stock $baseline -Patched $patched
         $verdicts = Get-PatchVerdicts -Report $report -Names $patchNames
         $changes = @(ConvertTo-ManifestDeltaEntries -Delta $delta)
@@ -455,18 +460,21 @@ foreach ($apk in $Fixture) {
                 package     = $stock.package
                 versionName = $stock.versionName
                 versionCode = $stock.versionCode
+                minSdkVersion = $stock.minSdkVersion
                 sha256      = Get-Sha256Hex -Path $apk
                 forced      = $forced
             }
             patches       = $verdicts
             coverage      = $coverage
             coverageReviewed = $coverageVerdict.Reviewed
+            minSdkVersion = $patched.minSdkVersion
             manifestDelta = [ordered]@{
                 permissionsAdded          = @($delta.permissionsAdded)
                 permissionsRemoved        = @($delta.permissionsRemoved)
                 exportedComponentsAdded   = @($delta.exportedComponentsAdded)
                 exportedComponentsRemoved = @($delta.exportedComponentsRemoved)
                 versionCodeChanged        = @($delta.versionCodeChanged)
+                minSdkChanged             = @($delta.minSdkChanged)
             }
         })
     } finally {
@@ -479,7 +487,8 @@ foreach ($apk in $Fixture) {
 }
 
 if ((Get-CanonicalBuildIdentity -Root $Root).id -cne $buildIdentity.id -or
-    (Get-Sha256Hex -Path $Bundle) -cne $bundleHash -or (Get-Sha256Hex -Path $Sbom) -cne $sbomDocument.Sha256) {
+    (Get-Sha256Hex -Path $Bundle) -cne $bundleHash -or (Get-Sha256Hex -Path $Sbom) -cne $sbomDocument.Sha256 -or
+    (Get-Sha256Hex -Path $DesktopJar) -cne $desktopHash) {
     throw 'The canonical inputs or final artifacts changed while the fixtures were being patched. No receipt was written.'
 }
 $receipt = [ordered]@{

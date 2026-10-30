@@ -12,8 +12,10 @@ import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.BuilderOffsetInstruction
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -25,6 +27,7 @@ import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
@@ -47,20 +50,44 @@ class HideShareSheetGroupHookTest {
         }
     }
 
-    /** The build returns before inflating its stub on a yes, and the reveal turns the search box's action off. */
+    /** The build returns before inflating its stub on a yes, and the reveal turns the search box's action off after showing it. */
     @Test
     fun theBuildAndTheRevealAreGuarded() {
         val context = PatchContexts.of(sheetClasses())
 
         val sites = context.findShareSheet()
         assertEquals("A0N", sites.build.name)
-        assertEquals("A0D", sites.reveal.name)
+        assertEquals(listOf("A0D"), sites.reveals.map { it.method.name })
         context.guardGroupButton(sites.build)
-        context.guardGroupAction(sites.reveal)
+        context.guardGroupAction(sites.reveals)
 
         val methods = context.mutableClassDefBy(SHARE_SHEET).methods
         assertBuildGuarded("stand-in", methods.single { it.name == sites.build.name })
-        assertRevealGuarded("stand-in", methods.single { it.name == sites.reveal.name })
+        assertRevealGuarded("stand-in", methods.single { it.name == "A0D" }, 1)
+    }
+
+    /**
+     * 451's 385713073 copies the reveal into onActivityResult and onViewCreated instead of keeping a
+     * method of its own: each copy is guarded after its own call.
+     */
+    @Test
+    fun aRevealCopiedIntoTwoMethodsIsGuardedInBoth() {
+        val context = PatchContexts.of(sheetClasses(inlined = true))
+
+        val sites = context.findShareSheet()
+        assertEquals(listOf("onActivityResult", "onViewCreated"), sites.reveals.map { it.method.name }.sorted())
+        context.guardGroupAction(sites.reveals)
+
+        val methods = context.mutableClassDefBy(SHARE_SHEET).methods
+        assertRevealGuarded("onActivityResult", methods.single { it.name == "onActivityResult" }, 1)
+        assertRevealGuarded("onViewCreated", methods.single { it.name == "onViewCreated" }, 1)
+    }
+
+    /** A box shown its action without the button being tested first isn't the reveal. */
+    @Test
+    fun aRevealThatNeverTestsTheButtonFailsThePatch() {
+        val context = PatchContexts.of(sheetClasses(testsButton = false))
+        assertThrows(PatchException::class.java) { context.findShareSheet() }
     }
 
     @Test
@@ -102,7 +129,7 @@ class HideShareSheetGroupHookTest {
         assertThrows(PatchException::class.java) { context.findShareSheet() }
     }
 
-    /** The reveal's guard needs two registers of its own for the search box and its false. */
+    /** The reveal's guard needs a free register of its own besides the search box's, for its answer and its false. */
     @Test
     fun aRevealWithOneRegisterOfItsOwnFailsThePatch() {
         val context = PatchContexts.of(sheetClasses(revealRegisters = 2))
@@ -148,7 +175,11 @@ class HideShareSheetGroupHookTest {
         assertThrows(PatchException::class.java) { context.findShareSheet() }
     }
 
-    /** In each declared build the share sheet's build and reveal, and the bar's send-as-group show, are found and guarded. On 449 they're A0N, A0D and A02. */
+    /**
+     * In each declared build the share sheet's build and reveals, and the bar's send-as-group show,
+     * are found and guarded. On 451's 385713073 they're A0L, the reveal copied into onActivityResult
+     * and onViewCreated, and the bar's show.
+     */
     @Test
     fun eachDeclaredBuildGuardsTheNewGroupButton() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -179,13 +210,19 @@ class HideShareSheetGroupHookTest {
         val sites = context.findShareSheet()
         val send = context.findGroupSend()
         context.guardGroupButton(sites.build)
-        context.guardGroupAction(sites.reveal)
+        context.guardGroupAction(sites.reveals)
         context.guardGroupSend(send)
 
         fun method(site: SheetMethod) = context.mutableClassDefBy(site.type).methods
             .single { it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters }
         assertBuildGuarded("${label} ${sites.build.name}", method(sites.build))
-        assertRevealGuarded("${label} ${sites.reveal.name}", method(sites.reveal))
+        assertTrue("$label: no reveal", sites.reveals.isNotEmpty())
+        sites.reveals.groupBy { it.method.name to it.method.parameters }.forEach { (_, inMethod) ->
+            val reveal = inMethod.first().method
+            assertRevealGuarded("${label} ${reveal.name}", method(reveal), inMethod.size)
+        }
+        val guarded = context.mutableClassDefBy(SHARE_SHEET).methods.sumOf { m -> m.implementation!!.instructions.count { it.names(HIDE_GROUP_ACTION) } }
+        assertEquals("$label: one guard per reveal and none elsewhere", sites.reveals.size, guarded)
         assertGroupSendGuarded("${label} ${send.show.name}", method(send.show), send.hide.name)
     }
 
@@ -210,21 +247,35 @@ class HideShareSheetGroupHookTest {
     }
 
     /**
-     * The method opens with the extension call and its test, then on a yes reads the search box,
-     * turns its action's visibility and the action itself off, and returns; one call in all.
+     * Right after each of the method's [sites] calls showing the search box's action: the extension
+     * call and its test, then on a yes false into the answer's register, and the same box's action
+     * hidden and turned off with it; one guard per site. A no jumps to the instruction right after
+     * the guard in this method, not to its place in the compiled snippet, which the dex would read
+     * as an offset from the method's start.
      */
-    private fun assertRevealGuarded(what: String, method: Method) {
+    private fun assertRevealGuarded(what: String, method: Method, sites: Int) {
         val code = method.implementation!!.instructions.toList()
-        assertEquals("$what: hooks", 1, code.count { it.names(HIDE_GROUP_ACTION) })
-        assertEquals("$what: the call", HIDE_GROUP_ACTION, (code[0] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[1].opcode)
-        assertEquals("$what: the test", Opcode.IF_EQZ, code[2].opcode)
-        assertEquals("$what: the search box", "$SHARE_SHEET->$STICKY_SEARCH_BOX:$SEARCH_BOX", (code[3] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: its null test", Opcode.IF_EQZ, code[4].opcode)
-        assertEquals("$what: false", Opcode.CONST_4, code[5].opcode)
-        assertEquals("$what: hide", "$SEARCH_BOX->$ACTION_VISIBLE(Z)V", (code[6] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: turn off", "$SEARCH_BOX->$ACTION_ENABLED(Z)V", (code[7] as ReferenceInstruction).reference.toString())
-        assertEquals("$what: the early return", Opcode.RETURN_VOID, code[8].opcode)
+        val hooks = code.indices.filter { code[it].names(HIDE_GROUP_ACTION) }
+        assertEquals("$what: hooks", sites, hooks.size)
+        for (hook in hooks) {
+            val shown = code[hook - 1]
+            assertTrue("$what: the guard follows the box's show", shown.names("$SEARCH_BOX->$ACTION_VISIBLE(Z)V"))
+            val box = (shown as FiveRegisterInstruction).registerC
+            val answer = (code[hook + 1] as OneRegisterInstruction).registerA
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[hook + 1].opcode)
+            assertTrue("$what: the answer isn't the box", answer != box)
+            assertEquals("$what: the test", Opcode.IF_EQZ, code[hook + 2].opcode)
+            assertEquals("$what: the tested register", answer, (code[hook + 2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: false", Opcode.CONST_4, code[hook + 3].opcode)
+            for ((offset, setter) in listOf(4 to ACTION_VISIBLE, 5 to ACTION_ENABLED)) {
+                val call = code[hook + offset]
+                assertTrue("$what: $setter", call.names("$SEARCH_BOX->$setter(Z)V"))
+                assertEquals("$what: $setter's box and false", listOf(box, answer), (call as FiveRegisterInstruction).let { listOf(it.registerC, it.registerD) })
+            }
+            val skip = (code[hook + 2] as BuilderOffsetInstruction).target.location
+            assertEquals("$what: a no skips to the guard's end", hook + 6, skip.index)
+            assertTrue("$what: the guard's end is its nop", skip.instruction === code[hook + 6] && code[hook + 6].opcode == Opcode.NOP)
+        }
     }
 
     /** The method opens with the extension call and its test, then on a yes calls the hide with this and the session and returns; one call in all. */
@@ -272,6 +323,8 @@ class HideShareSheetGroupHookTest {
             searchBoxField: Boolean = true,
             revealRegisters: Int = 3,
             buildRegisters: Int = 9,
+            inlined: Boolean = false,
+            testsButton: Boolean = true,
         ): List<ClassDef> {
             // A0N(ViewStub, boolean, boolean), in nine registers on 449: this is v5, the stub v6.
             val build = listOfNotNull(
@@ -284,10 +337,12 @@ class HideShareSheetGroupHookTest {
                 ImmutableInstruction22c(Opcode.IPUT_OBJECT, 4, 5, BUTTON),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
-            // A0D() with this in the last register: the search box, true, and the setter showing its action.
-            val self = revealRegisters - 1
-            val reveal = listOfNotNull(
+            // A0D() with this in [self]: the button tested for null (a button of its own returns at
+            // once), then the search box, true, and the setter showing its action.
+            fun reveal(self: Int) = listOfNotNull(
                 ImmutableInstruction22c(Opcode.IGET_OBJECT, 1, self, BUTTON),
+                if (testsButton) ImmutableInstruction21t(Opcode.IF_EQZ, 1, 3) else null,
+                if (testsButton) ImmutableInstruction10x(Opcode.RETURN_VOID) else null,
                 ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, self, BOX),
                 ImmutableInstruction11n(Opcode.CONST_4, 1, 1),
                 if (reveals) {
@@ -301,12 +356,22 @@ class HideShareSheetGroupHookTest {
                 ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 1, BUTTON),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             )
+            // Inlined as 451's 385713073 has it: the same reveal in onActivityResult and onViewCreated, this in v2 of each.
+            val revealing = if (inlined) {
+                listOf(
+                    method("onActivityResult", parameters("I", "I", "Landroid/content/Intent;"), 6, reveal(2)),
+                    method("onViewCreated", parameters(VIEW, "Landroid/os/Bundle;"), 5, reveal(2)),
+                )
+            } else {
+                listOf(
+                    method("A0D", emptyList(), revealRegisters, reveal(revealRegisters - 1)),
+                    method("onViewCreated", parameters(VIEW, "Landroid/os/Bundle;"), 3, created),
+                )
+            }
             val methods = listOfNotNull(
                 method("A0N", parameters(VIEW_STUB, "Z", "Z"), buildRegisters, build),
                 if (secondBuild) method("A0M", parameters(VIEW_STUB, "Z", "Z"), 9, build) else null,
-                method("A0D", emptyList(), revealRegisters, reveal),
-                method("onViewCreated", parameters(VIEW, "Landroid/os/Bundle;"), 3, created),
-            )
+            ) + revealing
             val fields = listOfNotNull(
                 ImmutableField(SHARE_SHEET, GROUP_BUTTON, VIEW, AccessFlags.PUBLIC.value, null, null, null),
                 if (searchBoxField) ImmutableField(SHARE_SHEET, STICKY_SEARCH_BOX, SEARCH_BOX, AccessFlags.PUBLIC.value, null, null, null) else null,

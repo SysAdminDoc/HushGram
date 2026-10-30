@@ -108,7 +108,7 @@ class HideProfileNotesHookTest {
     }
 
     /**
-     * In each of the seven 450 builds the Notes flag is read twice, once by the profile screen and
+     * In each of the three 452 builds the Notes flag is read twice, once by the profile screen and
      * once by the one method that also reads the creation flag and names both profile kinds, and
      * that method reads the creation flag once. All three are answered, the creation flag's through
      * the prompt's hook.
@@ -117,7 +117,7 @@ class HideProfileNotesHookTest {
     fun eachBuildHidesNotesAndThePrompt() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->

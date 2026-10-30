@@ -44,6 +44,20 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * choice there, which reaches {@link #stored}, and the check reads it through the getter, so its
  * "on" reaches {@link #answer} too.
  *
+ * <p>Move on when a reel ends ({@link Settings#REEL_AUTO_ADVANCE}) is for an account Instagram
+ * doesn't offer auto scroll to (#175). One server check decides both whether a reel's menu gets its
+ * auto scroll switch and whether the Reels viewer builds its auto scroller at all, so on such an
+ * account there's no switch to turn on and nothing listening for a reel's end. While that setting
+ * is on, the viewer's own read of the check passes through {@link #install}, which answers yes, so
+ * the viewer builds the scroller and hands it each reel's loop as it does on any other account, and
+ * {@link #answer} answers on, so Instagram's own Auto scroll switch, where there is one, can't turn
+ * it off. {@link #saved} doesn't: where Instagram's check reads the saved preference, an on from the
+ * getter comes back to {@link #answer} as Instagram's own and would be remembered as a choice.
+ * Whether a reel that ended may move on is still the
+ * scroller's to decide, by its own checks of what's on screen, a finger on the reel, an open sheet
+ * and the reel's kind, and the move is its own. The remembered choice isn't touched: it follows
+ * Instagram's switches alone, so turning this off leaves auto scroll the way it was last set.
+ *
  * <p>Paused, before the settings are read, or when anything goes wrong, Instagram's answer stands
  * and nothing is remembered. {@link #answer} runs every time the scroller checks, so it reads a
  * saved value and writes only when the choice changes. No hook throws.
@@ -74,18 +88,18 @@ public final class ReelAutoScroll {
     /**
      * Injected at every return of Instagram's check of whether auto scroll is on in Reels, with
      * Instagram's answer as an int (non-zero is yes). Answers yes when Instagram does, remembering
-     * it, and while the switch is on, also when auto scroll was last left on. Otherwise answers what
-     * Instagram did.
+     * it, while Move on when a reel ends is on, and while the switch is on, also when auto scroll
+     * was last left on. Otherwise answers what Instagram did.
      */
     public static boolean answer(int instagram) {
-        return answer(instagram, ReelAutoScroll::learning, ReelAutoScroll::switchedOn, SAVED);
+        return answer(instagram, ReelAutoScroll::learning, ReelAutoScroll::switchedOn, ReelAutoScroll::advancing, SAVED);
     }
 
-    static boolean answer(int instagram, BooleanSupplier learning, BooleanSupplier on, Memory memory) {
+    static boolean answer(int instagram, BooleanSupplier learning, BooleanSupplier on, BooleanSupplier advancing, Memory memory) {
         boolean scrolling = instagram != 0;
         try {
             HookStatus.invoked(FamilyNames.REEL_AUTO_SCROLL);
-            if (reported.get() < 2) report(scrolling, learning, on, memory);
+            if (reported.get() < 2) report(scrolling, learning, on, advancing, memory);
             if (!learning.getAsBoolean()) return scrolling;
             if (scrolling) {
                 if (!memory.on()) {
@@ -94,7 +108,7 @@ public final class ReelAutoScroll {
                 }
                 return true;
             }
-            return on.getAsBoolean() && memory.on();
+            return advancing.getAsBoolean() || (on.getAsBoolean() && memory.on());
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll answer", failure);
             return scrolling;
@@ -105,7 +119,7 @@ public final class ReelAutoScroll {
      * Injected at every return of the saved auto scroll preference's getter, with the saved value as
      * an int (non-zero is on). Answers on when the preference is, and while the switch is on, also
      * when auto scroll was last left on, so the Reels tab's long press offers to turn off what's on.
-     * Remembers nothing: see the class notes.
+     * Move on when a reel ends doesn't count here (see the class notes). Remembers nothing.
      */
     public static boolean saved(int instagram) {
         return saved(instagram, ReelAutoScroll::switchedOn, SAVED);
@@ -119,6 +133,30 @@ public final class ReelAutoScroll {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll saved", failure);
             return stored;
+        }
+    }
+
+    /**
+     * Injected in the Reels viewer right after it asks whether Instagram offers auto scroll to this
+     * account, which is what it builds its auto scroller on, with Instagram's answer as an int
+     * (non-zero is yes). Answers yes when Instagram does, and while Move on when a reel ends is on,
+     * so the viewer builds the scroller there too. Otherwise answers what Instagram did. The viewer
+     * asks once as it opens.
+     */
+    public static boolean install(int instagram) {
+        return install(instagram, ReelAutoScroll::advancing);
+    }
+
+    static boolean install(int instagram, BooleanSupplier advancing) {
+        boolean offered = instagram != 0;
+        try {
+            HookStatus.invoked(FamilyNames.REEL_AUTO_SCROLL);
+            if (offered || !advancing.getAsBoolean()) return offered;
+            Logger.printInfo(() -> "Reel auto scroll: Instagram doesn't offer it here, building its scroller for Move on when a reel ends");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll install", failure);
+            return offered;
         }
     }
 
@@ -194,7 +232,8 @@ public final class ReelAutoScroll {
      * that came later, so a log shows why auto scroll did or didn't come back. The settings are read
      * only when they're ready.
      */
-    private static void report(boolean scrolling, BooleanSupplier learning, BooleanSupplier on, Memory memory) {
+    private static void report(boolean scrolling, BooleanSupplier learning, BooleanSupplier on, BooleanSupplier advancing,
+                               Memory memory) {
         boolean learns = learning.getAsBoolean();
         int next = learns ? 2 : 1;
         int previous;
@@ -203,9 +242,11 @@ public final class ReelAutoScroll {
             if (previous >= next) return;
         } while (!reported.compareAndSet(previous, next));
         boolean keeping = learns && on.getAsBoolean();
+        boolean moving = learns && advancing.getAsBoolean();
         boolean left = learns && memory.on();
         Logger.printInfo(() -> "Reel auto scroll: answer since start, Instagram says " + (scrolling ? "on" : "off")
-                + (learns ? ", keep switch " + (keeping ? "on" : "off") + ", last left " + (left ? "on" : "off")
+                + (learns ? ", keep switch " + (keeping ? "on" : "off") + ", move on switch " + (moving ? "on" : "off")
+                        + ", last left " + (left ? "on" : "off")
                         : ", HushGram paused or settings not read yet"));
     }
 
@@ -216,5 +257,10 @@ public final class ReelAutoScroll {
 
     static boolean switchedOn() {
         return Utils.settingsReady() && Settings.KEEP_REEL_AUTO_SCROLL.get();
+    }
+
+    /** Whether Move on when a reel ends is on. A pause answers off, as it does for every switch. */
+    static boolean advancing() {
+        return Utils.settingsReady() && Settings.REEL_AUTO_ADVANCE.get();
     }
 }

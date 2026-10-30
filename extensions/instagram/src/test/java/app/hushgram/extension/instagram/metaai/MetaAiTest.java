@@ -117,6 +117,63 @@ public class MetaAiTest {
         }
     }
 
+    /** Muse counts as a whole word in any case and language, and nothing that merely contains it does. */
+    @Test
+    public void museIsMatchedAsAWholeWord() {
+        assertTrue(MetaAi.mentionsMuse("Meet Muse, your new personal AI agent"));
+        assertTrue(MetaAi.mentionsMuse("Conoce a Muse"));
+        assertTrue(MetaAi.mentionsMuse("MUSE"));
+        assertTrue(MetaAi.mentionsMuse(null, "", "Try muse."));
+        assertFalse(MetaAi.mentionsMuse("museum"));
+        assertFalse(MetaAi.mentionsMuse("You look amused"));
+        assertFalse(MetaAi.mentionsMuse("Musette"));
+        assertFalse(MetaAi.mentionsMuse("Your dashboard"));
+        assertFalse(MetaAi.mentionsMuse((String) null));
+        assertFalse(MetaAi.mentionsMuse(""));
+        assertFalse(MetaAi.mentionsMuse());
+    }
+
+    /** A promotion for Home or your profile that names Muse is dropped with the switch on, never paused, never another one. */
+    @Test
+    public void aMusePromotionIsDroppedOnlyWhileTheSwitchIsOn() {
+        Object promotion = new Object();
+        try {
+            MetaAi.promotionReader = ignored -> new String[] {"MAIN_FEED", "Meet Muse", "Try Muse", null};
+            assertFalse("off to start", MetaAi.dropsPromotion(promotion));
+            Settings.HIDE_META_AI_PROFILE_BANNER.save(true);
+            assertTrue(MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> new String[] {"PERSONAL_PROFILE", null, "Meet Muse", null};
+            assertTrue("your profile", MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> new String[] {"MAIN_FEED", "Your dashboard", "See insights", null};
+            assertFalse("another promotion", MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> new String[] {"MAIN_FEED_LOGIN_INTERSTITIAL", "Meet Muse", null, null};
+            assertFalse("another slot", MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> new String[] {null, null, "Meet Muse", null};
+            assertTrue("a slot that can't be read goes by the text", MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> { throw new IllegalStateException("unreadable"); };
+            assertFalse("a failure lets it through", MetaAi.dropsPromotion(promotion));
+            MetaAi.promotionReader = ignored -> new String[] {"MAIN_FEED", "Meet Muse", null, null};
+            PauseForTests.pause(HushgramPause.Reason.SWITCH);
+            assertFalse("paused, Instagram decides", MetaAi.dropsPromotion(promotion));
+            assertFalse(MetaAi.dropsPromotion(null));
+        } finally {
+            PauseForTests.resume();
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
+            MetaAi.promotionReader = MetaAi::readPromotion;
+        }
+    }
+
+    /** As built, the stubs read nothing, so a build the patch couldn't fill drops nothing. */
+    @Test
+    public void unfilledStubsDropNothing() {
+        Settings.HIDE_META_AI_PROFILE_BANNER.save(true);
+        try {
+            assertFalse(MetaAi.dropsPromotion(new Object()));
+        } finally {
+            Settings.HIDE_META_AI_PROFILE_BANNER.resetToDefault();
+        }
+    }
+
     /** The profile's Muse button is left out only with its own switch, which starts off, and never while paused. */
     @Test
     public void theMuseButtonFollowsItsOwnSwitch() {
@@ -288,11 +345,12 @@ public class MetaAiTest {
         assertEquals("not drawn " + when, View.GONE, row.getVisibility());
     }
 
-    /** Home's Meta AI button is left out with the search switch; every other name comes back as it was. */
+    /** Home's Meta AI and Meta AI chats buttons are left out with the search switch; every other name comes back as it was. */
     @Test
     public void onlyHomesMetaAiButtonIsLeftOut() {
         assertNull(MetaAi.homeButton("meta_ai"));
-        for (String name : new String[] {"direct", "news", "menu", "hatch", "", null}) {
+        assertNull(MetaAi.homeButton("hatch"));
+        for (String name : new String[] {"direct", "news", "menu", "", null}) {
             assertSame(name, name, MetaAi.homeButton(name));
         }
         Settings.HIDE_META_AI_SEARCH.save(false);

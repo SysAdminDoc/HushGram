@@ -42,7 +42,9 @@ private val cloneManifestPatch = resourcePatch {
         markRequest = null
         document("AndroidManifest.xml").use { manifest ->
             manifestFacts = readCloneManifest(manifest)
-            cloneIcons = readCloneIcons(get("res"), manifestIcons(manifest))
+            val icons = manifestIcons(manifest)
+            decodeCloneIcons(icons)
+            cloneIcons = readCloneIcons(get("res"), icons)
         }
     }
 

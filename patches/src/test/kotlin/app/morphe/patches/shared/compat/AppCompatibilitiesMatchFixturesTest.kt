@@ -6,6 +6,7 @@
 package app.morphe.patches.shared.compat
 
 import app.morphe.Fixtures
+import app.morphe.patcher.patch.SupportedAbi
 import com.android.apksig.ApkVerifier
 import com.android.apksig.apk.ApkUtils
 import com.android.apksig.util.DataSources
@@ -81,7 +82,7 @@ class AppCompatibilitiesMatchFixturesTest {
                         }
                         assertEquals(
                             "${fixture.name} version code",
-                            codes.values.single(),
+                            codes[SupportedAbi.ARM64_V8A],
                             ApkUtils.getVersionCodeFromBinaryAndroidManifest(manifest.duplicate()),
                         )
                         assertEquals(
@@ -97,6 +98,37 @@ class AppCompatibilitiesMatchFixturesTest {
             }
         }
         assertEquals("one retained fixture for each declared target", targets.size, checked)
+    }
+
+    @Test
+    fun `every ABI is declared with the version code of its own vendor build`() {
+        // A 32-bit phone told only about the arm64 build gets an APK with no library it can load
+        // and fails with INSTALL_FAILED_NO_MATCHING_ABIS (#346), so each ABI Instagram ships needs
+        // its own code, and each code has to be the one on that ABI's genuine build.
+        // No x86_64 build of 453.0.0.57.79 was uploaded, so none is declared.
+        val libraryFolders = mapOf(
+            SupportedAbi.ARM64_V8A to "arm64-v8a",
+            SupportedAbi.ARMEABI_V7A to "armeabi-v7a",
+            SupportedAbi.X86 to "x86",
+        )
+        for (target in AppCompatibilities.instagram().single().targets) {
+            val version = checkNotNull(target.version)
+            val codes = target.versionCodes.orEmpty()
+            assertEquals("ABIs declared for $version", libraryFolders.keys, codes.keys)
+            for ((abi, code) in codes) {
+                val base = File(Fixtures.folder(), "instagram-$version-$code/base.apk")
+                assertTrue("no fixture build for $abi at $base", base.isFile)
+                val manifest = RandomAccessFile(base, "r").use { file ->
+                    ApkUtils.getAndroidManifest(DataSources.asDataSource(file))
+                }
+                assertEquals("$abi build version code", code, ApkUtils.getVersionCodeFromBinaryAndroidManifest(manifest))
+                val libraries = ZipFile(base).use { zip ->
+                    zip.entries().asSequence().map { it.name }.filter { it.startsWith("lib/") }
+                        .map { it.split('/')[1] }.toSet()
+                }
+                assertEquals("$abi build native library folders", setOf(libraryFolders.getValue(abi)), libraries)
+            }
+        }
     }
 
     /** Every APK a fixture holds: itself, or each split inside an .apks or .xapk, copied out to a temp file. */

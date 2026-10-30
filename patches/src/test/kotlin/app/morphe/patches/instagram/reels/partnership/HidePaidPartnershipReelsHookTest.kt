@@ -14,6 +14,8 @@ import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.misc.extension.markers
+import app.morphe.patches.instagram.reels.ailabel.AI_PAGE_FILTER
+import app.morphe.patches.instagram.reels.captionwords.CAPTION_PAGE_FILTER
 import app.morphe.patches.instagram.reels.suggested.TO_CLIPS_ITEM
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -110,6 +112,66 @@ class HidePaidPartnershipReelsHookTest {
         assertStubsFilled("the stand-in", context, item, "post", "partnership", "boost")
     }
 
+    /**
+     * Hide AI-labeled reels finds the same join after this patch has hooked it, and its filter goes
+     * in first at the join's label, so the page and its fallback pass through both filters once.
+     */
+    @Test
+    fun hideAiLabeledReelsFiltersTheSamePageFirst() {
+        val context = PatchContexts.of(classes())
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+
+        val again = context.findReelsPage("Hide AI-labeled reels")
+        assertEquals("the join", sites.join, again.join)
+        assertEquals("the page's register", sites.list, again.list)
+        assertEquals("the module field", sites.moduleField, again.moduleField)
+        context.filterReelsPage(again, AI_PAGE_FILTER)
+
+        val success = context.mutableClassDefBy(callback).methods.single { it.name == "success" }
+        val code = success.code()
+        assertEquals(
+            "both filters at the join",
+            listOf(AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER),
+            code.drop(sites.join).take(8).mapNotNull { it.referenceText()?.takeIf { text -> text.startsWith("Lapp/") } },
+        )
+        assertEquals("one AI filter call", 1, code.count { it.referenceText() == AI_PAGE_FILTER })
+        assertEquals("one partnership filter call", 1, code.count { it.referenceText() == PARTNERSHIP_PAGE_FILTER })
+        assertEquals("the AI filter's answer in the page's register", sites.list, (code[sites.join + 3] as OneRegisterInstruction).registerA)
+        val jumps = success.implementation!!.instructions.withIndex()
+            .filter { (_, instruction) -> (instruction as? BuilderOffsetInstruction)?.target?.location?.index == sites.join }.map { it.index }
+        assertTrue("the page's check doesn't land on the first filter: $jumps", jumps.isNotEmpty())
+    }
+
+    /**
+     * Hide reels by caption words finds the same join after both other filters, and its filter goes
+     * in first, so the page and its fallback pass through all three once (#192).
+     */
+    @Test
+    fun hideCaptionWordReelsFiltersTheSamePageFirst() {
+        val context = PatchContexts.of(classes())
+        val sites = context.findPaidPartnershipReels()
+        context.hidePaidPartnershipReels(sites)
+        context.filterReelsPage(context.findReelsPage("Hide AI-labeled reels"), AI_PAGE_FILTER)
+
+        val again = context.findReelsPage("Hide reels by caption words")
+        assertEquals("the join", sites.join, again.join)
+        assertEquals("the page's register", sites.list, again.list)
+        context.filterReelsPage(again, CAPTION_PAGE_FILTER)
+
+        val success = context.mutableClassDefBy(callback).methods.single { it.name == "success" }
+        val code = success.code()
+        assertEquals(
+            "three filters at the join",
+            listOf(CAPTION_PAGE_FILTER, AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER),
+            code.drop(sites.join).take(12).mapNotNull { it.referenceText()?.takeIf { text -> text.startsWith("Lapp/") } },
+        )
+        for (filter in listOf(CAPTION_PAGE_FILTER, AI_PAGE_FILTER, PARTNERSHIP_PAGE_FILTER)) {
+            assertEquals("one call to $filter", 1, code.count { it.referenceText() == filter })
+        }
+        assertEquals("the caption filter's answer in the page's register", sites.list, (code[sites.join + 3] as OneRegisterInstruction).registerA)
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, before anything is written. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
@@ -156,13 +218,13 @@ class HidePaidPartnershipReelsHookTest {
     }
 
     /**
-     * On the declared build and each other build of 450, the one method hooked is the Reels viewer's
+     * On the declared build and each other build of 451, the one method hooked is the Reels viewer's
      * network callback, where its page and fallback meet, with the field its fetcher fills from the
      * viewer's getModuleName. The twelve sources answering a page, found here by scanning the whole
      * build for callers of the converter and its helpers, are left as they are, the one holding a
      * search's SearchContext and the one the profile's mapper makes among them. The module names the
      * extension filters are exactly the Reels tab's: "clips_viewer_" and the source of each lane
-     * Instagram's lane enum lists, and the two names its tab container answers. The names of
+     * Instagram's lane enum lists, and the names its tab container answers. The names of
      * search, profile, audio, hashtag, location, Saved and message viewers aren't among them.
      */
     @Test
@@ -255,16 +317,21 @@ class HidePaidPartnershipReelsHookTest {
                 })
             }
 
-            val viewerSource = marked.getValue(TAB_CONTAINER_MODULE).single()
-            assertEquals("${bundle.name}: the tab container's class", VIEWER_SOURCE, viewerSource.type)
-            val values = sourceValues(viewerSource)
+            val values = sourceValues(FixtureDex.classes(bundle, setOf(VIEWER_SOURCE)).values.single())
             val lane = marked.getValue(LANE_SOURCE).single()
             val lanes = lane.methods.single { it.name == "<clinit>" }.code().mapNotNull { instruction ->
                 (instruction.reference() as? FieldReference)?.takeIf { instruction.opcode == Opcode.SGET_OBJECT && it.definingClass == VIEWER_SOURCE }
                     ?.let { "clips_viewer_" + values[it.name] }
             }.toSet()
-            val container = markedBy(TAB_CONTAINER_MODULE).single().code().mapNotNull { it.string() }.filter { it.startsWith("clips_viewer_") }
-            assertEquals("${bundle.name}: the Reels tab's module names", lanes + container, tabModules)
+            // 451's Redex inlines getClipsTabContainerModule into its callers, so its names are those of every marked copy.
+            val container = markedBy(TAB_CONTAINER_MODULE).flatMap { method -> method.code().mapNotNull { it.string() } }.filter { it.startsWith("clips_viewer_") }
+            assertTrue("${bundle.name}: the tab container answers no name", container.isNotEmpty())
+            // 453's builds don't all offer the same lanes (some have no blend lane), so the list may name
+            // a lane this build doesn't offer, as long as it's one of the viewer's sources here.
+            assertEquals("${bundle.name}: the Reels tab's module names", lanes + container, tabModules.intersect(lanes + container))
+            for (extra in tabModules - lanes - container) {
+                assertTrue("${bundle.name}: $extra is a viewer's source", extra.removePrefix("clips_viewer_") in values.values)
+            }
             for (chosen in listOf(
                 "clips_profile", "self_clips_profile", "serp_top_clips_unit", "audio_page", "feed_hashtag",
                 "discovery_map_location_detail", "feed_saved_collections_clips", "direct",
@@ -274,7 +341,7 @@ class HidePaidPartnershipReelsHookTest {
             }
             checked++
         }
-        assertEquals("the seven builds of 450 weren't all read", 7, checked)
+        assertEquals("every build of 452 is read", Fixtures.BUILDS, checked)
     }
 
     /**

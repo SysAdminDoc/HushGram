@@ -7,11 +7,13 @@
 package app.morphe.patches.instagram.misc.extension
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction30t
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
@@ -22,6 +24,13 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
  * gets the filter's answer. The call goes in at the return's own label, so a branch that jumps
  * straight to a return passes through it too. Throws naming [patch] when the method returns no
  * object.
+ *
+ * A return inside a try range doesn't take the call in place. A synchronized block's catch-all
+ * covers its monitor-exit and the return after it, so a call there could throw into a handler that
+ * unlocks a second time, and ART then fails the method's lock verification and runs it slower
+ * (ResourcesCompat's color state list loader on Instagram 453). Such a return jumps instead to its
+ * own call and return, placed after an instruction that never falls through, outside every try
+ * range. A method with no such place takes the call in place as before.
  */
 internal fun MutableMethod.filterEveryReturn(patch: String, filter: String) {
     val implementation = implementation ?: throw PatchException("$patch: $definingClass->$name has no body")
@@ -30,14 +39,49 @@ internal fun MutableMethod.filterEveryReturn(patch: String, filter: String) {
         .map { it.index to (it.value as OneRegisterInstruction).registerA }
     if (returns.isEmpty()) throw PatchException("$patch: $definingClass->$name returns no object")
 
-    returns.asReversed().forEach { (index, register) ->
-        addInstructionsAtControlFlowLabel(
-            index,
-            """
-                invoke-static/range { v$register .. v$register }, $filter
-                move-result-object v$register
-            """,
-        )
+    val call = { register: Int ->
+        """
+            invoke-static/range { v$register .. v$register }, $filter
+            move-result-object v$register
+        """
+    }
+    val covered = coveredIndexes()
+    val (inside, outside) = returns.partition { (index, _) -> index in covered }
+    // Locations follow their instruction as code goes in ahead of it, so they're taken first.
+    val jumps = inside.map { (index, register) -> implementation.instructions[index].location to register }
+    outside.asReversed().forEach { (index, register) ->
+        addInstructionsAtControlFlowLabel(index, call(register))
+    }
+    jumps.forEach { (location, register) ->
+        val tail = outsideEveryTry(coveredIndexes())
+        if (tail == null) {
+            addInstructionsAtControlFlowLabel(location.index, call(register))
+            return@forEach
+        }
+        addInstructions(tail, call(register) + "return-object v$register")
+        replaceInstruction(location.index, BuilderInstruction30t(Opcode.GOTO_32, implementation.newLabelForIndex(tail)))
+    }
+}
+
+/** Instructions after which nothing falls through. */
+private val NO_FALL_THROUGH = setOf(
+    Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_WIDE, Opcode.RETURN_OBJECT,
+    Opcode.THROW, Opcode.GOTO, Opcode.GOTO_16, Opcode.GOTO_32,
+)
+
+/** The indexes of the instructions some try range covers. */
+private fun MutableMethod.coveredIndexes(): Set<Int> = implementation!!.tryBlocks.flatMapTo(HashSet()) { block ->
+    block.start.location.index until block.end.location.index
+}
+
+/**
+ * An index to put code no instruction falls into, outside every try range: right after a return,
+ * throw or goto that no try range covers, before an instruction no try range covers either.
+ */
+private fun MutableMethod.outsideEveryTry(covered: Set<Int>): Int? {
+    val code = implementation!!.instructions
+    return (1 until code.size).firstOrNull { at ->
+        code[at - 1].opcode in NO_FALL_THROUGH && at - 1 !in covered && at !in covered
     }
 }
 

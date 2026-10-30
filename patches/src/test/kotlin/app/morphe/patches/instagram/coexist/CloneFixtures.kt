@@ -29,7 +29,7 @@ import org.junit.Assert.assertEquals
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
-/** The seven builds of Instagram 450 the clone patch is held to, read straight from the fixture folder. */
+/** The builds of Instagram 453.0.0.57.79 the clone patch is held to, read straight from the fixture folder. */
 internal object CloneFixtures {
     private const val ANDROID = "http://schemas.android.com/apk/res/android"
 
@@ -40,7 +40,7 @@ internal object CloneFixtures {
         val all = (declared + Fixtures.otherBuilds()).associateBy { file ->
             (if (file.extension == "apks") file.nameWithoutExtension else file.parentFile.name).substringAfterLast('-')
         }
-        assertEquals("every build of Instagram 450 has a fixture", 7, all.size)
+        assertEquals("every build of Instagram ${Fixtures.VERSION} has a fixture", Fixtures.BUILDS, all.size)
         return all.toSortedMap()
     }
 

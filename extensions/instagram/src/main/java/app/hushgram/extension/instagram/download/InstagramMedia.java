@@ -103,6 +103,22 @@ public final class InstagramMedia {
         return null;
     }
 
+    /**
+     * A Media's {@code media_type}: 1 for a photo, 2 for a video, 8 for a carousel. Written by the
+     * Find the reel you came from patch alone, which looks for a photo reel in a profile's posts grid.
+     */
+    public static Integer mediaType(Object media) {
+        return null;
+    }
+
+    /**
+     * A Media's {@code is_active_trial}: true for a trial reel, shown to people who don't follow its
+     * poster and kept off the poster's profile. Written by the Find the reel you came from patch alone.
+     */
+    public static Boolean activeTrial(Object media) {
+        return null;
+    }
+
     /** A Media's {@code image_versions2}: the sizes Instagram lists for its picture. */
     public static Object imageVersions(Object media) {
         return null;
@@ -238,9 +254,40 @@ public final class InstagramMedia {
         return null;
     }
 
+    /** A track's {@code audio_asset_id}: the sound every reel using the track shares. */
+    public static String trackAudioId(Object track) {
+        return null;
+    }
+
+    /** A track's {@code title}. */
+    public static String trackTitle(Object track) {
+        return null;
+    }
+
+    /** A track's {@code display_artist}: who made it, as Instagram shows it. */
+    public static String trackArtist(Object track) {
+        return null;
+    }
+
+    /** The {@code original_sound_info} of a Media's {@code clips_metadata}: a reel's own sound, or null for a track. */
+    public static Object originalSound(Object metadata) {
+        return null;
+    }
+
+    /** An original sound's {@code audio_asset_id}, shared by every reel reusing it. */
+    public static String originalSoundAudioId(Object sound) {
+        return null;
+    }
+
+    /** An original sound's {@code original_audio_title}. */
+    public static String originalSoundTitle(Object sound) {
+        return null;
+    }
+
     /**
-     * A new option of the reel menu named [name], drawn and handled like Download: Download's icon
-     * and ordinal, made by the option's own constructor. Null as built.
+     * A new option of the reel menu named [name], drawn and handled like Download: Download's
+     * ordinal, and the icon {@link ReelDownload#rowIcon} answers for the name and Download's icon,
+     * made by the option's own constructor. Null as built.
      */
     public static Object reelOption(String name) {
         return null;
@@ -290,8 +337,9 @@ public final class InstagramMedia {
     }
 
     /**
-     * A new option of the feed menu named [name], drawn and handled like Download: Download's icon
-     * and ordinal, made by the option's own constructor. Null as built.
+     * A new option of the feed menu named [name], drawn and handled like Download: Download's
+     * ordinal, and the icon {@link ReelDownload#rowIcon} answers for the name and Download's icon,
+     * made by the option's own constructor. Null as built.
      */
     public static Object feedOption(String name) {
         return null;

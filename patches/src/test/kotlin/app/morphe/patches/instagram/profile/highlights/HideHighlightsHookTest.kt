@@ -171,7 +171,7 @@ class HideHighlightsHookTest {
             .filter { method -> method.code().any { it.referenceText() == KEEP_TRAY } }
         assertEquals("$label: methods asking", 1, written.size)
         val rows = written.single()
-        assertEquals("$label: the rows method", BUILD_ROWS, rows.name)
+        assertEquals("$label: the rows method", site.name, rows.name)
         val keep = rows.code().indexOfFirst { it.referenceText() == KEEP_TRAY }
         assertTrayAsked(label, rows, (rows.code()[keep + 1] as OneRegisterInstruction).registerA)
         original.assertPreserved(label, rows, (keep..keep + 2).toSet())

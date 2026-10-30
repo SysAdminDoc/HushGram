@@ -42,7 +42,7 @@ public class AccentColorSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.ACCENT_COLOR.resetToDefault();
         Settings.ACCENT_HUE.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -82,7 +82,8 @@ public class AccentColorSettingsTest {
         assertEquals("Layout", layout.getTitle().toString());
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key), Arrays.asList(keys));
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR.key, Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key,
+                LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
     }
     @Test public void switchStartsOffAfterEmojiPersistsAndHonorsPause() throws Exception {
         open(EnumSet.of(PatchFamily.BOTTOM_SPACE, PatchFamily.EMOJI_STYLE, PatchFamily.ACCENT_COLOR));
@@ -95,10 +96,11 @@ public class AccentColorSettingsTest {
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.REMOVE_BOTTOM_SPACE.key, Settings.NOTO_EMOJI.key, Settings.ACCENT_COLOR.key,
-                Settings.ACCENT_HUE.key), Arrays.asList(keys));
+                Settings.ACCENT_HUE.key, Settings.ACCENT_BADGES.key, LayoutCategory.PURE_BLACK_HINT_ROW), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.ACCENT_COLOR.get());
-        assertEquals(Collections.singletonList(Settings.ACCENT_COLOR), PatchFamily.ACCENT_COLOR.switches);
+        assertEquals(Arrays.asList(Settings.ACCENT_COLOR, Settings.ACCENT_BADGES), PatchFamily.ACCENT_COLOR.switches);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_BADGES.key));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_COLOR.key));
 
         Settings.ACCENT_COLOR.save(true);
@@ -120,11 +122,15 @@ public class AccentColorSettingsTest {
         assertEquals("Color", String.valueOf(hue.getTitle()));
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : hue.getEntries()) entries.add(String.valueOf(entry));
-        assertEquals(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"), entries);
+        List<String> offered = new ArrayList<>(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"));
+        // Material You (#187) is offered only where the phone has a wallpaper palette, Android 12 and newer.
+        boolean materialYou = android.os.Build.VERSION.SDK_INT >= 31;
+        if (materialYou) offered.add("Material You");
+        assertEquals(offered, entries);
         List<String> values = new ArrayList<>();
         for (CharSequence value : hue.getEntryValues()) values.add(String.valueOf(value));
         List<String> names = new ArrayList<>();
-        for (AccentHue each : AccentHue.values()) names.add(each.name());
+        for (AccentHue each : AccentHue.values()) if (materialYou || each != AccentHue.WALLPAPER) names.add(each.name());
         assertEquals(names, values);
         assertEquals("PURPLE", hue.getValue());
         assertEquals("Purple", String.valueOf(hue.getSummary()));
@@ -137,6 +143,12 @@ public class AccentColorSettingsTest {
         ShadowLooper.idleMainLooper();
         assertEquals(AccentHue.BLUE, Settings.ACCENT_HUE.savedValue());
         assertEquals("Instagram blue", String.valueOf(hue.getSummary()));
+        // A backup from a newer phone can carry Material You onto an older one, which says why the blue stays.
+        hue.setValue("WALLPAPER");
+        ShadowLooper.idleMainLooper();
+        assertEquals(AccentHue.WALLPAPER, Settings.ACCENT_HUE.savedValue());
+        assertEquals(materialYou ? "Material You" : "Material You needs Android 12 or newer, so Instagram's blue stays.",
+                String.valueOf(hue.getSummary()));
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.ACCENT_HUE.key));
     }
 }

@@ -181,7 +181,7 @@ class HideShareButtonHookTest {
             REELS_SHOULD_SHOW_SHARE in it.markers()
         }.mapTo(HashSet()) { it.definingClass }
         assertEquals("${label}: one class holds the Reels marker", 1, marked.size)
-        val classes = FixtureDex.classesHolding(bundle, SHARE_ENABLED_LABEL) + FixtureDex.classes(bundle, marked).values
+        val classes = withBuilders(bundle, FixtureDex.classesHolding(bundle, SHARE_ENABLED_LABEL)) + FixtureDex.classes(bundle, marked).values
         val context = PatchContexts.of(classes)
 
         val found = context.findFeedShareState()
@@ -198,7 +198,9 @@ class HideShareButtonHookTest {
         assertEquals("${label}: the same state", found.type, repost.type)
         context.hideFeedState(repost)
 
-        val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
+        val code = context.mutableClassDefBy(found.writes.first().owner).methods.single {
+            it.name == found.writes.first().name && it.parameterTypes.map(CharSequence::toString) == found.writes.first().parameters
+        }
             .implementation!!.instructions.toList()
         assertEquals(label, 2, code.count { it.calls(SHARE_FEED_STATE) })
         for (write in found.writes) {
@@ -278,6 +280,10 @@ class HideShareButtonHookTest {
         mutableClassDefBy(STATE).methods.single { it.name == "<init>" }.implementation!!.instructions.toList()
 
     private fun BytecodePatchContext.reelsCheck(): Method = mutableClassDefBy(REELS).methods.single { it.name == "check" }
+
+    /** The state classes plus, on 452, the method that builds the state with its constructor inlined. */
+    private fun withBuilders(bundle: File, states: List<ClassDef>): List<ClassDef> =
+        states + FixtureDex.classesCreating(bundle, states.mapTo(HashSet()) { it.type })
 
     private companion object {
         const val STATE = "Lfixture/FeedRowState;"

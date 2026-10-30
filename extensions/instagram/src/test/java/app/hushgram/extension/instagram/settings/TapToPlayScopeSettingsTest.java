@@ -48,6 +48,7 @@ public class TapToPlayScopeSettingsTest {
         PauseForTests.resume();
         Settings.TAP_TO_PLAY.resetToDefault();
         Settings.TAP_TO_PLAY_SCOPE.resetToDefault();
+        Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.resetToDefault();
     }
 
     @Test
@@ -121,7 +122,55 @@ public class TapToPlayScopeSettingsTest {
     public void theChoiceTravelsWithTheSwitch() {
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.TAP_TO_PLAY);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAP_TO_PLAY_SCOPE.key));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key));
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.PLAYBACK_QUALITY);
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TAP_TO_PLAY_SCOPE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key));
+    }
+
+    /** Wait after auto scroll (#175) sits right below the choice of where, starts off and waits for the switch. */
+    @Test
+    public void waitAfterAutoScrollSitsBelowTheChoiceAndStartsOff() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.TAP_TO_PLAY);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = DownloadSettingsTest.pageIn(controller);
+            Preference row = page.findPreference(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key);
+            assertNotNull("no Wait after auto scroll with Tap to play in the build", row);
+            assertEquals("Wait after auto scroll", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()),
+                    String.valueOf(row.getSummary()).contains("auto scroll moves to waits for your tap"));
+            PreferenceGroup section = row.getParent();
+            int scopeAt = -1;
+            for (int i = 0; i < section.getPreferenceCount(); i++) {
+                if (Settings.TAP_TO_PLAY_SCOPE.key.equals(section.getPreference(i).getKey())) scopeAt = i;
+            }
+            assertTrue("the choice of where is in the row's section", scopeAt >= 0);
+            assertEquals("right below the choice of where", row, section.getPreference(scopeAt + 1));
+            assertFalse(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.get());
+            assertFalse("it takes effect at the next move, so no restart prompt", Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.rebootApp);
+
+            Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.save(true);
+            assertFalse("Tap to play off, so it waits for the switch", Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.isAvailable());
+            Settings.TAP_TO_PLAY.save(true);
+            assertTrue(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.isAvailable());
+        }
+    }
+
+    /**
+     * It's a choice beside the switch, not a switch Tap to play acts through, so the report says
+     * Tap to play is on whether or not it waits after auto scroll.
+     */
+    @Test
+    public void theReportCountsTapToPlayOnWithOrWithoutTheWait() {
+        assertEquals(Arrays.asList(Settings.TAP_TO_PLAY), PatchFamily.TAP_TO_PLAY.switches);
+        Settings.TAP_TO_PLAY.save(true);
+        String line = PatchFamily.reportLines(EnumSet.of(PatchFamily.TAP_TO_PLAY), false).get(0);
+        assertTrue(line, line.startsWith("Tap to play: on ("));
+        Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.save(true);
+        line = PatchFamily.reportLines(EnumSet.of(PatchFamily.TAP_TO_PLAY), false).get(0);
+        assertTrue(line, line.startsWith("Tap to play: on ("));
+        Settings.TAP_TO_PLAY.save(false);
+        line = PatchFamily.reportLines(EnumSet.of(PatchFamily.TAP_TO_PLAY), false).get(0);
+        assertTrue(line, line.startsWith("Tap to play: disabled by its switch ("));
     }
 }

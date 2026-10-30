@@ -7,6 +7,7 @@ package app.morphe.patches.instagram.metaai
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patches.instagram.direct.messagebox.BUTTON_HOOK as MESSAGE_BOX_BUTTON_HOOK
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
@@ -28,8 +29,11 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val COMPOSER_BUTTON = "$EXTENSION_PACKAGE/metaai/MetaAi;->composerButton(Ljava/lang/Object;I)Z"
 internal val COMPOSER_BUTTON_NAMES = listOf("META_AI_DISCOVERY", "META_AI_INVOCATION", "META_AI_VOICE")
 
-/** Instagram 450's row_thread_composer_meta_ai_discover, invocation and voice ids. */
-internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b386b, 0x7f0b386c, 0x7f0b386d)
+/**
+ * Instagram 452's row_thread_composer_meta_ai_discover, invocation and voice ids, the same in all
+ * three 452 builds (aapt2). They didn't move from 451; 450 had them at 0x7f0b386b to 0x7f0b386d.
+ */
+internal val COMPOSER_BUTTON_IDS = listOf(0x7f0b3862, 0x7f0b3863, 0x7f0b3864)
 private const val VIEW = "Landroid/view/View;"
 private const val FIND_VIEW = "$VIEW->findViewById(I)$VIEW"
 
@@ -71,7 +75,10 @@ internal fun BytecodePatchContext.findComposerButtonVisibility(): ComposerVisibi
     return ComposerVisibilitySite(controller.type, method.name, method.parameterTypes.map(CharSequence::toString))
 }
 
-/** One hook, before the native getter. The app keeps its own hiding, inflation and spacing logic. */
+/**
+ * One hook, first in the method, so it stays ahead of Message box buttons' hook on the same method
+ * whichever patch runs first. The app keeps its own hiding, inflation and spacing logic.
+ */
 internal fun BytecodePatchContext.holdComposerButtons(site: ComposerVisibilitySite) {
     val method = mutableClassDefBy(site.type).methods.single {
         it.name == site.name && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == site.parameters
@@ -107,10 +114,11 @@ private fun isVisibilityDispatcher(owner: ClassDef, method: Method, buttonEnum: 
     val parameters = method.parameterTypes.map(CharSequence::toString)
     if (AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "V" ||
         parameters.size != 3 || parameters[1] != buttonEnum || parameters[2] != "Z") return false
-    val code = method.code()
-    val call = code.firstOrNull()?.methodReference() ?: return false
     val firstParameter = (method.implementation?.registerCount ?: return false) - 4
     val incoming = (firstParameter..firstParameter + 3).toList()
+    // Message box buttons filters the same pair here, and its hook is first when that patch ran first.
+    val code = method.code().let { it.drop(leadingHookPair(it, MESSAGE_BOX_BUTTON_HOOK, incoming[3])) }
+    val call = code.firstOrNull()?.methodReference() ?: return false
     val getter = owner.methods.singleOrNull {
         it.name == call.name && it.parameterTypes.map(CharSequence::toString) == parameters && it.returnType == VIEW
     } ?: return false
@@ -140,6 +148,21 @@ private fun isVisibilityDispatcher(owner: ClassDef, method: Method, buttonEnum: 
         ref?.returnType == "V" && ref.parameterTypes.map(CharSequence::toString) == parameters &&
             instruction.arguments().drop(1) == incoming.drop(1)
     } == 1
+}
+
+/**
+ * How many instructions at the start of [code] are a hook pair calling [hook]: an invoke-static of it
+ * on the two registers ending at [flag], then the move-result back into [flag]. Two, or 0 without one.
+ * Hide Meta AI and Message box buttons both filter the composer's (button, show) pair first thing,
+ * and each looks past the other's pair to find the method and to keep Meta AI's first.
+ */
+internal fun leadingHookPair(code: List<Instruction>, hook: String, flag: Int): Int {
+    val call = code.getOrNull(0) ?: return 0
+    val result = code.getOrNull(1) ?: return 0
+    if (call.opcode != Opcode.INVOKE_STATIC_RANGE && call.opcode != Opcode.INVOKE_STATIC) return 0
+    if (call.methodReference()?.toString() != hook || call.arguments() != listOf(flag - 1, flag)) return 0
+    if (result.opcode != Opcode.MOVE_RESULT || (result as OneRegisterInstruction).registerA != flag) return 0
+    return 2
 }
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

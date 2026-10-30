@@ -218,7 +218,7 @@ class StoryRetryOwnershipTest {
 
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
-        for (classes in native450) check(classes)
+        for (classes in declaredNative) check(classes)
     }
 
     private fun forOtherInputs(check: (List<ClassDef>) -> Unit) {
@@ -263,8 +263,8 @@ class StoryRetryOwnershipTest {
         (it as? NarrowLiteralInstruction)?.narrowLiteral, (it as? OffsetInstruction)?.codeOffset) }
 
     companion object {
-        private val native450 by lazy {
-            Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }
+        private val declaredNative by lazy {
+            Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNative by lazy {

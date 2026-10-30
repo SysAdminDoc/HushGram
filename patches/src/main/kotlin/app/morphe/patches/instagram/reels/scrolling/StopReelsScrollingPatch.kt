@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
@@ -52,14 +53,12 @@ internal const val PULL_LAYOUT = "Linstagram/features/clips/viewer/ui/ClipsSwipe
 /** The layout's two touch handlers, Android's names. */
 internal val PULL_TOUCHES = listOf("onInterceptTouchEvent", "onTouchEvent")
 
-/** The trace name the Reels viewer's onViewCreated gives the pager's setup. */
+/** The trace name the pager's setup carries. It sits in the viewer's onViewCreated on 451 and in the pager's own setupView on 452. */
 internal const val PAGER_SETUP = "android_purge_26_q3_ClipsViewPagerImpl_setupView"
 
 /** The trace name of the Reels pager's own switch that lets a finger move it again. */
 internal const val ENABLE_SCROLLING = "android_purge_26_q3_ClipsViewPagerImpl_enableScrolling"
 
-private const val VIEW = "Landroid/view/View;"
-private const val BUNDLE = "Landroid/os/Bundle;"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 
 /**
@@ -71,7 +70,8 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
     description = "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened. A " +
-        "second switch lets you watch 20 reels, then stops swiping for 15 minutes. Starts off. Turn it on in " +
+        "second switch lets you watch 20 reels, then stops swiping for 15 minutes, and Take a scroll break " +
+        "covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn it on in " +
         "HushGram settings > Reels.",
     default = true,
 ) {
@@ -91,12 +91,10 @@ val stopReelsScrollingPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The Reels viewer's onViewCreated, by the trace name of the pager's setup. */
+/** The method that sets the Reels pager up, by the trace name of that setup, whichever class holds it. */
 internal object ReelsViewerSetupFingerprint : Fingerprint(
-    name = "onViewCreated",
     returnType = "V",
-    parameters = listOf(VIEW, BUNDLE),
-    strings = listOf(PAGER_SETUP),
+    filters = listOf(string(PAGER_SETUP)),
     custom = { method, _ -> method.holdsString(PAGER_SETUP) },
 )
 
@@ -104,7 +102,7 @@ internal object ReelsViewerSetupFingerprint : Fingerprint(
 internal object ReelsPagerEnableFingerprint : Fingerprint(
     returnType = "V",
     parameters = emptyList(),
-    strings = listOf(ENABLE_SCROLLING),
+    filters = listOf(string(ENABLE_SCROLLING)),
     custom = { method, _ -> method.holdsString(ENABLE_SCROLLING) },
 )
 
@@ -115,6 +113,8 @@ internal object ReelsPagerEnableFingerprint : Fingerprint(
  */
 internal class ReelsScrollingSite(
     val viewer: String,
+    val name: String,
+    val parameters: List<String>,
     val store: Int,
     val pager: Int,
     val answer: Int,
@@ -144,10 +144,9 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
         refuse("${enable.definingClass}->${enable.name} doesn't call $VIEW_PAGER->$SET_USER_INPUT")
     }
 
-    val viewer = uniqueMethod(PATCH, "Reels viewer onViewCreated holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
-    if (AccessFlags.STATIC.isSet(viewer.accessFlags)) refuse("${viewer.definingClass}->onViewCreated is static")
+    val viewer = uniqueMethod(PATCH, "Reels pager setup holding \"$PAGER_SETUP\"", ReelsViewerSetupFingerprint)
     val code = viewer.instructions()
-    val where = "${viewer.definingClass}->onViewCreated"
+    val where = "${viewer.definingClass}->${viewer.name}"
     val stores = code.indices.filter { code[it].opcode == Opcode.IPUT_OBJECT && code[it].fieldReference()?.toString() == field }
     val store = stores.singleOrNull() ?: refuse("expected $where to store $field once, found ${stores.size}")
     if (store + 1 !in code.indices) refuse("$where ends at its store of $field")
@@ -173,7 +172,7 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
         }
         handler.freeLocalsAt(PATCH, 0, 1).single()
     }
-    return ReelsScrollingSite(viewer.definingClass, store, pager, answer, setterSelf, touches)
+    return ReelsScrollingSite(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, answer, setterSelf, touches)
 }
 
 /**
@@ -214,7 +213,7 @@ private fun findSetter(pagerClass: ClassDef): Int {
  */
 internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
     val viewer = mutableClassDefBy(site.viewer).methods.single {
-        it.name == "onViewCreated" && it.parameterTypes.map(CharSequence::toString) == listOf(VIEW, BUNDLE)
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
     }
     val answer = site.answer
     val pager = site.pager

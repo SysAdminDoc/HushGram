@@ -38,6 +38,18 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * screen has less headroom than it needs. With the switch on, every reading of the ratio Instagram
  * makes answers 1.0, a screen with no headroom, so frames are drawn at the screen's white and the
  * synthetic HDR backs off (#85).
+ *
+ * <p>Instagram also asks whether the screen shows HDR at all before it picks what to play: whether
+ * the display is HDR, and which HDR types it and its current mode support. Those answers decide
+ * whether the AV1 decoder's synthetic HDR is allowed, whether Dolby Vision streams and decoders are
+ * picked, and what the video and image requests say the screen can show. With the switch on, each
+ * of those reads answers no HDR, so Instagram chooses SDR. The HDR recording helper the camera uses
+ * keeps the real answers. The layer above is also told its frames are plain sRGB rather than
+ * extended range sRGB, so Android doesn't treat it as an HDR layer (#85).
+ *
+ * <p>Two of Instagram's own server options light HDR content on top of all that: "SDR super white
+ * on HDR content", which gives ordinary reels a white brighter than the screen's, and "Ultra HDR
+ * always on". With the switch on, Instagram's boolean read of either answers no (#85).
  */
 public final class HdrBoost {
     private HdrBoost() {
@@ -55,6 +67,23 @@ public final class HdrBoost {
 
     /** What the diagnostic report counts each time a boost is held back. */
     static final String HELD_BACK = "boosts held back";
+
+    /** What the diagnostic report counts each time a check of the screen's HDR support answers none. */
+    static final String SCREEN_CHECKS = "HDR screen checks answered no";
+
+    /** What the diagnostic report counts each time an extended range layer is sent as plain sRGB. */
+    static final String SRGB_LAYERS = "HDR layers sent as sRGB";
+
+    /** What the diagnostic report counts each time one of Instagram's own HDR options is read as off. */
+    static final String OPTIONS_OFF = "Instagram HDR options read as off";
+
+    /** A dataspace's range bits, and the full and extended ranges (Android's DataSpace.RANGE_*). */
+    static final int RANGE_MASK = 7 << 27;
+    static final int RANGE_FULL = 1 << 27;
+    static final int RANGE_EXTENDED = 3 << 27;
+
+    /** The HDR types of a screen that shows none. */
+    private static final int[] NO_HDR_TYPES = new int[0];
 
     /** Stands in for {@code view.setDesiredHdrHeadroom(headroom)}. */
     public static void surfaceViewHeadroom(SurfaceView view, float headroom) {
@@ -90,6 +119,63 @@ public final class HdrBoost {
     /** Stands in for {@code display.getHdrSdrRatio()}. */
     public static float hdrSdrRatio(Display display) {
         return screenRatio(Build.VERSION.SDK_INT >= 34 ? display.getHdrSdrRatio() : NO_HEADROOM);
+    }
+
+    /** Stands in for {@code display.isHdr()}. */
+    public static boolean isHdr(Display display) {
+        return screenIsHdr(display.isHdr());
+    }
+
+    /** Stands in for {@code capabilities.getSupportedHdrTypes()}. */
+    @SuppressWarnings("deprecation")
+    public static int[] hdrTypes(Display.HdrCapabilities capabilities) {
+        return screenHdrTypes(capabilities.getSupportedHdrTypes());
+    }
+
+    /** Stands in for {@code mode.getSupportedHdrTypes()}, which Instagram reads from Android 14 on. */
+    public static int[] modeHdrTypes(Display.Mode mode) {
+        return screenHdrTypes(Build.VERSION.SDK_INT >= 34 ? mode.getSupportedHdrTypes() : NO_HDR_TYPES);
+    }
+
+    /** Stands in for {@code transaction.setDataSpace(control, dataSpace)}. */
+    public static SurfaceControl.Transaction dataSpace(SurfaceControl.Transaction transaction,
+            SurfaceControl control, int dataSpace) {
+        if (Build.VERSION.SDK_INT >= 33) return transaction.setDataSpace(control, layerDataSpace(dataSpace));
+        return transaction;
+    }
+
+    /**
+     * Whether Instagram's boolean read of the option [specifier] names answers no in place of its
+     * own (#85). The specifier's bits 32 to 47 are the option's index in Instagram's option table, and
+     * [superWhite] and [ultraHdr] are the indexes the patch found for "SDR super white on HDR
+     * content" and "Ultra HDR always on", -1 when it found none.
+     */
+    public static boolean optionOff(long specifier, int superWhite, int ultraHdr) {
+        int option = (int) ((specifier >>> 32) & 0xffff);
+        if ((option != superWhite && option != ultraHdr) || !on()) return false;
+        HookStatus.counted(FamilyNames.HDR_BOOST, OPTIONS_OFF);
+        return true;
+    }
+
+    /** Whether to say the screen is HDR in place of [reported], the screen's answer. */
+    static boolean screenIsHdr(boolean reported) {
+        if (!reported || !on()) return reported;
+        HookStatus.counted(FamilyNames.HDR_BOOST, SCREEN_CHECKS);
+        return false;
+    }
+
+    /** The HDR types to report in place of [reported], the screen's. */
+    static int[] screenHdrTypes(int[] reported) {
+        if (reported == null || reported.length == 0 || !on()) return reported;
+        HookStatus.counted(FamilyNames.HDR_BOOST, SCREEN_CHECKS);
+        return NO_HDR_TYPES.clone();
+    }
+
+    /** The dataspace to give a layer in place of [asked]: an extended range one becomes full range. */
+    static int layerDataSpace(int asked) {
+        if ((asked & RANGE_MASK) != RANGE_EXTENDED || !on()) return asked;
+        HookStatus.counted(FamilyNames.HDR_BOOST, SRGB_LAYERS);
+        return (asked & ~RANGE_MASK) | RANGE_FULL;
     }
 
     /** The HDR/SDR ratio to report in place of [reported], the screen's. */

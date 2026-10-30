@@ -167,7 +167,7 @@ class InterestQuestionTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in the other arm64 builds of each declared version, six on 450. */
+    /** The same in the other builds of each declared version, seven on 451. */
     @Test
     fun eachOtherBuildHooksTheQuestionRow() {
         var checked = 0
@@ -176,7 +176,7 @@ class InterestQuestionTest {
             checked++
         }
         assertTrue("no other build", checked > 0)
-        assertEquals("the declared build and these six make the seven 450 builds", 6, checked)
+        assertEquals("the builds besides the declared one", Fixtures.OTHER_BUILDS, checked)
     }
 
     /**
@@ -193,15 +193,14 @@ class InterestQuestionTest {
         val before = context.mutableClassDefBy(found.type).methods.single {
             it.name == found.name && it.parameterTypes.map(CharSequence::toString) == found.parameters
         }.implementation!!.instructions.toList()
-        assertEquals("$label: the add's place", 442, found.rowAt)
-        assertEquals("$label: the builder's return", 65, found.endAt)
+        // 453's builds place the add differently, so its shape is checked, not its index.
         assertEquals("$label: the row type's load", Opcode.SGET_OBJECT, before[found.rowAt].opcode)
-        assertEquals("$label: the binder group", "A05", grouped.name)
-        // 385611395 compiles the binder group 11 instructions shorter before the load; the
-        // others match the declared build (DexProbe: its second feed_timeline_older at 748, not 759).
-        val load = if (label.endsWith("-385611395")) 763 else 774
-        assertEquals("$label: the binder group's load", load, grouped.rowAt)
-        assertEquals("$label: after the binder group's add", load + 4, grouped.endAt)
+        assertEquals("$label: the row type", found.rowType, before[found.rowAt].reference().toString())
+        assertTrue("$label: the builder's return", before[found.endAt].opcode in setOf(Opcode.RETURN_VOID, Opcode.RETURN, Opcode.RETURN_OBJECT))
+        // 453 builds the binder group's rows in its kept override, not a renamed method.
+        assertEquals("$label: the binder group", "buildRowViewTypes", grouped.name)
+        assertTrue("$label: the binder group isn't Home's builder", grouped.type != found.type)
+        assertEquals("$label: after the binder group's add", grouped.rowAt + 4, grouped.endAt)
         found.write(context)
         grouped.write(context)
 
@@ -299,7 +298,7 @@ class InterestQuestionTest {
         const val MEDIA_TYPE = "Lcom/instagram/feed/media/Media;"
 
         /**
-         * Shaped like 450's builder: a post's question is looked up and a missing one returns, the
+         * Shaped like 451's builder: a post's question is looked up and a missing one returns, the
          * feed's module name is compared with the Home module and then the Older Posts module, and
          * either one loads the row type and jumps to the add near the top, which takes its ordinal
          * and falls into the return. [variant] breaks one thing at a time.
@@ -394,7 +393,7 @@ class InterestQuestionTest {
         }
 
         /**
-         * Shaped like 450's binder group (LX/02dI->A05): the module compared with the Home module and
+         * Shaped like 451's binder group (LX/05rL->A06 on 385713073): the module compared with the Home module and
          * then the Older Posts one, neither skipping the add; the question's style compared, another
          * style skipping it too; then the row type, its ordinal and the add.
          *   0 the Home module   6 the Older Posts module   9 neither skips   13 the style check

@@ -36,7 +36,7 @@ import java.io.File
 
 /**
  * Ghost mode from the inbox: the New message button in the inbox's top bar gets the extension's
- * long press, put in its configuration right after its tap listener, on every declared 450 build
+ * long press, put in its configuration right after its tap listener, on every declared build
  * and the other builds of that version. The button's tap, and every other method, stay as they were.
  */
 class GhostModeEntryHookTest {
@@ -257,9 +257,7 @@ class GhostModeEntryHookTest {
                     }
                 }
             }
-            val controller = kept.values.single { classDef ->
-                classDef.methods.any { method -> method.visualCode().any { it.visualString() == INBOX_OPTIONS_TAPPED } }
-            }.type
+            val controller = startOwner(bundle, kept).type
             FixtureDex.forEach(bundle) { dex ->
                 for (candidate in dex.classes) {
                     if (candidate.type in kept || FUNCTION0 !in candidate.interfaces) continue
@@ -282,6 +280,28 @@ class GhostModeEntryHookTest {
             return kept.values.toList()
         }
 
+        /**
+         * The class whose method starts a new message, added to [kept]: the inbox header controller
+         * through 451, and from 452 the inbox class the controller keeps in a field, whose method
+         * calls the New message tap.
+         */
+        fun startOwner(bundle: File, kept: MutableMap<String, ClassDef>): ClassDef {
+            val controller = kept.values.single { classDef ->
+                classDef.methods.any { method -> method.visualCode().any { it.visualString() == INBOX_OPTIONS_TAPPED } }
+            }
+            val tap = kept.values.flatMap { owner ->
+                owner.methods.filter { method -> method.visualCode().any { it.visualString() == NEW_MESSAGE_TAPPED } }.map { owner.type to it.name }
+            }.single()
+            fun ClassDef.callsTap() = methods.any { method ->
+                method.visualCode().any { (it.visualReference() as? MethodReference)?.let { call -> call.definingClass to call.name } == tap }
+            }
+            if (controller.callsTap()) return controller
+            val held = controller.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type }.filter { it.startsWith("L") }.toSet()
+            val owner = FixtureDex.classes(bundle, held).values.single { it.callsTap() }
+            kept[owner.type] = ImmutableClassDef.of(owner)
+            return owner
+        }
+
         fun snapshot(classDef: ClassDef) = classDef.methods.associate { method ->
             method.toString() to method.visualCode().map { Triple(it.opcode, it.visualReference()?.toString(), it.namedRegisters()) }
         }
@@ -302,9 +322,7 @@ class GhostModeEntryHookTest {
                     }
                 }
             }
-            val controller = kept.values.single { classDef ->
-                classDef.methods.any { method -> method.visualCode().any { it.visualString() == INBOX_OPTIONS_TAPPED } }
-            }.type
+            val controller = startOwner(bundle, kept).type
             FixtureDex.forEach(bundle) { dex ->
                 for (candidate in dex.classes) {
                     if (candidate.type in kept || CLICK !in candidate.interfaces) continue

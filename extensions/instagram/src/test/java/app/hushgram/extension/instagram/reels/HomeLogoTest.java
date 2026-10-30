@@ -107,6 +107,7 @@ public class HomeLogoTest {
         HomeHeader.standInEndRowForTests(null);
         HomeHeader.standInTitleForTests(null);
         Settings.CENTER_HOME_LOGO.resetToDefault();
+        Settings.TITLES_AT_START.resetToDefault();
         Settings.SEARCH_BUTTON_ON_HOME.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -384,5 +385,101 @@ public class HomeLogoTest {
         assertEquals(WIDTH / 2, middleOf(logo));
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(HomeLogo.CENTERED + " 1"));
         screen.close();
+    }
+
+    /**
+     * Instagram's newer header (#310, 452 on the S22): the + button on the start row, both rows given
+     * the same minimum width and the logo centered in the title view.
+     */
+    private void drawTheNewerHeader() {
+        start.addView(button());
+        start.setMinimumWidth(2 * BUTTON);
+        end.setMinimumWidth(2 * BUTTON);
+        ((FrameLayout.LayoutParams) logo.getLayoutParams()).gravity = Gravity.CENTER;
+    }
+
+    @Test public void theStartSwitchStartsOffAndWinsOverCentering() {
+        assertEquals(Boolean.FALSE, Settings.TITLES_AT_START.defaultValue);
+        assertTrue(Settings.TITLES_AT_START.rebootApp);
+        assertEquals(HomeLogo.AS_IS, HomeLogo.placement());
+        Settings.TITLES_AT_START.save(true);
+        assertEquals(HomeLogo.START, HomeLogo.placement());
+        Settings.CENTER_HOME_LOGO.save(true);
+        assertEquals(HomeLogo.START, HomeLogo.placement());
+        assertFalse(HomeLogo.wanted());
+        Settings.TITLES_AT_START.save(false);
+        assertEquals(HomeLogo.MIDDLE, HomeLogo.placement());
+    }
+
+    /** At the start, the logo follows the start row's buttons, keeping its vertical gravity. */
+    @Test public void atTheStartTheLogoFollowsTheStartRowsButtons() {
+        drawTheNewerHeader();
+        lay();
+        assertEquals("Instagram centers it between the rows", (START_MARGIN + WIDTH - END_MARGIN) / 2, middleOf(logo));
+        Settings.TITLES_AT_START.save(true);
+        HomeLogo.center(header);
+        lay();
+        assertEquals(START_MARGIN + BUTTON + LOGO / 2, middleOf(logo));
+        assertEquals(0, start.getMinimumWidth());
+        assertEquals(0, end.getMinimumWidth());
+        assertEquals(Gravity.CENTER_VERTICAL | Gravity.START, gravityOf(logo));
+        assertEquals(List.of(COUNTED + HomeLogo.AT_START + " 1"), HookStatus.report());
+    }
+
+    /** It wins over the centering switch, and a width Instagram sets again is cleared at the next layout. */
+    @Test public void atTheStartWinsOverCenteringAndKeepsTheRowsCleared() {
+        drawTheNewerHeader();
+        Settings.CENTER_HOME_LOGO.save(true);
+        Settings.TITLES_AT_START.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        assertEquals(START_MARGIN + BUTTON + LOGO / 2, middleOf(logo));
+        start.setMinimumWidth(2 * BUTTON);
+        end.setMinimumWidth(2 * BUTTON);
+        lay();
+        assertEquals(0, start.getMinimumWidth());
+        assertEquals(0, end.getMinimumWidth());
+        assertEquals(START_MARGIN + BUTTON + LOGO / 2, middleOf(logo));
+    }
+
+    /** Turned off, Instagram's widths and centered logo come back at the next draw. */
+    @Test public void turnedOffTheStartPutsBackInstagramsHeader() {
+        drawTheNewerHeader();
+        Settings.TITLES_AT_START.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        Settings.TITLES_AT_START.save(false);
+        HomeLogo.center(header);
+        lay();
+        assertEquals(2 * BUTTON, start.getMinimumWidth());
+        assertEquals(2 * BUTTON, end.getMinimumWidth());
+        assertEquals(Gravity.CENTER, gravityOf(logo));
+        assertEquals((START_MARGIN + WIDTH - END_MARGIN) / 2, middleOf(logo));
+    }
+
+    /** Going from the middle to the start and back off still puts back the gravity Instagram gave. */
+    @Test public void fromTheMiddleToTheStartAndOffInstagramsGravityComesBack() {
+        Settings.CENTER_HOME_LOGO.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        assertEquals(Gravity.CENTER, gravityOf(logo));
+        Settings.TITLES_AT_START.save(true);
+        HomeLogo.center(header);
+        lay();
+        assertEquals(Gravity.CENTER_VERTICAL | Gravity.START, gravityOf(logo));
+        assertEquals(START_MARGIN + LOGO / 2, middleOf(logo));
+        Settings.TITLES_AT_START.save(false);
+        Settings.CENTER_HOME_LOGO.save(false);
+        HomeLogo.center(header);
+        assertEquals(Gravity.CENTER_VERTICAL, gravityOf(logo));
+    }
+
+    @Test public void theStartKeepsTheVerticalPart() {
+        assertEquals(Gravity.START, HomeLogo.started(FrameLayout.LayoutParams.UNSPECIFIED_GRAVITY));
+        assertEquals(Gravity.CENTER_VERTICAL | Gravity.START, HomeLogo.started(Gravity.CENTER));
+        assertEquals(Gravity.BOTTOM | Gravity.START, HomeLogo.started(Gravity.END | Gravity.BOTTOM));
     }
 }

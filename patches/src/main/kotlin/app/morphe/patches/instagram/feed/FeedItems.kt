@@ -7,7 +7,9 @@ package app.morphe.patches.instagram.feed
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.misc.extension.loadsConstStringContaining
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -29,7 +31,8 @@ internal const val CLIPS_NETEGO = "Lcom/instagram/api/schemas/ClipsNetego;"
 internal object FeedItemParserFingerprint : Fingerprint(
     returnType = "Ljava/lang/Object;",
     parameters = listOf("L"),
-    strings = listOf("media_or_ad", "clips_netego"),
+    filters = listOf(string("media_or_ad")),
+    custom = { method, _ -> method.loadsConstStringContaining("clips_netego") },
 )
 
 /**

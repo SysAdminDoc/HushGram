@@ -30,12 +30,16 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  *
  * <p>Android draws that screen itself, in its own process, from the launch theme of the activity being
  * started, before any of Instagram's code runs, and takes it down when Instagram draws its first frame.
- * Instagram 450 doesn't touch it: its launcher activities wear {@code Base.Theme.Launcher}, whose
- * Android 12 version names the icon, and no code of its own asks for the screen to stay up. The patch
- * adds a theme of its own, {@link #THEME}, which is that theme with HushGram's mark as the icon and no
- * "from Meta" line under it. Android 13 lets an app name the theme its starts use from then on, and
- * keeps that answer itself, so nothing here runs, waits or draws while Instagram starts. Android simply
- * draws a different picture in the time it already takes.
+ * Instagram's launcher activities wear {@code Base.Theme.Launcher}, whose Android 12 version names the
+ * icon. The patch adds a theme of its own, {@link #THEME}, which is that theme with HushGram's mark as
+ * the icon and no "from Meta" line under it. Android 13 lets an app name the theme its starts use from
+ * then on, and keeps that answer itself, so nothing here runs, waits or draws while Instagram starts.
+ * Android simply draws a different picture in the time it already takes.
+ *
+ * <p>Instagram 451 can follow Android's screen with a logo animation of its own as its main screen
+ * opens: a copy of its launch screen drawn over the app, with its logo pulsing and "from Meta" under
+ * it, or its logo pulsing inside Android's screen. Either would put Instagram's logo right after
+ * HushGram's, so {@link #instagramLogo} skips it while HushGram's screen is on.
  *
  * <p>This only tells Android which theme to use when the answer changes, on a background thread, once
  * an activity has resumed or is pausing, and the next start shows it. The answer is what the next start
@@ -57,6 +61,8 @@ public final class LaunchScreen {
     /** What's counted each time Android is told which launch screen to show. */
     static final String SET = "HushGram's launch screen handed to Android";
     static final String CLEARED = "Instagram's launch screen handed back";
+    /** What's counted each time Instagram's own logo animation is kept from following HushGram's screen. */
+    static final String LOGO_SKIPPED = "Instagram's logo after the launch screen skipped";
 
     /** Android's side, which a test replaces. */
     interface Splash {
@@ -147,6 +153,36 @@ public final class LaunchScreen {
             HookStatus.threw(FamilyNames.LAUNCH_SCREEN, "launch theme", failure);
             return false;
         }
+    }
+
+    /**
+     * Called twice as Instagram's main screen opens, each time with Instagram's answer to whether a
+     * logo animation of its own follows Android's launch screen: first the one drawn over the app,
+     * then the one inside Android's screen. Answers 0 while HushGram's launch screen is on, so
+     * HushGram's mark stays until Instagram's first frame and no Instagram logo comes after it.
+     * Answers Instagram's own on Android 12 and older, which show Instagram's launch screen anyway,
+     * while paused, before settings can be read, and if anything throws. Never waits.
+     */
+    public static int instagramLogo(int shows) {
+        if (shows == 0) return 0;
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU || !Utils.settingsReady()) return shows;
+            HookStatus.invoked(FamilyNames.LAUNCH_SCREEN);
+            if (!Settings.LAUNCH_SCREEN.get()) return shows;
+            HookStatus.counted(FamilyNames.LAUNCH_SCREEN, LOGO_SKIPPED);
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.LAUNCH_SCREEN, "Instagram's logo", failure);
+            return shows;
+        }
+    }
+
+    /**
+     * The same filter for a check that answers with an Integer object, where null means no animation
+     * (452). Skipping the animation answers null; anything else is Instagram's own answer.
+     */
+    public static Integer instagramLogo(Integer shows) {
+        return shows != null && instagramLogo(1) == 0 ? null : shows;
     }
 
     /**

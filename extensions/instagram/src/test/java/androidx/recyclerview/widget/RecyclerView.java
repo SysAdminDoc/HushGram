@@ -7,7 +7,10 @@ package androidx.recyclerview.widget;
 import android.content.Context;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+
+import com.instagram.ui.widget.spinner.SpinnerImageView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +36,21 @@ public class RecyclerView extends LinearLayout {
     public final List<Integer> drags = new ArrayList<>();
     /** What Instagram does when a drag ends at the grid's last loaded row, such as loading the next page. */
     public Runnable atEnd;
+    /**
+     * How many grey tiles with no name show while no reel is loaded, as Instagram shows nine before
+     * a Reels tab's first page, as many as fill its screen.
+     */
+    public int placeholders;
+    /**
+     * How far past its loaded end the grid still says more lies below, as a phone's grid does when
+     * its scroll range is an estimate (451, #30): a drag there moves nothing.
+     */
+    public int slack;
+    /**
+     * Whether the next page is loading, shown as 451 shows it: a row holding Instagram's spinner
+     * below the last loaded row (#225).
+     */
+    public boolean loading;
     /** Makes the view of a tile for a reel. */
     public Function<String, View> tiles;
     private int offset;
@@ -49,24 +67,46 @@ public class RecyclerView extends LinearLayout {
         return offset / ROW;
     }
 
-    /** Binds the rows on screen, a tile named by its reel for each, as Instagram's binder does. */
+    /**
+     * Binds the rows on screen, a tile named by its reel for each, as Instagram's binder does, or
+     * the placeholders while no reel is loaded, then the spinner's row while a page loads.
+     */
     public void bind() {
         removeAllViews();
+        int count = count();
         int last = (offset + SHOWN_ROWS * ROW - 1) / ROW;
-        for (int row = firstRow(); row <= last; row++) {
-            if (row * PER_ROW >= reels.size()) break;
+        for (int row = firstRow(); row <= last + 1; row++) {
+            if (row * PER_ROW >= count) {
+                if (loading) {
+                    FrameLayout footer = new FrameLayout(getContext());
+                    footer.addView(new SpinnerImageView(getContext()), new FrameLayout.LayoutParams(996, 135));
+                    addView(footer, new LinearLayout.LayoutParams(1080, 219));
+                }
+                break;
+            }
+            if (row > last) break;
             LinearLayout line = new LinearLayout(getContext());
-            for (int at = row * PER_ROW; at < Math.min(reels.size(), (row + 1) * PER_ROW); at++) {
-                View tile = tiles.apply(reels.get(at));
-                tile.setTransitionName(reels.get(at));
+            for (int at = row * PER_ROW; at < Math.min(count, (row + 1) * PER_ROW); at++) {
+                View tile;
+                if (reels.isEmpty()) {
+                    tile = new View(getContext());
+                } else {
+                    tile = tiles.apply(reels.get(at));
+                    tile.setTransitionName(reels.get(at));
+                }
                 line.addView(tile, new LinearLayout.LayoutParams(360, ROW));
             }
             addView(line, new LinearLayout.LayoutParams(1080, ROW));
         }
     }
 
+    /** How many tiles the grid holds: its reels, or its placeholders while it has none. */
+    private int count() {
+        return reels.isEmpty() ? placeholders : reels.size();
+    }
+
     @Override public boolean canScrollVertically(int direction) {
-        return direction > 0 ? offset < end() : offset > 0;
+        return direction > 0 ? offset < end() + slack : offset > 0;
     }
 
     @Override public int computeVerticalScrollOffset() {
@@ -93,7 +133,7 @@ public class RecyclerView extends LinearLayout {
                 break;
             case MotionEvent.ACTION_UP:
                 drags.add(pulled);
-                if (!canScrollVertically(1) && atEnd != null) atEnd.run();
+                if (offset >= end() && atEnd != null) atEnd.run();
                 break;
             default:
                 break;
@@ -108,7 +148,7 @@ public class RecyclerView extends LinearLayout {
 
     /** The furthest the grid scrolls with the reels loaded so far. */
     private int end() {
-        int rows = (reels.size() + PER_ROW - 1) / PER_ROW;
+        int rows = (count() + PER_ROW - 1) / PER_ROW;
         return Math.max(0, (rows - SHOWN_ROWS) * ROW);
     }
 }

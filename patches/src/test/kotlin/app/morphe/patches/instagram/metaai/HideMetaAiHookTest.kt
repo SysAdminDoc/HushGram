@@ -14,7 +14,7 @@ import app.morphe.patches.instagram.feed.FeedItemStandIns
 import app.morphe.patches.instagram.feed.FeedItemStandIns.assertFilteredBeforeReturn
 import app.morphe.patches.instagram.feed.FeedItemStandIns.instructions
 import app.morphe.patches.instagram.feed.filterParsedFeedItems
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.originalName
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -51,6 +51,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReferenc
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableStringEncodedValue
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -177,7 +178,7 @@ class HideMetaAiHookTest {
     fun theFollowUpBarsStubCheckAnswersThroughTheExtension() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS)))
 
-        context.dropFollowUpBar(context.findFollowUpBarCheck())
+        context.dropFollowUpBar(context.findFollowUpBarCheck()!!)
 
         assertDropped(RESULTS, context.mutableClassDefBy(RESULTS).methods.single { it.name == "A06" })
     }
@@ -185,20 +186,20 @@ class HideMetaAiHookTest {
     @Test
     fun twoBarSetupsFailThePatch() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS), barSetup("Lfixture/OtherResults;")))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     @Test
     fun aBarSetupWithoutTheCheckFailsThePatch() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS, checked = 1)))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     /** A check of one view before inflating another is an update the patch hasn't seen. */
     @Test
     fun aCheckOfAnotherViewFailsThePatch() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS, checkedId = 6)))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     /** On 450 the lookup is the findViewById, so the page's view answers through the extension before its null test. */
@@ -206,7 +207,7 @@ class HideMetaAiHookTest {
     fun aPageViewCheckAnswersThroughTheExtension() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS)))
 
-        val check = context.findFollowUpBarCheck()
+        val check = context.findFollowUpBarCheck()!!
         context.dropFollowUpBar(check)
 
         assertEquals(2, check.moveResult)
@@ -222,7 +223,7 @@ class HideMetaAiHookTest {
     fun anInlinedLookupsPageViewCheckAnswersThroughTheExtension() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, inlined = true)))
 
-        val check = context.findFollowUpBarCheck()
+        val check = context.findFollowUpBarCheck()!!
         context.dropFollowUpBar(check)
 
         assertEquals(2, check.moveResult)
@@ -238,7 +239,7 @@ class HideMetaAiHookTest {
     @Test
     fun twoInlinedLookupsFailThePatch() {
         val context = PatchContexts.of(listOf(barSetup(RESULTS, inlined = true)))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     /**
@@ -249,7 +250,7 @@ class HideMetaAiHookTest {
     @Test
     fun aStaticLookupWhoseInflateIsntMatchedFailsThePatch() {
         val context = PatchContexts.of(listOf(inflatedThroughACopy(RESULTS)))
-        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
         assertTrue("$failure", failure.message!!.contains("looks up a stub to inflate 0 times"))
     }
 
@@ -257,27 +258,27 @@ class HideMetaAiHookTest {
     @Test
     fun anInlinedLookupInAViewNotReadOffAFieldFailsThePatch() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, inlined = true, viewFromCall = true)))
-        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        val failure = assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
         assertTrue("$failure", failure.message!!.contains("looks up a stub to inflate 0 times"))
     }
 
     @Test
     fun aLookupWithoutAnyCheckFailsThePatch() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, tested = 2)))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     /** A jump in between the view being set and the lookup would skip the hook on that path. */
     @Test
     fun aJumpPastTheViewFailsThePatch() {
         val context = PatchContexts.of(listOf(viewCheckedBarSetup(RESULTS, jumpIn = true)))
-        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck() }
+        assertThrows(PatchException::class.java) { context.findFollowUpBarCheck()!! }
     }
 
     @Test
     fun theExtensionsOwnBarSetupIsLeftAlone() {
         val context = PatchContexts.of(listOf(barSetup("Lapp/hushgram/extension/instagram/metaai/Probe;"), barSetup(RESULTS)))
-        assertEquals(RESULTS, context.findFollowUpBarCheck().type)
+        assertEquals(RESULTS, context.findFollowUpBarCheck()!!.type)
     }
 
     /**
@@ -302,12 +303,13 @@ class HideMetaAiHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.holdsAny(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
 
-        val check = context.findFollowUpBarCheck()
+        // 453's 32-bit builds inflate the bar in a static helper, so only its stub is hooked (findFollowUpBarStub).
+        val check = context.findFollowUpBarCheck() ?: return assertNotNull("$label: the bar's stub", context.findFollowUpBarStub())
         context.dropFollowUpBar(check)
 
         val method = context.mutableClassDefBy(check.type).methods.single {
@@ -396,22 +398,25 @@ class HideMetaAiHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holdsAll(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.holdsAny(FOLLOW_UP_SETUP) }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(holders)
 
-        val check = context.findFollowUpBarCheck()
+        // 453's 64-bit builds check the bar's own stub, which the patch then hooks once, as the stub.
         val stub = context.findFollowUpBarStub()
-        assertEquals("$label: one setup", "${check.type}->${check.name}", "${stub.type}->${stub.name}")
-        assertTrue("$label: the bar's stub comes before the pills' check", stub.moveResult < check.moveResult)
-        context.dropFollowUpBar(check)
+        val check = context.findFollowUpBarCheck()?.takeUnless { it.sameSiteAs(stub) }
+        if (check != null) {
+            assertEquals("$label: one setup", "${check.type}->${check.name}", "${stub.type}->${stub.name}")
+            assertTrue("$label: the bar's stub comes before the pills' check", stub.moveResult < check.moveResult)
+            context.dropFollowUpBar(check)
+        }
         context.dropFollowUpBarStub(stub)
 
         val method = context.mutableClassDefBy(stub.type).methods.single {
             it.name == stub.name && it.parameterTypes.map(CharSequence::toString) == stub.parameters
         }
-        assertDropped("$label ${check.type}->${check.name} pills", method)
+        if (check != null) assertDropped("$label ${check.type}->${check.name} pills", method)
         assertStubDropped("$label ${stub.type}->${stub.name} bar", method)
     }
 
@@ -436,7 +441,9 @@ class HideMetaAiHookTest {
         assertEquals("$what: the test", Opcode.IF_EQZ, code[hook + 2].opcode)
         assertEquals("$what: the tested register", register, (code[hook + 2] as OneRegisterInstruction).registerA)
         val inflate = (hook + 3 until code.size).first { code[it].opcode == Opcode.INVOKE_STATIC || code[it].opcode == Opcode.INVOKE_STATIC_RANGE }
-        assertEquals("$what: the helper's answer", "Landroid/view/View;", ((code[inflate] as ReferenceInstruction).reference as MethodReference).returnType)
+        // 450's helper inflates the stub and answers the bar; 453's 64-bit one answers the stub, inflated after it.
+        val answer = ((code[inflate] as ReferenceInstruction).reference as MethodReference).returnType
+        assertTrue("$what: the helper's answer $answer", answer == "Landroid/view/View;" || answer == "Landroid/view/ViewStub;")
         assertEquals("$what: the helper's view and id", searched, code[inflate].registers())
     }
 
@@ -451,7 +458,7 @@ class HideMetaAiHookTest {
     fun homesButtonNamesAnswerThroughTheExtension() {
         val context = PatchContexts.of(listOf(homeBar(HOME_BAR)))
 
-        context.dropHomeButton(context.findHomeButtonNames())
+        context.dropHomeButton(context.findHomeButtonNames()!!)
 
         assertNamesPassedThrough(HOME_BAR, context.mutableClassDefBy(HOME_BAR).methods.single { it.name == "AdW" })
     }
@@ -459,20 +466,20 @@ class HideMetaAiHookTest {
     @Test
     fun twoHomeBarsFailThePatch() {
         val context = PatchContexts.of(listOf(homeBar(HOME_BAR), homeBar("Lfixture/OtherHomeBar;")))
-        assertThrows(PatchException::class.java) { context.findHomeButtonNames() }
+        assertThrows(PatchException::class.java) { context.findHomeButtonNames()!! }
     }
 
     /** A "meta_ai" compared with some other register means the loop isn't the one the patch knows. */
     @Test
     fun aHomeBarComparingAnotherNameFailsThePatch() {
         val context = PatchContexts.of(listOf(homeBar(HOME_BAR, compared = 0)))
-        assertThrows(PatchException::class.java) { context.findHomeButtonNames() }
+        assertThrows(PatchException::class.java) { context.findHomeButtonNames()!! }
     }
 
     @Test
     fun aHomeBarWithoutTheNullTestFailsThePatch() {
         val context = PatchContexts.of(listOf(homeBar(HOME_BAR, tested = 0)))
-        assertThrows(PatchException::class.java) { context.findHomeButtonNames() }
+        assertThrows(PatchException::class.java) { context.findHomeButtonNames()!! }
     }
 
     @Test
@@ -489,7 +496,16 @@ class HideMetaAiHookTest {
                 }
                 val context = PatchContexts.of(holders)
 
+                // A setup holding neither name nor its hash guards the button with the fourth search flag.
                 val names = context.findHomeButtonNames()
+                if (names == null) {
+                    val readsFlag = holders.any { c -> c.methods.any { m ->
+                        m.implementation?.instructions?.any { (it as? WideLiteralInstruction)?.wideLiteral == SEARCH_FLAGS[3] } == true
+                    } }
+                    assertTrue("${bundle.name}: Home's bar reads the Meta AI chats flag", readsFlag)
+                    checked++
+                    continue
+                }
                 context.dropHomeButton(names)
 
                 val method = context.mutableClassDefBy(names.type).methods.single {
@@ -614,8 +630,10 @@ class HideMetaAiHookTest {
         }
         for (page in RESULTS_PAGES + "rows") assertTrue("$name: $page keeps Instagram's answer, kept $kept", kept.any { it == page || it.startsWith("$page->") })
         assertTrue("$name: the results page answered through the extension: $answered", answered.none { where -> RESULTS_PAGES.any { where.startsWith("$it->") } })
-        for (tab in listOf("ExploreFragment", "MainFeedFragment")) {
-            assertTrue("$name: $tab doesn't answer through the extension: $answered", answered.any { it.startsWith("$tab->") })
+        // 453 reads Home's answer in its top bar setup rather than in MainFeedFragment.
+        val homeBars = classes.values.filter { c -> c.methods.any { it.holdsAll(HOME_BAR_SETUP) } }.map { it.originalName() ?: it.type }
+        for (tab in listOf(listOf("ExploreFragment"), listOf("MainFeedFragment") + homeBars)) {
+            assertTrue("$name: ${tab.first()} doesn't answer through the extension: $answered", answered.any { where -> tab.any { where.startsWith("$it->") } })
         }
     }
 
@@ -648,6 +666,13 @@ class HideMetaAiHookTest {
             assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[result + 2].opcode)
             assertEquals("$what: the register", register, (code[result + 2] as OneRegisterInstruction).registerA)
         }
+    }
+
+    /** A string of the setup, 452 keeps the pills one in a getter next to the method that calls it. */
+    private fun Method.holdsAny(strings: List<String>): Boolean {
+        val held = implementation?.instructions
+            ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string } ?: return false
+        return held.any { it in strings }
     }
 
     private fun Method.holdsAll(strings: List<String>): Boolean {

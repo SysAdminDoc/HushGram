@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.app.Activity;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
@@ -53,6 +54,7 @@ public class ProfileTitleTest {
 
     @Before public void prepare() {
         Settings.CENTER_PROFILE_NAME.resetToDefault();
+        Settings.TITLES_AT_START.resetToDefault();
         PauseForTests.resume();
         ProfileTitle.resetForTests();
         ProfileTitle.idForTests(ProfileTitle.BAR_ID, BAR);
@@ -79,6 +81,7 @@ public class ProfileTitleTest {
         ProfileTitle.resetForTests();
         controller.close();
         Settings.CENTER_PROFILE_NAME.resetToDefault();
+        Settings.TITLES_AT_START.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -188,6 +191,74 @@ public class ProfileTitleTest {
         Settings.CENTER_PROFILE_NAME.save(false);
         focusBack();
         assertEquals("not HushGram's to put back", 30f, name.getTranslationX(), 0f);
+    }
+
+    /** Logo and titles at the start (#310): the name goes to its container's start, after the + button. */
+    @Test public void atTheStartTheNameBeginsAtItsContainersStart() {
+        Settings.TITLES_AT_START.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals(-139f, name.getTranslationX(), 0f);
+        assertEquals("right after the + button and the container's margin", 181f,
+                container.getLeft() + name.getLeft() + name.getTranslationX(), 0f);
+        assertTrue(ProfileTitle.watchingLayoutsForTests());
+        relayout();
+        assertEquals("the same however often it lays out", -139f, name.getTranslationX(), 0f);
+    }
+
+    @Test public void atTheStartWinsOverCentering() {
+        Settings.CENTER_PROFILE_NAME.save(true);
+        Settings.TITLES_AT_START.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals(-139f, name.getTranslationX(), 0f);
+        Settings.TITLES_AT_START.save(false);
+        focusBack();
+        assertEquals("centered again", -10f, name.getTranslationX(), 0f);
+    }
+
+    @Test public void atTheStartInARightToLeftBarTheNameGoesRight() {
+        Settings.TITLES_AT_START.save(true);
+        container.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
+        ((FrameLayout.LayoutParams) name.getLayoutParams()).gravity = Gravity.LEFT;
+        name.requestLayout();
+        layout();
+        ProfileTitle.resumed(activity);
+        assertEquals("its right edge at the container's", 5f, name.getTranslationX(), 0f);
+    }
+
+    @Test public void turningTheStartOffPutsTheNameBack() {
+        Settings.TITLES_AT_START.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals(-139f, name.getTranslationX(), 0f);
+        Settings.TITLES_AT_START.save(false);
+        focusBack();
+        assertEquals(0f, name.getTranslationX(), 0f);
+        assertFalse(ProfileTitle.watchingLayoutsForTests());
+    }
+
+    /** The newer header pads the name's row on both sides (#310): at the start the name sits in that padding, drawn, not cut off. */
+    @Test public void atTheStartANameInItsContainersPaddingIsDrawn() {
+        container.setPadding(96, 0, 96, 0);
+        layout();
+        assertTrue(container.getClipToPadding());
+        Settings.TITLES_AT_START.save(true);
+        ProfileTitle.resumed(activity);
+        assertEquals(-235f, name.getTranslationX(), 0f);
+        assertFalse("drawn in the padding", container.getClipToPadding());
+        relayout();
+        assertFalse("still drawn after another layout", container.getClipToPadding());
+        Settings.TITLES_AT_START.save(false);
+        focusBack();
+        assertEquals(0f, name.getTranslationX(), 0f);
+        assertTrue("clipped again once it's back", container.getClipToPadding());
+    }
+
+    @Test public void aCenteredNameInsideThePaddingKeepsItClipped() {
+        container.setPadding(96, 0, 96, 0);
+        Settings.CENTER_PROFILE_NAME.save(true);
+        place(0, 200);
+        ProfileTitle.resumed(activity);
+        assertEquals(540f, drawnMiddle(), 0.5f);
+        assertTrue(container.getClipToPadding());
     }
 
     @Test public void aHiddenBarIsLeftAlone() {

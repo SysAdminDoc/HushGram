@@ -6,11 +6,18 @@
  */
 package app.morphe.patches.instagram
 
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
 import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -62,6 +69,15 @@ internal object FixtureDex {
             for (classDef in dex.classes) {
                 if (classDef.type in types && classDef.type !in found) found[classDef.type] = ImmutableClassDef.of(classDef)
             }
+        }
+        return found
+    }
+
+    /** The classes whose direct superclass is one of [supers] in the bundle. */
+    fun subclasses(bundle: File, supers: Set<String>): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        forEachDex(bundle) { dex ->
+            for (classDef in dex.classes) if (classDef.superclass in supers) found += ImmutableClassDef.of(classDef)
         }
         return found
     }
@@ -125,6 +141,87 @@ internal object FixtureDex {
             }
         }
         return found
+    }
+
+    /**
+     * Every class with a method that makes a new instance of one of [types]. 452's Redex inlined the
+     * Feed action-row state's constructor into the method that builds it, so a test of the state's
+     * flags carries that class too.
+     */
+    fun classesCreating(bundle: File, types: Set<String>): List<ClassDef> {
+        val found = mutableListOf<ClassDef>()
+        forEachDex(bundle) { dex ->
+            if (dex.typeSection.none { it in types }) return@forEachDex
+            for (classDef in dex.classes) {
+                if (classDef.type in types) continue
+                val creates = classDef.methods.any { method ->
+                    method.implementation?.instructions?.any {
+                        it.opcode == com.android.tools.smali.dexlib2.Opcode.NEW_INSTANCE &&
+                            ((it as com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction).reference as com.android.tools.smali.dexlib2.iface.reference.TypeReference).type in types
+                    } == true
+                }
+                if (creates) found += ImmutableClassDef.of(classDef)
+            }
+        }
+        return found
+    }
+
+    /**
+     * [classesHolding] plus every class asking a static `(int)String` pool for [string] by a number
+     * loaded right before the call, and the pools. Which strings Redex pools differs from build to
+     * build (#77): 451's 385713073 asks a pool for friendship_statuses that 450 held.
+     */
+    fun classesLoading(bundle: File, string: String): List<ClassDef> {
+        val found = classesHolding(bundle, string).associateByTo(LinkedHashMap()) { it.type }
+        val pools = HashMap<String, Set<Int>>()
+        for (holder in found.values) {
+            for (method in holder.methods) poolNumbers(method, string).takeIf { it.isNotEmpty() }?.let { pools["${holder.type}->${method.name}"] = it }
+        }
+        if (pools.isEmpty()) return found.values.toList()
+        forEachDex(bundle) { dex ->
+            for (classDef in dex.classes) {
+                if (classDef.type !in found && classDef.methods.any { asksPool(it, pools) }) found[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        return found.values.toList()
+    }
+
+    /** Whether [method] calls one of [pools] (by "type->name") with a number it answers, loaded right before the call. */
+    private fun asksPool(method: Method, pools: Map<String, Set<Int>>): Boolean {
+        val code = method.implementation?.instructions?.toList() ?: return false
+        return code.indices.any { at ->
+            val call = code[at]
+            val pool = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return@any false
+            val numbers = pools["${pool.definingClass}->${pool.name}"] ?: return@any false
+            val number = code.getOrNull(at - 1) as? NarrowLiteralInstruction ?: return@any false
+            call.opcode == Opcode.INVOKE_STATIC && pool.parameterTypes.map(Any::toString) == listOf("I") &&
+                (number as OneRegisterInstruction).registerA == (call as Instruction35c).registerC && number.narrowLiteral in numbers
+        }
+    }
+
+    /** The numbers a static `(int)String` pool answers [string] for; the first switch whose case for a number loads a string decides it. */
+    private fun poolNumbers(method: Method, string: String): Set<Int> {
+        if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "Ljava/lang/String;" ||
+            method.parameterTypes.map(Any::toString) != listOf("I")
+        ) {
+            return emptySet()
+        }
+        val code = method.implementation?.instructions?.toList() ?: return emptySet()
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        val at = (0 until code.size).associateBy { address[it] }
+        val answered = HashMap<Int, String>()
+        for (switch in code.indices) {
+            if (code[switch].opcode != Opcode.PACKED_SWITCH && code[switch].opcode != Opcode.SPARSE_SWITCH) continue
+            val payload = at[address[switch] + (code[switch] as OffsetInstruction).codeOffset]?.let { code[it] } as? SwitchPayload ?: continue
+            for (case in payload.switchElements) {
+                if (case.key in answered) continue
+                at[address[switch] + case.offset]?.let { code[it] }
+                    ?.takeIf { it.opcode == Opcode.CONST_STRING || it.opcode == Opcode.CONST_STRING_JUMBO }
+                    ?.let { answered[case.key] = ((it as ReferenceInstruction).reference as StringReference).string }
+            }
+        }
+        return answered.filterValues { it == string }.keys
     }
 
     /** Whether [method] loads exactly [string]. */

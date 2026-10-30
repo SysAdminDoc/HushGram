@@ -9,8 +9,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.ResolveInfo;
+import android.net.Uri;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.widget.ImageView;
@@ -222,7 +227,33 @@ public class SearchHeaderButtonTest {
         assertSame("the next switch to Search lands on Home again", Tab.FEED, ReelsTab.tab(Tab.SEARCH));
     }
 
-    @Test public void withTheSearchTabHiddenAndSwipingTabsATapLeavesSearchShutAndSaysWhy() {
+    @Test public void withTheSearchTabHiddenAndSwipingTabsATapOpensInstagramsSearchScreen() {
+        Settings.HIDE_SEARCH_TAB.save(true);
+        ReelsTab.tabs(BUILT);
+        SearchHeaderButton.pagingForTests = on -> on == activity ? 1 : 0;
+        Intent link = new Intent(Intent.ACTION_VIEW, Uri.parse("instagram://search")).setPackage(activity.getPackageName());
+        ResolveInfo answer = new ResolveInfo();
+        answer.activityInfo = new ActivityInfo();
+        answer.activityInfo.packageName = activity.getPackageName();
+        answer.activityInfo.name = "com.instagram.urlhandlers.search.SearchUrlHandlerActivity";
+        shadowOf(activity.getPackageManager()).addResolveInfoForIntent(link, answer);
+
+        placed().performClick();
+        ShadowLooper.idleMainLooper();
+
+        Intent started = shadowOf(activity).getNextStartedActivity();
+        assertNotNull("the search screen was asked for", started);
+        assertEquals(Intent.ACTION_VIEW, started.getAction());
+        assertEquals("instagram://search", String.valueOf(started.getData()));
+        assertEquals("this app's own screen, never another app's", activity.getPackageName(), started.getPackage());
+        assertTrue("no tab switch was asked for", switched.isEmpty());
+        assertNull("no toast", ShadowToast.getTextOfLatestToast());
+        assertTrue(report(), report().contains(SearchHeaderButton.OPENED_SCREEN + " 1"));
+        assertTrue(report(), !report().contains(SearchHeaderButton.SWIPING));
+        assertSame(Tab.FEED, ReelsTab.tab(Tab.SEARCH));
+    }
+
+    @Test public void withSwipingTabsAndNothingAnsweringTheLinkATapLeavesSearchShutAndSaysWhy() {
         Settings.HIDE_SEARCH_TAB.save(true);
         ReelsTab.tabs(BUILT);
         SearchHeaderButton.pagingForTests = on -> on == activity ? 1 : 0;
@@ -232,6 +263,7 @@ public class SearchHeaderButtonTest {
         ShadowLooper.idleMainLooper();
 
         assertTrue("no switch was asked for", switched.isEmpty());
+        assertNull("nothing answers the link here", shadowOf(activity).getNextStartedActivity());
         assertTrue(report(), report().contains(SearchHeaderButton.SWIPING + " 1"));
         // Android 12 and newer show two lines of a toast, so the toast is what to do and nothing else.
         assertEquals("To open Search here, turn off Hide the Search tab and restart.",

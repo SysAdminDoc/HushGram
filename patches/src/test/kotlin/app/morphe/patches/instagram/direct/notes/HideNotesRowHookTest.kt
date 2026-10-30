@@ -13,6 +13,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.direct.search.KEEP_SEARCH_SECTIONS
+import app.morphe.patches.instagram.direct.search.hideInboxSearch
 import app.morphe.patches.instagram.metaai.INBOX_SECTION_MARKER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
@@ -46,15 +48,75 @@ class HideNotesRowHookTest {
     private val enabled = "Lfixture/Enabled;"
     private val lookups = "Lfixture/Sections;"
     private val inbox = "Lfixture/Inbox;"
+    private val modes = "Lfixture/Modes;"
     private val enabledInit = "$enabled-><init>([$section)V"
 
-    /** The hook the patch writes is in the NotesRow the bundle ships, public and static. */
+    /** The hooks both patches write are in the NotesRow and InboxSearchBar the bundle ships, public and static. */
     @Test
     fun theHookIsInTheExtension() {
-        val declared = ExtensionDex.classDef(KEEP_SECTIONS.substringBefore("->")).methods
-            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
-            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$KEEP_SECTIONS is not in the extension: $declared", KEEP_SECTIONS.substringAfter("->") in declared)
+        for (hook in listOf(KEEP_SECTIONS, KEEP_SEARCH_SECTIONS)) {
+            val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
+                .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+                .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /** Hide the search bar in Messages asks at the same place, alone, inline and in 452's factory. */
+    @Test
+    fun theSearchBarPatchAsksAtTheSamePlace() {
+        val inline = PatchContexts.of(classes())
+        inline.hideInboxSearch()
+        val diff = inline.mutableClassDefBy(inbox).methods.single { it.name == "diff" }
+        assertSectionsAsked("the stand-in", diff, register = 2, sections = section, hook = KEEP_SEARCH_SECTIONS)
+        val keep = diff.code().indexOfFirst { it.referenceText() == KEEP_SEARCH_SECTIONS }
+        assertEquals("the jump to the construction lands on the question", keep, diff.targetOf(diff.code().indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+
+        val factory = PatchContexts.of(classes(factories = 1))
+        factory.hideInboxSearch()
+        assertSectionsAsked("the factory", factory.mutableClassDefBy(modes).methods.single(), register = 1, sections = section, hook = KEEP_SEARCH_SECTIONS)
+    }
+
+    /**
+     * With both patches in, in either order and in either shape, each question is asked once, both
+     * sit right before the construction on the sections' register, and every jump lands on the first.
+     */
+    @Test
+    fun bothPatchesTogetherAskBothQuestionsInEitherOrder() {
+        val orders = listOf<(BytecodePatchContext) -> Unit>(
+            { it.hide(); it.hideInboxSearch() },
+            { it.hideInboxSearch(); it.hide() },
+        )
+        for ((at, order) in orders.withIndex()) {
+            val inline = PatchContexts.of(classes())
+            order(inline)
+            val diff = inline.mutableClassDefBy(inbox).methods.single { it.name == "diff" }
+            val first = assertBothAsked("order $at, the stand-in", diff, register = 2, sections = section)
+            assertEquals("order $at: the jump to the construction lands on the first question", first, diff.targetOf(diff.code().indexOfFirst { it.opcode == Opcode.IF_EQZ }))
+
+            val factory = PatchContexts.of(classes(factories = 1))
+            order(factory)
+            val made = factory.mutableClassDefBy(modes).methods.single()
+            val firstInFactory = assertBothAsked("order $at, the factory", made, register = 1, sections = section)
+            val modeJump = made.targetOf(made.code().indexOfFirst { it.opcode == Opcode.IF_EQZ })
+            assertTrue("order $at: every mode reaches the first question", modeJump <= firstInFactory)
+        }
+    }
+
+    /** A build the search bar patch can't read fails under its own name, and nothing is changed. */
+    @Test
+    fun theSearchBarPatchRefusesUnderItsOwnName() {
+        for (classes in listOf(classes(diffs = 0), classes(constructions = 2), classes(readAfter = true))) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(PatchException::class.java) { context.hideInboxSearch() }
+            assertTrue(failure.message, failure.message!!.startsWith("Hide the search bar in Messages: "))
+            for (original in classes) {
+                val now = context.mutableClassDefBy(original.type).methods.associateBy { it.key() }
+                for (method in original.methods) {
+                    assertEquals("${original.type}->${method.name} changed", method.code().map { it.describe() }, now.getValue(method.key()).code().map { it.describe() })
+                }
+            }
+        }
     }
 
     /**
@@ -72,6 +134,22 @@ class HideNotesRowHookTest {
         val keep = diff.code().indexOfFirst { it.referenceText() == KEEP_SECTIONS }
         val jump = diff.code().indexOfFirst { it.opcode == Opcode.IF_EQZ }
         assertEquals("the jump to the construction lands on the question", keep, diff.targetOf(jump))
+    }
+
+    /**
+     * When the diff update hands the building to a static factory, as 452 does, the sections are
+     * asked for in the factory, at the construction every mode jumps toward, and the diff update is left alone.
+     */
+    @Test
+    fun aSetBuiltInAFactoryTheDiffUpdateCallsIsAskedForThere() {
+        val context = PatchContexts.of(classes(factories = 1))
+
+        context.hide()
+
+        val factory = context.mutableClassDefBy(modes).methods.single()
+        assertSectionsAsked("the factory", factory, register = 1, sections = section)
+        val diff = context.mutableClassDefBy(inbox).methods.single { it.name == "diff" }
+        assertTrue("the diff update is left alone", diff.code().none { it.referenceText() == KEEP_SECTIONS })
     }
 
     /** A build the patch can't read fails at patch time, saying what it found, and nothing is changed. */
@@ -92,6 +170,7 @@ class HideNotesRowHookTest {
             classes(fillsBits = false) to "$enabled doesn't fill a Ljava/util/BitSet; from the sections it's given",
             classes(checksBits = false) to "$lookups never checks a section against $enabled",
             classes(readAfter = true) to "reads v2, the sections, after building $enabled",
+            classes(factories = 2) to "to call one method building the inbox's sections, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -119,14 +198,28 @@ class HideNotesRowHookTest {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
     }
 
-    private fun builds(bundle: File, label: String) {
+    /** The classes of [bundle] the patches read: the holders of their markers, the factory the diff update calls and the set's class. */
+    internal fun fixtureClasses(bundle: File): List<ClassDef> {
         val holders = listOf(INBOX_DIFF, INBOX_SECTION_MARKER, NOTES_SECTION)
             .flatMap { FixtureDex.classesHolding(bundle, it) }.distinctBy { it.type }
-        val sets = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
-            .flatMap { it.code() }
+        val diffs = holders.flatMap { it.methods }.filter { method -> method.code().any { it.referenceText() == INBOX_DIFF } }
+        // 452 builds the set in a static factory the diff update calls, so the classes it calls come along.
+        val called = diffs.flatMap { it.code() }
+            .filter { it.opcode == Opcode.INVOKE_STATIC || it.opcode == Opcode.INVOKE_STATIC_RANGE }
+            .mapNotNull { (it.reference() as? MethodReference)?.definingClass }.toSet()
+        val factories = FixtureDex.classes(bundle, called).values
+        val sets = (diffs + factories.flatMap { it.methods }).flatMap { it.code() }
             .mapNotNull { (it.reference() as? MethodReference)?.takeIf { call -> call.name == "<init>" && call.parameterTypes.size == 1 } }
             .map { it.definingClass }.toSet()
-        val classes = (holders + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
+        return (holders + factories + FixtureDex.classes(bundle, sets).values).distinctBy { it.type }
+    }
+
+    /**
+     * The notes row's question alone, the search bar's alone, and both in either order, each on a
+     * fresh copy of the build, with the stock code around the questions kept.
+     */
+    private fun builds(bundle: File, label: String) {
+        val classes = fixtureClasses(bundle)
         val context = PatchContexts.of(classes)
         val site = context.findNotesSections()
         val stock = context.mutableClassDefBy(site.type).methods.single {
@@ -143,6 +236,21 @@ class HideNotesRowHookTest {
         val keep = diff.code().indexOfFirst { it.referenceText() == KEEP_SECTIONS }
         assertSectionsAsked(label, diff, site.register, site.sections)
         original.assertPreserved(label, diff, (keep..keep + 2).toSet())
+
+        val search = PatchContexts.of(classes)
+        search.hideInboxSearch()
+        val searched = search.mutableClassDefBy(site.type).methods.single { it.key() == stock.key() }
+        assertSectionsAsked("$label, search bar", searched, site.register, site.sections, hook = KEEP_SEARCH_SECTIONS)
+        val asked = searched.code().indexOfFirst { it.referenceText() == KEEP_SEARCH_SECTIONS }
+        original.assertPreserved("$label, search bar", searched, (asked..asked + 2).toSet())
+
+        for ((at, order) in listOf<(BytecodePatchContext) -> Unit>({ it.hide(); it.hideInboxSearch() }, { it.hideInboxSearch(); it.hide() }).withIndex()) {
+            val both = PatchContexts.of(classes)
+            order(both)
+            val chained = both.mutableClassDefBy(site.type).methods.single { it.key() == stock.key() }
+            val first = assertBothAsked("$label, both in order $at", chained, site.register, site.sections)
+            original.assertPreserved("$label, both in order $at", chained, (first..first + 5).toSet())
+        }
     }
 
     private fun forEachFixture(check: (java.io.File) -> Unit) {
@@ -161,9 +269,9 @@ class HideNotesRowHookTest {
      * The question on the sections' register, its answer back into it, a cast to the array type the
      * set takes, then the construction of the set from that register, with nothing jumping in between.
      */
-    private fun assertSectionsAsked(what: String, diff: MutableMethod, register: Int, sections: String) {
+    private fun assertSectionsAsked(what: String, diff: MutableMethod, register: Int, sections: String, hook: String = KEEP_SECTIONS) {
         val code = diff.code()
-        val asks = code.indices.filter { code[it].referenceText() == KEEP_SECTIONS }
+        val asks = code.indices.filter { code[it].referenceText() == hook }
         assertEquals("$what: asks", 1, asks.size)
         val keep = asks.single()
         assertEquals("$what: hands over the sections", listOf(register), code[keep].arguments())
@@ -177,6 +285,33 @@ class HideNotesRowHookTest {
         assertEquals("$what: the construction's array", listOf("[$sections"), made.parameterTypes.map(CharSequence::toString))
         assertEquals("$what: the construction gets the answer", register, code[keep + 3].arguments().getOrNull(1))
         assertFalse("$what: a jump lands between the question and the construction", (keep + 1..keep + 3).any { it in diff.jumpTargets() })
+    }
+
+    /**
+     * Both questions once each, back to back on the sections' register, each answer cast back to
+     * the array type, then the construction from that register, with nothing jumping in after the
+     * first question. Answers where the first question is.
+     */
+    private fun assertBothAsked(what: String, method: MutableMethod, register: Int, sections: String): Int {
+        val code = method.code()
+        val asks = listOf(KEEP_SECTIONS, KEEP_SEARCH_SECTIONS).associateWith { hook -> code.indices.filter { code[it].referenceText() == hook } }
+        for ((hook, at) in asks) assertEquals("$what: asks $hook", 1, at.size)
+        val first = asks.values.minOf { it.single() }
+        assertEquals("$what: the questions sit back to back", setOf(first, first + 3), asks.values.map { it.single() }.toSet())
+        for (keep in listOf(first, first + 3)) {
+            assertEquals("$what: hands over the sections", listOf(register), code[keep].arguments())
+            assertEquals("$what: the answer", Opcode.MOVE_RESULT_OBJECT, code[keep + 1].opcode)
+            assertEquals("$what: the answer's register", register, (code[keep + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$what: the cast", Opcode.CHECK_CAST, code[keep + 2].opcode)
+            assertEquals("$what: the cast's register", register, (code[keep + 2] as OneRegisterInstruction).registerA)
+            assertEquals("$what: the cast's type", "[$sections", ((code[keep + 2] as ReferenceInstruction).reference as TypeReference).type)
+        }
+        val made = code[first + 6].reference() as MethodReference
+        assertEquals("$what: the construction", "<init>", made.name)
+        assertEquals("$what: the construction's array", listOf("[$sections"), made.parameterTypes.map(CharSequence::toString))
+        assertEquals("$what: the construction gets the answer", register, code[first + 6].arguments().getOrNull(1))
+        assertFalse("$what: a jump lands after the first question", (first + 1..first + 6).any { it in method.jumpTargets() })
+        return first
     }
 
     private fun BytecodePatchContext.hide() = hideNotesRow(findNotesSections())
@@ -200,6 +335,7 @@ class HideNotesRowHookTest {
         fillsBits: Boolean = true,
         checksBits: Boolean = true,
         readAfter: Boolean = false,
+        factories: Int = 0,
     ): List<ClassDef> {
         val names = (0 until notesNames).joinToString("\n") { "const-string v0, \"$NOTES_SECTION\"" }
         val sectionSetup = method(section, "<clinit>", emptyList(), "V", 1, static = true, body = """
@@ -247,23 +383,48 @@ class HideNotesRowHookTest {
                     new-instance v3, $enabled
                     invoke-direct { v3, v2 }, $enabledInit
                 """.trimIndent()
-                methods += method(type, "diff", listOf(type), "V", 4, static = true, body = """
-                    const-string v0, "$INBOX_DIFF"
-                    const/4 v1, 0x1
-                    new-array v2, v1, [$section
-                    new-instance v3, $enabled
-                    if-eqz p0, :make
-                    const/4 v1, 0x2
-                    :make
-                    invoke-direct { v3, v2 }, $enabledInit
-                    $second
-                    ${if (readAfter) "invoke-static { v2 }, $lookups->keep([$section)V" else "const/4 v2, 0x0"}
-                    return-void
-                """)
+                methods += if (factories > 0) {
+                    val calls = (0 until factories).joinToString("\n") { "invoke-static { p0 }, $modes->forMode$it(Ljava/lang/Object;)$enabled" }
+                    method(type, "diff", listOf(type), "V", 1, static = true, body = """
+                        const-string v0, "$INBOX_DIFF"
+                        $calls
+                        return-void
+                    """)
+                } else {
+                    method(type, "diff", listOf(type), "V", 4, static = true, body = """
+                        const-string v0, "$INBOX_DIFF"
+                        const/4 v1, 0x1
+                        new-array v2, v1, [$section
+                        new-instance v3, $enabled
+                        if-eqz p0, :make
+                        const/4 v1, 0x2
+                        :make
+                        invoke-direct { v3, v2 }, $enabledInit
+                        $second
+                        ${if (readAfter) "invoke-static { v2 }, $lookups->keep([$section)V" else "const/4 v2, 0x0"}
+                        return-void
+                    """)
+                }
             }
             classDef(type, methods)
         }
-        return listOf(sectionClass, enabledClass, lookupClass) + inboxClasses
+        // 452's shape: a static factory the diff update calls, every mode jumping to its one construction.
+        val factoryClasses = if (factories == 0) emptyList() else listOf(
+            classDef(modes, (0 until factories).map { copy ->
+                method(modes, "forMode$copy", listOf("Ljava/lang/Object;"), enabled, 3, static = true, body = """
+                    const/4 v0, 0x1
+                    new-array v1, v0, [$section
+                    if-eqz p0, :make
+                    const/4 v0, 0x2
+                    new-array v1, v0, [$section
+                    :make
+                    new-instance v2, $enabled
+                    invoke-direct { v2, v1 }, $enabledInit
+                    return-object v2
+                """)
+            }),
+        )
+        return listOf(sectionClass, enabledClass, lookupClass) + inboxClasses + factoryClasses
     }
 
     private fun method(

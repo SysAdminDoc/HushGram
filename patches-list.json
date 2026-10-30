@@ -1,21 +1,22 @@
 {
-  "version": "v0.0.10",
+  "version": "v0.0.17",
   "appNames": {
     "com.instagram.android": "Instagram"
   },
   "patches": [
     {
       "name": "Accent color",
-      "description": "Swaps Instagram's blue on Follow buttons, links and other highlights for purple, pink, red, orange, green or teal. Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout.",
+      "description": "Swaps Instagram's blue on Follow buttons, links and other highlights for purple, pink, red, orange, green, teal or your wallpaper's colors (Material You, on Android 12 and newer). Restart Instagram to see a change. Starts off. Turn it on in HushGram settings > Layout.",
       "category": "Interface",
       "use": true,
       "dependencies": [
         "BytecodePatch",
-        "HushGram settings"
+        "HushGram settings",
+        "ResourcePatch"
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -30,10 +31,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -52,7 +55,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -67,10 +70,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -80,7 +85,7 @@
     },
     {
       "name": "Ask before a call",
-      "description": "Asks you to confirm before a call starts from a chat, so a stray tap on the call button doesn't ring anyone. Starts off. Turn it on in HushGram settings > Messages.",
+      "description": "Asks you to confirm before a call starts from a chat, so a stray tap on the call button doesn't ring anyone, and can take the call buttons off the top of a chat. Both start off. Turn them on in HushGram settings > Messages.",
       "category": "Messages",
       "use": true,
       "dependencies": [
@@ -89,7 +94,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -104,10 +109,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -126,7 +133,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -141,10 +148,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -163,7 +172,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -178,10 +187,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -200,7 +211,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -215,10 +226,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -237,7 +250,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -252,10 +265,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -266,7 +281,7 @@
     {
       "name": "Change the like animation",
       "description": "Lets you pick the animation that plays when you double tap a post to like it. The choices are animations Instagram made for its Rings creators. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Interaction",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -274,7 +289,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -289,10 +304,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -311,7 +328,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -326,10 +343,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -339,7 +358,7 @@
     },
     {
       "name": "Clean up Reels",
-      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity, the Add a comment bar, the Save button and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons while you aren't touching the screen. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Hides extra buttons and prompts on reels, such as Follow, Edits, templates, Meta AI, Ray-Ban Meta glasses, friends' activity, the Add a comment bar, the reply bar on reels from chats, the Save button, the Create and Your algorithm buttons, the Friends tab and the Reels tab's top bar. Each one has its own switch, and Burn-in guard can dim a reel's buttons while you aren't touching the screen. Keep clear mode on carries Instagram's clear mode to the next reels. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -348,7 +367,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -363,10 +382,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -385,7 +406,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -400,10 +421,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -422,7 +445,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -437,10 +460,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -459,7 +484,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -474,10 +499,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -498,7 +525,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -513,10 +540,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -535,7 +564,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -550,47 +579,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
-              }
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "Disable analytics",
-      "description": "Stops Instagram from sending usage reports and crash reports to Instagram and Facebook. It also skips the contacts and location setup screens. Restart Instagram after you change it. On by default. Turn it off in HushGram settings > Ads and privacy.",
-      "category": "Privacy",
-      "use": true,
-      "dependencies": [
-        "BytecodePatch",
-        "HushGram settings"
-      ],
-      "compatiblePackages": {
-        "com.instagram.android": [
-          "450.0.0.50.77"
-        ]
-      },
-      "compatibility": [
-        {
-          "name": "Instagram",
-          "packageName": "com.instagram.android",
-          "description": null,
-          "appIconColor": 14757996,
-          "signatures": [
-            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
-            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
-          ],
-          "targets": [
-            {
-              "version": "450.0.0.50.77",
-              "experimental": false,
-              "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -609,7 +603,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -624,10 +618,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -646,7 +642,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -661,10 +657,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -683,7 +681,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -698,10 +696,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -711,7 +711,7 @@
     },
     {
       "name": "Download any reel",
-      "description": "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose the quality, and best is the default. A separate Download cover switch also saves the reel's cover picture, the largest one the post carries. Download as video on a carousel with music saves every page, in order. On by default. Turn it off in HushGram settings > Reels.",
+      "description": "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose the quality, and best is the default. A separate Download cover switch also saves the reel's cover picture, the largest one the post carries, and Download audio saves just its sound. Download as video on a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel. On by default. Turn it off in HushGram settings > Reels.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -721,7 +721,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -736,10 +736,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -749,7 +751,7 @@
     },
     {
       "name": "Download any story",
-      "description": "Adds Download to the menu of anyone's story. Videos save at the quality you choose and photos at their largest size. On by default. Turn it off in HushGram settings > Stories.",
+      "description": "Adds Download to the menu of anyone's story. Videos save at the quality you choose and photos at their largest size, and Download as photo saves a still from a video story. On by default. Turn it off in HushGram settings > Stories.",
       "category": "Downloads",
       "use": true,
       "dependencies": [
@@ -758,7 +760,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -773,10 +775,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -796,7 +800,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -811,10 +815,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -833,7 +839,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -848,10 +854,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -870,7 +878,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -885,10 +893,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -898,7 +908,7 @@
     },
     {
       "name": "Find the reel you came from",
-      "description": "Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. Stop looking ends the search, and Wait for a tap to find it holds it until you tap Find the reel. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search, and Wait for a tap to find it holds it until you tap Find the reel. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -907,7 +917,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -922,10 +932,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Font",
+      "description": "Lets you pick the font Instagram's text uses: Instagram's own, your phone's, or a .ttf or .otf file. Restart Instagram to see a change. Starts on Instagram's font. Pick one in HushGram settings > Layout.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -935,7 +986,7 @@
     },
     {
       "name": "Full resolution photos",
-      "description": "Loads photos in the largest size Instagram sends instead of one picked for your screen. A second switch asks for a larger size on screens under 1440 pixels wide. Uses more data. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Loads photos in the largest size Instagram sends instead of one picked for your screen. A second switch asks for a larger size on screens under 1440 pixels wide, and a third gets reel covers and grid pictures at full size. Uses more data. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -944,7 +995,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -959,10 +1010,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -972,7 +1025,7 @@
     },
     {
       "name": "Full screen Reels and Home",
-      "description": "Hides the status bar and the navigation bar while Reels shows, and optionally while Home does. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual. Starts off. Turn it on in HushGram settings > Reels (Full screen Reels) and Feed (Full screen Home).",
+      "description": "Hides the status bar and the navigation bar while Reels shows, and optionally while Home or your messages do. Swipe in from the edge to bring them back for a moment. Back and the keyboard work as usual. Starts off. Turn it on in HushGram settings > Reels (Full screen Reels), Feed (Full screen Home) and Messages (Full screen Messages).",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -981,7 +1034,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -996,10 +1049,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1018,7 +1073,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1033,10 +1088,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1046,7 +1103,7 @@
     },
     {
       "name": "Group Instagram's notifications",
-      "description": "Puts Instagram's notifications in one group, or in a group for each type, so they don't fill your notification shade. Tapping one still opens it. Starts off. Turn it on in HushGram settings > Notifications.",
+      "description": "Puts Instagram's notifications in one group, or in a group for each type, so they don't fill your notification shade. Tapping one still opens it. You can also mute the types you pick, like promo pushes. Starts off. Turn it on in HushGram settings > Notifications.",
       "category": "Interface",
       "use": true,
       "dependencies": [
@@ -1055,7 +1112,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1070,10 +1127,129 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide AI-labeled reels",
+      "description": "Leaves out reels that carry Instagram's own AI label. A reel without that label stays. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide Follow on feed posts",
+      "description": "Takes the Follow and Subscribe buttons off the top of posts in your feed. The name, time and menu stay. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide Follow on stories",
+      "description": "Takes the Follow button off the top of stories from accounts you don't follow. The name, time and menu stay. Starts off. Turn it on in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1092,7 +1268,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1107,10 +1283,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1129,7 +1307,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1144,10 +1322,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1166,7 +1346,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1181,10 +1361,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1203,7 +1385,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1218,10 +1400,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1240,7 +1424,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1255,10 +1439,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1277,7 +1463,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1292,10 +1478,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1305,7 +1493,7 @@
     },
     {
       "name": "Hide group buttons on the share sheet",
-      "description": "Takes the New group button and the button that sends to several people as a group off the share sheet. You can still start a group from your messages. Starts off. Turn it on in HushGram settings > Sharing.",
+      "description": "Takes the New group button and the button that sends to several people as a group off the share sheet, and lets you pick which of the round buttons under the people it shows. You can still start a group from your messages. Both start off. Find them in HushGram settings > Sharing.",
       "category": "Interaction",
       "use": true,
       "dependencies": [
@@ -1314,7 +1502,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1329,10 +1517,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1351,7 +1541,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1366,10 +1556,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1388,7 +1580,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1403,10 +1595,129 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide profile tabs",
+      "description": "Lets you take the Reels, Reposts and Tagged tabs off profiles, yours and other people's, and keep the grid. Starts with every tab showing. Pick which to hide in HushGram settings > Profiles.",
+      "category": "Profiles",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide reels by caption words",
+      "description": "Leaves out reels whose caption holds a word or phrase from your list, and Home's posts too with Also on Home. Starts off. Turn it on and type the words in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide rows in Instagram's settings",
+      "description": "Lets you take the rows you don't use off Instagram's own Settings and activity screen. Open that screen once, then untick rows in HushGram settings > Layout > Rows in Instagram's settings. Every row shows to start.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1425,7 +1736,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1440,10 +1751,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1462,7 +1775,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1477,10 +1790,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1490,7 +1805,7 @@
     },
     {
       "name": "Hide suggested people on profiles",
-      "description": "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. Two more switches take Suggested for you off the followers and following lists and the Complete your profile cards off your own profile. Starts off. Turn it on in HushGram settings > Profiles.",
+      "description": "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. More switches take Suggested for you off the follow lists and their Suggested tab, the Complete your profile cards off your own profile, and People you don't follow back, suggested threads and people, and the Featured section off your notifications. Starts off. Turn it on in HushGram settings > Profiles.",
       "category": "Profiles",
       "use": true,
       "dependencies": [
@@ -1499,7 +1814,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1514,10 +1829,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1527,7 +1844,7 @@
     },
     {
       "name": "Hide suggested posts",
-      "description": "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' question, all videos, photos, carousels, posts you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram settings > Feed.",
+      "description": "Removes posts from accounts you don't follow, suggested accounts, surveys and shopping rows from Home. It also takes shop tiles out of Explore and the shopping bag off posts with tagged products. Posts from accounts you follow stay. Extra switches can also hide the 'Are you interested in this post?' question on Home and Reels, the caught up card, all videos, photos, carousels, posts you've liked or posts from accounts you pick. A post's menu has Hide posts from this account to add one to that list, and those posts leave Home on the next refresh. On by default. Turn it off in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -1536,7 +1853,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1551,10 +1868,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1564,7 +1883,7 @@
     },
     {
       "name": "Hide suggested stories",
-      "description": "Removes stories from accounts you don't follow from the row at the top of Home. More switches hide rewinds and memories, or the whole row. Starts on. Turn it off in HushGram settings > Stories.",
+      "description": "Removes stories from accounts you don't follow from the row at the top of Home. More switches hide rewinds and memories, keep only verified or unverified accounts, or hide the whole row. Starts on. Turn it off in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [
@@ -1573,7 +1892,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1588,10 +1907,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1610,7 +1931,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1625,10 +1946,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1647,7 +1970,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1662,10 +1985,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1675,8 +2000,8 @@
     },
     {
       "name": "Hide the Reels tab",
-      "description": "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. Under Tab bar, switches do the same for Search, Create and Profile, another puts Messages on the bar when Instagram left it off, switches take the Create and notifications buttons off Home's header, others add a Search button and a Ghost mode button to it or put Instagram's logo in its middle, one centers the name at the top of profiles, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
-      "category": "Reels",
+      "description": "Takes the Reels tab off the tab bar. Reels in your feed and reels people send you still open. A second switch, Show the Reels tab, puts it back after Home when Instagram built your bar without one, and Hide wins if both are on. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels. Under Tab bar, switches do the same for Home, Search, Create, Messages and Profile, two put Messages or Activity on the bar when Instagram left them off, switches take the Create and notifications buttons off Home's header, others add a Search, Messages or Ghost mode button to it or put Instagram's logo in its middle, two center the name at the top of profiles and the title on other screens, a list puts the tabs in your order, and another picks the tab Instagram opens on.",
+      "category": "Interface",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -1684,7 +2009,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1699,10 +2024,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1721,7 +2048,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1736,10 +2063,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1758,7 +2087,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1773,10 +2102,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1786,7 +2117,7 @@
     },
     {
       "name": "Hide the Threads button",
-      "description": "Takes the Threads button off the top of profiles. The menu and the other buttons stay. Starts off. Turn it on in HushGram settings > Profiles.",
+      "description": "Takes the Threads button off the top of profiles, with switches for the Create button and Share profile on your own. The menu and the other buttons stay. Each starts off. Turn them on in HushGram settings > Profiles.",
       "category": "Profiles",
       "use": true,
       "dependencies": [
@@ -1795,7 +2126,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1810,10 +2141,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the comment emoji row",
+      "description": "Takes the row of quick emoji off above the comment box. The box itself stays. Starts off. Turn it on in HushGram settings > Comments.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1832,7 +2204,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1847,10 +2219,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1869,7 +2243,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1884,10 +2258,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Hide the search bar in Messages",
+      "description": "Takes the search bar and its Filter button off the top of your messages, the Meta AI bar too. Your chats and notes stay. Starts off. Turn it on in HushGram settings > Messages.",
+      "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1906,7 +2321,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1921,10 +2336,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1944,7 +2361,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1959,10 +2376,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -1980,7 +2399,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -1995,10 +2414,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2017,7 +2438,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2032,10 +2453,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2073,7 +2496,7 @@
     },
     {
       "name": "Keep Reels auto scroll on",
-      "description": "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, until you turn it off yourself. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Keeps Instagram's auto scroll in Reels turned on after you leave Reels or restart Instagram, until you turn it off yourself. It can also move on to the next reel when one ends on accounts where Instagram doesn't offer auto scroll. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -2082,7 +2505,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2097,10 +2520,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2111,7 +2536,7 @@
     {
       "name": "Keep a seek bar on Reels",
       "description": "Keeps a seek bar under every reel, short ones too, with the time played and the reel's length above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -2119,7 +2544,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2134,10 +2559,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2156,7 +2583,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2171,10 +2598,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2193,7 +2622,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2208,10 +2637,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Keep your place in Home",
+      "description": "Coming back to Instagram leaves Home on the post you were on, however long you were away, instead of reloading it and jumping to the top. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Feed",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2230,7 +2700,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2245,10 +2715,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2267,7 +2739,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2282,10 +2754,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2304,7 +2778,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2319,10 +2793,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2331,17 +2807,17 @@
       "options": []
     },
     {
-      "name": "Open developer options",
-      "description": "A long press on the Home tab opens Instagram's own developer options, where you can change its hidden settings. A wrong change can break parts of Instagram until you reset it. On once you patch it in. Turn it off in HushGram settings > Developer.",
-      "category": "Settings",
-      "use": false,
+      "name": "Message box buttons",
+      "description": "Lets you take the gallery, sticker and voice message buttons off the message box of a chat, and keep the text box and Send. Starts with every button showing. Pick which to hide in HushGram settings > Messages.",
+      "category": "Messages",
+      "use": true,
       "dependencies": [
         "BytecodePatch",
         "HushGram settings"
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2356,10 +2832,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Open comments without the keyboard",
+      "description": "Comments open with the keyboard down. A tap in the comment box, or on Reply, still brings it up. Starts off. Turn it on in HushGram settings > Comments.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2378,7 +2895,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2393,10 +2910,91 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Pick the app icon",
+      "description": "Lets you pick the icon Instagram shows on your home screen: Instagram's own, HushGram's, or Instagram's glyph on black, on plum, or in black on white. The new icon shows once you leave Instagram, and you may need to add it to your home screen again from the app drawer. Starts on Instagram's own. Pick one in HushGram settings > Layout.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings",
+        "ResourcePatch"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Pinch to zoom on Reels",
+      "description": "Lets you zoom into a playing reel with two fingers, the way a photo zooms. Lift your fingers and it goes back. Restart Instagram to see the change. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2415,7 +3013,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2430,10 +3028,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2443,7 +3043,7 @@
     },
     {
       "name": "Pure black dark mode",
-      "description": "Makes Instagram's dark mode pure black instead of dark gray. It looks deeper and can save battery on an OLED screen. Menus and buttons keep their grays so they stay easy to see. Works as soon as you patch it in, with no switch.",
+      "description": "Makes Instagram's dark mode pure black instead of dark gray, on the menus that slide up from the bottom too. It looks deeper and can save battery on an OLED screen. Buttons keep their grays so they stay easy to see. Works as soon as you patch it in, with no switch.",
       "category": "Interface",
       "use": false,
       "dependencies": [
@@ -2453,7 +3053,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2468,10 +3068,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2490,7 +3092,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2505,10 +3107,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2518,7 +3122,7 @@
     },
     {
       "name": "Remove build expired popup",
-      "description": "Stops Instagram from locking you out with a screen that says this version is too old. A patched build can't update itself, so it would stop working after a few weeks. On by default. Turn it off in HushGram settings > Updates.",
+      "description": "Stops Instagram from locking you out with a screen that says this version is too old. A patched build can't update itself, so it would stop working after a few weeks. On by default. Turn it off in HushGram settings > Version warnings.",
       "category": "Updates",
       "use": true,
       "dependencies": [
@@ -2527,7 +3131,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2542,10 +3146,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2565,7 +3171,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2580,10 +3186,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2602,7 +3210,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2617,10 +3225,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2639,7 +3249,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2654,10 +3264,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2676,7 +3288,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2691,10 +3303,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2704,7 +3318,7 @@
     },
     {
       "name": "Rounded post corners",
-      "description": "Rounds the corners of a post's photo, video and carousel pages in Home and Following, at a small or large size. Stories, profiles, Explore and Reels stay as Instagram draws them. Starts off. Turn it on in HushGram settings > Feed.",
+      "description": "Rounds the corners of a post's photo, video and carousel pages in Home and Following, and of reels and stories if you like, at a small or large size. Profiles and Explore stay as Instagram draws them. Starts off. Turn it on in HushGram settings > Feed.",
       "category": "Feed",
       "use": true,
       "dependencies": [
@@ -2713,7 +3327,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2728,10 +3342,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2750,7 +3366,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2765,10 +3381,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2787,7 +3405,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2802,10 +3420,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2861,7 +3481,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2876,10 +3496,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2898,7 +3520,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2913,10 +3535,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2935,7 +3559,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2950,10 +3574,91 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Seek bar on feed videos",
+      "description": "Shows a bar along the bottom of the video playing in your feed that you can drag to jump to any point in it. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Playback",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings",
+        "Stop swiping between tabs"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Seek bar on stories",
+      "description": "Shows a bar near the bottom of a video story that you can drag to jump to any point in the video. Photos don't get one. Starts off. Turn it on in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -2972,7 +3677,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -2987,10 +3692,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Show a reel's exact time",
+      "description": "Adds the date and time a reel was posted under the author's name, like Oct 2, 3:45 PM, with the seconds or how long ago (1d 2h 5m ago) if you want them. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3009,7 +3755,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3024,10 +3770,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Show all recent searches",
+      "description": "Lists every recent search under the search bar instead of the first few. See all and the x on each row work as before. Starts off. Turn it on in HushGram settings > Explore.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3046,7 +3833,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3061,10 +3848,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3074,7 +3863,7 @@
     },
     {
       "name": "Show if a profile follows you",
-      "description": "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches add a chip and mark accounts on your Following list that don't follow you back. The chip is blue for Follows you, green for Following each other and red for Doesn't follow you. On by default. Turn it off in HushGram settings > Profiles.",
+      "description": "Adds Follows you or Doesn't follow you beside the name on someone's profile. Other switches add a chip and mark accounts on your Following list that don't follow you back, and Recent unfollowers shows who left your Followers list. The chip is blue for Follows you, green for Following each other and red for Doesn't follow you, and it can go small under the profile picture. On by default. Turn it off in HushGram settings > Profiles.",
       "category": "Profiles",
       "use": true,
       "dependencies": [
@@ -3083,7 +3872,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3098,10 +3887,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3120,7 +3911,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3135,10 +3926,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Skip the collections tray",
+      "description": "Saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Interaction",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3157,7 +3989,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3172,10 +4004,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3194,7 +4028,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3209,10 +4043,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3231,7 +4067,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3246,10 +4082,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3268,7 +4106,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3283,10 +4121,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Start reels with sound",
+      "description": "A reel you open from a post on Home plays with sound, and Home is muted again when you go back. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Playback.",
+      "category": "Playback",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3305,7 +4184,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3320,10 +4199,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3333,7 +4214,7 @@
     },
     {
       "name": "Stop Reels scrolling",
-      "description": "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened. A second switch lets you watch 20 reels, then stops swiping for 15 minutes. Starts off. Turn it on in HushGram settings > Reels.",
+      "description": "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened. A second switch lets you watch 20 reels, then stops swiping for 15 minutes, and Take a scroll break covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn it on in HushGram settings > Reels.",
       "category": "Reels",
       "use": true,
       "dependencies": [
@@ -3342,7 +4223,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3357,10 +4238,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3379,7 +4262,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3394,10 +4277,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3416,7 +4301,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3431,10 +4316,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3453,7 +4340,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3468,10 +4355,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Stop swipe up to reply",
+      "description": "Stops a swipe up on someone's story from opening the reply box and its reactions. Tapping Send message still replies. Starts off. Turn it on in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3490,7 +4418,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3505,10 +4433,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3518,7 +4448,7 @@
     },
     {
       "name": "Story ring size",
-      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or larger. Nothing changes until you pick a size. On by default. Turn it off in HushGram settings > Stories.",
+      "description": "Draws the rings in the stories row at the top of Home smaller, so more fit on screen, or larger, and the ring of a story you haven't watched in a color you pick. Nothing changes until you pick a size or a color. On by default. Turn it off in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [
@@ -3527,7 +4457,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3542,10 +4472,207 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Story text fonts",
+      "description": "Adds fonts you pick from your phone (.ttf or .otf files) to the story text editor alongside Instagram's own fonts, and can draw the emoji in story text from an emoji font file you pick. Starts off. Set both up in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Swipe left to open the profile",
+      "description": "Makes a left swipe on a reel open the profile of the person who posted it, like Instagram used to. Tap Friends at the top to reach your friends' reels. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Swipe through a chat's reels",
+      "description": "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before any suggested reels, and can stop after them. Both start off. Turn them on in HushGram settings > Messages.",
+      "category": "Messages",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Tab bar layout",
+      "description": "Lets you keep the newer tab bar, where you swipe between every tab, or the classic one, instead of the one Instagram picks for your account. Starts on Instagram's choice. Pick one in HushGram settings > Tab bar.",
+      "category": "Interface",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Tap a feed video to pause it",
+      "description": "A tap on the video playing in a feed pauses it in place instead of opening it in Reels, and another tap plays it again. Ads keep Instagram's own tap. Starts off. Turn it on in HushGram settings > Feed.",
+      "category": "Playback",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3564,7 +4691,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3579,10 +4706,51 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Thicker story progress bar",
+      "description": "Draws the progress bar along the top of a story twice or three times as thick. Its segments and timing stay as they were. Starts off. Turn it on in HushGram settings > Stories.",
+      "category": "Stories",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3601,7 +4769,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3616,10 +4784,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3638,7 +4808,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3653,10 +4823,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3666,7 +4838,7 @@
     },
     {
       "name": "Upload stories at full quality",
-      "description": "Sends the video stories you post at up to 1080 pixels wide instead of 720, as Instagram does with its own Upload at highest quality setting on. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Stories",
       "use": true,
       "dependencies": [
@@ -3675,7 +4847,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3690,10 +4862,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3712,7 +4886,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3727,10 +4901,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3749,7 +4925,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3764,10 +4940,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]
@@ -3786,7 +4964,7 @@
       ],
       "compatiblePackages": {
         "com.instagram.android": [
-          "450.0.0.50.77"
+          "453.0.0.57.79"
         ]
       },
       "compatibility": [
@@ -3801,10 +4979,12 @@
           ],
           "targets": [
             {
-              "version": "450.0.0.50.77",
+              "version": "453.0.0.57.79",
               "experimental": false,
               "versionCodes": {
-                "ARM64_V8A": 385611438
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
               }
             }
           ]

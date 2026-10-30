@@ -29,10 +29,10 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 internal const val ABOUT_THIS_REEL = "$EXTENSION_PACKAGE/metaai/MetaAi;->aboutThisReel(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val ASK_META_AI_BOX = "$EXTENSION_PACKAGE/metaai/MetaAi;->askMetaAiBox(Landroid/view/ViewGroup;Landroid/view/View;)V"
 
-/** The server flag Instagram 450's About this reel summary factory reads to pick how it fetches the summary. */
-internal const val SUMMARY_FLAG = 0x8110e200115bacL
+/** The server flag Instagram's About this reel summary factory reads (450 and 451) to pick how it fetches the summary. */
+internal const val SUMMARY_FLAG = 0x8110a600115abdL
 
-/** Two strings the summary row's binder holds on 450, the method that adds its Ask Meta AI box. */
+/** Two strings the summary row's binder holds on 450 and 451, the method that adds its Ask Meta AI box. */
 internal val SUMMARY_ROW_STRINGS = listOf("overflow_open", "defer_eligibility_enabled")
 
 /** The lambda the binder hands the Ask Meta AI box to, a name Kotlin kept: AiDiscoveryMenuHelper's createComposerView. */
@@ -61,7 +61,7 @@ internal class SummaryCall(
 internal class AboutSummary(val factory: String, val calls: List<SummaryCall>)
 
 /**
- * Instagram 450 asks one static factory, `(UserSession, String media id, boolean, boolean)` answering
+ * Instagram 450 and 451 ask one static factory, `(UserSession, String media id, boolean, boolean)` answering
  * its own class, for the About this reel summary at the top of a reel's More menu: the summary, its
  * Sources and the Ask Meta AI box. It answers null when Instagram has no summary to show, and every
  * menu that asks then leaves the whole block out.
@@ -159,12 +159,11 @@ internal fun BytecodePatchContext.findAskMetaAiBox(): AskBoxSite {
     if (viewAt < 0) refuseAbout("$where hands the composer lambda no View")
     // The receiver takes the first register, and a long or double takes two.
     val slot = 1 + parameters.take(viewAt).sumOf { if (it == "J" || it == "D") 2 else 1 }
-    val (box, copied) = sourceOf(code, constructor, code[constructor].arguments()[slot])
+    val copies = copiesOf(code, constructor, code[constructor].arguments()[slot])
     val adds = code.indices.filter { code[it].methodReference()?.toString() == ADD_VIEW }
     val add = adds.singleOrNull() ?: refuseAbout("$where adds ${adds.size} views without layout params, not one")
-    if (code[add].opcode != Opcode.INVOKE_VIRTUAL || code[add].arguments().getOrNull(1) != box) {
-        refuseAbout("$where adds some other view than the Ask Meta AI box")
-    }
+    val added = code[add].arguments().getOrNull(1).takeIf { code[add].opcode == Opcode.INVOKE_VIRTUAL }
+    val (box, copied) = copies.firstOrNull { it.first == added } ?: refuseAbout("$where adds some other view than the Ask Meta AI box")
     if ((minOf(copied, add) + 1 until maxOf(copied, add)).any { code[it].writes(box) }) {
         refuseAbout("$where puts something else in the Ask Meta AI box's register before adding it")
     }
@@ -172,14 +171,18 @@ internal fun BytecodePatchContext.findAskMetaAiBox(): AskBoxSite {
 }
 
 /**
- * The register [register] was copied from by [at], and the index of that copy: the last move-object
- * into it, followed back, or [register] itself at [at]. The scan goes by text order, not branches,
- * so the caller checks the register holds still from the copy to its use.
+ * The registers the value [at] reads from [register] was copied through, nearest first, each with
+ * the index that read it: [register] itself at [at], then the source of the last move-object into
+ * it, followed back. The scan goes by text order, not branches, so a far step can be another path's
+ * move (451's 385713073 copies the box from v7 right before the lambda, and an earlier move into v7
+ * sits on another branch): the caller takes the nearest copy the add reads and checks the register
+ * holds still from that copy to its use.
  */
-private fun sourceOf(code: List<Instruction>, at: Int, register: Int): Pair<Int, Int> {
-    val write = (at - 1 downTo 0).firstOrNull { code[it].writes(register) } ?: return register to at
-    val instruction = code[write]
-    return if (instruction.opcode in MOVES) sourceOf(code, write, (instruction as TwoRegisterInstruction).registerB) else register to at
+private fun copiesOf(code: List<Instruction>, at: Int, register: Int): List<Pair<Int, Int>> {
+    val write = (at - 1 downTo 0).firstOrNull { code[it].writes(register) }
+    val instruction = write?.let { code[it] }
+    if (instruction == null || instruction.opcode !in MOVES) return listOf(register to at)
+    return listOf(register to at) + copiesOf(code, write, (instruction as TwoRegisterInstruction).registerB)
 }
 
 /** Whether this instruction writes [register], a wide write's second half included. */

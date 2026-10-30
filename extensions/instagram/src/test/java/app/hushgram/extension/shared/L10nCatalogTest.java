@@ -62,6 +62,9 @@ public class L10nCatalogTest {
     /** The settings fragment's row helpers, which put their text on the screen. Elsewhere info() is a log line. */
     private static final Pattern ROW_HELPERS = Pattern.compile("\\b(?:toggle|info|category)\\s*\\(");
 
+    /** How a category builder reaches those helpers, so its rows are read like the fragment's. */
+    private static final String ROW_HELPER_IMPORT = "import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.";
+
     private static final Pattern L10N_CALL = Pattern.compile("\\bL10n\\s*\\.\\s*(?:t|f|quantity)\\s*\\(");
 
     private static final Pattern PLACEHOLDER = Pattern.compile("%(?:[1-9]\\d*\\$)?[sSbBhHcCdoxXeEfgGaA%n]");
@@ -240,6 +243,14 @@ public class L10nCatalogTest {
             unwrappedProse("A.java", shape, found);
             assertEquals("missed: " + shape, 1, found.size());
         }
+        // A category builder's toggle() puts its text on the screen like the fragment's; elsewhere it doesn't.
+        String toggle = "class A { void a(Context c) { toggle(c, K, \"" + sentence + "\", L10n.t(\"x\")); } }";
+        List<String> builder = new ArrayList<>();
+        unwrappedProse("FeedCategory.java", ROW_HELPER_IMPORT + "toggle;\n" + toggle, builder);
+        assertEquals("missed a builder's row: " + builder, 1, builder.size());
+        List<String> elsewhere = new ArrayList<>();
+        unwrappedProse("A.java", toggle, elsewhere);
+        assertEquals(elsewhere.toString(), 0, elsewhere.size());
         List<String> none = new ArrayList<>();
         unwrappedProse("A.java", "class A { void a(TextView v) { v.setText(L10n.f(\"" + sentence + " %1$s\", L10n.isolate(\"x\")));"
                 + " v.setText(\"HushGram\"); v.setText(\"%.1f MB\"); } }", none);
@@ -270,7 +281,8 @@ public class L10nCatalogTest {
     @Test
     public void pluralRowsHaveToBelongToAnActualOtherForm() throws IOException {
         Set<String> others = quantityOthersInCode();
-        assertEquals("the source quantity scan must find each call", 5, others.size());
+        assertEquals("the source quantity scan must find each call", 10, others.size());
+        assertTrue("notification counts have a quantity form", others.contains("%d notifications"));
         String other = others.iterator().next();
         assertTrue(reachableVariant(other + "|few", others));
         assertTrue(reachableVariant(other + "|zero", others));
@@ -342,7 +354,7 @@ public class L10nCatalogTest {
             for (int index = l10n.start(); index <= close && index >= 0; index++) outside[index] = WRAPPED;
         }
         int calls = 0;
-        Matcher shows = (name.equals("HushgramPreferenceFragment.java")
+        Matcher shows = (name.equals("HushgramPreferenceFragment.java") || text.contains(ROW_HELPER_IMPORT)
                 ? Pattern.compile(SHOWS.pattern() + "|" + ROW_HELPERS.pattern()) : SHOWS).matcher(text);
         while (shows.find()) {
             if (kind[shows.start()] != CODE) continue;

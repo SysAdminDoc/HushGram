@@ -28,6 +28,9 @@ public final class PostDetails {
     /** The media's id as the route handed it over, or null. Used only when it's a number. */
     public final String videoId;
 
+    /** The public parent post's shortcode, or null for a story, profile picture or unknown post. */
+    public final String shortcode;
+
     /** The poster's name, cleaned the way a folder name is and bounded, or null when unknown. */
     public final String owner;
 
@@ -52,7 +55,12 @@ public final class PostDetails {
     }
 
     private PostDetails(String videoId, String owner, Date posted, int page, boolean profile) {
+        this(videoId, owner, posted, page, profile, null);
+    }
+
+    private PostDetails(String videoId, String owner, Date posted, int page, boolean profile, String shortcode) {
         this.videoId = videoId;
+        this.shortcode = shortcode;
         String clean = owner == null ? "" : SaveFolder.clean(owner, FileNameTemplate.MAX_OWNER_CODE_POINTS);
         this.owner = clean.isEmpty() ? null : clean;
         this.posted = posted;
@@ -67,7 +75,35 @@ public final class PostDetails {
     public PostDetails onPage(int page) {
         int known = page > 0 && page <= MAX_PAGE ? page : 0;
         if (known == this.page) return this;
-        return new PostDetails(videoId, owner, posted == null ? null : new Date(posted.getTime()), known, profile);
+        return new PostDetails(videoId, owner, posted == null ? null : new Date(posted.getTime()), known, profile, shortcode);
+    }
+
+    /**
+     * Records the public post's id separately from this file's media id. A carousel page keeps its
+     * child id while taking this from the parent; stories leave it unknown. Only a bounded positive
+     * numeric pk is converted, using the same conversion as saved-photo metadata.
+     */
+    public PostDetails withPostId(String mediaId) {
+        String id = of(mediaId, null, null).videoId;
+        boolean positive = false;
+        if (!profile && FileNameTemplate.isVideoId(id)) {
+            for (int index = 0; index < id.length(); index++) positive |= id.charAt(index) != '0';
+        }
+        String code = positive ? PostMetadata.shortcode(id) : null;
+        if (code == null ? shortcode == null : code.equals(shortcode)) return this;
+        return new PostDetails(videoId, owner, posted == null ? null : new Date(posted.getTime()), page, profile, code);
+    }
+
+    /** A worker-owned snapshot of the mutable date and all known post identity. */
+    PostDetails snapshot() {
+        if (this == NONE) return this;
+        PostDetails copy = of(videoId, owner, posted == null ? null : new Date(posted.getTime())).onPage(page);
+        if (shortcode == null && !profile) return copy;
+        return new PostDetails(copy.videoId, copy.owner, copy.posted, copy.page, profile, shortcode);
+    }
+
+    public boolean hasShortcode() {
+        return shortcode != null;
     }
 
     /**

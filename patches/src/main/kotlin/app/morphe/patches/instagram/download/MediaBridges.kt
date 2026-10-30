@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
+import app.morphe.patches.instagram.misc.extension.classesLoading
 import app.morphe.patches.instagram.misc.extension.patchLog
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -217,10 +218,13 @@ internal fun BytecodePatchContext.pickerSizesBridge(patch: String, helper: Metho
  * and that comment's `text`, read through the comment's interface by the name its tree-backed class
  * gives the getter, as a comment's own text is. Media's getter is the one taking nothing that holds
  * the key's hash, since the comment's type has no kept name. Only Copy caption needs them, so a
- * build where either can't be told answers null, after the patch log says why, and Details goes in
- * without it.
+ * build where either can't be told answers null, after the patch log says why and what [without]
+ * leaves out, and Details goes in without it. Hide reels by caption words reads the same two.
  */
-internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? = try {
+internal fun BytecodePatchContext.captionBridges(
+    patch: String,
+    without: String = "Details goes in without Copy caption",
+): (() -> Unit)? = try {
     val key = "caption".hashCode()
     val captions = classDefBy(MEDIA).methods.filter { method ->
         method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
@@ -233,12 +237,12 @@ internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? =
     val comment = caption.returnType
     anInterface(patch, comment)
     val textKey = "text".hashCode()
-    val trees = mutableListOf<ClassDef>()
-    classDefForEach { type ->
-        if (comment in type.interfaces && type.methods.any { method ->
-                method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
-                    method.implementation?.instructions?.any { it.loadsLiteral(textKey) } == true
-            }) trees += type
+    // Only the classes loading the key's hash are read, through the literal index, not every class.
+    val trees = classesLoading(textKey.toLong()).filter { type ->
+        comment in type.interfaces && type.methods.any { method ->
+            method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;" &&
+                method.implementation?.instructions?.any { it.loadsLiteral(textKey) } == true
+        }
     }
     val tree = trees.singleOrNull() ?: throw PatchException(
         "$patch: expected one tree-backed $comment reading its text, found " +
@@ -249,7 +253,7 @@ internal fun BytecodePatchContext.captionBridges(patch: String): (() -> Unit)? =
         Bridge("captionText", comment, throughInterface(patch, comment, tree.type, "text", "Ljava/lang/String;")),
     ))
 } catch (unknown: PatchException) {
-    patchLog.warning("${unknown.message}. Details goes in without Copy caption.")
+    patchLog.warning("${unknown.message}. $without.")
     null
 }
 
@@ -282,6 +286,24 @@ internal fun BytecodePatchContext.storyMusicBridges(patch: String): () -> Unit {
     ))
 }
 
+/**
+ * The same for a post's `media_type`, which Find the reel you came from reads to tell a photo reel,
+ * a photo or carousel played in Reels, from a video one (#225).
+ */
+internal fun BytecodePatchContext.mediaTypeBridge(patch: String): () -> Unit {
+    val type = pandoGetter(patch, MEDIA, "media_type", "Ljava/lang/Integer;")
+    return bridgeWriter(patch, listOf(Bridge("mediaType", MEDIA, virtual(type))))
+}
+
+/**
+ * The same for a post's `is_active_trial`, which Find the reel you came from reads to skip a trial
+ * reel, one kept off its poster's profile (#225).
+ */
+internal fun BytecodePatchContext.activeTrialBridge(patch: String): () -> Unit {
+    val trial = pandoGetter(patch, MEDIA, "is_active_trial", "Ljava/lang/Boolean;")
+    return bridgeWriter(patch, listOf(Bridge("activeTrial", MEDIA, virtual(trial))))
+}
+
 /** A post's music, the track it comes from, and the part of the track the post plays. All keep their names. */
 internal const val MUSIC_INFO = "Lcom/instagram/api/schemas/MusicInfo;"
 internal const val PANDO_MUSIC_INFO = "Lcom/instagram/api/schemas/ImmutablePandoMusicInfo;"
@@ -297,26 +319,8 @@ internal const val PANDO_MUSIC_CONSUMPTION = "Lcom/instagram/music/common/model/
  * reads it, and the bridge calls that getter.
  */
 internal fun BytecodePatchContext.musicBridges(patch: String): () -> Unit {
-    fun holder(field: String): Pair<Method, String> {
-        val key = field.hashCode()
-        val getters = classDefBy(MEDIA).methods.filter { method ->
-            method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
-                method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
-        }
-        val getter = getters.singleOrNull() ?: throw PatchException(
-            "$patch: expected one getter on $MEDIA answering an object for $field, found " +
-                if (getters.isEmpty()) "none" else getters.joinToString { it.name },
-        )
-        val music = anInterface(patch, getter.returnType).methods.filter {
-            it.parameterTypes.isEmpty() && it.returnType == MUSIC_INFO && !AccessFlags.STATIC.isSet(it.accessFlags)
-        }
-        val read = music.singleOrNull() ?: throw PatchException(
-            "$patch: expected one getter of the music on ${getter.returnType}, the type of $field, found ${music.size}",
-        )
-        return getter to "invoke-interface {p0}, ${getter.returnType}->${read.name}()$MUSIC_INFO"
-    }
-    val (metadata, metadataMusic) = holder("music_metadata")
-    val (clips, clipsMusic) = holder("clips_metadata")
+    val (metadata, metadataMusic) = holder(patch, "music_metadata", MUSIC_INFO)
+    val (clips, clipsMusic) = holder(patch, "clips_metadata", MUSIC_INFO)
     fun music(field: String, returns: String) = throughInterface(patch, MUSIC_INFO, PANDO_MUSIC_INFO, field, returns)
     fun track(field: String) = throughInterface(patch, TRACK_DATA, PANDO_TRACK_DATA, field, "Ljava/lang/String;")
     fun part(field: String) = throughInterface(patch, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION, field, "Ljava/lang/Integer;")
@@ -333,6 +337,59 @@ internal fun BytecodePatchContext.musicBridges(patch: String): () -> Unit {
         Bridge("musicStartMs", MUSIC_CONSUMPTION, part("audio_asset_start_time_in_ms")),
         Bridge("musicLengthMs", MUSIC_CONSUMPTION, part("overlap_duration_in_ms")),
     ))
+}
+
+/** A reel's own sound, the audio recorded with it, which keeps its name, and the tree-backed class reading it. */
+internal const val ORIGINAL_SOUND = "Lcom/instagram/api/schemas/OriginalSoundDataIntf;"
+internal const val PANDO_ORIGINAL_SOUND = "Lcom/instagram/api/schemas/ImmutablePandoOriginalSoundData;"
+
+/**
+ * The same for which sound a reel uses, which Hide reels by sound reads (#191): a track's
+ * `audio_asset_id`, `title` and `display_artist`, or for a reel with its own sound, the
+ * `original_sound_info` its `clips_metadata` holds and that sound's `audio_asset_id` and
+ * `original_audio_title`. The music's three bridges are the ones [musicBridges] writes, and either
+ * writes them first.
+ */
+internal fun BytecodePatchContext.soundBridges(patch: String): () -> Unit {
+    val (clips, clipsMusic) = holder(patch, "clips_metadata", MUSIC_INFO)
+    val (_, originalSound) = holder(patch, "clips_metadata", ORIGINAL_SOUND)
+    fun track(field: String) = throughInterface(patch, TRACK_DATA, PANDO_TRACK_DATA, field, "Ljava/lang/String;")
+    fun sound(field: String) = throughInterface(patch, ORIGINAL_SOUND, PANDO_ORIGINAL_SOUND, field, "Ljava/lang/String;")
+
+    return bridgeWriter(patch, listOf(
+        Bridge("clipsMetadata", MEDIA, virtual(clips)),
+        Bridge("clipsMusic", clips.returnType, clipsMusic),
+        Bridge("musicTrack", MUSIC_INFO, throughInterface(patch, MUSIC_INFO, PANDO_MUSIC_INFO, "music_asset_info", TRACK_DATA)),
+        Bridge("originalSound", clips.returnType, originalSound),
+        Bridge("trackAudioId", TRACK_DATA, track("audio_asset_id")),
+        Bridge("trackTitle", TRACK_DATA, track("title")),
+        Bridge("trackArtist", TRACK_DATA, track("display_artist")),
+        Bridge("originalSoundAudioId", ORIGINAL_SOUND, sound("audio_asset_id")),
+        Bridge("originalSoundTitle", ORIGINAL_SOUND, sound("original_audio_title")),
+    ))
+}
+
+/**
+ * Media's getter for [field], one of its metadata objects, and the call reading [returns] from it:
+ * the metadata's type is an interface of Instagram's whose one getter answering [returns] reads it.
+ */
+private fun BytecodePatchContext.holder(patch: String, field: String, returns: String): Pair<Method, String> {
+    val key = field.hashCode()
+    val getters = classDefBy(MEDIA).methods.filter { method ->
+        method.parameterTypes.isEmpty() && method.returnType.startsWith("L") && !AccessFlags.STATIC.isSet(method.accessFlags) &&
+            method.implementation?.instructions?.any { it.loadsLiteral(key) } == true
+    }
+    val getter = getters.singleOrNull() ?: throw PatchException(
+        "$patch: expected one getter on $MEDIA answering an object for $field, found " +
+            if (getters.isEmpty()) "none" else getters.joinToString { it.name },
+    )
+    val reads = anInterface(patch, getter.returnType).methods.filter {
+        it.parameterTypes.isEmpty() && it.returnType == returns && !AccessFlags.STATIC.isSet(it.accessFlags)
+    }
+    val read = reads.singleOrNull() ?: throw PatchException(
+        "$patch: expected one getter of $returns on ${getter.returnType}, the type of $field, found ${reads.size}",
+    )
+    return getter to "invoke-interface {p0}, ${getter.returnType}->${read.name}()$returns"
 }
 
 private fun virtual(getter: Method) = "invoke-virtual {p0}, ${getter.definingClass}->${getter.name}()${getter.returnType}"

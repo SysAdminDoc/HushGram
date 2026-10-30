@@ -5,6 +5,8 @@
 package app.hushgram.extension.instagram.feed;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.res.Resources;
 
 import androidx.annotation.Nullable;
 
@@ -37,6 +39,9 @@ public final class HideAccountRow {
     static final String OFFERED = "hide account rows added";
     static final String HID = "accounts hidden from a menu";
 
+    /** Instagram's crossed-out eye, in the style of Download's arrow first and its pano twin after. */
+    static final String[] ICON_NAMES = {"instagram_eye_off_outline_24", "instagram_eye_off_pano_outline_24"};
+
     private static Object option;
 
     /** Whether Hidden accounts is in the build, when a test says so instead of the build. */
@@ -58,6 +63,34 @@ public final class HideAccountRow {
     /** A new menu option named [name], drawn and handled like Download. The patch writes the body. Null as built. */
     public static Object newOption(String name) {
         return null;
+    }
+
+    /**
+     * The row's icon. The option the patch makes starts from Download's, so the row would show a
+     * download arrow; this answers Instagram's crossed-out eye from the same resources instead, or
+     * [download] when the build has none. Never throws.
+     */
+    public static int icon(int download) {
+        return icon(download, Utils.getContext(), ICON_NAMES);
+    }
+
+    /**
+     * The first of [names] among the drawables of the package [download] comes from, which on a
+     * second copy installed next to Instagram is still Instagram's own, or [download].
+     */
+    static int icon(int download, @Nullable Context context, String... names) {
+        try {
+            if (download == 0 || context == null) return download;
+            Resources resources = context.getResources();
+            String owner = resources.getResourcePackageName(download);
+            for (String name : names) {
+                int found = resources.getIdentifier(name, "drawable", owner);
+                if (found != 0) return found;
+            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "hide account icon", failure);
+        }
+        return download;
     }
 
     /** The row's option, made once. Null when it can't be made. Never throws. */

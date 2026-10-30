@@ -50,7 +50,8 @@ val stopStoryAutoAdvancePatch = bytecodePatch(
 /**
  * Asks the extension first thing in the story viewer's handler for a finished story item, and
  * returns before the viewer moves on when it says to hold. Taps and swipes move the viewer through
- * other methods, so they still work.
+ * other methods, so they still work. On 452 the guard sits in the method the listener bridge
+ * forwards to, which the progress callback also calls when a story reaches its end.
  *
  * With Loop a story looping stories too, the extension says so through [HOLD_UNLESS_IT_LOOPS], and
  * the guard asks the viewer's own loop check ([loopCheck]) about the item: yes goes on into the
@@ -59,10 +60,12 @@ val stopStoryAutoAdvancePatch = bytecodePatch(
  */
 internal fun BytecodePatchContext.holdFinishedStories() {
     uniqueMethod(PATCH, "finished story handler", StoryItemDoneFingerprint).apply {
-        // The handler's first act is to cast the item it was handed to a story item. Anything else
-        // there means the fingerprint found some other bridge.
+        // A bridge handler's first act is to cast the item it was handed to a story item. Anything
+        // else there means the fingerprint found some other bridge. On 452 the handler takes the
+        // story item itself, so there's nothing to cast.
         val first = getInstruction(0)
-        if (first.opcode != Opcode.CHECK_CAST || (first as ReferenceInstruction).reference.toString() != REEL_ITEM) {
+        val takesTheItem = parameterTypes.map(CharSequence::toString) == listOf(REEL_ITEM)
+        if (!takesTheItem && (first.opcode != Opcode.CHECK_CAST || (first as ReferenceInstruction).reference.toString() != REEL_ITEM)) {
             throw PatchException("$PATCH: $definingClass->$name doesn't start by casting its item to $REEL_ITEM")
         }
         val check = loopCheck(this)

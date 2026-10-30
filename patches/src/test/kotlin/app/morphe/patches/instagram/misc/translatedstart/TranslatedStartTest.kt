@@ -34,6 +34,8 @@ class TranslatedStartTest {
     private val tasks = "Lfixture/IdleTasks;"
     private val later = "Lfixture/LaterInit;"
     private val bare = "Lfixture/Bare;"
+    private val selfOnly = "Lfixture/SelfOnly;"
+    private val reading = "Lfixture/Reading;"
     private val extension = "Lapp/hushgram/extension/instagram/Mine;"
 
     /**
@@ -66,6 +68,23 @@ class TranslatedStartTest {
         assertEquals(3, context.guardCodeProtection())
 
         assertTrue(context.code(bare, "protect").none { it.reference() == PROTECT_CODE })
+    }
+
+    /**
+     * A caller whose one register is `this` (Instagram 451's 0HUM.A02) keeps the answer there, since
+     * nothing reads it after the call. One that still reads its parameter after the call is left alone.
+     */
+    @Test
+    fun aCallerWithNoLocalBorrowsAParameterNothingReadsAgain() {
+        val context = PatchContexts.of(classes() + selfOnlyCaller() + readingCaller())
+
+        assertEquals(4, context.guardCodeProtection())
+
+        val code = context.code(selfOnly, "protect")
+        val call = code.indices.single { code[it].reference() == MPROTECT_EXEC_CODE }
+        assertGuarded("$selfOnly->protect", code, call)
+        assertEquals("the answer goes in this", 0, (code[call - 2] as OneRegisterInstruction).registerA)
+        assertTrue(context.code(reading, "protect").none { it.reference() == PROTECT_CODE })
     }
 
     @Test
@@ -187,6 +206,20 @@ class TranslatedStartTest {
         return-void
     """))
 
+    /** An instance caller with no locals: its one register is `this`, which nothing reads again. */
+    private fun selfOnlyCaller(): ClassDef = classOf(selfOnly, method(selfOnly, "protect", emptyList(), 1, """
+        invoke-static { }, $MPROTECT_EXEC_CODE
+        return-void
+    """, static = false))
+
+    /** A caller with no locals whose parameter is still read after the call. */
+    private fun readingCaller(): ClassDef = classOf(reading, method(reading, "protect", listOf("I"), 1, """
+        invoke-static { }, $MPROTECT_EXEC_CODE
+        if-eqz p0, :done
+        :done
+        return-void
+    """))
+
     /** This class with its call pointed at some other native method instead. */
     private fun ClassDef.renamedCall(): ClassDef = classOf(type, method(type, "protect", emptyList(), 0, """
         invoke-static { }, Lcom/facebook/common/dextricks/RuntimeInternals;->somethingElse()V
@@ -196,11 +229,11 @@ class TranslatedStartTest {
     private fun classOf(type: String, vararg methods: Method): ClassDef =
         ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods.toList())
 
-    private fun method(owner: String, name: String, parameters: List<String>, registers: Int, body: String): Method {
+    private fun method(owner: String, name: String, parameters: List<String>, registers: Int, body: String, static: Boolean = true): Method {
         val mutable = MutableMethod(
             ImmutableMethod(
                 owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, "V",
-                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+                AccessFlags.PUBLIC.value or (if (static) AccessFlags.STATIC.value else 0), null, null,
                 ImmutableMethodImplementation(registers, emptyList(), null, null),
             ),
         )

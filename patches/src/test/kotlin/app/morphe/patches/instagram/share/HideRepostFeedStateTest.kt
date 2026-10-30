@@ -173,7 +173,7 @@ class HideRepostFeedStateTest {
     }
 
     private fun builds(bundle: File, label: String) {
-        val context = PatchContexts.of(FixtureDex.classesHolding(bundle, REPOST_ENABLED_LABEL))
+        val context = PatchContexts.of(withBuilders(bundle, FixtureDex.classesHolding(bundle, REPOST_ENABLED_LABEL)))
         val found = context.findFeedRepostState()
         assertEquals("${label}: the button and its count", 2, found.flags.size)
         assertEquals("${label}: each set once", 2, found.writes.size)
@@ -181,7 +181,9 @@ class HideRepostFeedStateTest {
         assertTrue("${label}: in place", found.writes.all { it.answer == it.value })
         context.hideFeedState(found)
 
-        val code = context.mutableClassDefBy(found.type).methods.single { it.name == "<init>" }
+        val code = context.mutableClassDefBy(found.writes.first().owner).methods.single {
+            it.name == found.writes.first().name && it.parameterTypes.map(CharSequence::toString) == found.writes.first().parameters
+        }
             .implementation!!.instructions.toList()
         assertEquals(label, 2, code.count { it.calls(REPOSTS_FEED_STATE) })
         for (write in found.writes) {
@@ -242,6 +244,10 @@ class HideRepostFeedStateTest {
 
     private fun BytecodePatchContext.constructor(): List<Instruction> =
         mutableClassDefBy(STATE).methods.single { it.name == "<init>" }.implementation!!.instructions.toList()
+
+    /** The state classes plus, on 452, the method that builds the state with its constructor inlined. */
+    private fun withBuilders(bundle: File, states: List<ClassDef>): List<ClassDef> =
+        states + FixtureDex.classesCreating(bundle, states.mapTo(HashSet()) { it.type })
 
     private companion object {
         const val STATE = "Lfixture/FeedRowState;"

@@ -24,7 +24,8 @@ internal const val PATCH = "View stories anonymously"
  *
  * Instagram also writes down on the phone that you watched a story, which greys its ring and sends
  * it to the end of the tray. While its view is held back that write is skipped too, so the ring
- * stays new (#92); a story you mark as seen is written down as it goes out ([keepStoriesNew]).
+ * stays new (#92); a story you mark as seen is written down as it goes out ([keepStoriesNew]). With Gray out
+ * stories you've watched on too, Home's tray lists the unseen reels first ([orderStoryTray], #241).
  */
 @Suppress("unused")
 val viewStoriesAnonymouslyPatch = bytecodePatch(
@@ -42,8 +43,10 @@ val viewStoriesAnonymouslyPatch = bytecodePatch(
     execute {
         // Found first, so a build without it changes nothing.
         val rings = findStoryRings()
+        val tray = findStoryTray(rings.reelClass)
         holdBackStoryViews()
         keepStoriesNew(rings)
+        orderStoryTray(tray)
         enableStatus("storySeen")
     }
 }

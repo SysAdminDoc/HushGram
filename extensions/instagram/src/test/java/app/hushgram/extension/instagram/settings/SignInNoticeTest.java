@@ -31,7 +31,7 @@ import org.robolectric.shadows.ShadowToast;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
 
-/** The Before you sign in notice under the status card, and the tap that hides it for good. */
+/** The Before you sign in notice below navigation, and the tap that hides it for good. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
 @SuppressWarnings("deprecation")
@@ -45,12 +45,14 @@ public class SignInNoticeTest {
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
 
-    /** A first look at the screen has the notice right under the status card, as a row a tap acts on. */
+    /** Search and the view switch stay ahead of the notice, which a tap acts on. */
     @Test
-    public void aFreshScreenShowsTheNoticeUnderTheStatusCard() {
+    public void aFreshScreenShowsTheNoticeBelowSearchAndTheViewSwitch() {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceScreen screen = DownloadSettingsTest.pageIn(controller).getPreferenceScreen();
-            Preference notice = screen.getPreference(1);
+            assertEquals("hushgram_settings_search", screen.getPreference(0).getKey());
+            assertEquals("hushgram_view_toggle", screen.getPreference(1).getKey());
+            Preference notice = screen.getPreference(2);
             assertEquals(HushgramPreferenceFragment.SIGN_IN_NOTICE_KEY, notice.getKey());
             assertEquals("Before you sign in", String.valueOf(notice.getTitle()));
             String summary = String.valueOf(notice.getSummary());
@@ -94,7 +96,7 @@ public class SignInNoticeTest {
     @Test
     @Config(sdk = {28, 29, 30, 37})
     public void aFailedDismissalKeepsTheNoticeAndExplainsTheFailure() {
-        org.robolectric.RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        org.robolectric.RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.DEBUG.save(false);
         ShadowToast.reset();
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
@@ -116,7 +118,7 @@ public class SignInNoticeTest {
     @Test
     @Config(sdk = {28, 29, 30, 37})
     public void aFailedDismissalDoesNotClaimAnUnprovenRollback() {
-        org.robolectric.RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        org.robolectric.RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.DEBUG.save(false);
         ShadowToast.reset();
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {

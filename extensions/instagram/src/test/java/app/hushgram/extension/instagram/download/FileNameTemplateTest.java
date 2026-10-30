@@ -173,6 +173,74 @@ public class FileNameTemplateTest {
         }
     }
 
+    @Test
+    public void aShortcodeIsATemplateToken() {
+        assertEquals("{shortcode}", FileNameTemplate.sanitize("{shortcode}"));
+        assertEquals("Clip_{shortcode}", FileNameTemplate.sanitize("Clip_{shortcode}"));
+        assertTrue(FileNameTemplate.isClean("{shortcode}"));
+        assertTrue(FileNameTemplate.isImportable("{shortcode}"));
+    }
+
+    @Test
+    public void anUnknownShortcodeIsOmittedWithTheExistingFallback() {
+        assertEquals("IG_VID_" + STAMP,
+                FileNameTemplate.videoName("{shortcode}", when(), PostDetails.NONE));
+        assertEquals("IG_VID_" + STAMP,
+                FileNameTemplate.videoName("{shortcode}", when(), PostDetails.of("not-a-number")));
+        assertEquals(STAMP,
+                FileNameTemplate.videoName("{date}{shortcode}", when(), PostDetails.NONE));
+        assertEquals("Clip_" + STAMP,
+                FileNameTemplate.videoName("Clip_{shortcode}", when(), PostDetails.NONE));
+    }
+
+    @Test
+    public void aShortcodeNamesTheParentPostAndPreservesEveryOtherToken() {
+        PostDetails page = PostDetails.of("908540701891980503_123", "Stevi Ous", posted())
+                .withPostId("3549837394260045367_123").onPage(2);
+        assertEquals("908540701891980503", page.videoId);
+        assertEquals("DFDjk1fRK43", page.shortcode);
+        assertEquals("DFDjk1fRK43", FileNameTemplate.videoName("{shortcode}", when(), page));
+        assertEquals("DFDjk1fRK43_908540701891980503_Stevi Ous_" + DAY + "_" + STAMP,
+                FileNameTemplate.videoName("{shortcode}_{video_id}_{owner}_{posted}_{date}", when(), page));
+        assertEquals("DFDjk1fRK43_143005", FileNameTemplate.takenVideoName("{shortcode}", when(), page));
+        assertEquals("DFDjk1fRK43_143005", FileNameTemplate.photoName("{shortcode}", when(), page, true));
+        assertEquals("IG_IMG_" + STAMP, FileNameTemplate.photoName("{shortcode}", when(), PostDetails.NONE, false));
+        assertTrue(FileNameTemplate.keepsApart("{shortcode}", false, false, false, true));
+        assertFalse(FileNameTemplate.keepsApart("{shortcode}", true, false, false, false));
+        assertNull(FileNameTemplate.takenVideoName("{date}_{shortcode}", when(), page));
+        assertEquals("IG_VID_" + STAMP, FileNameTemplate.videoName("{shortcode}", when(), page.withPostId(null)));
+    }
+
+    @Test
+    public void publicPostCodesAreBoundedAndSurvivePageAndWorkerCopies() {
+        String[][] known = {{"3549837394260045367", "DFDjk1fRK43"},
+                {"908540701891980503", "ybyPRoQWzX"}, {"409960495", "Yb4Av"}};
+        for (String[] pair : known) {
+            PostDetails details = full().withPostId(pair[0]).onPage(3);
+            assertEquals(pair[1], details.shortcode);
+            PostDetails copy = new MediaSave.Item(false, null, null, details).details;
+            assertEquals(pair[1], copy.shortcode);
+            assertEquals(ID, copy.videoId);
+            assertEquals(3, copy.page);
+            details.posted.setTime(0);
+            assertEquals(posted(), copy.posted);
+        }
+        for (String unknown : new String[]{null, "", "0", "0000", "12a4", "../123", "1_", "1_bad",
+                "12345678901234567890123456"}) {
+            PostDetails details = full().withPostId(unknown);
+            assertFalse(String.valueOf(unknown), details.hasShortcode());
+            assertEquals(ID, details.videoId);
+        }
+        assertFalse(PostDetails.profilePicture("someone").withPostId("409960495").hasShortcode());
+        assertFalse(PostDetails.of("409960495").hasShortcode());
+        String emoji = new String(Character.toChars(0x1F3AC));
+        PostDetails largest = new PostDetails(ID, repeat(emoji, 80), posted()).withPostId("1234567890123456789012345");
+        String name = FileNameTemplate.videoName("{owner}_{shortcode}", when(), largest);
+        assertTrue(name, name.endsWith(largest.shortcode));
+        assertTrue(name, name.getBytes(StandardCharsets.UTF_8).length <= FileNameTemplate.MAX_NAME_BYTES);
+        assertFalse(name, name.contains("{") || name.contains("/"));
+    }
+
     /**
      * MediaStore numbers a name that's taken, (1) to (31), and then refuses the save. So no two
      * saves a second apart may get one name: a template without any token gets the date, and one
@@ -530,6 +598,27 @@ public class FileNameTemplateTest {
         assertTrue(report, report.contains("the file name asks for the video id and this save has none, "
                 + "so the date and time go on the end"));
         assertFalse(report, report.contains(ID));
+    }
+
+    @Test
+    public void shortcodeOptInKeepsPhotoFallbacksAndNamesByPostPrecedence() throws Exception {
+        Settings.FILENAME_TEMPLATE.save("{shortcode}");
+        FolderGallery gallery = folderGallery();
+        writableBoth(1, 2, 3, 4);
+        PostDetails known = full().withPostId("3549837394260045367");
+        savePhoto(new MediaStoreWriter(context, false, known));
+        savePhoto(new MediaStoreWriter(context, false, PostDetails.of(ID)));
+        Settings.SAVE_NAME_BY_POST.save(true);
+        savePhoto(new MediaStoreWriter(context, false, known.onPage(2)));
+        save(new MediaStoreWriter(context, true, known.onPage(2)));
+
+        assertEquals("DFDjk1fRK43.jpg", nameOf(gallery.rows.get(1L)));
+        assertTrue(nameOf(gallery.rows.get(2L)), nameOf(gallery.rows.get(2L)).matches("IG_IMG_\\d{8}_\\d{6}\\.jpg"));
+        assertEquals("Stevi Ous_" + POSTED_STAMP + "_2.jpg", nameOf(gallery.rows.get(3L)));
+        assertEquals("Stevi Ous_" + POSTED_STAMP + "_2.mp4", nameOf(gallery.rows.get(4L)));
+        String report = LogBufferManager.buildExportText();
+        assertTrue(report, report.contains("the file name asks for the post shortcode and this save has none"));
+        assertFalse(report, report.contains("DFDjk1fRK43") || report.contains(ID));
     }
 
     private void writable(SaveProgressTest.Gallery gallery, android.net.Uri table, long id) {

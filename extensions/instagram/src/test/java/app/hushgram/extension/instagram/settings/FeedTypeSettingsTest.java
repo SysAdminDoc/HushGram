@@ -32,15 +32,18 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 @SuppressWarnings("deprecation")
 public class FeedTypeSettingsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
-    private static final BooleanSetting[] SWITCHES =
-            {Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS, Settings.HIDE_FEED_LIKED};
+    /** A method, not a static field, so the settings load once the rule has given them a context. */
+    private static BooleanSetting[] switches() {
+        return new BooleanSetting[] {Settings.HIDE_FEED_VIDEOS, Settings.HIDE_FEED_PHOTOS, Settings.HIDE_FEED_CAROUSELS,
+                Settings.HIDE_FEED_LIKED};
+    }
     private static final String[] TITLES = {"Hide videos", "Hide photos", "Hide carousels", "Hide posts you've liked"};
     private ActivityController<Activity> controller;
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
-        for (BooleanSetting setting : SWITCHES) setting.resetToDefault();
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
+        for (BooleanSetting setting : switches()) setting.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -51,7 +54,7 @@ public class FeedTypeSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         PatchFamily.feedTypesForTests = null;
-        for (BooleanSetting setting : SWITCHES) setting.resetToDefault();
+        for (BooleanSetting setting : switches()) setting.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -65,19 +68,19 @@ public class FeedTypeSettingsTest {
     }
     @Test public void missingPatchHasNoTypeSwitches() throws Exception {
         open(false);
-        for (BooleanSetting setting : SWITCHES) {
+        for (BooleanSetting setting : switches()) {
             assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
             assertFalse(setting.key, setting.get());
         }
     }
     @Test public void typeSwitchesStartOffPersistAndHonorPause() throws Exception {
         open(true);
-        for (int i = 0; i < SWITCHES.length; i++) {
-            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(SWITCHES[i].key);
-            assertNotNull(SWITCHES[i].key, row);
+        for (int i = 0; i < switches().length; i++) {
+            SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(switches()[i].key);
+            assertNotNull(switches()[i].key, row);
             assertEquals(TITLES[i], row.getTitle().toString());
             assertFalse(row.isChecked());
-            assertTrue(PatchFamily.FEED_SUGGESTIONS.switches.contains(SWITCHES[i]));
+            assertTrue(PatchFamily.FEED_SUGGESTIONS.switches.contains(switches()[i]));
         }
         Settings.HIDE_FEED_VIDEOS.save(true);
         assertTrue(Settings.HIDE_FEED_VIDEOS.savedValue());
@@ -93,7 +96,7 @@ public class FeedTypeSettingsTest {
         PatchFamily.feedTypesForTests = false;
         open(true);
         assertNotNull(page.getPreferenceScreen().findPreference(Settings.HIDE_SUGGESTED_POSTS.key));
-        for (BooleanSetting setting : SWITCHES) assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
+        for (BooleanSetting setting : switches()) assertNull(setting.key, page.getPreferenceScreen().findPreference(setting.key));
         List<String> report = PatchFamily.reportLines(EnumSet.of(PatchFamily.FEED_SUGGESTIONS), false);
         assertTrue(report.toString(), report.contains(
                 "  Hide videos, Hide photos, Hide carousels, Hide posts you've liked and Hidden accounts: "

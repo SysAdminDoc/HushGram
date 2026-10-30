@@ -250,6 +250,39 @@ public final class DiagnosticRedactor {
      */
     private static final String HOST =
             "(?i)" + EDGE + "(?:[a-z0-9-]+\\.)*" + HOST_SUFFIXES + EDGE + "(?:[:/][^" + SPACE + "\"'<>]*)?";
+    /**
+     * A file in shared storage, where the reader's own photos, downloads and documents live. It
+     * runs to the end of the line, a quote, or the ": " an exception puts after a path, since a
+     * file name can hold spaces. App and system paths stay: they name code, not the reader's files.
+     */
+    private static final String STORAGE_PATH = "(?<![A-Za-z0-9_.~/-])/(?:storage|sdcard|data/media"
+            + "|mnt/(?:media_rw|user|pass_through|runtime|sdcard|installer|androidwritable))/"
+            + "[^\\r\\n\"'<>]*?(?=: |[\"'<>\\r\\n]|$)";
+
+    /*
+     * The rules, compiled once. Logger redacts every line it writes to the system log, Debug
+     * logging's lines on the feed's hot paths included, and compiling these on each call cost more
+     * than running them.
+     */
+    private static final Pattern ISOLATED_NAME_RULE = Pattern.compile(ISOLATED_NAME);
+    private static final Pattern HANDLE_RULE = Pattern.compile(HANDLE);
+    private static final Pattern URL_RULE = Pattern.compile("(?i)" + EDGE + "[a-z][a-z0-9+.-]*://[^" + SPACE + "\"'<>]+");
+    private static final Pattern STORAGE_PATH_RULE = Pattern.compile(STORAGE_PATH);
+    private static final Pattern HOST_RULE = Pattern.compile(HOST);
+    private static final Pattern NAME_VALUE_PAIR_RULE = Pattern.compile(NAME_VALUE_PAIR);
+    private static final Pattern HEADER_RULE = Pattern.compile(HEADER);
+    private static final Pattern BARE_SCHEME_RULE = Pattern.compile(BARE_SCHEME);
+    private static final Pattern PASSWORD_RULE = Pattern.compile(
+            "(?i)" + EDGE + "(" + PASSWORD_NAMES + ")" + SEPARATOR + "(?:" + QUOTED + "|[^\\r\\n]*)");
+    private static final Pattern CREDENTIAL_RULE = Pattern.compile("(?i)" + EDGE + "(" + CREDENTIAL_NAMES + ")" + SEPARATOR
+            + "(?:" + QUOTED + "|[^" + SPACE + ",&\"'<>]+)");
+    private static final Pattern USER_ID_RULE = Pattern.compile("(?i)" + EDGE + "(" + USER_ID_NAMES + ")" + SEPARATOR
+            + "(?:" + QUOTED + "|" + USER_ID_VALUE + ")");
+    private static final Pattern CONTENT_ID_RULE = Pattern.compile("(?i)" + EDGE + "(" + CONTENT_ID_NAMES + ")" + SEPARATOR
+            + "(?:" + QUOTED + "|" + CONTENT_ID_VALUE + ")");
+    private static final Pattern BARE_CONTENT_ID_RULE = Pattern.compile(BARE_CONTENT_ID);
+    private static final Pattern NAMED_HANDLE_RULE = Pattern.compile(NAMED_HANDLE);
+    private static final Pattern GLUED_HANDLE_RULE = Pattern.compile(GLUED_HANDLE);
 
     private DiagnosticRedactor() {
     }
@@ -263,26 +296,23 @@ public final class DiagnosticRedactor {
 
     /** Every rule, in order. */
     private static String withoutPrivateValues(String text) {
-        String passed = text
-                .replaceAll(ISOLATED_NAME, "[name omitted]")
-                .replaceAll(HANDLE, "[handle omitted]")
-                .replaceAll("(?i)" + EDGE + "[a-z][a-z0-9+.-]*://[^" + SPACE + "\"'<>]+", "[url omitted]")
-                .replaceAll(HOST, "[host omitted]")
-                .replaceAll(NAME_VALUE_PAIR, "$1[omitted]")
-                .replaceAll(HEADER, "$1=[omitted]")
-                .replaceAll(BARE_SCHEME, "$1 [omitted]")
-                .replaceAll("(?i)" + EDGE + "(" + PASSWORD_NAMES + ")" + SEPARATOR + "(?:" + QUOTED + "|[^\\r\\n]*)",
-                        "$1=[omitted]");
-        return withoutCredentialBlocks(passed)
-                .replaceAll("(?i)" + EDGE + "(" + CREDENTIAL_NAMES + ")" + SEPARATOR
-                        + "(?:" + QUOTED + "|[^" + SPACE + ",&\"'<>]+)", "$1=[omitted]")
-                .replaceAll("(?i)" + EDGE + "(" + USER_ID_NAMES + ")" + SEPARATOR
-                        + "(?:" + QUOTED + "|" + USER_ID_VALUE + ")", "$1=[omitted]")
-                .replaceAll("(?i)" + EDGE + "(" + CONTENT_ID_NAMES + ")" + SEPARATOR
-                        + "(?:" + QUOTED + "|" + CONTENT_ID_VALUE + ")", "$1=[omitted]")
-                .replaceAll(BARE_CONTENT_ID, "[id omitted]")
-                .replaceAll(NAMED_HANDLE, "[handle omitted]")
-                .replaceAll(GLUED_HANDLE, "[handle omitted]");
+        String passed = text;
+        passed = ISOLATED_NAME_RULE.matcher(passed).replaceAll("[name omitted]");
+        passed = HANDLE_RULE.matcher(passed).replaceAll("[handle omitted]");
+        passed = URL_RULE.matcher(passed).replaceAll("[url omitted]");
+        passed = STORAGE_PATH_RULE.matcher(passed).replaceAll("[path omitted]");
+        passed = HOST_RULE.matcher(passed).replaceAll("[host omitted]");
+        passed = NAME_VALUE_PAIR_RULE.matcher(passed).replaceAll("$1[omitted]");
+        passed = HEADER_RULE.matcher(passed).replaceAll("$1=[omitted]");
+        passed = BARE_SCHEME_RULE.matcher(passed).replaceAll("$1 [omitted]");
+        passed = PASSWORD_RULE.matcher(passed).replaceAll("$1=[omitted]");
+        passed = withoutCredentialBlocks(passed);
+        passed = CREDENTIAL_RULE.matcher(passed).replaceAll("$1=[omitted]");
+        passed = USER_ID_RULE.matcher(passed).replaceAll("$1=[omitted]");
+        passed = CONTENT_ID_RULE.matcher(passed).replaceAll("$1=[omitted]");
+        passed = BARE_CONTENT_ID_RULE.matcher(passed).replaceAll("[id omitted]");
+        passed = NAMED_HANDLE_RULE.matcher(passed).replaceAll("[handle omitted]");
+        return GLUED_HANDLE_RULE.matcher(passed).replaceAll("[handle omitted]");
     }
 
     /**
@@ -347,8 +377,10 @@ public final class DiagnosticRedactor {
 
     /**
      * Just past the bracket that closes the one at [open], or the end of its line when none does
-     * within {@link #BLOCK_MAX_CHARS}. A quote opens or closes a string when it's escaped the way
-     * the object's first quote is, so JSON inside a JSON string is read at its own level.
+     * within {@link #BLOCK_MAX_CHARS}. A text that ends first, such as a log line cut to a length,
+     * ends inside the block, so all of what's left is the block. A quote opens or closes a string
+     * when it's escaped the way the object's first quote is, so JSON inside a JSON string is read
+     * at its own level.
      */
     private static int blockEnd(String text, int open) {
         int limit = Math.min(text.length(), open + BLOCK_MAX_CHARS);
@@ -370,6 +402,7 @@ public final class DiagnosticRedactor {
                 }
             }
         }
+        if (limit == text.length() && depth > 0) return limit;
         int line = open;
         while (line < text.length() && text.charAt(line) != '\n' && text.charAt(line) != '\r') line++;
         return line;

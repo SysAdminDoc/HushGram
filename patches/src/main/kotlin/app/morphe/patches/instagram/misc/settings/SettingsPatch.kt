@@ -104,7 +104,9 @@ val settingsPatch = bytecodePatch(
 
         // And from inside Instagram, a long press on the logo at the top of Home. A build where
         // that isn't found in exactly one place keeps its logo as it was, with a warning, and the
-        // rest of this patch still goes in.
+        // rest of this patch still goes in. Home's newer header gives its logo no long press, so
+        // there the logo view gets one when the header keeps it.
         hookLogoLongPress()
+        hookMergedLogoLongPress()
     }
 }

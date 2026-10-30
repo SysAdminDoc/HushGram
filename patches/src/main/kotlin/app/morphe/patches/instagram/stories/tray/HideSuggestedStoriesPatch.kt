@@ -8,18 +8,21 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.feed.requireOneKindField
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesHolding
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
 import app.morphe.patches.instagram.misc.flags.findFlagLoads
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.seen.userIdGetter
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -34,6 +37,8 @@ import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val PATCH = "Hide suggested stories"
 internal const val HIDE_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->hideTray()Z"
+/** Asked where Instagram floats the tray over the feed: yes while the tray is hidden or kept in the feed (#357). */
+internal const val FLOAT_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;->keepTrayOutOfOverlay()Z"
 internal const val TRAY_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->filter(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val TRAY_REMAINING_FILTER = "$EXTENSION_PACKAGE/stories/StoriesTray;->remaining(Ljava/util/ArrayList;)Ljava/util/ArrayList;"
 private const val ARRAY_LIST = "Ljava/util/ArrayList;"
@@ -41,11 +46,14 @@ internal const val MUSIC_CARD = "$EXTENSION_PACKAGE/stories/StoriesTray;->musicC
 
 /**
  * The server flag that lets Instagram's Music for you card into the stories viewer: the
- * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 450 it's read once, by a
- * static check of the session, and the check is asked by the code that adds the card to the
- * viewer's list, which casts to the music midcard repository first.
+ * `is_enabled` parameter of the `ig_stories_music_midcard` config. On 451's 385713073 it's read
+ * once, by a static check of the session, and the check is asked by the code that adds the card to
+ * the viewer's list, which casts to the music midcard repository first. 452 renumbered it from
+ * 451's 0x810cc0000146f1; its one static session check there is still asked by the code that
+ * casts to the repository right after. 453 renumbered it again to 0x810c9b0001461a, still the one
+ * static session check asked by the path that casts to the repository.
  */
-internal const val MUSIC_CARD_FLAG = 0x810cca0001477fL
+internal const val MUSIC_CARD_FLAG = 0x810c9b0001461aL
 
 /** The name only the music midcard repository's constructor holds, which it gives its base class. */
 internal const val MUSIC_CARD_REPOSITORY = "MusicMidcardRepository"
@@ -89,7 +97,8 @@ internal val MADE_REELS = listOf(
 val hideSuggestedStoriesPatch = bytecodePatch(
     name = "Hide suggested stories",
     description = "Removes stories from accounts you don't follow from the row at the top of Home. More switches " +
-        "hide rewinds and memories, or the whole row. Starts on. Turn it off in HushGram settings > Stories.",
+        "hide rewinds and memories, keep only verified or unverified accounts, or hide the whole row. Starts on. " +
+        "Turn it off in HushGram settings > Stories.",
 ) {
     category("Stories")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -98,12 +107,16 @@ val hideSuggestedStoriesPatch = bytecodePatch(
     execute {
         requireStatusMethod("storiesTray")
         guardTray(findTrayRowBuild())
-        guardTray(findFloatingTrayShow())
+        guardTray(findFloatingTrayShow(), FLOAT_TRAY)
         val parse = findTrayItemParse()
         val netegoCheck = findStoryNetegoCheck()
+        val midcards = findStoryMidcards()
+        val owner = findTrayOwnerOrWarn()
         hookTrayParser(parse, findTrayRemaining(parse.site))
+        owner?.let { fillTrayOwnerStubs(it) }
         hideMusicCard()
         hideStorySuggestions(netegoCheck)
+        hideStoryMidcards(midcards)
         enableStatus("storiesTray")
     }
 }
@@ -115,13 +128,14 @@ internal fun BytecodePatchContext.hideMusicCard() {
 
 /**
  * Finds the one read of [MUSIC_CARD_FLAG]. It has to be the flag's own read, in a check taking the
- * session and answering a boolean, and something calling that check has to cast to a class
- * holding [MUSIC_CARD_REPOSITORY], since that's the card's own data. Fails before anything changes
- * when any of it isn't so, since that's an update this patch hasn't seen.
+ * session and answering a boolean, and something calling that check has to cast to the class
+ * built with the name [MUSIC_CARD_REPOSITORY] ([musicCardRepositories]), since that's the card's
+ * own data. Fails before anything changes when any of it isn't so, since that's an update this
+ * patch hasn't seen.
  */
 internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
     val flag = MUSIC_CARD_FLAG.toString(16)
-    val repositories = classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.mapTo(HashSet()) { it.type }
+    val repositories = musicCardRepositories()
     if (repositories.isEmpty()) refuse("no class holds $MUSIC_CARD_REPOSITORY, so $flag isn't the Music for you card's flag")
     val reads = findFlagLoads(PATCH, MUSIC_CARD_FLAG, "Z")
     val read = reads.singleOrNull() ?: refuse("expected one read of the Music for you card flag $flag, found ${reads.size}")
@@ -140,6 +154,27 @@ internal fun BytecodePatchContext.findMusicCard(): FlagLoad {
     if (!casts) refuse("nothing that asks $where casts to the class holding $MUSIC_CARD_REPOSITORY")
     return read
 }
+
+/**
+ * The classes built with the name [MUSIC_CARD_REPOSITORY], which the repository hands its base
+ * class: the class whose constructor holds it, as on 450, or the one class a static factory
+ * holding it makes and answers, as 451's 385713073 builds `08KQ` in `0QbN.A00`. 452's 385810270
+ * inlines the repository's constructor into its factory (`08PT.A00` builds `08PV`), which then
+ * also makes the repository's own java.util lists and set, so those don't count.
+ */
+private fun BytecodePatchContext.musicCardRepositories(): Set<String> =
+    classesHolding(MUSIC_CARD_REPOSITORY).filterNot { it.type.startsWith(EXTENSION_ROOT) }.flatMapTo(HashSet()) { holder ->
+        holder.methods.filter { MUSIC_CARD_REPOSITORY in it.strings() }.mapNotNull { method ->
+            val made = method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+                ((instruction as? ReferenceInstruction)?.reference as? TypeReference)?.type?.takeIf { instruction.opcode == Opcode.NEW_INSTANCE }
+            }.filterNot { it.startsWith("Ljava/util/") }.toSet()
+            when {
+                method.name == "<init>" -> holder.type
+                AccessFlags.STATIC.isSet(method.accessFlags) && made == setOf(method.returnType) -> method.returnType
+                else -> null
+            }
+        }
+    }
 
 /** A method by its class, name and parameter types. */
 internal class MethodSite(val type: String, val name: String, val parameters: List<String>)
@@ -199,12 +234,12 @@ internal fun BytecodePatchContext.findFloatingTrayShow(): MethodSite {
     return MethodSite(type, method.name, parameters)
 }
 
-/** Asks [HIDE_TRAY] first thing in the method at [site], and on a yes returns before it shows the tray. */
-internal fun BytecodePatchContext.guardTray(site: MethodSite) {
+/** Asks [hook] ([HIDE_TRAY] unless named) first thing in the method at [site], and on a yes returns before it shows the tray. */
+internal fun BytecodePatchContext.guardTray(site: MethodSite, hook: String = HIDE_TRAY) {
     mutableMethod(site).addInstructions(
         0,
         """
-            invoke-static { }, $HIDE_TRAY
+            invoke-static { }, $hook
             move-result v0
             if-eqz v0, :show
             return-void
@@ -270,7 +305,7 @@ internal class TrayRemainingRead(val site: MethodSite, val moveResult: Int, val 
 /**
  * In the tray parser at [site], the one read of [TRAY_REMAINING]'s value between that key and the
  * next: a call answering an ArrayList, and its move-result-object. Fails when there isn't exactly
- * one, since then Stop loading stories would leave those reels to load.
+ * one, since then Stop loading stories and highlights would leave those reels to load.
  */
 internal fun BytecodePatchContext.findTrayRemaining(site: MethodSite): TrayRemainingRead {
     val method = classDefBy(site.type).methods.single {
@@ -321,6 +356,72 @@ internal fun BytecodePatchContext.filterTrayItems(parse: TrayItemParse) {
             move-result-object v$item
         """,
     )
+}
+
+private const val TRAY_USER = "Lcom/instagram/user/model/User;"
+private const val STORIES_TRAY = "$EXTENSION_PACKAGE/stories/StoriesTray;"
+
+/**
+ * What Filter the Stories tray by verified accounts reads (#340): [owner], the tray item
+ * interface's getter of the account whose story it is, and that User's [verified] getter (the
+ * `is_verified` field) and [id] getter. All public, so the extension's stubs can call them.
+ */
+internal class TrayOwner(val owner: Method, val verified: Method, val id: Method)
+
+/**
+ * Finds [TrayOwner]: the one no-argument User getter [TRAY_ITEM_INTF] declares (452.1's Dy7, which
+ * both tray item classes answer), User's Boolean getter of `is_verified`, and its id getter.
+ */
+internal fun BytecodePatchContext.findTrayOwner(): TrayOwner {
+    val items = classDefByOrNull(TRAY_ITEM_INTF) ?: refuse("$TRAY_ITEM_INTF isn't present")
+    if (!AccessFlags.PUBLIC.isSet(items.accessFlags)) refuse("$TRAY_ITEM_INTF isn't public")
+    val owners = items.methods.filter { it.parameterTypes.isEmpty() && it.returnType == TRAY_USER }
+    val owner = owners.singleOrNull() ?: refuse("expected $TRAY_ITEM_INTF to declare one User getter, found ${owners.size}")
+    val user = classDefByOrNull(TRAY_USER) ?: refuse("the User model isn't present")
+    val verified = pandoGetter(PATCH, TRAY_USER, "is_verified", "Ljava/lang/Boolean;")
+    if (!AccessFlags.PUBLIC.isSet(user.accessFlags) || !AccessFlags.PUBLIC.isSet(verified.accessFlags)) {
+        refuse("$TRAY_USER->${verified.name} isn't public, so the extension can't reach it")
+    }
+    return TrayOwner(owner, verified, userIdGetter(::refuse))
+}
+
+/** [findTrayOwner], or null with a warning: the patch goes in, and the verified filter keeps every story. */
+internal fun BytecodePatchContext.findTrayOwnerOrWarn(): TrayOwner? = try {
+    findTrayOwner()
+} catch (moved: PatchException) {
+    patchLog.warning("${moved.message}. Hide suggested stories goes in without Filter the Stories tray by verified accounts.")
+    null
+}
+
+/** Writes StoriesTray's trayOwner, userVerified and userId stubs to call [found]'s getters. */
+internal fun BytecodePatchContext.fillTrayOwnerStubs(found: TrayOwner) {
+    val tray = mutableClassDefBy(STORIES_TRAY)
+    val reads = listOf(
+        Triple("trayOwner", TRAY_ITEM_INTF, found.owner),
+        Triple("userVerified", TRAY_USER, found.verified),
+        Triple("userId", TRAY_USER, found.id),
+    )
+    // Every stub is checked before any is written.
+    val stubs = reads.map { (name, _, getter) ->
+        tray.methods.singleOrNull {
+            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == getter.returnType.let { type ->
+                if (type == TRAY_USER) "Ljava/lang/Object;" else type
+            } && it.parameterTypes.map(CharSequence::toString) == listOf("Ljava/lang/Object;")
+        } ?: refuse("$STORIES_TRAY has no static $name(Object)")
+    }
+    for ((stub, read) in stubs.zip(reads)) {
+        val (_, type, getter) = read
+        val invoke = if (type == TRAY_ITEM_INTF) "invoke-interface" else "invoke-virtual"
+        stub.addInstructions(
+            0,
+            """
+                check-cast p0, $type
+                $invoke { p0 }, $type->${getter.name}()${getter.returnType}
+                move-result-object p0
+                return-object p0
+            """,
+        )
+    }
 }
 
 private fun BytecodePatchContext.mutableMethod(site: MethodSite) = mutableClassDefBy(site.type).methods.single {

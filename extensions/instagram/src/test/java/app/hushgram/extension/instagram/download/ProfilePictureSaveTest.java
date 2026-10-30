@@ -55,7 +55,7 @@ public class ProfilePictureSaveTest {
 
     @Before public void setup() throws Exception {
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -144,10 +144,15 @@ public class ProfilePictureSaveTest {
         assertTrue("named as a profile picture", named.get(0).profile);
     }
 
-    /** Why the row doesn't use the photo save: its ranking takes these addresses for thumbnails. */
-    @Test public void thePhotoSaveTurnsTheseSizesDown() {
-        assertFalse(MediaSave.savePhoto(context, sizes(), PostDetails.NONE));
-        assertEquals(0, server.hits("/full.jpg"));
+    /**
+     * The photo save takes these addresses for thumbnails, but with nothing else listed it saves
+     * the largest of them too, as a photo on a 720 pixel wide screen needs (#261).
+     */
+    @Test public void thePhotoSaveTakesTheLargestOfTheseSizesToo() throws Exception {
+        assertTrue(MediaSave.savePhoto(context, sizes(), PostDetails.NONE));
+        waitForSave();
+        assertEquals(0, server.hits("/shown.jpg"));
+        assertEquals(1, server.hits("/full.jpg"));
     }
 
     @Test public void noAddressOnMetasServersSavesNothing() {

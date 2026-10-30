@@ -15,8 +15,12 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import app.morphe.util.namedRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.AnnotationVisibility
 import com.android.tools.smali.dexlib2.MethodHandleType
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.Opcodes
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
+import com.android.tools.smali.dexlib2.dexbacked.DexBackedMethod
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -26,10 +30,14 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodHandleReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableAnnotation
+import com.android.tools.smali.dexlib2.immutable.ImmutableAnnotationElement
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction10x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
@@ -41,7 +49,11 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodHandle
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodProtoReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableArrayEncodedValue
+import com.android.tools.smali.dexlib2.immutable.value.ImmutableMethodEncodedValue
 import com.android.tools.smali.dexlib2.immutable.value.ImmutableMethodHandleEncodedValue
+import com.android.tools.smali.dexlib2.writer.io.MemoryDataStore
+import com.android.tools.smali.dexlib2.writer.pool.DexPool
+import java.nio.ByteBuffer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -147,60 +159,84 @@ class StoryRetryQueueTest {
         refused(changed(classes, method, 6, "iget-object v1, p0, $owner->pending:Ljava/util/LinkedHashMap;"), "lookup uses another store's maps")
     }
 
-    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check(classes)
+    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check)
+    @Test fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check(classes)
+    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check)
+    @Test fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450() {
-        for (classes in proofInputs()) overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check(classes)
+    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative() {
+        for (classes in proofInputs()) overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck(classes)
     }
 
-    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check)
+    @Test fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck)
     }
 
-    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450() {
-        for (classes in proofInputs()) methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check(classes)
+    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative() {
+        for (classes in proofInputs()) methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes)
     }
 
-    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check)
+    @Test fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck)
     }
 
-    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450() {
-        for (classes in proofInputs()) loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check(classes)
+    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative() {
+        for (classes in proofInputs()) loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck(classes)
     }
 
-    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check)
+    @Test fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck)
     }
 
-    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450() {
-        for (classes in proofInputs()) anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check(classes)
+    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative() {
+        for (classes in proofInputs()) anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck(classes)
     }
 
-    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check)
+    @Test fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck)
     }
 
-    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450() {
-        for (classes in proofInputs()) encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check(classes)
+    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative() {
+        for (classes in proofInputs()) encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck(classes)
     }
 
-    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450OnEachOtherBuildToo() {
-        forOtherInputs(::encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check)
+    @Test fun encodedStaticHandlesCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck)
+    }
+
+    @Test fun encodedParameterAnnotationsInTheAppsDexCannotBypassAnyBridgeOnNative() {
+        for (classes in proofInputs()) encodedParameterAnnotationsInTheAppsDexCannotBypassAnyBridgeOnNativeCheck(classes)
+    }
+
+    @Test fun encodedParameterAnnotationsInTheAppsDexCannotBypassAnyBridgeOnNativeOnEachOtherBuildToo() {
+        forOtherInputs(::encodedParameterAnnotationsInTheAppsDexCannotBypassAnyBridgeOnNativeCheck)
+    }
+
+    /**
+     * The proof reads code only where the patcher's index, the extension or a dex's call sites and
+     * method handles say a call can be (#173). Here every class is read back from a written dex, as
+     * the app's are, so none is read just for being made by hand.
+     */
+    @Test fun callersInClassesReadFromADexStillRefuse() {
+        val classes = fixtures.standIns()
+        verify(dexBacked(classes))
+        concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(classes, ::dexBacked)
+        methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(classes, ::dexBacked)
+        val route = assertThrows(PatchException::class.java) {
+            PatchContexts.of(dexBacked(fixtures.standIns(otherRoute = true))).holdBackStoryViews()
+        }
+        assertTrue(route.message, "builds the seen request at instruction 4 from a batch that doesn't go through" in route.message!!)
     }
 
     @Test fun missingMonitorHandlerRefusesUntouched() {
@@ -226,7 +262,7 @@ class StoryRetryQueueTest {
         val classes = fixtures.standIns()
         val found = PatchContexts.of(classes).findStorySeen()
         val reader = classes.single { it.type == found.store }.methods.single { it.name == "A0L" }
-        refused(changed(classes, reader, 15, "nop"), "disk reader no longer reaches its native cleanup")
+        refused(changed(classes, reader, 10, "nop"), "disk reader no longer reaches its native cleanup")
     }
 
     @Test fun diskCleanupCalleeReceiverAndKeyMustMatchTheNativeRead() {
@@ -347,7 +383,7 @@ class StoryRetryQueueTest {
         val mutable = MutableMethod(ImmutableMethod.of(method))
         mutable.addInstructionsWithLabels(at, body)
         // Mutate an executed path. Native labels otherwise stay on the old instruction and skip
-        // an inserted overwrite, which would be an inert counterexample on native450.
+        // an inserted overwrite, which would be an inert counterexample on the declared build.
         val code = mutable.code().toMutableList()
         val added = code.size - method.code().size
         val addresses = addresses(code)
@@ -362,7 +398,7 @@ class StoryRetryQueueTest {
         return replace(classes, owner, methods = owner.methods.map { if (it == method) replacement else it })
     }
 
-    private fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun claimBranchOperandsAndSuccessOrFailureLiteralsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
         val run = owner.methods.single { it.name == found.queue!!.run }
@@ -378,7 +414,10 @@ class StoryRetryQueueTest {
         refused(changed(classes, claim, 0, "const/4 v${claim.code()[0].namedRegisters().single()}, 0x1"), "native literal at 0")
     }
 
-    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun concreteBridgeAndAbstractBuilderCallersRefuseUntouchedOnNativeCheck(
+        classes: List<ClassDef>,
+        written: (List<ClassDef>) -> List<ClassDef> = { it },
+    ) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;"))
@@ -389,11 +428,11 @@ class StoryRetryQueueTest {
                 return-object v0
             """)
             val extra = ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(caller))
-            refused(classes + extra, if (owner == found.queue.owner) "expected one request-builder call" else "concrete story builder has a caller")
+            refused(written(classes + extra), if (owner == found.queue.owner) "expected one request-builder call" else "concrete story builder has a caller")
         }
     }
 
-    private fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNative450Check(classes: List<ClassDef>) {
+    private fun overwrittenMonitorAndAliasedClaimMapsRefuseUntouchedOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val owner = classes.single { it.type == found.queue!!.owner }
         val run = owner.methods.single { it.name == found.queue!!.run }
@@ -415,7 +454,10 @@ class StoryRetryQueueTest {
             "claim aliases its live ownership registers")
     }
 
-    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun methodHandlesAndCallSiteArgumentsCannotBypassAnyBridgeOnNativeCheck(
+        classes: List<ClassDef>,
+        written: (List<ClassDef>) -> List<ClassDef> = { it },
+    ) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
@@ -431,12 +473,12 @@ class StoryRetryQueueTest {
             )) for (type in listOf("Lfixture/IndirectQueueCaller;", "Lapp/hushgram/extension/instagram/stories/IndirectQueueCaller;")) {
                 val caller = storyQueueMethod(type, "capture", emptyList(), "V", 1, "const/4 v0, 0x0\nreturn-void", static = true)
                 val extra = ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, listOf(caller))
-                refused(changed(classes + extra, caller, 0, instruction), "indirect story builder reference")
+                refused(written(changed(classes + extra, caller, 0, instruction)), "indirect story builder reference")
             }
         }
     }
 
-    private fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNative450Check(classes: List<ClassDef>) {
+    private fun loopResultsCannotOverwriteTheLiveBatchOrIteratorOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val run = classes.single { it.type == found.queue!!.owner }.methods.single { it.name == found.queue!!.run }
         for ((result, branch, register) in listOf(
@@ -450,7 +492,7 @@ class StoryRetryQueueTest {
         }
     }
 
-    private fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun anInterfaceCannotAddDispatchToTheFinalStoryBridgeOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val store = classes.single { it.type == found.store }
         val bridge = store.methods.single { it.name == found.retry!!.name }
@@ -472,7 +514,7 @@ class StoryRetryQueueTest {
         refused(classes.map { if (it.type == store.type) changedStore else it } + interfaceType + extra, "store isn't final without interfaces")
     }
 
-    private fun encodedStaticHandlesCannotBypassAnyBridgeOnNative450Check(classes: List<ClassDef>) {
+    private fun encodedStaticHandlesCannotBypassAnyBridgeOnNativeCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
         for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
@@ -495,6 +537,29 @@ class StoryRetryQueueTest {
         }
     }
 
+    /**
+     * The declaration walk reads a method from the app's dex for its parameters' annotations alone,
+     * without decoding each parameter's type and name (#173). The mark sits on the second of two
+     * parameters, so a pairing off by one finds nothing.
+     */
+    private fun encodedParameterAnnotationsInTheAppsDexCannotBypassAnyBridgeOnNativeCheck(classes: List<ClassDef>) {
+        val found = PatchContexts.of(classes).findStorySeen()
+        val bridge = classes.single { it.type == found.store }.methods.single { it.name == found.retry!!.name }
+        for (owner in listOf(found.store, found.queue!!.owner, "Ljava/lang/Object;")) {
+            val type = "Lfixture/AnnotatedQueueCaller;"
+            val mark = ImmutableAnnotation(AnnotationVisibility.RUNTIME, "Lfixture/QueueMark;", setOf(ImmutableAnnotationElement("value",
+                ImmutableMethodEncodedValue(ImmutableMethodReference(owner, bridge.name, bridge.parameterTypes, bridge.returnType)))))
+            val method = ImmutableMethod(type, "mark", listOf(ImmutableMethodParameter("I", null, null),
+                ImmutableMethodParameter("Ljava/lang/Object;", setOf(mark), null)), "V",
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+                ImmutableMethodImplementation(2, listOf(ImmutableInstruction10x(Opcode.RETURN_VOID)), null, null))
+            val extra = dexBacked(listOf(ImmutableClassDef(type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
+                listOf(method)))).single()
+            assertTrue(extra.methods.single() is DexBackedMethod)
+            refused(classes + extra, "encoded story builder reference")
+        }
+    }
+
     private fun diskCleanupCalleeReceiverAndKeyMustMatchTheNativeReadCheck(classes: List<ClassDef>) {
         val found = PatchContexts.of(classes).findStorySeen()
         val reader = classes.single { it.type == found.store }.methods.single { method ->
@@ -502,22 +567,21 @@ class StoryRetryQueueTest {
         }
         val code = reader.code()
         val loop = code.indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
-        val remove = loop + 4
+        val remove = loop + 3
         val registers = code[remove].namedRegisters()
-        // Obfuscated names differ per build, so take the cleanup call and the key builder from the reader itself.
+        // Obfuscated names differ per build, so take the cleanup call and the key helper from the reader itself.
         val cleanup = code[remove].reference()!!
-        val keyBuilder = code[loop + 2].reference()!!
+        val keyHelper = code[loop + 1].reference()!!
+        val key = code[loop + 2].namedRegisters().single()
         refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[1]} }, ${cleanup.substringBefore("->")}->preserve(Ljava/lang/String;)V"), "native cleanup")
-        refused(changed(classes, reader, remove, "invoke-virtual { v${code[loop + 2].namedRegisters()[0]}, v${registers[1]} }, $cleanup"), "native receiver")
-        refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${code[loop + 2].namedRegisters()[0]} }, $cleanup"), "native cleanup")
-        val key = code[loop + 2].namedRegisters()
-        refused(changed(classes, reader, loop + 2, "invoke-static { v${key[1]}, v${key[1]} }, $keyBuilder"), "pending-story prefix")
+        refused(changed(classes, reader, remove, "invoke-virtual { v$key, v${registers[1]} }, $cleanup"), "native receiver")
+        refused(changed(classes, reader, remove, "invoke-virtual { v${registers[0]}, v${registers[0]} }, $cleanup"), "native cleanup")
+        refused(changed(classes, reader, loop + 1, "invoke-direct { v${registers[0]} }, $keyHelper"), "store's own account")
         val load = code.indexOfFirst { val ref = it.reference()
             ref != null && ref.startsWith(cleanup.substringBefore("->")) && ref.endsWith("(Ljava/lang/String;Z)Ljava/lang/Object;") }
         refused(changed(classes, reader, load - 1, "const/4 v${code[load - 1].namedRegisters().single()}, 0x0"), "consumes the copy it read")
-        for (register in listOf(registers[0], key[0], code[loop + 1].namedRegisters().last())) {
-            refused(inserted(classes, reader, loop, "const/4 v$register, 0x0"), "changed receiver, prefix or account dataflow")
-        }
+        refused(changed(classes, reader, load - 3, "invoke-direct { v${registers[0]} }, $keyHelper"), "consumes the copy it read")
+        refused(inserted(classes, reader, loop, "const/4 v${registers[0]}, 0x0"), "changed receiver, prefix or account dataflow")
     }
 
     private fun nativeDiskHelpersRefuseChangedKeyCaptureTaskIdentityAndCleanupUntouchedCheck(classes: List<ClassDef>) {
@@ -526,12 +590,14 @@ class StoryRetryQueueTest {
             method.code().any { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == "PendingReelSeenStateStore.deserializeFromDisk" }
         }
         val at = reader.code().indexOfFirst { it.reference() == "${found.queue!!.owner}->${found.queue.run}()V" }
-        val key = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 2].reference() }
-        val builder = key.code()[0].namedRegisters().single()
-        refused(changed(classes, key, 2, "invoke-virtual { v$builder, p1 }, ${key.code()[2].reference()}"), "ownership registers at 2")
-        refused(changed(classes, key, 6, "return-object p0"), "ownership registers at 6")
+        val key = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 1].reference() }
+        val builder = key.code()[4].namedRegisters().single()
+        val prefix = key.code()[3].namedRegisters().single()
+        refused(changed(classes, key, 6, "invoke-virtual { v$builder, v$prefix }, ${key.code()[6].reference()}"), "ownership registers at 6")
+        refused(changed(classes, key, 9, "return-object v$prefix"), "ownership registers at 9")
+        refused(changed(classes, key, 0, "invoke-virtual { p0 }, ${key.code()[0].reference()!!.substringBefore("->")}->other()$USER_SESSION"), "native account")
 
-        val cleanup = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 4].reference() }
+        val cleanup = classes.flatMap { it.methods }.single { it.toString() == reader.code()[at + 3].reference() }
         val task = classes.single { it.type == cleanup.code()[3].reference() }
         val constructor = task.methods.single { it.name == "<init>" }
         val run = task.methods.single { it.name == "run" && it.parameterTypes.isEmpty() }
@@ -566,8 +632,17 @@ class StoryRetryQueueTest {
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative declared 450 build (385611438) is required", nativeProofInputs.isNotEmpty())
+        assertTrue("the authoritative declared 453 build (385914557) is required", nativeProofInputs.isNotEmpty())
         return nativeProofInputs + listOf(fixtures.standIns())
+    }
+
+    /** [classes] written to a dex and read back, the way the patcher gets the app's classes. */
+    private fun dexBacked(classes: List<ClassDef>): List<ClassDef> {
+        val pool = DexPool(Opcodes.forApi(28))
+        classes.forEach(pool::internClass)
+        val dex = MemoryDataStore()
+        pool.writeTo(dex)
+        return DexBackedDexFile(Opcodes.forApi(28), ByteBuffer.wrap(dex.data)).classes.toList()
     }
     private fun replace(classes: List<ClassDef>, owner: ClassDef, fields: Iterable<com.android.tools.smali.dexlib2.iface.Field> = owner.fields,
         methods: Iterable<Method> = owner.methods): List<ClassDef> = classes.map { if (it.type != owner.type) it else
@@ -584,7 +659,7 @@ class StoryRetryQueueTest {
 
     companion object {
         private val nativeProofInputs by lazy {
-            Fixtures.files { it.name == "instagram-450.0.0.50.77-385611438.apks" }
+            Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
                 .map { StorySeenHookTest().fixtureClasses(it) }
         }
         private val otherNativeProofInputs by lazy {

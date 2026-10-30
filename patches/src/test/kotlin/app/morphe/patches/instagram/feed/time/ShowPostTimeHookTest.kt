@@ -9,7 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
-import app.morphe.patches.instagram.misc.analytics.loadsString
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -36,11 +37,13 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction35c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutablePackedSwitchPayload
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableSwitchElement
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
@@ -61,8 +64,10 @@ class ShowPostTimeHookTest {
         for (method in listOf(
             TIME_AS_DOUBLE.substringAfter("->"),
             TIME_AS_LONG.substringAfter("->"),
+            TIME_FROM_RESOURCES.substringAfter("->"),
             "$INSTAGRAM_TIME($OBJECT${CONTEXT}D)$STRING",
             "$INSTAGRAM_TIME($OBJECT${CONTEXT}J)$STRING",
+            "$INSTAGRAM_TIME($RESOURCES$OBJECT$OBJECT${INTEGER}DZ)$STRING",
         )) {
             assertTrue("$method is not in the extension: $declared", method in declared)
         }
@@ -73,35 +78,61 @@ class ShowPostTimeHookTest {
         val context = PatchContexts.of(standIns() + ExtensionDex.classDef(POST_TIME))
         val found = context.findPostTimes()
         assertEquals(FORMATTER, found.formatter)
-        assertEquals("the footer's two times", 2, found.feed.size)
-        assertEquals("the header's time", 1, found.header.size)
+        assertEquals("the footer's time and the label's", 2, found.feed.size)
+        assertEquals("the header's time, in the lambda its caller makes", 1, found.header.size)
         assertEquals("the row's two times, not the one that isn't the comment's", 2, found.row.size)
 
         val before = standIns().associate { it.type to it.methods.associate { method -> method.name to method.code() } }
         context.showPostTime(found)
 
         fun method(type: String, name: String) = context.mutableClassDefBy(type).methods.single { it.name == name }
-        assertReplaced(method(FOOTER, "state"), before.getValue(FOOTER).getValue("state"), TIME_AS_DOUBLE, 2)
-        assertReplaced(method(HEADER, "compose"), before.getValue(HEADER).getValue("compose"), TIME_AS_LONG, 1)
+        fun unchanged(type: String, name: String) =
+            assertEquals("$type->$name keeps Instagram's code", before.getValue(type).getValue(name).map { it.text() }, method(type, name).code().map { it.text() })
+        assertReplaced(method(FOOTER, "state"), before.getValue(FOOTER).getValue("state"), TIME_AS_DOUBLE, 1)
+        assertReplaced(method(LABEL, "state"), before.getValue(LABEL).getValue("state"), TIME_AS_DOUBLE, 1)
+        assertReplaced(method(HEADER_TIME, "invoke"), before.getValue(HEADER_TIME).getValue("invoke"), TIME_FROM_RESOURCES, 1)
+        unchanged(HEADER, "compose")
+        unchanged(HEADER_CALLER, "compose")
+        // Asks the formatter for a time from the resources, but nothing the header's callers make.
+        unchanged(ELSEWHERE, "invoke")
         assertReplaced(method(ROW_TIME, "relative"), before.getValue(ROW_TIME).getValue("relative"), TIME_AS_DOUBLE, 1)
         assertReplaced(method(ROW_TIME, "short"), before.getValue(ROW_TIME).getValue("short"), TIME_AS_LONG, 1)
-        assertEquals(
-            "a time that isn't the comment's keeps Instagram's call",
-            before.getValue(ROW_TIME).getValue("elsewhere").map { it.text() },
-            method(ROW_TIME, "elsewhere").code().map { it.text() },
-        )
+        // Reads the comment's time, but writes another one.
+        unchanged(ROW_TIME, "elsewhere")
 
         val stubs = context.mutableClassDefBy(POST_TIME).methods.filter { it.name == INSTAGRAM_TIME }
-        fun stubCall(time: String) = stubs.single { it.parameterTypes.last().toString() == time }.code()
-            .single { it.opcode == Opcode.INVOKE_VIRTUAL }.text()
-        assertEquals("$FORMATTER->relative(${CONTEXT}D)$STRING", stubCall("D"))
-        assertEquals("$FORMATTER->short(${CONTEXT}J)$STRING", stubCall("J"))
+        fun stubCall(time: String, opcode: Opcode) = stubs.single { it.parameterTypes.last().toString() == time }.code()
+            .single { it.opcode == opcode }.text()
+        assertEquals("$FORMATTER->relative(${CONTEXT}D)$STRING", stubCall("D", Opcode.INVOKE_VIRTUAL))
+        assertEquals("$FORMATTER->short(${CONTEXT}J)$STRING", stubCall("J", Opcode.INVOKE_VIRTUAL))
+        assertEquals(FROM_RESOURCES.toString(), stubCall("Z", Opcode.INVOKE_STATIC_RANGE))
+    }
+
+    /** Up to 451 the header asked the formatter itself, and that call is the one replaced. */
+    @Test
+    fun aHeaderAskingTheFormatterItselfIsReplacedInPlace() {
+        val context = PatchContexts.of(standIns(directHeader = true) + ExtensionDex.classDef(POST_TIME))
+        val found = context.findPostTimes()
+        assertEquals(HEADER, found.header.single().method.definingClass)
+        val before = standIns(directHeader = true).single { it.type == HEADER }.methods.single().code()
+        context.showPostTime(found)
+        assertReplaced(context.mutableClassDefBy(HEADER).methods.single(), before, TIME_AS_LONG, 1)
     }
 
     /** Two formattings for one shape can't share a stub, so the patch refuses rather than pick one. */
     @Test
     fun twoFormattingsOfOneShapeFailThePatch() = refuses("reach 2 formatting methods") {
         PatchContexts.of(standIns(secondFormatting = true) + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
+    @Test
+    fun aHeaderWhoseCallersMakeNoTimeFailsThePatch() = refuses("nothing asks $FORMATTER for the time in $HEADER") {
+        PatchContexts.of(standIns().filter { it.type != HEADER_TIME } + ExtensionDex.classDef(POST_TIME)).findPostTimes()
+    }
+
+    @Test
+    fun aMissingLabelFailsThePatch() = refuses("expected one feed label builder") {
+        PatchContexts.of(standIns().filter { it.type != LABEL } + ExtensionDex.classDef(POST_TIME)).findPostTimes()
     }
 
     @Test
@@ -147,7 +178,7 @@ class ShowPostTimeHookTest {
         PatchContexts.of(standIns().filter { it.type != FOOTER } + ExtensionDex.classDef(POST_TIME)).findPostTimes()
     }
 
-    /** In each declared build: the feed footer's two times, the comment header's and the comment row's two. */
+    /** In each declared build: the feed footer's and label's times, the comment header's two and the comment row's two. */
     @Test
     fun eachDeclaredBuildWritesExactTimes() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
@@ -161,7 +192,7 @@ class ShowPostTimeHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in 450's other arm64 builds, two of which ask a string pool for the row's tag (#77). */
+    /** The same in the declared version's other builds, compiled on their own, like 452's two for armeabi-v7a (#77). */
     @Test
     fun eachOtherBuildWritesExactTimes() {
         for (bundle in Fixtures.otherBuilds()) writesExactTimes(bundle, bundle.parentFile.name)
@@ -171,7 +202,7 @@ class ShowPostTimeHookTest {
         val kept = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER ||
+                if (classDef.methods.any { it.holds { string -> string == LONG_AGO_PATTERN || string == FEED_FOOTER || string == FEED_LABEL ||
                             string == COMMENT_ROW_TIME || string.startsWith(COMMENT_HEADER) } }
                 ) kept += ImmutableClassDef.of(classDef)
             }
@@ -193,24 +224,34 @@ class ShowPostTimeHookTest {
             classDef.times() == 1 && classDef.methods.any { pooled.loadsString(it, COMMENT_ROW_TIME) }
         }
         val time = row.fields.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
+        // From 452 the header's callers hand it the time as a lambda they make, so the callers come
+        // too, and then what they make.
+        val header = kept.flatMap { it.methods }.single { method -> method.holds { it.startsWith(COMMENT_HEADER) } }
+        val made = HashSet<String>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { method ->
+                val callers = classDef.methods.filter { method -> method.code().any { it.called()?.let { call -> call.definingClass == header.definingClass && call.name == header.name } == true } }
+                callers.flatMapTo(made) { method -> method.code().filter { it.opcode == Opcode.NEW_INSTANCE }.mapNotNull { (it.reference() as? TypeReference)?.type } }
+                if (callers.isNotEmpty() || classDef.methods.any { method ->
                         method.code().any { instruction ->
-                            val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+                            val field = instruction.reference() as? FieldReference
                             instruction.opcode == Opcode.IGET_OBJECT && field?.definingClass == row.type && field.name == time.name
                         }
                     }
                 ) kept += ImmutableClassDef.of(classDef)
             }
         }
+        made.removeAll(kept.mapTo(HashSet()) { it.type })
+        kept += FixtureDex.classes(bundle, made).values
         val classes = kept.distinctBy { it.type }
         val context = PatchContexts.of(classes + ExtensionDex.classDef(POST_TIME))
         val found = context.findPostTimes()
-        assertEquals("$label: the footer's times", 2, found.feed.size)
-        assertEquals("$label: the header's time", 1, found.header.size)
+        assertEquals("$label: the footer's time and the label's", 2, found.feed.size)
+        assertEquals("$label: the header's times, one in each lambda its callers make", 2, found.header.size)
+        assertEquals("$label: the header's times are in two lambdas", 2, found.header.map { it.method.definingClass }.distinct().size)
+        assertEquals("$label: the header's times come from the resources", setOf(TimeShape.RESOURCES), found.header.map { it.shape }.toSet())
         assertEquals("$label: the row's times", 2, found.row.size)
-        assertEquals("$label: both shapes", setOf(true, false), found.sites.map { it.asLong }.toSet())
+        assertEquals("$label: every shape", TimeShape.entries.toSet(), found.sites.map { it.shape }.toSet())
 
         val before = found.sites.groupBy { it.method }.mapValues { (method, _) -> method.code() }
         context.showPostTime(found)
@@ -220,7 +261,11 @@ class ShowPostTimeHookTest {
             }
             val code = patched.code()
             for (site in sites) {
-                val hook = if (site.asLong) TIME_AS_LONG else TIME_AS_DOUBLE
+                val hook = when (site.shape) {
+                    TimeShape.DOUBLE -> TIME_AS_DOUBLE
+                    TimeShape.LONG -> TIME_AS_LONG
+                    TimeShape.RESOURCES -> TIME_FROM_RESOURCES
+                }
                 assertEquals("$label ${method.definingClass}->${method.name} @${site.index}", hook, code[site.index].text())
                 assertEquals("the same registers", before.getValue(method)[site.index].registers(), code[site.index].registers())
             }
@@ -240,7 +285,8 @@ class ShowPostTimeHookTest {
         val changed = code.indices.filter { code[it].text() != before[it].text() }
         assertEquals("${method.name}: calls replaced", count, changed.size)
         for (at in changed) {
-            assertEquals("${method.name} @$at: static", Opcode.INVOKE_STATIC, code[at].opcode)
+            val static = if (before[at] is RegisterRangeInstruction) Opcode.INVOKE_STATIC_RANGE else Opcode.INVOKE_STATIC
+            assertEquals("${method.name} @$at: static", static, code[at].opcode)
             assertEquals("${method.name} @$at: the hook", hook, code[at].text())
             assertEquals("${method.name} @$at: Instagram's call", FORMATTER, before[at].text()?.substringBefore("->"))
             assertEquals("${method.name} @$at: the same registers", before[at].registers(), code[at].registers())
@@ -255,8 +301,9 @@ class ShowPostTimeHookTest {
     private fun Method.isPool() = AccessFlags.STATIC.isSet(accessFlags) && returnType == STRING && parameterTypes.map(CharSequence::toString) == listOf("I")
     /** How many boxed Long instance fields the class keeps. */
     private fun ClassDef.times() = fields.count { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == LONG_BOX }
-    private fun Instruction.called() = (this as? ReferenceInstruction)?.reference as? MethodReference
-    private fun Instruction.text(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+    private fun Instruction.reference() = (this as? ReferenceInstruction)?.reference
+    private fun Instruction.called() = reference() as? MethodReference
+    private fun Instruction.text(): String? = reference()?.toString()
     private fun Instruction.registers(): List<Int> = when (this) {
         is FiveRegisterInstruction -> listOf(registerC, registerD, registerE, registerF, registerG).take(registerCount)
         is RegisterRangeInstruction -> (startRegister until startRegister + registerCount).toList()
@@ -265,8 +312,14 @@ class ShowPostTimeHookTest {
 
     private companion object {
         const val FORMATTER = "Lfixture/Time;"
+        const val UNIT = "Lfixture/Unit;"
         const val FOOTER = "Lfixture/Footer;"
+        const val LABEL = "Lfixture/Label;"
         const val HEADER = "Lfixture/Header;"
+        const val HEADER_CALLER = "Lfixture/HeaderCaller;"
+        const val HEADER_TIME = "Lfixture/HeaderTime;"
+        const val ELSEWHERE = "Lfixture/ElsewhereTime;"
+        const val FUNCTION = "Lkotlin/jvm/functions/Function1;"
         const val ROW = "Lfixture/CommentRow;"
         const val ROW_TIME = "Lfixture/CommentRowTime;"
         const val HEADER_TRACE = "${COMMENT_HEADER}CommentAuthorHeader.kt:77)"
@@ -282,6 +335,8 @@ class ShowPostTimeHookTest {
         val RELATIVE = formatting("relative", "D")
         val RELATIVE_TOO = formatting("relativeToo", "D")
         val SHORT = formatting("short", "J")
+        val FROM_RESOURCES = ImmutableMethodReference(FORMATTER, "fromResources", listOf(RESOURCES, UNIT, FORMATTER, INTEGER, "D", "Z"), STRING)
+        val COMPOSE = ImmutableMethodReference(HEADER, "compose", listOf(FUNCTION), "V")
 
         fun method(type: String, name: String, parameters: List<String>, returns: String, access: Int, registers: Int, code: List<Instruction>) =
             ImmutableMethod(type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, access, null, null,
@@ -296,14 +351,56 @@ class ShowPostTimeHookTest {
             registers.getOrElse(2) { 0 }, registers.getOrElse(3) { 0 }, registers.getOrElse(4) { 0 }, reference,
         )
 
+        /** A use case's state builder loading [trace] that asks [formatting] for the post's time. */
+        fun builder(owner: String, trace: String, formatting: ImmutableMethodReference) =
+            // v3 the formatter, v4 the context, v5 and v6 the time; the result lands on the double.
+            type(owner, listOf(method(owner, "state", listOf(FORMATTER, CONTEXT, "J"), "V", PUBLIC_STATIC, 7, listOf(
+                string(0, trace),
+                ImmutableInstruction12x(Opcode.LONG_TO_DOUBLE, 1, 5),
+                call(formatting, 3, 4, 1, 2),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                ImmutableInstruction10x(Opcode.RETURN_VOID),
+            ))))
+
         /**
-         * Shaped like 450's: the formatter, the footer, the Compose header, the row and the row's time
-         * lambda. With [pooledRow] the row asks [pool] for its tag, as 385611395 and 385611400 do.
+         * A Compose lambda writing the comment's time the way 452's do: the boxed time unboxed and made
+         * a double, then the formatter's static resources overload on v0 to v6. this is v7, p1 v8.
          */
-        fun standIns(secondFormatting: Boolean = false, rowTime: Boolean = true, pooledRow: Boolean = false): List<ClassDef> {
+        fun headerTime(owner: String): ClassDef {
+            val resources = ImmutableFieldReference(owner, "resources", RESOURCES)
+            val formatter = ImmutableFieldReference(owner, "formatter", FORMATTER)
+            return type(owner, listOf(method(owner, "invoke", listOf(OBJECT), OBJECT, AccessFlags.PUBLIC.value, 9, listOf(
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 0, 7, resources),
+                ImmutableInstruction11n(Opcode.CONST_4, 1, 0),
+                ImmutableInstruction22c(Opcode.IGET_OBJECT, 2, 7, formatter),
+                ImmutableInstruction11n(Opcode.CONST_4, 3, 0),
+                call(UNBOX, 8),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_WIDE, 4),
+                ImmutableInstruction12x(Opcode.LONG_TO_DOUBLE, 4, 4),
+                ImmutableInstruction11n(Opcode.CONST_4, 6, 0),
+                ImmutableInstruction3rc(Opcode.INVOKE_STATIC_RANGE, 0, 7, FROM_RESOURCES),
+                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
+            ))), listOf(resources, formatter).map { ImmutableField(owner, it.name, it.type, PUBLIC_FINAL, null, null, null) })
+        }
+
+        /**
+         * Shaped like 452's: the formatter, the footer and the label under the comments, the Compose
+         * header and the lambda its caller hands it, the row and the row's time lambda. With
+         * [directHeader] the header asks the formatter itself, as up to 451. With [pooledRow] the row
+         * asks [pool] for its tag, as 450's 385611395 and 385611400 do.
+         */
+        fun standIns(
+            secondFormatting: Boolean = false,
+            rowTime: Boolean = true,
+            pooledRow: Boolean = false,
+            directHeader: Boolean = false,
+        ): List<ClassDef> {
             val formatter = type(FORMATTER, listOf(
-                method(FORMATTER, "core", listOf("Landroid/content/res/Resources;", "Lfixture/Unit;", FORMATTER, "Ljava/lang/Integer;", "D", "D", "Z", "Z", "Z", "Z"),
+                method(FORMATTER, "core", listOf(RESOURCES, UNIT, FORMATTER, INTEGER, "D", "D", "Z", "Z", "Z", "Z"),
                     STRING, PUBLIC_STATIC, 13, listOf(string(0, LONG_AGO_PATTERN), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
+                method(FORMATTER, FROM_RESOURCES.name, FROM_RESOURCES.parameterTypes.map(CharSequence::toString), STRING, PUBLIC_STATIC, 8,
+                    listOf(string(0, ""), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
                 method(FORMATTER, "relative", listOf(CONTEXT, "D"), STRING, AccessFlags.PUBLIC.value, 5,
                     listOf(string(0, ""), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
                 method(FORMATTER, "relativeToo", listOf(CONTEXT, "D"), STRING, AccessFlags.PUBLIC.value, 5,
@@ -311,21 +408,26 @@ class ShowPostTimeHookTest {
                 method(FORMATTER, "short", listOf(CONTEXT, "J"), STRING, AccessFlags.PUBLIC.value, 5,
                     listOf(string(0, ""), ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0))),
             ))
-            // v3 the formatter, v4 the context, v5 and v6 the time; the second result lands on the double.
-            val footer = type(FOOTER, listOf(method(FOOTER, "state", listOf(FORMATTER, CONTEXT, "J"), "V", PUBLIC_STATIC, 7, listOf(
-                string(0, FEED_FOOTER),
-                ImmutableInstruction12x(Opcode.LONG_TO_DOUBLE, 1, 5),
-                call(RELATIVE, 3, 4, 1, 2),
-                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
-                ImmutableInstruction12x(Opcode.LONG_TO_DOUBLE, 1, 5),
-                call(if (secondFormatting) RELATIVE_TOO else RELATIVE, 3, 4, 1, 2),
-                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
-                ImmutableInstruction10x(Opcode.RETURN_VOID),
-            ))))
-            val header = type(HEADER, listOf(method(HEADER, "compose", listOf(FORMATTER, CONTEXT, "J"), "V", PUBLIC_STATIC, 5, listOf(
-                string(0, HEADER_TRACE),
-                call(SHORT, 1, 2, 3, 4),
-                ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+            val footer = builder(FOOTER, FEED_FOOTER, RELATIVE)
+            val label = builder(LABEL, FEED_LABEL, if (secondFormatting) RELATIVE_TOO else RELATIVE)
+            val header = if (directHeader) {
+                type(HEADER, listOf(method(HEADER, "compose", listOf(FORMATTER, CONTEXT, "J"), "V", PUBLIC_STATIC, 5, listOf(
+                    string(0, HEADER_TRACE),
+                    call(SHORT, 1, 2, 3, 4),
+                    ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ))))
+            } else {
+                type(HEADER, listOf(method(HEADER, COMPOSE.name, listOf(FUNCTION), "V", PUBLIC_STATIC, 2, listOf(
+                    string(0, HEADER_TRACE),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ))))
+            }
+            // Makes a class that isn't in the app and the time lambda, and hands the header the lambda.
+            val caller = type(HEADER_CALLER, listOf(method(HEADER_CALLER, "compose", emptyList(), "V", PUBLIC_STATIC, 2, listOf(
+                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 1, ImmutableTypeReference("Ljava/lang/StringBuilder;")),
+                ImmutableInstruction21c(Opcode.NEW_INSTANCE, 0, ImmutableTypeReference(HEADER_TIME)),
+                ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, COMPOSE),
                 ImmutableInstruction10x(Opcode.RETURN_VOID),
             ))))
             val tag = if (pooledRow) listOf(
@@ -376,7 +478,8 @@ class ShowPostTimeHookTest {
                     ImmutableInstruction11x(Opcode.RETURN_OBJECT, 2),
                 )),
             ), lambdaFields.map { ImmutableField(ROW_TIME, it.name, it.type, PUBLIC_FINAL, null, null, null) })
-            return listOf(formatter, footer, header, row, lambda) + if (pooledRow) listOf(pool()) else emptyList()
+            return listOf(formatter, footer, label, header, caller, headerTime(HEADER_TIME), headerTime(ELSEWHERE), row, lambda) +
+                if (pooledRow) listOf(pool()) else emptyList()
         }
 
         /**

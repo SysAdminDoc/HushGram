@@ -33,7 +33,7 @@ public class DmMediaSeenSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.VIEW_DM_MEDIA_ANONYMOUSLY.resetToDefault();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -74,6 +74,12 @@ public class DmMediaSeenSettingsTest {
         assertNotNull(row);
         assertEquals("View DM photos and videos anonymously", row.getTitle().toString());
         assertFalse(row.isChecked());
+        assertEquals("a build with only this patch still shows Messages", "Messages",
+                String.valueOf(row.getParent().getTitle()));
+        for (int i = 0; i < page.getPreferenceScreen().getPreferenceCount(); i++) {
+            assertNotEquals("Ads and privacy has nothing left to list", "Ads and privacy",
+                    String.valueOf(page.getPreferenceScreen().getPreference(i).getTitle()));
+        }
         assertEquals("Stops people seeing that you opened their view once photos and videos. They still disappear "
                 + "after you view them. This is a test feature and starts off.", row.getSummary().toString());
         assertEquals(1, PatchFamily.DM_MEDIA_SEEN.switches.size());
@@ -87,5 +93,14 @@ public class DmMediaSeenSettingsTest {
         PauseForTests.resume();
         assertTrue(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.get());
         assertFalse("the story switch keeps its own default", Settings.VIEW_STORIES_ANONYMOUSLY.get());
+    }
+
+    /** It sat under Ads and privacy before it moved to Messages, so a search for that still finds it. */
+    @Test public void aSearchForItsOldSectionStillFindsIt() throws Exception {
+        open(true);
+        page.searchSettings("Ads and privacy");
+        assertNotNull(page.getPreferenceScreen().findPreference(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key));
+        page.searchSettings("Spoof location");
+        assertNull(page.getPreferenceScreen().findPreference(Settings.VIEW_DM_MEDIA_ANONYMOUSLY.key));
     }
 }

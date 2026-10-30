@@ -3,15 +3,9 @@
   "fixtures": [
     {
       "package": "com.instagram.android",
-      "versionName": "450.0.0.50.77",
-      "versionCode": "385611438",
+      "versionName": "453.0.0.57.79",
+      "versionCode": "385914557",
       "families": [
-        {
-          "family": "disableAnalytics",
-          "patch": "Disable analytics",
-          "targets": ["builder", "graph", "mqtt", "reports", "pings", "stream", "setup"],
-          "optional": []
-        },
         {
           "family": "sanitizeSharingLinks",
           "patch": "Sanitize sharing links",

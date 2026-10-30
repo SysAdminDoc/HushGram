@@ -308,7 +308,7 @@ class FeedDownloadButtonHookTest {
          * the scale type, the drawable, the color and the flag. Every option breaks one thing.
          */
         fun lithoClasses(
-            rowId: Int = 0x7f0b374c,
+            rowId: Int = ROW_BUTTONS_ID,
             twoBuilders: Boolean = false,
             saveTwice: Boolean = false,
             description: Boolean = true,
@@ -339,10 +339,10 @@ class FeedDownloadButtonHookTest {
                     appendLine("invoke-static { v2, v4 }, Lfixture/Style;->desc(${modifier}Ljava/lang/CharSequence;)$modifier")
                     appendLine("move-result-object v2")
                 }
-                appendLine("const v1, 0x7f0b370e")
+                appendLine("const v1, $SAVE_BUTTON_ID")
                 appendLine("invoke-static { v2, v1 }, Lfixture/Style;->id(${modifier}I)$modifier")
                 appendLine("move-result-object v2")
-                if (saveTwice) appendLine("const v0, 0x7f0b370e")
+                if (saveTwice) appendLine("const v0, $SAVE_BUTTON_ID")
                 appendLine("const/4 v9, 0x0")
                 for (style in listOf("tap", "hold", "extra").take(functionStyles)) {
                     appendLine("invoke-static { v2, v9 }, Lfixture/Style;->$style($modifier$function)$modifier")
@@ -485,7 +485,7 @@ class FeedDownloadButtonHookTest {
          * [locals] locals, then `this` and (feed state, row state, holder) as the parameters.
          */
         fun classes(
-            saveId: Int = 0x7f0b370e,
+            saveId: Int = SAVE_BUTTON_ID,
             twoSaves: Boolean = false,
             post: Boolean = true,
             itemParameter: Boolean = true,

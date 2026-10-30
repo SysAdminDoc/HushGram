@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -37,6 +38,7 @@ import org.robolectric.shadows.ShadowLooper;
 
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.reels.HomeHeader;
+import app.hushgram.extension.instagram.reels.MessagesHeaderButton;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
@@ -76,6 +78,7 @@ public class GhostHeaderButtonTest {
         Settings.GHOST_BUTTON_ON_HOME.resetToDefault();
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.HIDE_TYPING.resetToDefault();
+        Settings.GHOST_MODE_PICKS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
     }
@@ -175,6 +178,21 @@ public class GhostHeaderButtonTest {
         assertTrue(icon.isOn());
     }
 
+    /** #251: with one switch picked, a tap turns only that one and the icon follows only it. */
+    @Test public void aTapTurnsOnlyThePickedSwitchesAndTheIconFollowsThem() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        Settings.GHOST_MODE_PICKS.save(Settings.HIDE_TYPING.key);
+        GhostHeaderButton.place(header);
+        ImageView button = ghost();
+        GhostHeaderButton.Ghost icon = (GhostHeaderButton.Ghost) button.getDrawable();
+        button.performClick();
+        assertTrue(Settings.HIDE_TYPING.savedValue());
+        assertFalse("left out, so left alone", Settings.READ_WITHOUT_SEEN_RECEIPT.savedValue());
+        assertTrue(icon.isOn());
+        Settings.GHOST_MODE_PICKS.resetToDefault();
+        assertFalse("picking all again shows it off, since one of the two is off", icon.isOn());
+    }
+
     @Test public void pauseTakesTheButtonOutAndStopsATap() {
         Settings.GHOST_BUTTON_ON_HOME.save(true);
         GhostHeaderButton.place(header);
@@ -272,6 +290,39 @@ public class GhostHeaderButtonTest {
         GhostHeaderButton.place(header);
         assertNull(ghostIn(end));
         assertEquals("right before Messages", row.indexOfChild(inbox) - 1, row.indexOfChild(ghost()));
+    }
+
+    /** The ghost sits right before Messages, so it goes right before HushGram's Messages button where Instagram's isn't on the header (#156). */
+    @Test public void withHushGramsMessagesButtonTheGhostGoesRightBeforeIt() {
+        Settings.GHOST_BUTTON_ON_HOME.save(true);
+        Settings.MESSAGES_BUTTON_ON_HOME.save(true);
+        MessagesHeaderButton.standInIconForTests(on -> new ColorDrawable(Color.BLACK));
+        LinearLayout end = new LinearLayout(context);
+        ImageView bell = new ImageView(context);
+        end.addView(bell);
+        header.addView(end);
+        header.setDirectInbox(null);
+        HomeHeader.standInEndRowForTests(asked -> asked == header ? end : null);
+        try {
+            ActivityController<Activity> screen = Robolectric.buildActivity(Activity.class).setup();
+            screen.get().setContentView(header);
+            GhostHeaderButton.drew(header);
+            ShadowLooper.idleMainLooper();
+
+            ImageView messages = MessagesHeaderButton.in(end);
+            assertNotNull(messages);
+            assertEquals("bell, ghost, Messages", 3, end.getChildCount());
+            assertSame(bell, end.getChildAt(0));
+            assertSame(ghostIn(end), end.getChildAt(1));
+            assertSame(messages, end.getChildAt(2));
+            String report = String.join("\n", HookStatus.report());
+            assertTrue(report, report.contains(GhostHeaderButton.PLACED + " 1"));
+            assertFalse(report, report.contains(GhostHeaderButton.PLACED_AT_END));
+            screen.close();
+        } finally {
+            MessagesHeaderButton.standInIconForTests(null);
+            Settings.MESSAGES_BUTTON_ON_HOME.resetToDefault();
+        }
     }
 
     @Test public void aViewWithNoMessagesGetterIsLeftAlone() {

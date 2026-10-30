@@ -44,12 +44,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.BooleanSupplier;
 
 import androidx.annotation.RequiresApi;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.instagram.settings.ShimmerTitle;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -93,6 +95,8 @@ public final class MessagesLock {
     static final String CHAT_ROOT = "thread_view_root";
     /** Every screen's content, for Lock all of Instagram. */
     static final String APP = "app";
+    /** The HushGram settings' content, in their own window over an activity. */
+    static final String SETTINGS = "settings";
     /** Marks the cover this class puts in a window. */
     static final String COVER_TAG = "hushgram_messages_lock";
 
@@ -146,6 +150,8 @@ public final class MessagesLock {
     /** The screen the open ask belongs to. Its dialog goes with it without a word when it's destroyed. */
     private static WeakReference<Activity> askedBy = new WeakReference<>(null);
     private static boolean askedThisTime;
+    /** The settings' own cover asked since the lock came back, so a cancel isn't asked again at once. */
+    private static boolean settingsAsked;
     /** What the activity in front was last told about the recent apps picture, and when. */
     private static Boolean keptOutOfRecents;
     private static long toldRecentsAt;
@@ -282,15 +288,26 @@ public final class MessagesLock {
             return;
         }
         if (activity == null) return;
+        if (locked()) settingsAsked = true;
         PinLock.ask(activity, then, () -> { });
     }
 
     /**
      * A lock was just turned on while nothing was locked. It waits until you leave Instagram rather
-     * than covering the screen you're on, since you're the one who turned it on.
+     * than covering the screen you're on, since you're the one who turned it on. A chat locked on its
+     * own that hasn't been unlocked since Instagram came back keeps everything shut: the session this
+     * would open is the one that chat, its removal and its notifications share.
      */
     public static void openUntilLeft() {
-        if (!locked()) open = true;
+        if (locked() || chatListLocked()) return;
+        open = true;
+        // The switch is saved once its row's listener returns. The screen under settings is checked
+        // then, so an inbox behind them stays out of the recent apps picture from now on, not from
+        // the next frame it happens to draw, which a leave straight from settings never gets to.
+        Utils.runOnMainThread(() -> {
+            Activity activity = watched.get();
+            if (activity != null) check(activity);
+        });
     }
 
     /**
@@ -303,6 +320,11 @@ public final class MessagesLock {
             then.run();
             return;
         }
+        // Only the settings, and what opens them, ask through here and confirmPinThen. Answered or
+        // not, this is their one ask since the lock came back: a settings file arriving while locked
+        // asks before their window has the focus again, and a cancel leaves their cover with its
+        // Unlock button rather than asking a second time as the focus returns.
+        settingsAsked = true;
         ask(activity, then);
     }
 
@@ -533,7 +555,14 @@ public final class MessagesLock {
     static void relock(boolean askAgain) {
         boolean wasOpen = open;
         open = false;
-        if (askAgain) askedThisTime = false;
+        if (askAgain) {
+            askedThisTime = false;
+            settingsAsked = false;
+        } else {
+            // An ask is up as the lock comes back (on Android 9 and 10 the phone's own check is a
+            // leave). Answered or not, it's the settings' one ask too, so a cancel isn't asked again.
+            settingsAsked = true;
+        }
         if (wasOpen && (switchedOn() || ChatLocks.any())) hideShade();
     }
 
@@ -637,6 +666,33 @@ public final class MessagesLock {
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
+        }
+    }
+
+    /**
+     * The HushGram settings in [dialog], a window of their own over [activity], asked before each of
+     * its frames and when it gets the focus. Kept open across a leave, they'd still work after the
+     * lock came back, since the activity's covers are in the activity's window, under them. While a
+     * lock is on and locked, they get a cover of their own, the lock is asked once while their window
+     * has the focus, and the cover comes off once it says it's you. A cancel leaves the cover with its
+     * Unlock button. True while covered.
+     */
+    public static boolean guardSettings(Activity activity, Window dialog) {
+        try {
+            ViewGroup window = (ViewGroup) dialog.getDecorView();
+            boolean lock = locked();
+            if (!lock) settingsAsked = false;
+            if (!lock && cover(window, SETTINGS) == null) return false;
+            boolean covered = place(activity, window, SETTINGS, lock) && lock;
+            if (covered && !settingsAsked && window.hasWindowFocus()) {
+                settingsAsked = true;
+                HookStatus.counted(FamilyNames.MESSAGES_LOCK, COVERED);
+                ask(activity, null);
+            }
+            return covered;
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.MESSAGES_LOCK, SCREEN, t);
+            return false;
         }
     }
 
@@ -784,7 +840,7 @@ public final class MessagesLock {
     private static final Map<String, Integer> IDS = new java.util.concurrent.ConcurrentHashMap<>();
 
     static int id(Context context, String name) {
-        if (APP.equals(name)) return android.R.id.content;
+        if (APP.equals(name) || SETTINGS.equals(name)) return android.R.id.content;
         Map<String, Integer> forTests = idsForTests;
         if (forTests != null) {
             Integer id = forTests.get(name);
@@ -817,7 +873,7 @@ public final class MessagesLock {
 
         /** The cover over a chat says so when that chat is locked on its own. */
         void titleFor(boolean single) {
-            if (title == null || this.single == single || APP.equals(screen)) return;
+            if (title == null || this.single == single || APP.equals(screen) || SETTINGS.equals(screen)) return;
             this.single = single;
             title.setText(single ? L10n.t("This chat is locked") : L10n.t("Your messages are locked"));
         }
@@ -871,8 +927,9 @@ public final class MessagesLock {
         column.addView(icon, new LinearLayout.LayoutParams(size, size));
 
         TextView title = new TextView(activity);
-        title.setText(wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
-        title.setTextColor(colors.title);
+        title.setText(SETTINGS.equals(screen) ? L10n.t("HushGram settings are locked")
+                : wholeApp ? L10n.t("Instagram is locked") : L10n.t("Your messages are locked"));
+        ShimmerTitle.wear(title);
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
         title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         title.setGravity(Gravity.CENTER);
@@ -980,7 +1037,8 @@ public final class MessagesLock {
      * and read its answer through a small headless fragment: Android 10's prompt in the app's window
      * can't be trusted to offer the PIN on a phone with no fingerprint or face, and Android 9's
      * can't at all. An ask that fails for any reason but your cancel goes to the phone's own check,
-     * so there's always a way in.
+     * so there's always a way in. Unlock with's Fingerprint or face only leaves the PIN, pattern and
+     * password out of the prompt while the phone has a fingerprint or face to ask.
      */
     private static void askPhone(Activity activity, Runnable confirmed, Runnable notConfirmed) {
         KeyguardManager keyguard = activity.getSystemService(KeyguardManager.class);
@@ -1016,42 +1074,130 @@ public final class MessagesLock {
 
     @RequiresApi(30)
     private static void prompt(Activity activity, KeyguardManager keyguard, Runnable confirmed, Runnable notConfirmed) {
+        boolean biometricsOnly = biometricsOnly(activity);
+        promptFor(activity, biometricsOnly, notConfirmed).authenticate(new CancellationSignal(), activity.getMainExecutor(),
+                answer(activity, biometricsOnly, MessagesLock::inFront, confirmed, notConfirmed,
+                        () -> phoneCheck(activity, keyguard, confirmed, notConfirmed)));
+    }
+
+    /** One ask's prompt: the phone's lock in it, or with [biometricsOnly] a Cancel button in its place. */
+    @RequiresApi(30)
+    static BiometricPrompt promptFor(Activity activity, boolean biometricsOnly, Runnable notConfirmed) {
         BiometricPrompt.Builder builder = new BiometricPrompt.Builder(activity)
                 .setTitle(askTitle())
-                .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK
-                        | BiometricManager.Authenticators.DEVICE_CREDENTIAL);
-        builder.build().authenticate(new CancellationSignal(), activity.getMainExecutor(),
-                new BiometricPrompt.AuthenticationCallback() {
-                    @Override
-                    public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
-                        confirmed.run();
-                        refresh(activity);
-                    }
-
-                    @Override
-                    public void onAuthenticationError(int code, CharSequence message) {
-                        if (cancelledByYou(code) || activity.isFinishing()) {
-                            notConfirmed.run();
-                            return;
-                        }
-                        try {
-                            phoneCheck(activity, keyguard, confirmed, notConfirmed);
-                        } catch (Throwable t) {
-                            HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
-                            notConfirmed.run();
-                        }
-                    }
-                });
+                .setAllowedAuthenticators(authenticators(biometricsOnly));
+        // A prompt without the phone's lock must have a button to say no with.
+        if (biometricsOnly) builder.setNegativeButton(L10n.t("Cancel"), activity.getMainExecutor(), (dialog, which) -> notConfirmed.run());
+        return builder.build();
     }
+
+    /**
+     * What the prompt's answer does: a match unlocks, and an error goes on to [phoneCheck] only when
+     * [phoneCheckAfter] says so with Instagram still [inFront]. When Fingerprint or face only waits
+     * out a short lockout or a timeout, the system's own words say why the messages stay covered.
+     */
+    @RequiresApi(30)
+    static BiometricPrompt.AuthenticationCallback answer(Activity activity, boolean biometricsOnly, BooleanSupplier inFront,
+            Runnable confirmed, Runnable notConfirmed, Runnable phoneCheck) {
+        return new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                confirmed.run();
+                refresh(activity);
+            }
+
+            @Override
+            public void onAuthenticationError(int code, CharSequence message) {
+                boolean front = inFront.getAsBoolean() && !activity.isFinishing();
+                if (!phoneCheckAfter(code, biometricsOnly, front)) {
+                    if (front && biometricsOnly && !cancelledByYou(code) && message != null && message.length() > 0) {
+                        Utils.showToastLong(message.toString());
+                    }
+                    notConfirmed.run();
+                    return;
+                }
+                try {
+                    phoneCheck.run();
+                } catch (Throwable t) {
+                    HookStatus.threw(FamilyNames.MESSAGES_LOCK, ASK, t);
+                    notConfirmed.run();
+                }
+            }
+        };
+    }
+
+    /** Whether an Instagram activity is on the screen, so a phone check would open over Instagram. */
+    static boolean inFront() {
+        return started > 0;
+    }
+
+    /**
+     * The framework's BIOMETRIC_ERROR_NEGATIVE_BUTTON, which it keeps hidden. It calls the Cancel
+     * button's listener instead, but some phones report the tap as this error as well.
+     */
+    static final int NEGATIVE_BUTTON = 13;
 
     /**
      * A prompt that ended because you closed it, as opposed to one that couldn't ask (no usable
      * sensor, a lockout, a vendor error), which goes on to the phone's own check.
      */
     static boolean cancelledByYou(int code) {
-        // A prompt that takes the phone's own lock has no button to say no with, only a cancel.
         return code == BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED
-                || code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED;
+                || code == BiometricPrompt.BIOMETRIC_ERROR_CANCELED
+                || code == NEGATIVE_BUTTON;
+    }
+
+    /**
+     * Whether a prompt that ended with [code] goes on to the phone's own check. Not after your
+     * cancel, and not once Instagram has left the screen: the check would open over whatever is
+     * there, and the lock asks again when Instagram comes back (audit A3). With Fingerprint or face
+     * only, a short lockout or a timeout waits for the next try instead, since the phone's check
+     * would let the PIN in after all. Anything that means the fingerprint or face can't be used
+     * (none left, a permanent lockout, no sensor) still goes on, so you're never shut out.
+     */
+    static boolean phoneCheckAfter(int code, boolean biometricsOnly, boolean inFront) {
+        if (cancelledByYou(code) || !inFront) return false;
+        return !biometricsOnly || (code != BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT
+                && code != BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT);
+    }
+
+    /** What the prompt takes: the fingerprint or face, and the phone's lock unless [biometricsOnly]. */
+    static int authenticators(boolean biometricsOnly) {
+        int biometrics = BiometricManager.Authenticators.BIOMETRIC_WEAK;
+        return biometricsOnly ? biometrics : biometrics | BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    }
+
+    /**
+     * Whether the next ask leaves the phone's lock out: Unlock with says Fingerprint or face only
+     * and the phone has one to ask. Removing them all turns the phone's lock back on by itself.
+     */
+    static boolean biometricsOnly(Context context) {
+        return Utils.settingsReady() && Settings.UNLOCK_WITH.get() == UnlockWith.BIOMETRICS && biometricsReady(context);
+    }
+
+    /**
+     * Whether the phone can ask for a fingerprint or face, the same ones the lock's prompt takes. A
+     * lockout counts: Android 16 phones with Identity Check report one in place of SUCCESS (both a
+     * short and a permanent one, as the hidden BiometricManager.BIOMETRIC_ERROR_LOCKOUT, which is
+     * BiometricPrompt's 7), and the PIN must not take over during a short one. The prompt itself
+     * tells the two apart, and a permanent one still goes on to the phone's check.
+     */
+    public static boolean biometricsReady(Context context) {
+        int state = biometricsState(context);
+        return state == BiometricManager.BIOMETRIC_SUCCESS || state == BiometricPrompt.BIOMETRIC_ERROR_LOCKOUT;
+    }
+
+    /** BiometricManager's answer for the fingerprint or face the prompt takes; no hardware before Android 11 or on a failure. */
+    public static int biometricsState(Context context) {
+        if (Build.VERSION.SDK_INT < 30) return BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE;
+        try {
+            BiometricManager biometrics = context.getSystemService(BiometricManager.class);
+            return biometrics == null ? BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE
+                    : biometrics.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK);
+        } catch (Throwable t) {
+            Logger.printException(() -> "Lock your messages: could not ask whether a fingerprint or face is set up", t);
+            return BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE;
+        }
     }
 
     private static String askTitle() {
@@ -1137,6 +1283,11 @@ public final class MessagesLock {
         return MessagesLock::askPhone;
     }
 
+    /** Opened, as a confirmed ask would leave it. */
+    static void openForTests() {
+        open = true;
+    }
+
     /** Back to how a fresh start finds it. */
     static void resetForTests() {
         open = false;
@@ -1146,6 +1297,7 @@ public final class MessagesLock {
         askedAt = 0;
         askedBy = new WeakReference<>(null);
         askedThisTime = false;
+        settingsAsked = false;
         keptOutOfRecents = null;
         toldRecentsAt = 0;
         unfollow();

@@ -16,13 +16,17 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.SwitchPreference;
+import android.provider.DocumentsContract;
 import android.view.WindowManager;
+import android.widget.ListView;
 import android.widget.TextView;
 
 import java.nio.charset.StandardCharsets;
@@ -33,7 +37,10 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.download.DownloadHistory;
 import app.hushgram.extension.instagram.download.DownloadQuality;
+import app.hushgram.extension.instagram.download.SaveTree;
+import app.hushgram.extension.instagram.download.SaveTreeTest;
 import app.hushgram.extension.instagram.download.SavesForTests;
+import app.hushgram.extension.instagram.reels.HiddenSounds;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.Utils;
@@ -46,8 +53,11 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowActivity;
+import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
 import org.robolectric.shadows.ShadowToast;
 
@@ -77,16 +87,185 @@ public class DownloadSettingsTest {
         Settings.POST_DETAILS.resetToDefault();
         Settings.DOWNLOAD_REELS.resetToDefault();
         Settings.DOWNLOAD_REEL_COVER.resetToDefault();
+        Settings.DOWNLOAD_REEL_AUDIO.resetToDefault();
         Settings.DOWNLOAD_VIDEOS.resetToDefault();
         Settings.DOWNLOAD_FEED_COVER.resetToDefault();
         Settings.DOWNLOAD_PHOTOS.resetToDefault();
+        Settings.DOWNLOAD_CHOOSE_PAGES.resetToDefault();
         Settings.FEED_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.FEED_DOWNLOAD_ALL_PAGES.resetToDefault();
+        Settings.REEL_DOWNLOAD_BUTTON.resetToDefault();
+        Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
+        Settings.REEL_BLOCK_BUTTON.resetToDefault();
+        Settings.HIDE_SOUND_REELS.resetToDefault();
+        Settings.HIDDEN_SOUNDS.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
         Settings.HOLD_TIME.resetToDefault();
         Settings.DOWNLOAD_SKIP_SAVED.resetToDefault();
         DownloadHistory.clear(RuntimeEnvironment.getApplication());
         SavesForTests.forgetHistoryForTests();
+    }
+
+    /**
+     * Download button on reels (#178) sits under Downloads, right after the feed post one when that
+     * is in the build too. It starts off, waits for Download on reels and goes in a settings file. A
+     * build without the reel download has none.
+     */
+    @Test
+    public void theReelButtonSitsUnderDownloadsAndWaitsForDownloadOnReels() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup downloads = section(page.getPreferenceScreen(), "Downloads");
+            Preference row = downloads.findPreference(Settings.REEL_DOWNLOAD_BUTTON.key);
+            assertTrue("the reel button isn't under Downloads", row instanceof SwitchPreference);
+            assertEquals("Download button on reels", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("Needs Download on reels"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            assertTrue(row.isEnabled());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("it waits for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD, PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key) + 1, indexOfKey(rows, Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_DOWNLOAD_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_DOWNLOAD_BUTTON.key));
+        }
+    }
+
+    /**
+     * Not interested button on reels (#191) sits under Reels with the reel download in the build. It
+     * starts off, has its own switch and goes in a settings file. A build without the reel download has none.
+     */
+    @Test
+    public void theNotInterestedButtonSitsUnderReelsWithItsOwnSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.REEL_NOT_INTERESTED_BUTTON.key);
+            assertTrue("the Not interested button isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Not interested button on reels", String.valueOf(row.getTitle()));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_NOT_INTERESTED_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_NOT_INTERESTED_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_NOT_INTERESTED_BUTTON.key));
+        }
+    }
+
+    /**
+     * Block button on reels (#191) sits right after the Not interested one under Reels. It starts off,
+     * has its own switch and goes in a settings file. A build without the reel download has none.
+     */
+    @Test
+    public void theBlockButtonSitsAfterNotInterestedWithItsOwnSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.REEL_BLOCK_BUTTON.key);
+            assertTrue("the Block button isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Block button on reels", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("confirm"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.REEL_NOT_INTERESTED_BUTTON.key) + 1, indexOfKey(rows, Settings.REEL_BLOCK_BUTTON.key));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.REEL_BLOCK_BUTTON.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.REEL_BLOCK_BUTTON.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.REEL_BLOCK_BUTTON.key));
+        }
+    }
+
+    /**
+     * Hide reels by sound (#191) sits right after the Block button under Reels, with the Hidden sounds
+     * row under it. The switch starts off and goes in a settings file, the list stays out of one, and
+     * a build without the reel download has neither.
+     */
+    @Test
+    public void hideReelsBySoundSitsAfterBlockWithItsListUnderIt() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.HIDE_SOUND_REELS.key);
+            assertTrue("Hide reels by sound isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Hide reels by sound", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("music icon"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            Preference list = reels.findPreference(HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW);
+            assertNotNull("no Hidden sounds row", list);
+            assertEquals("Hidden sounds", String.valueOf(list.getTitle()));
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, Settings.REEL_BLOCK_BUTTON.key) + 1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
+            assertEquals(indexOfKey(rows, Settings.HIDE_SOUND_REELS.key) + 1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDDEN_SOUNDS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            assertEquals(-1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
+            assertEquals(-1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+        }
+    }
+
+    /** Hidden sounds lists each sound by title and artist, checked; unchecking one brings its reels back and checking it hides them again. */
+    @Test
+    public void hiddenSoundsListsEachSoundAndUncheckingOneBringsItsReelsBack() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference row = page.findPreference(HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW);
+            assertTrue(row.getOnPreferenceClickListener().onPreferenceClick(row));
+            ShadowLooper.idleMainLooper();
+            AlertDialog empty = ShadowAlertDialog.getLatestAlertDialog();
+            assertTrue(String.valueOf(Shadows.shadowOf(empty).getMessage()).startsWith("No sounds are hidden yet."));
+            empty.dismiss();
+
+            HiddenSounds.add(new HiddenSounds.Sound("111", "Espresso", "Sabrina Carpenter"));
+            HiddenSounds.add(new HiddenSounds.Sound("222", "Original audio", "@nasa"));
+            page.showHiddenSounds();
+            ShadowLooper.idleMainLooper();
+            ListView list = ShadowAlertDialog.getLatestAlertDialog().getListView();
+            assertEquals(2, list.getCount());
+            assertEquals(L10n.isolate("Espresso by Sabrina Carpenter"), list.getItemAtPosition(0).toString());
+            assertTrue(list.isItemChecked(0));
+
+            assertTrue(list.performItemClick(list.getAdapter().getView(0, null, list), 0, list.getItemIdAtPosition(0)));
+            ShadowLooper.idleMainLooper();
+            assertTrue(String.valueOf(ShadowToast.getTextOfLatestToast()).startsWith("Showing reels with"));
+            assertFalse(HiddenSounds.hides("111"));
+            assertTrue(HiddenSounds.hides("222"));
+
+            assertTrue(list.performItemClick(list.getAdapter().getView(0, null, list), 0, list.getItemIdAtPosition(0)));
+            ShadowLooper.idleMainLooper();
+            assertTrue(String.valueOf(ShadowToast.getTextOfLatestToast()).startsWith("Hiding reels with"));
+            assertTrue(HiddenSounds.hides("111"));
+        }
     }
 
     /** The reel switch sits in Reels, starts on, and says Instagram's menu comes back when it's off. */
@@ -119,6 +298,18 @@ public class DownloadSettingsTest {
             assertTrue(cover.isEnabled());
             assertEquals(java.util.Collections.singletonList(Settings.DOWNLOAD_REELS), PatchFamily.REEL_DOWNLOAD.switches);
             assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_COVER.key));
+
+            Preference audio = reels.findPreference(Settings.DOWNLOAD_REEL_AUDIO.key);
+            assertTrue("Download audio isn't in Reels", audio instanceof SwitchPreference);
+            assertEquals("Download audio", String.valueOf(audio.getTitle()));
+            assertFalse("Download audio starts off", ((SwitchPreference) audio).isChecked());
+            ((SwitchPreference) row).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse("Download audio waits for Download on reels", audio.isEnabled());
+            ((SwitchPreference) row).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(audio.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_REEL_AUDIO.key));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
@@ -131,7 +322,8 @@ public class DownloadSettingsTest {
 
     /**
      * Saves other apps can open is a switch every save reads, so it's under Downloads with the
-     * download patch in, right above the quality it keeps within, and starts off.
+     * download patch in, above the quality it keeps within, and starts off. The switch that converts
+     * a VP9 or AV1 full size picture for those saves sits right under it, also off (#236).
      */
     @Test
     public void theCompatibleSwitchSitsAboveTheQuality() {
@@ -143,16 +335,41 @@ public class DownloadSettingsTest {
             Preference row = rows.get(compatible);
             assertTrue(row instanceof SwitchPreference);
             assertFalse(((SwitchPreference) row).isChecked());
-            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, compatible);
             assertEquals("Save videos other apps can open", String.valueOf(row.getTitle()));
             assertEquals("For WhatsApp, video editors such as CapCut and InShot, or a gallery or player that plays saves "
                     + "without sound. May lower quality.", String.valueOf(row.getSummary()));
+
+            int convert = indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key);
+            assertEquals("the convert switch isn't right under the compatible one", compatible + 1, convert);
+            Preference convertRow = rows.get(convert);
+            assertTrue(convertRow instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) convertRow).isChecked());
+            assertEquals("Convert to keep the full size", String.valueOf(convertRow.getTitle()));
+            assertEquals("Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 "
+                    + "is converted to H.264 on your phone instead of saved smaller. Slower, and videos over "
+                    + "3 minutes stay smaller.", String.valueOf(convertRow.getSummary()));
+
+            int noAv1 = indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key);
+            assertEquals("the AV1 switch isn't right under the convert one (#379)", convert + 1, noAv1);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, noAv1);
+            Preference noAv1Row = rows.get(noAv1);
+            assertTrue(noAv1Row instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) noAv1Row).isChecked());
+            assertEquals("Never save AV1 video", String.valueOf(noAv1Row.getTitle()));
+            assertEquals("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved "
+                    + "as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size "
+                    + "then converts only VP9.", String.valueOf(noAv1Row.getSummary()));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
             assertEquals("a compatible-saves row with no download in the build",
-                    -1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_COMPATIBLE.key));
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_COMPATIBLE.key));
+            assertEquals("a convert row with no download in the build",
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key));
+            assertEquals("an AV1 row with no download in the build",
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key));
         }
     }
 
@@ -314,6 +531,80 @@ public class DownloadSettingsTest {
     }
 
     /**
+     * Choose carousel pages sits right under Details, with the feed menu's other rows. It starts
+     * off, waits for Download feed videos or Download feed photos, and goes in a settings file. A
+     * build with only reel downloads has no feed menu for it, so no row.
+     */
+    @Test
+    public void chooseCarouselPagesSitsUnderDetailsAndWaitsForAFeedSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int choose = indexOfKey(rows, Settings.DOWNLOAD_CHOOSE_PAGES.key);
+            assertEquals(indexOfKey(rows, Settings.POST_DETAILS.key) + 1, choose);
+            SwitchPreference row = (SwitchPreference) rows.get(choose);
+            assertEquals("Choose carousel pages", String.valueOf(row.getTitle()));
+            assertFalse("Choose carousel pages starts off", row.isChecked());
+            assertFalse("it waits for a feed download switch", row.isEnabled());
+            SwitchPreference photos = (SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key));
+            photos.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue("the photo switch alone is enough", row.isEnabled());
+            photos.setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertFalse(row.isEnabled());
+            SwitchPreference videos = (SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_VIDEOS.key));
+            videos.setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue("the video switch alone is enough", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_CHOOSE_PAGES.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.DOWNLOAD_CHOOSE_PAGES.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.DOWNLOAD_CHOOSE_PAGES.key));
+        }
+    }
+
+    /**
+     * Save every page without asking sits right under the feed's Download button, starts off, waits
+     * for the button and goes in a settings file with it (#190).
+     */
+    @Test
+    public void saveEveryPageSitsUnderTheFeedButtonAndWaitsForIt() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            List<Preference> rows = rowsOf(pageIn(controller));
+            int at = indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key);
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, at);
+            SwitchPreference all = (SwitchPreference) rows.get(at);
+            assertEquals("Save every page without asking", String.valueOf(all.getTitle()));
+            assertFalse("it starts off", all.isChecked());
+            assertFalse("it waits for the Download button", all.isEnabled());
+            ((SwitchPreference) rows.get(indexOfKey(rows, Settings.DOWNLOAD_PHOTOS.key))).setChecked(true);
+            ((SwitchPreference) rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key))).setChecked(true);
+            ShadowLooper.idleMainLooper();
+            assertTrue(all.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_DOWNLOAD_ALL_PAGES.key));
+        }
+    }
+
+    /** Searching the patch's name finds the feed button and the switch under it, though neither says it. */
+    @Test
+    public void searchingThePatchsNameFindsTheFeedButtonRows() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            List<Preference> rows = rowsOf(page);
+            Preference button = rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key));
+            Preference all = rows.get(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key));
+            page.searchSettings("download any video");
+            assertNotNull("the feed button", button.getParent());
+            assertNotNull("save every page", all.getParent());
+        }
+    }
+
+    /**
      * Hold to download sits right below the Download button, starts off and waits for Download feed
      * videos or photos, as the button does. Its Fingers and Hold time lists follow it, start on two
      * fingers and a second, wait for it, and go in a settings file with it. A build with only reel
@@ -326,7 +617,7 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             List<Preference> rows = rowsOf(pageIn(controller));
             int at = indexOfKey(rows, Settings.HOLD_TO_DOWNLOAD.key);
-            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_BUTTON.key) + 1, at);
+            assertEquals(indexOfKey(rows, Settings.FEED_DOWNLOAD_ALL_PAGES.key) + 1, at);
             SwitchPreference hold = (SwitchPreference) rows.get(at);
             assertEquals("Hold to download", String.valueOf(hold.getTitle()));
             assertTrue(String.valueOf(hold.getSummary()).contains("Needs Download feed videos or photos"));
@@ -404,6 +695,115 @@ public class DownloadSettingsTest {
         }
     }
 
+    /**
+     * Choose a folder and Use Movies and Pictures sit right under Save folder (#333). Choose opens
+     * Android's folder picker, the folder picked becomes where saves go and the row says so, a
+     * cancelled picker changes nothing, and Use Movies and Pictures, there only once a folder is
+     * picked, puts saves back. The folder picked never goes in a settings file.
+     */
+    @Test
+    public void chooseAFolderPicksWhereSavesGoAndUseMoviesAndPicturesPutsThemBack() throws Exception {
+        SaveTreeTest.install();
+        Uri tree = SaveTreeTest.TREE;
+        String label = L10n.isolate("Download/.Insta");
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup downloads = section(page.getPreferenceScreen(), "Downloads");
+            int choose = -1;
+            int gallery = -1;
+            for (int i = 0; i < downloads.getPreferenceCount(); i++) {
+                String key = downloads.getPreference(i).getKey();
+                if (Settings.SAVE_TREE.key.equals(key)) choose = i;
+                if (HushgramPreferenceFragment.GALLERY_FOLDERS.equals(key)) gallery = i;
+            }
+            assertEquals("the folder choice isn't the last pair in Downloads", downloads.getPreferenceCount() - 2, choose);
+            assertEquals(choose + 1, gallery);
+            Preference chooseRow = downloads.getPreference(choose);
+            Preference galleryRow = downloads.getPreference(gallery);
+            assertEquals("Choose a folder", String.valueOf(chooseRow.getTitle()));
+            assertTrue(String.valueOf(chooseRow.getSummary()),
+                    String.valueOf(chooseRow.getSummary()).startsWith("Saves go to Movies and Pictures."));
+            assertEquals("Use Movies and Pictures", String.valueOf(galleryRow.getTitle()));
+            assertFalse("Use Movies and Pictures works with no folder picked", galleryRow.isEnabled());
+
+            assertTrue(chooseRow.getOnPreferenceClickListener().onPreferenceClick(chooseRow));
+            ShadowActivity.IntentForResult asked = Shadows.shadowOf(controller.get()).getNextStartedActivityForResult();
+            assertNotNull("no folder picker opened", asked);
+            assertEquals(Intent.ACTION_OPEN_DOCUMENT_TREE, asked.intent.getAction());
+            assertTrue("the picker's grant can't be kept",
+                    (asked.intent.getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0);
+            assertFalse("Choose a folder works again while the picker is open", chooseRow.isEnabled());
+            page.onActivityResult(asked.requestCode, Activity.RESULT_OK, new Intent().setData(tree));
+            ShadowLooper.idleMainLooper();
+            assertEquals(tree.toString(), Settings.SAVE_TREE.get());
+            assertEquals("Folder set to " + label + ".", ShadowToast.getTextOfLatestToast());
+            assertEquals(L10n.f("Photos and videos go to %1$s. Tap to pick another folder.", label),
+                    String.valueOf(chooseRow.getSummary()));
+            assertTrue(chooseRow.isEnabled());
+            assertTrue(galleryRow.isEnabled());
+
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SAVE_TREE.key));
+            String exported = new String(ConfigurationBackup.export(), StandardCharsets.UTF_8);
+            assertFalse("the folder picked went into a settings file", exported.contains(Settings.SAVE_TREE.key));
+            assertFalse("the folder picked went into a settings file", exported.contains("externalstorage"));
+
+            assertTrue(chooseRow.getOnPreferenceClickListener().onPreferenceClick(chooseRow));
+            asked = Shadows.shadowOf(controller.get()).getNextStartedActivityForResult();
+            assertEquals("the picker doesn't start in the folder picked", SaveTree.root(tree),
+                    asked.intent.getParcelableExtra(DocumentsContract.EXTRA_INITIAL_URI));
+            page.onActivityResult(asked.requestCode, Activity.RESULT_CANCELED, null);
+            assertEquals("a cancelled picker changed the folder", tree.toString(), Settings.SAVE_TREE.get());
+
+            assertTrue(galleryRow.getOnPreferenceClickListener().onPreferenceClick(galleryRow));
+            ShadowLooper.idleMainLooper();
+            assertEquals("", Settings.SAVE_TREE.get());
+            assertEquals("Saves go to Movies and Pictures again.", ShadowToast.getTextOfLatestToast());
+            assertFalse(galleryRow.isEnabled());
+            assertTrue(String.valueOf(chooseRow.getSummary()).startsWith("Saves go to Movies and Pictures."));
+        } finally {
+            SaveTree.forget(RuntimeEnvironment.getApplication());
+        }
+    }
+
+    /** A folder whose grant went: the row says saves went back, and to pick it again. */
+    @Test
+    public void aFolderOutOfReachSaysSoOnItsRow() {
+        SaveTreeTest.install();
+        Context context = RuntimeEnvironment.getApplication();
+        assertTrue(SaveTree.keep(context, SaveTreeTest.TREE));
+        context.getContentResolver().releasePersistableUriPermission(SaveTreeTest.TREE,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            Preference row = pageIn(controller).findPreference(Settings.SAVE_TREE.key);
+            assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+                    L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
+        } finally {
+            SaveTree.forget(context);
+        }
+    }
+
+    /** A folder deleted in Files keeps its grant, but its row says saves went back, not that they go there. */
+    @Test
+    public void aDeletedFolderSaysSoOnItsRow() {
+        SaveTreeTest.Tree tree = SaveTreeTest.install();
+        Context context = RuntimeEnvironment.getApplication();
+        assertTrue(SaveTree.keep(context, SaveTreeTest.TREE));
+        tree.deleteFolder();
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference row = page.findPreference(Settings.SAVE_TREE.key);
+            assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
+                    L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
+            assertTrue("Use Movies and Pictures can't be tapped for a deleted folder",
+                    page.findPreference(HushgramPreferenceFragment.GALLERY_FOLDERS).isEnabled());
+        } finally {
+            SaveTree.forget(context);
+        }
+    }
+
     /** Name saves by account and post time sits right under Folder per account, starts off and goes in a settings file. */
     @Test
     public void nameSavesByPostSitsUnderFolderPerAccount() {
@@ -429,9 +829,10 @@ public class DownloadSettingsTest {
     }
 
     /**
-     * Skip what's already saved sits right under Name saves by account and post time, with Clear
-     * download history under it. The switch starts off and goes in a settings file, the list it keeps
-     * never does, and Clear forgets the list at once and says so (#150).
+     * Skip what's already saved sits in the download naming rows, under Name saves by account and
+     * post time and the Add the source to saved photos row that follows it, with Clear download
+     * history directly under Skip. The switch starts off and goes in a settings file, the list it
+     * keeps never does, and Clear forgets the list at once and says so (#150).
      */
     @Test
     public void skipWhatsAlreadySavedSitsUnderTheNameSwitchWithItsClearRow() throws Exception {
@@ -442,15 +843,18 @@ public class DownloadSettingsTest {
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             PreferenceGroup downloads = section(pageIn(controller).getPreferenceScreen(), "Downloads");
             int byPost = -1;
+            int metadata = -1;
             int skip = -1;
             int clear = -1;
             for (int i = 0; i < downloads.getPreferenceCount(); i++) {
                 String key = downloads.getPreference(i).getKey();
                 if (Settings.SAVE_NAME_BY_POST.key.equals(key)) byPost = i;
+                if (Settings.SAVE_PHOTO_METADATA.key.equals(key)) metadata = i;
                 if (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key)) skip = i;
                 if (HushgramPreferenceFragment.CLEAR_DOWNLOAD_HISTORY.equals(key)) clear = i;
             }
-            assertEquals(byPost + 1, skip);
+            assertEquals(byPost + 1, metadata);
+            assertEquals(metadata + 1, skip);
             assertEquals(skip + 1, clear);
 
             Preference row = downloads.getPreference(skip);
@@ -546,7 +950,8 @@ public class DownloadSettingsTest {
                     nameAt >= 0 && rows.get(nameAt) instanceof HushgramPreferenceFragment.FileNameRow);
             HushgramPreferenceFragment.FileNameRow name = (HushgramPreferenceFragment.FileNameRow) rows.get(nameAt);
             assertEquals("the file name row isn't next to the folder", indexOfKey(rows, Settings.SAVE_FOLDER.key) + 1, nameAt);
-            assertEquals("Video file name", String.valueOf(name.getTitle()));
+            assertEquals("Download file name", String.valueOf(name.getTitle()));
+            assertTrue(String.valueOf(name.getDialogMessage()).contains("{shortcode}"));
             // The photo prefix is HushGram's own, so the summary doesn't call it Instagram's.
             assertEquals("Videos are named " + L10n.isolate("IG_VID_{date}") + ". Photos are always named "
                     + L10n.isolate("IG_IMG_") + " followed by the date and time.", String.valueOf(name.getSummary()));
@@ -587,6 +992,13 @@ public class DownloadSettingsTest {
             ShadowLooper.idleMainLooper();
             assertEquals("IG_VID_{date}", name.getText());
             assertEquals("IG_VID_{date}", Settings.FILENAME_TEMPLATE.savedValue());
+
+            assertTrue(ok.onPreferenceChange(name, "{shortcode}"));
+            name.setText("{shortcode}");
+            ShadowLooper.idleMainLooper();
+            assertEquals("{shortcode}", Settings.FILENAME_TEMPLATE.savedValue());
+            assertEquals("Videos and photos use " + L10n.isolate("{shortcode}")
+                    + ". Unknown codes are left out.", name.getSummary().toString());
         }
     }
 
@@ -595,6 +1007,8 @@ public class DownloadSettingsTest {
     public void theFileNameExampleIsThePipelinesNameAndCancelKeepsTheTemplate() {
         assertEquals("Example_123456.mp4",
                 HushgramPreferenceFragment.FileNameRow.previewName("Example_{video_id}", new java.util.Date(0)));
+        assertEquals("eJA.mp4",
+                HushgramPreferenceFragment.FileNameRow.previewName("{shortcode}", new java.util.Date(0)));
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
             HushgramPreferenceFragment.FileNameRow name = (HushgramPreferenceFragment.FileNameRow)
@@ -650,7 +1064,7 @@ public class DownloadSettingsTest {
                 int titleId = list.getContext().getResources().getIdentifier("alertTitle", "id", "android");
                 TextView title = list.findViewById(titleId);
                 assertEquals("Download quality", String.valueOf(title.getText()));
-                assertEquals(ScreenColors.DEFAULT.title, title.getCurrentTextColor());
+                assertTrue("dialog titles wear HushGram's gradient", ShimmerTitle.wears(title));
                 assertEquals(DownloadQuality.values().length, list.getListView().getAdapter().getCount());
             } finally {
                 row.getDialog().dismiss();

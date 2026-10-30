@@ -15,11 +15,13 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowActivity;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -30,8 +32,14 @@ import app.hushgram.extension.shared.SettingsContextRule;
  * sheet gave on Instagram 449 on a phone, 2026-09-29: a per-share stkn and no igsh.
  */
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 36, 37})
 public class LinkCleanerTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
+
+    @Before
+    public void targetLikeInstagram() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37; // Instagram 453's target on every runtime.
+    }
 
     @Test
     public void copyLinkOn449LosesItsShareToken() {
@@ -309,6 +317,23 @@ public class LinkCleanerTest {
             assertEquals("Instagram's other hosts stay", "https://ig.me/m/someone", LinkCleaner.cleanText("https://ig.me/m/someone?igsh=a"));
             assertEquals("a link the server hands out keeps its host", "https://www.instagram.com/p/C1/",
                     LinkCleaner.sanitizeShared("https://www.instagram.com/p/C1/?stkn=abc"));
+        } finally {
+            Settings.SHARING_DOMAIN.resetToDefault();
+        }
+    }
+
+    /**
+     * The in-app browser's Share and Copy link move an Instagram page to the Sharing domain too,
+     * and a page on another site only loses its ad keys (PR #304, Aholicknight).
+     */
+    @Test
+    public void inAppBrowserShareAndCopyLinksMoveToTheSharingDomain() {
+        Settings.SHARING_DOMAIN.save("example.com");
+        try {
+            assertEquals("https://example.com/reel/C1/",
+                    LinkCleaner.browserLink("https://www.instagram.com/reel/C1/?igsh=abc&utm_source=ig_web_copy_link"));
+            assertEquals("https://example.org/page?x=1",
+                    LinkCleaner.browserLink("https://example.org/page?fbclid=abc&utm_source=campaign&x=1"));
         } finally {
             Settings.SHARING_DOMAIN.resetToDefault();
         }

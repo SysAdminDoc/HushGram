@@ -124,8 +124,8 @@ class HideExploreGridHookTest {
     }
 
     /**
-     * A key Redex asks a string pool for by number, as 450's 385611395 build does with
-     * auto_load_more_enabled, is read back through the pool, and its flag is still turned off (#77).
+     * A key Redex asks a string pool for by number, as some builds do with auto_load_more_enabled,
+     * is read back through the pool, and its flag is still turned off (#77).
      */
     @Test
     fun aPooledKeyIsReadThroughItsPool() {
@@ -147,8 +147,31 @@ class HideExploreGridHookTest {
     }
 
     /**
+     * 451's 385713109 and 385713111 ask a string pool for sectional_items, so the parser holds only
+     * its paging token. It's still the one parser, read through the pool, and its page is emptied.
+     */
+    @Test
+    fun aParserAskingAPoolForItsSectionsIsFound() {
+        val context = PatchContexts.of(listOf(parser(pooledSections = true), pool(SECTIONS)))
+
+        val found = context.findExploreParser()
+        context.emptyExplorePages(found)
+
+        assertEquals("A06", found.sections.name)
+        assertEmptiedBeforeReturn("pooled sections", context.mutableClassDefBy(PARSER).methods.single { it.name == "unsafeParseFromJson" })
+    }
+
+    /** Without the pool, the pooled sections can't be told, so no parser is found. */
+    @Test
+    fun pooledSectionsWithoutTheirPoolFailThePatch() {
+        val context = PatchContexts.of(listOf(parser(pooledSections = true)))
+        val failure = assertThrows(PatchException::class.java) { context.findExploreParser() }
+        assertTrue(failure.message!!, failure.message!!.contains("expected one Explore page parser holding $SECTIONS and $PAGING_TOKEN, found 0"))
+    }
+
+    /**
      * In each declared build there's one topical Explore parser, its page fields are found, and after
-     * the patch its return goes past the extension. On 449 that's LX/0AdL.
+     * the patch its return goes past the extension. On 451's 385713073 that's LX/0BZm.
      */
     @Test
     fun eachDeclaredBuildEmptiesTheExplorePage() {
@@ -163,7 +186,7 @@ class HideExploreGridHookTest {
         assertTrue("no fixture of a declared build", checked > 0)
     }
 
-    /** The same in the other arm64 builds of each declared version, one of which pools a key (#77). */
+    /** The same in the other builds of each declared version; 451's 385713109 and 385713111 pool the sections key (#77). */
     @Test
     fun eachOtherBuildEmptiesTheExplorePage() {
         for (apk in Fixtures.otherBuilds()) emptiesTheExplorePage(apk, apk.parentFile.name)
@@ -173,7 +196,7 @@ class HideExploreGridHookTest {
         val holders = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
-                if (classDef.methods.any { it.holds(SECTIONS) }) holders += ImmutableClassDef.of(classDef)
+                if (classDef.methods.any { it.holds(SECTIONS) || it.holds(PAGING_TOKEN) }) holders += ImmutableClassDef.of(classDef)
             }
         }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, holders))
@@ -232,31 +255,34 @@ class HideExploreGridHookTest {
 
         /**
          * Shaped like 449's: a new page, a branch to the return as the parser's loop has, then each
-         * key followed by the write of its value into the page. [pooledAutoLoad] asks [pool] for one
-         * key by number instead, three instructions and four more code units where the branch skips.
+         * key followed by the write of its value into the page. [pooledAutoLoad] and [pooledSections]
+         * ask [pool] for that key by number instead, three instructions and four more code units each
+         * where the branch skips.
          */
         fun parser(
             type: String = PARSER,
             pagingToken: String = PAGING_TOKEN,
             moreAvailableType: String = "Z",
             pooledAutoLoad: Boolean = false,
+            pooledSections: Boolean = false,
         ): ClassDef {
             fun string(key: String) = ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(key))
             fun put(opcode: Opcode, value: Int, name: String, fieldType: String) =
                 ImmutableInstruction22c(opcode, value, 3, ImmutableFieldReference(PAGE, name, fieldType))
             val moreOpcode = if (moreAvailableType == "Z") Opcode.IPUT_BOOLEAN else Opcode.IPUT
-            val autoLoad = if (!pooledAutoLoad) listOf(string(AUTO_LOAD_MORE)) else listOf(
+            fun key(key: String, pooled: Boolean) = if (!pooled) listOf(string(key)) else listOf(
                 ImmutableInstruction21s(Opcode.CONST_16, 0, POOLED),
                 ImmutableInstruction35c(Opcode.INVOKE_STATIC, 1, 0, 0, 0, 0, 0, ImmutableMethodReference(POOL, "A00", listOf("I"), "Ljava/lang/String;")),
                 ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
             )
+            val autoLoad = key(AUTO_LOAD_MORE, pooledAutoLoad)
             val code = listOf<Instruction>(
                 ImmutableInstruction21c(Opcode.NEW_INSTANCE, 3, ImmutableTypeReference(PAGE)),
                 ImmutableInstruction35c(Opcode.INVOKE_DIRECT, 1, 3, 0, 0, 0, 0, ImmutableMethodReference(PAGE, "<init>", emptyList(), "V")),
-                ImmutableInstruction21t(Opcode.IF_EQZ, 5, if (pooledAutoLoad) 24 else 20),
+                ImmutableInstruction21t(Opcode.IF_EQZ, 5, 20 + listOf(pooledAutoLoad, pooledSections).count { it } * 4),
                 string("next_max_id"),
                 put(Opcode.IPUT_OBJECT, 2, "A03", "Ljava/lang/String;"),
-                string(SECTIONS),
+            ) + key(SECTIONS, pooledSections) + listOf(
                 put(Opcode.IPUT_OBJECT, 2, "A06", "Ljava/util/List;"),
                 string(MORE_AVAILABLE),
                 put(moreOpcode, 1, "A09", moreAvailableType),
@@ -278,10 +304,10 @@ class HideExploreGridHookTest {
         }
 
         /**
-         * A Redex string pool: a packed switch from [POOLED] to [AUTO_LOAD_MORE], anything else null.
+         * A Redex string pool: a packed switch from [POOLED] to [key], anything else null.
          *   0 packed-switch p0, +8   3 const/4 v0   4 return-object   5 const-string   7 return-object   8 payload
          */
-        fun pool(): ClassDef = ImmutableClassDef(
+        fun pool(key: String = AUTO_LOAD_MORE): ClassDef = ImmutableClassDef(
             POOL, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;", null, null, null, null,
             listOf(
                 ImmutableMethod(
@@ -291,7 +317,7 @@ class HideExploreGridHookTest {
                         ImmutableInstruction31t(Opcode.PACKED_SWITCH, 1, 8),
                         ImmutableInstruction11n(Opcode.CONST_4, 0, 0),
                         ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
-                        ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(AUTO_LOAD_MORE)),
+                        ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(key)),
                         ImmutableInstruction11x(Opcode.RETURN_OBJECT, 0),
                         ImmutablePackedSwitchPayload(listOf(ImmutableSwitchElement(POOLED, 5))),
                     ), null, null),

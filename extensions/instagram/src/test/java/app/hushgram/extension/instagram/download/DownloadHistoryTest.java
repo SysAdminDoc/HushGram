@@ -82,7 +82,7 @@ public class DownloadHistoryTest {
 
     @Before public void setUp() throws Exception {
         context = RuntimeEnvironment.getApplication();
-        context.getApplicationInfo().targetSdkVersion = 36;
+        context.getApplicationInfo().targetSdkVersion = 37;
         server = new LocalServer();
         CarouselSaveTest.LocalCandidates.origin = server.origin();
         MediaSave.policyForTests = new MediaUrlPolicy(host -> new InetAddress[]{InetAddress.getByName("10.9.8.7")}) {
@@ -434,6 +434,62 @@ public class DownloadHistoryTest {
         assertTrue(DownloadHistory.remembers(context, "owner/2/0/v"));
     }
 
+    @Test public void aLineTooLongNotUtf8OrCutShortIsSkippedAndTheFileIsWrittenAfresh() throws Exception {
+        char[] folder = new char[DownloadHistory.MAX_LINE_CHARS];
+        Arrays.fill(folder, 'f');
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bytes.write(utf8(saveLine("owner/1/0/v", "")));
+        bytes.write(utf8(saveLine("owner/2/0/v", "").replace("Movies/Instagram", new String(folder))));
+        bytes.write(utf8(saveLine("owner/3/0/v", "")));
+        // A poster whose bytes aren't UTF-8: 0xC3 starts a two-byte character that '(' can't end.
+        bytes.write(utf8(saveLine("owner/4/0/v", "@").split("@")[0]));
+        bytes.write(new byte[]{(byte) 0xC3, '('});
+        bytes.write(utf8(saveLine("owner/4/0/v", "@").split("@")[1]));
+        // The last line ends inside a write that was cut short.
+        String cut = saveLine("owner/5/0/v", "");
+        bytes.write(utf8(cut.substring(0, cut.length() - 1)));
+        write(bytes.toByteArray());
+
+        assertEquals(2, DownloadHistory.count(context));
+        assertTrue(DownloadHistory.remembers(context, "owner/1/0/v"));
+        assertTrue(DownloadHistory.remembers(context, "owner/3/0/v"));
+        assertFalse("a line past the budget was read", DownloadHistory.remembers(context, "owner/2/0/v"));
+        assertFalse("a line that isn't UTF-8 was read", DownloadHistory.remembers(context, "owner/4/0/v"));
+        assertFalse("a line cut short was read", DownloadHistory.remembers(context, "owner/5/0/v"));
+
+        // The next save writes the file afresh, without the damage, and it reads back after a restart.
+        DownloadHistory.remember(context, "owner/6/0/v", "content://media/external/video/media/6", "Movies/Instagram", null);
+        List<String> lines = Files.readAllLines(DownloadHistory.file(context).toPath(), StandardCharsets.UTF_8);
+        assertEquals(lines.toString(), 3, lines.size());
+        assertTrue(lines.get(0), lines.get(0).startsWith("+\towner/1/0/v\t"));
+        assertTrue(lines.get(1), lines.get(1).startsWith("+\towner/3/0/v\t"));
+        assertTrue(lines.get(2), lines.get(2).startsWith("+\towner/6/0/v\t"));
+        DownloadHistory.forgetForTests();
+        assertEquals(3, DownloadHistory.count(context));
+    }
+
+    @Test public void aSwollenFileIsReadOnlyToItsBudgetAndWrittenAfresh() throws Exception {
+        byte[] swollen = new byte[(int) DownloadHistory.MAX_CHARS_READ];
+        Arrays.fill(swollen, (byte) 'x');
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        bytes.write(utf8(saveLine("owner/1/0/v", "")));
+        bytes.write(swollen);
+        bytes.write('\n');
+        bytes.write(utf8(saveLine("owner/2/0/v", "")));
+        write(bytes.toByteArray());
+
+        assertEquals(1, DownloadHistory.count(context));
+        assertTrue(DownloadHistory.remembers(context, "owner/1/0/v"));
+        assertFalse("a line past the budget was read", DownloadHistory.remembers(context, "owner/2/0/v"));
+
+        // What's saved next isn't lost past the budget: the file is written afresh and reads back whole.
+        DownloadHistory.remember(context, "owner/3/0/v", "content://media/external/video/media/3", "Movies/Instagram", null);
+        assertEquals(2, Files.readAllLines(DownloadHistory.file(context).toPath(), StandardCharsets.UTF_8).size());
+        DownloadHistory.forgetForTests();
+        assertEquals(2, DownloadHistory.count(context));
+        assertTrue(DownloadHistory.remembers(context, "owner/3/0/v"));
+    }
+
     @Test public void onAndroidNineTheFileItselfAnswers() throws Exception {
         File saved = File.createTempFile("IG_VID_", ".mp4", context.getCacheDir());
         DownloadHistory.Entry entry = new DownloadHistory.Entry(Uri.fromFile(saved).toString(), "Movies/Instagram",
@@ -484,12 +540,26 @@ public class DownloadHistoryTest {
 
     /** [text] as the history's file, and the list read again from it. */
     private void write(String text) throws IOException {
+        write(utf8(text));
+    }
+
+    /** [bytes] as the history's file, and the list read again from it. */
+    private void write(byte[] bytes) throws IOException {
         File file = DownloadHistory.file(context);
         assertTrue(file.getParentFile().isDirectory() || file.getParentFile().mkdirs());
         try (FileOutputStream out = new FileOutputStream(file)) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
+            out.write(bytes);
         }
         DownloadHistory.forgetForTests();
+    }
+
+    private static byte[] utf8(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** A save's line for [key] in Movies/Instagram, posted by [poster], as the history writes it. */
+    private static String saveLine(String key, String poster) {
+        return "+\t" + key + "\t1000\tcontent://media/external/video/media/1\tMovies/Instagram\t" + poster + "\t0\n";
     }
 
     private static byte[] body(boolean video) {
@@ -558,4 +628,70 @@ public class DownloadHistoryTest {
             return null;
         }
     }
+    @Test public void aFailedPartialAppendIsRepairedBeforeTheNextSave() throws Exception {
+        DownloadHistory.remember(context, "owner/1/0/v", "content://media/external/video/media/1", "Movies/Instagram", null);
+        try (PartialAppend failure = new PartialAppend(25)) {
+            try {
+                DownloadHistory.remember(context, "owner/2/0/v", "content://media/external/video/media/2", "Movies/Instagram", null);
+                throw new AssertionError("the partial append did not fail");
+            } catch (IOException expected) {
+                assertEquals("controlled partial append", expected.getMessage());
+            }
+        }
+        DownloadHistory.remember(context, "owner/3/0/v", "content://media/external/video/media/3", "Movies/Instagram", null);
+        assertTrue(DownloadHistory.remembers(context, "owner/3/0/v"));
+        DownloadHistory.forgetForTests();
+        assertTrue("a save before the failed write was lost", DownloadHistory.remembers(context, "owner/1/0/v"));
+        assertTrue("the recovered save was appended onto a damaged tail and lost on restart",
+                DownloadHistory.remembers(context, "owner/3/0/v"));
+    }
+
+    @Test public void aFailedForgetAppendIsRepairedBeforeTheNextSave() throws Exception {
+        DownloadHistory.remember(context, "owner/1/0/v", "content://media/external/video/media/1", "Movies/Instagram", null);
+        DownloadHistory.remember(context, "owner/2/0/v", "content://media/external/video/media/2", "Movies/Instagram", null);
+        try (PartialAppend failure = new PartialAppend(3)) {
+            // The provider has no row, so checking this entry forgets it and appends a tombstone.
+            assertFalse(DownloadHistory.saved(context, "owner/1/0/v"));
+        } finally {
+            DownloadHistory.release("owner/1/0/v");
+        }
+        DownloadHistory.remember(context, "owner/3/0/v", "content://media/external/video/media/3", "Movies/Instagram", null);
+        DownloadHistory.forgetForTests();
+        assertFalse(DownloadHistory.remembers(context, "owner/1/0/v"));
+        assertTrue(DownloadHistory.remembers(context, "owner/2/0/v"));
+        assertTrue("a failed tombstone damaged the next completed save",
+                DownloadHistory.remembers(context, "owner/3/0/v"));
+    }
+
+    /** A real prefix reaches disk before the same stream throws. Closing cannot finish the lost tail. */
+    private static final class PartialAppend implements AutoCloseable {
+        private final java.lang.reflect.Field field;
+        private final Object previous;
+
+        PartialAppend(int prefixBytes) throws Exception {
+            field = DownloadHistory.class.getDeclaredField("appendForTests");
+            field.setAccessible(true);
+            previous = field.get(null);
+            Object factory = java.lang.reflect.Proxy.newProxyInstance(DownloadHistory.class.getClassLoader(),
+                    new Class<?>[]{field.getType()}, (proxy, method, args) -> {
+                        if (!method.getName().equals("open")) throw new AssertionError(method);
+                        return new FileOutputStream((File) args[0], true) {
+                            private int left = prefixBytes;
+                            @Override public void write(int value) throws IOException {
+                                write(new byte[]{(byte) value}, 0, 1);
+                            }
+                            @Override public void write(byte[] bytes, int offset, int count) throws IOException {
+                                int written = Math.min(left, count);
+                                if (written > 0) { super.write(bytes, offset, written); left -= written; }
+                                throw new IOException("controlled partial append");
+                            }
+                        };
+                    });
+            field.set(null, factory);
+        }
+
+        @Override public void close() throws Exception { field.set(null, previous); }
+    }
+
+
 }

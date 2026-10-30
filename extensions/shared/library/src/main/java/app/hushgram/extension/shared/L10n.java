@@ -206,10 +206,33 @@ public final class L10n {
      * <p>Wrapped in Unicode's first-strong isolate so that a right-to-left sentence keeps a
      * version number or a path in the order it was written, and so that such a value doesn't
      * bend the words around it. A screen reader doesn't voice the marks.
+     *
+     * <p>The isolate is also what diagnostics leave out of a report, so a private name (a chat's,
+     * a creator's) goes through here too. The text's own isolate marks are taken out and each
+     * line break becomes a space: a mark of its own could close the isolate early, and a break
+     * would end the line, and either way the rest of the name fell outside what the report leaves
+     * out (audit 2026-10-12).
      */
     public static String isolate(CharSequence text) {
         if (text == null || text.length() == 0) return "";
-        return FIRST_STRONG_ISOLATE + text + POP_DIRECTIONAL_ISOLATE;
+        return FIRST_STRONG_ISOLATE + contained(text) + POP_DIRECTIONAL_ISOLATE;
+    }
+
+    /** [text] with no isolate mark of its own and its line breaks as spaces. */
+    private static String contained(CharSequence text) {
+        StringBuilder out = null;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            boolean mark = c >= 0x2066 && c <= 0x2069;
+            boolean lineBreak = c == '\n' || c == '\r' || c == 0x85 || c == 0x2028 || c == 0x2029;
+            if (!mark && !lineBreak) {
+                if (out != null) out.append(c);
+                continue;
+            }
+            if (out == null) out = new StringBuilder(text.length()).append(text, 0, i);
+            if (lineBreak) out.append(' ');
+        }
+        return out == null ? text.toString() : out.toString();
     }
 
     /** {@link #join(Context, List)} with the extension's context. */
@@ -281,7 +304,7 @@ public final class L10n {
      * The language the text comes out in: the one whose table answers, or English when none
      * does. Pseudo-locales are English underneath.
      */
-    static Locale textLocale(Context context) {
+    public static Locale textLocale(Context context) {
         List<String> tags = tags(context);
         if (pseudo(tags.get(0))) return Locale.ENGLISH;
         String tag = tableFor(tags).tag;
@@ -306,6 +329,19 @@ public final class L10n {
             // A second region of a language already listed still counts: with Portugal's
             // Portuguese first and Brazil's second, the Brazilian table is the one that answers.
             String country = locale.getCountry();
+            if (language.equals("zh")) {
+                String script = locale.getScript();
+                boolean traditionalRegion = country.equalsIgnoreCase("TW") || country.equalsIgnoreCase("HK")
+                        || country.equalsIgnoreCase("MO");
+                // An explicit script wins over the region: zh-Hant-CN is Traditional, while
+                // zh-Hans-TW must not pick Taiwan's table. Bare zh, CN and SG keep their fallback.
+                if (script.equalsIgnoreCase("Hant") || (script.isEmpty() && traditionalRegion)) {
+                    if (!tags.contains("zh-rtw")) tags.add("zh-rtw");
+                } else if (script.equalsIgnoreCase("Hans")) {
+                    if (!tags.contains(language)) tags.add(language);
+                    continue;
+                }
+            }
             if (country != null && !country.isEmpty()) {
                 String regional = language + "-r" + country.toLowerCase(Locale.ROOT);
                 if (!tags.contains(regional)) tags.add(regional);

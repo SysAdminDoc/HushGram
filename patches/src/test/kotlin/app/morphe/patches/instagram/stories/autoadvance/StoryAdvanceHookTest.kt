@@ -20,6 +20,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -190,28 +191,36 @@ class StoryAdvanceHookTest {
             AccessFlags.BRIDGE.isSet(it.accessFlags) && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
         }
         assertEquals("${label}: the viewer's one-Object bridges", 2, bridges.size)
-        val handler = bridges.single { method -> method.instructions().any { it.string() == "userSession" } }
+        // On 452 each bridge casts the item and forwards it to a viewer method taking the ReelItem,
+        // which holds the body; the guard goes there.
+        val bodies = bridges.map { bridge -> bridge.forwardedTo(viewer) ?: bridge }
+        val handler = bodies.single { method -> method.instructions().any { it.string() == "userSession" } }
         val after = context.mutableClassDefBy(STORY_VIEWER).methods.single {
-            it.name == handler.name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;")
+            it.name == handler.name && it.parameterTypes.map(Any::toString) == handler.parameterTypes.map(Any::toString)
         }
         assertEquals("${label}: handler size", handler.instructions().size + GUARD, after.instructions().size)
         val read = context.findStoryLoop()
         val loopCheck = "$STORY_VIEWER->${read.name}($reelItem)Z"
-        assertGuardFirst(label, after, loopCheck)
+        assertGuardFirst(label, after, loopCheck, original = handler.instructions().first())
         assertEquals(
             "${label}: Instagram's own asks of the loop check",
             1, handler.instructions().count { it.reference() == loopCheck },
         )
         assertTrue("${label}: both on, a story that can loop", !trace(after, false, true, true).held)
         assertTrue("${label}: both on, a story that can't loop", trace(after, false, true, false).held)
-        val other = bridges.single { it !== handler }
+        val other = bodies.single { it !== handler }
         assertTrue(
             "${label}: the other bridge no longer holds \"sponsored\"",
             other.instructions().any { it.string() == "sponsored" },
         )
     }
 
-    private fun assertGuardFirst(what: String, handler: Method, loopCheck: String) {
+    /**
+     * The guard is the handler's first [GUARD] instructions and the handler's own [original] first
+     * instruction follows it: the item's cast in a bridge handler, whatever 452's forwarded handler
+     * starts with there.
+     */
+    private fun assertGuardFirst(what: String, handler: Method, loopCheck: String, original: Instruction? = null) {
         val code = handler.instructions()
         assertEquals(
             "$what: the guard's opcodes",
@@ -219,7 +228,7 @@ class StoryAdvanceHookTest {
                 Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_NEZ,
                 Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
                 Opcode.CHECK_CAST, Opcode.INVOKE_DIRECT_RANGE, Opcode.MOVE_RESULT, Opcode.IF_NEZ,
-                Opcode.RETURN_VOID, Opcode.CHECK_CAST,
+                Opcode.RETURN_VOID, original?.opcode ?: Opcode.CHECK_CAST,
             ),
             code.take(GUARD + 1).map { it.opcode },
         )
@@ -231,7 +240,24 @@ class StoryAdvanceHookTest {
         val implementation = handler.implementation!!
         assertEquals("$what: the check is handed this and the item", implementation.registerCount - 2, range.startRegister)
         assertEquals("$what: two registers", 2, range.registerCount)
-        assertEquals("$what: the original cast", reelItem, code[GUARD].reference())
+        if (original == null || original.opcode == Opcode.CHECK_CAST) {
+            assertEquals("$what: the original cast", reelItem, code[GUARD].reference())
+        } else {
+            assertEquals("$what: the handler takes the item", listOf(reelItem), handler.parameterTypes.map(Any::toString))
+            assertEquals("$what: the handler's own start", original.reference(), code[GUARD].reference())
+        }
+    }
+
+    /**
+     * The viewer method [this] bridge hands its item to when it's nothing but a cast to a story item,
+     * a call and a return, as on 452; null for a bridge with a body of its own.
+     */
+    private fun Method.forwardedTo(viewer: ClassDef): Method? {
+        val code = instructions()
+        if (code.size != 3 || code[0].opcode != Opcode.CHECK_CAST || code[0].reference() != reelItem) return null
+        val called = (code[1] as? ReferenceInstruction)?.reference as? MethodReference ?: return null
+        if (called.definingClass != STORY_VIEWER || called.parameterTypes.map(Any::toString) != listOf(reelItem)) return null
+        return viewer.methods.single { it.name == called.name && it.parameterTypes.map(Any::toString) == listOf(reelItem) }
     }
 
     /** What happened when one finished story ran through the guard. */

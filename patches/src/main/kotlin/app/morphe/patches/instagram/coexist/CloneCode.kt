@@ -53,6 +53,7 @@ internal enum class SelfUse(val what: String) {
     CALLER_CHECK("check that an intent or a caller came from the running app"),
     PROVIDER_OWNER("owner named beside a provider authority that moves"),
     RELEASE_AND_DEBUG("list of the running app's release and debug names"),
+    DEX_LOAD_REPORT("package name handed to the report that tells the system which app loaded these dex files"),
 }
 
 /**
@@ -109,6 +110,9 @@ private val CALLER_SOURCES = setOf(
     "Landroid/app/Activity;->getCallingPackage()$STRING",
 )
 private const val PROCESS_NAME_FIELD = "processName"
+
+/** Dextricks' native helper that reports a class loader chain to the system on the loading app's behalf. */
+private const val DEX_REPORT_ARROW = "Lcom/facebook/common/dextricks/achilles/Achilles\$Arrow;"
 
 private fun Method.signature() = "$name(${parameterTypes.joinToString("")})$returnType"
 
@@ -306,6 +310,9 @@ private class Sorter(private val pools: Pools, private val authorities: Collecti
                 (called.name == "setPackage" || called.name == "setClassName" && first == STRING) -> SelfUse.OWN_INTENT
             called.definingClass == "Landroid/content/ComponentName;" && called.name == "<init>" && position == 1 &&
                 first == STRING -> SelfUse.OWN_INTENT
+            // Redex answered the caller's getPackageName() at build time and wrote the answer over the
+            // parameter, so the call is gone from the callee. The report names the loading package.
+            called.definingClass == DEX_REPORT_ARROW && called.name == "<init>" && position >= 1 -> SelfUse.DEX_LOAD_REPORT
             called.definingClass == "Landroid/os/Parcel;" && called.name == "writeString" && position == 1 -> SelfUse.GOOGLE_PLAY
             called.definingClass == "Landroid/os/BaseBundle;" && called.name == "putString" && position == 2 &&
                 stringIn(code, at, arguments[1]) == "package.name" -> SelfUse.GOOGLE_PLAY
@@ -346,9 +353,18 @@ internal fun BytecodePatchContext.planClone(clone: String, authorities: Collecti
     val sorter = Sorter(pools, authorities)
     val types = LinkedHashSet<String>()
     classesLoadingString(INSTAGRAM).mapTo(types) { it.type }
+    // A prefix lookup reads the patcher's whole string index, once per authority (#173). Asking once
+    // for every content URI and sorting the answer here gives each authority the same classes, since
+    // the index holds exactly a class's const-string loads, which is what this reads back.
+    val uris = classDefByStrings("content://", StringComparisonType.STARTS_WITH).map { classDef ->
+        classDef.type to classDef.methods.flatMap { method ->
+            method.implementation?.instructions?.filter { it.isStringLoad() }?.map { it.string() }.orEmpty()
+        }.filter { it.startsWith("content://") }
+    }
     for (authority in authorities) {
         classDefByStrings(authority, StringComparisonType.EQUALS).mapTo(types) { it.type }
-        classDefByStrings("content://$authority", StringComparisonType.STARTS_WITH).mapTo(types) { it.type }
+        val prefix = "content://$authority"
+        uris.filter { (_, texts) -> texts.any { it.startsWith(prefix) } }.mapTo(types) { (type, _) -> type }
     }
     types.removeAll { it.startsWith(EXTENSION_ROOT) }
 

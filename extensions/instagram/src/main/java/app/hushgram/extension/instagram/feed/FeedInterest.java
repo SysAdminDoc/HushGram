@@ -21,8 +21,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * skips the add, so the row is never added and no blank one is left. Nothing here answers the
  * question for you.
  *
- * <p>The hook fails open: until the settings are ready, while HushGram is paused, with the switch
- * off, or if anything throws, it answers no and Instagram adds its row. Only the yes is counted, in
+ * <p>Reels ask it too, in the footer under a reel: the footer's use case picks the reel's control
+ * (the server's, or a fallback of its own) and hands it to the row's component, which draws nothing
+ * without one (#131). The patch passes that control through {@link #reelsControl} right before it's
+ * handed over.
+ *
+ * <p>The hooks fail open: until the settings are ready, while HushGram is paused, with the switch
+ * off, or if anything throws, Instagram adds its row. Only a row left out is counted, in
  * Diagnostics under "Hide suggested posts".
  */
 public final class FeedInterest {
@@ -43,5 +48,15 @@ public final class FeedInterest {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "interest question", failure);
             return false;
         }
+    }
+
+    /**
+     * The control the Reels footer's question row gets: {@code control} itself, or null to leave the
+     * row out, the same answer {@link #hide} gives. No control has no row, and isn't counted. Never
+     * throws.
+     */
+    public static Object reelsControl(Object control) {
+        if (control == null) return null;
+        return hide() ? null : control;
     }
 }

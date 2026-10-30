@@ -12,6 +12,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
@@ -71,14 +72,17 @@ private const val INTEGER = "Ljava/lang/Integer;"
 /**
  * Takes the accounts Instagram suggests off profiles. In the default selection with its switch off:
  * suggestions are one of Instagram's features, so leaving them out is the user's pick. Asked for in
- * #15 and #20, its follow list switch in #139 and its Complete your profile switch in #159.
+ * #15 and #20, its follow list switch in #139 (the Suggested tab and the mutual list's section in #302), its Complete your profile switch in #159 and its
+ * People you don't follow back switch in #161, its suggestions in notifications switch in #181 and its
+ * Featured in notifications switch in #259.
  */
 @Suppress("unused")
 val hideProfileSuggestionsPatch = bytecodePatch(
     name = "Hide suggested people on profiles",
     description = "Takes Suggested for you and the Discover people button off profiles. Bios, counts and posts stay. " +
-        "Two more switches take Suggested for you off the followers and following lists and the Complete your " +
-        "profile cards off your own profile. Starts off. Turn it on in HushGram settings > Profiles.",
+        "More switches take Suggested for you off the follow lists and their Suggested tab, the Complete your profile " +
+        "cards off your own profile, and People you don't follow back, suggested threads and people, and the " +
+        "Featured section off your notifications. Starts off. Turn it on in HushGram settings > Profiles.",
 ) {
     category("Profiles")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -88,10 +92,25 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         requireStatusMethod("profileSuggestions")
         val sites = findProfileSuggestions()
         val followList = findFollowListSuggestions()
+        val suggestedTab = findSuggestedTabOrWarn()
+        val mutualSuggestions = findMutualSuggestionsOrWarn()
         val completion = findCompletionGate()
+        val followBacks = findFollowBacks()
+        val followBackSection = findFollowBackSectionOrWarn()
+        val notificationSuggestions = findNotificationSuggestionsOrWarn()
+        val featured = notificationSuggestions?.let { (_, lists) -> findFeaturedSectionOrWarn(lists) }
         hideProfileSuggestions(sites)
         hideFollowListSuggestions(followList)
+        suggestedTab?.let { hideSuggestedTab(it) }
+        mutualSuggestions?.let { hideMutualSuggestions(it) }
         hideCompletionCards(completion)
+        hideFollowBacks(followBacks)
+        followBackSection?.let { hideFollowBackSection(it) }
+        notificationSuggestions?.let { (rows, lists) ->
+            noteNotificationRows(rows)
+            keepNotificationRows(lists)
+            if (featured != null) hideFeaturedSection(lists)
+        }
         enableStatus("profileSuggestions")
     }
 }
@@ -100,21 +119,21 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 
 /** The profile's action row, found by the message only it throws. */
 internal object ProfileActionsFingerprint : Fingerprint(
-    strings = listOf(NO_SUGGESTED_BINDER),
+    filters = listOf(string(NO_SUGGESTED_BINDER)),
     custom = { method, _ -> method.holdsString(NO_SUGGESTED_BINDER) },
 )
 
 /** The profile header's binder, found by its trace name. */
 internal object ProfileHeaderBindFingerprint : Fingerprint(
     name = "bindView",
-    strings = listOf(HEADER_BIND),
+    filters = listOf(string(HEADER_BIND)),
     custom = { method, _ -> method.holdsString(HEADER_BIND) },
 )
 
 /** The setup of the header's row types, the one enum setup naming the standalone row of suggestions. */
 internal object HeaderRowTypesFingerprint : Fingerprint(
     name = "<clinit>",
-    strings = listOf(STANDALONE_CHAINING),
+    filters = listOf(string(STANDALONE_CHAINING)),
     custom = { method, classDef -> classDef.superclass == "Ljava/lang/Enum;" && method.holdsString(STANDALONE_CHAINING) },
 )
 
@@ -201,7 +220,9 @@ internal fun BytecodePatchContext.findProfileSuggestions(): ProfileSuggestionSit
     val setup = uniqueMethod(PATCH, "row type setup naming $STANDALONE_CHAINING", HeaderRowTypesFingerprint)
     val standaloneField = standaloneField(setup)
 
-    val readers = header.methods.filter { it.name == BUILD_ROWS }.flatMap { method ->
+    // 451 built the rows in buildRowViewTypes itself. 452 leaves that a bridge and builds them in a method it names A04,
+    // so any method of the binder reading the type does, and only one may.
+    val readers = header.methods.flatMap { method ->
         method.instructions().indices.filter { method.instructions()[it].readsStatic(standaloneField) }.map { method to it }
     }
     val (rows, standalone) = readers.singleOrNull()

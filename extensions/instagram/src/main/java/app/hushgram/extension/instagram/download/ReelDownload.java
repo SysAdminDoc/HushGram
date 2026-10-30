@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.download;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,6 +54,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *       Download on reels off, the row goes above Instagram's own Download row where Instagram
  *       shows one, and that row stays Instagram's. Where Instagram shows none, Download is let in
  *       for the adder all the same, which puts the player row alone in its place.
+ *   <li>With Details in a post's menu on, a reel gets a Details row last, which opens the sheet a
+ *       feed post's Details does, with Copy username and Copy caption (#282). It follows the same
+ *       rules as the player row when Download on reels is off.
  * </ul>
  *
  * <p>Every hook fails open: until the settings are ready, while HushGram is paused, with the switch
@@ -110,22 +114,38 @@ public final class ReelDownload {
     static final String REEL_OPTION = "HUSHGRAM_DOWNLOAD_REEL";
     static final String COVER_OPTION = "HUSHGRAM_DOWNLOAD_COVER";
 
+    /** The name of Download audio's option, which a reel with a manifest gets with its switch on (#216). */
+    static final String AUDIO_OPTION = "HUSHGRAM_DOWNLOAD_AUDIO";
+
     /**
      * The name of the option Open in another player puts after Download on a reel with a video
      * file, made the same way as the two above.
      */
     static final String PLAYER_OPTION = ExternalPlayer.OPTION;
 
+    /**
+     * The name of the Details row a reel's menu gets with Details in a post's menu on (#282). It
+     * opens the same sheet a feed post's does, Copy username and Copy caption included.
+     */
+    static final String DETAILS_OPTION = "HUSHGRAM_REEL_DETAILS";
+
+    /** Instagram's info glyphs, the Details row's icon, first found wins. */
+    static final String[] DETAILS_ICONS = {"instagram_info_outline_24", "instagram_info_pano_outline_24"};
+
     /** Counted when a reel Instagram keeps Download off gets the player row alone. */
     static final String PLAYER_ALONE = "player row alone";
 
     /** Every row of ours, by name. */
     private static final List<String> OUR_ROWS = Arrays.asList(VIDEO_OPTION, PHOTO_OPTION, REEL_OPTION, COVER_OPTION,
-            PLAYER_OPTION);
+            AUDIO_OPTION, PLAYER_OPTION, DETAILS_OPTION);
 
     /** What the menu found for a reel's cover, and what a tap on Download cover started. */
     static final String HAS_COVER = "has cover";
     static final String SAVED_COVER = "saved cover";
+
+    /** The same for a reel's sound and Download audio. */
+    static final String HAS_AUDIO = "has audio";
+    static final String SAVED_AUDIO = "saved audio";
 
     /**
      * The entry the patch calls, handed Instagram's answer as an int, non-zero for yes, so the hook
@@ -183,7 +203,7 @@ public final class ReelDownload {
         playerOnly = false;
         playerFits = false;
         if (on()) return true;
-        playerFits = ExternalPlayer.offers(media);
+        playerFits = ExternalPlayer.offers(media) || detailsFit(media);
         if (eligible) return true;
         playerOnly = playerFits;
         return playerOnly;
@@ -221,7 +241,7 @@ public final class ReelDownload {
         try {
             if (options == null || download == null || options.contains(download)) return;
             boolean player = !on();
-            if (player && !ExternalPlayer.on()) return;
+            if (player && !ExternalPlayer.on() && !PostInfo.on()) return;
             int at = 0;
             for (int i = 0; i < options.size(); i++) {
                 Object option = options.get(i);
@@ -239,7 +259,8 @@ public final class ReelDownload {
      * reel [media] is a photo that comes with music and the switch is on, and answers whether it
      * did, in which case Instagram's own Download row is left out. [menu] is the menu's helper, and
      * [context], [sheet] and [rowState] are what its adder of one row was handed for Download. Any
-     * other reel answers false and gets the one Download row. With Download on reels off and Open in
+     * other reel answers false and gets the one Download row, or with Details in a post's menu on,
+     * Download and Details in its place ({@link #withDetails}). With Download on reels off and Open in
      * another player on, a reel with a video file gets that row above Instagram's own Download row,
      * which stays, or in its place when Download is there only for the player row ({@link #playerOnly}),
      * which answers true. Never throws.
@@ -251,21 +272,21 @@ public final class ReelDownload {
         try {
             if (alone || !on()) {
                 Object player = media != null && ExternalPlayer.offers(media) ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
-                if (player != null && playerRow(menu, context, player, sheet, rowState) && alone) {
-                    HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
-                }
+                boolean added = player != null && playerRow(menu, context, player, sheet, rowState);
+                added |= detailsRow(menu, media, context, sheet, rowState);
+                if (added && alone) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, PLAYER_ALONE);
                 return alone;
             }
             if (media == null) return false;
             if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) {
                 return videoRows(menu, media, context, sheet, rowState);
             }
-            if (StoryDownload.pictures(media).isEmpty()) return false;
+            if (StoryDownload.pictures(media).isEmpty()) return withDetails(menu, media, context, sheet, rowState);
             MusicVideo.Music music = MusicVideo.music(media);
-            if (music == null) return false;
+            if (music == null) return withDetails(menu, media, context, sheet, rowState);
             if (music.url == null) {
                 HookStatus.counted(FamilyNames.REEL_DOWNLOAD, NO_AUDIO_URL);
-                return false;
+                return withDetails(menu, media, context, sheet, rowState);
             }
             HookStatus.counted(FamilyNames.REEL_DOWNLOAD, HAS_MUSIC);
             Object video = InstagramMedia.reelOption(VIDEO_OPTION);
@@ -275,8 +296,10 @@ public final class ReelDownload {
                 return false;
             }
             try {
-                return InstagramMedia.addReelRow(menu, context, photo, sheet, rowState,
+                boolean went = InstagramMedia.addReelRow(menu, context, photo, sheet, rowState,
                     StoryDownload.label(StoryDownload.Choice.PHOTO));
+                detailsRow(menu, media, context, sheet, rowState);
+                return went;
             } catch (Throwable t) {
                 // Instagram's own Download row follows the video's then, and a tap on it saves the photo.
                 HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu photo row", t);
@@ -290,20 +313,25 @@ public final class ReelDownload {
     }
 
     /**
-     * Download, then Download cover and Open in another player, in Download's place for [media], a
-     * reel with a video, and whether they went in. Download cover needs its switch and a picture
-     * the reel lists, and Open in another player its switch and a video file a player can open. With
-     * neither, the reel keeps Instagram's one row. Once Download is in, the answer is yes even if a
+     * Download, then Download cover, Download audio and Open in another player, in Download's place
+     * for [media], a reel with a video, and whether they went in. Download cover needs its switch
+     * and a picture the reel lists, Download audio its switch and a manifest, whose sound is a track
+     * of its own, and Open in another player its switch and a video file a player can open. With
+     * none, the reel keeps Instagram's one row. Once Download is in, the answer is yes even if a
      * row after it isn't, so Instagram's own row doesn't come as a second Download.
      */
     private static boolean videoRows(Object menu, Object media, Object context, Object sheet, Object rowState) {
         boolean cover = coverOn() && !StoryDownload.pictures(media).isEmpty();
+        boolean audio = audioOn() && InstagramMedia.dashManifest(media) != null;
         boolean player = ExternalPlayer.offers(media);
-        if (!cover && !player) return false;
+        boolean details = detailsFit(media);
+        if (!cover && !audio && !player && !details) return false;
         Object reel = InstagramMedia.reelOption(REEL_OPTION);
         Object coverRow = cover ? InstagramMedia.reelOption(COVER_OPTION) : null;
+        Object audioRow = audio ? InstagramMedia.reelOption(AUDIO_OPTION) : null;
         Object playerRow = player ? InstagramMedia.reelOption(PLAYER_OPTION) : null;
-        if (reel == null || coverRow == null && playerRow == null) return false;
+        Object detailsOption = details ? InstagramMedia.reelOption(DETAILS_OPTION) : null;
+        if (reel == null || coverRow == null && audioRow == null && playerRow == null && detailsOption == null) return false;
         if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
                 StoryDownload.label(StoryDownload.Choice.STORY))) {
             return false;
@@ -316,8 +344,90 @@ public final class ReelDownload {
                 HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu cover row", t);
             }
         }
+        if (audioRow != null) {
+            HookStatus.counted(FamilyNames.REEL_DOWNLOAD, HAS_AUDIO);
+            try {
+                InstagramMedia.addReelRow(menu, context, audioRow, sheet, rowState, L10n.t(Utils.getContext(), "Download audio"));
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu audio row", t);
+            }
+        }
         if (playerRow != null) playerRow(menu, context, playerRow, sheet, rowState);
+        if (detailsOption != null) addDetails(menu, context, detailsOption, sheet, rowState);
         return true;
+    }
+
+    /**
+     * Download, then Details, in Download's place for [media], a reel that would otherwise keep
+     * Instagram's one Download row (a photo without music, or with music that has no track), so a
+     * photo gets Details where a video does. A tap on that Download saves what Instagram's would,
+     * since Download on reels takes both. Without Details, or when a row can't go in, the reel keeps
+     * Instagram's row and the answer is false.
+     */
+    private static boolean withDetails(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        if (!detailsFit(media)) return false;
+        Object reel = InstagramMedia.reelOption(REEL_OPTION);
+        Object details = InstagramMedia.reelOption(DETAILS_OPTION);
+        if (reel == null || details == null) return false;
+        if (!InstagramMedia.addReelRow(menu, context, reel, sheet, rowState,
+                StoryDownload.label(StoryDownload.Choice.STORY))) {
+            return false;
+        }
+        addDetails(menu, context, details, sheet, rowState);
+        return true;
+    }
+
+    /**
+     * The icon of the reel or feed menu row named [name]. Every row of ours starts from Download's
+     * arrow [download]; Details (the reel's or the feed post's) answers Instagram's info glyph from
+     * the package the arrow comes from, which on a second copy is still Instagram's own, or
+     * [download] when the build has none. Called by the reel and feed option bridges the patches
+     * write. Never throws.
+     */
+    public static int rowIcon(String name, int download) {
+        return rowIcon(name, download, Utils.getContext(), DETAILS_ICONS);
+    }
+
+    static int rowIcon(String name, int download, Context context, String... icons) {
+        try {
+            boolean details = DETAILS_OPTION.equals(name) || PostInfo.OPTION.equals(name);
+            if (!details || download == 0 || context == null) return download;
+            Resources resources = context.getResources();
+            String owner = resources.getResourcePackageName(download);
+            for (String icon : icons) {
+                int found = resources.getIdentifier(icon, "drawable", owner);
+                if (found != 0) return found;
+            }
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu row icon", t);
+        }
+        return download;
+    }
+
+    /** Whether the reel [media] gets a Details row: Details in a post's menu is on and there is a reel. */
+    private static boolean detailsFit(Object media) {
+        return media != null && PostInfo.on();
+    }
+
+    /** Adds Details to the reel menu when [media] gets it, and whether it went in. Never throws. */
+    private static boolean detailsRow(Object menu, Object media, Object context, Object sheet, Object rowState) {
+        try {
+            if (!detailsFit(media)) return false;
+            Object option = InstagramMedia.reelOption(DETAILS_OPTION);
+            return option != null && addDetails(menu, context, option, sheet, rowState);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu details row", t);
+            return false;
+        }
+    }
+
+    private static boolean addDetails(Object menu, Object context, Object option, Object sheet, Object rowState) {
+        try {
+            return InstagramMedia.addReelRow(menu, context, option, sheet, rowState, L10n.t(Utils.getContext(), "Details"));
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu details row", t);
+            return false;
+        }
     }
 
     /** Adds Open in another player, [option], to the reel menu, and whether it went in. Never throws. */
@@ -362,32 +472,71 @@ public final class ReelDownload {
             HookStatus.invoked(FamilyNames.REEL_DOWNLOAD);
             String row = row(option);
             ours = row != null;
-            Context context = activity != null ? activity : Utils.getContext();
-            // Open in another player has its own switch, and comes without Download on reels.
-            if (PLAYER_OPTION.equals(row)) {
-                if (ExternalPlayer.on()) ExternalPlayer.open(context, media, FamilyNames.REEL_DOWNLOAD);
-                return true;
-            }
-            if (!on()) return ours;
-            if ((row == null || REEL_OPTION.equals(row))
-                    && ExternalDownload.handOff(context, ExternalDownload.postLink(media, true), FamilyNames.REEL_DOWNLOAD)) {
-                return true;
-            }
-            boolean started = VIDEO_OPTION.equals(row) ? saveAsVideo(context, media)
-                : PHOTO_OPTION.equals(row) ? savePhotos(context, media)
-                : COVER_OPTION.equals(row) ? saveCover(context, media)
-                : saveReel(context, media);
-            if (!started) {
-                Context application = context.getApplicationContext();
-                Feedback.show(application, L10n.t(application, "Download failed"), true);
-            }
-            return true;
+            return saveRow(row, media, activity) || ours;
         } catch (Throwable t) {
             // It runs inside Instagram's click dispatch, where a throw ends the app. Instagram's own
             // download goes ahead instead, for its own Download row.
             HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel menu", t);
             return ours;
         }
+    }
+
+    /**
+     * What a tap on [row] in the reel menu does to [media], with null for Download itself: the
+     * save the menu's handler starts, which the Download button beside a reel starts too
+     * ({@link ReelDownloadButton}). Answers false only when Download on reels is off and the row
+     * isn't Open in another player, so nothing was done. A save that can't start says so.
+     */
+    static boolean saveRow(String row, Object media, Activity activity) {
+        Context context = activity != null ? activity : Utils.getContext();
+        // Open in another player has its own switch, and comes without Download on reels.
+        if (PLAYER_OPTION.equals(row)) {
+            if (ExternalPlayer.on()) ExternalPlayer.open(context, media, FamilyNames.REEL_DOWNLOAD);
+            return true;
+        }
+        // Details has its own switch too, and opens the sheet a feed post's Details does.
+        if (DETAILS_OPTION.equals(row)) {
+            if (activity != null) PostInfo.show(media, null, activity);
+            return true;
+        }
+        if (!on()) return false;
+        if ((row == null || REEL_OPTION.equals(row))
+                && ExternalDownload.handOff(context, ExternalDownload.postLink(media, true), FamilyNames.REEL_DOWNLOAD)) {
+            return true;
+        }
+        boolean started = VIDEO_OPTION.equals(row) ? saveAsVideo(context, media)
+            : PHOTO_OPTION.equals(row) ? savePhotos(context, media)
+            : COVER_OPTION.equals(row) ? saveCover(context, media)
+            : AUDIO_OPTION.equals(row) ? saveAudio(context, media)
+            : saveReel(context, media);
+        if (!started) {
+            Context application = context.getApplicationContext();
+            Feedback.show(application, L10n.t(application, "Download failed"), true);
+        }
+        return true;
+    }
+
+    /**
+     * Whether the menu shows Download as video and Download as photo in Download's place for [media]:
+     * a photo with no video file or manifest whose music has a track to fetch, the check {@link #rows}
+     * makes, without its counts. [media] isn't null.
+     */
+    static boolean musicRows(Object media) {
+        if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) return false;
+        if (StoryDownload.pictures(media).isEmpty()) return false;
+        MusicVideo.Music music = MusicVideo.music(media);
+        return music != null && music.url != null;
+    }
+
+    /**
+     * Whether a tap on Download would find anything of [media] to save: a video file, a manifest,
+     * carousel pages or a picture, the ways {@link #saveReel} goes.
+     */
+    static boolean savable(Object media) {
+        if (media == null) return false;
+        if (!renditions(media).isEmpty() || InstagramMedia.dashManifest(media) != null) return true;
+        List<?> pages = InstagramMedia.carouselMedia(media);
+        return pages != null && pages.size() >= 2 || !StoryDownload.pictures(media).isEmpty();
     }
 
     /**
@@ -459,14 +608,32 @@ public final class ReelDownload {
      * Starts the save of [media]'s cover, the still picture Instagram shows before the reel plays,
      * and answers whether it started. The sizes are all of that one picture, so the largest the reel
      * states goes, by {@link MediaSave#savePictureBySize}: a cover's address often names its size,
-     * like {@code p540x540}, which the photo save takes for a thumbnail's and turns down (#79).
+     * like {@code p540x540}, which the photo save takes for a thumbnail's and turns down (#79). A
+     * cover that is the reel's first frame is taken from its video when that is larger (#214).
      */
     static boolean saveCover(Context context, Object media) {
         StoryDownload.Cover cover = StoryDownload.cover(media);
         Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel cover tapped: " + cover.summary());
         if (cover.sizes.isEmpty()) return false;
-        boolean started = MediaSave.savePictureBySize(context, cover.sizes, details(media));
+        boolean started = MediaSave.saveCover(context, cover, renditions(media), InstagramMedia.dashManifest(media),
+                details(media));
         if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_COVER);
+        return started;
+    }
+
+    /**
+     * Download audio on [media]: the best audio track its manifest lists, saved on its own as an
+     * audio file the way a voice message is (#216). A reel with no manifest, or one whose manifest
+     * has no audio track, a reel with no sound, saves nothing.
+     */
+    static boolean saveAudio(Context context, Object media) {
+        String manifest = InstagramMedia.dashManifest(media);
+        DashManifest.Track track = manifest == null ? null : DashManifest.bestAudio(DashManifest.parse(manifest));
+        Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "reel audio tapped: "
+                + (manifest == null ? "no manifest" : track == null ? "no audio track" : track.codecs + ", " + track.bandwidth + " b/s"));
+        if (track == null) return false;
+        boolean started = MediaSave.saveAudio(context, track.url, details(media));
+        if (started) HookStatus.counted(FamilyNames.REEL_DOWNLOAD, SAVED_AUDIO);
         return started;
     }
 
@@ -573,6 +740,15 @@ public final class ReelDownload {
         }
     }
 
+    private static boolean audioOn() {
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_REEL_AUDIO.get();
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "reel audio switch", t);
+            return false;
+        }
+    }
+
     /** The single files [media] lists for its video, with the size each states. Never null. */
     static List<MediaSave.Rendition> renditions(Object media) {
         List<?> versions = InstagramMedia.videoVersions(media);
@@ -594,7 +770,8 @@ public final class ReelDownload {
         String owner = user == null ? null : InstagramMedia.username(user);
         Long takenAt = InstagramMedia.takenAt(media);
         Date posted = takenAt == null || takenAt <= 0 ? null : new Date(takenAt * 1000L);
-        return PostDetails.of(InstagramMedia.mediaId(media), owner, posted);
+        String id = InstagramMedia.mediaId(media);
+        return PostDetails.of(id, owner, posted).withPostId(id);
     }
 
     private static int orZero(Integer value) {

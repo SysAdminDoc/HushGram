@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.settings;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -15,11 +16,56 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
 
 /**
  * One switch over the switches that keep what you do on Instagram to yourself. It keeps no value of
- * its own: it's on while every one of them is on, and flipping it saves the same value to each.
- * Pause still wins, since each switch reads as off while HushGram is paused.
+ * its own: it's on while every one of them it turns is on, and flipping it saves the same value to
+ * each. Which ones it turns is your pick ({@link #picked}, #251), all of them to start. Pause still
+ * wins, since each switch reads as off while HushGram is paused.
  */
 final class GhostMode {
     private GhostMode() { }
+
+    /**
+     * The ones of [switches] Ghost mode turns: those {@link Settings#GHOST_MODE_PICKS} names, or all
+     * of them when it names none of them.
+     */
+    static List<BooleanSetting> picked(List<BooleanSetting> switches) {
+        Set<String> keys = pickedKeys();
+        if (keys.isEmpty()) return switches;
+        List<BooleanSetting> picked = new ArrayList<>();
+        for (BooleanSetting setting : switches) {
+            if (keys.contains(setting.key)) picked.add(setting);
+        }
+        return picked.isEmpty() ? switches : picked;
+    }
+
+    /** The keys {@link Settings#GHOST_MODE_PICKS} holds, as saved. */
+    static Set<String> pickedKeys() {
+        Set<String> keys = new LinkedHashSet<>();
+        String saved = Settings.GHOST_MODE_PICKS.savedValue();
+        if (saved == null) return keys;
+        for (String key : saved.split(",")) {
+            String trimmed = key.trim();
+            if (!trimmed.isEmpty()) keys.add(trimmed);
+        }
+        return keys;
+    }
+
+    /**
+     * Saves the ones of [switches] whose keys are in [keys] as what Ghost mode turns. All of them saves
+     * nothing, the same as all, so a ghost patch added to the build later is turned too.
+     */
+    static void pick(List<BooleanSetting> switches, Set<String> keys) {
+        StringBuilder saved = new StringBuilder();
+        boolean every = true;
+        for (BooleanSetting setting : switches) {
+            if (!keys.contains(setting.key)) {
+                every = false;
+                continue;
+            }
+            if (saved.length() > 0) saved.append(',');
+            saved.append(setting.key);
+        }
+        Settings.GHOST_MODE_PICKS.save(every ? "" : saved.toString());
+    }
 
     /** The ghost switches in the order their families list, each one only when its patch is in the build. */
     static List<BooleanSetting> switches(Set<PatchFamily> build) {

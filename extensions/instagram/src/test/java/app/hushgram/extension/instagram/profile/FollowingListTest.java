@@ -85,7 +85,7 @@ public class FollowingListTest {
         HookStatus.clear();
     }
 
-    /** On your own Following list, only an account Instagram says doesn't follow you gets the mark, after its name. */
+    /** On your own Following list, only an account Instagram says doesn't follow you gets the mark, before its name. */
     @Test
     public void ownFollowingListMarksOnlyWhoDoesNotFollowBack() {
         for (Kind kind : new Kind[] {Kind.FOLLOWING, Kind.FOLLOWING_SIMPLIFIED}) {
@@ -96,7 +96,7 @@ public class FollowingListTest {
             ana.bind(notFollowing, "Ana", reader, ON);
             ben.bind(following, "Ben", reader, ON);
 
-            assertEquals(kind.name(), "Ana" + FriendshipStatus.SEPARATOR + MARK, ana.text());
+            assertEquals(kind.name(), MARK + FriendshipStatus.SEPARATOR + "Ana", ana.text());
             assertEquals(View.VISIBLE, ana.name.getVisibility());
             assertEquals(kind.name(), "Ben", ben.text());
             assertEquals(View.VISIBLE, ben.name.getVisibility());
@@ -113,6 +113,27 @@ public class FollowingListTest {
 
         assertEquals(MARK, row.text());
         assertEquals(View.VISIBLE, row.name.getVisibility());
+    }
+
+    /** #351: Instagram cuts a long name line short at its end, so the mark goes first and the name is what's cut. */
+    @Test
+    public void aLongNameIsCutShortAndTheMarkStays() {
+        String longName = "Ana Maria Fernanda de los Santos Ribeiro";
+        assertEquals(40, longName.length());
+        TextView line = new TextView(context);
+        line.setSingleLine(true);
+        line.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        Row row = new Row(line);
+
+        row.bind(notFollowing, longName, new Reader(Kind.FOLLOWING, ME, ME), ON);
+
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + longName, row.text());
+        // What a line with room for the mark and a short name shows once Instagram's end ellipsis is applied.
+        float room = line.getPaint().measureText(MARK + FriendshipStatus.SEPARATOR + "Ana Maria");
+        CharSequence shown = android.text.TextUtils.ellipsize(line.getText(), line.getPaint(), room,
+                android.text.TextUtils.TruncateAt.END);
+        assertTrue(shown.toString(), shown.toString().startsWith(MARK));
+        assertTrue(shown.toString(), shown.length() < row.text().length());
     }
 
     /** Before Instagram has checked, the row says nothing, whether it has a name or not. */
@@ -146,7 +167,7 @@ public class FollowingListTest {
 
         reader.answers.put(notFollowing, false);
         row.bind(notFollowing, "Ana", reader, ON);
-        assertEquals("Ana" + FriendshipStatus.SEPARATOR + MARK, row.text());
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + "Ana", row.text());
     }
 
     /** A yes on the account's own status, from opening its profile say, overrules the server's earlier no. */
@@ -262,7 +283,7 @@ public class FollowingListTest {
 
         Row on = new Row();
         on.bind(notFollowing, "Ana", reader, FollowingList::switchedOn);
-        assertEquals("Ana" + FriendshipStatus.SEPARATOR + MARK, on.text());
+        assertEquals(MARK + FriendshipStatus.SEPARATOR + "Ana", on.text());
     }
 
     /** A switch, a reader or a name line that throws leaves the row as Instagram drew it, and the hook says so. */

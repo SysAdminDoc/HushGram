@@ -236,15 +236,34 @@ private fun Instruction.writes(register: Int): Boolean {
  * Where this method calls the method it overrides: the one `invoke-super` with its own name,
  * parameters and return type. Not simply the first super call, since a browser activity can make
  * another one first, such as `getResources()`. None, or two, stops the patch.
+ *
+ * Instagram 452 adds a second one of the same shape to onCreate, on the path that hands a link to
+ * the activity's preserved copy and finishes this one. Of several, a call with `Activity.finish()`
+ * after it, before the next one or within [FINISH_WINDOW] instructions, is that exit, not the way
+ * the browser starts, so it is left out; several that don't finish still stop the patch.
  */
-internal fun MutableMethod.ownSuperCallIndex(): Int =
-    instructions().withIndex().filter { (_, instruction) ->
-        val call = instruction.methodReferenceOrNull()
-        (instruction.opcode == Opcode.INVOKE_SUPER || instruction.opcode == Opcode.INVOKE_SUPER_RANGE) &&
+internal fun MutableMethod.ownSuperCallIndex(): Int {
+    val code = instructions().toList()
+    val own = code.indices.filter { at ->
+        val call = code[at].methodReferenceOrNull()
+        (code[at].opcode == Opcode.INVOKE_SUPER || code[at].opcode == Opcode.INVOKE_SUPER_RANGE) &&
             call != null && call.name == name && call.returnType == returnType &&
             call.parameterTypes.map(CharSequence::toString) == parameterTypes.map(CharSequence::toString)
-    }.map { it.index }
-        .singleOrPatchException("$PATCH: $definingClass->$name's call to super.$name")
+    }
+    val starts = if (own.size < 2) own else own.filter { at ->
+        val end = own.firstOrNull { it > at } ?: minOf(code.size, at + 1 + FINISH_WINDOW)
+        code.subList(at + 1, end).none { it.methodReferenceOrNull()?.toString() == FINISH }
+    }
+    // 453's 320dpi build also calls super on its hand-off path with a null Bundle. Keep the call
+    // that passes the method's own parameters, which is the one that starts the browser.
+    val ownParameters = if (starts.size < 2) starts else starts.filter { at ->
+        runCatching { superCallParameters(at, parameterTypes.size + 1) }.isSuccess
+    }
+    return ownParameters.singleOrPatchException("$PATCH: $definingClass->$name's call to super.$name")
+}
+
+private const val FINISH = "Landroid/app/Activity;->finish()V"
+private const val FINISH_WINDOW = 40
 
 /**
  * Where the trace section of the method closes, or null when the method opens none.

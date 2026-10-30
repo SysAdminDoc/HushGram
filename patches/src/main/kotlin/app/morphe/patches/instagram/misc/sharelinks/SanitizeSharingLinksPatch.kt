@@ -8,15 +8,15 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
-import app.morphe.patches.instagram.misc.analytics.loadsString
-import app.morphe.patches.instagram.misc.analytics.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.handleTargets
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.loadsString
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.writeTargetCoverage
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import app.morphe.patches.instagram.misc.settings.sendToStandIn
@@ -209,7 +209,7 @@ internal fun BytecodePatchContext.cleanBrowserMenu(): String? {
     val matches = BrowserMenuHandlerFingerprint.matchAllOrNull().orEmpty()
     if (matches.size != 1) return "expected one handler for the in-app browser's menu, found ${matches.size}"
     val handler = matches.single().method
-    val share = handler.browserLinkUse(BROWSER_SHARE_FAILURE, ::putsSharedText)
+    val share = handler.browserLinkUse(BROWSER_SHARE_FAILURE) { code, at, register -> putsSharedText(code, at, register) }
         ?: return "the browser menu's Share puts no address in a share's text"
     val copy = handler.browserLinkUse(BROWSER_COPY_FAILURE, ::copiesText)
         ?: return "the browser menu's Copy link hands no address to a clipboard helper"
@@ -246,8 +246,11 @@ private fun MutableMethod.browserLinkUse(failure: String, takes: (List<Instructi
     return use to register
 }
 
-/** Whether the call at [index] puts [register] in an intent's EXTRA_TEXT, its key loaded right before. */
-private fun putsSharedText(instructions: List<Instruction>, index: Int, register: Int): Boolean {
+/**
+ * Whether the call at [index] puts [register] in an intent's EXTRA_TEXT, its key loaded right
+ * before, or, as 453 has it, asked of a string pool right before.
+ */
+private fun BytecodePatchContext.putsSharedText(instructions: List<Instruction>, index: Int, register: Int): Boolean {
     val call = instructions[index]
     val method = (call as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     if (call.opcode != Opcode.INVOKE_VIRTUAL && call.opcode != Opcode.INVOKE_VIRTUAL_RANGE) return false
@@ -260,7 +263,9 @@ private fun putsSharedText(instructions: List<Instruction>, index: Int, register
     val (_, key, value) = call.argumentRegisters()
     if (value != register || index == 0) return false
     val before = instructions[index - 1]
-    return before.loadsText("android.intent.extra.TEXT") && (before as OneRegisterInstruction).registerA == key
+    if (before.loadsText("android.intent.extra.TEXT")) return (before as OneRegisterInstruction).registerA == key
+    if (before.opcode != Opcode.MOVE_RESULT_OBJECT || (before as OneRegisterInstruction).registerA != key || index < 2) return false
+    return stringLoadedAt(instructions, index - 2) == "android.intent.extra.TEXT"
 }
 
 /** Whether the call at [index] is a static (Context, String) helper taking [register] as its String. */

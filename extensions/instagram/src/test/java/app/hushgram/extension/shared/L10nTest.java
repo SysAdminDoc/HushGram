@@ -42,7 +42,7 @@ public class L10nTest {
 
     @Test
     public void everyLanguageTheBundleCarriesHasATableWithTheKey() {
-        assertEquals(Arrays.asList("de", "es", "in", "ko", "pt-rbr", "tr"), Arrays.asList(L10nTranslations.LANGUAGES));
+        assertEquals(Arrays.asList("de", "es", "in", "it", "ko", "pt-rbr", "tr", "zh-rtw"), Arrays.asList(L10nTranslations.LANGUAGES));
         for (String language : L10nTranslations.LANGUAGES) {
             Map<String, String> table = L10nTranslations.of(language);
             assertNotNull(language, table);
@@ -77,6 +77,35 @@ public class L10nTest {
         assertEquals(indonesian, L10nTranslations.of("id").get(KEY));
         assertEquals(indonesian, L10n.t(in(new Locale("in", "ID")), KEY));
         assertEquals(indonesian, L10n.t(in(Locale.forLanguageTag("id-ID")), KEY));
+    }
+
+    @Test
+    public void traditionalChineseUsesTaiwansTableForItsScriptAndRegions() {
+        String translated = table("zh-rtw").get(KEY);
+        assertEquals("隱藏廣告", translated);
+        for (String tag : Arrays.asList("zh-TW", "zh-Hant", "zh-Hant-TW", "zh-HK", "zh-MO", "zh-Hant-CN")) {
+            Context chinese = in(Locale.forLanguageTag(tag));
+            assertEquals(tag, translated, L10n.t(chinese, KEY));
+            assertEquals(tag, Locale.TAIWAN, L10n.textLocale(chinese));
+            assertEquals(tag, "other", L10n.pluralCategory(chinese, 1));
+            assertEquals(tag, "已匯入 2 項設定。", L10n.f(chinese, "Imported %1$d settings.", 2));
+            assertEquals(tag, "unknown setting", L10n.t(chinese, "unknown setting"));
+        }
+        assertEquals(translated, L10n.t(in(Locale.TRADITIONAL_CHINESE), KEY));
+    }
+
+    @Test
+    public void simplifiedAndUnspecifiedChineseNeverTakeTheTraditionalTableByAccident() {
+        for (String tag : Arrays.asList("zh", "zh-CN", "zh-SG", "zh-Hans", "zh-Hans-CN", "zh-Hans-TW", "zh-Hans-HK")) {
+            Context chinese = in(Locale.forLanguageTag(tag));
+            assertEquals(tag, KEY, L10n.t(chinese, KEY));
+            assertEquals(tag, Locale.ENGLISH, L10n.textLocale(chinese));
+        }
+        assertEquals(KEY, L10n.t(in(Locale.SIMPLIFIED_CHINESE), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.FRANCE, Locale.TAIWAN), KEY));
+        assertEquals(KEY, L10n.t(in(Locale.US, Locale.TAIWAN), KEY));
+        assertEquals(table("de").get(KEY), L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.GERMANY), KEY));
+        assertEquals(table("zh-rtw").get(KEY), L10n.t(in(Locale.SIMPLIFIED_CHINESE, Locale.TAIWAN), KEY));
     }
 
     @Test
@@ -132,6 +161,21 @@ public class L10nTest {
         assertEquals(isolate + "Photo", L10n.capitalize(in(Locale.US), isolate + "photo"));
         assertEquals("3 Things", L10n.capitalize(in(Locale.US), "3 things"));
         assertEquals("...", L10n.capitalize(in(Locale.US), "..."));
+    }
+
+    /**
+     * What goes in an isolate stays in it: its own isolate marks come out and its line breaks
+     * become spaces, since either could end the isolate a report leaves out before the text does.
+     */
+    @Test
+    public void anIsolatedValueCannotEndItsIsolateEarly() {
+        String open = String.valueOf((char) 0x2068);
+        String close = String.valueOf((char) 0x2069);
+        assertEquals(open + "Movies/Clips" + close, L10n.isolate("Movies/Clips"));
+        assertEquals(open + "Ana and Bo" + close, L10n.isolate("Ana⁩ and⁦ Bo⁧"));
+        assertEquals(open + "a b c d e f" + close, L10n.isolate("a\nb\rc d e\u0085f"));
+        assertEquals(open + close, L10n.isolate("⁨⁩"));
+        assertEquals("", L10n.isolate(""));
     }
 
     /** A format's numbers come out the phone's way even when its sentence is English. */
@@ -267,7 +311,8 @@ public class L10nTest {
         LocaleList appBefore = application.getResources().getConfiguration().getLocales();
 
         for (Locale locale : new Locale[]{Locale.GERMANY, new Locale("tr", "TR"), new Locale("en", "XA"),
-                new Locale("ar", "XB"), new Locale("in", "ID"), Locale.FRANCE}) {
+                new Locale("ar", "XB"), new Locale("in", "ID"), Locale.FRANCE, Locale.TAIWAN,
+                Locale.forLanguageTag("zh-Hant"), Locale.SIMPLIFIED_CHINESE}) {
             Context phone = in(locale);
             L10n.t(phone, KEY);
             L10n.f(phone, "Full report saved to %1$s", "x");
@@ -320,6 +365,8 @@ public class L10nTest {
         switch (tag) {
             case "pt-rbr":
                 return new Locale("pt", "BR");
+            case "zh-rtw":
+                return Locale.TAIWAN;
             case "in":
                 return new Locale("in", "ID");
             default:

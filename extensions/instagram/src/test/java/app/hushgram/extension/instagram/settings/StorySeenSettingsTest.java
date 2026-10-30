@@ -36,7 +36,7 @@ public class StorySeenSettingsTest {
     private HushgramPreferenceFragment page;
 
     @Before public void prepare() {
-        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 36;
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.MARK_STORIES_SEEN.resetToDefault();
         Settings.VIEW_STORIES_ANONYMOUSLY.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -93,6 +93,6 @@ public class StorySeenSettingsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         assertTrue(Settings.MARK_STORIES_SEEN.get());
-        assertEquals(36, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
+        assertEquals(37, RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion);
     }
 }

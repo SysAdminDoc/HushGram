@@ -27,7 +27,9 @@ import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
  * view goes invisible, and comes back when the start it asked for ends (a pause, or another video
  * on its player), when no start comes of the tap within {@link #CLAIM_WINDOW_MS}, or when Litho
  * takes the view off the screen, since Litho hands a view it took off to the next thing it draws.
- * One button is hidden at a time, as Instagram plays one feed video at a time.
+ * One button is hidden at a time, as Instagram plays one feed video at a time. A tap on the video
+ * itself starts it without the button's click, so the button under that tap is found instead
+ * ({@link PlayButtonFinder}) and hidden the same way (#229).
  *
  * <p>The click hands the start to Instagram before the hook hears of it, and Instagram usually
  * starts the video inside that call, so a start that came after the tap and before the click
@@ -80,6 +82,9 @@ final class PlayButtons {
         Hidden next = new Hidden(button, now, tapAt);
         boolean claimed;
         synchronized (LOCK) {
+            Hidden current = hidden;
+            // Found under the same tap before its click got here: already hidden for this start.
+            if (current != null && current.tapAt == tapAt && current.view.get() == button) return;
             Start start = latest;
             if (start != null && start.at >= tapAt && now - start.at <= CLAIM_WINDOW_MS) next.player = start.player;
             claimed = next.player != null;
@@ -97,14 +102,61 @@ final class PlayButtons {
      * the tap can reach here after the click.
      */
     static void started(@Nullable Object player, long now) {
+        started(player, now, TapClock.NO_TAP, false);
+    }
+
+    /**
+     * The same, for a start the tap that came up at [tapAt] let through. When it's [byTap], that
+     * tap's first start of a player outside Reels, and no button is hidden for the tap, the play
+     * button under the tap is hidden as if it had been tapped: a tap on the video itself starts it
+     * through Instagram's autoplay, and the button's click never runs (#229).
+     */
+    static void started(@Nullable Object player, long now, long tapAt, boolean byTap) {
         if (player == null) return;
+        WeakReference<Object> started = new WeakReference<>(player);
         synchronized (LOCK) {
-            latest = new Start(new WeakReference<>(player), now);
+            latest = new Start(started, now);
             Hidden current = hidden;
             if (current != null && current.player == null && now >= current.tapAt && now - current.at <= CLAIM_WINDOW_MS) {
-                current.player = latest.player;
+                current.player = started;
             }
         }
+        if (byTap) hideUnderTap(started, now, tapAt);
+    }
+
+    /**
+     * Finds the play button under the tap that came up at [tapAt], on the main thread, and hides it
+     * for [player]'s start at [now], unless that tap's own button is hidden already, a newer tap came,
+     * or the start has ended by then.
+     */
+    private static void hideUnderTap(WeakReference<Object> player, long now, long tapAt) {
+        View window = TapClock.window();
+        if (window == null) return;
+        // Posted even from the main thread, so the start Instagram is in the middle of finishes first.
+        window.post(() -> {
+            float[] point = TapClock.pointOf(tapAt);
+            Object playing = player.get();
+            if (point == null || playing == null || !TapToPlay.armed(playing)) return;
+            synchronized (LOCK) {
+                Hidden current = hidden;
+                if (current != null && (current.tapAt == tapAt || current.player != null && current.player.get() == playing)) return;
+            }
+            View button = PlayButtonFinder.find(window, point[0], point[1]);
+            if (button == null) {
+                log("a tap on a video started it, and no play button was found under the tap");
+                return;
+            }
+            Hidden previous;
+            Hidden next = new Hidden(button, now, tapAt);
+            synchronized (LOCK) {
+                next.player = player;
+                previous = hidden;
+                hidden = next;
+            }
+            if (previous != null) previous.restore("another video started");
+            next.hide();
+            log("a tap on the video started it, so its play button is hidden while it plays");
+        });
     }
 
     /** What a tap started on [player] has ended: its button comes back. */

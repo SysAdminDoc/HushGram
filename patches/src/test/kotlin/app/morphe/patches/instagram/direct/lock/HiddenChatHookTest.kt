@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.direct.seen.THREAD_KEY
 import app.morphe.patches.instagram.direct.seen.visualCode
 import app.morphe.patches.instagram.direct.seen.visualReference
 import app.morphe.patches.instagram.direct.seen.visualString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -59,8 +60,15 @@ class HiddenChatHookTest {
         assertTrue("no inbox redraw bridge: $declared", HIDDEN_REDRAW.substringAfter("->") in declared)
     }
 
+    /** Writes that something jumps to, counted by [check], so the branch check there can't pass on none. */
+    private var jumpedToWrites = 0
+
     @Test
-    fun eachDeclaredBuildFiltersItsInbox() = fixtures { bundle -> check(bundle.name, summaryClasses(bundle)) }
+    fun eachDeclaredBuildFiltersItsInbox() {
+        fixtures { bundle -> check(bundle.name, summaryClasses(bundle)) }
+        // 452's two writes are both jumped to from the branch picking the list.
+        assertTrue("no write of the inbox's list was a jump target, so the branch check proved nothing", jumpedToWrites > 0)
+    }
 
     @Test
     fun eachOtherBuildDoesToo() {
@@ -70,10 +78,11 @@ class HiddenChatHookTest {
     /**
      * Across each whole APK, not only the classes the other tests slice out: one method logs the row
      * factory's name, one method starts the factory, it starts it on one list of its own class, and
-     * one instruction anywhere writes that list.
+     * every instruction anywhere writing that list (one on 450 and 451, two on 452) is followed by
+     * the starter on the holder it wrote to.
      */
     @Test
-    fun everyBuildHasOneRowFactoryOneStarterAndOneWriteOfItsList() {
+    fun everyBuildHasOneRowFactoryOneStarterAndStartsItAfterEachWriteOfItsList() {
         val bundles = mutableListOf<Pair<String, File>>()
         fixtures { bundles += it.name to it }
         for (bundle in Fixtures.otherBuilds()) bundles += bundle.parentFile.name to bundle
@@ -86,10 +95,19 @@ class HiddenChatHookTest {
                 !AccessFlags.STATIC.isSet(factory.accessFlags))
             assertEquals("$name: ${rows.starters.map { it.signature() }}", 1, rows.starters.size)
             assertEquals("$name: ${rows.lists.map { it.signature() }}", 1, rows.lists.size)
-            assertEquals("$name: ${rows.writes.map { (method, at) -> "${method.signature()}@$at" }}", 1, rows.writes.size)
+            assertTrue("$name: nothing writes ${rows.lists.single().signature()}", rows.writes.isNotEmpty())
+            val starter = rows.starters.single()
+            for ((method, at) in rows.writes) {
+                val code = method.visualCode()
+                val start = code.getOrNull(at + 1)
+                assertTrue("$name: ${method.signature()}@$at doesn't start the row factory next",
+                    start?.opcode == Opcode.INVOKE_STATIC && (start.visualReference() as? MethodReference)?.signature() == starter.signature())
+                assertEquals("$name: on the holder it wrote to", (code[at] as TwoRegisterInstruction).registerB, (start as FiveRegisterInstruction).registerC)
+                assertEquals(1, start.registerCount)
+            }
             // The flag the starter checks: screens' onPause turn it off, so a redraw while you're in
             // HushGram settings waits for the inbox's resume, which starts the factory again.
-            val holder = rows.starters.single().definingClass
+            val holder = starter.definingClass
             assertTrue("$name: an onPause outside $holder turns its flag off: ${rows.flagWriters.map { it.signature() }}",
                 rows.flagWriters.any { it.definingClass != holder && it.name == "onPause" })
         }
@@ -101,7 +119,8 @@ class HiddenChatHookTest {
         val context = PatchContexts.of(FixtureDex.classesAsRead(bundle, types).values + ExtensionDex.classDef(HIDDEN_CHATS))
         val found = context.findHiddenChatTargets()
         hideChatsFromInbox(found)
-        assertEquals(Opcode.INVOKE_STATIC, found.rows.method.visualCode()[found.rows.at].opcode)
+        assertTrue("${bundle.name}: no write of the inbox's list", found.rows.isNotEmpty())
+        for (write in found.rows) assertEquals(Opcode.INVOKE_STATIC, write.site.method.visualCode()[write.site.at].opcode)
         for (site in listOf(found.badge, found.folders)) {
             assertEquals(Opcode.INVOKE_STATIC_RANGE, site.method.visualCode()[site.at].opcode)
         }
@@ -113,27 +132,51 @@ class HiddenChatHookTest {
         classDef.methods.none { method -> method.visualCode().any { it.visualString() == INBOX_ROWS } }
     }
 
+    /** Every write of the list gone (each turned into a nop, so the holder and its starter stay): refused. */
     @Test
     fun aBuildWhereNothingWritesTheInboxsListFailsThePatch() = fixtures { bundle ->
-        val writers = rowAnchors(bundle).writes.mapTo(HashSet()) { (method, _) -> method.definingClass }
-        val context = PatchContexts.of(summaryClasses(bundle).values.filter { it.type !in writers })
+        val context = PatchContexts.of(summaryClasses(bundle).values)
+        for ((native, at) in rowAnchors(bundle).writes) {
+            context.mutableClassDefBy(native.definingClass).methods.single { it.signature() == native.signature() }.replaceInstruction(at, "nop")
+        }
         val refusal = assertThrows(PatchException::class.java) { context.findHiddenChatTargets() }
         assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("expected one write of the inbox's list of chats"))
     }
 
     /**
      * The filter's answer replaces the list in the register the write stores, so the writer must not
-     * read that register again after the write. A writer that does is refused before anything changes.
+     * read that register again after the write. A writer that does is refused before anything
+     * changes, whichever of the writes it is.
      */
     @Test
     fun aWriterThatReadsTheListAgainAfterTheWriteFailsThePatch() = fixtures { bundle ->
-        val context = PatchContexts.of(summaryClasses(bundle).values)
-        val (native, at) = rowAnchors(bundle).writes.single()
-        val writer = context.mutableClassDefBy(native.definingClass).methods.single { it.signature() == native.signature() }
-        val value = (writer.visualCode()[at] as TwoRegisterInstruction).registerA
-        writer.addInstructions(at + 1, "invoke-interface/range { v$value .. v$value }, Ljava/util/List;->size()I")
-        val refusal = assertThrows(PatchException::class.java) { context.findHiddenChatTargets() }
-        assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("reads the inbox's list of chats again after it writes it"))
+        val writes = rowAnchors(bundle).writes
+        assertTrue("${bundle.name}: no write of the inbox's list", writes.isNotEmpty())
+        for ((native, at) in writes) {
+            val context = PatchContexts.of(summaryClasses(bundle).values)
+            val writer = context.mutableClassDefBy(native.definingClass).methods.single { it.signature() == native.signature() }
+            val value = (writer.visualCode()[at] as TwoRegisterInstruction).registerA
+            writer.addInstructions(at + 1, "invoke-interface/range { v$value .. v$value }, Ljava/util/List;->size()I")
+            val refusal = assertThrows(PatchException::class.java) { context.findHiddenChatTargets() }
+            assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("reads the inbox's list of chats again after it writes it"))
+        }
+    }
+
+    /**
+     * A write the starter doesn't follow straight away may not be a list the inbox draws, so it's
+     * refused, whichever of the writes it is.
+     */
+    @Test
+    fun aWriteNotFollowedByTheStarterFailsThePatch() = fixtures { bundle ->
+        val writes = rowAnchors(bundle).writes
+        assertTrue("${bundle.name}: no write of the inbox's list", writes.isNotEmpty())
+        for ((native, at) in writes) {
+            val context = PatchContexts.of(summaryClasses(bundle).values)
+            val writer = context.mutableClassDefBy(native.definingClass).methods.single { it.signature() == native.signature() }
+            writer.addInstructions(at + 1, "nop")
+            val refusal = assertThrows(PatchException::class.java) { context.findHiddenChatTargets() }
+            assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("doesn't start the inbox row factory on its holder right after"))
+        }
     }
 
     @Test
@@ -153,6 +196,30 @@ class HiddenChatHookTest {
         assertEquals(Opcode.INVOKE_STATIC_RANGE, found.rows.method.visualCode()[found.rows.at].opcode)
         assertEquals(Opcode.INVOKE_STATIC_RANGE, found.seeAll.method.visualCode()[found.seeAll.at].opcode)
         assertEquals(Opcode.INVOKE_STATIC_RANGE, found.hits.method.visualCode()[found.hits.returnAt].opcode)
+    }
+
+    /**
+     * 452's See all reader takes its results from the search state's static helper, which must do
+     * nothing but read them and cast them to a list. One that does anything more is refused.
+     */
+    @Test
+    fun aSeeAllListHelperThatDoesMoreThanReadAndCastFailsThePatch() {
+        fixtures { bundle ->
+            val classes = searchClasses(bundle)
+            val reader = classes.values.flatMap { it.methods }.single { !AccessFlags.STATIC.isSet(it.accessFlags) && it.seeAllListAt() != null }
+            val at = reader.seeAllListAt()!!
+            val code = reader.visualCode()
+            if (code[at].opcode != Opcode.MOVE_RESULT_OBJECT) return@fixtures
+            val call = code[at - 1].visualReference() as MethodReference
+            val context = PatchContexts.of(classes.values)
+            val helper = context.mutableClassDefBy(call.definingClass).methods.single {
+                it.name == call.name && it.parameterTypes.map(Any::toString) == call.parameterTypes.map(Any::toString) && it.returnType == call.returnType
+            }
+            helper.addInstructions(helper.visualCode().size - 1, "nop")
+            val refusal = assertThrows(PatchException::class.java) { context.findSearchTargets() }
+            assertTrue("refused for another reason: ${refusal.message}", refusal.message.orEmpty().contains("doesn't just read and cast the results"))
+        }
+        // 453 reads the results in place again, so this only bites on a declared build that uses the helper.
     }
 
     @Test
@@ -350,7 +417,12 @@ class HiddenChatHookTest {
 
         val seeAll = found.seeAll.method.visualCode()
         val at = found.seeAll.at
-        assertEquals("$name: the See all reader casts its results to a list first", Opcode.CHECK_CAST, seeAll[at - 1].opcode)
+        // 451 casts the results itself; 452 keeps what the search state's helper answers, a List.
+        val kept = seeAll[at - 1]
+        val helper = seeAll.getOrNull(at - 2)?.visualReference() as? MethodReference
+        assertTrue("$name: the See all reader casts its results to a list first, or takes them from a static helper answering one",
+            kept.opcode == Opcode.CHECK_CAST || (kept.opcode == Opcode.MOVE_RESULT_OBJECT && seeAll[at - 2].opcode == Opcode.INVOKE_STATIC &&
+                helper?.returnType == "Ljava/util/List;"))
         assertEquals("$name: then hands them over", HIDDEN_SEARCH_RESULTS, (seeAll[at] as ReferenceInstruction).reference.toString())
         assertEquals(found.seeAll.register, "v" + (seeAll[at] as RegisterRangeInstruction).startRegister)
         assertEquals("$name: and takes the answer back", Opcode.MOVE_RESULT_OBJECT, seeAll[at + 1].opcode)
@@ -394,38 +466,51 @@ class HiddenChatHookTest {
         }
         assertEquals("$name: both store readers exist", 2, readers.size)
         val readerIds = readers.map { it.signature() }
-        val writer = found.rows.method
+        val writes = found.rows
+        assertTrue("$name: no write of the inbox's list", writes.isNotEmpty())
+        val writers = writes.map { it.site.method }
+        assertEquals("$name: one write in each writer", writers.size, writers.map { it.signature() }.toSet().size)
         val badge = found.badge.method
         val counter = found.folders.method
-        val hooked = listOf(writer, badge, counter, found.bridge, found.redraw).map { it.signature() }
-        assertEquals("$name: three hooks in three methods, and two bridges", 5, hooked.toSet().size)
-        for (method in listOf(writer, badge, counter)) {
+        val hooked = (writers + listOf(badge, counter, found.bridge, found.redraw)).map { it.signature() }
+        assertEquals("$name: each hook in its own method, and two bridges", writers.size + 4, hooked.toSet().size)
+        for (method in writers + listOf(badge, counter)) {
             assertTrue("$name: ${method.signature()} is a store reader", method.signature() !in readerIds)
         }
         val before = classes.mapValues { (_, classDef) -> classDef.methods.map { method -> method.visualCode().map(::text) } }
         val readersBefore = readers.map { reader -> reader.visualCode().map(::text) }
-        val writerBefore = writer.visualCode().map(::text)
+        val writersBefore = writers.map { writer -> writer.visualCode().map(::text) }
+        val targetsBefore = writers.map { writer -> writer.jumpTargets() }
         val badgeBefore = badge.visualCode().map(::text)
         val counterBefore = counter.visualCode().map(::text)
 
         // What each place is before anything changes. The rows: a write of a list into the holder's
         // list, the one the row factory is started on, from the register the filter will be handed.
-        val put = writer.visualCode()[found.rows.at]
-        assertEquals("$name: the rows hook goes in front of a write", Opcode.IPUT_OBJECT, put.opcode)
-        val list = put.visualReference() as FieldReference
-        assertEquals("$name: of a list", "Ljava/util/List;", list.type)
-        assertEquals("$name: from the hooked register", found.rows.register, (put as TwoRegisterInstruction).registerA)
-        assertEquals("$name: into the holder the filter is handed", found.holder, put.registerB)
         val factory = classes.values.flatMap { it.methods }.single { method -> method.visualCode().any { it.visualString() == INBOX_ROWS } }
         val starter = classes.values.flatMap { it.methods }.single { method -> method.visualCode().any { it.makesOneOf(setOf(factory.definingClass)) } }
-        assertTrue("$name: ${starter.signature()} starts the row factory on ${list.signature()}",
-            starter.visualCode().any { it.opcode == Opcode.IGET_OBJECT && (it.visualReference() as? FieldReference)?.signature() == list.signature() })
-        // Right after the write the subscriber starts the row factory on the holder. The redraw
-        // bridge takes the same two steps.
-        val start = writer.visualCode()[found.rows.at + 1]
-        assertEquals("$name: the subscriber starts the row factory next", "${Opcode.INVOKE_STATIC.name} ${starter.signature()}", text(start))
-        assertEquals("$name: on the holder", found.holder, (start as FiveRegisterInstruction).registerC)
-        assertEquals(1, start.registerCount)
+        val puts = writes.map { write ->
+            val put = write.site.method.visualCode()[write.site.at]
+            assertEquals("$name: the rows hook goes in front of a write", Opcode.IPUT_OBJECT, put.opcode)
+            val list = put.visualReference() as FieldReference
+            assertEquals("$name: of a list", "Ljava/util/List;", list.type)
+            assertEquals("$name: from the hooked register", write.site.register, (put as TwoRegisterInstruction).registerA)
+            assertEquals("$name: into the holder the filter is handed", write.holder, put.registerB)
+            assertTrue("$name: ${starter.signature()} starts the row factory on ${list.signature()}",
+                starter.visualCode().any { it.opcode == Opcode.IGET_OBJECT && (it.visualReference() as? FieldReference)?.signature() == list.signature() })
+            put
+        }
+        assertEquals("$name: every write is of the same list", 1, puts.map { text(it) }.toSet().size)
+        val put = puts.first()
+        // Right after each write Instagram starts the row factory on the holder. The redraw bridge
+        // takes the same two steps.
+        val starts = writes.map { write ->
+            val start = write.site.method.visualCode()[write.site.at + 1]
+            assertEquals("$name: the writer starts the row factory next", "${Opcode.INVOKE_STATIC.name} ${starter.signature()}", text(start))
+            assertEquals("$name: on the holder", write.holder, (start as FiveRegisterInstruction).registerC)
+            assertEquals(1, start.registerCount)
+            start
+        }
+        val start = starts.first()
         // The starter does nothing while a flag of its holder is off, and the holder's resume turns
         // the flag on and starts the factory again.
         val starterCode = starter.visualCode()
@@ -465,18 +550,26 @@ class HiddenChatHookTest {
             reader.visualCode().any { instruction -> instruction.visualReference()?.toString()?.let { it in filters } == true }
         })
 
-        val rows = writer.visualCode()
-        val call = rows[found.rows.at]
-        assertEquals("$name: the inbox's list of chats goes through the filter", HIDDEN_INBOX, (call as ReferenceInstruction).reference.toString())
-        assertEquals(Opcode.INVOKE_STATIC, call.opcode)
-        assertEquals("$name: handed the holder", found.holder, (call as FiveRegisterInstruction).registerC)
-        assertEquals("$name: and the list", found.rows.register, call.registerD)
-        assertEquals(2, call.registerCount)
-        assertEquals("$name: the answer goes back in the list's register", Opcode.MOVE_RESULT_OBJECT, rows[found.rows.at + 1].opcode)
-        assertEquals(found.rows.register, (rows[found.rows.at + 1] as OneRegisterInstruction).registerA)
-        assertEquals("$name: nothing else around the list moved", writerBefore, rows.take(found.rows.at).map(::text) + rows.drop(found.rows.at + 2).map(::text))
-        assertEquals("$name: the filter is called once there", 1, rows.count { it.visualReference()?.toString() == HIDDEN_INBOX })
-        assertEquals("$name: then the list is written", writerBefore[found.rows.at], text(rows[found.rows.at + 2]))
+        writes.forEachIndexed { index, write ->
+            val site = write.site
+            val rows = site.method.visualCode()
+            val writerBefore = writersBefore[index]
+            val call = rows[site.at]
+            assertEquals("$name: the inbox's list of chats goes through the filter", HIDDEN_INBOX, (call as ReferenceInstruction).reference.toString())
+            assertEquals(Opcode.INVOKE_STATIC, call.opcode)
+            assertEquals("$name: handed the holder", write.holder, (call as FiveRegisterInstruction).registerC)
+            assertEquals("$name: and the list", site.register, call.registerD)
+            assertEquals(2, call.registerCount)
+            assertEquals("$name: the answer goes back in the list's register", Opcode.MOVE_RESULT_OBJECT, rows[site.at + 1].opcode)
+            assertEquals(site.register, (rows[site.at + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$name: nothing else around the list moved", writerBefore, rows.take(site.at).map(::text) + rows.drop(site.at + 2).map(::text))
+            assertEquals("$name: the filter is called once there", 1, rows.count { it.visualReference()?.toString() == HIDDEN_INBOX })
+            assertEquals("$name: then the list is written", writerBefore[site.at], text(rows[site.at + 2]))
+            // A branch that went to the write now lands on the filter, so no way to the write skips it.
+            val expected = targetsBefore[index].mapTo(sortedSetOf()) { if (it > site.at) it + 2 else it }
+            assertEquals("$name: ${site.method.signature()} branches where it did, onto the filter for the write", expected, site.method.jumpTargets())
+        }
+        jumpedToWrites += writes.indices.count { site -> writes[site].site.at in targetsBefore[site] }
 
         val redraw = found.redraw.visualCode()
         val holderParameter = found.redraw.parameterRegisterNumber(0)
@@ -564,6 +657,8 @@ class HiddenChatHookTest {
             val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == SEE_ALL_SCREEN } }) { it.seeAllListAt() != null }
             val builders = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == MESSAGE_HIT_THREAD } }) { it.buildsMessageHits() }
             val named = (readers + builders).map { it.definingClass }.toMutableSet()
+            // 452's See all reader takes its results from a static helper of the search state it's handed first.
+            named += readers.mapNotNull { reader -> reader.parameterTypes.firstOrNull()?.toString()?.takeIf { it.startsWith("L") } }
             named += setOf(THREAD_KEY, SHARE_TARGET)
             classes += FixtureDex.classes(bundle, named.filter { it !in classes }.toSet())
             classes[HIDDEN_CHATS] = ExtensionDex.classDef(HIDDEN_CHATS)

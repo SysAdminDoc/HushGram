@@ -301,6 +301,20 @@ function Resolve-DesktopCli {
     return $found
 }
 
+function Select-DroppedSmali {
+    <#
+    .SYNOPSIS
+        The lines of desktop CLI output where Morphe's inline assembler left an instruction out.
+    .DESCRIPTION
+        The assembler prints a smali error such as "[7,0] Invalid register: v16. Must be between v0
+        and v15, inclusive." on stderr and carries on without that instruction instead of failing
+        the patch. The patched app then dies on the phone when ART rejects the class, so every
+        caller treats any of these lines as a failed run.
+    #>
+    param([AllowEmptyCollection()][object[]]$Lines)
+    return @($Lines | ForEach-Object { [string]$_ } | Where-Object { $_ -match '^\[\d+,\d+\] ' })
+}
+
 function Get-BaseApk {
     <#
     .SYNOPSIS

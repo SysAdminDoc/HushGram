@@ -22,6 +22,7 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -52,16 +53,67 @@ class StartStoriesWithSoundHookTest {
     private val trace = "Lfixture/Trace;->begin(Ljava/lang/String;)V"
     private val toggleMarker = "android_purge_26_q3_$TOGGLE_AUDIO"
 
-    /** The instructions the hook adds: ask, test, take the session, take the state, set it on. */
-    private val hookLength = 10
+    /** The instructions the hook adds: ask, test, take the session, take the state, read it, tell, set it on. */
+    private val hookLength = 14
 
-    /** The hook the patch writes is in the StorySound the bundle ships, public and static, and takes the viewer as an Object. */
+    /** The pause hook: ask, take the state, read it, ask again, set it off. */
+    private val pauseLength = 16
+
+    /** The resume hook: ask, take the state, set it on. */
+    private val resumeLength = 10
+
+    /** The hooks the patch writes are in the StorySound the bundle ships, public and static, and take the viewer as an Object. */
     @Test
     fun theHookIsInTheExtension() {
         val declared = ExtensionDex.classDef(STORY_SOUND).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$START_WITH_SOUND is not in the extension: $declared", START_WITH_SOUND.substringAfter("->") in declared)
+        for (hook in listOf(START_WITH_SOUND, OPENED, PAUSING, PAUSED, RESUMING)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
+    }
+
+    /**
+     * #342: the viewer's onPause starts by asking whether this viewer turned the sound on, reads the state and sets it
+     * to off on a second yes; its onResume starts by asking and sets it on again. Nothing else in either moves.
+     */
+    @Test
+    fun thePauseAndResumePutTheSoundBack() {
+        val context = PatchContexts.of(classes())
+        val pauseBefore = context.viewerMethod("onPause").code().map { it.describe() }
+        val resumeBefore = context.viewerMethod("onResume").code().map { it.describe() }
+
+        context.apply { applyStorySound(findStorySoundSite()) }
+
+        val pause = context.viewerMethod("onPause").code()
+        assertEquals(PAUSING, pause[0].referenceText())
+        assertEquals(
+            listOf(
+                Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.MOVE_RESULT_OBJECT,
+                Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
+                Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL,
+            ),
+            pause.take(pauseLength).map { it.opcode },
+        )
+        assertEquals("the getter", "$state->isOn()Z", pause[8].referenceText())
+        assertEquals(PAUSED, pause[11].referenceText())
+        assertEquals("set to off", 0, (pause[14] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("the setter", "$state->set(Z)V", pause[15].referenceText())
+        assertEquals("onPause keeps its own code", pauseBefore, pause.drop(pauseLength).map { it.describe() })
+
+        val resume = context.viewerMethod("onResume").code()
+        assertEquals(RESUMING, resume[0].referenceText())
+        assertEquals("set to on", 1, (resume[8] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("the setter", "$state->set(Z)V", resume[9].referenceText())
+        assertEquals("onResume keeps its own code", resumeBefore, resume.drop(resumeLength).map { it.describe() })
+    }
+
+    @Test
+    fun aViewerWithoutItsOwnPauseOrResumeFails() {
+        for (missing in listOf("onPause", "onResume")) {
+            val failure = assertThrows(PatchException::class.java) { PatchContexts.of(classes(without = missing)).findStorySoundSite() }
+            assertTrue(failure.message!!, failure.message!!.contains("no $missing()"))
+        }
     }
 
     /**
@@ -81,17 +133,23 @@ class StartStoriesWithSoundHookTest {
         assertEquals(
             listOf(
                 Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.MOVE_RESULT_OBJECT,
-                Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL,
+                Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT, Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT,
+                Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.CONST_4, Opcode.INVOKE_VIRTUAL,
             ),
             code.subList(ask, ask + hookLength).map { it.opcode },
         )
         assertEquals("the session getter, called on the viewer", "$STORY_VIEWER->getSession()$userSession", code[ask + 3].referenceText())
         assertEquals("the state factory", "$state->of($userSession)$state", code[ask + 6].referenceText())
-        assertEquals("the setter", "$state->set(Z)V", code[ask + 9].referenceText())
+        assertEquals("the state read before it changes", "$state->isOn()Z", code[ask + 8].referenceText())
+        assertEquals("told what it was", OPENED, code[ask + 11].referenceText())
+        assertEquals("the setter", "$state->set(Z)V", code[ask + 13].referenceText())
         val p0 = context.onCreate().implementation!!.registerCount - 2
         assertEquals("the hook reads the viewer from its own register", listOf(p0), code[ask].arguments())
         assertEquals(listOf(p0), code[ask + 3].arguments())
-        val written = (ask until ask + hookLength).filter { code[it].opcode in setOf(Opcode.MOVE_RESULT, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4) }
+        assertEquals("the viewer is copied from its own register", p0, (code[ask + 10] as TwoRegisterInstruction).registerB)
+        val written = (ask until ask + hookLength).filter {
+            code[it].opcode in setOf(Opcode.MOVE_RESULT, Opcode.MOVE_RESULT_OBJECT, Opcode.CONST_4, Opcode.MOVE_OBJECT_FROM16)
+        }
             .map { (code[it] as OneRegisterInstruction).registerA }
         assertTrue("the hook wrote the viewer's register or a parameter: $written", written.isNotEmpty() && written.all { it < p0 })
         assertEquals("what's left of the method", original.size + hookLength, code.size)
@@ -155,7 +213,7 @@ class StartStoriesWithSoundHookTest {
     }
 
     /**
-     * In each of the version's seven builds the viewer's onCreate, the session getter above it, the audio toggle and
+     * In each of the version's three builds the viewer's onCreate, the session getter above it, the audio toggle and
      * the viewer's sound check are found once, and the hook goes in once, right after the super call, with two borrowed
      * locals up to v15 that nothing reads afterwards and every other instruction in place. Read as the patcher reads
      * an APK, and copied.
@@ -165,7 +223,7 @@ class StartStoriesWithSoundHookTest {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } +
             Fixtures.otherBuilds()
-        assertEquals("seven builds of the version", 7, bundles.size)
+        assertEquals("every build of the version", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
             val wanted = wanted(apk)
@@ -174,12 +232,19 @@ class StartStoriesWithSoundHookTest {
                 val classes = classesOf(apk, wanted).values
                 assertTrue("$what: the viewer", classes.any { it.type == STORY_VIEWER })
                 val context = PatchContexts.of(classes)
+                val hooked = setOf("onCreate", "onPause", "onResume")
                 val originals = classes.flatMap { context.mutableClassDefBy(it.type).methods }
-                    .filter { it.implementation != null && it.definingClass == STORY_VIEWER && it.name == "onCreate" }.associateWith(::NeutralNativePath)
+                    .filter { it.implementation != null && it.definingClass == STORY_VIEWER && it.name in hooked && it.parameterTypes.size <= 1 }
+                    .associateWith(::NeutralNativePath)
 
                 val site = context.findStorySoundSite()
-                assertEquals("$what: two borrowed locals", 2, site.scratch.distinct().size)
-                assertTrue("$what: the borrowed locals fit an invoke", site.scratch.all { it in 0..15 })
+                assertEquals("$what: four borrowed locals", 4, site.scratch.distinct().size)
+                assertEquals("$what: four borrowed in onPause", 4, site.pauseScratch.distinct().size)
+                assertEquals("$what: three borrowed in onResume", 3, site.resumeScratch.distinct().size)
+                assertTrue(
+                    "$what: the borrowed locals fit an invoke",
+                    (site.scratch + site.pauseScratch + site.resumeScratch).all { it in 0..15 },
+                )
                 assertEquals("$what: the hook goes into onCreate", "onCreate", site.onCreate.name)
                 context.apply { applyStorySound(site) }
 
@@ -195,16 +260,40 @@ class StartStoriesWithSoundHookTest {
                 assertTrue("$what: right after the super call", code[ask - 1].opcode == Opcode.INVOKE_SUPER && code[ask - 1].referenceText()!!.contains("->onCreate($bundle)V"))
                 assertEquals("$what: the session getter", "$STORY_VIEWER->${site.session.name}()$userSession", code[ask + 3].referenceText())
                 assertEquals("$what: the factory", site.factory.toString(), code[ask + 6].referenceText())
-                assertEquals("$what: the setter", site.setter.toString(), code[ask + 9].referenceText())
-                assertTrue("$what: a jump lands inside the hook", (ask + 1 until ask + hookLength).none { it in onCreate.jumpTargets() })
+                assertEquals("$what: the getter", site.getter.toString(), code[ask + 8].referenceText())
+                assertEquals("$what: told what it was", OPENED, code[ask + 11].referenceText())
+                // 453's setter takes a second boolean, whether the user asked, and the hook loads a false for it.
+                val extra = if (site.setter.parameterTypes.size == 2) 1 else 0
+                val created = hookLength + extra
+                if (extra == 1) {
+                    assertEquals("$what: not the user's own change", 0, (code[ask + 13] as NarrowLiteralInstruction).narrowLiteral)
+                }
+                assertEquals("$what: the setter", site.setter.toString(), code[ask + 13 + extra].referenceText())
+                assertTrue("$what: a jump lands inside the hook", (ask + 1 until ask + created).none { it in onCreate.jumpTargets() })
                 val p0 = onCreate.implementation!!.registerCount - 2
                 assertEquals("$what: the viewer is read from its own register, last", listOf(p0), code[ask].arguments())
-                val borrowed = code.subList(ask, ask + hookLength).mapNotNull { (it as? OneRegisterInstruction)?.registerA }
+                val borrowed = code.subList(ask, ask + created).mapNotNull { (it as? OneRegisterInstruction)?.registerA }
                     .filter { it != p0 && it !in site.scratch && it !in code[ask].arguments() }
                 assertTrue("$what: the hook touched a register it didn't borrow: $borrowed", borrowed.isEmpty())
-                val added = (ask until ask + hookLength).toSet()
+
+                val viewer = context.mutableClassDefBy(STORY_VIEWER).methods
+                val onPause = viewer.single { it.name == "onPause" && it.parameterTypes.isEmpty() }
+                val onResume = viewer.single { it.name == "onResume" && it.parameterTypes.isEmpty() }
+                assertEquals("$what: onPause asks first", PAUSING, onPause.code()[0].referenceText())
+                assertEquals("$what: onPause asks again", PAUSED, onPause.code()[11].referenceText())
+                assertEquals("$what: onPause sets it off", site.setter.toString(), onPause.code()[15 + extra].referenceText())
+                assertEquals("$what: onResume asks first", RESUMING, onResume.code()[0].referenceText())
+                assertEquals("$what: onResume sets it on", site.setter.toString(), onResume.code()[9 + extra].referenceText())
+                assertTrue("$what: a jump lands inside the pause hook", (1 until pauseLength + extra).none { it in onPause.jumpTargets() })
+                assertTrue("$what: a jump lands inside the resume hook", (1 until resumeLength + extra).none { it in onResume.jumpTargets() })
+
+                val added = mapOf(
+                    "onCreate" to (ask until ask + created).toSet(),
+                    "onPause" to (0 until pauseLength + extra).toSet(),
+                    "onResume" to (0 until resumeLength + extra).toSet(),
+                )
                 for ((method, original) in originals) {
-                    val mine = method.code().indices.filter { method.name == onCreate.name && method.definingClass == onCreate.definingClass && it in added }.toSet()
+                    val mine = method.code().indices.filter { method.definingClass == STORY_VIEWER && it in added.getValue(method.name) }.toSet()
                     original.assertPreserved("$what ${method.name}", method, mine)
                 }
             }
@@ -249,6 +338,7 @@ class StartStoriesWithSoundHookTest {
         viewerChecks: Boolean = true,
         checkReadsOtherState: Boolean = false,
         statePublic: Boolean = true,
+        without: String? = null,
     ): List<ClassDef> {
         val superCalls = (0 until supers).joinToString("\n") { "invoke-super { p0, p1 }, $base->onCreate($bundle)V" }
         val onCreate = method(viewerType, "onCreate", listOf(bundle), "V", 6, body = """
@@ -270,7 +360,16 @@ class StartStoriesWithSoundHookTest {
             invoke-virtual { v0, v1, v2, v3 }, $check->sound(${integer}ZZ)Z
             return-void
         """)
-        val viewerMethods = listOf(onCreate) + (if (viewerChecks) listOf(asksCheck) else emptyList())
+        val lifecycle = listOf("onPause", "onResume").filter { it != without }.map { name ->
+            method(viewerType, name, emptyList(), "V", 4, body = """
+                const-string v0, "ReelViewerFragment.$name"
+                invoke-static { v0 }, $trace
+                const/4 v1, 0x0
+                iput-object v1, p0, $viewerType->field:Ljava/lang/Object;
+                return-void
+            """)
+        }
+        val viewerMethods = listOf(onCreate) + lifecycle + (if (viewerChecks) listOf(asksCheck) else emptyList())
         val readState = if (checkReadsOtherState) hiddenState else state
         val toggle = { name: String ->
             method(reels, name, listOf("I"), "V", 6, body = """
@@ -357,8 +456,10 @@ class StartStoriesWithSoundHookTest {
             methods,
         )
 
-    private fun app.morphe.patcher.patch.BytecodePatchContext.onCreate(): MutableMethod =
-        mutableClassDefBy(STORY_VIEWER).methods.single { it.name == "onCreate" }
+    private fun app.morphe.patcher.patch.BytecodePatchContext.onCreate(): MutableMethod = viewerMethod("onCreate")
+
+    private fun app.morphe.patcher.patch.BytecodePatchContext.viewerMethod(name: String): MutableMethod =
+        mutableClassDefBy(STORY_VIEWER).methods.single { it.name == name }
 
     private fun MutableMethod.jumpTargets(): Set<Int> =
         implementation!!.instructions.filterIsInstance<BuilderOffsetInstruction>().map { it.target.location.index }.toSet()

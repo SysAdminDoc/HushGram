@@ -8,6 +8,7 @@ import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -51,7 +52,7 @@ internal object SizePickerFingerprint : Fingerprint(
 internal object ScreenReportFingerprint : Fingerprint(
     returnType = "Ljava/lang/String;",
     parameters = listOf("Landroid/content/Context;"),
-    strings = listOf(SCREEN_FORMAT),
+    filters = listOf(string(SCREEN_FORMAT)),
 )
 
 /**

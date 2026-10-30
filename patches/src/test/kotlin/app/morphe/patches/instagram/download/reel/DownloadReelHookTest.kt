@@ -18,14 +18,17 @@ import app.morphe.patches.instagram.download.INSTAGRAM_MEDIA
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.MUSIC_CONSUMPTION
 import app.morphe.patches.instagram.download.MUSIC_INFO
+import app.morphe.patches.instagram.download.ORIGINAL_SOUND
 import app.morphe.patches.instagram.download.PANDO_MUSIC_CONSUMPTION
 import app.morphe.patches.instagram.download.PANDO_MUSIC_INFO
+import app.morphe.patches.instagram.download.PANDO_ORIGINAL_SOUND
 import app.morphe.patches.instagram.download.PANDO_TRACK_DATA
 import app.morphe.patches.instagram.download.PANDO_IMAGE_INFO
 import app.morphe.patches.instagram.download.PANDO_VIDEO_VERSION
 import app.morphe.patches.instagram.download.TRACK_DATA
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.VIDEO_VERSION
+import app.morphe.patches.instagram.download.soundBridges
 import app.morphe.patches.instagram.misc.extension.PURGE_MARKER
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.shared.compat.AppCompatibilities
@@ -40,6 +43,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction35c
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -290,7 +294,12 @@ class DownloadReelHookTest {
         assertEquals(Opcode.MOVE_OBJECT, option[5].opcode)
         // p0 is v4 in a method of five registers.
         assertEquals("the name is the argument", 4, (option[5] as TwoRegisterInstruction).registerB)
-        assertEquals("$OPTION-><init>(Ljava/lang/String;II)V", option[7].referenceText())
+        // The name and Download's icon go through rowIcon, so Details draws the info glyph (not the arrow).
+        assertEquals(ROW_ICON, option[6].referenceText())
+        assertEquals("rowIcon takes the name and the icon", listOf(1, 3),
+            (option[6] as Instruction35c).let { listOf(it.registerC, it.registerD) })
+        assertEquals(Opcode.MOVE_RESULT, option[7].opcode)
+        assertEquals("$OPTION-><init>(Ljava/lang/String;II)V", option[9].referenceText())
         assertEquals(Opcode.RETURN_OBJECT, option.last().opcode)
         val row = context.method(INSTAGRAM_MEDIA, "addReelRow").code()
         val call = row.single { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE }
@@ -434,6 +443,7 @@ class DownloadReelHookTest {
         val types = setOf(
             MEDIA, USER, VIDEO_VERSION, PANDO_VIDEO_VERSION, IMAGE_INFO, PANDO_IMAGE_INFO, IMAGE_URL, OPTION,
             MUSIC_INFO, PANDO_MUSIC_INFO, TRACK_DATA, PANDO_TRACK_DATA, MUSIC_CONSUMPTION, PANDO_MUSIC_CONSUMPTION,
+            ORIGINAL_SOUND, PANDO_ORIGINAL_SOUND,
         )
         val markers = setOf(HANDLER_MARKER, ELIGIBLE_MARKER, REDUCED_MARKER, ROW_MARKER)
         // The types a post keeps its music in: interfaces whose getter answers the music.
@@ -499,10 +509,20 @@ class DownloadReelHookTest {
                 assertEquals("$where: the filter's arguments", 2, hook.registerCount)
                 assertEquals("$where: the check's answer", (code[at - 1] as OneRegisterInstruction).registerA, answer)
                 val types = eligible.parameterTypes.map(Any::toString)
-                val index = (if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)
-                val handed = when (call) {
-                    is RegisterRangeInstruction -> call.startRegister + index
-                    else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG)[index] }
+                val arguments = when (call) {
+                    is RegisterRangeInstruction -> (call.startRegister until call.startRegister + call.registerCount).toList()
+                    else -> (call as Instruction35c).let { listOf(it.registerC, it.registerD, it.registerE, it.registerF, it.registerG).take(it.registerCount) }
+                }
+                val handed = if (MEDIA in types) {
+                    arguments[(if (AccessFlags.STATIC.isSet(eligible.accessFlags)) 0 else 1) + types.indexOf(MEDIA)]
+                } else {
+                    // 451's check takes the post's wrapper, which a static (Media) call makes before it: the filter gets that Media.
+                    val made = (at - 3 downTo 1).first { index ->
+                        code[index].opcode == Opcode.MOVE_RESULT_OBJECT && (code[index] as OneRegisterInstruction).registerA in arguments &&
+                            ((code[index - 1] as? ReferenceInstruction)?.reference as? MethodReference)?.parameterTypes?.map(Any::toString) == listOf(MEDIA)
+                    }
+                    assertEquals("$where: the wrapper's maker", Opcode.INVOKE_STATIC, code[made - 1].opcode)
+                    (code[made - 1] as Instruction35c).registerC
                 }
                 assertEquals("$where: the reel handed to the filter", handed, reel)
             }
@@ -525,7 +545,22 @@ class DownloadReelHookTest {
         bridges.forEach { assertEquals("$label: ${it.name}", Opcode.CHECK_CAST, it.code().first().opcode) }
         assertEquals("$label: reelOption", DOWNLOAD, context.method(INSTAGRAM_MEDIA, "reelOption").code().first().referenceText())
         assertTrue("$label: addReelRow", context.method(INSTAGRAM_MEDIA, "addReelRow").code().any { it.opcode == Opcode.INVOKE_VIRTUAL_RANGE })
+
+        // Hide reels by sound (#191) reads a reel's track, or its own sound, through these.
+        context.soundBridges("Download any reel")()
+        soundBridgeNames.forEach { bridge ->
+            val code = context.method(INSTAGRAM_MEDIA, bridge).code()
+            assertEquals("$label: $bridge", Opcode.CHECK_CAST, code.first().opcode)
+            val answers = ((code[1] as ReferenceInstruction).reference as MethodReference).returnType
+            if (bridge != "originalSound") assertEquals("$label: $bridge answers a String", "Ljava/lang/String;", answers)
+            else assertEquals("$label: the reel's own sound", ORIGINAL_SOUND, answers)
+        }
     }
+
+    /** The bridges Hide reels by sound adds to the music's. */
+    private val soundBridgeNames = listOf(
+        "originalSound", "trackAudioId", "trackTitle", "trackArtist", "originalSoundAudioId", "originalSoundTitle",
+    )
 
     /**
      * The bridges this patch writes: the video's, and the picture's, which Download any story writes

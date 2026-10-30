@@ -88,7 +88,8 @@ public final class LogBufferManager {
     private static final Deque<DiagnosticEvent> logBuffer = new ConcurrentLinkedDeque<>();
     private static final AtomicInteger logBufferCharSize = new AtomicInteger();
     private static final Object CRASH_FILE_LOCK = new Object();
-    private static final Object CLEAR_UNDO_LOCK = new Object();
+    /** Held by Clear diagnostic data, its Undo and {@link JavaCrashReport}, so none lands inside another. */
+    static final Object CLEAR_UNDO_LOCK = new Object();
     private static ClearSnapshot lastClear;
 
     /** Everything the clear row removes, kept in memory until its next tap. */
@@ -352,6 +353,28 @@ public final class LogBufferManager {
         REPORT_SECTIONS.clear();
     }
 
+    /**
+     * Every registered section with lines, each under its bracketed heading and redacted, or "".
+     * A section whose lines can't be read says so; one whose title can't be read stops the report.
+     */
+    static String reportSectionsText() {
+        StringBuilder text = new StringBuilder();
+        for (ReportSection section : REPORT_SECTIONS) {
+            List<String> lines;
+            try {
+                lines = section.lines();
+            } catch (Throwable failure) {
+                lines = Collections.singletonList("could not be read: " + failure);
+            }
+            if (lines == null || lines.isEmpty()) continue;
+            text.append("\n[").append(section.title()).append("]\n");
+            for (String line : lines) {
+                text.append(DiagnosticRedactor.redact(line)).append('\n');
+            }
+        }
+        return text.toString();
+    }
+
     public static String buildExportText() {
         Export export = buildExport();
         return export.head + eventsSection(export.events, null);
@@ -499,19 +522,7 @@ public final class LogBufferManager {
         // nothing has been missing.
         if (includeAll || selected.contains(
                 app.hushgram.extension.shared.diagnostics.DiagnosticCategory.PATCH_ERRORS.value)) {
-            for (ReportSection section : REPORT_SECTIONS) {
-                List<String> lines;
-                try {
-                    lines = section.lines();
-                } catch (Throwable failure) {
-                    lines = Collections.singletonList("could not be read: " + failure);
-                }
-                if (lines == null || lines.isEmpty()) continue;
-                report.append("\n[").append(section.title()).append("]\n");
-                for (String line : lines) {
-                    report.append(DiagnosticRedactor.redact(line)).append('\n');
-                }
-            }
+            report.append(reportSectionsText());
         }
         String feedFilter = feedFilterLines(includeAll, selected);
         if (!feedFilter.isEmpty()) {
@@ -662,7 +673,7 @@ public final class LogBufferManager {
     }
 
     /** The same stamp the report header carries, so one report does not hold two formats. */
-    private static String utcOf(long epochMillis) {
+    static String utcOf(long epochMillis) {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US);
         format.setTimeZone(TimeZone.getTimeZone("UTC"));
         return format.format(new Date(epochMillis));

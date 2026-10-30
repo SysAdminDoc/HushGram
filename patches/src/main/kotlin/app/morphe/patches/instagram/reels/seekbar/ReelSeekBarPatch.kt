@@ -9,7 +9,8 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
-import app.morphe.patches.instagram.misc.extension.classesHolding
+import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.jumpTargets
@@ -17,6 +18,7 @@ import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.markers
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
+import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.misc.extension.typesMarked
 import app.morphe.patches.instagram.misc.flags.FlagLoad
 import app.morphe.patches.instagram.misc.flags.answerFlagLoads
@@ -33,9 +35,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
 private const val PATCH = "Keep a seek bar on Reels"
 internal const val REEL_SEEK_BAR = "$EXTENSION_PACKAGE/reels/ReelSeekBar;"
@@ -51,14 +53,16 @@ internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
  * Reels progress controller keeps its limits. The first two read an ad's own minimum in the same
  * place, picked in a branch.
  */
-internal const val ORGANIC_MIN_SECONDS = 0x82092100291499L
+// 451: 0x82091900291476. 452 moved it to 0x82090f00291471, and 453 to 0x8208fe00291415 (config index -10, slot -5); same three readers.
+internal const val ORGANIC_MIN_SECONDS = 0x8208fe00291415L
 internal const val ORGANIC_MIN_SECONDS_READS = 3
 
 /**
  * Whether a short ordinary reel's bar is the hidden kind, shown only while you hold the reel. 450
  * reads it once, where the seek bar row's state is worked out, in the same place as the ads' flag.
  */
-internal const val ORGANIC_LAZY = 0x81092100103399L
+// 451: 0x8109190010330c. 452 moved it to 0x81090f00103271, 453 to 0x8108fe00103259, read by the same seek bar row state.
+internal const val ORGANIC_LAZY = 0x8108fe00103259L
 internal const val ORGANIC_LAZY_READS = 1
 
 /** The markers, after Instagram's release prefix, of the methods that prove the reads are the seek bar's. */
@@ -105,7 +109,7 @@ val reelSeekBarPatch = bytecodePatch(
     description = "Keeps a seek bar under every reel, short ones too, with the time played and the reel's length " +
         "above it, like 0:10 / 0:55. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
-    category("Reels")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
@@ -181,35 +185,82 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
 /**
  * The binder's read of whether its reel is an ad. The field is the one [adField] proves the seek
  * bar row's state ([row]) picks the ads' hidden kind by. The binder is the one method setting a
- * [SCRUBBER_TAG] tag on a view, and it reads a field of the primitive that makes [SEEK_BAR], so the
- * view is that bar's container. It reads the ad field once; the call goes right after the read,
- * where nothing jumps, with the read's register and the tagged view, a parameter's register that
- * nothing writes over but a cast.
+ * [SCRUBBER_TAG] tag on a view that reads a field of the primitive that makes [SEEK_BAR], so the
+ * view is that bar's container. 451 also tags the container of its legacy attached scrubber
+ * component that way, in a lambda reading that component, which makes no bar of its own (on 451's
+ * 385713073 that's LX/0ea6 reading LX/0ROh beside LX/0BXG reading LX/07UR). The tag is loaded
+ * itself or asked of a static string pool: 451's 385713109 and 385713111 ask LX/0000->A00 for it,
+ * the way 450 loaded the legacy component's. 453's 385914510 builds it, with the reel's id, in a
+ * static method of its own (LX/0JcH->A01) that the binder calls instead. It reads the ad field once;
+ * the call goes right after the read, where nothing jumps, with the read's register and the tagged
+ * view, a parameter's register that nothing writes over but a cast.
  */
 internal fun BytecodePatchContext.findBindSite(row: Method, lazy: FlagLoad): BindSite {
     val field = adField(row, lazy)
-    val binders = mutableListOf<Method>()
-    val tagging = classesHolding(SCRUBBER_TAG).mapTo(HashSet()) { it.type }
+    val holders = classesLoadingString(SCRUBBER_TAG)
+    val builders = holders.flatMap { it.methods }.filter { buildsTag(it) }
+    val built = builders.mapTo(HashSet()) { it.signature() }
+    fun tagLoadedAt(code: List<Instruction>, at: Int) = stringLoadedAt(code, at) == SCRUBBER_TAG || code[at].methodSignature() in built
+    val tagging = mutableListOf<Method>()
+    val loading = (holders + builders.flatMap { classesCalling(it.definingClass, it.name, it.parameterTypes.map(CharSequence::toString), it.returnType) })
+        .mapTo(HashSet()) { it.type }
     classDefForEach { classDef ->
-        if (classDef.type !in tagging || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
+        if (classDef.type !in loading || classDef.type.startsWith(EXTENSION_ROOT)) return@classDefForEach
         classDef.methods.forEach { method ->
-            val code = method.implementation?.instructions ?: return@forEach
-            if (code.any { it.string() == SCRUBBER_TAG } && code.any { it.methodSignature() == SET_TAG }) binders += method
+            val code = method.implementation?.instructions?.toList() ?: return@forEach
+            if (code.any { it.methodSignature() == SET_TAG } && code.indices.any { tagLoadedAt(code, it) }) {
+                tagging += method
+            }
         }
     }
-    val binder = binders.singleOrNull() ?: refuse("expected one method tagging a view $SCRUBBER_TAG, found ${binders.size}")
+    if (tagging.isEmpty()) refuse("no method tags a view $SCRUBBER_TAG")
+    // A tagging is the call setting the tag and the method it is in. 452 folds the binders into the
+    // cases of one shared lambda class's switch, so a method can hold several, and the one for the real
+    // bar is told by the class it casts or reads just before loading the tag: the primitive that makes the bar.
+    val taggings = tagging.flatMap { method ->
+        val code = method.implementation!!.instructions.toList()
+        code.indices.filter { code[it].methodSignature() == SET_TAG }.mapNotNull { call ->
+            val load = (call - 1 downTo maxOf(0, call - 6)).firstOrNull { tagLoadedAt(code, it) } ?: return@mapNotNull null
+            val makesBar = (load - 1 downTo maxOf(0, load - 10)).any { at ->
+                val reference = (code[at] as? ReferenceInstruction)?.reference
+                (code[at].opcode == Opcode.IGET_OBJECT && makesSeekBar(code[at].fieldReference()!!.type)) ||
+                    (code[at].opcode == Opcode.CHECK_CAST && reference != null && makesSeekBar(reference.toString()))
+            }
+            if (makesBar) method to call else null
+        }
+    }
+    val binders = taggings.map { it.first }.distinctBy { it.signature() }
+    val tagged = taggings.singleOrNull() ?: refuse(
+        "expected one method tagging a view $SCRUBBER_TAG and reading the primitive that makes $SEEK_BAR, " +
+            "found ${taggings.size} of ${tagging.size} tagging",
+    )
+    val binder = binders.single()
     val where = binder.signature()
     val code = binder.implementation!!.instructions.toList()
-    if (code.none { it.opcode == Opcode.IGET_OBJECT && makesSeekBar(it.fieldReference()!!.type) }) {
-        refuse("$where reads no field of the primitive that makes $SEEK_BAR")
+    val tagAt = tagged.second
+    val view = code[tagAt].arguments().first()
+    fun castsView(at: Int) = code[at].opcode == Opcode.CHECK_CAST && (code[at] as OneRegisterInstruction).registerA == view
+    val start = (tagAt downTo 0).firstOrNull(::castsView) ?: 0
+    val end = (tagAt + 1 until code.size).firstOrNull(::castsView) ?: code.size
+    // 453 copies the handed view into a local before its switch, so the register needn't be a
+    // parameter. Then the copy from a parameter is the only write before the switch, and the case
+    // is reached from the switch alone, so the other cases' writes of the local never get to it.
+    if (view < binder.localRegisterCount()) {
+        val dispatch = (0 until start).firstOrNull { code[it].opcode == Opcode.PACKED_SWITCH || code[it].opcode == Opcode.SPARSE_SWITCH }
+        val copy = (0 until (dispatch ?: 0)).filter { code[it].writes(view) }.singleOrNull()
+        val fromParameter = copy != null &&
+            code[copy].opcode in setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16) &&
+            (code[copy] as TwoRegisterInstruction).registerB >= binder.localRegisterCount()
+        val flow = ControlFlow.of(binder)
+        val entries = code.indices.filter { start in flow.normal[it] || start in flow.exceptional[it] }
+        if (dispatch == null || !fromParameter || entries.any { it != dispatch }) {
+            refuse("$where tags a view of its own, not the one it's handed")
+        }
     }
-    val reads = code.indices.filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].fieldReference()?.text() == field }
+    val reads = (start until end).filter { code[it].opcode == Opcode.IGET_BOOLEAN && code[it].fieldReference()?.text() == field }
     val readAt = reads.singleOrNull() ?: refuse("expected $where to read $field once, found ${reads.size}")
     val flag = (code[readAt] as OneRegisterInstruction).registerA
-    val views = code.filter { it.methodSignature() == SET_TAG }.map { it.arguments().first() }.toSet()
-    val view = views.singleOrNull() ?: refuse("$where tags ${views.size} views, not the one it's handed")
-    if (view < binder.localRegisterCount()) refuse("$where tags a view of its own, not the one it's handed")
-    val overwrites = code.indices.filter { code[it].writes(view) && code[it].opcode != Opcode.CHECK_CAST }
+    val overwrites = (start until end).filter { code[it].writes(view) && code[it].opcode != Opcode.CHECK_CAST }
     if (overwrites.isNotEmpty()) refuse("$where writes over the view it tags at instruction(s) ${overwrites.joinToString()}")
     if (readAt == code.lastIndex || readAt + 1 in binder.jumpTargets()) {
         refuse("$where jumps to just after its read of $field, where the call would go")
@@ -264,6 +315,20 @@ private fun adField(row: Method, lazy: FlagLoad): String {
     val overwrites = (after intersect before).filter { it != test && code[it].writes(register) }.sorted()
     if (overwrites.isNotEmpty()) refuse("$where writes over $field before testing it, at instruction(s) ${overwrites.joinToString()}")
     return field
+}
+
+/**
+ * Whether [method] builds the binder's tag: a static method answering a String that loads
+ * [SCRUBBER_TAG] and tags nothing. A pool of shared strings takes an int and isn't one.
+ */
+private fun BytecodePatchContext.buildsTag(method: Method): Boolean {
+    if (!AccessFlags.STATIC.isSet(method.accessFlags) || method.returnType != "Ljava/lang/String;" ||
+        method.parameterTypes.map(CharSequence::toString) == listOf("I")
+    ) {
+        return false
+    }
+    val code = method.implementation?.instructions?.toList() ?: return false
+    return code.none { it.methodSignature() == SET_TAG } && code.indices.any { stringLoadedAt(code, it) == SCRUBBER_TAG }
 }
 
 /** Whether [type] is a class with a method answering [SEEK_BAR]: the primitive that makes the bar. */
@@ -338,8 +403,6 @@ private fun Method.calledSignatures(): Set<String> = implementation?.instruction
     ?.mapNotNull { ((it as? ReferenceInstruction)?.reference as? MethodReference) }
     ?.map { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
     ?.toSet() ?: emptySet()
-
-private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 
 private fun Instruction.fieldReference(): FieldReference? = (this as? ReferenceInstruction)?.reference as? FieldReference
 

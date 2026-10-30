@@ -155,9 +155,9 @@ class RemoveBottomSpaceHookTest {
     }
 
     /**
-     * The same in the other builds of each declared version (#77, #95). 385611400 moves the
-     * listener's navigation bar check into a static taking the Resources, and the guess is dropped
-     * in the listener calling it.
+     * The same in the other builds of each declared version (#77, #95). A build that moves the
+     * listener's navigation bar check into a static taking the Resources (450's 385611400 did; no
+     * 451 build does) has the guess dropped in the listener calling it.
      */
     @Test
     fun everyOtherBuildDropsTheGuess() {
@@ -182,7 +182,7 @@ class RemoveBottomSpaceHookTest {
             assertDropped("$label ${guess.type}->${guess.name}", method)
             if (!method.loads(SHOW_NAVIGATION_BAR)) followed += label.substringAfterLast('-')
         }
-        assertEquals("the builds whose listener calls the moved check", setOf("385611400"), followed)
+        assertEquals("the builds whose listener calls the moved check", emptySet<String>(), followed)
     }
 
     /**

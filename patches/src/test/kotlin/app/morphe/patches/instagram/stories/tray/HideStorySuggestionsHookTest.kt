@@ -92,16 +92,15 @@ class HideStorySuggestionsHookTest {
     }
 
     /**
-     * In each declared build the chain is there once and the check is guarded. On 450's 385611438
-     * that's LX/0FA4.A00 (the mapper), LX/05hZ.A02 (its reader, reading CoD) and LX/05hZ.A07 (the
-     * check), asked by LX/04df.A0X and LX/04or.GWU.
+     * In each of the three 452 builds the chain (the mapper, its reader and the check, asked from
+     * two places) is there once and the check is guarded.
      */
     @Test
     fun eachDeclaredBuildGuardsTheCheck() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         // The declared build and the other builds of the version, each compiled on its own.
         val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } } + Fixtures.otherBuilds()
-        assertEquals("the seven 450 builds: ${bundles.map { it.name }}", 7, bundles.size)
+        assertEquals("every 452 build: ${bundles.map { it.name }}", Fixtures.BUILDS, bundles.size)
         val strings = setOf(UNSUPPORTED_NETEGO, SUGGESTED_USERS_NETEGO, INVALID_NETEGO)
         for (bundle in bundles) {
             val holders = mutableListOf<ClassDef>()

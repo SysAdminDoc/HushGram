@@ -157,8 +157,20 @@ class LoopStoryHookTest {
         assertLoopAnswered(label, check)
         assertEquals("${label}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == LOOP } })
         val askers = viewer.methods.filter { m -> m.code().any { it.calls(read.name) } }
-        val handler = askers.filter { AccessFlags.BRIDGE.isSet(it.accessFlags) }
+        // On 452 the listener bridge only forwards the item, and the handler it forwards to asks.
+        val handler = askers.filter { it.returnType == "V" }
         assertEquals("${label}: the finished story handler asks: ${askers.map { it.name }}", 1, handler.size)
+        val forwarded = viewer.methods.any { bridge ->
+            AccessFlags.BRIDGE.isSet(bridge.accessFlags) && bridge.code().any {
+                val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+                called != null && called.definingClass == STORY_VIEWER && called.name == handler.single().name &&
+                    called.parameterTypes.map(CharSequence::toString) == listOf(storyItem)
+            }
+        }
+        assertTrue(
+            "${label}: the handler is a bridge or what one forwards to",
+            AccessFlags.BRIDGE.isSet(handler.single().accessFlags) || forwarded,
+        )
         assertTrue("${label}: the handler holds \"userSession\"", handler.single().code().any { it.string() == "userSession" })
         assertEquals("${label}: what asks the loop check: ${askers.map { it.name }}", 2, askers.size)
         val other = askers.single { it !in handler }
