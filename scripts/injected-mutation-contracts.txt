@@ -861,10 +861,11 @@ once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSect
 start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 #
-# Hide suggested posts' Hide shopping asks the extension once, at the return of a section Explore's
-# section parser built (the page parser reads "sectional_items" with it), with that section. The
-# parser is the one method holding "DiscoverySection", so no other read of Explore's JSON passes it.
-once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->section(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; holding DiscoverySection layout_content
+# Hide suggested posts' Hide shopping asks the extension once, at the return of the same topical
+# Explore page parser Hide the Explore grid hooks, with the page's section list. The section parser
+# also builds the sections nested inside a section, so a hook there emptied a slot of the outer
+# layout (#393); the page's own list holds only top-level sections.
+once-call Lapp/hushgram/extension/instagram/explore/ExploreShopping;->page(Ljava/util/List;)Ljava/util/List; in instance (LX/*;)Ljava/lang/Object; calling static LX/*;->*(LX/*;LX/*;Ljava/lang/String;)V class-holding sectional_items session_paging_token
 #
 # It also asks ProductTags once in the method picking a post's corner indicator, between the static
 # check of the post's products and the branch to the PRODUCTS constant, the only place in the app

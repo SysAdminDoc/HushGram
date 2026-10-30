@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.explore.ExploreParser
 import app.morphe.patches.instagram.explore.PAGING_TOKEN
 import app.morphe.patches.instagram.explore.SECTIONS
 import app.morphe.patches.instagram.explore.findExploreParser
@@ -33,7 +34,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReferen
 private const val PATCH = "Hide suggested posts"
 
 internal const val EXPLORE_SHOPPING = "$EXTENSION_PACKAGE/explore/ExploreShopping;"
-internal const val EXPLORE_SECTION_FILTER = "$EXPLORE_SHOPPING->section(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val EXPLORE_PAGE_FILTER = "$EXPLORE_SHOPPING->page(Ljava/util/List;)Ljava/util/List;"
 
 /** The kind Instagram gives an Explore tile it reads from "shopping": a shop's tile, its posts as the cover. */
 internal const val SHOP_TILE = "SHOPPING"
@@ -42,36 +43,49 @@ private const val ENUM = "Ljava/lang/Enum;"
 private const val OBJECT = "Ljava/lang/Object;"
 
 /**
- * Explore's sections, found: the parser building one section from Explore's JSON, the index and
- * register of its return of a section it built, the section's type, the section's field keeping its
+ * Explore's sections, found: Explore's page parser (the one Hide the Explore grid hooks), the parser
+ * building one section from Explore's JSON, the section's type, the section's field keeping its
  * content (the object holding its tiles, one per slot and in lists) and the tile's type. [write]
- * hands each section through ExploreShopping.section and fills the two stubs it reads a section
- * with.
+ * hands each page's section list through ExploreShopping.page and fills the three stubs it reads a
+ * section with.
+ *
+ * The hook sits on the page and not on the section parser: that parser also builds the sections a
+ * section's content nests and falls back on, and a nested section taken out there left its slot in
+ * the outer layout drawn blank (#393).
  */
 internal class ExploreShopSections(
+    val page: ExploreParser,
     val parser: String,
-    val parameters: List<String>,
-    val returnAt: Int,
-    val register: Int,
     val section: String,
     val content: FieldReference,
     val tile: String,
 ) {
     fun write(context: BytecodePatchContext) {
-        val method = context.mutableClassDefBy(parser).methods.single {
-            it.name == "unsafeParseFromJson" && it.parameterTypes.map(CharSequence::toString) == parameters
+        val method = context.mutableClassDefBy(page.type).methods.single {
+            it.name == "unsafeParseFromJson" && it.parameterTypes.map(CharSequence::toString) == page.parameters
         }
+        // Found again here, since Hide the Explore grid may have written its hook ahead of the same
+        // return since the page parser was found.
+        val code = method.implementation!!.instructions.toList()
+        val returns = code.indices.filter {
+            code[it].opcode == Opcode.RETURN_OBJECT && (code[it] as OneRegisterInstruction).registerA == page.register
+        }
+        val returnAt = returns.singleOrNull() ?: refuse("${page.type} hands its page back ${returns.size} times, expected once")
+        val temp = (0..15).first { it != page.register }
+        val sections = "${page.sections.definingClass}->${page.sections.name}:${page.sections.type}"
         // At the return's own label, so a branch straight to it goes past the extension too.
         method.addInstructionsAtControlFlowLabel(
             returnAt,
             """
-                invoke-static { v$register }, $EXPLORE_SECTION_FILTER
-                move-result-object v$register
+                iget-object v$temp, v${page.register}, $sections
+                invoke-static { v$temp }, $EXPLORE_PAGE_FILTER
+                move-result-object v$temp
+                iput-object v$temp, v${page.register}, $sections
             """,
         )
         // Each body uses its parameter register alone and goes in ahead of the stub's own return,
-        // which is then never reached. The section the hook hands over is always one of [section],
-        // and content answers an Object.
+        // which is then never reached. Content is read only from what isSection said is one of
+        // [section], and answers an Object.
         context.stub("content", listOf(OBJECT), OBJECT).addInstructions(
             0,
             """
@@ -87,6 +101,13 @@ internal class ExploreShopSections(
                 return p0
             """,
         )
+        context.stub("isSection", listOf(OBJECT), "Z").addInstructions(
+            0,
+            """
+                instance-of p0, p0, $section
+                return p0
+            """,
+        )
     }
 }
 
@@ -99,8 +120,8 @@ private fun BytecodePatchContext.stub(name: String, parameters: List<String>, re
 /**
  * Finds Explore's sections from Explore's page parser (the one Hide the Explore grid empties): the
  * parser the page reads each of its sections with, right after the sections' key, is the section
- * parser, and its one return of a section it has just built is where the hook goes. Every reader of
- * that parser skips a null section, as it does one that didn't parse.
+ * parser, and the one section it builds and hands back gives the section's type. The hook goes on
+ * the page parser's return, with the page's section list.
  *
  * The section's tiles are in one of its fields: the one whose class keeps fields of a class with an
  * enum field naming [SHOP_TILE], and that class is the tile's. Each is checked here, since the
@@ -143,8 +164,6 @@ internal fun BytecodePatchContext.findExploreShopSections(): ExploreShopSections
     val code = method.implementation!!.instructions.toList()
     val built = code.indices.filter { code.buildsAndReturns(it) }
     val returnAt = built.singleOrNull() ?: refuse("$parser returns a section it built ${built.size} times, expected once")
-    val register = (code[returnAt] as OneRegisterInstruction).registerA
-    if (register > 15) refuse("$parser keeps the section it returns in v$register, past v15")
     val section = ((code[returnAt - 2] as ReferenceInstruction).reference as TypeReference).type
 
     val sectionClass = classDefBy(section)
@@ -160,10 +179,7 @@ internal fun BytecodePatchContext.findExploreShopSections(): ExploreShopSections
         refuse("$section or its field ${holder.name} isn't public, so the extension can't read it")
     }
     if (!AccessFlags.PUBLIC.isSet(classDefBy(tile).accessFlags)) refuse("$tile isn't public, so the extension can't test for it")
-    return ExploreShopSections(
-        parser, method.parameterTypes.map(CharSequence::toString), returnAt, register, section,
-        ImmutableFieldReference(section, holder.name, holder.type), tile,
-    )
+    return ExploreShopSections(page, parser, section, ImmutableFieldReference(section, holder.name, holder.type), tile)
 }
 
 /**

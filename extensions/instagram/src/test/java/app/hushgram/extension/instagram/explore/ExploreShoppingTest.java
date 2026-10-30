@@ -19,6 +19,7 @@ import org.robolectric.RobolectricTestRunner;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import app.hushgram.extension.instagram.settings.Settings;
@@ -28,7 +29,7 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Which of Explore's sections Hide shopping takes out, and which it leaves. */
+/** Which of an Explore page's sections Hide shopping takes out, and which it leaves. */
 @RunWith(RobolectricTestRunner.class)
 public class ExploreShoppingTest {
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
@@ -54,11 +55,15 @@ public class ExploreShoppingTest {
         Kind kind = Kind.SHOPPING;
     }
 
-    /** A section's content: a tile of its own, a list of tiles and a section to fall back on. */
+    /**
+     * A section's content, shaped like 453's: a tile of its own, a list of tiles, a list of sections
+     * nested in it and a section to fall back on.
+     */
     static final class Content {
         int span = 3;
         Tile hero;
         List<Object> tiles = new ArrayList<>();
+        List<Object> nested = new ArrayList<>();
         Section fallback;
     }
 
@@ -77,6 +82,7 @@ public class ExploreShoppingTest {
     public void standIn() {
         ExploreShopping.contentOf = section -> ((Section) section).content;
         ExploreShopping.tile = value -> value instanceof Tile;
+        ExploreShopping.section = value -> value instanceof Section;
         Settings.HIDE_FEED_SHOPPING.save(true);
         counters = FeedFilterCounters.snapshotAndClear();
         hooks = HookStatus.snapshotAndClear();
@@ -86,6 +92,7 @@ public class ExploreShoppingTest {
     public void restore() {
         ExploreShopping.contentOf = ExploreShopping::content;
         ExploreShopping.tile = ExploreShopping::isTile;
+        ExploreShopping.section = ExploreShopping::isSection;
         PauseForTests.resume();
         Settings.HIDE_FEED_SHOPPING.resetToDefault();
         FeedFilterCounters.restore(counters);
@@ -99,78 +106,130 @@ public class ExploreShoppingTest {
         return new Section(content);
     }
 
+    private static List<Object> page(Object... sections) {
+        return new ArrayList<>(Arrays.asList(sections));
+    }
+
     private static String report() {
         return String.join("\n", FeedFilterCounters.report());
     }
 
     @Test
     public void aShopTileInItsOwnSlotTakesItsSectionOut() {
-        assertNull(ExploreShopping.section(section(new Tile(Kind.SHOPPING), new Tile(Kind.MEDIA), new Tile(Kind.CLIPS))));
-        assertEquals(ExploreShopping.ROUTE + ": 1 lists, 3 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
+        Section posts = section(new Tile(Kind.MEDIA), new Tile(Kind.CLIPS));
+        Section shop = section(new Tile(Kind.SHOPPING), new Tile(Kind.MEDIA), new Tile(Kind.CLIPS));
+        assertEquals(Collections.singletonList(posts), ExploreShopping.page(page(shop, posts)));
+        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 5 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
                 + "Kinds: SHOPPING 1", report());
     }
 
     @Test
     public void aShopTileInTheListTakesItsSectionOut() {
-        assertNull(ExploreShopping.section(section(new Tile(Kind.MEDIA), new Tile(Kind.MEDIA), new Tile(Kind.SHOPPING))));
-        assertNull(ExploreShopping.section(section(null, new Tile(Kind.SHOPPING))));
+        Section posts = section(new Tile(Kind.IGTV));
+        List<?> kept = ExploreShopping.page(page(
+                section(new Tile(Kind.MEDIA), new Tile(Kind.MEDIA), new Tile(Kind.SHOPPING)),
+                posts,
+                section(null, new Tile(Kind.SHOPPING))));
+        assertEquals(Collections.singletonList(posts), kept);
         String report = report();
-        assertTrue(report, report.startsWith(ExploreShopping.ROUTE + ": 2 lists, 4 items, 2 removed."));
+        assertTrue(report, report.startsWith(ExploreShopping.ROUTE + ": 3 lists, 5 items, 2 removed."));
         assertTrue(report, report.endsWith("Removed: SHOPPING 2. Kinds: SHOPPING 2"));
     }
 
+    /**
+     * #393: a shop tile in a section nested inside another takes the whole outer section out, so
+     * the outer layout is never drawn with the nested slot gone blank.
+     */
     @Test
-    public void aSectionWithoutAShopTileStaysAndIsStillCounted() {
+    public void aShopTileInANestedSectionTakesTheOuterSectionOut() {
+        Section outer = section(new Tile(Kind.MEDIA), new Tile(Kind.CLIPS));
+        outer.content.nested.add(section(new Tile(Kind.MEDIA)));
+        outer.content.nested.add(section(null, new Tile(Kind.MEDIA), new Tile(Kind.SHOPPING)));
+        Section posts = section(new Tile(Kind.MEDIA));
+        assertEquals(Collections.singletonList(posts), ExploreShopping.page(page(outer, posts)));
+        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 6 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
+                + "Kinds: SHOPPING 1", report());
+    }
+
+    /** A shop tile in the section kept to fall back on takes its outer section out too. */
+    @Test
+    public void aShopTileInTheFallbackTakesTheOuterSectionOut() {
+        Section outer = section(new Tile(Kind.MEDIA));
+        outer.content.fallback = section(new Tile(Kind.SHOPPING));
+        assertEquals(Collections.emptyList(), ExploreShopping.page(page(outer)));
+        assertEquals(ExploreShopping.ROUTE + ": 1 lists, 2 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
+                + "Kinds: SHOPPING 1", report());
+    }
+
+    /** With no section going, the page keeps the very list it parsed. */
+    @Test
+    public void aPageWithoutAShopTileKeepsItsListAndIsStillCounted() {
         Section posts = section(new Tile(Kind.MEDIA), new Tile(Kind.CLIPS), new Tile(Kind.IGTV));
-        assertSame(posts, ExploreShopping.section(posts));
-        Section empty = new Section(new Content());
-        assertSame(empty, ExploreShopping.section(empty));
-        Section noContent = new Section(null);
-        assertSame(noContent, ExploreShopping.section(noContent));
+        List<Object> sections = page(posts, new Section(new Content()), new Section(null), null);
+        assertSame(sections, ExploreShopping.page(sections));
+        assertEquals(4, sections.size());
         assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed", report());
     }
 
-    /** Only tiles are read for a kind: a post with the same kind's name, and a section inside, stay. */
+    /** Only tiles are read for a kind: a post with the same kind's name stays, and so does anything not a section. */
     @Test
-    public void onlyTheSectionsOwnTilesAreRead() {
-        Section inner = section(new Tile(Kind.SHOPPING));
+    public void onlyTilesAreReadForAKind() {
         Section outer = section(new Tile(Kind.MEDIA), new Post());
-        outer.content.fallback = inner;
-        assertSame(outer, ExploreShopping.section(outer));
+        Object stranger = new Post();
+        List<Object> sections = page(outer, stranger);
+        assertSame(sections, ExploreShopping.page(sections));
         assertEquals(ExploreShopping.ROUTE + ": 1 lists, 1 items, 0 removed", report());
-        assertNull("the control: the inner section on its own goes", ExploreShopping.section(inner));
+    }
+
+    /** Sections nested deeper than Instagram nests them are left unread, so a loop can't run away. */
+    @Test
+    public void nestingPastTheLimitIsLeftUnread() {
+        Section deepest = section(new Tile(Kind.SHOPPING));
+        Section inner = deepest;
+        for (int level = 0; level < 5; level++) {
+            Section holder = section(null);
+            holder.content.nested.add(inner);
+            inner = holder;
+        }
+        List<Object> sections = page(inner);
+        assertSame(sections, ExploreShopping.page(sections));
+        Section looped = section(new Tile(Kind.MEDIA));
+        looped.content.nested.add(looped);
+        List<Object> loop = page(looped);
+        assertSame(loop, ExploreShopping.page(loop));
+        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 4 items, 0 removed", report());
     }
 
     @Test
     public void offPausedOrNotReadyTheSectionStaysAndTheShopTileIsCounted() {
-        Section shop = section(new Tile(Kind.SHOPPING));
+        List<Object> shop = page(section(new Tile(Kind.SHOPPING)));
         Settings.HIDE_FEED_SHOPPING.save(false);
-        assertSame("off", shop, ExploreShopping.section(shop));
+        assertSame("off", shop, ExploreShopping.page(shop));
         Settings.HIDE_FEED_SHOPPING.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertSame("paused", shop, ExploreShopping.section(shop));
+        assertSame("paused", shop, ExploreShopping.page(shop));
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertSame("settings not ready", shop, ExploreShopping.section(shop)));
+        SettingsContextRule.withoutContext(() -> assertSame("settings not ready", shop, ExploreShopping.page(shop)));
         assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed. Kinds: SHOPPING 3", report());
-        assertNull("the control: on, the same section goes", ExploreShopping.section(shop));
+        assertEquals("the control: on, the same section goes", Collections.emptyList(), ExploreShopping.page(shop));
     }
 
     @Test
-    public void aReadThatThrowsKeepsTheSectionAndSaysSo() {
+    public void aReadThatThrowsKeepsThePageAndSaysSo() {
         ExploreShopping.contentOf = section -> {
             throw new IllegalStateException("a section of another shape");
         };
-        Section shop = section(new Tile(Kind.SHOPPING));
-        assertSame(shop, ExploreShopping.section(shop));
+        List<Object> shop = page(section(new Tile(Kind.SHOPPING)));
+        assertSame(shop, ExploreShopping.page(shop));
         String hooks = String.join("\n", HookStatus.report());
-        assertTrue(hooks, hooks.contains("Explore section"));
+        assertTrue(hooks, hooks.contains("Explore page"));
         assertTrue(hooks, hooks.contains(IllegalStateException.class.getName()));
         assertEquals("", report());
     }
 
     @Test
-    public void noSectionAnswersNoSection() {
-        assertNull(ExploreShopping.section(null));
+    public void noListAnswersNoList() {
+        assertNull(ExploreShopping.page(null));
         assertEquals("", report());
     }
 
@@ -179,10 +238,13 @@ public class ExploreShoppingTest {
     public void unwrittenStubsKeepEverySection() {
         ExploreShopping.contentOf = ExploreShopping::content;
         ExploreShopping.tile = ExploreShopping::isTile;
+        ExploreShopping.section = ExploreShopping::isSection;
         Section shop = section(new Tile(Kind.SHOPPING));
         assertNull(ExploreShopping.content(shop));
         assertFalse(ExploreShopping.isTile(new Tile(Kind.SHOPPING)));
-        assertSame(shop, ExploreShopping.section(shop));
-        assertEquals(ExploreShopping.ROUTE + ": 1 lists, 0 items, 0 removed", report());
+        assertFalse(ExploreShopping.isSection(shop));
+        List<Object> sections = page(shop);
+        assertSame(sections, ExploreShopping.page(sections));
+        assertEquals("", report());
     }
 }

@@ -10,6 +10,7 @@ import app.morphe.PatchContexts
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.explore.HIDE_GRID
 import app.morphe.patches.instagram.explore.PAGING_TOKEN
 import app.morphe.patches.instagram.explore.SECTIONS
 import app.morphe.patches.instagram.explore.emptyExplorePages
@@ -24,7 +25,6 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
-import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
@@ -47,21 +47,23 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringRefere
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableTypeReference
 import java.io.File
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
-import org.junit.Assert.fail
 import org.junit.Test
 
 class ExploreShopTilesTest {
-    /** The hook and the two stubs the patch writes are in the ExploreShopping the bundle ships. */
+    /** The hook and the three stubs the patch writes are in the ExploreShopping the bundle ships. */
     @Test
     fun theHookAndStubsAreInTheExtension() {
         val declared = ExtensionDex.classDef(EXPLORE_SHOPPING).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (wanted in listOf(EXPLORE_SECTION_FILTER.substringAfter("->"), "content(Ljava/lang/Object;)Ljava/lang/Object;", "isTile(Ljava/lang/Object;)Z")) {
-            assertTrue("$wanted is not in $EXPLORE_SHOPPING: $declared", wanted in declared)
+        val wanted = listOf(
+            EXPLORE_PAGE_FILTER.substringAfter("->"), "content(Ljava/lang/Object;)Ljava/lang/Object;",
+            "isTile(Ljava/lang/Object;)Z", "isSection(Ljava/lang/Object;)Z",
+        )
+        for (method in wanted) {
+            assertTrue("$method is not in $EXPLORE_SHOPPING: $declared", method in declared)
         }
         assertEquals(SHOP_TILE, ExtensionDex.stringConstant(EXPLORE_SHOPPING, "SHOP_TILE"))
     }
@@ -70,18 +72,22 @@ class ExploreShopTilesTest {
     fun theSectionsAreFound() {
         val found = PatchContexts.of(classes()).findExploreShopSections()
 
+        assertEquals(PAGE_PARSER, found.page.type)
+        assertEquals(3, found.page.register)
+        assertEquals("$PAGE->A06:Ljava/util/List;", found.page.sections.toString())
         assertEquals(SECTION_PARSER, found.parser)
-        assertEquals(listOf(JSON), found.parameters)
-        assertEquals(4, found.returnAt)
-        assertEquals(0, found.register)
         assertEquals(SECTION, found.section)
         assertEquals("$SECTION->A01:$CONTENT", found.content.toString())
         assertEquals(TILE, found.tile)
     }
 
-    /** The section the parser built goes past the extension on its way out, and the stubs read it. */
+    /**
+     * Each page's section list goes past the extension on the page's way out, and what comes back
+     * is the page's list. The section parser is left as it was, so a section nested in another is
+     * never taken out of its outer layout on its own (#393).
+     */
     @Test
-    fun eachSectionGoesPastTheExtension() {
+    fun eachPageGoesPastTheExtension() {
         val context = PatchContexts.of(classes())
         val found = context.findExploreShopSections()
 
@@ -90,7 +96,7 @@ class ExploreShopTilesTest {
         assertHooked("stand-in", context, found)
     }
 
-    /** Hide the Explore grid's hook on the page parser, written first, changes nothing here. */
+    /** Hide the Explore grid's hook on the same return, written first, still runs ahead of this one. */
     @Test
     fun theSectionsAreFoundAfterHideTheExploreGrid() {
         val context = PatchContexts.of(classes())
@@ -101,6 +107,35 @@ class ExploreShopTilesTest {
 
         assertEquals(SECTION_PARSER, found.parser)
         assertHooked("after the grid", context, found)
+        val code = pageCode(context)
+        val grid = code.indices.single { code[it].calls(HIDE_GRID) }
+        val shop = code.indices.single { code[it].calls(EXPLORE_PAGE_FILTER) }
+        assertTrue("the grid's hook at $grid comes before the shop filter at $shop", grid < shop)
+    }
+
+    /** Written the other way round, both hooks still sit ahead of the page's one return. */
+    @Test
+    fun hideTheExploreGridWrittenAfterStillReachesTheReturn() {
+        val context = PatchContexts.of(classes())
+        context.findExploreShopSections().write(context)
+        context.emptyExplorePages(context.findExploreParser())
+
+        val code = pageCode(context)
+        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }
+        val shop = code.indices.single { code[it].calls(EXPLORE_PAGE_FILTER) }
+        val grid = code.indices.single { code[it].calls(HIDE_GRID) }
+        assertEquals(1, returns.size)
+        assertTrue("both hooks ($shop, $grid) before the return at ${returns.single()}", shop < grid && grid < returns.single())
+    }
+
+    /** The section parser isn't hooked, so where it keeps the section it builds doesn't matter. */
+    @Test
+    fun aSectionPastV15IsStillFound() {
+        val context = PatchContexts.of(classes(sectionRegister = 16))
+        val found = context.findExploreShopSections()
+        found.write(context)
+        assertEquals(SECTION, found.section)
+        assertHooked("past v15", context, found)
     }
 
     @Test
@@ -129,9 +164,6 @@ class ExploreShopTilesTest {
     }
 
     @Test
-    fun aSectionPastV15FailsThePatch() = refused("past v15", classes(sectionRegister = 16))
-
-    @Test
     fun theStubsMissingFromTheExtensionFailWriting() {
         val context = PatchContexts.of(classes(extension = false) + emptyExtension())
         val found = context.findExploreShopSections()
@@ -140,8 +172,8 @@ class ExploreShopTilesTest {
 
     /**
      * In each declared build, Explore's page parser reads its sections with one section parser, the
-     * one holding "DiscoverySection", and the section it built goes past the extension. On 451's
-     * 385713073 that's LX/01S4 and its section LX/0Cl2.
+     * one holding "DiscoverySection", whose section gives the stubs their type, and the page's
+     * section list goes past the extension. On 453's 385914557 that's LX/01W9 and its section LX/039B.
      */
     @Test
     fun eachDeclaredBuildHooksExploresSections() {
@@ -207,155 +239,70 @@ class ExploreShopTilesTest {
         found.write(context)
 
         assertEquals("$label: the section parser", parser.single().type, found.parser)
-        assertHooked("$label ${found.parser}", context, found)
-        assertEveryReaderSkipsNull(bundle, label, found.parser)
-    }
-
-    /**
-     * The hook answers null for a section holding a shop tile, so every reader of the section parser
-     * has to drop a null section, as it does one that didn't parse. A reader takes the parser's
-     * instance (its one static field of its own type) and parses through parseFromJsonParser, in one
-     * of three shapes, each of which this holds to account:
-     *  - A: the answer is tested for null right away (a check-cast may come first) and the branch
-     *    goes past its use, as a list's add or a single field's store.
-     *  - B: the instance goes to a static helper taking the reader, the parser and a collection,
-     *    which parses, tests for null and adds, and whose code is checked to do exactly that.
-     *  - C: the answer is cast to the section type and kept for later, and then every store of
-     *    a section-typed object into a field in that method is directly behind a null test that
-     *    branches past it, so the section can only be stored when it isn't null.
-     * The whole APK is read for the instance and for any call into the parser from outside it.
-     */
-    private fun assertEveryReaderSkipsNull(bundle: File, label: String, parser: String) {
-        val instance = FixtureDex.classes(bundle, setOf(parser)).getValue(parser).staticFields
-            .filter { it.type == parser }.map { it.name }
-        assertEquals("$label: the parser's instance field", 1, instance.size)
-        val field = "$parser->${instance.single()}:$parser"
-        val readers = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == parser } }) { method ->
-            method.definingClass != parser && method.implementation?.instructions?.any {
-                val reference = (it as? ReferenceInstruction)?.reference
-                reference?.toString() == field || (reference as? MethodReference)?.definingClass == parser
-            } == true
-        }
-        assertTrue("$label: no reader of $parser found", readers.size >= 3)
-        val helpers = HashMap<String, Boolean>()
-        val shapes = mutableListOf<String>()
-        for (reader in readers) {
-            val code = reader.implementation!!.instructions.toList()
-            val address = IntArray(code.size + 1)
-            for (i in code.indices) address[i + 1] = address[i] + code[i].codeUnits
-            fun skips(test: Int): Boolean {
-                val branch = code[test] as com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
-                val index = address.indexOf(address[test] + branch.codeOffset)
-                return index in code.indices && index != test + 1
-            }
-            fun names(at: Int) = ((code.getOrNull(at) as? ReferenceInstruction)?.reference as? MethodReference)?.name
-            var reads = 0
-            for (at in code.indices) {
-                val reference = (code[at] as? ReferenceInstruction)?.reference
-                val where = "$label: ${reader.definingClass}->${reader.name} at $at"
-                if (reference is MethodReference && reference.definingClass == parser) {
-                    fail("$where calls into the section parser itself: $reference")
-                }
-                if (reference?.toString() != field) continue
-                assertEquals("$where: only a read of the instance", Opcode.SGET_OBJECT, code[at].opcode)
-                val instanceRegister = (code[at] as OneRegisterInstruction).registerA
-                val call = code[at + 1]
-                if (call.opcode == Opcode.INVOKE_STATIC) {
-                    // B: the instance is the helper's second argument.
-                    val helper = (call as ReferenceInstruction).reference as MethodReference
-                    val registers = call as FiveRegisterInstruction
-                    assertEquals("$where: the instance goes to a helper", instanceRegister, registers.registerD)
-                    val key = helper.toString()
-                    helpers.getOrPut(key) {
-                        val body = FixtureDex.methodsWhere(bundle, { dex -> dex.typeSection.any { it == helper.definingClass } }) {
-                            it.definingClass == helper.definingClass && it.name == helper.name &&
-                                it.parameterTypes.map(CharSequence::toString) == helper.parameterTypes.map(CharSequence::toString)
-                        }.single().implementation!!.instructions.toList()
-                        val ops = body.map { it.opcode }
-                        ops == listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID) &&
-                            (body[0] as ReferenceInstruction).reference.toString().let { it.contains("->parseFromJsonParser(") } &&
-                            (body[2] as OneRegisterInstruction).registerA == (body[1] as OneRegisterInstruction).registerA &&
-                            (body[3] as ReferenceInstruction).reference.toString().endsWith("->add(Ljava/lang/Object;)Z") &&
-                            (body[3] as FiveRegisterInstruction).registerD == (body[1] as OneRegisterInstruction).registerA
-                    }.also { assertTrue("$where: helper $key parses, tests for null and adds", it) }
-                    shapes += "B"
-                    reads++
-                    continue
-                }
-                assertEquals("$where: parses through parseFromJsonParser", "parseFromJsonParser", names(at + 1))
-                assertEquals("$where: on the instance", instanceRegister, (call as FiveRegisterInstruction).registerC)
-                assertEquals("$where: keeps the answer", Opcode.MOVE_RESULT_OBJECT, code[at + 2].opcode)
-                val answer = (code[at + 2] as OneRegisterInstruction).registerA
-                var next = at + 3
-                var cast: String? = null
-                if (code[next].opcode == Opcode.CHECK_CAST) {
-                    assertEquals("$where: casts the answer", answer, (code[next] as OneRegisterInstruction).registerA)
-                    cast = ((code[next] as ReferenceInstruction).reference as TypeReference).type
-                    next++
-                }
-                if (code[next].opcode == Opcode.IF_EQZ && (code[next] as OneRegisterInstruction).registerA == answer) {
-                    assertTrue("$where: branches past its use of the section", skips(next))
-                    shapes += "A"
-                } else {
-                    assertNotNull("$where: neither tested for null nor cast to a section", cast)
-                    val stores = code.indices.filter { i ->
-                        code[i].opcode == Opcode.IPUT_OBJECT && ((code[i] as ReferenceInstruction).reference as FieldReference).type == cast
-                    }
-                    assertTrue("$where: stores the section nowhere", stores.isNotEmpty())
-                    for (store in stores) {
-                        val guard = code[store - 1]
-                        assertEquals("$where: the store at $store is behind a null test", Opcode.IF_EQZ, guard.opcode)
-                        assertEquals("$where: that tests what it stores", (code[store] as OneRegisterInstruction).registerA, (guard as OneRegisterInstruction).registerA)
-                        val branch = guard as com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
-                        assertEquals("$where: and skips the store", address[store + 1], address[store - 1] + branch.codeOffset)
-                    }
-                    shapes += "C"
-                }
-                reads++
-            }
-            assertTrue("$label: ${reader.definingClass}->${reader.name} doesn't read the parser", reads > 0)
-        }
-        assertTrue("$label: shapes read ${shapes.sorted()}", shapes.isNotEmpty())
+        assertHooked("$label ${found.page.type}", context, found)
     }
 
     private fun Method.holds(string: String): Boolean = implementation?.instructions?.any {
         ((it as? ReferenceInstruction)?.reference as? StringReference)?.string == string
     } == true
 
+    private fun pageCode(context: BytecodePatchContext): List<Instruction> =
+        context.mutableClassDefBy(PAGE_PARSER).methods.single { it.name == "unsafeParseFromJson" }
+            .implementation!!.instructions.toList()
+
     /**
-     * Right before the parser hands back the section it just built, the section goes to the
-     * extension and what comes back is returned, once in the parser. The content stub reads the
-     * section's content field and the tile stub tests for the tile.
+     * Right before the page parser hands back its page, the page's section list goes to the
+     * extension and what comes back is written back into the page, once in the parser, through a
+     * register other than the page's. The section parser calls nothing of the extension's. The
+     * content stub reads the section's content field, the tile stub tests for the tile and the
+     * section stub for the section.
      */
     private fun assertHooked(what: String, context: BytecodePatchContext, found: ExploreShopSections) {
-        val code = context.mutableClassDefBy(found.parser).methods.single {
-            it.name == "unsafeParseFromJson" && it.parameterTypes.map(CharSequence::toString) == found.parameters
+        val page = found.page
+        val code = context.mutableClassDefBy(page.type).methods.single {
+            it.name == "unsafeParseFromJson" && it.parameterTypes.map(CharSequence::toString) == page.parameters
         }.implementation!!.instructions.toList()
-        val calls = code.indices.filter { code[it].calls(EXPLORE_SECTION_FILTER) }
-        assertEquals("$what: one hook, where the return was", listOf(found.returnAt), calls)
+        val calls = code.indices.filter { code[it].calls(EXPLORE_PAGE_FILTER) }
+        assertEquals("$what: one hook in the page parser", 1, calls.size)
         val at = calls.single()
+        val sections = page.sections.toString()
+        val read = code[at - 1]
+        assertEquals("$what: the page's sections read", Opcode.IGET_OBJECT, read.opcode)
+        assertEquals("$what: the sections field", sections, (read as ReferenceInstruction).reference.toString())
+        val temp = (read as TwoRegisterInstruction).registerA
+        assertEquals("$what: read from the page", page.register, read.registerB)
+        assertTrue("$what: through a register other than the page's", temp != page.register)
         val call = code[at] as FiveRegisterInstruction
         assertEquals("$what: a static call", Opcode.INVOKE_STATIC, code[at].opcode)
-        assertEquals("$what: with the section", listOf(1, found.register), listOf(call.registerCount, call.registerC))
+        assertEquals("$what: with the sections", listOf(1, temp), listOf(call.registerCount, call.registerC))
         assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[at + 1].opcode)
-        assertEquals("$what: kept", found.register, (code[at + 1] as OneRegisterInstruction).registerA)
-        assertEquals("$what: returned", Opcode.RETURN_OBJECT, code[at + 2].opcode)
-        assertEquals("$what: returned", found.register, (code[at + 2] as OneRegisterInstruction).registerA)
-        assertEquals("$what: built just before", Opcode.NEW_INSTANCE, code[at - 2].opcode)
-        assertEquals("$what: a section", found.section, ((code[at - 2] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals("$what: kept", temp, (code[at + 1] as OneRegisterInstruction).registerA)
+        val write = code[at + 2]
+        assertEquals("$what: written back", Opcode.IPUT_OBJECT, write.opcode)
+        assertEquals("$what: into the sections field", sections, (write as ReferenceInstruction).reference.toString())
+        assertEquals("$what: of the page", listOf(temp, page.register), listOf((write as TwoRegisterInstruction).registerA, write.registerB))
+        assertEquals("$what: then the page returned", Opcode.RETURN_OBJECT, code[at + 3].opcode)
+        assertEquals("$what: the page", page.register, (code[at + 3] as OneRegisterInstruction).registerA)
+        val parserCalls = context.mutableClassDefBy(found.parser).methods.flatMap { it.implementation?.instructions ?: emptyList() }
+            .filter { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == EXPLORE_SHOPPING }
+        assertTrue("$what: the section parser is left alone: $parserCalls", parserCalls.isEmpty())
 
         val stubs = context.mutableClassDefBy(EXPLORE_SHOPPING).methods
         val content = stubs.single { it.name == "content" }.implementation!!.instructions.toList()
         assertEquals("$what: content", listOf(Opcode.CHECK_CAST, Opcode.IGET_OBJECT, Opcode.RETURN_OBJECT), content.take(3).map { it.opcode })
         assertEquals("$what: content cast", found.section, (content[0] as ReferenceInstruction).reference.toString())
         assertEquals("$what: content field", found.content.toString(), (content[1] as ReferenceInstruction).reference.toString())
-        val read = content[1] as TwoRegisterInstruction
-        assertEquals("$what: content read from the cast section", (content[0] as OneRegisterInstruction).registerA, read.registerB)
-        assertEquals("$what: content returned", read.registerA, (content[2] as OneRegisterInstruction).registerA)
+        val contentRead = content[1] as TwoRegisterInstruction
+        assertEquals("$what: content read from the cast section", (content[0] as OneRegisterInstruction).registerA, contentRead.registerB)
+        assertEquals("$what: content returned", contentRead.registerA, (content[2] as OneRegisterInstruction).registerA)
         val tile = stubs.single { it.name == "isTile" }.implementation!!.instructions.toList()
         assertEquals("$what: isTile", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), tile.take(2).map { it.opcode })
         assertEquals("$what: isTile type", found.tile, (tile[0] as ReferenceInstruction).reference.toString())
         assertEquals("$what: isTile answer", (tile[0] as TwoRegisterInstruction).registerA, (tile[1] as OneRegisterInstruction).registerA)
+        val isSection = stubs.single { it.name == "isSection" }.implementation!!.instructions.toList()
+        assertEquals("$what: isSection", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), isSection.take(2).map { it.opcode })
+        assertEquals("$what: isSection type", found.section, (isSection[0] as ReferenceInstruction).reference.toString())
+        assertEquals("$what: isSection answer", (isSection[0] as TwoRegisterInstruction).registerA, (isSection[1] as OneRegisterInstruction).registerA)
     }
 
     private fun Instruction.calls(method: String) = (this as? ReferenceInstruction)?.reference?.toString() == method
