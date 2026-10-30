@@ -9,6 +9,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s içindeki %1$s adlı bir dosya H
 About	Hakkında
 Add the source to saved photos	Kayıtlı fotoğraflara kaynağı ekle
 Ads and privacy	Reklamlar ve gizlilik
+Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Android'den Instagram'ı ekranının en yüksek yenileme hızında, aynı çözünürlükte çalıştırmasını ister. Bazı telefonlar uygulamalara kendi sınırını koyar ve pil tasarrufu hızı yine de düşürebilir.
 Back	Geri
 Before you sign in	Giriş yapmadan önce
 Cancel	İptal
@@ -39,6 +40,7 @@ These settings open at %1$s, for 10 minutes.	Bu ayarlar 10 dakikalığına şu s
 These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Bu ayarlar 10 dakikalığına şu saatte açılır: %1$s. Beklemeyi durdurmak için dokun.
 Stop the wait	Beklemeyi durdur
 Keep waiting	Beklemeye devam et
+Use the highest refresh rate	En yüksek yenileme hızını kullan
 Wait stopped. These settings stay locked.	Bekleme durduruldu. Bu ayarlar kilitli kalır.
 Settings are open	Ayarlar açık
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Şu saatte yeniden kilitlenir: %1$s. Şimdi kilitlemek veya kilidi kapatmak için dokun.

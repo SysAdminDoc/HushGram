@@ -14,6 +14,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s 中名為 %1$s 的檔案使 Hush
 About	關於
 Add the source to saved photos	在儲存的照片中加入來源資訊
 Ads and privacy	廣告與隱私
+Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	要求 Android 以螢幕最高的更新率、相同的解析度執行 Instagram。部分手機會為應用程式設定自己的上限，省電模式也仍可能調低更新率。
 Back	返回
 Before you sign in	登入之前
 Cancel	取消
@@ -44,6 +45,7 @@ These settings open at %1$s, for 10 minutes.	這些設定將於 %1$s 開放 10 �
 These settings open at %1$s, for 10 minutes. Tap to stop the wait.	這些設定將於 %1$s 開放 10 分鐘。點擊可取消等待。
 Stop the wait	取消等待
 Keep waiting	繼續等待
+Use the highest refresh rate	使用最高更新率
 Wait stopped. These settings stay locked.	已取消等待。這些設定仍維持鎖定。
 Settings are open	設定已開放
 They lock again at %1$s. Tap to lock them now or turn the lock off.	將於 %1$s 重新鎖定。點擊可立即鎖定或停用鎖定功能。

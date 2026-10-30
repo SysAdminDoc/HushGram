@@ -1259,6 +1259,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_upload_alarm", FALSE);
 
     /**
+     * Instagram's windows ask Android for the display's fastest mode at the resolution it runs at
+     * ({@link app.hushgram.extension.instagram.misc.RefreshRate}). Read as each activity resumes, so
+     * no restart. Off to start.
+     */
+    public static final BooleanSetting HIGHEST_REFRESH_RATE =
+            new BooleanSetting("hushgram_highest_refresh_rate", FALSE);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but

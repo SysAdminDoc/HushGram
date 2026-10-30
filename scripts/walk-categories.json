@@ -486,6 +486,7 @@
           "HushGram launch screen",
           "Font",
           "Pick the app icon",
+          "Use the highest refresh rate",
           "Hide rows in Instagram's settings"
         ]
       },
@@ -505,6 +506,15 @@
             "op": "any",
             "patches": [
               "Accent color"
+            ]
+          }
+        },
+        {
+          "title": "Use the highest refresh rate",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Use the highest refresh rate"
             ]
           }
         }

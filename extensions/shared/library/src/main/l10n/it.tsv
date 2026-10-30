@@ -9,6 +9,7 @@ A file named %1$s in %2$s paused HushGram.	Un file chiamato %1$s in %2$s ha mess
 About	Informazioni
 Add the source to saved photos	Aggiungi l'origine alle foto salvate
 Ads and privacy	Annunci e privacy
+Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Chiede ad Android di eseguire Instagram alla massima frequenza di aggiornamento dello schermo, con la stessa risoluzione. Alcuni telefoni pongono un limite proprio alle app e il risparmio energetico può comunque abbassarla.
 Back	Indietro
 Before you sign in	Prima di accedere
 Cancel	Annulla
@@ -39,6 +40,7 @@ These settings open at %1$s, for 10 minutes.	Queste impostazioni si aprono alle 
 These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Queste impostazioni si aprono alle %1$s, per 10 minuti. Tocca per fermare l'attesa.
 Stop the wait	Ferma l'attesa
 Keep waiting	Continua ad aspettare
+Use the highest refresh rate	Usa la frequenza di aggiornamento più alta
 Wait stopped. These settings stay locked.	Attesa fermata. Queste impostazioni restano bloccate.
 Settings are open	Impostazioni aperte
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Si bloccano di nuovo alle %1$s. Tocca per bloccarle ora o disattivare il blocco.

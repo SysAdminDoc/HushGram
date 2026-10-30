@@ -10,6 +10,7 @@ A file named %1$s in %2$s paused HushGram.	%2$s에 있는 %1$s 파일 때문에 
 About	정보
 Add the source to saved photos	저장한 사진에 출처 추가
 Ads and privacy	광고 및 개인정보 보호
+Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	화면의 가장 높은 주사율, 같은 해상도로 Instagram을 실행하도록 Android에 요청합니다. 일부 휴대전화는 앱에 자체 제한을 두며, 절전 모드가 주사율을 낮출 수도 있습니다.
 Back	뒤로
 Before you sign in	로그인 전에 읽어보세요
 Cancel	취소
@@ -40,6 +41,7 @@ These settings open at %1$s, for 10 minutes.	이 설정은 %1$s에 10분 동안 
 These settings open at %1$s, for 10 minutes. Tap to stop the wait.	이 설정은 %1$s에 10분 동안 열립니다. 탭하면 대기를 멈춥니다.
 Stop the wait	대기 멈추기
 Keep waiting	계속 기다리기
+Use the highest refresh rate	가장 높은 주사율 사용
 Wait stopped. These settings stay locked.	대기를 멈췄습니다. 이 설정은 잠긴 상태로 유지됩니다.
 Settings are open	설정이 열려 있음
 They lock again at %1$s. Tap to lock them now or turn the lock off.	%1$s에 다시 잠깁니다. 탭해서 지금 잠그거나 잠금을 끄세요.

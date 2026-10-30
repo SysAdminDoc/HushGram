@@ -398,6 +398,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Use the highest refresh rate patch. */
+    public static boolean refreshRate() {
+        return false;
+    }
+
     public static boolean keepReelSpeed() {
         return false;
     }

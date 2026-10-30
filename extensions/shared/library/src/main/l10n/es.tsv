@@ -9,6 +9,7 @@ A file named %1$s in %2$s paused HushGram.	Un archivo llamado %1$s en %2$s paus�
 About	Acerca de
 Add the source to saved photos	Añadir el origen a las fotos guardadas
 Ads and privacy	Anuncios y privacidad
+Asks Android to run Instagram at your screen's fastest refresh rate, at the same resolution. Some phones keep their own limit for apps, and battery saver can still lower it.	Pide a Android que ejecute Instagram a la tasa de refresco más alta de tu pantalla, con la misma resolución. Algunos teléfonos ponen su propio límite a las apps, y el ahorro de batería aún puede bajarla.
 Back	Atrás
 Before you sign in	Antes de iniciar sesión
 Cancel	Cancelar
@@ -39,6 +40,7 @@ These settings open at %1$s, for 10 minutes.	Estos ajustes se abren a las %1$s, 
 These settings open at %1$s, for 10 minutes. Tap to stop the wait.	Estos ajustes se abren a las %1$s, durante 10 minutos. Toca para detener la espera.
 Stop the wait	Detener la espera
 Keep waiting	Seguir esperando
+Use the highest refresh rate	Usar la mayor tasa de refresco
 Wait stopped. These settings stay locked.	Espera detenida. Estos ajustes siguen bloqueados.
 Settings are open	Los ajustes están abiertos
 They lock again at %1$s. Tap to lock them now or turn the lock off.	Se bloquean de nuevo a las %1$s. Toca para bloquearlos ya o desactivar el bloqueo.

@@ -242,6 +242,7 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/bottomspace/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/glass/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/heartbeat/**",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/refreshrate/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/profilesaved/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/settingsrows/**",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/settingsrows/**",

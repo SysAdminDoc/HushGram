@@ -46,6 +46,7 @@ import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
 import app.hushgram.extension.instagram.misc.MediaCache;
+import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
@@ -146,6 +147,7 @@ public final class SettingsEntry {
         }
         GlassTabBar.install(context);
         FullScreenBars.install(context);
+        RefreshRate.install(context);
         ReelsTopBar.install(context);
         BurnInGuard.install(context);
         ScrollBreak.install(context);

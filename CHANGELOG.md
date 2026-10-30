@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Use the highest refresh rate` is a new patch. Its switch, under Layout, asks Android to run Instagram at your screen's fastest refresh rate at the same resolution. Starts off. Asked for in #401.
 * **Instagram:** `Pinch to zoom on Reels` is a new patch. Its switch, `Pinch to zoom` under Reels, lets two fingers zoom into a playing reel the way a photo zooms, and it goes back when you lift them. Starts off. Asked for in #382.
 * **Instagram:** `HushGram settings` adds `Descriptions behind an info button` under Settings entry. It shows each switch by name alone, with a small i to tap for what it does. Off to start. Asked for in #130.
 * **Instagram:** `Swipe through a chat's reels` adds `Stop after the chat's reels` under Messages, which ends reels you open from a chat at the last one shared there. No suggested reels follow. Starts off. Asked for in #390.

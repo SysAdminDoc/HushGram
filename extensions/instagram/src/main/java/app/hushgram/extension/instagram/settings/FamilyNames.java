@@ -77,6 +77,7 @@ public final class FamilyNames {
     public static final String FULL_SCREEN_BARS = "Full screen Reels and Home";
     public static final String SAVED_ON_PROFILE = "Saved on your profile";
     public static final String STOP_HEARTBEAT = "Stop background wake-ups";
+    public static final String REFRESH_RATE = "Use the highest refresh rate";
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String ACCENT_COLOR = "Accent color";
     public static final String LAUNCH_SCREEN = "HushGram launch screen";
