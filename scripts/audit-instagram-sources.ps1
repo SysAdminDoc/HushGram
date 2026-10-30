@@ -187,7 +187,7 @@ function Invoke-SourceRequest {
         One GET, answering Status and Content. A 4xx or 5xx answer comes back as its status with no
         content, since a repository that's gone is a finding and not a crash; only a request that
         never got an answer throws, and only after its third try. A rate limit is waited out, three
-        times at most.
+        times at most; one still in force after that comes back with Limited set.
     #>
     param([Parameter(Mandatory = $true)][string]$Uri, [string]$Auth = 'plain')
 
@@ -229,7 +229,7 @@ function Invoke-SourceRequest {
                 Start-Sleep -Seconds $RateLimitWaitSeconds
                 continue
             }
-            return [pscustomobject]@{ Status = $status; Content = $null }
+            return [pscustomobject]@{ Status = $status; Content = $null; Limited = $limited }
         }
     }
 }
@@ -769,7 +769,7 @@ function Test-CommitContained {
 function Read-GitHubSource {
     param($Entry, [string]$Path)
     $answer = Invoke-SourceRequest -Uri "https://api.github.com/repos/$Path" -Auth github
-    if ($answer.Status -ne 200) { return [pscustomobject]@{ Status = $answer.Status } }
+    if ($answer.Status -ne 200) { return [pscustomobject]@{ Status = $answer.Status; Limited = [bool]$answer.Limited } }
     $repo = ConvertFrom-SourceJson -Text $answer.Content -What $Path
     $license = $null
     $licenseAnswer = Invoke-SourceRequest -Uri "https://api.github.com/repos/$Path/license" -Auth github
@@ -798,7 +798,7 @@ function Read-GitLabSource {
     param($Entry, [string]$Path)
     $project = [Uri]::EscapeDataString($Path)
     $answer = Invoke-SourceRequest -Uri "https://gitlab.com/api/v4/projects/$project" -Auth gitlab
-    if ($answer.Status -ne 200) { return [pscustomobject]@{ Status = $answer.Status } }
+    if ($answer.Status -ne 200) { return [pscustomobject]@{ Status = $answer.Status; Limited = [bool]$answer.Limited } }
     $repo = ConvertFrom-SourceJson -Text $answer.Content -What $Path
     $defaultBranch = [string]$repo.default_branch
     $license = $null
@@ -832,6 +832,11 @@ foreach ($entry in $entries) {
     $where = Split-SourceKey $key
     Invoke-Source $repository {
         $live = if ($where.Host -eq 'github.com') { Read-GitHubSource -Entry $entry -Path $where.Path } else { Read-GitLabSource -Entry $entry -Path $where.Path }
+        # A limit still in force says nothing about the repository, so the source goes unread
+        # rather than gone.
+        if ($live.Limited) {
+            throw "$($where.Host) was still rate limiting this address (HTTP $($live.Status)) after four tries; audit again once it resets"
+        }
         if ($live.Status -ne 200) {
             Add-Finding -Kind 'repository-gone' -Repository $repository -Detail "the repository answers HTTP $($live.Status)" -Evidence $null
             return "gone (HTTP $($live.Status))"

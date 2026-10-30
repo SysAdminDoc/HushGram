@@ -628,6 +628,20 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-Drift 'repository-gone' '*gamma-patches*HTTP 404*' 'A GitLab source that is gone'
     $fakeForge.Answers = New-FakeAnswers
 
+    # A limit still in force after the waits leaves the source unread, never gone (GitLab's per-address
+    # limit for unauthenticated reads outlasted the waits on 2026-10-30).
+    $fakeForge.Answers.gammaProject = @{ Status = 429; Content = $null }
+    $limitedRun = Invoke-Audit
+    $limitedFindings = @($limitedRun.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+    Assert-True ($limitedRun.ExitCode -eq 1 -and @($limitedRun.Report.findings | Where-Object {
+                $_.kind -eq 'source-failed' -and $_.detail -like '*gamma-patches could not be read*rate limiting*HTTP 429*' }).Count -eq 1) `
+        "A GitLab source behind a rate limit was not reported unread (exit $($limitedRun.ExitCode)): $limitedFindings"
+    Assert-True (@($limitedRun.Report.findings | Where-Object { $_.kind -eq 'repository-gone' }).Count -eq 0) "A rate-limited source was reported gone: $limitedFindings"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/v4/projects/fixture-group%2Fgamma-patches' }).Count -eq 4) `
+        'The rate-limited source was not asked four times before the audit gave up on it.'
+    Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) 'A rate-limited audit changed the ledger.'
+    $fakeForge.Answers = New-FakeAnswers
+
     $fakeForge.Answers.alphaRepo.Content = $fakeForge.Answers.alphaRepo.Content.Replace('"archived":false', '"archived":true')
     Assert-Drift 'archived-changed' '*alpha-patches*archived*' 'A source that was archived'
     $fakeForge.Answers = New-FakeAnswers
