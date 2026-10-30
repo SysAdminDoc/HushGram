@@ -6,14 +6,25 @@ package app.hushgram.extension.instagram.direct;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
+
+import android.app.Activity;
+import android.os.Looper;
+import android.view.View;
+import android.widget.FrameLayout;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
 import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowSystemClock;
+
+import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -44,6 +55,7 @@ public class ChatReelsTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
+        ChatReels.covered();
     }
 
     /** The patch is in Manager's default selection, so its switch starts off. */
@@ -168,5 +180,82 @@ public class ChatReelsTest {
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.placeholder(Source.DIRECT, 1)));
         assertFalse("back on", ChatReels.placeholder(Source.DIRECT, 1));
+    }
+
+    /** A message as Instagram hands it: equal to another tap's, never the same object. */
+    private static Object message(String id) {
+        return new StringBuilder(id).toString();
+    }
+
+    /** A repeat tap on a chat's media while its viewer loads is dropped and counted, whatever the switches (#390). */
+    @Test
+    public void aRepeatTapWaitsForTheFirstViewer() {
+        Settings.SWIPE_CHAT_REELS.save(false);
+        assertTrue("the first tap", ChatReels.open(message("m1"), null));
+        assertFalse("the second tap", ChatReels.open(message("m1"), null));
+        assertFalse("a third", ChatReels.open(message("m1"), null));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains("repeat tap on a chat's media"));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+
+        assertTrue("another message", ChatReels.open(message("m2"), null));
+        assertFalse("the other message again", ChatReels.open(message("m2"), null));
+    }
+
+    /** A viewer that never shows doesn't hold the message forever. */
+    @Test
+    public void aRepeatTapOpensOnceTheWaitIsOver() {
+        assertTrue(ChatReels.open(message("m1"), null));
+        ShadowSystemClock.advanceBy(ChatReels.OPENING_MS - 1, TimeUnit.MILLISECONDS);
+        assertFalse("still loading", ChatReels.open(message("m1"), null));
+        ShadowSystemClock.advanceBy(2, TimeUnit.MILLISECONDS);
+        assertTrue("past the wait", ChatReels.open(message("m1"), null));
+    }
+
+    /** The viewer is an activity of its own, so the chat's pausing means it's up and Back opens it again. */
+    @Test
+    public void theViewersActivityLetsTheNextTapOpen() {
+        ActivityController<Activity> chat = Robolectric.buildActivity(Activity.class).setup();
+        assertTrue(ChatReels.open(message("m1"), null));
+        assertFalse("loading", ChatReels.open(message("m1"), null));
+        chat.pause();
+        assertTrue("the viewer is up", ChatReels.open(message("m1"), null));
+    }
+
+    /** A viewer pushed in the chat's place takes the bubble off the screen, which lets the next tap open. */
+    @Test
+    public void theBubbleLeavingLetsTheNextTapOpen() {
+        Activity chat = Robolectric.buildActivity(Activity.class).setup().get();
+        FrameLayout thread = new FrameLayout(chat);
+        View bubble = new View(chat);
+        thread.addView(bubble);
+        chat.setContentView(thread);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertTrue("the bubble is on the screen", bubble.isAttachedToWindow());
+
+        assertTrue(ChatReels.open(message("m1"), bubble));
+        assertFalse("loading", ChatReels.open(message("m1"), bubble));
+        thread.removeView(bubble);
+        assertTrue("the viewer is up", ChatReels.open(message("m1"), bubble));
+    }
+
+    /** Paused, before the settings are read and for no message, every tap opens. */
+    @Test
+    public void pausedUnreadyAndNoMessageAlwaysOpen() {
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", ChatReels.open(message("m1"), null));
+        assertTrue("paused, again", ChatReels.open(message("m1"), null));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> {
+            assertTrue("no context", ChatReels.open(message("m1"), null));
+            assertTrue("no context, again", ChatReels.open(message("m1"), null));
+        });
+        assertTrue("no message", ChatReels.open(null, null));
+        assertTrue("no message, again", ChatReels.open(null, null));
+
+        assertTrue("back on", ChatReels.open(message("m1"), null));
+        assertFalse("back on, again", ChatReels.open(message("m1"), null));
     }
 }

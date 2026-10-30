@@ -623,6 +623,13 @@ start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava
 # loads; twice or elsewhere, some other viewer loses its loading placeholder.
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->placeholder(Ljava/lang/Object;I)Z in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/lang/Object;)Z in instance (Ljava/lang/Integer;)V calling instance LX/*;->*(Ljava/util/List;Z)V class-holding ClipsViewerAdapter.addClipsItems
+# Swipe through a chat's reels also asks ChatReels.open first in the tap on a chat's media (0QbG.F1J
+# on 453's 385914557, #390), the one method of the opener's class handed the tapped view and the
+# message, which holds the sparse viewer's reply subtype and the media id check. Its slow branch
+# loads before the viewer opens, so each tap meanwhile opens another. Left out, the viewers stack
+# and Back has to close each one; twice or elsewhere, some other tap gets dropped.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of

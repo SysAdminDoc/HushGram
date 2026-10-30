@@ -48,6 +48,8 @@ class SwipeChatReelsHookTest {
     private val controller = "Lfixture/FlashController;"
     private val item = "Lfixture/Item;"
     private val adapter = "Lfixture/Adapter;"
+    private val tapped = "Landroid/view/View;"
+    private val bounds = "Landroid/graphics/RectF;"
 
     /** The hooks the patch writes are in the ChatReels the bundle ships, public and static. */
     @Test
@@ -55,7 +57,7 @@ class SwipeChatReelsHookTest {
         val declared = ExtensionDex.classDef(CHAT_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(CHAIN, STOP, STOP_CACHED, PLACEHOLDER)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        for (hook in listOf(CHAIN, STOP, STOP_CACHED, PLACEHOLDER, OPEN)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
     }
 
     /** The dual paging request asks the extension first, for the stock side of a chat's source only (#390). */
@@ -679,7 +681,7 @@ class SwipeChatReelsHookTest {
         context.chainChatReels()
 
         assertAnswered("stand-in", context.mutableClassDefBy(gates).methods.single { it.name == "chain" })
-        val asks = context.mutableClassDefBy(opener).methods.single().code()
+        val asks = context.mutableClassDefBy(opener).methods.single { it.name == "open" }.code()
         assertTrue("the opener was touched", asks.none { it.referenceText() == CHAIN })
     }
 
@@ -749,6 +751,86 @@ class SwipeChatReelsHookTest {
         val patched = context.mutableClassDefBy(read.type).methods
         assertAnswered(label, patched.single { it.name == read.name && it.parameterTypes.map(CharSequence::toString) == listOf(session) })
         assertEquals("${label}: methods hooked", 1, patched.count { m -> m.code().any { it.referenceText() == CHAIN } })
+
+        val tap = context.findChatMediaTap(read)
+        val before = tap.tap.implementation!!.instructions.count()
+        context.guardChatMediaTaps(tap)
+        assertGuarded(label, tap.tap, tap, before)
+        val guarded = holders.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            .count { method -> method.code().any { it.referenceText() == OPEN } }
+        assertEquals("${label}: taps guarded", 1, guarded)
+    }
+
+    /** A tap on media in a chat asks the extension first, handing it the message and the tapped view (#390). */
+    @Test
+    fun aTapOnAChatsMediaAsksFirst() {
+        val context = PatchContexts.of(classes())
+        val found = context.findChatMediaTap()
+        val before = found.tap.implementation!!.instructions.count()
+
+        context.guardChatMediaTaps(found)
+
+        assertEquals("the view after the bounds", 2, found.view)
+        assertEquals("the message after a wide word", 5, found.message)
+        val methods = context.mutableClassDefBy(opener).methods
+        assertGuarded("stand-in", methods.single { it.name == "tap" }, found, before)
+        assertTrue("the opener was touched", methods.single { it.name == "open" }.code().none { it.referenceText() == OPEN })
+    }
+
+    /** A build the tap finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildTheTapFinderCantReadFailsBeforeAnythingChanges() {
+        val tap = "$opener->tap"
+        val cases = listOf(
+            classes(taps = 0) to "expected one tap in $opener handed a view and a message, found 0",
+            classes(taps = 2) to "expected one tap in $opener handed a view and a message, found 2",
+            classes(tapTakes = listOf(tapped, tapped, MESSAGE_ID)) to "$tap($tapped$tapped$MESSAGE_ID)V is handed more than one view or message",
+            classes(tapLocals = 1) to "$tap has fewer than two locals for the hook",
+            classes(tapEntered = true) to "a jump or exception handler enters $tap at its first instruction",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.guardChatMediaTaps() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == OPEN } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /**
+     * First thing: the message and the tapped view copied and handed to the hook, and a no
+     * returning. A yes lands on Instagram's own first instruction.
+     */
+    private fun assertGuarded(what: String, method: Method, found: ChatMediaTap, before: Int) {
+        val code = method.code()
+        val words = method.parameterTypes.size + method.parameterTypes.count { it.toString() == "J" || it.toString() == "D" }
+        val self = method.implementation!!.registerCount - words - 1
+        assertEquals("$what: the message's type", MESSAGE_ID, method.parameterAt(found.message))
+        assertEquals("$what: the view's type", tapped, method.parameterAt(found.view))
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == OPEN })
+        assertEquals("$what: added", before + 6, code.size)
+        assertEquals("$what: the message's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the message", self + found.message, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the view's copy", Opcode.MOVE_OBJECT_FROM16, code[1].opcode)
+        assertEquals("$what: the view", self + found.view, (code[1] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", OPEN, code[2].referenceText())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
+        assertEquals("$what: the drop", Opcode.RETURN_VOID, code[5].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: the test", Opcode.IF_NEZ, code[4].opcode)
+        assertEquals("$what: a yes goes to Instagram", 6, address.indexOf(address[4] + (code[4] as OffsetInstruction).codeOffset))
+    }
+
+    /** The type of the parameter that comes in [register], counting from p1. */
+    private fun Method.parameterAt(register: Int): String? {
+        var at = 1
+        for (type in parameterTypes.map(CharSequence::toString)) {
+            if (at == register) return type
+            at += if (type == "J" || type == "D") 2 else 1
+        }
+        return null
     }
 
     /** Right after the flag's move-result: the range call with that register, and its answer back in it. */
@@ -768,7 +850,9 @@ class SwipeChatReelsHookTest {
 
     /**
      * Gates shaped like Instagram 453's 01Oo: a test taking the session reads [CHAT_REELS_FLAG]
-     * through a cast config and answers it. An opener handed a chat and a message asks it.
+     * through a cast config and answers it. An opener handed a chat and a message asks it, shaped
+     * like 0QbG, whose tap on a chat's media is handed the bounds, the tapped view, a wide word and
+     * the message.
      */
     private fun classes(
         reads: Int = 1,
@@ -777,6 +861,10 @@ class SwipeChatReelsHookTest {
         takes: String = session,
         openerTakes: List<String> = listOf(THREAD_KEY, MESSAGE_ID),
         openerAsks: Boolean = true,
+        taps: Int = 1,
+        tapTakes: List<String> = listOf(bounds, tapped, "J", MESSAGE_ID),
+        tapLocals: Int = 2,
+        tapEntered: Boolean = false,
     ): List<ClassDef> {
         val readFlag = List(reads) {
             """
@@ -804,11 +892,15 @@ class SwipeChatReelsHookTest {
                 "return-void"
             },
         )
-        return listOf(classDef(gates, listOf(test)), classDef(opener, listOf(open)))
+        val tapBody = if (tapEntered) ":top\nconst/4 v0, 0x0\ngoto :top" else "const/4 v0, 0x0\nreturn-void"
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val tapsOf = List(taps) { method(opener, if (it == 0) "tap" else "tap$it", tapTakes, "V", tapLocals, final, tapBody) }
+        return listOf(classDef(gates, listOf(test)), classDef(opener, listOf(open) + tapsOf))
     }
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
-        val total = registers + (if (AccessFlags.STATIC.isSet(flags)) 0 else 1) + parameters.size
+        val words = parameters.size + parameters.count { it == "J" || it == "D" }
+        val total = registers + (if (AccessFlags.STATIC.isSet(flags)) 0 else 1) + words
         val mutable = MutableMethod(
             ImmutableMethod(
                 owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,

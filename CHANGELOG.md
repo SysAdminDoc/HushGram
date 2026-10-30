@@ -38,6 +38,7 @@ Every HushGram release, newest first.
 * **Instagram:** `See who a story mentions` puts its pill just under the story's header on Instagram 453, whose name row can't hold it. Under the name, the pill pushed the name up into the progress bars. Reported in #405.
 * **Instagram:** With Hide shopping on in `Hide suggested posts`, Explore no longer leaves blank squares where a shop tile was. A shop tile inside a bigger block now takes the whole block out, so the grid closes up. Reported in #393.
 * **Instagram:** `Show all recent searches` now lists every recent search on accounts where Instagram builds the search screen the newer way. Those still stopped at five. Reported in #375.
+* **Instagram:** `Swipe through a chat's reels` makes a second tap on a post or reel in a chat wait for the first one to open. On a slow phone each tap while it loaded opened another copy, and Back had to close every one. Reported in #390.
 * **Instagram:** `See who a story mentions` no longer cuts the account's name short. When the name's row can't fit the pill, like on a highlight with a full date, the pill moves just under the header. Refs #405.
 * **Tooling:** When patching for a phone stops on an Instagram build with no reviewed coverage, the message now names the builds that have it, so you know which one to patch.
 * **Tooling:** Patching for a phone without `-Apk` takes the declared Instagram build from the fixture folder the way the release gate does, `.apks` bundles included. It used to skip `.apks` and take any file with the version in its name.

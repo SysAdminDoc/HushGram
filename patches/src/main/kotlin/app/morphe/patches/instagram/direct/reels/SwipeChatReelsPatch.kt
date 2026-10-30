@@ -104,12 +104,16 @@ internal const val ADD_REELS = "ClipsViewerAdapter.addClipsItems"
 
 private const val LIST = "Ljava/util/List;"
 private const val POSITION = "Ljava/lang/Integer;"
+private const val VIEW = "Landroid/view/View;"
+
+internal const val OPEN = "$CHAT_REELS->open(Ljava/lang/Object;Landroid/view/View;)Z"
 
 /**
  * Swiping up on a reel opened from a chat goes through the other reels shared in that chat before
  * any suggested reels (#350), and with the second switch stops after them (#390). In the default
  * selection with both switches off. The first answers Instagram's own test, so the chain, its order
- * and Back to the chat are Instagram's.
+ * and Back to the chat are Instagram's. Whatever the switches, a repeat tap on media in a chat waits
+ * for the first tap's viewer instead of opening another (#390).
  */
 @Suppress("unused")
 val swipeChatReelsPatch = bytecodePatch(
@@ -129,11 +133,13 @@ val swipeChatReelsPatch = bytecodePatch(
         val more = findMoreReels()
         val cached = findCachedReels()
         val placeholders = findPlaceholders()
+        val tap = findChatMediaTap(read)
         chainChatReels(read)
         stopAfterChatReels(end)
         stopMoreReels(more)
         stopCachedReels(cached)
         skipPlaceholders(placeholders)
+        guardChatMediaTaps(tap)
         enableStatus("chatReels")
     }
 }
@@ -160,12 +166,70 @@ internal fun BytecodePatchContext.findChatReels(): FlagLoad {
     if (read.parameters != listOf(USER_SESSION) || read.returnType != "Z") {
         refuse("$flag is read in $where(${read.parameters.joinToString("")})${read.returnType}, not in a test of the session")
     }
-    val openers = methodsCalling(read.type, read.name).filter { caller ->
-        val takes = caller.parameterTypes.map(CharSequence::toString)
-        THREAD_KEY in takes && MESSAGE_ID in takes
-    }
-    if (openers.isEmpty()) refuse("nothing handed a chat and a message asks $where, so it isn't the chat reels test")
+    if (openersOf(read).isEmpty()) refuse("nothing handed a chat and a message asks $where, so it isn't the chat reels test")
     return read
+}
+
+/** The methods handed a chat and a message that ask the chat reels test [read]: the openers of a reel shared in a chat. */
+private fun BytecodePatchContext.openersOf(read: FlagLoad) = methodsCalling(read.type, read.name).filter { caller ->
+    val takes = caller.parameterTypes.map(CharSequence::toString)
+    THREAD_KEY in takes && MESSAGE_ID in takes
+}
+
+/** The tap on media in a chat, and the parameter registers its tapped view and message come in. */
+internal class ChatMediaTap(val tap: MutableMethod, val view: Int, val message: Int)
+
+/**
+ * Finds the tap on media in a chat before anything changes (LX/0QbG;->F1J on 453's 385914557, which
+ * opens a shared post or reel, slowly on some phones, through the opener [findChatReels] checks).
+ * It's the one instance method returning nothing in an opener's class that is handed the tapped
+ * view and the message ([MESSAGE_ID]), one of each, with two locals for the hook and nothing jumping
+ * to its first instruction. Fails when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findChatMediaTap(read: FlagLoad = findChatReels()): ChatMediaTap {
+    val owners = openersOf(read).map { it.definingClass }.distinct()
+    val taps = owners.flatMap { owner ->
+        classDefBy(owner).methods.filter { method ->
+            val takes = method.parameterTypes.map(CharSequence::toString)
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && VIEW in takes && MESSAGE_ID in takes
+        }
+    }
+    val tap = taps.singleOrNull()
+        ?: refuse("expected one tap in ${owners.joinToString()} handed a view and a message, found ${taps.size}")
+    val takes = tap.parameterTypes.map(CharSequence::toString)
+    val where = "${tap.definingClass}->${tap.name}"
+    if (takes.count { it == VIEW } != 1 || takes.count { it == MESSAGE_ID } != 1) {
+        refuse("$where(${takes.joinToString("")})V is handed more than one view or message")
+    }
+    if (tap.localRegisterCount() < 2) refuse("$where has fewer than two locals for the hook")
+    if (0 in tap.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+    fun register(type: String) = 1 + takes.take(takes.indexOf(type)).sumOf { if (it == "J" || it == "D") 2 else 1 }
+
+    val mutable = mutableClassDefBy(tap.definingClass).methods.single { method ->
+        method.name == tap.name && method.parameterTypes.map(CharSequence::toString) == takes
+    }
+    return ChatMediaTap(mutable, register(VIEW), register(MESSAGE_ID))
+}
+
+/**
+ * Asks the extension through [OPEN] first on a tap on media in a chat, handing it the message and
+ * the tapped view. A no (a repeat tap while the first tap's viewer is on its way) returns, so the
+ * viewers don't stack. Everything else goes on to Instagram.
+ */
+internal fun BytecodePatchContext.guardChatMediaTaps(found: ChatMediaTap = findChatMediaTap()) {
+    val tap = found.tap
+    tap.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p${found.message}
+            move-object/from16 v1, p${found.view}
+            invoke-static { v0, v1 }, $OPEN
+            move-result v0
+            if-nez v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", tap.getInstruction(0)),
+    )
 }
 
 /** The viewer's dual paging request, and the class of the source of a chat's reels it pages. */
