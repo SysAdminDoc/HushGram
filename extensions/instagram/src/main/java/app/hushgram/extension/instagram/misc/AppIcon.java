@@ -116,6 +116,8 @@ public final class AppIcon {
     static boolean keepsOut(PackageManager manager, @Nullable ComponentName component, int state) {
         try {
             if (component == null) return false;
+            // Stop background jobs shares this routing: a push or prefetch component it holds off stays off.
+            if (BackgroundWork.keepsHeld(component, state)) return true;
             String name = component.getClassName();
             boolean ours = name.startsWith(HUSHGRAM_ALIAS);
             if (!ours && (!INSTAGRAM_ALIAS.equals(name) || state == OFF)) return false;

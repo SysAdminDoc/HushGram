@@ -819,6 +819,12 @@ Battery	電池
 Stop the background heartbeat	停用背景存活回報
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram 每隔一兩分鐘就會喚醒手機，即使螢幕關閉也一樣，目的只是記錄自己仍在執行。此選項會停止該行為。訊息、通知與畫面上的功能不受影響。
 Stop the analytics upload alarm	停用分析資料上傳鬧鐘
+Turn off push while notifications are off	通知關閉時關閉推播
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	即使在手機設定中關閉了 Instagram 的通知，Meta 的推播服務仍會持續執行，整天喚醒 Instagram。這會把它關閉，直到你再次允許通知為止。Instagram 開啟時仍會收到訊息。
+Stop background feed refresh	停止在背景重新整理動態
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram 會在背景載入你的動態，讓你開啟 App 時就能看到。這會停止該動作，改為在你開啟 Instagram 時才載入動態。
+Stop background tracking	停止背景追蹤
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	停止定期記錄你在何時使用了哪些其他 Meta App，以及追蹤 Instagram 如何啟動和關閉的服務。
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram 會設定鬧鐘，在五分鐘後喚醒手機並傳送使用事件。此選項會停用該鬧鐘，事件改在下次使用應用程式時傳送。
 Haptic style	觸覺回饋樣式
 Short tick	短震

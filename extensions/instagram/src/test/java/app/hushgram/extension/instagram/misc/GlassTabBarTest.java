@@ -690,21 +690,17 @@ public class GlassTabBarTest {
         assertEquals(GlassLift.STANDARD, Settings.GLASS_TAB_BAR_LIFT.defaultValue);
     }
 
-    /** Tab bar corners (#144): each step keeps its dp up to half the height, and no choice read is Standard. */
+    /** The fork's pill (#144): every corner choice, and none, gives half circle ends, never a 12dp squircle. */
     @Test
-    public void cornersKeepTheirDpUpToHalfTheHeight() {
+    public void everyCornerChoiceIsFullyRound() {
         float density = 2.625f;
         float tall = 50 * density;
-        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, false, tall, density), 0f);
-        assertEquals(Math.round(8 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, true, tall, density), 0f);
-        assertEquals(Math.round(20 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, tall, density), 0f);
-        assertEquals(Math.round(14 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, true, tall, density), 0f);
-        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, tall, density), 0f);
-        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, true, tall, density), 0f);
-        assertEquals("never past half the height", 10f, GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, 20f, density), 0f);
+        for (GlassCorners corners : new GlassCorners[]{GlassCorners.STANDARD, GlassCorners.ROUNDER, GlassCorners.ROUND, null}) {
+            assertEquals(String.valueOf(corners), tall / 2f, GlassTabBar.cornerPx(corners, false, tall, density), 0f);
+            assertEquals(String.valueOf(corners), tall / 2f, GlassTabBar.cornerPx(corners, true, tall, density), 0f);
+        }
+        assertEquals(10f, GlassTabBar.cornerPx(GlassCorners.STANDARD, false, 20f, density), 0f);
         assertEquals(0f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, -4f, density), 0f);
-        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(null, false, tall, density), 0f);
-        assertEquals(GlassCorners.STANDARD, Settings.GLASS_TAB_BAR_CORNERS.defaultValue);
     }
 
     /**

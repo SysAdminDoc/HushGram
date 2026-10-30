@@ -119,7 +119,7 @@ public class NeutralDefaultsSettingsTest {
                 Settings.HIDE_REEL_CHIPS, Settings.HIDE_REEL_SOCIAL_FOOTER, Settings.TURN_OFF_DOUBLE_TAP_LIKE,
                 Settings.HIDE_REELS_TAB, Settings.SHOW_REELS_TAB, Settings.SHOW_MESSAGES_TAB, Settings.HIDE_MESSAGES_TAB, Settings.SHOW_ACTIVITY_TAB, Settings.HIDE_HOME_TAB, Settings.HIDE_SEARCH_TAB, Settings.HIDE_CREATE_TAB, Settings.HIDE_PROFILE_TAB, Settings.HIDE_HOME_CREATE_BUTTON, Settings.HIDE_HOME_NOTIFICATIONS_BUTTON, Settings.SEARCH_BUTTON_ON_HOME, Settings.MESSAGES_BUTTON_ON_HOME, Settings.HIDE_HOME_MESSAGES_BUTTON, Settings.GHOST_BUTTON_ON_HOME, Settings.CENTER_HOME_LOGO, Settings.CENTER_PROFILE_NAME, Settings.CENTER_SCREEN_TITLES, Settings.TITLES_AT_START, Settings.REEL_SEEK_BAR, Settings.BLUR_REEL_BARS, Settings.KEEP_REEL_AUTO_SCROLL, Settings.REEL_AUTO_ADVANCE,
                 Settings.DOWNLOAD_VIDEOS, Settings.DOWNLOAD_SKIP_SAVED, Settings.HOLD_TO_DOWNLOAD, Settings.TAP_TO_PLAY, Settings.KEEP_REELS_MUTED,
-                Settings.GLASS_TAB_BAR, Settings.SAVED_ON_PROFILE, Settings.HIDE_COMMENT_EMOJI_ROW, Settings.COMMENT_KEYBOARD_DOWN, Settings.HIDE_FEED_FOLLOW, Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM};
+                Settings.GLASS_TAB_BAR, Settings.SAVED_ON_PROFILE, Settings.HIDE_COMMENT_EMOJI_ROW, Settings.COMMENT_KEYBOARD_DOWN, Settings.HIDE_FEED_FOLLOW, Settings.STOP_HEARTBEAT, Settings.STOP_UPLOAD_ALARM, Settings.STOP_PUSH_WHEN_SILENT, Settings.STOP_BACKGROUND_REFRESH, Settings.STOP_BACKGROUND_TRACKING};
         restoreDefaults();
         BaseSettings.SAFE_MODE.save(false);
         Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
@@ -136,7 +136,7 @@ public class NeutralDefaultsSettingsTest {
                 PatchFamily.PROFILE_SUGGESTIONS, PatchFamily.REELS_SUGGESTIONS, PatchFamily.PAID_PARTNERSHIP_REELS, PatchFamily.AI_LABELED_REELS, PatchFamily.CAPTION_WORD_REELS, PatchFamily.REEL_POST_TIME, PatchFamily.DOUBLE_TAP_LIKE,
                 PatchFamily.REELS_TAB, PatchFamily.REEL_SEEK_BAR, PatchFamily.REEL_BLUR_BARS, PatchFamily.REEL_TAP_AND_VOLUME, PatchFamily.REEL_AUTO_SCROLL,
                 PatchFamily.VIDEO_DOWNLOAD, PatchFamily.TAP_TO_PLAY,
-                PatchFamily.GLASS_TAB_BAR, PatchFamily.SAVED_ON_PROFILE, PatchFamily.COMMENT_EMOJI_ROW, PatchFamily.COMMENT_KEYBOARD, PatchFamily.FEED_FOLLOW, PatchFamily.STOP_HEARTBEAT);
+                PatchFamily.GLASS_TAB_BAR, PatchFamily.SAVED_ON_PROFILE, PatchFamily.COMMENT_EMOJI_ROW, PatchFamily.COMMENT_KEYBOARD, PatchFamily.FEED_FOLLOW, PatchFamily.STOP_HEARTBEAT, PatchFamily.BACKGROUND_WORK);
     }
 
     @After public void restore() throws Exception {

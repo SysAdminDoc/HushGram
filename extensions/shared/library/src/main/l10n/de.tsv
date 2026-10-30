@@ -819,6 +819,12 @@ Battery	Akku
 Stop the background heartbeat	Hintergrund-Herzschlag stoppen
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram weckt dein Handy jede oder jede zweite Minute, auch bei ausgeschaltetem Bildschirm, nur um zu vermerken, dass es noch läuft. Das hört damit auf. Nachrichten, Benachrichtigungen und alles, was du siehst, bleiben unverändert.
 Stop the analytics upload alarm	Analyse-Upload-Wecker stoppen
+Turn off push while notifications are off	Push ausschalten, solange Benachrichtigungen aus sind
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	Wenn Instagrams Benachrichtigungen in den Einstellungen deines Handys aus sind, läuft Metas Push-Dienst trotzdem weiter und weckt Instagram den ganzen Tag. Das schaltet ihn aus, bis du Benachrichtigungen wieder erlaubst. Nachrichten kommen weiter an, solange Instagram offen ist.
+Stop background feed refresh	Feed-Aktualisierung im Hintergrund stoppen
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram lädt deinen Feed im Hintergrund, damit er bereit ist, wenn du die App öffnest. Das stoppt das, sodass der Feed stattdessen lädt, wenn du Instagram öffnest.
+Stop background tracking	Tracking im Hintergrund stoppen
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	Stoppt das regelmäßige Protokoll, welche anderen Meta-Apps du wann benutzt hast, und Instagrams Dienst, der verfolgt, wie es gestartet und geschlossen wurde.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram stellt einen Wecker, der dein Handy fünf Minuten später weckt, um Nutzungsdaten zu senden. Das stoppt diesen Wecker. Die Daten gehen beim nächsten Öffnen der App raus.
 Haptic style	Haptik-Stil
 Short tick	Kurzer Tick

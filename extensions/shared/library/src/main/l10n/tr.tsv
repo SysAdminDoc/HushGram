@@ -819,6 +819,12 @@ Battery	Pil
 Stop the background heartbeat	Arka plandaki kalp atışını durdur
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
+Turn off push while notifications are off	Bildirimler kapalıyken push'u kapat
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	Telefonunun ayarlarında Instagram bildirimleri kapalı olsa bile Meta'nın push hizmeti çalışmaya devam eder ve Instagram'ı gün boyu uyandırır. Bu, bildirimlere yeniden izin verene kadar onu kapatır. Instagram açıkken mesajlar gelmeye devam eder.
+Stop background feed refresh	Arka planda akış yenilemeyi durdur
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram, uygulamayı açtığında hazır olsun diye akışını arka planda yükler. Bu bunu durdurur, akış Instagram'ı açtığında yüklenir.
+Stop background tracking	Arka plan izlemeyi durdur
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	Hangi diğer Meta uygulamalarını ne zaman kullandığının düzenli kaydını ve Instagram'ın nasıl açılıp kapandığını izleyen hizmetini durdurur.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider.
 Haptic style	Haptik stili
 Short tick	Kısa tık

@@ -402,6 +402,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean backgroundWork() {
+        return false;
+    }
+
     public static boolean keepReelSpeed() {
         return false;
     }

@@ -31,6 +31,7 @@ import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -56,6 +57,8 @@ internal val MESSAGE_KEYS = arrayOf(ITEM_ID, HIDE_IN_THREAD, THREAD_KEY, "client
 
 internal val LIVE_MESSAGE = arrayOf("DirectMessage.postprocess.%s", "Encountered DirectMessage with null type")
 internal const val HIDE_BY_ID = "Both message ID and client context is null."
+/** The column 453's hide Runnable names right before the client context it deletes by. */
+internal const val CLIENT_COLUMN = "client_item_id=='"
 private const val THREAD_KEY_TYPE = "Lcom/instagram/model/direct/DirectThreadKey;"
 private const val STRING = "Ljava/lang/String;"
 private const val OBJECT = "Ljava/lang/Object;"
@@ -231,11 +234,46 @@ internal fun BytecodePatchContext.findLiveMessage(parser: ParserSite): LiveSite 
     return LiveSite(method, returns, self)
 }
 
-internal fun BytecodePatchContext.findHide(): Method =
-    methodsHolding(HIDE_BY_ID).filter {
-        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-            it.parameterTypes.map(CharSequence::toString) == listOf(THREAD_KEY_TYPE, STRING, STRING)
-    }.exactlyOne(PATCH, "method hiding a message by its id")
+/**
+ * Where Instagram hides a message by its id, and where the hook reads the two ids from: the
+ * method's own parameters on 450, (thread key, server id, client context), or on 453 the fields of
+ * the Runnable whose run() does the same work, named by [server] and [client].
+ */
+internal class HideSite(val method: Method, val server: String? = null, val client: String? = null)
+
+/**
+ * 450 hides a message in a method taking the thread key and both ids. 453 moved that work into a
+ * Runnable's run(), which reads the ids from its own fields: the one it puts after
+ * [CLIENT_COLUMN] is the client context, and its other string field is the server id.
+ */
+internal fun BytecodePatchContext.findHide(): HideSite {
+    val holding = methodsHolding(HIDE_BY_ID).filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" }
+    holding.filter { it.parameterTypes.map(CharSequence::toString) == listOf(THREAD_KEY_TYPE, STRING, STRING) }
+        .singleOrNull()?.let { return HideSite(it) }
+    val run = holding.filter { it.name == "run" && it.parameterTypes.isEmpty() }
+        .exactlyOne(PATCH, "method hiding a message by its id")
+    val code = run.code()
+    val fields = code.mapNotNull { instruction ->
+        instruction.fieldReference()?.takeIf {
+            instruction.opcode == Opcode.IGET_OBJECT && it.definingClass == run.definingClass && it.type == STRING
+        }?.let { (instruction as TwoRegisterInstruction).registerA to it }
+    }
+    if (fields.map { it.second.name }.distinct().size != 2) {
+        refuse(PATCH, "${run.describe()} doesn't read exactly two string fields of its own")
+    }
+    val column = code.indexOfFirst { it.stringLoaded() == CLIENT_COLUMN }
+    if (column < 0) refuse(PATCH, "${run.describe()} doesn't name $CLIENT_COLUMN")
+    val joined = code.drop(column + 1).firstOrNull { it.opcode.name.startsWith("invoke") } as? FiveRegisterInstruction
+        ?: refuse(PATCH, "${run.describe()} doesn't join $CLIENT_COLUMN with an id")
+    val arguments = listOf(joined.registerC, joined.registerD, joined.registerE, joined.registerF, joined.registerG)
+        .take(joined.registerCount)
+    val client = fields.filter { it.first in arguments }.map { it.second }.distinctBy { it.name }
+        .exactlyOne(PATCH, "client context field joined with $CLIENT_COLUMN in ${run.describe()}")
+    val server = fields.map { it.second }.distinctBy { it.name }.single { it.name != client.name }
+    fun ref(field: com.android.tools.smali.dexlib2.iface.reference.FieldReference) =
+        "${field.definingClass}->${field.name}:${field.type}"
+    return HideSite(run, ref(server), ref(client))
+}
 
 /**
  * The return stays the return: its register is copied to a local, the layout is loaded into another,
@@ -263,16 +301,21 @@ internal fun BytecodePatchContext.keepLive(site: LiveSite, layout: String) {
     for (returnAt in site.returns.sortedDescending()) hookReturn(site.method, returnAt, site.self, layout)
 }
 
-internal fun BytecodePatchContext.reportHidden(method: Method) {
-    val mutable = mutable(method)
+internal fun BytecodePatchContext.reportHidden(site: HideSite) {
+    val mutable = mutable(site.method)
     mutable.requireLocals(PATCH, 2)
     if (0 in mutable.jumpTargets()) refuse(PATCH, "something jumps to the start of ${mutable.describe()}")
-    mutable.addInstructions(
-        0,
+    val ids = if (site.server == null || site.client == null) {
         """
             move-object/from16 v0, ${mutable.parameterRegister(1)}
             move-object/from16 v1, ${mutable.parameterRegister(2)}
-            invoke-static { v0, v1 }, $HIDDEN
-        """,
-    )
+        """
+    } else {
+        """
+            move-object/from16 v1, p0
+            iget-object v0, v1, ${site.server}
+            iget-object v1, v1, ${site.client}
+        """
+    }
+    mutable.addInstructions(0, ids + "invoke-static { v0, v1 }, $HIDDEN")
 }

@@ -819,6 +819,12 @@ Battery	Bateria
 Stop the background heartbeat	Parar o batimento em segundo plano
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	O Instagram acorda seu telefone a cada minuto ou dois, inclusive com a tela apagada, só para anotar que ainda está em execução. Isso para essa atividade. Mensagens, notificações e tudo o que você vê não mudam.
 Stop the analytics upload alarm	Parar o alarme de envio de análises
+Turn off push while notifications are off	Desligar o push enquanto as notificações estiverem desativadas
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	Com as notificações do Instagram desativadas nas configurações do celular, o serviço de push da Meta continua rodando e acorda o Instagram o dia todo. Isso o desliga até você permitir as notificações de novo. As mensagens continuam chegando enquanto o Instagram está aberto.
+Stop background feed refresh	Parar a atualização do feed em segundo plano
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	O Instagram carrega seu feed em segundo plano para que ele esteja pronto quando você abrir o app. Isso para essa carga, e o feed carrega quando você abre o Instagram.
+Stop background tracking	Parar o rastreamento em segundo plano
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	Para o registro periódico de quais outros apps da Meta você usou e quando, e o serviço do Instagram que rastreia como ele foi aberto e fechado.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	O Instagram define um alarme para acordar seu telefone e enviar os dados de uso cinco minutos depois. Isso para esse alarme. Os dados vão na próxima vez que você usar o app.
 Haptic style	Estilo de vibração
 Short tick	Toque curto

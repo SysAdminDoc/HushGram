@@ -1267,6 +1267,30 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_stop_upload_alarm", FALSE);
 
     /**
+     * Meta's push service and Firebase's push are turned off while Android says Instagram's notifications
+     * are off ({@link app.hushgram.extension.instagram.misc.BackgroundWork}). Read as Instagram starts, each
+     * time it comes to the front, and when the switch changes. Off to start.
+     */
+    public static final BooleanSetting STOP_PUSH_WHEN_SILENT =
+            new BooleanSetting("hushgram_stop_push_when_silent", FALSE);
+
+    /**
+     * Instagram's background feed prefetch is turned off
+     * ({@link app.hushgram.extension.instagram.misc.BackgroundWork}). Read as for
+     * {@link #STOP_PUSH_WHEN_SILENT}. Off to start.
+     */
+    public static final BooleanSetting STOP_BACKGROUND_REFRESH =
+            new BooleanSetting("hushgram_stop_background_refresh", FALSE);
+
+    /**
+     * The periodic log of which other Meta apps you used, and the startup tracking service, are turned
+     * off ({@link app.hushgram.extension.instagram.misc.BackgroundWork}). Read as for
+     * {@link #STOP_PUSH_WHEN_SILENT}. Off to start.
+     */
+    public static final BooleanSetting STOP_BACKGROUND_TRACKING =
+            new BooleanSetting("hushgram_stop_background_tracking", FALSE);
+
+    /**
      * Every emoji draws in Google's style: EmojiCompat is asked to replace every emoji it knows
      * from the font it loads from Google Play services, not only the ones the phone lacks
      * ({@link app.hushgram.extension.instagram.misc.EmojiStyle}). Read for each piece of text, but
