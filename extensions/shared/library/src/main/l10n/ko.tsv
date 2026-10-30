@@ -20,6 +20,7 @@ Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-i
 Copy a short report to the clipboard.	간단한 진단 보고서를 클립보드에 복사합니다
 Copy quick report	빠른 보고서 복사
 Copying to the gallery	갤러리에 복사하는 중
+Couldn't find this chat's messages.	채팅 메시지를 찾지 못했어요.
 Couldn't put back the diagnostic data. Try again.	진단 데이터를 복원할 수 없습니다. 다시 시도하세요
 Couldn't start the report export. Try again shortly.	보고서 내보내기를 시작할 수 없습니다. 잠시 후 다시 시도하세요
 Couldn't turn HushGram back on. Try again.	HushGram을 다시 활성화할 수 없습니다. 다시 시도하세요
@@ -33,13 +34,22 @@ Empties the activity log and any kept crash that a diagnostic report would inclu
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	모든 스위치는 디버그 로깅을 제외하고 활성화된 것처럼 작동하며, 패치할 때 설정되어 있던 상태가 그대로 유지됩니다. 현재 설정은 변경되지 않습니다
 Export diagnostic report	진단 보고서 내보내기
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	다음 시작부터 디버그 로깅을 제외한 모든 스위치가 비활성화된 것처럼 작동합니다. 패치할 때 적용된 변경 사항은 그대로 유지되며, 사용자가 선택한 설정도 저장된 상태로 유지됩니다
+Here it is.	여기예요.
+Jump to a date	날짜로 이동
+Jump to the first message	첫 메시지로 이동
+Jump to the first message or a date	첫 메시지 또는 날짜로 이동
+Loading older messages.	이전 메시지를 불러오는 중입니다.
+Loading older messages. %1$d message so far.	이전 메시지를 불러오는 중입니다. 지금까지 %1$d개입니다.
+Loading older messages. %1$d messages so far.	이전 메시지를 불러오는 중입니다. 지금까지 %1$d개입니다.
 Lock these settings	이 설정 잠그기
+Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	채팅 이름을 길게 누르고 첫 메시지로 이동 또는 날짜로 이동을 고르세요. 채팅이 이전 메시지를 스스로 불러오며, 개수와 취소 버튼이 표시됩니다.
 Mark a chat seen when you reply	답장하면 채팅을 읽음으로 표시
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1~72시간 중 대기 시간을 고르세요. 잠기면 잠금 해제를 요청하고 대기 시간이 끝날 때까지 여기서 아무것도 바뀌지 않습니다.
 Ask to unlock	잠금 해제 요청
 Saved to %1$s in lower quality because storage is low	저장 공간이 부족해 %1$s에 낮은 화질로 저장했습니다
 Saved to the gallery in lower quality because storage is low	저장 공간이 부족해 낮은 화질로 갤러리에 저장했습니다
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	채팅에서 메시지를 보내면 상대가 그 이전에 보낸 메시지를 읽었다는 것을 볼 수 있습니다. 답하지 않은 채팅은 상대에게 읽지 않은 상태로 남습니다.
+That's as far back as this chat goes.	이 채팅은 여기까지입니다.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	이 설정은 잠겨 있습니다. 탭하면 %1$s 대기가 시작되고, 끝나면 10분 동안 열립니다.
 Unlock asked	잠금 해제 요청됨
 These settings open at %1$s, for 10 minutes.	이 설정은 %1$s에 10분 동안 열립니다.

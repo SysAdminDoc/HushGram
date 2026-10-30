@@ -2405,3 +2405,11 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/l
 
 # Feed Subscribe has a native eligibility branch inside the header, without a Subscribe view id.
 once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscribe(I)Z holding null\scannot\sbe\scast\sto\snon-null\stype\sinstagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState
+# Chat history tools (#246) hands ChatPager.opened first in the chat screen's onResume and ChatPager.closed
+# first in its onPause, the same pair of methods the chat lock hooks (the one pair logging the thread
+# controller's DirectThreadController.onResume and .onPause). Left out, the chat's name never gets its
+# menu; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/direct/ChatPager;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+start-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
+once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause

@@ -139,6 +139,7 @@ public final class FamilyNames {
     public static final String SCREENSHOT_BLOCK = "Allow screenshots";
     public static final String KEEP_IN_CHAT = "Keep in chat";
     public static final String CHAT_REELS = "Swipe through a chat's reels";
+    public static final String CHAT_HISTORY = "Chat history tools";
     public static final String ASK_BEFORE_CALL = "Ask before a call";
     public static final String MESSAGE_BOX = "Message box buttons";
     public static final String ASK_BEFORE_LIKE = "Ask before a like";

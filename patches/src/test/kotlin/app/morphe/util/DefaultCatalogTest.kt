@@ -14,6 +14,7 @@ import app.morphe.patches.instagram.direct.instants.hideInstantsPatch
 import app.morphe.patches.instagram.direct.presence.showLastActivePatch
 import app.morphe.patches.instagram.direct.lock.lockMessagesPatch
 import app.morphe.patches.instagram.stories.live.viewLiveAnonymouslyPatch
+import app.morphe.patches.instagram.direct.history.chatHistoryPatch
 import app.morphe.patches.instagram.direct.keep.keepInChatPatch
 import app.morphe.patches.instagram.direct.reels.swipeChatReelsPatch
 import app.morphe.patches.instagram.direct.screenshots.allowScreenshotsPatch
@@ -204,6 +205,7 @@ class DefaultCatalogTest {
         hideTypingPatch,
         keepInChatPatch,
         swipeChatReelsPatch,
+        chatHistoryPatch,
         keepReelsAutoScrollPatch,
         launchScreenPatch,
         lockMessagesPatch,

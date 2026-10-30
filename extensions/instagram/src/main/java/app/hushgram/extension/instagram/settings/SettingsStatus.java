@@ -580,6 +580,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Chat history tools patch. */
+    public static boolean chatHistory() {
+        return false;
+    }
+
     /** Rewritten by the View live anonymously patch. */
     public static boolean liveSeen() {
         return false;

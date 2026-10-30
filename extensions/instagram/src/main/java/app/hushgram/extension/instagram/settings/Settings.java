@@ -572,6 +572,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting STOP_AFTER_CHAT_REELS = new BooleanSetting("hushgram_stop_after_chat_reels", FALSE);
 
     /**
+     * Long pressing a chat's name offers to jump to its first message or to a date, paging back
+     * through the chat on its own ({@link app.hushgram.extension.instagram.direct.ChatPager}, #246).
+     * Off to start.
+     */
+    public static final BooleanSetting JUMP_IN_CHAT = new BooleanSetting("hushgram_jump_in_chat", FALSE);
+
+    /**
      * A call started from a chat waits for a question first
      * ({@link app.hushgram.extension.instagram.direct.CallConfirm}). Off to start.
      */

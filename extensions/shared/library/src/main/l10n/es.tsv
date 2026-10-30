@@ -19,6 +19,7 @@ Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-i
 Copy a short report to the clipboard.	Copia un informe breve en el portapapeles.
 Copy quick report	Copiar informe rápido
 Copying to the gallery	Copiando a la galería
+Couldn't find this chat's messages.	No se hallan los mensajes.
 Couldn't put back the diagnostic data. Try again.	No se pudieron restaurar los datos de diagnóstico. Inténtalo de nuevo.
 Couldn't start the report export. Try again shortly.	No se pudo iniciar la exportación del informe. Inténtalo de nuevo en breve.
 Couldn't turn HushGram back on. Try again.	No se pudo volver a activar HushGram. Inténtalo de nuevo.
@@ -32,13 +33,22 @@ Empties the activity log and any kept crash that a diagnostic report would inclu
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados, y lo que se aplicó al parchear se mantiene. Tu configuración no cambia.
 Export diagnostic report	Exportar informe de diagnóstico
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Desde el próximo inicio, todos los interruptores, salvo el Registro de depuración, funcionan como si estuvieran desactivados. Lo que se aplicó al parchear se mantiene, y tus preferencias quedan guardadas.
+Here it is.	Aquí está.
+Jump to a date	Ir a una fecha
+Jump to the first message	Ir al primer mensaje
+Jump to the first message or a date	Ir al primer mensaje o a una fecha
+Loading older messages.	Cargando mensajes anteriores.
+Loading older messages. %1$d message so far.	Cargando mensajes anteriores. %1$d mensaje por ahora.
+Loading older messages. %1$d messages so far.	Cargando mensajes anteriores. %1$d mensajes por ahora.
 Lock these settings	Bloquear estos ajustes
+Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mantén pulsado el nombre de un chat y elige Ir al primer mensaje o Ir a una fecha. El chat carga solo sus mensajes anteriores, con un contador y un botón Cancelar.
 Mark a chat seen when you reply	Marcar un chat como visto al responder
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
 Ask to unlock	Pedir desbloqueo
 Saved to %1$s in lower quality because storage is low	Se guardó en %1$s con menos calidad porque queda poco almacenamiento
 Saved to the gallery in lower quality because storage is low	Se guardó en la galería con menos calidad porque queda poco almacenamiento
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Al enviar un mensaje en un chat, la otra persona ve que leíste lo que te mandó antes. Los chats que no respondes siguen sin verse para ella.
+That's as far back as this chat goes.	El chat no llega más atrás.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Estos ajustes están bloqueados. Toca para empezar la espera de %1$s y luego se abren durante 10 minutos.
 Unlock asked	Desbloqueo pedido
 These settings open at %1$s, for 10 minutes.	Estos ajustes se abren a las %1$s, durante 10 minutos.

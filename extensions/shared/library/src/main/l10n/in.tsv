@@ -19,6 +19,7 @@ Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-i
 Copy a short report to the clipboard.	Salin laporan singkat ke papan klip.
 Copy quick report	Salin laporan singkat
 Copying to the gallery	Menyalin ke galeri
+Couldn't find this chat's messages.	Pesan obrolan tak ditemukan.
 Couldn't put back the diagnostic data. Try again.	Data diagnostik tidak dapat dikembalikan. Coba lagi.
 Couldn't start the report export. Try again shortly.	Ekspor laporan tidak dapat dimulai. Coba lagi dalam beberapa saat.
 Couldn't turn HushGram back on. Try again.	HushGram tidak dapat diaktifkan lagi. Coba lagi.
@@ -32,13 +33,22 @@ Empties the activity log and any kept crash that a diagnostic report would inclu
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Semua sakelar kecuali Pencatatan debug dianggap nonaktif, dan yang diatur saat Anda menambal tetap aktif. Pengaturan Anda tetap seperti semula.
 Export diagnostic report	Ekspor laporan diagnostik
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Mulai peluncuran berikutnya, semua sakelar kecuali Pencatatan debug dianggap nonaktif. Yang diatur saat Anda menambal tetap aktif, dan pilihan Anda tetap tersimpan.
+Here it is.	Ini dia.
+Jump to a date	Lompat ke tanggal
+Jump to the first message	Lompat ke pesan pertama
+Jump to the first message or a date	Lompat ke pesan pertama atau ke tanggal
+Loading older messages.	Memuat pesan lama.
+Loading older messages. %1$d message so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
+Loading older messages. %1$d messages so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
 Lock these settings	Kunci pengaturan ini
+Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Tekan lama nama obrolan lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
 Mark a chat seen when you reply	Tandai obrolan sudah dilihat saat kamu membalas
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
 Ask to unlock	Minta buka kunci
 Saved to %1$s in lower quality because storage is low	Disimpan ke %1$s dengan kualitas lebih rendah karena penyimpanan hampir penuh
 Saved to the gallery in lower quality because storage is low	Disimpan ke galeri dengan kualitas lebih rendah karena penyimpanan hampir penuh
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Saat kamu mengirim pesan di obrolan, orang lain melihat bahwa kamu sudah membaca pesan mereka sebelumnya. Obrolan yang tidak kamu balas tetap belum terlihat oleh mereka.
+That's as far back as this chat goes.	Obrolan ini hanya sampai sini.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Pengaturan ini terkunci. Ketuk untuk memulai waktu tunggu %1$s, lalu pengaturan terbuka selama 10 menit.
 Unlock asked	Buka kunci diminta
 These settings open at %1$s, for 10 minutes.	Pengaturan ini terbuka pukul %1$s, selama 10 menit.

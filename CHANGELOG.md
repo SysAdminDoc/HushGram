@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Chat history tools` is a new patch. Its switch under Messages lets you long press a chat's name to jump to its first message or a date, loading older messages with a count and Cancel. Starts off. Asked for in #246.
 * **Instagram:** `Save comment photo` gets a second switch, `Reply with a comment's GIF` under Comments. When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply. It goes up animated, the way one picked in Instagram's GIF search does. Starts off. Asked for in #402.
 * **Instagram:** `Use the highest refresh rate` is a new patch. Its switch, under Layout, asks Android to run Instagram at your screen's fastest refresh rate at the same resolution. Starts off. Asked for in #401.
 * **Instagram:** `Read messages without the seen receipt` gets a switch, `Mark a chat seen when you reply`. Replying lets that person see you read their earlier messages. Chats you don't answer stay unseen. Starts off. Reported in #365.

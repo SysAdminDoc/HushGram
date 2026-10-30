@@ -37,6 +37,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
                 || build.contains(PatchFamily.CHAT_REELS)
+                || build.contains(PatchFamily.CHAT_HISTORY)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
                 || build.contains(PatchFamily.MESSAGE_BOX)
                 || build.contains(PatchFamily.FULL_SCREEN_BARS)) {
@@ -123,6 +124,11 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.STOP_AFTER_CHAT_REELS, L10n.t("Stop after the chat's reels"),
                         L10n.t("Reels you opened from a chat end after the last one shared in that chat, with no "
                                 + "suggested reels after it. Works with Swipe through a chat's reels on.")));
+            }
+            if (build.contains(PatchFamily.CHAT_HISTORY)) {
+                messages.addPreference(toggle(context, Settings.JUMP_IN_CHAT, L10n.t("Jump to the first message or a date"),
+                        L10n.t("Long press a chat's name and pick Jump to the first message or Jump to a date. The "
+                                + "chat loads its older messages on its own, with a count and a Cancel button.")));
             }
             if (build.contains(PatchFamily.ASK_BEFORE_CALL)) {
                 messages.addPreference(toggle(context, Settings.ASK_BEFORE_CALL, L10n.t("Ask before a call"),

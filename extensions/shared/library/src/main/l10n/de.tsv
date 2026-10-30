@@ -19,6 +19,7 @@ Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-i
 Copy a short report to the clipboard.	Kurzen Bericht in die Zwischenablage kopieren.
 Copy quick report	Kurzbericht kopieren
 Copying to the gallery	Wird in die Galerie kopiert
+Couldn't find this chat's messages.	Die Nachrichten dieses Chats fehlen.
 Couldn't put back the diagnostic data. Try again.	Die Diagnosedaten ließen sich nicht wiederherstellen. Versuche es noch einmal.
 Couldn't start the report export. Try again shortly.	Der Export des Berichts ließ sich nicht starten. Versuche es gleich noch einmal.
 Couldn't turn HushGram back on. Try again.	HushGram ließ sich nicht wieder einschalten. Versuche es noch einmal.
@@ -32,13 +33,22 @@ Empties the activity log and any kept crash that a diagnostic report would inclu
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	Jeder Schalter außer der Debug-Protokollierung verhält sich, als wäre er aus, und was beim Patchen festgelegt wurde, bleibt aktiv. Deine Einstellungen bleiben, wie sie sind.
 Export diagnostic report	Diagnosebericht exportieren
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	Ab dem nächsten Start verhält sich jeder Schalter außer der Debug-Protokollierung, als wäre er aus. Was beim Patchen festgelegt wurde, bleibt aktiv, und deine Auswahl bleibt gespeichert.
+Here it is.	Hier ist es.
+Jump to a date	Zu einem Datum springen
+Jump to the first message	Zur ersten Nachricht springen
+Jump to the first message or a date	Zur ersten Nachricht oder zu einem Datum springen
+Loading older messages.	Ältere Nachrichten werden geladen.
+Loading older messages. %1$d message so far.	Ältere Nachrichten werden geladen. Bisher %1$d Nachricht.
+Loading older messages. %1$d messages so far.	Ältere Nachrichten werden geladen. Bisher %1$d Nachrichten.
 Lock these settings	Diese Einstellungen sperren
+Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Halte den Namen eines Chats gedrückt und wähle Zur ersten Nachricht springen oder Zu einem Datum springen. Der Chat lädt seine älteren Nachrichten von selbst, mit Zähler und Abbrechen-Taste.
 Mark a chat seen when you reply	Chat als gesehen markieren, wenn du antwortest
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1 bis 72 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.
 Ask to unlock	Entsperren anfordern
 Saved to %1$s in lower quality because storage is low	Gespeichert unter %1$s, in geringerer Qualität, weil der Speicher knapp ist
 Saved to the gallery in lower quality because storage is low	In der Galerie gespeichert, in geringerer Qualität, weil der Speicher knapp ist
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	Wenn du in einem Chat eine Nachricht sendest, sieht die andere Person, dass du ihre vorherigen Nachrichten gelesen hast. Chats, auf die du nicht antwortest, bleiben für sie ungesehen.
+That's as far back as this chat goes.	Weiter zurück reicht der Chat nicht.
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	Diese Einstellungen sind gesperrt. Tippe, um die Wartezeit von %1$s zu starten, danach sind sie 10 Minuten lang offen.
 Unlock asked	Entsperren angefordert
 These settings open at %1$s, for 10 minutes.	Diese Einstellungen öffnen sich um %1$s für 10 Minuten.

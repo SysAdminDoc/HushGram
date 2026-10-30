@@ -24,6 +24,7 @@ Copy a quick report or save the full one to %1$s. Links, IDs, cookies and sign-i
 Copy a short report to the clipboard.	將簡要報告複製到剪貼簿。
 Copy quick report	複製簡要報告
 Copying to the gallery	正在複製到相簿
+Couldn't find this chat's messages.	找不到這個聊天的訊息。
 Couldn't put back the diagnostic data. Try again.	無法還原診斷資料，請再試一次。
 Couldn't start the report export. Try again shortly.	無法開始匯出報告，請稍後再試。
 Couldn't turn HushGram back on. Try again.	無法重新啟用 HushGram，請再試一次。
@@ -37,13 +38,22 @@ Empties the activity log and any kept crash that a diagnostic report would inclu
 Every switch but Debug logging acts as if it were off, and what was set when you patched stays in. Your settings stay as they are.	除了「偵錯記錄」以外，所有開關都會視為關閉；套用修補程式時的變更仍會保留。您儲存的設定不會改變。
 Export diagnostic report	匯出診斷報告
 From the next start, every switch but Debug logging acts as if it were off. Changes made when you patched stay in, and your choices stay saved.	下次啟動起，除了「偵錯記錄」以外，所有開關都會視為關閉。套用修補程式時的變更仍會保留，您選擇的設定也會繼續儲存。
+Here it is.	就在這裡。
+Jump to a date	跳到某個日期
+Jump to the first message	跳到第一則訊息
+Jump to the first message or a date	跳到第一則訊息或某個日期
+Loading older messages.	正在載入較舊的訊息。
+Loading older messages. %1$d message so far.	正在載入較舊的訊息。目前 %1$d 則。
+Loading older messages. %1$d messages so far.	正在載入較舊的訊息。目前 %1$d 則。
 Lock these settings	鎖定這些設定
+Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	長按聊天名稱，選擇「跳到第一則訊息」或「跳到某個日期」。聊天會自動載入較舊的訊息，並顯示數量和取消按鈕。
 Mark a chat seen when you reply	回覆時將聊天標示為已讀
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
 Ask to unlock	請求解鎖
 Saved to %1$s in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到 %1$s
 Saved to the gallery in lower quality because storage is low	儲存空間不足，已以較低畫質儲存到相簿
 Sending a message in a chat lets the other person see that you've read what they sent before it. Chats you don't answer stay unseen to them.	在聊天中傳送訊息後，對方會看到你已讀過他們先前傳來的內容。你沒有回覆的聊天，對方仍看不到已讀。
+That's as far back as this chat goes.	這個聊天只到這裡。
 These settings are locked. Tap to start the %1$s wait, then they open for 10 minutes.	這些設定已鎖定。點擊開始等待 %1$s，之後會開放設定 10 分鐘。
 Unlock asked	已請求解鎖
 These settings open at %1$s, for 10 minutes.	這些設定將於 %1$s 開放 10 分鐘。
