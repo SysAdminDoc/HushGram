@@ -107,6 +107,11 @@ final class ReelsCategory {
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));
         }
+        if (build.contains(PatchFamily.KEEP_REELS_TOP_BAR)) {
+            reels.add(toggle(context, Settings.KEEP_REELS_TOP_BAR, L10n.t("Keep the Reels top bar"),
+                    L10n.t("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you "
+                            + "swipe through reels, instead of sliding them away.")));
+        }
         if (build.contains(PatchFamily.REEL_WATCH_HISTORY)) {
             reels.add(toggle(context, Settings.DONT_SEND_REEL_WATCH_HISTORY, L10n.t("Don't send reel watch history"),
                     L10n.t("Stops telling Instagram which reels you watched or how far you got. Instagram uses that "

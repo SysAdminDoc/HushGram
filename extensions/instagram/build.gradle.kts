@@ -1050,6 +1050,13 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.HomeTopBarSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAfterHideCaptions"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.reels.ReelsTopBarScrollTest" to listOf(
+                "theSwitchStartsOffAndNeedsNoRestart", "offToStartPassesInstagramsAnswer",
+                "onKeepsTheBarAndCountsOnlyWhatItChanged", "pausedAndUnreadyReadAsOff", "aThrowingSwitchFailsOpen"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.ReelsTopBarScrollSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsReels", "switchStartsOffUnderReelsAfterCleanUpReels"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.reels.ReelsSuggestionsTest" to listOf(
                 "offPausedAndUnreadyKeepEveryItem[28]", "offPausedAndUnreadyKeepEveryItem[37]",
                 "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[28]", "aThrowingReaderOrSwitchKeepsTheItemAndIsReported[37]"),

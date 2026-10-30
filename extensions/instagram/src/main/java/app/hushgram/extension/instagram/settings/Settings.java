@@ -1832,6 +1832,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reel_clear_mode", FALSE);
 
     /**
+     * The top bar of a reels viewer staying in place while you swipe through reels (#411,
+     * {@link app.hushgram.extension.instagram.reels.ReelsTopBarScroll}). Read at each scroll, so a
+     * change needs no restart. Off to start.
+     */
+    public static final BooleanSetting KEEP_REELS_TOP_BAR =
+            new BooleanSetting("hushgram_keep_reels_top_bar", FALSE);
+
+    /**
      * Burn-in guard on the Reels screen (#162): dims a reel's controls after a few seconds without a
      * touch, and can also move the screen a step every few minutes
      * ({@link app.hushgram.extension.instagram.reels.BurnInGuard}). Off to start.

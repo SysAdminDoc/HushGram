@@ -2729,6 +2729,45 @@
       "options": []
     },
     {
+      "name": "Keep the Reels top bar",
+      "description": "Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels. Starts off. Turn it on in HushGram settings > Reels.",
+      "category": "Reels",
+      "use": true,
+      "dependencies": [
+        "BytecodePatch",
+        "HushGram settings"
+      ],
+      "compatiblePackages": {
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
+      },
+      "compatibility": [
+        {
+          "name": "Instagram",
+          "packageName": "com.instagram.android",
+          "description": null,
+          "appIconColor": 14757996,
+          "signatures": [
+            "3a10c50c18ba937506c2875e9047be74f8fd8b86fae2ff9feaa50a81fcb4c014",
+            "5f3e50f435583c9ae626302a71f7340044087a7e2c60adacfc254205a993e305"
+          ],
+          "targets": [
+            {
+              "version": "453.0.0.57.79",
+              "experimental": false,
+              "versionCodes": {
+                "ARM64_V8A": 385914557,
+                "ARMEABI_V7A": 385914556,
+                "X86": 385914558
+              }
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Keep the reel speed",
       "description": "Keeps the 2x speed on for the next reels after you lock a reel at 2x (hold its edge, then slide down), until you slide the lock off. On by default. Turn it off in HushGram settings > Reels.",
       "category": "Reels",

@@ -367,6 +367,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean keepReelsTopBar() {
+        return false;
+    }
+
     public static boolean followingFeed() {
         return false;
     }
