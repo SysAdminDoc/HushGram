@@ -94,6 +94,8 @@ public final class BackgroundWork {
         components.put("com.instagram.notifications.push.fcm.FcmListenerService", Group.PUSH);
         components.put("com.facebook.pushlite.tokenprovider.fcm.PushLiteFcmListenerService", Group.PUSH);
         components.put("com.instagram.notifications.push.fcm.RegisterPushPeriodicJobService", Group.PUSH);
+        components.put("com.instagram.notifications.push.IgPushRegistrationService", Group.PUSH);
+        components.put("com.instagram.notifications.push.fcm.GetFCMTokenAndRegisterWithServerLollipopService", Group.PUSH);
         components.put("com.instagram.jobscheduler.bgfetch.scheduler.IgBgFetchSchedulerService", Group.REFRESH);
         components.put("com.instagram.jobscheduler.bgfetch.scheduler.IgBgFetchTaskLifeService", Group.REFRESH);
         components.put("com.instagram.util.offline.BackgroundPrefetchJobService", Group.REFRESH);
