@@ -818,6 +818,12 @@ Battery	배터리
 Stop the background heartbeat	백그라운드 하트비트 중지
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram은 화면이 꺼져 있을 때도 1~2분마다 휴대폰을 깨워 아직 실행 중이라고 기록만 합니다. 이를 멈춥니다. 메시지, 알림, 화면에 보이는 모든 것은 그대로입니다.
 Stop the analytics upload alarm	분석 업로드 알람 중지
+Turn off push while notifications are off	알림이 꺼져 있는 동안 푸시 끄기
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	휴대폰 설정에서 Instagram 알림을 꺼도 Meta의 푸시 서비스는 계속 실행되며 하루 종일 Instagram을 깨웁니다. 알림을 다시 허용할 때까지 이를 끕니다. Instagram이 열려 있는 동안에는 메시지가 계속 도착합니다.
+Stop background feed refresh	백그라운드 피드 새로고침 중지
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram은 앱을 열 때 바로 볼 수 있도록 백그라운드에서 피드를 불러옵니다. 이를 멈추면 Instagram을 열 때 피드를 불러옵니다.
+Stop background tracking	백그라운드 추적 중지
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	다른 Meta 앱을 언제 사용했는지 주기적으로 기록하는 작업과, Instagram이 어떻게 시작되고 닫혔는지 추적하는 서비스를 멈춥니다.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram은 5분 뒤 사용 데이터를 보내기 위해 휴대폰을 깨우는 알람을 설정합니다. 이 알람을 멈춥니다. 데이터는 다음에 앱을 사용할 때 전송됩니다.
 Haptic style	햅틱 스타일
 Short tick	짧은 틱
@@ -1316,3 +1322,11 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	알림 유형 %1$d개가 무음입니다.
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram이 아직 이 휴대전화에 알림 유형을 만들지 않았습니다. Instagram을 한 번 연 다음 여기로 돌아오세요.
 Unmute all	모두 무음 해제
+Clear all	모두 지우기
+Deleted messages	삭제된 메시지
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	다른 사람이 보낸 메시지의 텍스트를 이 휴대폰에 보관하고, 삭제된 메시지를 표시합니다. 휴대폰 밖으로 나가는 것은 없으며 텍스트만 보관합니다.
+Messages other people deleted after this phone saved them. Tap to read them.	이 휴대폰이 저장한 뒤 다른 사람이 삭제한 메시지입니다. 눌러서 읽어 보세요.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	아직 삭제된 항목이 없습니다. 이 휴대폰이 이미 본 메시지를 보낸 사람이 삭제하면 여기에 표시됩니다.
+Save deleted messages	삭제된 메시지 저장
+Saved messages cleared.	저장된 메시지를 지웠습니다.
+Sender	보낸 사람

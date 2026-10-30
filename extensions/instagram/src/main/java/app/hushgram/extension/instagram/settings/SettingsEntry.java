@@ -45,6 +45,7 @@ import app.hushgram.extension.instagram.feed.FeedFollowButton;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
+import app.hushgram.extension.instagram.misc.BackgroundWork;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
@@ -167,6 +168,8 @@ public final class SettingsEntry {
         SaveLeftovers.sweepAfterStart(context);
         // With the patch in, the media cache is cleared on the way to the background once it's too large.
         MediaCache.watch(context);
+        // Also lets go of what an earlier build held off when this one goes without the patch.
+        BackgroundWork.start(context);
         publishShortcut(context);
     }
 

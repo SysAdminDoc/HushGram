@@ -1056,14 +1056,12 @@ public final class GlassTabBar {
     }
 
     /**
-     * The corner radius of a shape [heightPx] tall with [corners] picked (#144): its dp, the highlight's when
-     * [highlight], never past half the height, so a fully round pill has half circle ends. Standard with no
-     * choice read.
+     * The corner radius of a shape [heightPx] tall: half its height, so the pill and the selected tab's
+     * highlight both have half circle ends. The fork keeps them fully round whatever [corners] holds, never
+     * upstream's 12dp and 8dp squircle, so the choice, and [highlight], no longer change it.
      */
     static float cornerPx(GlassCorners corners, boolean highlight, float heightPx, float density) {
-        GlassCorners pick = corners == null ? GlassCorners.STANDARD : corners;
-        int dp = highlight ? pick.highlightDp : pick.dp;
-        return Math.min(Math.round(dp * density), Math.max(0f, heightPx / 2f));
+        return Math.max(0f, heightPx / 2f);
     }
 
     /** The selected tab's capsule: a quarter of white on dark glass, a sixth of grey on light. */

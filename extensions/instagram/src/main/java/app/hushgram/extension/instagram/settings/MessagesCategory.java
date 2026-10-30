@@ -33,6 +33,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.ACTIVE_STATUS)
                 || build.contains(PatchFamily.LAST_ACTIVE)
                 || build.contains(PatchFamily.MESSAGES_LOCK)
+                || build.contains(PatchFamily.DELETED_MESSAGES)
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
@@ -153,6 +154,12 @@ final class MessagesCategory {
                         L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, open "
                                 + "your hidden chats. While a lock is on, it asks for it first. One tap opens Messages "
                                 + "as usual.")));
+            }
+            if (build.contains(PatchFamily.DELETED_MESSAGES)) {
+                messages.addPreference(toggle(context, Settings.SAVE_DELETED_MESSAGES, L10n.t("Save deleted messages"),
+                        L10n.t("Keeps the text of messages other people send you on this phone, and marks the ones "
+                                + "they delete. Nothing leaves the phone, and only text is kept.")));
+                messages.addPreference(page.deletedMessagesRow(context));
             }
         }
     }

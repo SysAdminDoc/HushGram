@@ -104,6 +104,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean deletedMessages() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }
@@ -395,6 +399,10 @@ public final class SettingsStatus {
     }
 
     public static boolean stopHeartbeat() {
+        return false;
+    }
+
+    public static boolean backgroundWork() {
         return false;
     }
 

@@ -128,7 +128,7 @@ final class TabBarCategory {
                 glass.addPreference(hapticStyleRow(context));
                 glass.addPreference(glassOpacityRow(context));
                 glass.addPreference(glassHeightRow(context));
-                glass.addPreference(glassCornersRow(context));
+                // No Corners row: the fork's pill is always fully round (GlassTabBar.cornerPx).
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),
                         L10n.t("Scrolling a list down slides the tab bar out of the way. Scrolling up, reaching the top, "
                                 + "or changing tab brings it back. It works with or without Glass tab bar. Restart "

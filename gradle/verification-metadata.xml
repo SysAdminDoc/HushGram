@@ -2462,6 +2462,14 @@
             <sha256 value="b5d9405da5dd2fff5591c08490cb262e80d60f15d903b12515cf8031571fc579" origin="Maven Central artifact bytes matched on 2026-10-01 for scoped tooling fixes"/>
          </artifact>
       </component>
+      <component group="org.bouncycastle" name="bc-jdk18on-bom" version="1.85">
+         <artifact name="bc-jdk18on-bom-1.85.module">
+            <sha256 value="e875dd54bcaf36f38c0e9442b413e2ffd309ba1cde028c36e65aa0ef8c89158b" origin="Maven Central, matched the published .sha256 on 2026-10-30: the unit test classpath reads the 1.85 BOM's metadata before the 1.86 rewrite"/>
+         </artifact>
+         <artifact name="bc-jdk18on-bom-1.85.pom">
+            <sha256 value="d9628899e9fcb11a0751e7f2f0d42785ab729d1bb69831b9c63c3b1d05c3357b" origin="Maven Central, matched the published .sha256 on 2026-10-30"/>
+         </artifact>
+      </component>
       <component group="org.bouncycastle" name="bc-jdk18on-bom" version="1.86">
          <artifact name="bc-jdk18on-bom-1.86.module">
             <sha256 value="5130facd41f6f027f1b243afc308c9f959afadbda4c6c475cb013f2ebcc63bf2" origin="Maven Central, matched the published .sha256 on 2026-09-15 for the Robolectric 4.17 move"/>

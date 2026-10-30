@@ -129,6 +129,8 @@ import app.morphe.patches.instagram.stories.tray.hideSuggestedStoriesPatch
 import app.morphe.patches.instagram.misc.glass.glassTabBarPatch
 import app.morphe.patches.instagram.reels.fullscreen.fullScreenBarsPatch
 import app.morphe.patches.instagram.misc.heartbeat.stopHeartbeatPatch
+import app.morphe.patches.instagram.misc.backgroundwork.stopBackgroundJobsPatch
+import app.morphe.patches.instagram.direct.saved.saveDeletedMessagesPatch
 import app.morphe.patches.instagram.misc.profilesaved.savedOnProfilePatch
 import app.morphe.patcher.patch.Patch
 import com.google.gson.JsonParser
@@ -222,6 +224,7 @@ class DefaultCatalogTest {
         spoofLocationPatch,
         startOnFollowingPatch,
         stopHeartbeatPatch,
+        stopBackgroundJobsPatch,
         stopReelsScrollingPatch,
         stopStoryAutoAdvancePatch,
         stopSwipeToCreatePatch,
@@ -276,6 +279,7 @@ class DefaultCatalogTest {
         changeVersionCodePatch,
         installNextToInstagramPatch,
         pureBlackPatch,
+        saveDeletedMessagesPatch,
         viewDmMediaAnonymouslyPatch,
     )
 
@@ -285,19 +289,19 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(105, neutral.size)
+        assertEquals(106, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
     @Test fun patchTimeChangesAndUnreadyFeaturesStayOptIn() {
-        assertEquals(4, optIn.size)
+        assertEquals(5, optIn.size)
         optIn.forEach { assertEquals(it.name, false, it.default) }
     }
 
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 126, all.size)
+        assertEquals("every named patch needs one reviewed decision", 128, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

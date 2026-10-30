@@ -819,6 +819,12 @@ Battery	Batería
 Stop the background heartbeat	Detener el latido en segundo plano
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram despierta tu teléfono cada minuto o dos, también con la pantalla apagada, solo para anotar que sigue funcionando. Esto lo detiene. Los mensajes, las notificaciones y todo lo que ves no cambian.
 Stop the analytics upload alarm	Detener la alarma de subida de analíticas
+Turn off push while notifications are off	Apagar las notificaciones push mientras las notificaciones estén desactivadas
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	Con las notificaciones de Instagram desactivadas en los ajustes de tu teléfono, el servicio push de Meta sigue funcionando y despierta a Instagram todo el día. Esto lo apaga hasta que vuelvas a permitir las notificaciones. Los mensajes siguen llegando mientras Instagram está abierto.
+Stop background feed refresh	Detener la actualización del feed en segundo plano
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram carga tu feed en segundo plano para que esté listo cuando abras la app. Esto lo detiene, así que el feed carga cuando abres Instagram.
+Stop background tracking	Detener el seguimiento en segundo plano
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	Detiene el registro periódico de qué otras apps de Meta usaste y cuándo, y el servicio de Instagram que registra cómo se abrió y se cerró.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram programa una alarma que despierta tu teléfono para enviar sus datos de uso cinco minutos después. Esto detiene esa alarma. Los datos se envían la próxima vez que uses la app.
 Haptic style	Estilo de vibración
 Short tick	Toque corto
@@ -1317,3 +1323,11 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	%1$d tipos de notificación están silenciados.
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram aún no ha configurado sus tipos de notificación en este teléfono. Abre Instagram una vez y luego vuelve aquí.
 Unmute all	Dejar de silenciar todos
+Clear all	Borrar todo
+Deleted messages	Mensajes eliminados
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Guarda en este teléfono el texto de los mensajes que te envían otras personas y marca los que eliminan. Nada sale del teléfono y solo se guarda texto.
+Messages other people deleted after this phone saved them. Tap to read them.	Mensajes que otras personas eliminaron después de que este teléfono los guardara. Toca para leerlos.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Todavía no se ha eliminado nada. Un mensaje aparece aquí cuando quien lo envió lo elimina, si este teléfono ya lo había visto.
+Save deleted messages	Guardar mensajes eliminados
+Saved messages cleared.	Mensajes guardados borrados.
+Sender	Remitente

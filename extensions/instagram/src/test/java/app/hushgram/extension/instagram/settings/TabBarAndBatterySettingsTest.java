@@ -188,47 +188,11 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HEIGHT.key));
     }
 
-    /**
-     * Tab bar corners (#144) is a list right after Tab bar height, starting on the corners the bar has always
-     * had, backed up, and a pick waits on a restart. It rests while the liquid look, always fully round, is on.
-     */
-    @Test public void tabBarCornersFollowTheHeightAndRestUnderTheLiquidLook() throws Exception {
+    /** The fork has no Tab bar corners row: its pill is always fully round (GlassTabBar.cornerPx). */
+    @Test public void noTabBarCornersRowSinceThePillIsAlwaysRound() throws Exception {
         open(PatchFamily.GLASS_TAB_BAR);
-        Preference found = row(Settings.GLASS_TAB_BAR_CORNERS.key);
-        assertTrue(found instanceof HushgramPreferenceFragment.GlassCornersRow);
-        HushgramPreferenceFragment.GlassCornersRow corners = (HushgramPreferenceFragment.GlassCornersRow) found;
-        assertEquals("Tab bar corners", String.valueOf(corners.getTitle()));
-        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), corners);
-        assertEquals("Tab bar", String.valueOf(section.getTitle()));
-        int heightAt = -1;
-        int cornersAt = -1;
-        for (int i = 0; i < section.getPreferenceCount(); i++) {
-            String key = section.getPreference(i).getKey();
-            if (Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key)) heightAt = i;
-            if (Settings.GLASS_TAB_BAR_CORNERS.key.equals(key)) cornersAt = i;
-        }
-        assertEquals("right after Tab bar height", heightAt + 1, cornersAt);
-        List<String> entries = new ArrayList<>();
-        for (CharSequence entry : corners.getEntries()) entries.add(String.valueOf(entry));
-        assertEquals(Arrays.asList("Standard", "Rounder", "Fully round"), entries);
-        assertEquals("STANDARD", corners.getValue());
-        assertEquals("Standard", String.valueOf(corners.getSummary()));
-        assertTrue(Settings.GLASS_TAB_BAR_CORNERS.rebootApp);
-        corners.setValue("ROUND");
-        ShadowLooper.idleMainLooper();
-        assertEquals(GlassCorners.ROUND, Settings.GLASS_TAB_BAR_CORNERS.savedValue());
-        assertEquals("Fully round", String.valueOf(corners.getSummary()));
-        assertTrue(AbstractPreferenceFragment.restartPending.contains(Settings.GLASS_TAB_BAR_CORNERS.key));
-        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_CORNERS.key));
-
-        Settings.GLASS_TAB_BAR.save(true);
-        assertTrue(Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
-        Settings.GLASS_TAB_BAR_LIQUID.save(true);
-        assertFalse("the liquid look is always round", Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
-        Settings.GLASS_TAB_BAR_LIQUID.save(false);
-        Settings.GLASS_TAB_BAR.save(false);
-        assertFalse("no glass, no corners to pick", Settings.GLASS_TAB_BAR_CORNERS.isAvailable());
-        assertEquals(Collections.singletonList(Settings.GLASS_TAB_BAR), Settings.GLASS_TAB_BAR_CORNERS.getParentSettings());
+        assertTrue(row(Settings.GLASS_TAB_BAR_HEIGHT.key) != null);
+        assertEquals(null, row(Settings.GLASS_TAB_BAR_CORNERS.key));
     }
 
     /**

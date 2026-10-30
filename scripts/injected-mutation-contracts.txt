@@ -2103,6 +2103,24 @@ once-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->stop()Z in (L*;)V h
 # It also routes the AlarmManager.set call that sets the analytics upload alarm through the extension, in the
 # static upload scheduler holding the alarm's tag and its intent action.
 sole-call Lapp/hushgram/extension/instagram/misc/Heartbeat;->setUploadAlarm(Landroid/app/AlarmManager;IJLandroid/app/PendingIntent;)V replacing Landroid/app/AlarmManager;->set(IJLandroid/app/PendingIntent;)V in static (L*;L*;I)V holding AnalyticsUploadAlarm action_batch_upload
+# Stop background jobs hands every JobScheduler.schedule and JobScheduler.enqueue call outside the
+# extension to BackgroundWork's stand-ins, which answer a job for a push or prefetch service it holds
+# off as scheduled, where Android would throw for a disabled service. A call left behind crashes on
+# its job. Instagram's component calls already go to AppIcon (Pick the app icon's rules above), which
+# asks BackgroundWork before turning a held component on again.
+no-call Landroid/app/job/JobScheduler;->schedule(Landroid/app/job/JobInfo;)I outside Lapp/hushgram/extension/
+no-call Landroid/app/job/JobScheduler;->enqueue(Landroid/app/job/JobInfo;Landroid/app/job/JobWorkItem;)I outside Lapp/hushgram/extension/
+# It also asks BackgroundWork.skipWork first in each of the three methods that enqueue periodic work it
+# stops, each found by the unique name it enqueues the work under and the worker class it loads: the
+# emergency push fetch (a static helper on its own worker), the pushability checks (a Runnable naming
+# both its FCM and FBNS jobs) and the family apps usage log (run as a session starts). Left out, the
+# work comes back each time Instagram starts; twice or elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in static (Landroid/content/Context;)V holding ig_emergency_push_periodic_fetch_work
+once-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in static (Landroid/content/Context;)V holding ig_emergency_push_periodic_fetch_work
+start-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in instance ()V holding FCMPushabilityCheckJob FBNSPushabilityCheckJob
+once-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in instance ()V holding FCMPushabilityCheckJob FBNSPushabilityCheckJob
+start-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Z)V holding ig_family_app_last_used_states_logging_background_work
+once-call Lapp/hushgram/extension/instagram/misc/BackgroundWork;->skipWork(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/common/session/UserSession;Z)V holding ig_family_app_last_used_states_logging_background_work
 
 # Ghost mode from the inbox: GhostModeEntry.longPress() goes into the inbox header's static builder
 # (07OJ.A01 on 450's 385611438), right after the New message button's tap listener is stored in its
@@ -2380,3 +2398,15 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->drawing(Ljava/l
 
 # Feed Subscribe has a native eligibility branch inside the header, without a Subscribe view id.
 once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscribe(I)Z holding null\scannot\sbe\scast\sto\snon-null\stype\sinstagram.features.feed.ui.rows.mediaheader.domain.uicontract.MediaHeaderUiState
+
+# Save deleted messages hands each parsed direct message, and each real-time one, to SavedMessages
+# right before it's returned, and tells it the id of a message Instagram hides, at the start of the
+# one method holding the hide-by-id message (on 453 the run() of the Runnable that deletes it, which
+# also names its client_item_id column, reading both ids from its fields). The JSON parser is the one method holding the four
+# keys below, the real-time method the one holding both postprocess strings, and each is hooked at
+# the return of the message's own register; a real-time message has two such returns, so its rule
+# is shared. Left out, nothing is saved; elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding item_id hide_in_thread thread_key client_context
+shared-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->parsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;L*;)L*; sites 2 holding DirectMessage.postprocess.%s Encountered\sDirectMessage\swith\snull\stype
+start-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance ()V holding Both\smessage\sID\sand\sclient\scontext\sis\snull. client_item_id=='
+once-call Lapp/hushgram/extension/instagram/direct/SavedMessages;->hidden(Ljava/lang/String;Ljava/lang/String;)V in instance ()V holding Both\smessage\sID\sand\sclient\scontext\sis\snull. client_item_id=='

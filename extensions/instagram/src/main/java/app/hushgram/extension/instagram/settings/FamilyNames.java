@@ -49,6 +49,7 @@ public final class FamilyNames {
     public static final String ACTIVE_STATUS = "Hide your active status";
     public static final String LAST_ACTIVE = "Show when someone was last active";
     public static final String MESSAGES_LOCK = "Lock your messages";
+    public static final String DELETED_MESSAGES = "Save deleted messages";
     public static final String STORIES_TRAY = "Hide suggested stories";
     public static final String STORY_RING = "Story ring size";
     public static final String STORY_PROGRESS_BAR = "Thicker story progress bar";
@@ -77,6 +78,7 @@ public final class FamilyNames {
     public static final String FULL_SCREEN_BARS = "Full screen Reels and Home";
     public static final String SAVED_ON_PROFILE = "Saved on your profile";
     public static final String STOP_HEARTBEAT = "Stop background wake-ups";
+    public static final String BACKGROUND_WORK = "Stop background jobs";
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String ACCENT_COLOR = "Accent color";
     public static final String LAUNCH_SCREEN = "HushGram launch screen";

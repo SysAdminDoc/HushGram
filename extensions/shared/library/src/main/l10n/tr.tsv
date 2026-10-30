@@ -819,6 +819,12 @@ Battery	Pil
 Stop the background heartbeat	Arka plandaki kalp atışını durdur
 Instagram wakes your phone every minute or two, screen off included, only to note that it is still running. This stops that. Messages, notifications and everything you see are unaffected.	Instagram, ekran kapalıyken bile her bir iki dakikada bir telefonunu yalnızca hâlâ çalıştığını not etmek için uyandırır. Bu, bunu durdurur. Mesajlar, bildirimler ve gördüğün her şey etkilenmez.
 Stop the analytics upload alarm	Analiz yükleme alarmını durdur
+Turn off push while notifications are off	Bildirimler kapalıyken push'u kapat
+With Instagram's notifications turned off in your phone's settings, Meta's push service still runs and wakes Instagram all day. This turns it off until you allow notifications again. Messages still arrive while Instagram is open.	Telefonunun ayarlarında Instagram bildirimleri kapalı olsa bile Meta'nın push hizmeti çalışmaya devam eder ve Instagram'ı gün boyu uyandırır. Bu, bildirimlere yeniden izin verene kadar onu kapatır. Instagram açıkken mesajlar gelmeye devam eder.
+Stop background feed refresh	Arka planda akış yenilemeyi durdur
+Instagram loads your feed in the background so it's ready when you open the app. This stops that, so the feed loads when you open Instagram instead.	Instagram, uygulamayı açtığında hazır olsun diye akışını arka planda yükler. Bu bunu durdurur, akış Instagram'ı açtığında yüklenir.
+Stop background tracking	Arka plan izlemeyi durdur
+Stops the periodic log of which other Meta apps you used and when, and Instagram's service that tracks how it was started and closed.	Hangi diğer Meta uygulamalarını ne zaman kullandığının düzenli kaydını ve Instagram'ın nasıl açılıp kapandığını izleyen hizmetini durdurur.
 Instagram sets an alarm to wake your phone and send its usage events five minutes later. This stops that alarm. The events go the next time you use the app.	Instagram, kullanım verilerini beş dakika sonra göndermek için telefonunu uyandıran bir alarm kurar. Bu, o alarmı durdurur. Veriler uygulamayı bir sonraki kullanışında gider.
 Haptic style	Haptik stili
 Short tick	Kısa tık
@@ -1317,3 +1323,11 @@ Stops the notification types you tick, even ones Instagram's own notification se
 %1$d notification types are muted.	%1$d bildirim türü sessizde.
 Instagram hasn't set up its notification types on this phone yet. Open Instagram once, then come back here.	Instagram bu telefonda bildirim türlerini henüz ayarlamadı. Instagram'ı bir kez aç, sonra buraya dön.
 Unmute all	Tümünün sesini aç
+Clear all	Tümünü temizle
+Deleted messages	Silinen mesajlar
+Keeps the text of messages other people send you on this phone, and marks the ones they delete. Nothing leaves the phone, and only text is kept.	Başkalarının sana gönderdiği mesajların metnini bu telefonda saklar ve sildiklerini işaretler. Hiçbir şey telefondan çıkmaz ve yalnızca metin saklanır.
+Messages other people deleted after this phone saved them. Tap to read them.	Bu telefon kaydettikten sonra başkalarının sildiği mesajlar. Okumak için dokun.
+Nothing has been deleted yet. A message shows up here once the person who sent it deletes it, if this phone had already seen it.	Henüz hiçbir şey silinmedi. Bu telefon bir mesajı daha önce görmüşse, gönderen kişi sildiğinde mesaj burada görünür.
+Save deleted messages	Silinen mesajları kaydet
+Saved messages cleared.	Kayıtlı mesajlar temizlendi.
+Sender	Gönderen

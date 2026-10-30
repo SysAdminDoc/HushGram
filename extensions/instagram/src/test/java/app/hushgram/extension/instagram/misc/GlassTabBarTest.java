@@ -95,7 +95,7 @@ public class GlassTabBarTest {
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
-    public void nativeGlassHasTwelveDpCornersAndEightDpSelectionWithoutMovingTouches() throws Exception {
+    public void nativeGlassHasFullyRoundEndsAndASelectionWithoutMovingTouches() throws Exception {
         GlassTabBar.animationsOnForTests = false;
         for (int base : new int[]{Color.BLACK, Color.WHITE}) {
             for (boolean floating : new boolean[]{false, true}) {
@@ -118,8 +118,13 @@ public class GlassTabBarTest {
                                 assertEquals(outer + host.density / 2f, drawn.left, 0.01f);
                                 assertEquals(top + host.density / 2f, drawn.top, 0.01f);
                                 int corner = plain.bitmap.getPixel(outer + host.dp(3), top + host.dp(6));
-                                if (base == Color.BLACK) assertTrue("a 12dp corner fills where an oval did not", Color.red(corner) > 5);
-                                else if (floating) assertTrue("light glass has the same corner footprint", Color.alpha(corner) > 200);
+                                int middle = plain.bitmap.getPixel(outer + host.dp(8), Math.round(drawn.centerY()));
+                                if (base == Color.BLACK) {
+                                    assertTrue("a fully round end leaves the corner empty", Color.red(corner) <= 5);
+                                    assertTrue("and fills the middle of the end", Color.red(middle) > 5);
+                                } else if (floating) {
+                                    assertTrue("light glass fills the middle of the end", Color.alpha(middle) > 200);
+                                }
                                 if (floating && base == Color.BLACK) {
                                     assertEquals("the panel corner remains clear", 0, plain.bitmap.getPixel(outer, top));
                                 }
@@ -128,11 +133,11 @@ public class GlassTabBarTest {
                                     assertTrue("the host's real click handler still runs", selected.performClick());
                                     try (Pixels active = host.background()) {
                                         RectF slot = ReflectionHelpers.getField(host.bar.getBackground(), "capsule");
-                                        int x = Math.round(slot.left) + host.dp(2);
-                                        int y = Math.round(slot.top) + host.dp(4);
+                                        int x = Math.round(slot.left) + host.dp(8);
+                                        int y = Math.round(slot.centerY());
                                         int before = Color.red(plain.bitmap.getPixel(x, y));
                                         int after = Color.red(active.bitmap.getPixel(x, y));
-                                        assertTrue("the selected slot has an 8dp corner", base == Color.BLACK ? after > before + 10 : after < before - 10);
+                                        assertTrue("the selected slot is a round capsule", base == Color.BLACK ? after > before + 10 : after < before - 10);
                                         assertEquals(Math.max(outer + host.dp(4), selected.getLeft() - host.dp(4)), slot.left, 0.01f);
                                         assertEquals(top + host.dp(4), slot.top, 0.01f);
                                     }
@@ -164,8 +169,9 @@ public class GlassTabBarTest {
                 assertTrue(host.bar.getChildAt(2).performClick());
                 try (Pixels pixels = host.background()) {
                     int outer = GlassTabBar.outerPx(host.bar.getWidth(), host.density);
-                    int corner = pixels.bitmap.getPixel(outer + host.dp(3), host.dp(7));
-                    assertTrue("unsupported blur still paints the rounded surface", Color.alpha(corner) > 200);
+                    RectF drawn = ReflectionHelpers.getField(host.bar.getBackground(), "rect");
+                    int middle = pixels.bitmap.getPixel(outer + host.dp(8), Math.round(drawn.centerY()));
+                    assertTrue("unsupported blur still paints the rounded surface", Color.alpha(middle) > 200);
                 }
                 host.capture((base == Color.BLACK ? "dark" : "light") + "-blur-unavailable");
             }
@@ -684,21 +690,17 @@ public class GlassTabBarTest {
         assertEquals(GlassLift.STANDARD, Settings.GLASS_TAB_BAR_LIFT.defaultValue);
     }
 
-    /** Tab bar corners (#144): each step keeps its dp up to half the height, and no choice read is Standard. */
+    /** The fork's pill (#144): every corner choice, and none, gives half circle ends, never a 12dp squircle. */
     @Test
-    public void cornersKeepTheirDpUpToHalfTheHeight() {
+    public void everyCornerChoiceIsFullyRound() {
         float density = 2.625f;
         float tall = 50 * density;
-        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, false, tall, density), 0f);
-        assertEquals(Math.round(8 * density), GlassTabBar.cornerPx(GlassCorners.STANDARD, true, tall, density), 0f);
-        assertEquals(Math.round(20 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, tall, density), 0f);
-        assertEquals(Math.round(14 * density), GlassTabBar.cornerPx(GlassCorners.ROUNDER, true, tall, density), 0f);
-        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, tall, density), 0f);
-        assertEquals(tall / 2f, GlassTabBar.cornerPx(GlassCorners.ROUND, true, tall, density), 0f);
-        assertEquals("never past half the height", 10f, GlassTabBar.cornerPx(GlassCorners.ROUNDER, false, 20f, density), 0f);
+        for (GlassCorners corners : new GlassCorners[]{GlassCorners.STANDARD, GlassCorners.ROUNDER, GlassCorners.ROUND, null}) {
+            assertEquals(String.valueOf(corners), tall / 2f, GlassTabBar.cornerPx(corners, false, tall, density), 0f);
+            assertEquals(String.valueOf(corners), tall / 2f, GlassTabBar.cornerPx(corners, true, tall, density), 0f);
+        }
+        assertEquals(10f, GlassTabBar.cornerPx(GlassCorners.STANDARD, false, 20f, density), 0f);
         assertEquals(0f, GlassTabBar.cornerPx(GlassCorners.ROUND, false, -4f, density), 0f);
-        assertEquals(Math.round(12 * density), GlassTabBar.cornerPx(null, false, tall, density), 0f);
-        assertEquals(GlassCorners.STANDARD, Settings.GLASS_TAB_BAR_CORNERS.defaultValue);
     }
 
     /**
