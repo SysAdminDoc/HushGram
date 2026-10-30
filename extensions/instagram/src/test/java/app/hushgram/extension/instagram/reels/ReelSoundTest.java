@@ -48,6 +48,7 @@ public class ReelSoundTest {
     @Before
     public void clean() {
         Settings.START_REELS_WITH_SOUND.resetToDefault();
+        Settings.START_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -60,6 +61,7 @@ public class ReelSoundTest {
     @After
     public void restore() {
         Settings.START_REELS_WITH_SOUND.resetToDefault();
+        Settings.START_REELS_MUTED.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -182,5 +184,46 @@ public class ReelSoundTest {
         assertEquals(0, ReelSound.pausing(null));
         assertEquals(0, ReelSound.paused(null, 1));
         assertEquals(0, ReelSound.resuming(null));
+    }
+
+    /** Start reels muted: any source starts muted, the state to set is off, and nothing is put back. */
+    @Test
+    public void mutedStartsEveryReelSilentFromAnySource() {
+        assertFalse(Settings.START_REELS_MUTED.get());
+        Settings.START_REELS_MUTED.save(true);
+        assertEquals("muted alone asks the viewer", 1, ReelSound.wanted());
+        for (Source source : Source.values()) {
+            Object viewer = new Object();
+            assertEquals(source.name(), 1, ReelSound.startWithSound(viewer, source));
+            assertEquals(source.name() + ": set the state to off", 0, ReelSound.opened(viewer, 1));
+            assertEquals("never put back", 0, ReelSound.pausing(viewer));
+            assertEquals(0, ReelSound.resuming(viewer));
+        }
+        assertTrue(report(), report().contains(ReelSound.STARTED_MUTED + " 5"));
+    }
+
+    @Test
+    public void mutedWinsOverSoundAndTheRingerDoesNotMatter() {
+        Settings.START_REELS_WITH_SOUND.save(true);
+        Settings.START_REELS_MUTED.save(true);
+        audio.setRingerMode(AudioManager.RINGER_MODE_SILENT);
+        Object viewer = new Object();
+        assertEquals(1, ReelSound.startWithSound(viewer, Source.FEED_TIMELINE));
+        assertEquals(0, ReelSound.opened(viewer, 0));
+        assertEquals(0, ReelSound.pausing(viewer));
+    }
+
+    @Test
+    public void soundStillSetsOnAndMutedOffAndPausedIsInstagrams() {
+        Settings.START_REELS_WITH_SOUND.save(true);
+        Object viewer = new Object();
+        assertEquals(1, ReelSound.startWithSound(viewer, Source.FEED_TIMELINE));
+        assertEquals("sound: set the state to on", 1, ReelSound.opened(viewer, 0));
+        assertEquals(1, ReelSound.pausing(viewer));
+        Settings.START_REELS_MUTED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused is Instagram's own", 0, ReelSound.wanted());
+        assertEquals(0, ReelSound.startWithSound(new Object(), Source.FEED_TIMELINE));
     }
 }

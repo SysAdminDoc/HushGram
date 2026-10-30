@@ -103,7 +103,7 @@ class StartReelsWithSoundHookTest {
                         Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL_RANGE, Opcode.MOVE_RESULT_OBJECT,
                         Opcode.IF_EQZ, Opcode.IGET_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ,
                         Opcode.INVOKE_VIRTUAL_RANGE, Opcode.MOVE_RESULT_OBJECT, Opcode.IF_EQZ, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT_OBJECT,
-                        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.INVOKE_STATIC, Opcode.CONST_4,
+                        Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT,
                     ) + List(extra) { Opcode.CONST_4 } + Opcode.INVOKE_VIRTUAL,
                     code.subList(ask, ask + created).map { it.opcode },
                 )
@@ -115,7 +115,7 @@ class StartReelsWithSoundHookTest {
                 assertEquals("$what: the factory", site.factory.toString(), code[ask + 14].referenceText())
                 assertEquals("$what: the getter", site.getter.toString(), code[ask + 16].referenceText())
                 assertEquals("$what: told what it was", REEL_OPENED, code[ask + 18].referenceText())
-                assertEquals("$what: set to on", 1, (code[ask + 19] as NarrowLiteralInstruction).narrowLiteral)
+                assertEquals("$what: the state to set is what it answers", Opcode.MOVE_RESULT, code[ask + 19].opcode)
                 assertEquals("$what: the setter", site.setter.toString(), code[ask + 20 + extra].referenceText())
                 assertTrue("$what: a jump lands inside the hook", (ask + 1 until ask + created).none { it in onCreate.jumpTargets() })
                 val p0 = onCreate.implementation!!.registerCount - 2

@@ -2169,7 +2169,7 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeekBar;->paused(Ljava/
 # sound back before the feed resumes (#342). Left out, reels open as Instagram's sound says.
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->wanted()I in instance (Landroid/os/Bundle;)V holding ClipsViewerFragment.onCreate
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->startWithSound(Ljava/lang/Object;Ljava/lang/Object;)I in instance (Landroid/os/Bundle;)V holding ClipsViewerFragment.onCreate
-once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->opened(Ljava/lang/Object;I)V in instance (Landroid/os/Bundle;)V holding ClipsViewerFragment.onCreate
+once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->opened(Ljava/lang/Object;I)I in instance (Landroid/os/Bundle;)V holding ClipsViewerFragment.onCreate
 start-call Lapp/hushgram/extension/instagram/reels/ReelSound;->pausing(Ljava/lang/Object;)I in instance ()V holding onOfflineViewerPaused\sfailed android_purge_26_q3_ClipsViewerPiPDelegate_onPause
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->pausing(Ljava/lang/Object;)I in instance ()V holding onOfflineViewerPaused\sfailed android_purge_26_q3_ClipsViewerPiPDelegate_onPause
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->paused(Ljava/lang/Object;I)I in instance ()V holding onOfflineViewerPaused\sfailed android_purge_26_q3_ClipsViewerPiPDelegate_onPause

@@ -2395,6 +2395,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_start_reels_with_sound", FALSE);
 
     /**
+     * Every reel starts muted, whichever screen opened it, through the same audio state. The volume
+     * keys and the speaker icon unmute it. Wins over {@link #START_REELS_WITH_SOUND} when both are on.
+     * Off to start (#342).
+     */
+    public static final BooleanSetting START_REELS_MUTED =
+            new BooleanSetting("hushgram_start_reels_muted", FALSE);
+
+    /**
      * Two fingers zoom into a playing reel, through Instagram's own Reels zoom and its two server
      * flags ({@link app.hushgram.extension.instagram.reels.ReelZoom}). Instagram reads them once a
      * session, so a change takes a restart. Off to start.

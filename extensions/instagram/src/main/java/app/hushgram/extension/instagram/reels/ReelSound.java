@@ -28,6 +28,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the speaker icon does. The Reels tab, profiles, chats and Explore keep Instagram's own choice. The
  * phone's ringer and volume still count, as they do for stories.
  *
+ * <p>With Start reels muted on, every viewer gets a yes from any source, and {@link #opened(Object, int)}
+ * answers 0, so the patch sets the state to off instead. Nothing is put back; the speaker icon and the
+ * volume keys unmute as usual. It wins over Start reels with sound.
+ *
  * <p>When the patch turned the sound on from off, the viewer's pause puts it back to off, so Home is
  * muted again on the way back, and its resume turns it on again for the reel. A reel you mute
  * yourself stays muted.
@@ -35,6 +39,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class ReelSound {
     /** What {@link HookStatus} counts: a reel opened from Home with the sound turned on. */
     static final String STARTED = "reels started with sound";
+
+    /** What {@link HookStatus} counts: a reel opened with the sound turned off by Start reels muted. */
+    static final String STARTED_MUTED = "reels started muted";
 
     /** What {@link HookStatus} counts: the sound put back to off as a reel opened from Home was left. */
     static final String RESTORED = "reel sound put back to off";
@@ -51,6 +58,9 @@ public final class ReelSound {
      */
     private static final Map<Object, Boolean> turnedOn = new WeakHashMap<>();
 
+    /** Every viewer told to start muted, until {@link #opened(Object, int)} answers for it. */
+    private static final Map<Object, Boolean> startedMuted = new WeakHashMap<>();
+
     private ReelSound() {
     }
 
@@ -61,7 +71,7 @@ public final class ReelSound {
     public static int wanted() {
         try {
             HookStatus.invoked(FamilyNames.REEL_SOUND);
-            return Utils.settingsReady() && Settings.START_REELS_WITH_SOUND.get() ? 1 : 0;
+            return Utils.settingsReady() && (Settings.START_REELS_WITH_SOUND.get() || Settings.START_REELS_MUTED.get()) ? 1 : 0;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
             return 0;
@@ -76,7 +86,15 @@ public final class ReelSound {
      */
     public static int startWithSound(Object viewer, Object source) {
         try {
-            if (viewer == null || !(source instanceof Enum)) return 0;
+            if (viewer == null) return 0;
+            if (Utils.settingsReady() && Settings.START_REELS_MUTED.get()) {
+                synchronized (ReelSound.class) {
+                    startedMuted.put(viewer, Boolean.TRUE);
+                }
+                HookStatus.counted(FamilyNames.REEL_SOUND, STARTED_MUTED);
+                return 1;
+            }
+            if (!(source instanceof Enum)) return 0;
             String name = ((Enum<?>) source).name();
             Logger.printDebug(() -> "Reels viewer opened from " + name);
             if (!name.startsWith(FROM_HOME)) return 0;
@@ -91,17 +109,25 @@ public final class ReelSound {
 
     /**
      * Told, after a yes from {@link #startWithSound(Object, Object)} and before the sound is set
-     * on, whether the account's sound was on already. Only an off is worth putting back. Never throws.
+     * on, whether the account's sound was on already. Only an off is worth putting back. Answers the
+     * state to set: 1 for on, 0 for a viewer that {@link #startWithSound(Object, Object)} started
+     * muted, which is never put back. Never throws.
      */
-    public static void opened(Object viewer, int wasOn) {
+    public static int opened(Object viewer, int wasOn) {
         try {
-            if (viewer == null) return;
+            if (viewer == null) return 1;
             synchronized (ReelSound.class) {
+                if (startedMuted.remove(viewer) != null) {
+                    turnedOn.remove(viewer);
+                    return 0;
+                }
                 if (wasOn == 0) turnedOn.put(viewer, Boolean.FALSE);
                 else turnedOn.remove(viewer);
             }
+            return 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SOUND, VIEWER, failure);
+            return 1;
         }
     }
 
@@ -174,6 +200,7 @@ public final class ReelSound {
     static void resetForTests() {
         synchronized (ReelSound.class) {
             turnedOn.clear();
+            startedMuted.clear();
         }
     }
 }

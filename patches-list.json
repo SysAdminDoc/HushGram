@@ -4099,7 +4099,7 @@
     },
     {
       "name": "Start reels with sound",
-      "description": "A reel you open from a post on Home plays with sound, and Home is muted again when you go back. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Playback.",
+      "description": "A reel you open from a post on Home plays with sound, and Home is muted again when you go back. Your phone's ringer and volume still count. A separate switch, Start reels muted, starts every reel silent instead. Both start off. Turn them on in HushGram settings > Playback.",
       "category": "Playback",
       "use": true,
       "dependencies": [

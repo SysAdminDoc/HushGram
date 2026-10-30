@@ -38,7 +38,7 @@ private const val PATCH = "Start reels with sound"
 internal const val REEL_SOUND = "$EXTENSION_PACKAGE/reels/ReelSound;"
 internal const val REEL_WANTED = "$REEL_SOUND->wanted()I"
 internal const val REEL_START_WITH_SOUND = "$REEL_SOUND->startWithSound(Ljava/lang/Object;Ljava/lang/Object;)I"
-internal const val REEL_OPENED = "$REEL_SOUND->opened(Ljava/lang/Object;I)V"
+internal const val REEL_OPENED = "$REEL_SOUND->opened(Ljava/lang/Object;I)I"
 internal const val REEL_PAUSING = "$REEL_SOUND->pausing(Ljava/lang/Object;)I"
 internal const val REEL_PAUSED = "$REEL_SOUND->paused(Ljava/lang/Object;I)I"
 internal const val REEL_RESUMING = "$REEL_SOUND->resuming(Ljava/lang/Object;)I"
@@ -80,7 +80,8 @@ internal object ReelsViewerOnCreateFingerprint : Fingerprint(
 val startReelsWithSoundPatch = bytecodePatch(
     name = "Start reels with sound",
     description = "A reel you open from a post on Home plays with sound, and Home is muted again when you go " +
-        "back. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Playback.",
+        "back. Your phone's ringer and volume still count. A separate switch, Start reels muted, starts every reel silent " +
+        "instead. Both start off. Turn them on in HushGram settings > Playback.",
 ) {
     category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -232,7 +233,7 @@ internal fun BytecodePatchContext.applyReelSound(site: ReelSoundSite) {
                 invoke-virtual { v$state }, ${site.getter}
                 move-result v$flag
                 invoke-static { v$viewer, v$flag }, $REEL_OPENED
-                const/4 v$flag, 1
+                move-result v$flag
                 ${setter(state, flag, setterExtra)}
             """,
             ExternalLabel("stock", getInstruction(site.index)),

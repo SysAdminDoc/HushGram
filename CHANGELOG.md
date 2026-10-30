@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Skip the collections tray` is a new patch. With its switch on under Feed, saving a post or reel shows Instagram's Saved message instead of the tray that asks you to start a collection. Starts off.
 * **Instagram:** `Hide the Reels tab` adds `Settings button on Home's header` under Tab bar. A gear at the top of Home opens HushGram settings with one tap. Starts off. Asked for in #404.
 * **Instagram:** `Download any story` adds `Download button on stories` under Stories. A button at the top of a story, beside the three dots, saves the photo or video in front with one tap. Starts off. Asked for in #400.
+* **Instagram:** `Start reels with sound` adds `Start reels muted` under Playback. Every reel starts silent, wherever you open it from, and the volume keys or the speaker icon unmute it. Off to start. Asked for in #342.
 
 ### Bug Fixes
 
