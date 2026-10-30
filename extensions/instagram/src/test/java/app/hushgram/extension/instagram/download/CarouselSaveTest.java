@@ -1099,6 +1099,30 @@ public class CarouselSaveTest {
         assertClean();
     }
 
+    /** Back closes Choose pages with a box ticked and saves nothing, and the next tap opens a new list. */
+    @Test public void choosePagesClosesOnBackWithoutSaving() throws Exception {
+        Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
+        CarouselPages.previews = (application, url, size) -> null;
+        MediaBridge.post = Arrays.asList(page(false, "/first.jpg", "1"), page(false, "/second.jpg", "2"));
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        AlertDialog list = ShadowAlertDialog.getLatestAlertDialog();
+        boxes(list).get(1).setChecked(true);
+        int toasts = ShadowToast.shownToastCount();
+        list.onBackPressed();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertFalse(list.isShowing());
+        waitForSaves();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertEquals(0, server.hits("/first.jpg")); assertEquals(0, server.hits("/second.jpg"));
+        assertEquals("nothing saved, so nothing was reported", toasts, ShadowToast.shownToastCount());
+
+        VideoDownload.choosePages(MediaBridge.post, activity);
+        assertNotSame(list, ShadowAlertDialog.getLatestAlertDialog());
+        assertClean();
+    }
+
     /** Choose pages keeps Save all's page limit, and with its switch off it opens nothing. */
     @Test public void choosePagesKeepsTheBatchLimit() {
         Settings.DOWNLOAD_CHOOSE_PAGES.save(true);
