@@ -54,7 +54,9 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * <p>Logo and titles at the start (#310) does the opposite for accounts whose header centers the
  * logo itself: the views the title switches between go to its start, keeping their vertical
  * gravity, and both rows' minimum widths are cleared, so the title view begins right after the
- * start row's buttons. It wins over the centering switch.
+ * start row's buttons. It wins over the centering switch. A start row left with no buttons, as
+ * hiding Create leaves it, keeps the room the end row's last button has from the header's other
+ * edge, so the logo doesn't sit against the screen's edge (#407).
  *
  * <p>With both switches off, HushGram paused or the settings not read yet, the header is left as it
  * is. What an earlier draw changed goes back at the next draw, and only what HushGram set and nothing
@@ -134,7 +136,7 @@ public final class HomeLogo {
             }
             placeTitle(title, changes, placement);
             if (placement == START) {
-                changes.startSet = widen(start, 0);
+                changes.startSet = widen(start, startInset(header, start, end));
                 changes.endSet = widen(end, 0);
             }
             // The buttons the header just put in haven't been measured yet, so the rows are evened
@@ -224,6 +226,17 @@ public final class HomeLogo {
      * been laid out yet, their distances from the header's edges count as equal.
      */
     static void balance(View header, LinearLayout start, LinearLayout end, Changes changes) {
+        int[] edges = edges(header, start, end);
+        int outer = Math.max(edges[0] + natural(start), edges[1] + natural(end));
+        changes.startSet = widen(start, outer - edges[0]);
+        changes.endSet = widen(end, outer - edges[1]);
+    }
+
+    /**
+     * How far [start] sits from the header's start edge and [end] from its end edge. Where the rows
+     * haven't been laid out yet, both count as 0.
+     */
+    private static int[] edges(View header, LinearLayout start, LinearLayout end) {
         int startEdge = 0;
         int endEdge = 0;
         if (header.getWidth() > 0 && start.isLaidOut() && end.isLaidOut()) {
@@ -235,9 +248,60 @@ public final class HomeLogo {
                 endEdge = Math.max(0, rtl ? endLeft : header.getWidth() - endLeft - end.getWidth());
             }
         }
-        int outer = Math.max(startEdge + natural(start), endEdge + natural(end));
-        changes.startSet = widen(start, outer - startEdge);
-        changes.endSet = widen(end, outer - endEdge);
+        return new int[] {startEdge, endEdge};
+    }
+
+    /** The room the logo keeps from the header's edge with nothing at the start and no end button to copy, in dp. */
+    static final int EDGE_DP = 16;
+
+    /**
+     * The minimum width [start] takes with the logo at the start: 0 with a button in it, so the logo
+     * follows its buttons. With none, enough that the logo sits as far from the header's start edge
+     * as the end row's last button's content sits from its end edge, or {@link #EDGE_DP} from it
+     * with no end button either.
+     */
+    static int startInset(View header, LinearLayout start, LinearLayout end) {
+        if (lastButtonOf(start) != null) return 0;
+        int[] edges = edges(header, start, end);
+        View last = lastButtonOf(end);
+        int room;
+        if (last != null) {
+            int margin = last.getLayoutParams() instanceof ViewGroup.MarginLayoutParams
+                    ? ((ViewGroup.MarginLayoutParams) last.getLayoutParams()).getMarginEnd() : 0;
+            room = edges[1] + end.getPaddingEnd() + margin + contentEndInset(last);
+        } else {
+            room = Math.round(EDGE_DP * header.getResources().getDisplayMetrics().density);
+        }
+        return Math.max(0, room - edges[0]);
+    }
+
+    /**
+     * How far [button]'s content sits in from its end edge: its end padding, or for a frame that
+     * centers a smaller child with no padding, as Instagram's heart does (#407), the room past
+     * that child.
+     */
+    static int contentEndInset(View button) {
+        int inset = button.getPaddingEnd();
+        if (!(button instanceof ViewGroup) || !button.isLaidOut()) return inset;
+        ViewGroup group = (ViewGroup) button;
+        boolean rtl = button.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL;
+        int nearest = -1;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child.getVisibility() != View.VISIBLE || child.getWidth() == 0) continue;
+            int room = rtl ? child.getLeft() : button.getWidth() - child.getRight();
+            if (nearest < 0 || room < nearest) nearest = room;
+        }
+        return nearest < 0 ? inset : Math.max(inset, nearest);
+    }
+
+    /** [row]'s last button that isn't gone, the one nearest its end edge, or null with none. */
+    private static View lastButtonOf(LinearLayout row) {
+        for (int i = row.getChildCount() - 1; i >= 0; i--) {
+            View child = row.getChildAt(i);
+            if (child.getVisibility() != View.GONE) return child;
+        }
+        return null;
     }
 
     private static int widen(View row, int width) {
@@ -324,7 +388,7 @@ public final class HomeLogo {
                 LinearLayout end = HomeHeader.endRowOf(header);
                 if (start == null || end == null) return;
                 if (placement == START) {
-                    startSet = widen(start, 0);
+                    startSet = widen(start, startInset(header, start, end));
                     endSet = widen(end, 0);
                 } else {
                     balance(header, start, end, this);

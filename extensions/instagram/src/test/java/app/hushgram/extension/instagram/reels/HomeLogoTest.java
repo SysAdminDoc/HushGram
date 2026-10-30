@@ -443,6 +443,59 @@ public class HomeLogoTest {
         assertEquals(START_MARGIN + BUTTON + LOGO / 2, middleOf(logo));
     }
 
+    /**
+     * With Create hidden the start row has no buttons, and the logo keeps the room the heart's
+     * content has from the other edge rather than touching the screen's edge (#407). A button put
+     * back in the row clears that room again.
+     */
+    @Test public void atTheStartAnEmptyStartRowKeepsTheEndButtonsRoom() {
+        View heart = end.getChildAt(1);
+        heart.setPaddingRelative(0, 0, 60, 0);
+        Settings.TITLES_AT_START.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        assertEquals("12 margin and 60 padding past the heart, less the 48 margin the start has", 24, start.getMinimumWidth());
+        assertEquals(START_MARGIN + 24 + LOGO / 2, middleOf(logo));
+        start.addView(button());
+        HomeLogo.center(header);
+        lay();
+        assertEquals(0, start.getMinimumWidth());
+        assertEquals(START_MARGIN + BUTTON + LOGO / 2, middleOf(logo));
+    }
+
+    /**
+     * Instagram's heart has no padding: it's a frame wider than its icon that centers it, so the
+     * room to copy is what's past the icon (#407).
+     */
+    @Test public void atTheStartAHeartThatCentersItsIconLendsTheRoomPastIt() {
+        ((FrameLayout.LayoutParams) ((View) start.getParent()).getLayoutParams()).leftMargin = 0;
+        end.removeViewAt(1);
+        FrameLayout heart = new FrameLayout(context);
+        heart.addView(new View(context), new FrameLayout.LayoutParams(40, 40, Gravity.CENTER));
+        end.addView(heart, new LinearLayout.LayoutParams(BUTTON, BUTTON));
+        Settings.TITLES_AT_START.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        assertEquals(30, HomeLogo.contentEndInset(heart));
+        assertEquals("12 margin and the 30 past the icon", END_MARGIN + 30, start.getMinimumWidth());
+        assertEquals(END_MARGIN + 30 + LOGO / 2, middleOf(logo));
+    }
+
+    /** With no start margin and no end buttons either, the logo still keeps 16dp from the edge. */
+    @Test public void atTheStartWithNothingToCopyTheLogoKeeps16dp() {
+        ((FrameLayout.LayoutParams) ((View) start.getParent()).getLayoutParams()).leftMargin = 0;
+        end.removeAllViews();
+        Settings.TITLES_AT_START.save(true);
+        lay();
+        HomeLogo.center(header);
+        lay();
+        int room = Math.round(HomeLogo.EDGE_DP * context.getResources().getDisplayMetrics().density);
+        assertEquals(room, start.getMinimumWidth());
+        assertEquals(room + LOGO / 2, middleOf(logo));
+    }
+
     /** Turned off, Instagram's widths and centered logo come back at the next draw. */
     @Test public void turnedOffTheStartPutsBackInstagramsHeader() {
         drawTheNewerHeader();
