@@ -425,6 +425,53 @@ public class StoryMentionsTest {
     }
 
     /**
+     * #405: on Instagram 453 the name's row is a Compose view with no name view in it, and the
+     * header centers the name's column, so a pill under the name moved the name up under the
+     * progress bars. With the header's row inside a column, the pill goes right under that row,
+     * lined up with the name, and the name's column keeps what it had.
+     */
+    @Test
+    public void withAComposeNameRowThePillGoesUnderTheHeader() {
+        root.removeView(header);
+        LinearLayout column = new LinearLayout(activity);
+        column.setOrientation(LinearLayout.VERTICAL);
+        View progress = new View(activity);
+        column.addView(progress, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        FrameLayout headerRow = new FrameLayout(activity);
+        header.removeAllViews();
+        View composeTitleRow = new View(activity);
+        header.addView(composeTitleRow, new LinearLayout.LayoutParams(280, 34));
+        FrameLayout attribution = new FrameLayout(activity);
+        header.addView(attribution, new LinearLayout.LayoutParams(362, 75));
+        FrameLayout.LayoutParams besideTheAvatar = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        besideTheAvatar.leftMargin = 88;
+        headerRow.addView(header, besideTheAvatar);
+        column.addView(headerRow);
+        root.addView(column);
+        layOut(header);
+        assertEquals(88, header.getLeft());
+
+        bind(ANA, BO);
+
+        StoryMentions.Pill pill = pill();
+        assertNotNull(pill);
+        assertSame("the pill isn't under the header", column, pill.getParent());
+        assertEquals("the pill isn't right under the header's row", column.indexOfChild(headerRow) + 1, column.indexOfChild(pill));
+        assertEquals("the name's column grew", 2, header.getChildCount());
+        assertEquals("the pill doesn't line up with the name", 88,
+                ((LinearLayout.LayoutParams) pill.getLayoutParams()).getMarginStart());
+        layOut(pill);
+        assertTrue("the pill isn't below the header", pill.getTop() >= headerRow.getBottom());
+        assertEquals("2 mentions", pill.getText().toString());
+        bind(BO);
+        assertSame("a later story made a second pill", pill, pill());
+        assertEquals("1 mention", pill.getText().toString());
+        bind();
+        assertEquals(View.GONE, pill.getVisibility());
+    }
+
+    /**
      * The pill is drawn small, and a finger gets the room around it, up to the 48dp Android asks of
      * a target. A tap on the name just above it is still Instagram's.
      */

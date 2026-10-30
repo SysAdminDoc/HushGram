@@ -60,7 +60,8 @@ import app.hushgram.extension.shared.ui.Dim;
  * <p>Instagram's story viewer gives each of its pages the story it shows in one place, its item
  * binder's bindMedia step. The patch calls {@link #bind} right after that, with the page and the
  * story. Once Instagram has bound the page's header, a pill goes after the name and time in it
- * (under the name when they share no row) saying how many accounts the story mentions, from the
+ * (right under the header when the name has no row of its own, as on Instagram 453, and under
+ * the name when there's no column to put it in) saying how many accounts the story mentions, from the
  * story's own list of mentions, so a mention sticker
  * that's hidden, shrunk or dragged off screen still counts. A story with none gets no pill.
  * Tapping the pill lists the accounts with their pictures, names and usernames, and tapping one
@@ -291,9 +292,17 @@ public final class StoryMentions {
             Context context = header.getContext();
             if (pill == null) {
                 LinearLayout row = titleRow(header);
-                LinearLayout into = row != null ? row : header;
+                LinearLayout under = row == null ? below(header) : null;
+                LinearLayout into = row != null ? row : under != null ? under : header;
                 pill = newPill(context, into.getOrientation() == LinearLayout.HORIZONTAL);
-                into.addView(pill);
+                if (under != null) {
+                    // Right under the header's row, lined up with the name.
+                    View headerRow = (View) header.getParent();
+                    ((LinearLayout.LayoutParams) pill.getLayoutParams()).setMarginStart(headerRow.getLeft() + header.getLeft());
+                    under.addView(pill, under.indexOfChild(headerRow) + 1);
+                } else {
+                    into.addView(pill);
+                }
                 anyPill = true;
             }
             String text = label(context, people.size());
@@ -332,7 +341,7 @@ public final class StoryMentions {
         return null;
     }
 
-    /** The pill already in [header], in the name's row or in the column itself, or null. */
+    /** The pill already in [header]: in the name's row, under the whole header, or in the column itself. Null for none. */
     @Nullable
     static Pill pillIn(ViewGroup header) {
         LinearLayout row = titleRow(header);
@@ -340,7 +349,29 @@ public final class StoryMentions {
             Pill inRow = pillAmong(row);
             if (inRow != null) return inRow;
         }
+        LinearLayout under = below(header);
+        if (under != null) {
+            Pill underIt = pillAmong(under);
+            if (underIt != null) return underIt;
+        }
         return pillAmong(header);
+    }
+
+    /**
+     * The column the whole header's row sits in, so the pill goes right under the header, or null
+     * when there's no such column. On Instagram 453 the name's row is a Compose view with no name
+     * view inside it, so there's no row to put the pill at the end of, and under the name it made
+     * the name's column taller. The header centers that column, so on every story with mentions
+     * the name moved up under the progress bars, and a story with a music line lost the top of its
+     * name (#405). Under the header, the pill changes nothing above it.
+     */
+    @Nullable
+    static LinearLayout below(ViewGroup header) {
+        ViewParent headerRow = header.getParent();
+        ViewParent column = headerRow instanceof View ? headerRow.getParent() : null;
+        if (!(column instanceof LinearLayout)) return null;
+        LinearLayout found = (LinearLayout) column;
+        return found.getOrientation() == LinearLayout.VERTICAL ? found : null;
     }
 
     @Nullable
