@@ -87,7 +87,7 @@ public class AppIconSettingsTest {
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());
         assertEquals(Arrays.asList("Instagram's own", "HushGram", "Instagram on black", "Instagram on plum",
-                "Instagram in black on white"), entries);
+                "Instagram in black on white", "Hand-drawn Instagram"), entries);
         assertEquals(AppIconChoice.INSTAGRAM, Settings.APP_ICON.get());
         assertEquals("INSTAGRAM", row.getValue());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Instagram's own. "));
@@ -101,6 +101,10 @@ public class AppIconSettingsTest {
         ShadowLooper.idleMainLooper();
         assertEquals(AppIconChoice.LIGHT, Settings.APP_ICON.savedValue());
         assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Instagram in black on white. "));
+        row.setValue("SKETCH");
+        ShadowLooper.idleMainLooper();
+        assertEquals(AppIconChoice.SKETCH, Settings.APP_ICON.savedValue());
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().startsWith("Hand-drawn Instagram. "));
 
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.APP_ICON.key));
     }

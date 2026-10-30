@@ -134,7 +134,8 @@ class AppIconsTest {
 
     /**
      * HushGram's icon is its mark on the gradient, the next two are Instagram's glyph on a color, and the
-     * light one a black copy of that glyph on white (#353), its themed layer still Instagram's glyph.
+     * light one a black copy of that glyph on white (#353), its themed layer still Instagram's glyph. The
+     * hand-drawn one (#406) is the picture the patch carries on white, which is its themed layer too.
      */
     @Test
     fun eachIconHasItsBackgroundAndItsFront() {
@@ -144,8 +145,9 @@ class AppIconsTest {
                 "drawable/$ICON_MARK.xml", "drawable/$ICON_MARK_MONO.xml",
                 "drawable/hushgram_icon_hushgram_background.xml", "drawable/hushgram_icon_dark_background.xml", "drawable/hushgram_icon_plum_background.xml",
                 "drawable/hushgram_icon_light_background.xml", "drawable/hushgram_icon_light_glyph.xml",
+                "drawable/hushgram_icon_sketch_background.xml",
                 "mipmap-anydpi/hushgram_icon_hushgram.xml", "mipmap-anydpi/hushgram_icon_dark.xml", "mipmap-anydpi/hushgram_icon_plum.xml",
-                "mipmap-anydpi/hushgram_icon_light.xml",
+                "mipmap-anydpi/hushgram_icon_light.xml", "mipmap-anydpi/hushgram_icon_sketch.xml",
             ),
             files.keys,
         )
@@ -156,7 +158,9 @@ class AppIconsTest {
         assertEquals(listOf("@drawable/hushgram_icon_dark_background", "@drawable/ig_launcher_monochrome", "@drawable/ig_launcher_monochrome"), layers("dark"))
         assertEquals(listOf("@drawable/hushgram_icon_plum_background", "@drawable/ig_launcher_monochrome", "@drawable/ig_launcher_monochrome"), layers("plum"))
         assertEquals(listOf("@drawable/hushgram_icon_light_background", "@drawable/hushgram_icon_light_glyph", "@drawable/ig_launcher_monochrome"), layers("light"))
+        assertEquals(listOf("@drawable/hushgram_icon_sketch_background", "@drawable/hushgram_icon_sketch_art", "@drawable/hushgram_icon_sketch_art"), layers("sketch"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_light_background.xml")).elements("solid").single().getAttribute("android:color"))
+        assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_sketch_background.xml")).elements("solid").single().getAttribute("android:color"))
         val black = parse(files.getValue("drawable/hushgram_icon_light_glyph.xml"))
         assertEquals("vector", black.documentElement.tagName)
         assertEquals("#FF000000", black.documentElement.getAttribute("android:tint"))
@@ -168,6 +172,30 @@ class AppIconsTest {
         assertEquals("108dp", mark.documentElement.getAttribute("android:width"))
         assertEquals(3, mark.elements("path").size)
         assertEquals(setOf("#FFFFFFFF"), parse(files.getValue("drawable/$ICON_MARK_MONO.xml")).elements("path").map { it.getAttribute("android:fillColor") }.toSet())
+    }
+
+    /**
+     * The hand-drawn icon's picture (#406) comes with the patch: one square PNG of black strokes on clear,
+     * with its ink inside the 66dp circle every launcher shape keeps.
+     */
+    @Test
+    fun theHandDrawnPictureComesWithThePatch() {
+        val art = artFiles()
+        assertEquals(listOf("drawable-nodpi/hushgram_icon_sketch_art.png"), art.keys.toList())
+        val image = javax.imageio.ImageIO.read(art.values.single().inputStream())
+        assertEquals(image.width, image.height)
+        assertTrue("it has alpha", image.colorModel.hasAlpha())
+        var farthest = 0.0
+        var inked = 0
+        for (y in 0 until image.height) for (x in 0 until image.width) {
+            val argb = image.getRGB(x, y)
+            if (argb ushr 24 < 32) continue
+            inked++
+            assertEquals("black strokes at $x,$y", 0, argb and 0xFFFFFF)
+            farthest = maxOf(farthest, Math.hypot(x - image.width / 2.0, y - image.height / 2.0) * 108 / image.width)
+        }
+        assertTrue("it has ink, $inked", inked > 1000)
+        assertTrue("inside the safe circle, $farthest dp", farthest < 33)
     }
 
     @Test
@@ -234,6 +262,9 @@ class AppIconsTest {
             assertEquals("Instagram's glyph, tinted", "vector", black.documentElement.tagName)
             assertEquals("#ff000000", black.documentElement.getAttribute("android:tint").lowercase())
             assertTrue("with its paths", black.elements("path").isNotEmpty())
+            val sketch = File(res, "drawable-nodpi/hushgram_icon_sketch_art.png")
+            assertTrue("the hand-drawn picture", sketch.isFile)
+            assertEquals("still a picture", 432, javax.imageio.ImageIO.read(sketch).width)
         }
     }
 

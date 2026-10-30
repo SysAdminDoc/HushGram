@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `App icon` adds Hand-drawn Instagram, a pencil sketch of Instagram's glyph on white. Themed icons show the same sketch. Asked for in #406.
 * **Instagram:** `Chat history tools` is a new patch. Its switch under Messages lets you long press a chat's name to jump to its first message or a date, loading older messages with a count and Cancel. Starts off. Asked for in #246.
 * **Instagram:** `Chat history tools` gets a second switch, `Export a chat as text`. Long press a chat's name and pick Export chat to save the whole chat to Downloads/HushGram, one line per message. Starts off. Asked for in #247.
 * **Instagram:** `Save comment photo` gets a second switch, `Reply with a comment's GIF` under Comments. When a comment has a GIF, its menu gets a GIF reply that sends that same GIF back as your reply. It goes up animated, the way one picked in Instagram's GIF search does. Starts off. Asked for in #402.

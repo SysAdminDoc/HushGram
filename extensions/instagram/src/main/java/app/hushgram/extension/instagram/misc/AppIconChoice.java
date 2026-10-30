@@ -20,7 +20,9 @@ public enum AppIconChoice {
     /** Instagram's white glyph on plum. */
     PLUM("plum"),
     /** Instagram's glyph in black on white (#353). */
-    LIGHT("light");
+    LIGHT("light"),
+    /** A pencil drawing of Instagram's glyph on white (#406). */
+    SKETCH("sketch");
 
     /** The end of this icon's alias, as the patch names it, or null for Instagram's own. */
     @Nullable public final String key;

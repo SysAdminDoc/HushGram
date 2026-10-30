@@ -33,13 +33,22 @@ private val OWN_RESOURCE = Regex("^@([a-z]+)/([A-Za-z0-9_.$]+)$")
  * One of HushGram's home screen icons, by the key its alias and drawables take (AppIconChoice in the
  * extension has the same keys), with its background drawn by [background]. [instagramGlyph] puts
  * Instagram's own white glyph, the monochrome layer of its icon, in front, and otherwise HushGram's H
- * and ribbon go there. A [glyphTint] draws that glyph in its color instead, from a copy of it.
+ * and ribbon go there. A [glyphTint] draws that glyph in its color instead, from a copy of it. [art]
+ * names a picture the patch carries, black strokes on clear, that goes in front and in the themed layer
+ * in place of either.
  */
-internal class HushgramIcon(val key: String, val background: String, val instagramGlyph: Boolean, val glyphTint: String? = null) {
+internal class HushgramIcon(
+    val key: String,
+    val background: String,
+    val instagramGlyph: Boolean,
+    val glyphTint: String? = null,
+    val art: String? = null,
+) {
     val alias get() = "$HUSHGRAM_ALIAS$key"
     val icon get() = "hushgram_icon_$key"
     val backgroundName get() = "hushgram_icon_${key}_background"
     val glyphName get() = "hushgram_icon_${key}_glyph"
+    val artName get() = "hushgram_icon_${key}_art"
 }
 
 /** Plum, the color of HushGram's mark. */
@@ -65,6 +74,8 @@ internal val HUSHGRAM_ICONS = listOf(
     HushgramIcon("dark", solid("#FF000000"), instagramGlyph = true),
     HushgramIcon("plum", solid(PLUM), instagramGlyph = true),
     HushgramIcon("light", solid("#FFFFFFFF"), instagramGlyph = true, glyphTint = "#FF000000"),
+    // A user's pencil drawing of Instagram's glyph, 48dp across in the 108dp layer (#406).
+    HushgramIcon("sketch", solid("#FFFFFFFF"), instagramGlyph = false, art = "sketch.png"),
 )
 
 /** HushGram's H and ribbon in front of an icon. */
@@ -213,15 +224,33 @@ internal fun iconFiles(instagram: InstagramIcon, glyphVector: String): Map<Strin
         files["drawable/${icon.backgroundName}.xml"] = icon.background
         icon.glyphTint?.let { files["drawable/${icon.glyphName}.xml"] = tinted(glyphVector, it) }
         val front = when {
+            icon.art != null -> "@drawable/${icon.artName}"
             !icon.instagramGlyph -> "@drawable/$ICON_MARK"
             icon.glyphTint != null -> "@drawable/${icon.glyphName}"
             else -> instagram.glyph
         }
-        val mono = if (icon.instagramGlyph) instagram.glyph else "@drawable/$ICON_MARK_MONO"
+        val mono = when {
+            icon.art != null -> "@drawable/${icon.artName}"
+            icon.instagramGlyph -> instagram.glyph
+            else -> "@drawable/$ICON_MARK_MONO"
+        }
         files["${instagram.folder}/${icon.icon}.xml"] = adaptiveXml("@drawable/${icon.backgroundName}", front, mono)
     }
     return files
 }
+
+/**
+ * The pictures the patch carries for icons drawn from [HushgramIcon.art], by their path in the decoded
+ * res folder. They go in drawable-nodpi, since a launcher stretches a layer to its bounds anyway, and
+ * the themed layer reads only their alpha. Refuses when one is missing from the patch.
+ */
+internal fun artFiles(): Map<String, ByteArray> = HUSHGRAM_ICONS.mapNotNull { icon ->
+    icon.art?.let { art ->
+        val bytes = HushgramIcon::class.java.getResourceAsStream(art)?.use { it.readBytes() }
+            ?: refuse("the patch is missing its $art")
+        "drawable-nodpi/${icon.artName}.png" to bytes
+    }
+}.toMap(linkedMapOf())
 
 /**
  * Adds the aliases and their icons. Instagram's icon is read for where its adaptive version lives and
@@ -233,14 +262,19 @@ internal fun ResourcePatchContext.addAppIcons() {
         val (type, name) = icon.split('/', limit = 2)
         // Patcher 2.0 decodes only what a patch asks for. HushGram's names are asked for so one
         // already in the APK shows up and is refused.
-        decode("res/$type*/$name.xml", "res/drawable*/hushgram_icon_*.xml", "res/mipmap*/hushgram_icon_*.xml")
+        decode(
+            "res/$type*/$name.xml", "res/drawable*/hushgram_icon_*.xml", "res/drawable*/hushgram_icon_*.png",
+            "res/mipmap*/hushgram_icon_*.xml",
+        )
         val res = get("res")
         val instagram = readInstagramIcon(res, icon)
         val (glyphType, glyphName) = instagram.glyph.removePrefix("@").split('/', limit = 2)
         decode("res/$glyphType*/$glyphName.xml")
         val files = iconFiles(instagram, readGlyph(res, instagram.glyph))
-        files.keys.firstOrNull { File(res, it).exists() }?.let { refuse("res/$it is already there") }
+        val art = artFiles()
+        (files.keys + art.keys).firstOrNull { File(res, it).exists() }?.let { refuse("res/$it is already there") }
         addIconAliases(manifest)
         for ((path, xml) in files) File(res, path).apply { parentFile.mkdirs() }.writeText(xml)
+        for ((path, bytes) in art) File(res, path).apply { parentFile.mkdirs() }.writeBytes(bytes)
     }
 }

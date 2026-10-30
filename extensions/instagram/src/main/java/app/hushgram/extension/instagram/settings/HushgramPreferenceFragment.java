@@ -3829,6 +3829,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             case DARK: return L10n.t("Instagram on black");
             case PLUM: return L10n.t("Instagram on plum");
             case LIGHT: return L10n.t("Instagram in black on white");
+            case SKETCH: return L10n.t("Hand-drawn Instagram");
             default: return L10n.t("Instagram's own");
         }
     }
