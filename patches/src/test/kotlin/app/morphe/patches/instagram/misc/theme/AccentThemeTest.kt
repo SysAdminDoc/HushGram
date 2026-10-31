@@ -22,9 +22,13 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import app.morphe.patches.instagram.misc.settings.MERGED_LOGO_BAR
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -345,6 +349,7 @@ class AccentThemeTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .associateBy { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$APPLY_THEME is not in the extension: ${declared.keys}", APPLY_THEME in declared)
+        assertTrue("$HEADER_ICONS is not in the extension: ${declared.keys}", HEADER_ICONS in declared)
         val stub = declared[ATTRIBUTES_STUB]
         assertTrue("$ATTRIBUTES_STUB is not in the extension: ${declared.keys}", stub != null)
         assertTrue("the stub has a register to write into", stub!!.implementation!!.registerCount >= 1)
@@ -423,6 +428,77 @@ class AccentThemeTest {
             context.applyAccentTheme("igds_color_link")
             assertApplied(code, context.mutableClassDefBy(called.definingClass).methods.single { it.name == called.name && it.parameterTypes.size == 1 }, returns)
             assertApplied("$code util", context.mutableClassDefBy(util.definingClass).methods.single { it.name == util.name && it.parameterTypes.size == 1 }, utilReturns)
+        }
+    }
+
+    /**
+     * Home's newer header hands the color it reads for its heart and Create buttons to the extension
+     * right before keeping it, and only that color, whether the one over media comes from a helper or
+     * from getColor too (#8). No header, the icons' color kept twice or a jump onto the store leave it
+     * as it is, and an extension without the hook refuses.
+     */
+    @Test
+    fun homesHeaderHandsTheColorOfItsIconsToTheExtension() {
+        for ((case, header) in listOf("over media from a helper" to header(), "over media from getColor" to header(overMediaRead = true))) {
+            val context = PatchContexts.of(listOf(header, extension()))
+            context.tintHeaderIcons()
+            val code = context.mutableClassDefBy(MERGED_LOGO_BAR).methods.single { it.name == "<init>" }.code()
+            val hooks = code.withIndex().filter { (it.value as? ReferenceInstruction)?.reference?.toString() == HEADER_ICONS }
+            assertEquals("$case: one hook", 1, hooks.size)
+            val at = hooks.single().index
+            assertEquals(
+                case,
+                listOf(Opcode.INVOKE_VIRTUAL, Opcode.MOVE_RESULT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IPUT),
+                code.subList(at - 2, at + 3).map { it.opcode },
+            )
+            val hook = code[at] as FiveRegisterInstruction
+            assertEquals("$case: the hook takes the Context and the color", listOf(2, 0), listOf(hook.registerC, hook.registerD))
+            assertEquals("$case: the icons' field", "$MERGED_LOGO_BAR->A0W:I", (code[at + 2] as ReferenceInstruction).reference.toString())
+        }
+
+        for ((case, classes) in listOf(
+            "the icons' color kept twice" to listOf(header(stored = 2), extension()),
+            "a jump onto the store" to listOf(header(jumpOnto = true), extension()),
+        )) {
+            val untouched = PatchContexts.of(classes)
+            untouched.tintHeaderIcons()
+            val init = untouched.mutableClassDefBy(MERGED_LOGO_BAR).methods.single { it.name == "<init>" }.code()
+            assertTrue("$case: no hook", init.none { (it as? ReferenceInstruction)?.reference?.toString() == HEADER_ICONS })
+        }
+        PatchContexts.of(listOf(extension())).tintHeaderIcons()
+        val failure = assertThrows(PatchException::class.java) { PatchContexts.of(listOf(header(), extension(headerIcons = false))).tintHeaderIcons() }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * Every build of Instagram: the header's constructor hands the color it gets from Context.getColor
+     * to the extension right before it keeps it in the field the heart is tinted from (#8).
+     */
+    @Test
+    fun everyBuildHandsHomesHeaderIconColorToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val bar = FixtureDex.classes(bundle, setOf(MERGED_LOGO_BAR)).getValue(MERGED_LOGO_BAR)
+            val context = PatchContexts.of(listOf(bar, extension()))
+            context.tintHeaderIcons()
+            val hooked = context.mutableClassDefBy(MERGED_LOGO_BAR).methods.filter { it.name == "<init>" }.flatMap { method ->
+                val body = method.code()
+                body.indices.filter { (body[it] as? ReferenceInstruction)?.reference?.toString() == HEADER_ICONS }.map { body to it }
+            }
+            assertEquals("$code: one hook", 1, hooked.size)
+            val (body, at) = hooked.single()
+            val hook = body[at] as FiveRegisterInstruction
+            val read = body[at - 2] as FiveRegisterInstruction
+            assertEquals("$code: Context.getColor before it", "getColor", ((read as ReferenceInstruction).reference as MethodReference).name)
+            assertEquals("$code: the color's own Context", read.registerC, hook.registerC)
+            assertEquals("$code: the color read", Opcode.MOVE_RESULT, body[at - 1].opcode)
+            assertEquals("$code: the hook's answer", listOf(Opcode.MOVE_RESULT, Opcode.IPUT), listOf(body[at + 1].opcode, body[at + 2].opcode))
+            assertEquals("$code: written back", hook.registerD, (body[at + 1] as OneRegisterInstruction).registerA)
+            assertEquals("$code: and kept", hook.registerD, (body[at + 2] as TwoRegisterInstruction).registerA)
+            val field = (body[at + 2] as ReferenceInstruction).reference.toString()
+            assertTrue(
+                "$code: some method tints with $field",
+                bar.methods.any { method -> method.code().any { it.opcode == Opcode.IGET && (it as ReferenceInstruction).reference.toString() == field } },
+            )
         }
     }
 
@@ -622,14 +698,59 @@ class AccentThemeTest {
             return classOf(type, method(type, "A01", listOf(CONTEXT), 3, body, static = true))
         }
 
-        /** AccentTheme's hook, and the attribute stub as javac and D8 leave `return null`. */
-        fun extension(stub: Boolean = true): ClassDef = classOf(
+        /** AccentTheme's hooks, and the attribute stub as javac and D8 leave `return null`. */
+        fun extension(stub: Boolean = true, headerIcons: Boolean = true): ClassDef = classOf(
             ACCENT_THEME,
             *listOfNotNull(
                 method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true),
                 if (stub) method(ACCENT_THEME, "attributes", emptyList(), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = "Ljava/lang/String;") else null,
+                if (headerIcons) method(ACCENT_THEME, "headerIcons", listOf(CONTEXT, "I"), 0, "return p1", static = true, returns = "I") else null,
             ).toTypedArray(),
         )
+
+        /**
+         * Home's newer header: its constructor keeps the icons' color from Context.getColor, [stored]
+         * times, and the color over media from a helper, or from getColor too with [overMediaRead] as
+         * 32-bit builds do. Its tint reads the color over media on the fall through of its test of the
+         * state and the icons' color where that test lands, then goes back to one setColorFilter.
+         */
+        fun header(stored: Int = 1, overMediaRead: Boolean = false, jumpOnto: Boolean = false): ClassDef {
+            val init = buildString {
+                appendLine("invoke-direct { p0 }, Ljava/lang/Object;-><init>()V")
+                if (jumpOnto) appendLine("if-eqz p2, :store")
+                repeat(stored) {
+                    appendLine("const v0, 0x7f060001")
+                    appendLine("invoke-virtual { p1, v0 }, $CONTEXT->getColor(I)I")
+                    appendLine("move-result v0")
+                    if (it == 0) appendLine(":store")
+                    appendLine("iput v0, p0, $MERGED_LOGO_BAR->A0W:I")
+                }
+                if (overMediaRead) {
+                    appendLine("const v0, 0x7f060002")
+                    appendLine("invoke-virtual { p1, v0 }, $CONTEXT->getColor(I)I")
+                } else {
+                    appendLine("invoke-static { p1 }, Lfixture/Colors;->A0X($CONTEXT)I")
+                }
+                appendLine("move-result v0")
+                appendLine("iput v0, p0, $MERGED_LOGO_BAR->A0X:I")
+                appendLine("return-void")
+            }
+            val tint = """
+                if-eqz p2, :icons
+                iget v0, p0, $MERGED_LOGO_BAR->A0X:I
+                :tint
+                invoke-virtual { p1, v0 }, Landroid/widget/ImageView;->setColorFilter(I)V
+                return-void
+                :icons
+                iget v0, p0, $MERGED_LOGO_BAR->A0W:I
+                goto :tint
+            """.trimIndent()
+            return classOf(
+                MERGED_LOGO_BAR,
+                method(MERGED_LOGO_BAR, "<init>", listOf(CONTEXT, "Landroid/util/AttributeSet;", "I"), 1, init, static = false),
+                method(MERGED_LOGO_BAR, "A07", listOf("Landroid/widget/ImageView;", "I"), 1, tint, static = false),
+            )
+        }
 
         fun method(type: String, name: String, parameters: List<String>, locals: Int, body: String, static: Boolean, returns: String = "V"): Method {
             val registers = locals + parameters.size + if (static) 0 else 1

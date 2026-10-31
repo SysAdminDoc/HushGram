@@ -97,6 +97,7 @@ val accentColorPatch = bytecodePatch(
         swapAccentColors()
         applyAccentTheme(attributes)
         swapComposePalettes(palettes)
+        tintHeaderIcons()
         enableStatus("accentColor")
     }
 }

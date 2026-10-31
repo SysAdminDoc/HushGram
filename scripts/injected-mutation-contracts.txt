@@ -1555,6 +1555,12 @@ once-call Lapp/hushgram/extension/instagram/misc/AccentColor;->value(ILandroid/u
 # wrapper the tab bar inflates its buttons in off the main thread. Left out, the tab bar's dots and
 # counts stay red with Badges in the accent color on (#315). The util has one return.
 shared-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->apply(Landroid/content/Context;)V in static (Landroid/content/Context;)V holding Failed\sto\sapply\stheme\sto\sActivity\sbecause\stheme\sprovider\snot\sinitialized
+# Home's newer header (MergedFeedsActionBar) reads the color it tints its heart and Create buttons
+# with through Context.getColor in its constructor, so Accent color hands that color to
+# AccentTheme.headerIcons right before the constructor keeps it, once. The header loads no strings
+# and Redex renames its fields, so the rule names the constructor alone. Left out, the heart stays
+# white with Icons in the accent color on (#8). AccentThemeTest checks every 453 build.
+single-call Lapp/hushgram/extension/instagram/misc/AccentTheme;->headerIcons(Landroid/content/Context;I)I in <init>
 # HushGram launch screen hands both of the main screen's answers on whether Instagram's own logo
 # animation follows Android's launch screen to LaunchScreen.instagramLogo, right after each is taken
 # in: the post-splash extra's read and the check before the logo inside Android's screen. On 452

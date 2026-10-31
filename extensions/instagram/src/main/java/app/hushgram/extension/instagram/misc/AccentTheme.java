@@ -56,6 +56,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * gray and the liked heart stays red. The wordmark is tinted with the primary text color, so it stays
  * too.
  *
+ * <p>Home's newer header tints its heart and Create buttons with a color it reads from the primary text
+ * color's resource as it's built, so no attribute reaches them. With Icons in the accent color on, the
+ * patch hands that color to {@link #headerIcons} as the header keeps it, which answers the icon color the
+ * theme holds instead (#8).
+ *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
  * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.
  */
@@ -80,6 +85,9 @@ public final class AccentTheme {
 
     /** What's counted when Icons in the accent color is on but the patch added no icon style, so icons keep their color. */
     static final String ICONS_MISSING = "themes left with Instagram's icon color, the icon styles are missing";
+
+    /** What's counted each time Home's newer header takes the picked icon color for its buttons. */
+    static final String HEADER_ICONS = "Home header icons given the accent color";
 
     /** The theme attribute Instagram's icons read, the patch's ICON_ATTRIBUTE. */
     static final String ICON_ATTRIBUTE = "igds_color_primary_icon";
@@ -170,6 +178,32 @@ public final class AccentTheme {
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.ACCENT_COLOR, "theme", failure);
+        }
+    }
+
+    /**
+     * Injected where Home's newer header keeps the color it tints its heart and Create buttons with,
+     * [color], read from the primary text color (#8). With Icons in the accent color on, answers the
+     * color [context]'s theme holds for {@link #ICON_ATTRIBUTE}, the picked link shade once
+     * {@link #apply(Context)} has laid the icon style on. Answers [color] with the switch off, HushGram
+     * paused, no plain color there or anything thrown.
+     */
+    public static int headerIcons(Context context, int color) {
+        try {
+            if (context == null || AccentColor.picked() == null || !Settings.ACCENT_ICONS.get()) return color;
+            Resources resources = context.getResources();
+            int attr = id(resources, ICON_ATTRIBUTE, "attr", context.getPackageName());
+            TypedValue value = new TypedValue();
+            if (attr == 0 || !context.getTheme().resolveAttribute(attr, value, true)
+                    || value.type < TypedValue.TYPE_FIRST_COLOR_INT || value.type > TypedValue.TYPE_LAST_COLOR_INT
+                    || value.data == color) {
+                return color;
+            }
+            HookStatus.counted(FamilyNames.ACCENT_COLOR, HEADER_ICONS);
+            return value.data;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.ACCENT_COLOR, "header icons", failure);
+            return color;
         }
     }
 

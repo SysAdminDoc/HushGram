@@ -4,6 +4,7 @@
  */
 package app.morphe.patches.instagram.misc.theme
 
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatchContext
@@ -11,15 +12,23 @@ import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
+import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
+import app.morphe.patches.instagram.misc.settings.MERGED_LOGO_BAR
+import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.w3c.dom.Document
 import org.w3c.dom.Element
@@ -38,6 +47,9 @@ internal const val APPLY_THEME = "$ACCENT_THEME->apply(Landroid/content/Context;
  * one of Instagram's own strings.
  */
 internal const val ATTRIBUTES_STUB = "$ACCENT_THEME->attributes()Ljava/lang/String;"
+
+/** The extension's answer to the color Home's newer header tints its heart and Create buttons with (#8). */
+internal const val HEADER_ICONS = "$ACCENT_THEME->headerIcons(Landroid/content/Context;I)I"
 
 /** The activity every screen of Instagram's own extends, whose theme setup ends with Prism's overrides. */
 internal const val IG_FRAGMENT_ACTIVITY = "Lcom/instagram/base/activity/IgFragmentActivity;"
@@ -562,6 +574,106 @@ internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireA
             method.addInstructionsAtControlFlowLabel(at, "invoke-static/range { v$context .. v$context }, $APPLY_THEME")
         }
     }
+}
+
+private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
+
+/** A header constructor's store of its icon color: the store at [index], the Context the color was read through and the color's register. */
+internal class HeaderIconColor(val method: MutableMethod, val index: Int, val context: Int, val color: Int)
+
+/**
+ * Where Home's newer header ([MERGED_LOGO_BAR]) keeps the color it tints its heart and Create buttons
+ * with (#8). Its constructor reads that color through Context.getColor of the primary text color's
+ * resource, so neither the icon style's attributes nor the extension's color reads reach it, and the
+ * heart stayed white with Icons in the accent color on.
+ *
+ * The header tints each icon with the color over media when its state says so and with the icons'
+ * color when it doesn't, so the icons' color is the int field of the header some method of it reads
+ * where an if-eqz lands and hands straight to ImageView.setColorFilter(I), after at most a goto, that
+ * the constructor stores from Context.getColor's answer. The color over media is read on the fall
+ * through, and on 32-bit builds it comes from getColor too. Read from the header as it stands, since
+ * the logo's long press adds to the same constructor. Answers null with a warning when there's no such
+ * header or not exactly one such store: the other icons still take the color.
+ */
+internal fun BytecodePatchContext.findHeaderIconColor(): HeaderIconColor? {
+    if (classDefByOrNull(MERGED_LOGO_BAR) == null) {
+        patchLog.warning("$PATCH: no $MERGED_LOGO_BAR, so Home's newer header keeps its icon color")
+        return null
+    }
+    if (extensionMethod(HEADER_ICONS) == null) refuse("the extension has no public static $HEADER_ICONS")
+    val bar = mutableClassDefBy(MERGED_LOGO_BAR)
+    val tints = bar.methods.flatMapTo(HashSet()) { it.tintFields() }
+    val stores = bar.methods.filter { it.name == "<init>" }.flatMap { method ->
+        val code = method.code()
+        code.indices.mapNotNull { at -> method.colorStore(code, at, tints) }
+    }
+    if (stores.size != 1) {
+        patchLog.warning("$PATCH: ${stores.size} places keep Home's newer header's icon color, not one, so its heart stays Instagram's color")
+    }
+    return stores.singleOrNull()
+}
+
+/**
+ * The int fields of [MERGED_LOGO_BAR] this reads where an if-eqz lands and hands straight to
+ * ImageView.setColorFilter(I), after at most a goto.
+ */
+private fun Method.tintFields(): List<String> {
+    val code = code()
+    if (code.none { it.tints() }) return emptyList()
+    val flow = ControlFlow.of(this)
+    val off = code.indices.filter { code[it].opcode == Opcode.IF_EQZ }.flatMapTo(HashSet()) { at -> flow.normal[at].filter { it != at + 1 } }
+    return code.indices.mapNotNull { at ->
+        val field = (code[at] as? ReferenceInstruction)?.reference as? FieldReference
+        if (code[at].opcode != Opcode.IGET || field == null || field.definingClass != MERGED_LOGO_BAR || field.type != "I" || at !in off) {
+            return@mapNotNull null
+        }
+        var next = at + 1
+        val jump = code.getOrNull(next)?.opcode
+        if (jump == Opcode.GOTO || jump == Opcode.GOTO_16 || jump == Opcode.GOTO_32) next = flow.normal[next].single()
+        val call = code.getOrNull(next) as? FiveRegisterInstruction ?: return@mapNotNull null
+        field.key().takeIf { call.tints() && call.registerD == (code[at] as TwoRegisterInstruction).registerA }
+    }
+}
+
+/** A call to ImageView.setColorFilter(I). */
+private fun Instruction.tints(): Boolean =
+    opcode == Opcode.INVOKE_VIRTUAL && ((this as ReferenceInstruction).reference as MethodReference).let {
+        it.definingClass == IMAGE_VIEW && it.name == "setColorFilter" && it.parameterTypes.map(Any::toString) == listOf("I")
+    }
+
+/**
+ * The store at [at] when it puts one of [tints] on the header from Context.getColor's answer, the two
+ * instructions before it, with nothing jumping onto it and registers a plain call can name.
+ */
+private fun MutableMethod.colorStore(code: List<Instruction>, at: Int, tints: Set<String>): HeaderIconColor? {
+    val store = code[at]
+    if (store.opcode != Opcode.IPUT || ((store as ReferenceInstruction).reference as FieldReference).key() !in tints) return null
+    val color = (store as TwoRegisterInstruction).registerA
+    val result = code.getOrNull(at - 1)
+    val read = code.getOrNull(at - 2) as? FiveRegisterInstruction ?: return null
+    if (result?.opcode != Opcode.MOVE_RESULT || (result as OneRegisterInstruction).registerA != color) return null
+    if (read.opcode != Opcode.INVOKE_VIRTUAL || !read.calls(CONTEXT, "getColor") || read.registerCount != 2) return null
+    val context = read.registerC
+    if (context == color || context > 15 || color > 15 || at in jumpTargets()) return null
+    return HeaderIconColor(this, at, context, color)
+}
+
+private fun FieldReference.key(): String = "$definingClass->$name:$type"
+
+/**
+ * Hands Home's newer header's icon color to the extension as its constructor keeps it, so its heart
+ * and Create buttons take the picked icon color with Icons in the accent color on (#8). Leaves the
+ * header as it is when [findHeaderIconColor] finds no one store.
+ */
+internal fun BytecodePatchContext.tintHeaderIcons() {
+    val site = findHeaderIconColor() ?: return
+    site.method.addInstructions(
+        site.index,
+        """
+            invoke-static { v${site.context}, v${site.color} }, $HEADER_ICONS
+            move-result v${site.color}
+        """,
+    )
 }
 
 private fun BytecodePatchContext.extensionMethod(signature: String): Method? =

@@ -236,6 +236,40 @@ public class AccentThemeTest {
     }
 
     /**
+     * Home's newer header takes the icon color its theme holds for its heart and Create buttons with
+     * both switches on (#8), and keeps its own with either off, paused, or no icon attribute.
+     */
+    @Test
+    public void homesNewerHeaderTakesTheThemesIconColor() {
+        Context light = new ContextThemeWrapper(themed(THEMED + ".header", (name, type) ->
+                type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0),
+                android.R.style.Theme_Material_Light);
+        TypedValue held = new TypedValue();
+        assertTrue(light.getTheme().resolveAttribute(android.R.attr.colorForeground, held, true));
+        int own = 0xfff5f5f5;
+        assertFalse("the theme's icon color differs from the header's own", held.data == own);
+
+        assertEquals("off", own, AccentTheme.headerIcons(light, own));
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        assertEquals("icons off", own, AccentTheme.headerIcons(light, own));
+        Settings.ACCENT_ICONS.save(true);
+        assertEquals(held.data, AccentTheme.headerIcons(light, own));
+        assertEquals("no context", own, AccentTheme.headerIcons(null, own));
+        Context bare = new ContextThemeWrapper(themed(THEMED + ".header.bare", (name, type) -> 0), android.R.style.Theme_Material_Light);
+        assertEquals("no icon attribute", own, AccentTheme.headerIcons(bare, own));
+        assertEquals("already the icon color, not counted", held.data, AccentTheme.headerIcons(light, held.data));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", own, AccentTheme.headerIcons(light, own));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains(AccentTheme.HEADER_ICONS + " 1"));
+    }
+
+    /**
      * Paused, the icon style never goes on with both switches on, so the glyph colors it also sets
      * (#8) stay Instagram's, and nothing is looked up or counted.
      */
