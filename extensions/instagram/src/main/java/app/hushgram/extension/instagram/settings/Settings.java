@@ -483,6 +483,15 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_hidden_chats", "", false, false);
 
     /**
+     * The chats pinned to the top of the Messages inbox on this phone
+     * ({@link app.hushgram.extension.instagram.direct.PinnedChats}, #345), in the same lines as
+     * {@link #HIDDEN_CHATS}. A chat on the list is the switch, nothing is kept while HushGram is
+     * paused, and a backup leaves it out like the hidden chats.
+     */
+    public static final StringSetting PINNED_CHATS =
+            new StringSetting("hushgram_pinned_chats", "", false, false);
+
+    /**
      * Two quick taps on Messages' button, on the tab bar or at the top of Home, open the list of
      * hidden chats over Instagram, after the phone's lock while a messages lock is on
      * ({@link app.hushgram.extension.instagram.direct.HiddenChatsTap}, #358). Off to start.
@@ -1535,6 +1544,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting HIDE_NOTIFICATION_FEATURED =
             new BooleanSetting("hushgram_hide_notification_featured", FALSE);
+
+    /**
+     * The red dot on the heart when nothing but Featured is behind it: the badge's dot count is
+     * answered 0 while no like, comment, follow or tag is counted
+     * ({@link app.hushgram.extension.instagram.profile.ProfileSuggestions#featuredDot}, #189). Read
+     * each time the badge counts are built, so off or paused, it's back with the next one. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEATURED_DOT =
+            new BooleanSetting("hushgram_hide_featured_dot", FALSE);
 
     /**
      * The row of story highlights on profiles

@@ -137,7 +137,30 @@ public final class ProfileSuggestions {
      * after parsing it, on the same thread, so the row checked there is this one. Weak, since the parser
      * also serves replies that never ask.
      */
-    private static final ThreadLocal<WeakReference<Object>> lastSuggestion = new ThreadLocal<>();
+    private static final ThreadLocal<Marked> lastSuggestion = new ThreadLocal<>();
+
+    /**
+     * The words in a Threads row's name that make it something you did or were part of: a reply, a
+     * like, a mention, a repost, a quote, a follow, a tag, a comment or a message. A Threads row
+     * without one is Instagram nudging you toward Threads ("posted a thread you might like"), which
+     * Hide Featured in notifications takes too (#259).
+     */
+    static final List<String> THREADS_ACTIVITY_WORDS = Collections.unmodifiableList(Arrays.asList(
+            "reply", "replies", "like", "likes", "liked", "mention", "mentions", "repost", "reposts", "quote", "quotes",
+            "follow", "follower", "followers", "tag", "tagged", "comment", "comments", "message", "reaction", "reactions"));
+
+    /** A row the parser just read: what it is, and the switches that take it out of the list. */
+    private static final class Marked {
+        final WeakReference<Object> row;
+        final boolean suggestion;
+        final boolean featured;
+
+        Marked(Object row, boolean suggestion, boolean featured) {
+            this.row = new WeakReference<>(row);
+            this.suggestion = suggestion;
+            this.featured = featured;
+        }
+    }
 
     /** What's counted when the row's text buttons take the hidden button's space, and when they give it back. */
     static final String ROW_SPREAD = ActionRow.ROW_SPREAD;
@@ -315,7 +338,9 @@ public final class ProfileSuggestions {
         try {
             HookStatus.invoked(FamilyNames.PROFILE_SUGGESTIONS);
             FeedFilterCounters.sawKind(NOTIFICATIONS, type == null ? NO_TYPE : type);
-            lastSuggestion.set(row != null && isSuggestion(type) ? new WeakReference<>(row) : null);
+            boolean suggestion = row != null && isSuggestion(type);
+            boolean featured = row != null && isFeaturedNudge(type);
+            lastSuggestion.set(suggestion || featured ? new Marked(row, suggestion, featured) : null);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
         }
@@ -337,27 +362,68 @@ public final class ProfileSuggestions {
     }
 
     /**
+     * Whether a row of this kind is Instagram nudging you toward Threads: a Threads row whose name has
+     * none of {@link #THREADS_ACTIVITY_WORDS}. The server names each row, and "<name> posted a thread you
+     * might like" arrives under a name no suggestion word catches, so Hide Featured in notifications
+     * takes every Threads row that isn't something you took part in (#259).
+     */
+    static boolean isFeaturedNudge(String type) {
+        if (type == null || !type.startsWith(THREADS_PREFIX)) return false;
+        for (String word : type.substring(THREADS_PREFIX.length()).split("_")) {
+            if (THREADS_ACTIVITY_WORDS.contains(word)) return false;
+        }
+        return true;
+    }
+
+    /**
      * Injected where the notifications' reply adds each row it parsed to its list, the null check
      * right after. Answers null, which that check skips, for a row {@link #notificationParsed} found
-     * to be a suggestion while Hide suggestions in notifications is on. Any other row, the switch off,
-     * paused or unready, or anything going wrong, answers [row] as it came. Never throws.
+     * to be a suggestion while Hide suggestions in notifications is on, or a Threads nudge while Hide
+     * Featured in notifications is on. Any other row, the switch off, paused or unready, or anything
+     * going wrong, answers [row] as it came. Never throws.
      */
     public static Object keepNotification(Object row) {
-        return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn);
+        return keepNotification(row, ProfileSuggestions::notificationSuggestionsOn, ProfileSuggestions::featuredOn);
     }
 
     static Object keepNotification(Object row, BooleanSupplier on) {
+        return keepNotification(row, on, () -> false);
+    }
+
+    static Object keepNotification(Object row, BooleanSupplier on, BooleanSupplier featuredOn) {
         if (row == null) return null;
+        Marked marked;
         try {
-            WeakReference<Object> marked = lastSuggestion.get();
-            if (marked == null || marked.get() != row) return row;
+            marked = lastSuggestion.get();
+            if (marked == null || marked.row.get() != row) return row;
             lastSuggestion.set(null);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.PROFILE_SUGGESTIONS, SUGGESTION_ROWS, failure);
             return row;
         }
-        return decides(SUGGESTION_ROWS, on) ? null : row;
+        if (marked.suggestion && decides(SUGGESTION_ROWS, on)) return null;
+        if (marked.featured && decides(FEATURED, featuredOn)) return null;
+        return row;
     }
+
+    /**
+     * Injected where the notifications' list builder is about to turn a row into a line, with the
+     * name of the section the server put it in. True skips the row while Hide Featured in
+     * notifications is on and the section is the Featured one, wherever the row came from (the reply,
+     * the phone's saved copy, a page loaded as you scroll), and with it the section's header, which
+     * the builder only adds beside a row. False otherwise, or when anything goes wrong. Never throws.
+     */
+    public static boolean skipsFeaturedRow(String section) {
+        return skipsFeaturedRow(section, ProfileSuggestions::featuredOn);
+    }
+
+    static boolean skipsFeaturedRow(String section, BooleanSupplier on) {
+        if (!FEATURED_SECTION.equals(section)) return false;
+        return hides(FEATURED, on);
+    }
+
+    /** The name the server gives the Featured section of the notifications, on each row it holds. */
+    static final String FEATURED_SECTION = "priority_stories";
 
     /**
      * Injected where the notifications' reply keeps the rows of its Featured section (#259). Answers an
@@ -430,6 +496,29 @@ public final class ProfileSuggestions {
 
     private static boolean notificationSuggestionsOn() {
         return Utils.settingsReady() && Settings.HIDE_NOTIFICATION_SUGGESTIONS.get();
+    }
+
+    /** What's counted when the heart's dot is taken off because only Featured is behind it. */
+    static final String FEATURED_DOT = "Featured dot on the heart";
+
+    /**
+     * Injected where the account's badge counts are built from the server's numbers (#189). [dot] is
+     * the count behind the heart's red dot, [activity] the sum of the likes, comments, comment likes,
+     * follows and tags counts. A dot with none of those behind it is the server pointing at something
+     * Featured, so it answers 0 for it while Keep Featured off the heart's dot is on. Any real activity,
+     * the switch off, paused or unready, or anything going wrong answers [dot] as it came. Never throws.
+     */
+    public static int featuredDot(int dot, int activity) {
+        return featuredDot(dot, activity, ProfileSuggestions::featuredDotOn);
+    }
+
+    static int featuredDot(int dot, int activity, BooleanSupplier on) {
+        if (dot <= 0 || activity > 0) return dot;
+        return hides(FEATURED_DOT, on) ? 0 : dot;
+    }
+
+    private static boolean featuredDotOn() {
+        return Utils.settingsReady() && Settings.HIDE_FEATURED_DOT.get();
     }
 
     private static boolean featuredOn() {

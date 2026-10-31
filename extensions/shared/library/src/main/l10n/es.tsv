@@ -401,6 +401,8 @@ Hide suggestions in notifications	Ocultar sugerencias en notificaciones
 Takes rows that only suggest something off your notifications, like a thread from an account you don't follow or someone you might know. Likes, comments, mentions and new followers stay.	Quita de tus notificaciones las filas que solo sugieren algo, como un hilo de una cuenta que no sigues o alguien a quien quizá conozcas. Los me gusta, comentarios, menciones y nuevos seguidores se quedan.
 Hide Featured in notifications	Ocultar Destacado en las notificaciones
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	Quita la sección Destacado de la parte superior de tus notificaciones, las publicaciones e hilos que Instagram elige para mostrarte ahí. Todo lo que hay debajo se queda.
+Keep Featured off the heart's dot	Que Destacado no encienda el punto del corazón
+Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	Evita que el punto rojo del corazón aparezca solo por Destacado. Los me gusta, los comentarios y los seguidores nuevos lo siguen encendiendo.
 Hide highlights	Ocultar historias destacadas
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	Quita la fila de historias destacadas de los perfiles, incluido el tuyo. Las biografías, los contadores y las publicaciones se quedan, y también Añadir a destacadas en tus historias.
 Hide the Threads button	Ocultar el botón de Threads
@@ -886,6 +888,11 @@ Hide single chats. A hidden chat leaves your inbox and its notifications don't p
 Double-tap Messages for hidden chats	Doble toque en Mensajes para los chats ocultos
 Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	Dos toques rápidos en el botón de Mensajes, en la barra de pestañas o arriba en Inicio, abren tus chats ocultos. Si hay un bloqueo activado, primero lo pide. Un toque abre Mensajes como siempre.
 Open a chat in Instagram, then come back here to hide it.	Abre un chat en Instagram y vuelve aquí para ocultarlo.
+Pinned chats	Chats fijados
+Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	Mantiene los chats que elijas arriba en tu bandeja. Los fijados se quedan en este teléfono y el resto de chats sigue el orden de Instagram.
+Open a chat in Instagram, then come back here to pin it.	Abre un chat en Instagram y vuelve aquí para fijarlo.
+%1$s is pinned	%1$s está fijado
+%1$s is unpinned	%1$s ya no está fijado
 %1$s is hidden	%1$s está oculto
 %1$s is shown again	%1$s se muestra de nuevo
 Pick the playback quality with a tab long press	Elegir la calidad de reproducción al mantener pulsada una pestaña

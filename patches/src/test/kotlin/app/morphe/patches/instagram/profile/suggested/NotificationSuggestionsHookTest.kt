@@ -54,7 +54,7 @@ class NotificationSuggestionsHookTest {
         val declared = ExtensionDex.classDef(NOTIFICATION_PARSED.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION, FEATURED_ROWS, FEATURED_HEADER)) {
+        for (hook in listOf(NOTIFICATION_PARSED, KEEP_NOTIFICATION, FEATURED_ROWS, FEATURED_HEADER, SKIPS_FEATURED_ROW, FEATURED_DOT)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -76,7 +76,7 @@ class NotificationSuggestionsHookTest {
             val holders = mutableListOf<ClassDef>()
             FixtureDex.forEach(bundle) { dex ->
                 for (classDef in dex.classes) {
-                    if (classDef.methods.any { m -> m.code().any { it.string() == NOTIF_NAME_KEY || it.string() == OLD_ROWS_KEY } }) {
+                    if (classDef.methods.any { m -> m.code().any { it.string() == NOTIF_NAME_KEY || it.string() == OLD_ROWS_KEY || it.string() == FEATURED_ROWS_KEY || it.string() == "activity_feed_dot_badge" } }) {
                         holders += ImmutableClassDef.of(classDef)
                     }
                 }
@@ -90,6 +90,20 @@ class NotificationSuggestionsHookTest {
             context.noteNotificationRows(rows)
             context.keepNotificationRows(reply)
             context.hideFeaturedSection(reply)
+            val builder = context.findFeaturedRowSkip()
+            val before = builder.method.code().size
+            context.skipFeaturedRows(builder)
+            val built = context.mutableClassDefBy(builder.type).methods.single { it.name == builder.method.name && it.parameterTypes == builder.method.parameterTypes }
+            assertEquals("${bundle.name}: the skip is four instructions", before + 4, built.code().size)
+            assertEquals("${bundle.name}: one skip call", 1, built.code().count { it.referenceText() == SKIPS_FEATURED_ROW })
+
+            val badge = context.findBadgeCounts()
+            val badgeBefore = badge.method.code().size
+            context.keepFeaturedOffTheDot(badge)
+            val counted = context.mutableClassDefBy(badge.type).methods.single { it.name == badge.method.name && it.parameterTypes == badge.method.parameterTypes }
+            assertEquals("${bundle.name}: the dot hook is six instructions", badgeBefore + 6, counted.code().size)
+            assertEquals("${bundle.name}: one dot call", 1, counted.code().count { it.referenceText() == FEATURED_DOT })
+            assertEquals("${bundle.name}: five activity counts", 5, badge.activity.size)
 
             assertMarked(bundle.name, context.parser(rows.type, rows.parameters), rows)
             assertDropped(bundle.name, context.parser(reply.type, reply.parameters), rows.type, reply.checks.size)

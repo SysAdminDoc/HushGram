@@ -803,4 +803,87 @@ public class ProfileSuggestionsTest {
         String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
         assertTrue(missing, missing.contains("'" + ProfileSuggestions.FEATURED + "'"));
     }
+
+    /**
+     * #259: with Hide Featured in notifications on, a Threads row that is Instagram nudging you toward
+     * Threads ("posted a thread you might like") leaves the list, even in a section with no Featured
+     * header. A Threads reply, like or follow, and every other row, stay. Its own switch only.
+     */
+    @Test
+    public void aThreadsNudgeGoesWithTheFeaturedSwitch() {
+        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_app_new_post_from_following"));
+        assertTrue(ProfileSuggestions.isFeaturedNudge("ig_text_app_thread_you_may_enjoy"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_app_reply"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_app_like_milestone"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("ig_text_app_new_follower"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge("comment"));
+        assertFalse(ProfileSuggestions.isFeaturedNudge(null));
+
+        Object nudge = new Object();
+        Object reply = new Object();
+        Settings.HIDE_NOTIFICATION_SUGGESTIONS.save(true);
+        ProfileSuggestions.notificationParsed(nudge, "ig_text_app_thread_you_may_enjoy");
+        assertSame("the suggestions switch alone", nudge, ProfileSuggestions.keepNotification(nudge));
+
+        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
+        ProfileSuggestions.notificationParsed(nudge, "ig_text_app_thread_you_may_enjoy");
+        assertNull(ProfileSuggestions.keepNotification(nudge));
+        ProfileSuggestions.notificationParsed(reply, "ig_text_app_reply");
+        assertSame(reply, ProfileSuggestions.keepNotification(reply));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ProfileSuggestions.notificationParsed(nudge, "ig_text_app_thread_you_may_enjoy");
+        assertSame("paused", nudge, ProfileSuggestions.keepNotification(nudge));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.HIDE_NOTIFICATION_FEATURED.save(false);
+        ProfileSuggestions.notificationParsed(nudge, "ig_text_app_thread_you_may_enjoy");
+        assertSame("off", nudge, ProfileSuggestions.keepNotification(nudge));
+    }
+
+    /** #259: the list builder skips a row tagged priority_stories only while the Featured switch is on. */
+    @Test
+    public void theBuilderSkipsFeaturedRowsOnlyWithTheFeaturedSwitch() {
+        assertFalse("off", ProfileSuggestions.skipsFeaturedRow("priority_stories"));
+        Settings.HIDE_NOTIFICATION_FEATURED.save(true);
+        assertTrue(ProfileSuggestions.skipsFeaturedRow("priority_stories"));
+        assertFalse(ProfileSuggestions.skipsFeaturedRow("new_stories"));
+        assertFalse(ProfileSuggestions.skipsFeaturedRow("old_stories"));
+        assertFalse(ProfileSuggestions.skipsFeaturedRow(null));
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.skipsFeaturedRow("priority_stories"));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.skipsFeaturedRow("priority_stories")));
+        assertFalse("a switch that throws", ProfileSuggestions.skipsFeaturedRow("priority_stories", THROWS));
+    }
+
+    /**
+     * #189: the heart's dot count is zeroed only while Keep Featured off the heart's dot is on and no
+     * like, comment, follow or tag is counted. Any activity keeps the dot, as do off, paused, unready
+     * and a switch that throws. A count of 0 stays 0.
+     */
+    @Test
+    public void theHeartsDotGoesOnlyWhenNothingButFeaturedIsBehindIt() {
+        assertEquals("off", 1, ProfileSuggestions.featuredDot(1, 0));
+        Settings.HIDE_FEATURED_DOT.save(true);
+        assertEquals(0, ProfileSuggestions.featuredDot(1, 0));
+        assertEquals("a like", 1, ProfileSuggestions.featuredDot(1, 1));
+        assertEquals("several", 3, ProfileSuggestions.featuredDot(3, 7));
+        assertEquals("no dot", 0, ProfileSuggestions.featuredDot(0, 0));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.FEATURED_DOT + " 1"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1, ProfileSuggestions.featuredDot(1, 0));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("unready", 1, ProfileSuggestions.featuredDot(1, 0)));
+        assertEquals("a switch that throws", 1, ProfileSuggestions.featuredDot(1, 0, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FEATURED_DOT + "'"));
+    }
 }

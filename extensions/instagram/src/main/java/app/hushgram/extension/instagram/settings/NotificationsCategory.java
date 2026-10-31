@@ -66,6 +66,10 @@ final class NotificationsCategory {
                     L10n.t("Hide Featured in notifications"),
                     L10n.t("Takes the Featured section off the top of your notifications, the posts and threads "
                             + "Instagram picks to show you there. Everything under it stays.")));
+            notifications.addPreference(toggle(context, Settings.HIDE_FEATURED_DOT,
+                    L10n.t("Keep Featured off the heart's dot"),
+                    L10n.t("Stops the red dot on the heart from showing up for Featured alone. Likes, comments and "
+                            + "new followers still light it.")));
         }
     }
 
@@ -73,6 +77,7 @@ final class NotificationsCategory {
     static boolean movedFromProfiles(String key) {
         return Settings.HIDE_FOLLOW_BACK_SUGGESTIONS.key.equals(key)
                 || Settings.HIDE_NOTIFICATION_SUGGESTIONS.key.equals(key)
-                || Settings.HIDE_NOTIFICATION_FEATURED.key.equals(key);
+                || Settings.HIDE_NOTIFICATION_FEATURED.key.equals(key)
+                || Settings.HIDE_FEATURED_DOT.key.equals(key);
     }
 }

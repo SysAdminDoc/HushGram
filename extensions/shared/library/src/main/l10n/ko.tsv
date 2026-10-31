@@ -402,6 +402,8 @@ Hide suggestions in notifications	알림의 추천 숨기기
 Takes rows that only suggest something off your notifications, like a thread from an account you don't follow or someone you might know. Likes, comments, mentions and new followers stay.	팔로우하지 않는 계정의 스레드나 알 수도 있는 사람처럼 추천만 하는 행을 알림에서 없앱니다. 좋아요, 댓글, 언급, 새 팔로워는 그대로 남습니다.
 Hide Featured in notifications	알림에서 주요 항목 숨기기
 Takes the Featured section off the top of your notifications, the posts and threads Instagram picks to show you there. Everything under it stays.	알림 맨 위의 주요 항목 섹션, 즉 Instagram이 골라서 보여 주는 게시물과 스레드를 없앱니다. 그 아래 항목은 그대로 남습니다.
+Keep Featured off the heart's dot	주요 항목 때문에 하트에 점이 뜨지 않게 하기
+Stops the red dot on the heart from showing up for Featured alone. Likes, comments and new followers still light it.	주요 항목만으로 하트에 빨간 점이 나타나지 않게 합니다. 좋아요, 댓글, 새 팔로워는 계속 점을 표시합니다.
 Hide highlights	하이라이트 숨기기
 Takes the row of story highlights off profiles, yours included. Bios, counts and posts stay, and so does Add to highlight on your stories.	모든 프로필에서 스토리 하이라이트 목록을 숨깁니다. 내 프로필에도 적용됩니다. 프로필 소개, 팔로워 & 팔로잉 수 및 게시물은 그대로 유지되며, 내 스토리의 ‘하이라이트에 추가’ 기능도 그대로 사용할 수 있습니다
 Hide the Threads button	Threads 버튼 숨기기
@@ -885,6 +887,11 @@ Hide single chats. A hidden chat leaves your inbox and its notifications don't p
 Double-tap Messages for hidden chats	메시지를 두 번 탭해 숨긴 채팅 열기
 Two quick taps on the Messages button, on the tab bar or at the top of Home, open your hidden chats. While a lock is on, it asks for it first. One tap opens Messages as usual.	탭 바나 홈 상단의 메시지 버튼을 빠르게 두 번 탭하면 숨긴 채팅이 열립니다. 잠금이 켜져 있으면 먼저 잠금을 확인합니다. 한 번 탭하면 평소처럼 메시지가 열립니다.
 Open a chat in Instagram, then come back here to hide it.	Instagram에서 채팅을 연 다음 이곳으로 돌아와 숨기세요.
+Pinned chats	고정한 채팅
+Keeps the chats you pick at the top of your inbox. The pins stay on this phone, and Instagram's own order holds for every other chat.	고른 채팅을 받은 메시지함 맨 위에 둡니다. 고정은 이 휴대폰에만 저장되고, 나머지 채팅은 Instagram의 순서를 따릅니다.
+Open a chat in Instagram, then come back here to pin it.	Instagram에서 채팅을 연 다음 여기로 돌아와 고정하세요.
+%1$s is pinned	%1$s 채팅을 고정했습니다
+%1$s is unpinned	%1$s 채팅 고정을 풀었습니다
 %1$s is hidden	%1$s 채팅을 숨겼습니다
 %1$s is shown again	%1$s 채팅을 다시 표시합니다
 Pick the playback quality with a tab long press	탭을 길게 탭하여 재생 화질 선택

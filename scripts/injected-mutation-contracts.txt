@@ -1703,6 +1703,16 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->hidesSu
 # NotificationSuggestionsHookTest checks on the three 452 builds where each call sits and what it reads.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->notificationParsed(Ljava/lang/Object;Ljava/lang/String;)V in instance (L*;)Ljava/lang/Object; holding notif_name story_type
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->keepNotification(Ljava/lang/Object;)Ljava/lang/Object; in instance (L*;)Ljava/lang/Object; sites 5 holding new_stories old_stories
+# Hide Featured in notifications (#259) also asks ProfileSuggestions.skipsFeaturedRow with each row's
+# section tag where the list builder (LX/0BUR.A00 on 453) tests it against priority_stories, and goes
+# to the loop's next row on a yes. Left out, Featured rows the reply hook never sees (saved or paged
+# ones) still draw.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->skipsFeaturedRow(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;L*;L*;L*;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Ljava/util/List;ZZ)L*; holding priority_stories new_stories
+# Keep Featured off the heart's dot (#189) hands the dot's count and the sum of the likes, comments,
+# comment likes, follows and tags counts to ProfileSuggestions.featuredDot before the badge counts are
+# boxed (LX/04rE.EN9 on 453, the one method loading activity_feed_dot_badge and the five counts), and
+# keeps the answer as the dot's count. Left out, a Featured-only dot still lights the heart.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->featuredDot(II)I in instance (L*;)V holding activity_feed_dot_badge comment_likes relationships usertags
 
 # Hide highlights asks ProfileHighlights before the same row list (0EBd.A04 on 452)
 # adds the row of story highlights, in place of its read of the tray's row type. It's called once

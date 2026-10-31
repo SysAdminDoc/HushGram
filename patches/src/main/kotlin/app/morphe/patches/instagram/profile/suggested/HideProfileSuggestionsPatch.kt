@@ -99,6 +99,8 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         val followBackSection = findFollowBackSectionOrWarn()
         val notificationSuggestions = findNotificationSuggestionsOrWarn()
         val featured = notificationSuggestions?.let { (_, lists) -> findFeaturedSectionOrWarn(lists) }
+        val featuredRows = findFeaturedRowSkipOrWarn()
+        val badge = findBadgeCountsOrWarn()
         hideProfileSuggestions(sites)
         hideFollowListSuggestions(followList)
         suggestedTab?.let { hideSuggestedTab(it) }
@@ -106,6 +108,8 @@ val hideProfileSuggestionsPatch = bytecodePatch(
         hideCompletionCards(completion)
         hideFollowBacks(followBacks)
         followBackSection?.let { hideFollowBackSection(it) }
+        featuredRows?.let { skipFeaturedRows(it) }
+        badge?.let { keepFeaturedOffTheDot(it) }
         notificationSuggestions?.let { (rows, lists) ->
             noteNotificationRows(rows)
             keepNotificationRows(lists)

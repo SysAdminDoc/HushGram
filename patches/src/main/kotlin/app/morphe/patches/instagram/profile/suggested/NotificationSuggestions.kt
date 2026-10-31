@@ -5,6 +5,8 @@
 package app.morphe.patches.instagram.profile.suggested
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -31,6 +33,8 @@ internal const val NOTIFICATION_PARSED = "$PROFILE_SUGGESTIONS->notificationPars
 internal const val KEEP_NOTIFICATION = "$PROFILE_SUGGESTIONS->keepNotification(Ljava/lang/Object;)Ljava/lang/Object;"
 internal const val FEATURED_ROWS = "$PROFILE_SUGGESTIONS->featuredRows(Ljava/util/List;)Ljava/util/List;"
 internal const val FEATURED_HEADER = "$PROFILE_SUGGESTIONS->featuredHeader(Ljava/lang/Object;)Ljava/lang/Object;"
+internal const val SKIPS_FEATURED_ROW = "$PROFILE_SUGGESTIONS->skipsFeaturedRow(Ljava/lang/String;)Z"
+internal const val FEATURED_DOT = "$PROFILE_SUGGESTIONS->featuredDot(II)I"
 
 /** The reply's keys of the Featured section at the top of the notifications (#259): its rows, and its header. */
 internal const val FEATURED_ROWS_KEY = "priority_stories"
@@ -354,4 +358,176 @@ private fun Instruction.writes(register: Int): Boolean {
     val destination = (this as? OneRegisterInstruction)?.registerA ?: return false
     if (this is RegisterRangeInstruction) return false
     return opcode.setsRegister() && (destination == register || (opcode.setsWideRegister() && destination + 1 == register))
+}
+
+/**
+ * Where the list builder tests a row's section tag against [FEATURED_ROWS_KEY]: the const-string, the
+ * register the tag is read into (free there, the read writes it), the row it is read from, the tag's
+ * field, and the loop's next-row label the branch right before already goes to when a row built nothing.
+ */
+internal class FeaturedRowSite(val type: String, val method: Method, val at: Int, val tag: Int, val row: Int, val field: String, val next: Int)
+
+/**
+ * Finds the notifications' list builder (#259): the one method that loads [FEATURED_ROWS_KEY], reads a
+ * String field of a row and compares the two with `String.equals`. Rows tagged with the Featured key
+ * can come from the reply, the cache or a later page, so this one place covers them all. The branch
+ * right before it has to go to the loop's `Iterator.hasNext()`, which is where a skipped row goes.
+ */
+internal fun BytecodePatchContext.findFeaturedRowSkip(): FeaturedRowSite {
+    val sites = classesLoadingString(FEATURED_ROWS_KEY).flatMap { classDef ->
+        classDef.methods.mapNotNull { method -> featuredRowTest(method) }
+    }
+    return sites.singleOrNull() ?: refuse("expected one list builder testing a row against \"$FEATURED_ROWS_KEY\", found ${sites.size}")
+}
+
+private fun BytecodePatchContext.featuredRowTest(method: Method): FeaturedRowSite? {
+    val code = method.implementation?.instructions?.toList() ?: return null
+    val hits = code.indices.filter { at ->
+        stringLoadedAt(code, at) == FEATURED_ROWS_KEY && code.getOrNull(at + 1)?.opcode == Opcode.IGET_OBJECT &&
+            (code[at + 1].reference() as FieldReference).type == STRING &&
+            (code.getOrNull(at + 2)?.reference() as? MethodReference)?.let { it.name == "equals" && it.definingClass == STRING } == true
+    }
+    val at = hits.singleOrNull() ?: return null
+    val read = code[at + 1] as TwoRegisterInstruction
+    val before = code.getOrNull(at - 1) ?: return null
+    if (before.opcode != Opcode.IF_EQZ && before.opcode != Opcode.IF_NEZ) return null
+    val next = ControlFlow.of(method).normal[at - 1].firstOrNull() ?: return null
+    val step = (code[next].reference() as? MethodReference) ?: return null
+    if ((code[next].opcode != Opcode.INVOKE_INTERFACE && code[next].opcode != Opcode.INVOKE_INTERFACE_RANGE) || step.name != "hasNext") return null
+    if (read.registerA > 15 || read.registerB > 255) return null
+    return FeaturedRowSite(method.definingClass, method, at, read.registerA, read.registerB, (code[at + 1].reference() as FieldReference).text(), next)
+}
+
+/** The builder's site, or null with a warning, so the rest of the patch (and the reply hook) still goes in. */
+internal fun BytecodePatchContext.findFeaturedRowSkipOrWarn(): FeaturedRowSite? = try {
+    findFeaturedRowSkip()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without skipping Featured rows in the list builder.")
+    null
+}
+
+/**
+ * Asks [SKIPS_FEATURED_ROW] about each row's section tag as the builder reads it and, on a yes, goes
+ * to the loop's next row before the row is drawn. The tag's register is free there: it is written by
+ * the read and the builder's own compare reads it again after.
+ */
+internal fun BytecodePatchContext.skipFeaturedRows(site: FeaturedRowSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.method.name && it.parameterTypes == site.method.parameterTypes
+    }
+    val tag = site.tag
+    method.addInstructionsAtControlFlowLabel(
+        site.at,
+        """
+            iget-object v$tag, v${site.row}, ${site.field}
+            invoke-static { v$tag }, $SKIPS_FEATURED_ROW
+            move-result v$tag
+            if-nez v$tag, :next
+        """,
+        ExternalLabel("next", method.getInstruction(site.next)),
+    )
+}
+
+private const val DOT_KEY = "activity_feed_dot_badge"
+private val ACTIVITY_KEYS = listOf("comments", "likes", "comment_likes", "relationships", "usertags")
+private const val BADGE_REACH = 4
+
+/**
+ * Where the badge counts are built (#189): the first count's boxing, where the hook goes in, the
+ * dot's register, the five activity counts' registers, and the free register the sum is made in.
+ */
+internal class BadgeSite(val type: String, val method: Method, val at: Int, val dot: Int, val activity: List<Int>, val temp: Int)
+
+/**
+ * Finds the method that builds the account's badge counts from the server's numbers (LX/04rE.EN9 on
+ * 453): the one loading "activity_feed_dot_badge" with "likes", "comments", "comment_likes",
+ * "relationships" and "usertags". Each count is boxed right before its key is loaded, so the register
+ * of the boxed int is the count's. The hook goes in before the first boxing, where every count is
+ * still an int, and sums into the register the first key is loaded into, which nothing reads or
+ * writes before that load.
+ */
+internal fun BytecodePatchContext.findBadgeCounts(): BadgeSite {
+    val methods = classesLoadingString(DOT_KEY).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            method.name != "<clinit>" &&
+            (listOf(DOT_KEY) + ACTIVITY_KEYS).all { loadsString(method, it) }
+        }
+    }
+    val method = methods.singleOrNull()
+        ?: refuse("expected one method building the badge counts from \"$DOT_KEY\" and ${ACTIVITY_KEYS.joinToString()}, found ${methods.size}: ${methods.joinToString { "${it.definingClass}->${it.name}${it.parameterTypes}" }}")
+    val where = "${method.definingClass}->${method.name}"
+    val code = method.implementation!!.instructions.toList()
+    val boxed = (listOf(DOT_KEY) + ACTIVITY_KEYS).map { key ->
+        val load = code.indices.filter { stringLoadedAt(code, it) == key }.singleOrNull()
+            ?: refuse("$where doesn't load \"$key\" once")
+        val move = code.getOrNull(load - 1)
+        val box = code.getOrNull(load - 2)
+        val call = (box?.reference() as? MethodReference)
+        if (move?.opcode != Opcode.MOVE_RESULT_OBJECT || box == null || box.opcode !in BOXING || call?.name != "valueOf" ||
+            call.definingClass != "Ljava/lang/Integer;"
+        ) {
+            refuse("$where doesn't box the count right before \"$key\"")
+        }
+        val register = when (box) {
+            is FiveRegisterInstruction -> box.registerC
+            is RegisterRangeInstruction -> box.startRegister
+            else -> refuse("$where boxes \"$key\" in a way this hook can't read")
+        }
+        Triple(key, load - 2, register)
+    }
+    val dot = boxed.first().third
+    val activity = boxed.drop(1).map { it.third }
+    if ((activity + dot).any { it > 255 }) refuse("$where keeps the badge counts past v255")
+    if (dot > 15) refuse("$where keeps the dot's count past v15")
+    val at = boxed.minOf { it.second }
+    val firstLoad = code.indices.first { stringLoadedAt(code, it) == boxed[1].first }
+    val temp = (code[firstLoad] as OneRegisterInstruction).registerA
+    if (temp > 15 || temp == dot || temp in activity) refuse("$where has no free register for the badge sum")
+    val between = at until firstLoad
+    if (between.any { code[it].touches(temp) }) refuse("$where uses v$temp before it loads \"${boxed[1].first}\"")
+    for ((key, boxAt, register) in boxed) {
+        if ((at until boxAt).any { code[it].writes(register) }) refuse("$where writes the count of \"$key\" before boxing it")
+    }
+    return BadgeSite(method.definingClass, method, at, dot, activity, temp)
+}
+
+private val BOXING = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
+
+/** Whether this instruction reads or writes [register]. */
+private fun Instruction.touches(register: Int): Boolean = when (this) {
+    is FiveRegisterInstruction -> (registerCount > 0 && registerC == register) || (registerCount > 1 && registerD == register) ||
+        (registerCount > 2 && registerE == register) || (registerCount > 3 && registerF == register) ||
+        (registerCount > 4 && registerG == register)
+    is RegisterRangeInstruction -> register in startRegister until startRegister + registerCount
+    is TwoRegisterInstruction -> registerA == register || registerB == register
+    is OneRegisterInstruction -> registerA == register
+    else -> false
+}
+
+/** The badge site, or null with a warning, so the rest of the patch still goes in. */
+internal fun BytecodePatchContext.findBadgeCountsOrWarn(): BadgeSite? = try {
+    findBadgeCounts()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without keeping Featured off the heart's dot.")
+    null
+}
+
+/**
+ * Hands the dot's count and the sum of the five activity counts to [FEATURED_DOT] before the first
+ * is boxed, and keeps the answer as the dot's count: zero when the dot has nothing but Featured
+ * behind it and the switch is on, the count as it came otherwise.
+ */
+internal fun BytecodePatchContext.keepFeaturedOffTheDot(site: BadgeSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.method.name && it.parameterTypes == site.method.parameterTypes
+    }
+    method.addInstructionsAtControlFlowLabel(
+        site.at,
+        """
+            add-int v${site.temp}, v${site.activity.first()}, v${site.activity[1]}
+            ${site.activity.drop(2).joinToString("\n") { "add-int v${site.temp}, v${site.temp}, v$it" }}
+            invoke-static { v${site.dot}, v${site.temp} }, $FEATURED_DOT
+            move-result v${site.dot}
+        """,
+    )
 }

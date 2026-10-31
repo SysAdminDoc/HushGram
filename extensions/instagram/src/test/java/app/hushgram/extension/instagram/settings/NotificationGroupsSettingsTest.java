@@ -221,7 +221,7 @@ public class NotificationGroupsSettingsTest {
                 page.getPreferenceScreen().findPreference(Settings.HIDE_NOTIFICATION_FEATURED.key));
         assertNotNull(section);
         assertEquals("Notifications", section.getTitle().toString());
-        assertEquals(3, section.getPreferenceCount());
+        assertEquals(4, section.getPreferenceCount());
         assertEquals("Take suggestions and Featured off the Notifications page.",
                 ((HushgramPreferenceFragment.Heading) section).intro);
     }
