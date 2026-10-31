@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Stop videos looping` is a new patch under Playback. Feed videos and reels stop on their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on. It starts off. Asked for in #248 and #175.
 * **Instagram:** `Hide Subscribe on profiles` and `Hide the arrow at the end of the buttons` are new under Profiles. The other buttons fill the row, and the arrow's menu goes with it. Both start off. Asked for in #248.
 * **Instagram:** `Skip the contacts and location popups` is a new patch. With its switch on under Ads and privacy, the screens asking you to sync contacts and turn on location stop opening at every start. It starts off. Asked for in #295, #329 and #421.
 * **Instagram:** `Emoji style` gets `Emoji pack` under Layout. Keep your phone's emoji, download Twemoji, OpenMoji or Blobmoji, or pick a color emoji font, then restart Instagram. A pack only switches in once its download checks out. Asked for in #166.

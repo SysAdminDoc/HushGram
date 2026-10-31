@@ -92,6 +92,7 @@ public final class FamilyNames {
     public static final String FONT = "Font";
     public static final String NOTIFICATION_GROUPS = "Group Instagram's notifications";
     public static final String HDR_BOOST = "Turn off HDR brightness boosts";
+    public static final String STOP_LOOPING = "Stop videos looping";
     public static final String MEDIA_CACHE = "Clear the media cache";
     public static final String FRIENDSHIP_STATUS = "Show if a profile follows you";
     public static final String PROFILE_SUGGESTIONS = "Hide suggested people on profiles";

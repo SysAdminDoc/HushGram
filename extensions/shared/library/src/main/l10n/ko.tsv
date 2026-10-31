@@ -1488,3 +1488,7 @@ Fills the bands above and below a story that doesn't fill the screen with a soft
 Skip the contacts and location popups	연락처 및 위치 팝업 건너뛰기
 # context: summary under that switch
 The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	연락처를 동기화하고 위치 서비스를 켜라고 요청하는 화면이 Instagram을 시작할 때마다 열리지 않습니다. 다른 화면은 건너뛰지 않습니다.
+# context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
+Stop videos looping	동영상 반복 재생 중지
+# context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
+Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	피드 동영상과 릴스가 다시 재생되지 않고 마지막 장면에서 멈춥니다. 자동 스크롤이 켜져 있으면 다음 릴스로 넘어갈 수 있도록 릴스는 계속 반복됩니다.

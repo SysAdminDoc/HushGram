@@ -249,6 +249,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Stop videos looping patch. */
+    public static boolean stopLooping() {
+        return false;
+    }
+
     public static boolean mediaCache() {
         return false;
     }

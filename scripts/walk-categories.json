@@ -377,7 +377,8 @@
           "Control taps and volume on Reels",
           "Start reels with sound",
           "Default playback quality",
-          "Data saver"
+          "Data saver",
+          "Stop videos looping"
         ]
       },
       "anchors": [

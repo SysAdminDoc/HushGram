@@ -1274,6 +1274,12 @@ once-call Lapp/hushgram/extension/instagram/media/TapToPlay;->rebound(Ljava/lang
 once-call Lapp/hushgram/extension/instagram/media/TapToPlay;->autoplayAllowed(I)Z in instance ()Z holding VideoAutoplayChecker zero_rating_or_data_saver
 start-call Lapp/hushgram/extension/instagram/media/TapClock;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
 once-call Lapp/hushgram/extension/instagram/media/TapClock;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)V in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
+# Stop videos looping hands the loop flag IgVideoPlayerImpl's playInternal gives IgGrootPlayer to
+# StopLooping.loop() just before the call, after reading the engine, so it isn't first; Tap to play's
+# allowStart() may sit ahead of it too. The player's own loop setter gets the same hook, but it holds
+# no string and takes a plain boolean like several of the player's methods, so the patch test covers
+# it. Left out, videos keep looping with the switch on.
+shared-call Lapp/hushgram/extension/instagram/media/StopLooping;->loop(Ljava/lang/Object;I)Z in static (L*;Ljava/lang/String;ZZ)V holding IgVideoPlayerImpl.playInternal\splayAfterSeek:\s
 # The Reels tap hands its resume-or-pause decision to resumeOnTap() just before it branches to the
 # "clips_pause" path, so the call isn't first. Two other methods load "clips_pause"; the tap is the
 # one carrying its togglePause marker.

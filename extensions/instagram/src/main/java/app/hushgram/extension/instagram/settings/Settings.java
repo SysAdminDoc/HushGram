@@ -2710,6 +2710,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_turn_off_hdr_boosts", FALSE);
 
     /**
+     * Feed videos and reels stop on their last frame instead of playing again
+     * ({@link app.hushgram.extension.instagram.media.StopLooping}). A reel in the Reels viewer still
+     * loops while auto scroll or Move on when a reel ends is moving Reels on. Read each time a video
+     * starts, so a change shows from the next one. Off to start.
+     */
+    public static final BooleanSetting STOP_VIDEO_LOOPING =
+            new BooleanSetting("hushgram_stop_video_looping", FALSE);
+
+    /**
      * Videos, reels and video stories start at the quality in {@link #PLAYBACK_QUALITY}, through
      * the custom-quality setter of Instagram's DASH format evaluator
      * ({@link app.hushgram.extension.instagram.media.QualityChoice}). The switch starts on, and the

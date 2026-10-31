@@ -30,7 +30,8 @@ final class PlaybackCategory {
         if (build.contains(PatchFamily.HDR_BOOST) || build.contains(PatchFamily.TAP_TO_PLAY)
                 || build.contains(PatchFamily.RESUME_LONG_VIDEOS) || build.contains(PatchFamily.REEL_TAP_AND_VOLUME)
                 || build.contains(PatchFamily.REEL_SOUND)
-                || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)) {
+                || build.contains(PatchFamily.PLAYBACK_QUALITY) || build.contains(PatchFamily.DATA_SAVER)
+                || build.contains(PatchFamily.STOP_LOOPING)) {
             PreferenceCategory playback = category(screen, L10n.t("Playback"), SettingsIcons.PLAYBACK,
                     L10n.t("Media quality, auto-play and controls."));
             if (build.contains(PatchFamily.TAP_TO_PLAY)) {
@@ -55,6 +56,11 @@ final class PlaybackCategory {
                 playback.addPreference(toggle(context, Settings.START_REELS_MUTED, L10n.t("Start reels muted"),
                         L10n.t("Every reel starts silent, wherever you open it from. The volume keys or the speaker "
                                 + "icon unmute it. Wins over Start reels with sound.")));
+            }
+            if (build.contains(PatchFamily.STOP_LOOPING)) {
+                playback.addPreference(toggle(context, Settings.STOP_VIDEO_LOOPING, L10n.t("Stop videos looping"),
+                        L10n.t("Feed videos and reels stop at their last frame instead of playing again. Reels still "
+                                + "loop while auto scroll is on, so it can move on.")));
             }
             if (build.contains(PatchFamily.RESUME_LONG_VIDEOS)) {
                 playback.addPreference(toggle(context, Settings.RESUME_LONG_VIDEOS, L10n.t("Resume long videos"),

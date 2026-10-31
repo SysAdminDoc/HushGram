@@ -1489,3 +1489,7 @@ Fills the bands above and below a story that doesn't fill the screen with a soft
 Skip the contacts and location popups	Omitir las ventanas de contactos y ubicación
 # context: summary under that switch
 The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Las pantallas que te piden sincronizar tus contactos y activar los servicios de ubicación dejan de abrirse cada vez que se inicia Instagram. No se omite nada más.
+# context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
+Stop videos looping	No repetir los videos
+# context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
+Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Los videos del feed y los reels se detienen en su último fotograma en vez de volver a reproducirse. Los reels se siguen repitiendo mientras el desplazamiento automático está activado, para que pueda pasar al siguiente.
