@@ -100,10 +100,12 @@ public final class StoryDownloadButton {
 
     /**
      * Injected first thing in the story item binder's toolbar bind. Shows the button for [item] in
-     * [holder]'s header while the switch is on, and hides it otherwise. Never throws.
+     * [holder]'s header while the switch is on, and hides it otherwise, then lets the Copy text button
+     * (#303) do the same. Never throws.
      */
     public static void bind(Object item, Object holder) {
         bind(item, holder, PATCHED, StoryDownloadButton::switchedOn, StoryDownload::saveStory);
+        StoryTextButton.bind(item, holder, PATCHED, StoryTextButton::switchedOn);
     }
 
     static void bind(@Nullable Object item, @Nullable Object holder, Reader reader, BooleanSupplier on,
@@ -172,7 +174,7 @@ public final class StoryDownloadButton {
 
     /** The header's row of buttons under [root], reporting a build without it while the button is wanted. */
     @Nullable
-    private static LinearLayout row(View root, boolean wanted) {
+    static LinearLayout row(View root, boolean wanted) {
         int id = id(root, CONTAINER);
         View found = id == 0 ? null : root.findViewById(id);
         if (!(found instanceof LinearLayout)) {
@@ -197,7 +199,7 @@ public final class StoryDownloadButton {
     }
 
     /** Puts [button] before the three-dot menu, or its stub, or at the end when the row has neither. */
-    private static void insert(LinearLayout row, ImageView button) {
+    static void insert(LinearLayout row, ImageView button) {
         int at = row.getChildCount();
         int menu = id(row, MENU);
         int stub = id(row, MENU_STUB);

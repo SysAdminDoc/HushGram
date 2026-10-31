@@ -146,6 +146,9 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.DOWNLOAD_BUTTON_ON_STORIES, L10n.t("Download button on stories"),
                     L10n.t("Puts a Download button at the top of a story, beside the three dots. One tap saves the "
                             + "photo or video in front, the same as Download in the menu.")));
+            stories.add(toggle(context, Settings.TEXT_BUTTON_ON_STORIES, L10n.t("Copy text button on stories"),
+                    L10n.t("Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens "
+                            + "opens on what's showing, so you can select and copy its text.")));
         }
         if (build.contains(PatchFamily.STORY_UPLOAD_QUALITY)) {
             stories.add(toggle(context, Settings.UPLOAD_STORIES_AT_FULL_QUALITY, L10n.t("Upload stories at full quality"),

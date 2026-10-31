@@ -1428,3 +1428,17 @@ Medium	Mittel
 Wide	Breit
 Slow	Langsam
 Fast	Schnell
+# context: Reels settings: a switch for a Lens icon beside each reel that opens Google Lens on the reel to copy its text (#303)
+Copy text button on reels	„Text kopieren“-Button bei Reels
+Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Setzt ein Lens-Symbol neben ein Reel. Tippst du darauf, öffnet sich Google Lens mit dem, was gerade zu sehen ist, und du kannst den Text markieren und kopieren.
+# context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
+Copy text button on stories	„Text kopieren“-Button bei Stories
+Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	Setzt oben in einer Story neben die drei Punkte ein Lens-Symbol. Tippst du darauf, öffnet sich Google Lens mit dem, was gerade zu sehen ist, und du kannst den Text markieren und kopieren.
+# context: the spoken label of that Lens icon, for screen readers
+Copy text	Text kopieren
+# context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text
+Copy text with	Text kopieren mit
+# context: toast, under two lines of about 28 characters: the screen picture for Lens couldn't be made
+Couldn't copy this screen	Bildschirm nicht kopierbar
+# context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
+No app here can read text	Keine App kann hier Text lesen

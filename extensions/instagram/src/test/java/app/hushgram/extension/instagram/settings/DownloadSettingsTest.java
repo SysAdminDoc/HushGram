@@ -98,6 +98,7 @@ public class DownloadSettingsTest {
         Settings.REEL_NOT_INTERESTED_BUTTON.resetToDefault();
         Settings.REEL_BLOCK_BUTTON.resetToDefault();
         Settings.HIDE_SOUND_REELS.resetToDefault();
+        Settings.TEXT_BUTTON_ON_REELS.resetToDefault();
         Settings.HIDDEN_SOUNDS.resetToDefault();
         Settings.HOLD_TO_DOWNLOAD.resetToDefault();
         Settings.HOLD_FINGERS.resetToDefault();
@@ -230,6 +231,35 @@ public class DownloadSettingsTest {
             assertEquals(-1, indexOfKey(rows, Settings.HIDE_SOUND_REELS.key));
             assertEquals(-1, indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW));
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.HIDE_SOUND_REELS.key));
+        }
+    }
+
+    /**
+     * Copy text button on reels (#303) sits right after the Hidden sounds row under Reels. It starts
+     * off, has its own switch and goes in a settings file. A build without the reel download has none.
+     */
+    @Test
+    public void theCopyTextButtonSitsAfterHiddenSoundsWithItsOwnSwitch() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment page = pageIn(controller);
+            PreferenceGroup reels = section(page.getPreferenceScreen(), "Reels");
+            Preference row = reels.findPreference(Settings.TEXT_BUTTON_ON_REELS.key);
+            assertTrue("the Copy text button isn't under Reels", row instanceof SwitchPreference);
+            assertEquals("Copy text button on reels", String.valueOf(row.getTitle()));
+            assertTrue(String.valueOf(row.getSummary()).contains("Google Lens"));
+            assertFalse("it starts off", ((SwitchPreference) row).isChecked());
+            List<Preference> rows = rowsOf(page);
+            assertEquals(indexOfKey(rows, HushgramPreferenceFragment.HIDDEN_SOUNDS_ROW) + 1, indexOfKey(rows, Settings.TEXT_BUTTON_ON_REELS.key));
+            ((SwitchPreference) page.findPreference(Settings.DOWNLOAD_REELS.key)).setChecked(false);
+            ShadowLooper.idleMainLooper();
+            assertTrue("it doesn't wait for Download on reels", row.isEnabled());
+            assertTrue(ConfigurationBackup.eligible().containsKey(Settings.TEXT_BUTTON_ON_REELS.key));
+        }
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            assertEquals(-1, indexOfKey(rowsOf(pageIn(controller)), Settings.TEXT_BUTTON_ON_REELS.key));
+            assertFalse(ConfigurationBackup.eligible().containsKey(Settings.TEXT_BUTTON_ON_REELS.key));
         }
     }
 

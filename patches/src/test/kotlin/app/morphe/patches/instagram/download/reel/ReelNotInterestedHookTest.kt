@@ -36,7 +36,8 @@ import org.junit.Test
  * places Save is added, the delegate's constructor reports itself with the config, and the bridges
  * run Instagram's own Not interested. The Block icon (#191) then goes in front of that block, and its
  * bridge opens Instagram's own block sheet with the delegate's activity and session. The sound icon
- * of Hide reels by sound (#191) goes in front of all three.
+ * of Hide reels by sound (#191) goes in front of all three, and the Copy text icon (#303) in front of
+ * it.
  */
 class ReelNotInterestedHookTest {
     @Test
@@ -72,6 +73,12 @@ class ReelNotInterestedHookTest {
             .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
         assertTrue("$HIDDEN_SOUNDS has no public static page", SOUND_PAGE_FILTER.substringAfter("->") in list)
+        val texts = ExtensionDex.classDef(TEXT_TYPE).methods
+            .filter { AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }.toSet()
+        for (needed in listOf(TEXT_ON, TEXT_LITHO, TEXT_LITHO_ABOVE_MORE).map { it.substringAfter("->") }) {
+            assertTrue("$TEXT_TYPE has no public static $needed", needed in texts)
+        }
     }
 
     @Test
@@ -113,6 +120,7 @@ class ReelNotInterestedHookTest {
         classes[BLOCK_TYPE] = ExtensionDex.classDef(BLOCK_TYPE)
         classes[SOUND_TYPE] = ExtensionDex.classDef(SOUND_TYPE)
         classes[HIDDEN_SOUNDS] = ExtensionDex.classDef(HIDDEN_SOUNDS)
+        classes[TEXT_TYPE] = ExtensionDex.classDef(TEXT_TYPE)
         val context = PatchContexts.of(classes.values.toList())
 
         val site = context.findReelButtonSite()
@@ -214,6 +222,27 @@ class ReelNotInterestedHookTest {
             assertTrue("$name: $litho eight after on()", sounded[at + 8].names(litho))
             assertTrue("$name: the sound icon is added by the column's own add", sounded[at + 13].names(site.add.toString()))
         }
+
+        // The Copy text icon (#303) goes in front of the sound icon's block, now the first at each place.
+        val textStarts = context.findTextStarts(site)
+        assertEquals("$name: the text icon starts where the sound icon does", soundAsks, textStarts.map { it.second })
+        context.addTextIcons(site, textStarts)
+        val texted = renderOf().instructions()
+        assertEquals("$name: fourteen more again at each place", sounded.size + 28, texted.size)
+        val textAsks = texted.indices.filter { texted[it].names(TEXT_ON) }
+        assertEquals("$name: the text on() at both places", 2, textAsks.size)
+        assertEquals("$name: its lithoAboveMore() over More alone", 1, texted.count { it.names(TEXT_LITHO_ABOVE_MORE) })
+        textAsks.zip(site.sites.sortedBy { it.at }).forEach { (at, place) ->
+            assertTrue("$name: the sound icon's block follows right after", texted[at + 14].names(SOUND_ON))
+            assertTrue("$name: then Block's", texted[at + 28].names(BLOCK_ON))
+            assertTrue("$name: then Download's, after Not interested's", texted[at + 56].names(REEL_BUTTON_ON))
+            val litho = if (place.aboveMore) TEXT_LITHO_ABOVE_MORE else TEXT_LITHO
+            assertTrue("$name: $litho eight after on()", texted[at + 8].names(litho))
+            assertTrue("$name: the text icon is added by the column's own add", texted[at + 13].names(site.add.toString()))
+        }
+        val withoutText = PatchContexts.of(classes.values.filter { it.type != TEXT_TYPE })
+        val noText = runCatching { withoutText.findTextStarts(site) }.exceptionOrNull()
+        assertTrue("$name: an extension without the icon is refused before anything changes", noText is PatchException)
         val withoutList = PatchContexts.of(classes.values.filter { it.type != HIDDEN_SOUNDS })
         val noList = runCatching { withoutList.findSoundStarts(site) }.exceptionOrNull()
         assertTrue("$name: an extension without the list is refused before anything changes", noList is PatchException)

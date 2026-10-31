@@ -1118,6 +1118,11 @@ once-call Lapp/hushgram/extension/instagram/download/ReelBlockButton;->lithoAbov
 once-call Lapp/hushgram/extension/instagram/download/ReelSoundButton;->on()Z in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
 once-call Lapp/hushgram/extension/instagram/download/ReelSoundButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
 once-call Lapp/hushgram/extension/instagram/download/ReelSoundButton;->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+# The Lens icon of Copy text button on reels (#303) goes in front of the sound icon's block, the
+# same way, so the same counts hold for its on(), litho() and lithoAboveMore().
+once-call Lapp/hushgram/extension/instagram/download/ReelTextButton;->on()Z in instance (L*;)L*; sites 2 holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelTextButton;->litho(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
+once-call Lapp/hushgram/extension/instagram/download/ReelTextButton;->lithoAboveMore(Ljava/lang/Object;Ljava/lang/Object;JJ)Ljava/lang/Object; in instance (L*;)L*; holding android_purge_26_q2_ClipsUfiComponent_render
 #
 # Download any story: the story menu's builders hand their labels to labels() where they return,
 # and its handlers of a tapped label ask save() first. Several builders and handlers call each, so

@@ -133,7 +133,8 @@ val downloadReelPatch = bytecodePatch(
     description = "Adds Download to the menu of every reel and saves it without Instagram's watermark. You choose " +
         "the quality, and best is the default. A separate Download cover switch also saves the reel's cover " +
         "picture, the largest one the post carries, and Download audio saves just its sound. Download as video on " +
-        "a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel. On by " +
+        "a carousel with music saves every page, in order. A separate switch under Downloads puts a download icon under Save beside each reel, " +
+        "and another adds a Lens icon for copying a reel's text. On by " +
         "default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {

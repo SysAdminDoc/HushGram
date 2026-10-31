@@ -128,6 +128,22 @@ public final class ReelSoundButton {
         }
     }
 
+    /**
+     * Whether {@link #litho} would add the icon to [column] now: the switch, an ordinary reel, its
+     * sound and the glyph. The Copy text icon (#303) goes in before this one and asks, since only the
+     * last icon over More needs the margin More takes back. Never throws.
+     */
+    static boolean shows(@Nullable Object column) {
+        try {
+            if (column == null || !enabled() || glyph < 0) return false;
+            Object item = ReelDownloadButton.bridge.item(column);
+            if (item == null || !ReelDownloadButton.ORGANIC.equals(ReelDownloadButton.bridge.kind(item))) return false;
+            return bridge.sound(item) != null;
+        } catch (Throwable failure) {
+            return false;
+        }
+    }
+
     /** Whether the icon shows: its switch. Paused answers no. */
     static boolean enabled() {
         return Utils.settingsReady() && Settings.HIDE_SOUND_REELS.get();

@@ -257,6 +257,9 @@ final class ReelsCategory {
                     L10n.t("Puts a music icon beside a reel. Tap it and the Reels tab skips other reels using that "
                             + "sound. Tap it again to bring them back.")));
             reels.add(page.hiddenSoundsRow(context));
+            reels.add(toggle(context, Settings.TEXT_BUTTON_ON_REELS, L10n.t("Copy text button on reels"),
+                    L10n.t("Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you "
+                            + "can select and copy its text.")));
         }
         if (!reels.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Reels"), SettingsIcons.REELS,

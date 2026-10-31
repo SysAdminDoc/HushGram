@@ -1427,3 +1427,17 @@ Medium	보통
 Wide	넓게
 Slow	느리게
 Fast	빠르게
+# context: Reels settings: a switch for a Lens icon beside each reel that opens Google Lens on the reel to copy its text (#303)
+Copy text button on reels	릴스 텍스트 복사 버튼
+Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	릴스 옆에 렌즈 아이콘을 둡니다. 탭하면 지금 보이는 화면으로 Google 렌즈가 열려 텍스트를 선택하고 복사할 수 있습니다.
+# context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
+Copy text button on stories	스토리의 텍스트 복사 버튼
+Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	스토리 상단의 점 세 개 옆에 렌즈 아이콘을 추가합니다. 탭하면 지금 보이는 화면으로 Google 렌즈가 열려 텍스트를 선택하고 복사할 수 있습니다.
+# context: the spoken label of that Lens icon, for screen readers
+Copy text	텍스트 복사
+# context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text
+Copy text with	텍스트 복사에 사용할 앱
+# context: toast, under two lines of about 28 characters: the screen picture for Lens couldn't be made
+Couldn't copy this screen	이 화면을 복사하지 못했어요
+# context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
+No app here can read text	텍스트를 읽을 앱이 없어요

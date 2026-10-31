@@ -1431,3 +1431,17 @@ Medium	中
 Wide	寬
 Slow	慢
 Fast	快
+# context: Reels settings: a switch for a Lens icon beside each reel that opens Google Lens on the reel to copy its text (#303)
+Copy text button on reels	Reels 的複製文字按鈕
+Puts a Lens icon beside a reel. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	在 Reel 旁加入智慧鏡頭圖示。點擊後，Google 智慧鏡頭會開啟目前的畫面，讓你選取並複製其中的文字。
+# context: Stories settings: the same Lens button, in the story header beside the three dots (#303)
+Copy text button on stories	限時動態的複製文字按鈕
+Puts a Lens icon at the top of a story, beside the three dots. Tap it and Google Lens opens on what's showing, so you can select and copy its text.	在限時動態頂端的三個點旁加入智慧鏡頭圖示。點擊後，Google 智慧鏡頭會開啟目前的畫面，讓你選取並複製其中的文字。
+# context: the spoken label of that Lens icon, for screen readers
+Copy text	複製文字
+# context: title of the share sheet offered when Google Lens isn't installed; the apps listed below it read the picture's text
+Copy text with	選擇複製文字的應用程式
+# context: toast, under two lines of about 28 characters: the screen picture for Lens couldn't be made
+Couldn't copy this screen	無法複製這個畫面
+# context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
+No app here can read text	沒有可讀取文字的應用程式

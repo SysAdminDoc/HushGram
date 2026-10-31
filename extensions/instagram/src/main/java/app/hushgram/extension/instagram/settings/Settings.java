@@ -2428,6 +2428,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_button_on_stories", FALSE);
 
     /**
+     * A Lens button in the story viewer's header, beside the three dots, that sends what the story
+     * shows to Google Lens so its text can be copied (#303). Off to start.
+     */
+    public static final BooleanSetting TEXT_BUTTON_ON_STORIES =
+            new BooleanSetting("hushgram_text_button_on_stories", FALSE);
+
+    /**
      * Download in the menu of anyone else's feed post with a video, saving it through the save
      * pipeline below. Instagram's own row is there only on your own posts, where Instagram's
      * server lets it show, and a tap on it saves the same way. Off to start.
@@ -2507,6 +2514,12 @@ public class Settings extends BaseSettings {
      * the tab stay Instagram's own.
      */
     public static final BooleanSetting HIDE_SOUND_REELS = new BooleanSetting("hushgram_hide_sound_reels", FALSE);
+
+    /**
+     * A Lens icon in the column beside a reel that sends what the reel shows to Google Lens, so its
+     * text can be copied (#303). Starts off, so the column stays Instagram's own.
+     */
+    public static final BooleanSetting TEXT_BUTTON_ON_REELS = new BooleanSetting("hushgram_text_button_on_reels", FALSE);
 
     /**
      * The sounds Hide reels by sound hides, a line for each: the sound's id, a tab, its title, a tab

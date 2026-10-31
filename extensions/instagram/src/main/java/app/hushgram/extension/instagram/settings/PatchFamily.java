@@ -220,7 +220,7 @@ public enum PatchFamily {
     REEL_ORIGIN(FamilyNames.REEL_ORIGIN, "reelOrigin", null, Settings.FIND_REEL_ORIGIN,
             Settings.FIND_REEL_ORIGIN_ON_TAP),
     STORY_DOWNLOAD(FamilyNames.STORY_DOWNLOAD, "storyDownload", null, Settings.DOWNLOAD_STORIES,
-            Settings.DOWNLOAD_BUTTON_ON_STORIES),
+            Settings.DOWNLOAD_BUTTON_ON_STORIES, Settings.TEXT_BUTTON_ON_STORIES),
     VIDEO_DOWNLOAD(FamilyNames.VIDEO_DOWNLOAD, "videoDownload", null, Settings.DOWNLOAD_VIDEOS, Settings.DOWNLOAD_PHOTOS,
             Settings.POST_DETAILS, Settings.DOWNLOAD_SKIP_SAVED, Settings.VIEWING_HISTORY),
     TAP_TO_PLAY(FamilyNames.TAP_TO_PLAY, "tapToPlay", null, Settings.TAP_TO_PLAY),
