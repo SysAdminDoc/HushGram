@@ -44,6 +44,33 @@ public class ReelDeclutterTest {
         assertTrue(ReelDeclutter.hideSocialContext(LineType.FOLLOWED_BY));
     }
 
+    /** The search, shopping and poll switches (#332) each answer for their own render. */
+    @Test
+    public void theSearchShoppingAndPollSwitchesAreSeparate() {
+        assertFalse(ReelDeclutter.hideSearchPill());
+        assertFalse(ReelDeclutter.hideProductPills());
+        assertFalse(ReelDeclutter.hidePollPills());
+        Settings.HIDE_REEL_PRODUCT_PILLS.save(true);
+        try {
+            assertTrue(ReelDeclutter.hideProductPills());
+            assertFalse(ReelDeclutter.hideSearchPill());
+            assertFalse(ReelDeclutter.hidePollPills());
+            assertTrue(ReelDeclutter.hideChips());
+        } finally {
+            Settings.HIDE_REEL_PRODUCT_PILLS.resetToDefault();
+        }
+        Settings.HIDE_REEL_SEARCH_PILL.save(true);
+        Settings.HIDE_REEL_POLL_PILLS.save(true);
+        try {
+            assertTrue(ReelDeclutter.hideSearchPill());
+            assertTrue(ReelDeclutter.hidePollPills());
+            assertFalse(ReelDeclutter.hideProductPills());
+        } finally {
+            Settings.HIDE_REEL_SEARCH_PILL.resetToDefault();
+            Settings.HIDE_REEL_POLL_PILLS.resetToDefault();
+        }
+    }
+
     /** Each switch answers for its own parts only. */
     @Test
     public void eachSwitchTurnsOffOnlyItsOwnParts() {

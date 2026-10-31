@@ -1786,6 +1786,18 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_REEL_CHIPS =
             new BooleanSetting("hushgram_hide_reel_chips", FALSE);
 
+    /** The suggested search terms near a reel's author. Off to start. */
+    public static final BooleanSetting HIDE_REEL_SEARCH_PILL =
+            new BooleanSetting("hushgram_hide_reel_search_pill", FALSE);
+
+    /** The product tag and shopping buttons near a reel's author. Off to start. */
+    public static final BooleanSetting HIDE_REEL_PRODUCT_PILLS =
+            new BooleanSetting("hushgram_hide_reel_product_pills", FALSE);
+
+    /** The poll and vote prompts near a reel's author. Off to start. */
+    public static final BooleanSetting HIDE_REEL_POLL_PILLS =
+            new BooleanSetting("hushgram_hide_reel_poll_pills", FALSE);
+
     /**
      * What friends did with a reel, shown over it: the bubbles above the author of friends who
      * liked, commented or follow them, the comment Instagram previews and the row of friends who

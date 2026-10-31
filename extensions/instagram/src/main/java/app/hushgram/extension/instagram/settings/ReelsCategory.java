@@ -69,6 +69,12 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.HIDE_REEL_CHIPS, L10n.t("Hide promotion buttons on reels"),
                     L10n.t("Hides the buttons that push Edits, templates, Meta AI and Ray-Ban Meta glasses. Live "
                             + "badges and state-controlled media labels stay.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_SEARCH_PILL, L10n.t("Hide suggested searches on reels"),
+                    L10n.t("The search terms Instagram suggests near a reel's author.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_PRODUCT_PILLS, L10n.t("Hide shopping buttons on reels"),
+                    L10n.t("The product tag and shopping buttons near a reel's author.")));
+            reels.add(toggle(context, Settings.HIDE_REEL_POLL_PILLS, L10n.t("Hide poll prompts on reels"),
+                    L10n.t("The poll and vote prompts near a reel's author.")));
             reels.add(toggle(context, Settings.HIDE_REEL_SOCIAL_FOOTER, L10n.t("Hide friends' activity and comment previews"),
                     L10n.t("The bubbles of friends who liked or commented, the Followed by and Liked by lines with "
                             + "their faces, the comment shown under a reel and the row of friends who saw it. Comments "

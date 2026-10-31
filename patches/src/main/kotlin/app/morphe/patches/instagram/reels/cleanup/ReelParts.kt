@@ -9,6 +9,9 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 private const val DECLUTTER = "$EXTENSION_PACKAGE/reels/ReelDeclutter;"
 internal const val HIDE_FOLLOW_BUTTON = "$DECLUTTER->hideFollowButton()Z"
 internal const val HIDE_CHIPS = "$DECLUTTER->hideChips()Z"
+internal const val HIDE_SEARCH_PILL = "$DECLUTTER->hideSearchPill()Z"
+internal const val HIDE_PRODUCT_PILLS = "$DECLUTTER->hideProductPills()Z"
+internal const val HIDE_POLL_PILLS = "$DECLUTTER->hidePollPills()Z"
 internal const val HIDE_SOCIAL_FOOTER = "$DECLUTTER->hideSocialFooter()Z"
 internal const val HIDE_EVERY_COMMENT_BAR = "$DECLUTTER->hideEveryCommentBar()Z"
 internal const val HIDE_SAVE_BUTTON = "$DECLUTTER->hideSaveButton()Z"
@@ -85,7 +88,16 @@ internal val SAVE_PARTS = listOf(
     ReelPart("ClipsUfiComponent_maybeCreateSaveCountComponent", HIDE_SAVE_COUNT),
 )
 
-internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SOCIAL_PARTS + COMMENT_BAR_PARTS
+/**
+ * The overlays near the username that aren't a creation pill (#332): the suggested search terms
+ * ("Deep dive"), the product tag and shopping buttons, and the poll or vote prompt. Each is a render
+ * of the same shape as the pills above, so an empty answer leaves the row without it.
+ */
+internal val SEARCH_PARTS = listOf(ReelPart("ClipsContentDeepDiveComponent_render", HIDE_SEARCH_PILL))
+internal val SHOP_PARTS = listOf("ProductTagCTAComponent_render", "ShoppingCtaComponent_render").map { ReelPart(it, HIDE_PRODUCT_PILLS) }
+internal val POLL_PARTS = listOf(ReelPart("PollCTAComponent_render", HIDE_POLL_PILLS))
+
+internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SEARCH_PARTS + SHOP_PARTS + POLL_PARTS + SOCIAL_PARTS + COMMENT_BAR_PARTS
 
 internal const val HIDE_SOCIAL_CONTEXT = "$DECLUTTER->hideSocialContext(Ljava/lang/Object;)Z"
 

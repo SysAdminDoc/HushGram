@@ -346,6 +346,14 @@ start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z 
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q2_ClipsWearablesAttributionShopRBMGlassesBlackPillComponent_render
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q2_ClipsWearablesAttributionShopRBMGlassesSemiTransparentPillComponent_render
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideChips()Z holding android_purge_26_q2_ClipsWearablesAttributionShopRBMGlassesSemiTransparentPillComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSearchPill()Z holding android_purge_26_q2_ClipsContentDeepDiveComponent_render
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSearchPill()Z holding android_purge_26_q2_ClipsContentDeepDiveComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z holding android_purge_26_q3_ProductTagCTAComponent_render
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z holding android_purge_26_q3_ProductTagCTAComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z holding android_purge_26_q3_ShoppingCtaComponent_render
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideProductPills()Z holding android_purge_26_q3_ShoppingCtaComponent_render
+start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePollPills()Z holding android_purge_26_q3_PollCTAComponent_render
+shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hidePollPills()Z holding android_purge_26_q3_PollCTAComponent_render
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z holding android_purge_26_q3_ClipsInfoOverlayUseCase_shouldShowFloatingBubblesAboveUsername
 shared-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z holding android_purge_26_q3_ClipsInfoOverlayUseCase_shouldShowFloatingBubblesAboveUsername
 start-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideSocialFooter()Z holding android_purge_26_q3_ClipsInlineCommentSocialContextComponent_render

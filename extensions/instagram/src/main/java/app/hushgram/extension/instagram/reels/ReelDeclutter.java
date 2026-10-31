@@ -32,6 +32,8 @@ import app.hushgram.extension.shared.settings.BooleanSetting;
  *       the Meta AI pill, the Ray-Ban Meta glasses pills and the affiliate link. The other things
  *       Instagram puts above a reel's author, a live badge or a state-controlled media label, have
  *       components of their own and stay.
+ *   <li>{@link #hideSearchPill}, {@link #hideProductPills} and {@link #hidePollPills} in the renders
+ *       of the suggested search terms, the product tag and shopping buttons, and the poll prompt.
  *   <li>{@link #hideSocialFooter} in the inline comment preview and the row of friends who saw
  *       the reel, and in Instagram's check for putting the bubbles of friends' likes, comments and
  *       follows above the author, which then answers no. It's also asked first thing in the use
@@ -120,6 +122,21 @@ public final class ReelDeclutter {
     /** True leaves a creation or promotion pill out. Never throws. */
     public static boolean hideChips() {
         return hide(Settings.HIDE_REEL_CHIPS, "pill");
+    }
+
+    /** True leaves the suggested search terms out. Never throws. */
+    public static boolean hideSearchPill() {
+        return hide(Settings.HIDE_REEL_SEARCH_PILL, "search terms");
+    }
+
+    /** True leaves the product tag and shopping buttons out. Never throws. */
+    public static boolean hideProductPills() {
+        return hide(Settings.HIDE_REEL_PRODUCT_PILLS, "product pills");
+    }
+
+    /** True leaves the poll and vote prompts out. Never throws. */
+    public static boolean hidePollPills() {
+        return hide(Settings.HIDE_REEL_POLL_PILLS, "poll pills");
     }
 
     /** True leaves friends' activity and the comment preview out. Never throws. */
