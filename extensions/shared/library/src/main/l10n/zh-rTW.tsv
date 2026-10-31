@@ -1198,6 +1198,9 @@ Takes the Share profile button off your profile, and Edit profile stretches to f
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	保持膠囊完整大小
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	向下捲動清單時，液態膠囊會維持原樣，所有分頁皆保留在原位。變更後請重新啟動 Instagram。
+# context: Layout: Glass tab bar's switch that makes the liquid pill's rim bend and mirror what's behind it like glass (#369)
+Bend light at the edges	在邊緣折射光線
+The liquid pill's rim bends what's behind it like real glass, so what passes under the edge shows upside down. Android 13 and newer. Restart Instagram after changing it.	液態膠囊的邊緣會像真正的玻璃一樣折射後方的內容，經過邊緣下方的東西會上下顛倒。需要 Android 13 以上版本。變更後請重新啟動 Instagram。
 # context: Ghost mode: the row and dialog picking which switches Ghost mode turns (#251). %1$s is a list of switch names
 All of them. Tap to leave some out, and Ghost mode leaves those as you set them.	全部。點擊可排除部分開關，幽靈模式會保留這些開關原本的設定。
 %1$s. The others stay as you set them.	%1$s。其他開關會保留您原本的設定。

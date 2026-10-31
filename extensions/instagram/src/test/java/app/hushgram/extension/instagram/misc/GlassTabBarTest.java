@@ -87,6 +87,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         GlassTabBar.resetForTests();
@@ -1204,6 +1205,7 @@ public class GlassTabBarTest {
             Settings.GLASS_TAB_BAR_SLIDE.save(false);
             Settings.GLASS_TAB_BAR_LIQUID.save(false);
             Settings.GLASS_TAB_BAR_KEEP_SIZE.save(false);
+            Settings.GLASS_TAB_BAR_REFRACT.save(false);
             controller = Robolectric.buildActivity(Activity.class).setup();
             activity = controller.get();
             activity.getApplicationInfo().flags |= android.content.pm.ApplicationInfo.FLAG_SUPPORTS_RTL;
@@ -1294,6 +1296,19 @@ public class GlassTabBarTest {
             root.measure(View.MeasureSpec.makeMeasureSpec(dp(411), View.MeasureSpec.EXACTLY),
                     View.MeasureSpec.makeMeasureSpec(dp(104), View.MeasureSpec.EXACTLY));
             root.layout(0, 0, dp(411), dp(104));
+        }
+
+        /** Draws the bar's background into a canvas recorded for the GPU, the way the bar draws on a phone. */
+        void recordBackground() {
+            android.graphics.RenderNode target = new android.graphics.RenderNode("target");
+            target.setPosition(0, 0, bar.getWidth(), bar.getHeight());
+            Canvas canvas = target.beginRecording(bar.getWidth(), bar.getHeight());
+            try {
+                bar.getBackground().setBounds(0, 0, bar.getWidth(), bar.getHeight());
+                bar.getBackground().draw(canvas);
+            } finally {
+                target.endRecording();
+            }
         }
 
         Pixels background() {
@@ -1711,6 +1726,71 @@ public class GlassTabBarTest {
             target.endRecording();
         }
         lens.discard();
+    }
+
+    /**
+     * #369: the rim mirrors the band at the pill's edge. The very edge shows what's two bands in, the order runs
+     * backwards across the band, it meets the plain backdrop at the band's inner line, and past it nothing moves.
+     */
+    @Test
+    public void theRimMirrorsTheBandAtTheEdge() {
+        float band = 10f;
+        assertEquals("the edge shows what's two bands in", 20f, GlassLens.rimSource(0f, band), 0f);
+        float last = Float.MAX_VALUE;
+        for (float depth = 0f; depth < band; depth += 0.5f) {
+            float source = GlassLens.rimSource(depth, band);
+            assertTrue("upside down across the band at " + depth, source < last);
+            assertTrue("drawn from deeper in at " + depth, source > depth);
+            last = source;
+        }
+        assertEquals("meets the backdrop at the band's inner line", band, GlassLens.rimSource(band - 0.001f, band), 0.01f);
+        assertEquals(band, GlassLens.rimSource(band, band), 0f);
+        assertEquals("past the band, as it is", 17f, GlassLens.rimSource(17f, band), 0f);
+    }
+
+    /**
+     * #369: Bend light at the edges paints a rim over the liquid pill and over Search's circle beside it, where
+     * the pill is blurred on Android 13 and newer. Off, no rim is made. Paused, the bar is the plain pill and
+     * no rim is asked for.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(sdk = 33, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void bendLightAtTheEdgesPaintsTheRimsOnlyWhenOn() {
+        GlassTabBar.animationsOnForTests = false;
+        for (boolean refract : new boolean[]{true, false}) {
+            try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+                host.nameSearch(1);
+                Settings.GLASS_TAB_BAR_LIQUID.save(true);
+                Settings.GLASS_TAB_BAR_REFRACT.save(refract);
+                GlassTabBar.apply(host.activity);
+                host.frame();
+                host.frame();
+                Object pill = host.bar.getBackground();
+                assertTrue("no backdrop recorded", (boolean) ReflectionHelpers.getField(pill, "recorded"));
+                host.recordBackground();
+                assertTrue("the pill wasn't blurred", (boolean) ReflectionHelpers.getField(pill, "blurShown"));
+                GlassLens rim = ReflectionHelpers.getField(pill, "rimLens");
+                GlassLens circle = ReflectionHelpers.getField(pill, "circleRim");
+                if (!refract) {
+                    assertNull("off, no rim", rim);
+                    assertNull("off, no rim on Search", circle);
+                    continue;
+                }
+                assertNotNull(rim);
+                assertNotNull("Search's circle gets a rim of its own", circle);
+                assertEquals(1, rim.asked);
+                assertEquals(1, circle.asked);
+
+                PauseForTests.pause(HushgramPause.Reason.SWITCH);
+                try {
+                    host.recordBackground();
+                    assertEquals("paused, the plain pill", 1, rim.asked);
+                } finally {
+                    PauseForTests.resume();
+                }
+            }
+        }
     }
 
     @Test

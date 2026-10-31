@@ -84,6 +84,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();
         Settings.GLASS_TAB_BAR_LIQUID.resetToDefault();
         Settings.GLASS_TAB_BAR_KEEP_SIZE.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
@@ -130,10 +131,11 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
-                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE), PatchFamily.GLASS_TAB_BAR.switches);
+                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_REFRACT),
+                PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
                 Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key,
-                Settings.GLASS_TAB_BAR_KEEP_SIZE.key)) {
+                Settings.GLASS_TAB_BAR_KEEP_SIZE.key, Settings.GLASS_TAB_BAR_REFRACT.key)) {
             assertNotNull(key, row(key));
         }
 
@@ -518,6 +520,39 @@ public class TabBarAndBatterySettingsTest {
                 Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
         Settings.GLASS_TAB_BAR.save(true);
         assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
+    }
+
+    /**
+     * Bend light at the edges (#369) is a switch right after Keep the pill full size, off to start, offered
+     * while the liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
+     */
+    @Test public void bendLightAtTheEdgesSitsUnderTheLiquidLookAndStartsOff() throws Exception {
+        open(PatchFamily.GLASS_TAB_BAR);
+        SwitchPreference refract = (SwitchPreference) row(Settings.GLASS_TAB_BAR_REFRACT.key);
+        assertNotNull(refract);
+        assertEquals("Bend light at the edges", String.valueOf(refract.getTitle()));
+        assertEquals("The liquid pill's rim bends what's behind it like real glass, so what passes under the edge "
+                + "shows upside down. Android 13 and newer. Restart Instagram after changing it.",
+                String.valueOf(refract.getSummary()));
+        assertFalse(refract.isChecked());
+        assertFalse(Settings.GLASS_TAB_BAR_REFRACT.defaultValue);
+        assertTrue(Settings.GLASS_TAB_BAR_REFRACT.rebootApp);
+        PreferenceGroup section = sectionOf(page.getPreferenceScreen(), refract);
+        int keepAt = -1;
+        int refractAt = -1;
+        for (int i = 0; i < section.getPreferenceCount(); i++) {
+            String key = section.getPreference(i).getKey();
+            if (Settings.GLASS_TAB_BAR_KEEP_SIZE.key.equals(key)) keepAt = i;
+            if (Settings.GLASS_TAB_BAR_REFRACT.key.equals(key)) refractAt = i;
+        }
+        assertTrue(keepAt >= 0);
+        assertEquals("right after Keep the pill full size", keepAt + 1, refractAt);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_REFRACT.key));
+
+        assertFalse("no liquid look, no rim", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_LIQUID.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
     }
 
     /**

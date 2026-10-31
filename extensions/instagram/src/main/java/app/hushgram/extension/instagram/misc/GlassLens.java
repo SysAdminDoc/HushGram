@@ -44,14 +44,64 @@ final class GlassLens {
             + "  return content.eval(source) * inside;\n"
             + "}\n";
 
+    /**
+     * The liquid pill's rim (#369): within {@link #RIM_BAND} of the edge the backdrop is mirrored across the
+     * band's inner line, as {@link #rimSource} works out, so what runs under the edge shows upside down and
+     * moves the other way, as it does through the edge of real glass. Inside the band the backdrop is left as is.
+     */
+    private static final String RIM_SHADER = ""
+            + "uniform shader content;\n"
+            + "uniform float4 box;\n"
+            + "uniform float radius;\n"
+            + "uniform float band;\n"
+            + "half4 main(float2 p) {\n"
+            + "  float2 mid = (box.xy + box.zw) * 0.5;\n"
+            + "  float2 hs = (box.zw - box.xy) * 0.5;\n"
+            + "  float2 q = abs(p - mid) - (hs - float2(radius));\n"
+            + "  float d = length(max(q, float2(0.0))) + min(max(q.x, q.y), 0.0) - radius;\n"
+            + "  float inside = clamp(0.5 - d, 0.0, 1.0);\n"
+            + "  if (inside <= 0.0) return half4(0.0);\n"
+            + "  float2 side = sign(p - mid);\n"
+            + "  float2 normal = q.x > 0.0 && q.y > 0.0 ? normalize(q) * side\n"
+            + "      : (q.x > q.y ? float2(side.x, 0.0) : float2(0.0, side.y));\n"
+            + "  float depth = max(0.0, -d);\n"
+            + "  float2 source = depth < band ? p - normal * (2.0 * (band - depth)) : p;\n"
+            + "  return content.eval(source) * inside;\n"
+            + "}\n";
+
+    /** How deep the rim's mirrored band reaches into the pill, as a share of the pill's half height. */
+    static final float RIM_BAND = 0.42f;
+
+    /**
+     * How far in from the edge the rim samples the backdrop for a point [depth] in from it, in a band [band]
+     * deep: past the band, the point itself, and within it, the mirror image across the band's inner line, so
+     * the edge shows what's 2 x [band] in and the order runs backwards. The same sum as {@link #RIM_SHADER}.
+     */
+    static float rimSource(float depth, float band) {
+        return depth < band ? 2f * band - depth : depth;
+    }
+
     /** Whether this Android can run the lens at all. */
     static boolean supported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
     }
 
+    /** Whether this is the pill's rim (#369) rather than the bubble's lens (#289). */
+    private final boolean rim;
     @Nullable private RenderNode node;
     @Nullable private RuntimeShader shader;
     private boolean broken;
+
+    /** The bubble's lens. */
+    GlassLens() {
+        this(false);
+    }
+
+    /** The bubble's lens, or with [rim] the pill's rim. */
+    GlassLens(boolean rim) {
+        this.rim = rim;
+    }
+
     /** How many times the lens was asked to paint, and how many it painted. Read by tests. */
     int asked;
     int painted;
@@ -70,18 +120,22 @@ final class GlassLens {
         try {
             RuntimeShader lens = shader;
             if (lens == null) {
-                lens = new RuntimeShader(SHADER);
+                lens = new RuntimeShader(rim ? RIM_SHADER : SHADER);
                 shader = lens;
             }
             RenderNode layer = node;
             if (layer == null) {
-                layer = new RenderNode("hushgram-glass-lens");
+                layer = new RenderNode(rim ? "hushgram-glass-rim" : "hushgram-glass-lens");
                 node = layer;
             }
             lens.setFloatUniform("box", box.left, box.top, box.right, box.bottom);
             lens.setFloatUniform("radius", Math.max(0f, radius));
-            lens.setFloatUniform("centre", CENTRE_MAGNIFY);
-            lens.setFloatUniform("rim", RIM_BEND);
+            if (rim) {
+                lens.setFloatUniform("band", RIM_BAND * Math.min(box.width(), box.height()) / 2f);
+            } else {
+                lens.setFloatUniform("centre", CENTRE_MAGNIFY);
+                lens.setFloatUniform("rim", RIM_BEND);
+            }
             layer.setPosition(0, 0, width, height);
             layer.setRenderEffect(RenderEffect.createRuntimeShaderEffect(lens, "content"));
             Canvas recording = layer.beginRecording(width, height);

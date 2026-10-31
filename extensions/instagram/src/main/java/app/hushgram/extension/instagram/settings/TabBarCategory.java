@@ -125,6 +125,9 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_KEEP_SIZE, L10n.t("Keep the pill full size"),
                         L10n.t("Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart "
                                 + "Instagram after changing it.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REFRACT, L10n.t("Bend light at the edges"),
+                        L10n.t("The liquid pill's rim bends what's behind it like real glass, so what passes under the "
+                                + "edge shows upside down. Android 13 and newer. Restart Instagram after changing it.")));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
