@@ -32,12 +32,17 @@ Every HushGram release, newest first.
 * **Instagram:** `Download any story` adds `Download button on stories` under Stories. A button at the top of a story, beside the three dots, saves the photo or video in front with one tap. Starts off. Asked for in #400.
 * **Instagram:** `Start reels with sound` adds `Start reels muted` under Playback. Every reel starts silent, wherever you open it from, and the volume keys or the speaker icon unmute it. Off to start. Asked for in #342.
 * **Instagram:** `View live anonymously` adds `Mark as seen button on lives` under Stories. While you watch a live anonymously, an eye at the top beside the three dots puts you on that live's viewer list when you tap it. Every other live keeps you hidden. Starts off. Asked for in #412.
+* **Instagram:** `Glass tab bar` adds `Bend light at the edges` under Tab bar. With `Liquid glass look` on, the pill's rim bends what passes under it the way real glass does, on Android 13 and up. Starts off. Asked for in #369.
+* **Instagram:** `Glass tab bar` adds `Run Reels behind the tab bar` under Tab bar, next to `Show content behind the tab bar`. The reel fills the screen behind the pill, and its caption, buttons and seek bar sit just above it. Starts off. Asked for in #372.
+* **Instagram:** `Clean up Reels` adds `Hide suggested searches on reels`, `Hide shopping buttons on reels` and `Hide poll prompts on reels` under Reels. Each takes its prompt away from beside the reel's author. All three start off. Asked for in #332.
 
 ### Bug Fixes
 
 * **Instagram:** With `Pure black dark mode`, a story now opens straight on black. It flashed Instagram's dark blue for a moment first. Reported in #360.
 * **Instagram:** With `Pure black dark mode`, the screen Instagram shows while it starts up is black in dark mode too. It stayed dark gray. Reported in #410.
 * **Instagram:** With `Gray out stories you've watched`, your own `Your story` now stays first in the tray, ahead of the watched stories pushed to the back. Before, it could end up among them. Reported in #241.
+* **Instagram:** With `Pure black dark mode`, HushGram's own settings cards and dialogs are black now. They stayed dark gray. Reported in #374.
+* **Instagram:** With `Glass tab bar` and `Hide the tab bar on Reels`, a reel fills the screen again once the pill slides away. It left a black band where the pill had been. Reported in #335.
 * **Instagram:** A save that comes out in lower quality because your phone's storage is low now says so in its toast, and a carousel's summary counts how many. It used to blame only Instagram's quality. Reported in #348.
 * **Instagram:** With `Tab bar layout`, picking Classic or Swipe under Tab bar works on Instagram 453 again. On 0.0.17 it changed nothing, since the patch was answering an Instagram setting the tab bar never reads. Reported in #356.
 * **Instagram:** With `Tab bar layout`, a long press on the classic bar's Search tab opens search with the keyboard up again. Instagram 453 waited for pages only the swipe bar has, so the press just switched to Explore. Reported in #383.
@@ -69,6 +74,7 @@ Every HushGram release, newest first.
 * **Instagram:** `See who a story mentions` opens its list again when you come back from an account's profile, so you can go down the list without reopening it each time. Close ends it. Asked for in #403.
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
 * **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.
+* **Instagram:** Manager lists `Start feed videos with sound` and `Keep the reel speed` under Playback now, so the Feed and Reels groups stay short enough to scan. Their switches haven't moved.
 * **Instagram:** In `Download any reel`, Download audio's line in the diagnostics report says when a reel's only sound is xHE-AAC, which some players can't play. The file is still saved as it is, never re-encoded. A follow-up to #216.
 * **Tooling:** The native runner has a share case for the share sheet stand-in. The share and its sender always come through, and only Instagram's links get cleaned, only while `Sanitize sharing links` is on.
 
