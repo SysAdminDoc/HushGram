@@ -30,7 +30,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 private const val PATCH = "Keep the Reels top bar"
 internal const val KEEP_REELS_TOP_BAR_STATUS = "keepReelsTopBar"
 internal const val REELS_TOP_BAR_SCROLL = "$EXTENSION_PACKAGE/reels/ReelsTopBarScroll;"
-internal const val KEEP_IN_PLACE = "$REELS_TOP_BAR_SCROLL->keepInPlace(Z)Z"
+internal const val KEEP_IN_PLACE = "$REELS_TOP_BAR_SCROLL->keepInPlace(I)Z"
 
 /** The marker of the top bar's (ClipsViewerActionBar's) scroll callback, A07 on 453's 385914557. */
 internal const val ON_REEL_SCROLL = "ClipsViewerActionBar_onReelScroll"

@@ -33,9 +33,12 @@ public final class ReelsTopBarScroll {
     private ReelsTopBarScroll() {
     }
 
-    /** Injected at the start of the top bar's onReelScroll, on its keep-in-place flag. Never throws. */
-    public static boolean keepInPlace(boolean instagrams) {
-        return keepInPlace(instagrams, ReelsTopBarScroll::switchedOn);
+    /**
+     * Injected at the start of the top bar's onReelScroll, on its keep-in-place flag. The flag comes in
+     * as an int, non-zero for yes, since a hook never takes a boolean register. Never throws.
+     */
+    public static boolean keepInPlace(int instagrams) {
+        return keepInPlace(instagrams != 0, ReelsTopBarScroll::switchedOn);
     }
 
     static boolean keepInPlace(boolean instagrams, BooleanSupplier on) {

@@ -54,8 +54,9 @@ public class ReelsTopBarScrollTest {
 
     @Test
     public void offToStartPassesInstagramsAnswer() {
-        assertFalse(ReelsTopBarScroll.keepInPlace(false));
-        assertTrue(ReelsTopBarScroll.keepInPlace(true));
+        assertFalse(ReelsTopBarScroll.keepInPlace(0));
+        assertTrue(ReelsTopBarScroll.keepInPlace(1));
+        assertTrue("any non-zero int is Instagram's yes", ReelsTopBarScroll.keepInPlace(2));
         assertTrue(HookStatus.missing(FamilyNames.KEEP_REELS_TOP_BAR).toString(),
                 HookStatus.missing(FamilyNames.KEEP_REELS_TOP_BAR).isEmpty());
         assertFalse("nothing kept", HookStatus.report().toString().contains(ReelsTopBarScroll.COUNT_KEPT));
@@ -65,8 +66,8 @@ public class ReelsTopBarScrollTest {
     public void onKeepsTheBarAndCountsOnlyWhatItChanged() {
         Settings.KEEP_REELS_TOP_BAR.save(true);
 
-        assertTrue(ReelsTopBarScroll.keepInPlace(false));
-        assertTrue("Instagram's own yes stays a yes", ReelsTopBarScroll.keepInPlace(true));
+        assertTrue(ReelsTopBarScroll.keepInPlace(0));
+        assertTrue("Instagram's own yes stays a yes", ReelsTopBarScroll.keepInPlace(1));
 
         String report = HookStatus.report().toString();
         assertTrue(report, report.contains(ReelsTopBarScroll.COUNT_KEPT + " 1"));
@@ -77,13 +78,13 @@ public class ReelsTopBarScrollTest {
         Settings.KEEP_REELS_TOP_BAR.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertFalse("paused", ReelsTopBarScroll.keepInPlace(false));
+        assertFalse("paused", ReelsTopBarScroll.keepInPlace(0));
 
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
-        SettingsContextRule.withoutContext(() -> assertFalse("unready", ReelsTopBarScroll.keepInPlace(false)));
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ReelsTopBarScroll.keepInPlace(0)));
 
-        assertTrue("on again once resumed and ready", ReelsTopBarScroll.keepInPlace(false));
+        assertTrue("on again once resumed and ready", ReelsTopBarScroll.keepInPlace(0));
     }
 
     @Test

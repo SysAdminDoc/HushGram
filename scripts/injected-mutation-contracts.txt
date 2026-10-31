@@ -373,8 +373,8 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryComme
 # Keep the Reels top bar puts the top bar's onReelScroll second flag, the one it hands the scroll
 # helper's update as the keep-in-place flag, through ReelsTopBarScroll.keepInPlace first thing (#411).
 # Left out, the title, the tabs and the buttons slide away with the switch on.
-start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(Z)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
-once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(Z)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
+start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
+once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
 # Hide the reply bar on reels from chats asks hideDirectReplyBar(Object) with the viewer's source
 # right after each read of the direct reply bar controller's hidden flag, when the flag is clear:
 # once in the showReplyBar that turns the flag into visible or gone (merged into the controller's
