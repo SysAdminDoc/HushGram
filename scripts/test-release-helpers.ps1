@@ -241,11 +241,13 @@ try {
             '        assertEquals("Stop after 20 reels", label(20));',
             '        assertEquals("a message no source has", "Hide the " + "row", row());',
             '        assertTrue(summary().contains("Verstecke die Zeile"));',
-            '        assertEquals("Hide the row: on (hushgram_hide_row=on)", report());', '    }', '}') -join "`n")
+            '        assertEquals("Hide the row: on (hushgram_hide_row=on)", report());',
+            '        assertTrue(LicenseNotice.TEXT.contains("Keep this notice"));', '    }', '}') -join "`n")
         Write-Text (Join-Path $At "extensions/instagram/src/main/java/$settingsPackage/Fixture.java") (@(
             'class Fixture {', '    static final String ANY = "%s";', '    static final String LIMIT = "Stop after %1$d reels";',
             '    static final String ROW = "Hide the "', '            + "row";', '}') -join "`n")
         Write-Text (Join-Path $At 'extensions/shared/library/src/main/l10n/de.tsv') "Hide the line`tVerstecke die Zeile`n"
+        Write-Text (Join-Path $At 'NOTICE') "Keep this notice`n"
     }
     $staleRoot = Join-Path $scratch 'stale'
     Write-StaleFixture $staleRoot
@@ -253,7 +255,14 @@ try {
     $run = Invoke-Python $staleTool '--root' $staleRoot
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*every boundary test and settings text is still in the sources*') `
         "The stale check refused a checkout whose tests match its sources: $($run.Output)"
-    $staleTest = Join-Path $staleRoot "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java"
+    # The build turns NOTICE into LicenseNotice.TEXT, so a test may expect its text, and only while NOTICE has it.
+    $staleNotice = Join-Path $staleRoot 'NOTICE'
+    Write-Text $staleNotice "Some other notice`n"
+    $run = Invoke-Python $staleTool '--root' $staleRoot
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like "*FixtureTest.java:7 expects text no source or table has: 'Keep this notice'*") `
+        "A notice text NOTICE no longer has passed the stale check: $($run.Output)"
+    Write-Text $staleNotice "Keep this notice`n"
+    $staleTest =Join-Path $staleRoot "extensions/instagram/src/test/java/$settingsPackage/FixtureTest.java"
     $staleSource = Join-Path $staleRoot "extensions/instagram/src/main/java/$settingsPackage/Fixture.java"
     $testText = [IO.File]::ReadAllText($staleTest)
     $sourceText = [IO.File]::ReadAllText($staleSource)

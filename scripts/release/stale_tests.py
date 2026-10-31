@@ -4,8 +4,9 @@ Two checks, both reading sources only:
 
 1. Every method verifyAndroidBoundaries requires still exists as a test method in its class.
 2. Every text the settings tests expect (assertEquals' expected value and contains()'s argument)
-   still occurs in the extension sources or the translation tables. A source format string counts
-   for any text its fixed parts match, so "Stop after 20 reels" is found in "Stop after %1$d reels".
+   still occurs in the extension sources, the NOTICE the build turns into one, or the translation
+   tables. A source format string counts for any text its fixed parts match, so "Stop after 20
+   reels" is found in "Stop after %1$d reels".
    A diagnostic report line, "<patch name>: <state> (<saved keys>)", is looked for piece by piece.
 
 Exit 0 when both pass, 1 with one line per stale name or text otherwise.
@@ -28,6 +29,9 @@ TESTS = f"{EXTENSION}/src/test/java"
 SETTINGS_TESTS = f"{TESTS}/app/hushgram/extension/instagram/settings"
 SOURCES = (f"{EXTENSION}/src/main/java", "extensions/shared/library/src/main/java")
 TABLES = "extensions/shared/library/src/main/l10n"
+# :extensions:instagram:generateLicenseNotice writes this file into LicenseNotice.TEXT at build
+# time, so its text is source text the tests may expect.
+NOTICE = "NOTICE"
 
 STRING = r'"(?:[^"\\\n]|\\.)*"'
 FORMAT = re.compile(r"%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z%]")
@@ -185,6 +189,9 @@ def corpus(root: Path) -> tuple[str, str, list[re.Pattern]]:
             code = strip_comments(path.read_text(encoding="utf-8"))
             for run in re.finditer(rf"{STRING}(?:\s*\+\s*{STRING})*", code):
                 texts.append(literal_text(run.group(0)) or "")
+    notice = root / NOTICE
+    if notice.is_file():
+        texts.append(notice.read_text(encoding="utf-8").replace("\r\n", "\n"))
     for table in sorted((root / TABLES).glob("*.tsv")):
         for line in table.read_text(encoding="utf-8").splitlines():
             # A table cell writes a newline or a tab as the two characters backslash-n or backslash-t.
