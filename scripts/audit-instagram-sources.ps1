@@ -658,6 +658,22 @@ $collapsed = New-Object System.Collections.Generic.List[object]
 # blob ids into contentHashes or a mirror's blobs when settling a finding.
 $knownHits = New-Object System.Collections.Generic.List[object]
 
+# An index can outlive what it lists. A repository that answers 404 publishes nothing, and an entry
+# for it would only report it gone, so the listing is a note and the ledger's record stands. A limit
+# or a server error says nothing about the repository, so those stay findings.
+function Test-DeadListing {
+    param([string]$Key, [string]$Listers)
+    $where = Split-SourceKey $Key
+    $answer = if ($where.Host -eq 'github.com') {
+        Invoke-SourceRequest -Uri "https://api.github.com/repos/$($where.Path)" -Auth github
+    } else {
+        Invoke-SourceRequest -Uri ('https://gitlab.com/api/v4/projects/' + [Uri]::EscapeDataString($where.Path)) -Auth gitlab
+    }
+    if ($answer.Status -ne 404) { return $false }
+    $notes.Add("$Listers still lists https://$Key, which answers HTTP 404, so the ledger's record of it stands")
+    return $true
+}
+
 # What an index or code search says about a repository the ledger already holds, under whatever
 # name it was found by.
 function Test-KnownRepository {
@@ -687,12 +703,12 @@ function Test-KnownRepository {
             $recordedPackages = @($Record.Entry.packages | ForEach-Object { "$_" })
             $newPackages = @($Candidate.Packages | Where-Object { $recordedPackages -notcontains $_ })
             $curated = @($Candidate.Sources | Where-Object { $_ -ne 'Morphe Archive' -and $_ -notlike '*code search' })
-            if ($curated.Count -gt 0 -or $newPackages.Count -gt 0) {
+            if (($curated.Count -gt 0 -or $newPackages.Count -gt 0) -and -not (Test-DeadListing -Key $Key -Listers $listers)) {
                 Add-Finding -Kind 'listed-as-bundle' -Repository "https://$Key" `
                     -Detail ("a recorded fork of $($Record.Lineage) that $listers lists as a bundle of its own for " +
                         (@($Candidate.Packages) -join ', ') + '; give it an entry of its own') -Evidence $evidence
             }
-        } else {
+        } elseif (-not (Test-DeadListing -Key $Key -Listers $listers)) {
             Add-Finding -Kind 'listed-as-bundle' -Repository ([string]$Record.Record.repository) `
                 -Detail ("out of scope in the ledger, but $listers lists it as a bundle for " + (@($Candidate.Packages) -join ', ') +
                     '; record it as an entry') -Evidence $evidence

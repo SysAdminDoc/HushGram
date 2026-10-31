@@ -421,6 +421,7 @@ function New-FakeAnswers {
         gitlabProject = @{ Status = 200; Content = '{"path_with_namespace":"fixture-group/gamma-patches"}' }
         repoMeta = @{ Status = 200; Content = '{"full_name":"newcomer/ig-patches","license":{"spdx_id":"MIT"},"fork":false,"archived":false,"pushed_at":"2026-09-20T00:00:00Z","description":"Instagram patches"}' }
         oldNameMeta = @{ Status = 200; Content = '{"full_name":"fixture-owner/alpha-patches","fork":false,"archived":false}' }
+        listedRepo = @{ Status = 200; Content = '{"fork":false,"archived":false}' }
     }
     return $answers
 }
@@ -501,6 +502,7 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
             '^https://gitlab\.com/api/v4/projects/\d+$' { $answer = $a.gitlabProject; break }
             '^https://api\.github\.com/repos/(newcomer/ig-patches|clone/alpha-clone)$' { $answer = $a.repoMeta; break }
             '^https://api\.github\.com/repos/fixture-owner/alpha-old$' { $answer = $a.oldNameMeta; break }
+            '^https://api\.github\.com/repos/(someone/alpha-patches|noise/mentions-instagram)$' { $answer = $a.listedRepo; break }
         }
         if ($null -eq $answer) { throw "The audit made a request no stand-in answers: $url" }
         if ($answer.Status -ne 200) {
@@ -834,6 +836,17 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
         Assert-True ($fakeForge.Answers.directory.Content -like "*$listed*") "The directory answer was not edited, so the $listed case would prove nothing."
         $expected = if ($listed -like 'someone/*') { "*github.com/$listed*recorded fork of alpha*Morphe directory*" } else { "*$listed*out of scope*Morphe directory*" }
         Assert-Drift 'listed-as-bundle' $expected "The directory listing $listed as a bundle"
+        # A limit says nothing about the repository, so the listing stays a finding.
+        $fakeForge.Answers.listedRepo = @{ Status = 429; Content = $null }
+        Assert-Drift 'listed-as-bundle' $expected "The directory listing $listed behind a rate limit"
+        # A repository that answers 404 publishes nothing, so the listing is only a note.
+        $fakeForge.Answers.listedRepo = @{ Status = 404; Content = $null }
+        $dead = Invoke-Audit
+        Assert-True (@($dead.Report.findings | Where-Object { $_.kind -eq 'listed-as-bundle' }).Count -eq 0 -and
+            @($dead.Report.notes | Where-Object { $_ -like "*Morphe directory*$listed*answers HTTP 404*" }).Count -eq 1) `
+            ("A listing of $listed, which answers 404, was not read as a dead listing: " +
+                (@($dead.Report.findings | ForEach-Object { "$($_.kind): $($_.repository)" }) -join ' | ') + ' / ' + (@($dead.Report.notes) -join ' | '))
+        Reset-FixtureLedger
         $fakeForge.Answers = New-FakeAnswers
     }
     # The census covers one package, so a source only gains one the ledger doesn't record when it's
