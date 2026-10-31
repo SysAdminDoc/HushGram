@@ -25,6 +25,7 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -286,6 +287,7 @@ public final class GlassTopBar {
          * post moving under the bar moves in the glass too. Recorded again when the header moves or every
          * {@link GlassTabBar#RECORD_EVERY_MS}, for views coming and going under it.
          */
+        @RequiresApi(Build.VERSION_CODES.S)
         private void record(long now) {
             View host = host(header);
             if (host == null) {

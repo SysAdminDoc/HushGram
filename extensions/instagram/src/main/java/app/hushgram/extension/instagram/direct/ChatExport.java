@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
+import androidx.annotation.RequiresApi;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,7 +51,7 @@ public final class ChatExport {
 
     /** Whether this phone keeps the file in the app's own folder rather than the public Download folder. */
     static boolean appFolderOnly() {
-        return Build.VERSION.SDK_INT < 29;
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q;
     }
 
     /**
@@ -59,7 +60,8 @@ public final class ChatExport {
      */
     static boolean save(Context context, String name, String text) {
         try {
-            if (appFolderOnly()) saveInAppFolder(context, name, text);
+            // Spelled out rather than appFolderOnly() so lint sees the API 29 guard.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) saveInAppFolder(context, name, text);
             else saveInDownloads(context, name, text);
             return true;
         } catch (Throwable t) {
@@ -69,6 +71,7 @@ public final class ChatExport {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private static void saveInDownloads(Context context, String name, String text) throws IOException {
         ContentResolver resolver = context.getContentResolver();
         ContentValues values = new ContentValues();
