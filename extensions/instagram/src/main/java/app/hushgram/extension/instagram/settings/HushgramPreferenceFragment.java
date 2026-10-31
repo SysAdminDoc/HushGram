@@ -648,7 +648,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
                             || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key)
                             || Settings.START_REEL_CLEAR_MODE.key.equals(key));
-                    belongs |= family == PatchFamily.REEL_SCROLLING && Settings.SCROLL_BREAK.key.equals(key);
+                    belongs |= family == PatchFamily.REEL_SCROLLING && (Settings.SCROLL_BREAK.key.equals(key)
+                            || Settings.REEL_CAP_COUNT.key.equals(key) || Settings.REEL_CAP_BREAK.key.equals(key));
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
@@ -4069,6 +4070,22 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_OPACITY, 5, L10n.t("%1$d%%"));
         row.setTitle(L10n.t("Tab bar opacity"));
         row.setText(String.valueOf(Settings.GLASS_TAB_BAR_OPACITY.savedValue()));
+        return row;
+    }
+
+    /** How many reels play before Stop after a set number of reels stops the swiping, from a slider (#405). */
+    static SliderRow reelCapCountRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.REEL_CAP_COUNT, 5, L10n.t("%1$d reels"));
+        row.setTitle(L10n.t("Reels before swiping stops"));
+        row.setText(String.valueOf(Settings.REEL_CAP_COUNT.savedValue()));
+        return row;
+    }
+
+    /** How long Instagram stays in the background before the swiping comes back, from a slider (#405). */
+    static SliderRow reelCapBreakRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.REEL_CAP_BREAK, 5, L10n.t("%1$d minutes in the background"));
+        row.setTitle(L10n.t("Time away before swiping comes back"));
+        row.setText(String.valueOf(Settings.REEL_CAP_BREAK.savedValue()));
         return row;
     }
 

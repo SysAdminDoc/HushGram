@@ -92,10 +92,12 @@ public class ReelOriginSettingsTest {
         for (int i = 0; i < keys.length; i++) keys[i] = reels.getPreference(i).getKey();
         int cap = Arrays.asList(keys).indexOf(Settings.REEL_CAP.key);
         assertTrue(Arrays.toString(keys), cap >= 0);
-        assertEquals("Take a scroll break follows Stop after 20 reels", Settings.SCROLL_BREAK.key, keys[cap + 1]);
-        assertEquals("then this switch", Settings.FIND_REEL_ORIGIN.key, keys[cap + 2]);
-        assertEquals("then Wait for a tap, last", Settings.FIND_REEL_ORIGIN_ON_TAP.key, keys[cap + 3]);
-        assertEquals(keys.length - 1, cap + 3);
+        assertEquals("its two sliders follow Stop after a set number of reels", Settings.REEL_CAP_COUNT.key, keys[cap + 1]);
+        assertEquals(Settings.REEL_CAP_BREAK.key, keys[cap + 2]);
+        assertEquals("then Take a scroll break", Settings.SCROLL_BREAK.key, keys[cap + 3]);
+        assertEquals("then this switch", Settings.FIND_REEL_ORIGIN.key, keys[cap + 4]);
+        assertEquals("then Wait for a tap, last", Settings.FIND_REEL_ORIGIN_ON_TAP.key, keys[cap + 5]);
+        assertEquals(keys.length - 1, cap + 5);
         assertFalse(row.isChecked());
         assertFalse(Settings.FIND_REEL_ORIGIN.get());
         assertFalse("each profile opened from a reel reads the switch, so no restart prompt", Settings.FIND_REEL_ORIGIN.rebootApp);

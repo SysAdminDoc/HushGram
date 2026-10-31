@@ -12,6 +12,8 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hiddenBarsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.likeAnimationRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapBreakRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.reelCapCountRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.scrollBreakRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
@@ -222,9 +224,12 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.STOP_REELS_SCROLLING, L10n.t("Stop Reels scrolling"),
                     L10n.t("A swipe in Reels no longer moves on to the next reel, and pulling down doesn't load new "
                             + "ones. The reel you opened still plays. Restart Instagram to see the change.")));
-            reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after 20 reels"),
-                    L10n.t("After 20 reels, swiping in Reels stops until Instagram has been in the background for "
-                            + "15 minutes. A reel you open from a message or a post still plays.")));
+            reels.add(toggle(context, Settings.REEL_CAP, L10n.t("Stop after a set number of reels"),
+                    L10n.t("After the reels you pick below, swiping in Reels stops until Instagram has been in the "
+                            + "background for the time you pick. A reel you open from a message or a post still "
+                            + "plays.")));
+            reels.add(reelCapCountRow(context));
+            reels.add(reelCapBreakRow(context));
             reels.add(scrollBreakRow(context));
         }
         if (build.contains(PatchFamily.SWIPE_TO_PROFILE)) {

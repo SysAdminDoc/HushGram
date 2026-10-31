@@ -582,7 +582,7 @@ Stop after the chat's reels	Sohbetin reels videolarından sonra dur
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	Bir sohbetten açtığın reels videoları o sohbette paylaşılan sonuncusunda biter, ardından önerilen video gelmez. Bir sohbetin reels videolarında kaydır açıkken çalışır.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	İndir'in altına Kapağı indir ekler. Bir reel'in oynatılmadan önce gösterdiği hareketsiz görüntüyü en büyük boyutunda kaydeder.
 Adds Download audio under Download. It saves the sound of the reel as an audio file.	İndir'in altına Sesi indir ekler. Reel'in sesini bir ses dosyası olarak kaydeder.
-After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	20 reel'den sonra Instagram 15 dakika arka planda kalana kadar Reels'te kaydırma durur. Bir mesajdan veya gönderiden açtığın reel yine oynar.
+After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	Aşağıda seçtiğin sayıda reel'den sonra Instagram seçtiğin süre boyunca arka planda kalana kadar Reels'te kaydırma durur. Bir mesajdan veya gönderiden açtığın reel yine oynar.
 Find the reel you came from	Geldiğin reel'i bul
 Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Bir reel'den içerik üreticinin profilini, ardından Reels sekmesini aç, sekme o reel'e kayar ve onu kısa bir süre çerçeveler. Fotoğraflı bir reel gönderilerinde bulunur. Aramayı durdur düğmesi aramayı olduğu yerde bitirir.
 Wait for a tap to find it	Bulmak için dokunmayı bekle
@@ -613,7 +613,12 @@ Send downloads to another app	İndirmeleri başka bir uygulamaya gönder
 Send to	Gönderilecek uygulama
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Başka bir uygulamaya gönderildi. Burada kaydetmek için İndirmeler'de İndirmeleri başka bir uygulamaya gönder'i kapat.
 Spoof location	Konumu taklit et
-Stop after 20 reels	20 reel'den sonra dur
+Stop after a set number of reels	Belirli sayıda reel'den sonra dur
+# context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
+Reels before swiping stops	Kaydırma durmadan önceki reel sayısı
+%1$d reels	%1$d reel
+Time away before swiping comes back	Kaydırma geri gelmeden önceki ara
+%1$d minutes in the background	Arka planda %1$d dakika
 Take a scroll break	Kaydırmaya mola ver
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	%1$d dakika sonra

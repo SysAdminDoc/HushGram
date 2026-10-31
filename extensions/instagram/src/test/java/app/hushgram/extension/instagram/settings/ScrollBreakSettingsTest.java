@@ -37,7 +37,7 @@ import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Take a scroll break (#297) is a list right after Stop after 20 reels under Reels, starts off, says what it does and is backed up. */
+/** Take a scroll break (#297) is a list right after Stop after a set number of reels and its sliders under Reels, starts off, says what it does and is backed up. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 30)
 @SuppressWarnings("deprecation")
@@ -85,7 +85,7 @@ public class ScrollBreakSettingsTest {
             if (Settings.REEL_CAP.key.equals(key)) cap = i;
             if (Settings.SCROLL_BREAK.key.equals(key)) pause = i;
         }
-        assertEquals("right after Stop after 20 reels", cap + 1, pause);
+        assertEquals("right after Stop after a set number of reels and its two sliders", cap + 3, pause);
 
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());

@@ -136,7 +136,11 @@ public final class ConfigurationBackup {
             settings.put(Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key, Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS);
         }
         if (PatchFamily.REEL_TAP_AND_VOLUME.inBuild()) settings.put(Settings.REEL_TAP_CHOICE.key, Settings.REEL_TAP_CHOICE);
-        if (PatchFamily.REEL_SCROLLING.inBuild()) settings.put(Settings.SCROLL_BREAK.key, Settings.SCROLL_BREAK);
+        if (PatchFamily.REEL_SCROLLING.inBuild()) {
+            settings.put(Settings.SCROLL_BREAK.key, Settings.SCROLL_BREAK);
+            settings.put(Settings.REEL_CAP_COUNT.key, Settings.REEL_CAP_COUNT);
+            settings.put(Settings.REEL_CAP_BREAK.key, Settings.REEL_CAP_BREAK);
+        }
         if (PatchFamily.REEL_DECLUTTER.inBuild()) {
             settings.put(Settings.BURN_IN_GUARD.key, Settings.BURN_IN_GUARD);
             settings.put(Settings.BURN_IN_WAIT.key, Settings.BURN_IN_WAIT);

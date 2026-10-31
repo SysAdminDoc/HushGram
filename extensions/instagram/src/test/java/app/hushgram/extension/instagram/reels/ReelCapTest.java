@@ -27,7 +27,7 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Stop after 20 reels: when a session's reels run out, what it stops, and when a break starts a new one. */
+/** Stop after a set number of reels: when a session's reels run out, what it stops, and when a break starts a new one. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class ReelCapTest {
@@ -58,6 +58,8 @@ public class ReelCapTest {
         PauseForTests.resume();
         Settings.STOP_REELS_SCROLLING.resetToDefault();
         Settings.REEL_CAP.resetToDefault();
+        Settings.REEL_CAP_COUNT.resetToDefault();
+        Settings.REEL_CAP_BREAK.resetToDefault();
         ReelScrolling.forget();
         HookStatus.clear();
     }
@@ -204,6 +206,38 @@ public class ReelCapTest {
         ReelScrolling.shown(1_000 + ReelScrolling.BREAK_MILLIS);
         assertEquals(java.util.Collections.singletonList(false), pager.inputs);
         assertEquals(0, ReelScrolling.userInput(pager, 1));
+    }
+
+    /** A count picked on its slider (#405) is where swiping stops, not 20. */
+    @Test
+    public void aPickedCountStopsThere() {
+        Settings.REEL_CAP_COUNT.save(10);
+        Pager pager = new Pager();
+        ReelScrolling.pager(pager);
+        play(pager, 0, 10);
+        assertTrue(pager.inputs.isEmpty());
+        ReelScrolling.page(pager, 10);
+        assertEquals(java.util.Collections.singletonList(false), pager.inputs);
+        assertEquals(0, ReelScrolling.userInput(pager, 1));
+    }
+
+    /** A break picked on its slider (#405) is how long Instagram has to stay in the background. */
+    @Test
+    public void aPickedBreakIsTheOneThatCounts() {
+        Settings.REEL_CAP_BREAK.save(5);
+        Pager pager = new Pager();
+        ReelScrolling.pager(pager);
+        play(pager, 0, ReelScrolling.CAP + 1);
+        assertEquals(0, ReelScrolling.userInput(pager, 1));
+
+        ReelScrolling.hidden(1_000);
+        ReelScrolling.shown(1_000 + 5 * 60_000L - 1);
+        assertEquals("just short of five minutes keeps the cap", 0, ReelScrolling.userInput(pager, 1));
+
+        ReelScrolling.hidden(5_000_000);
+        ReelScrolling.shown(5_000_000 + 5 * 60_000L);
+        assertEquals(java.util.Arrays.asList(false, true), pager.inputs);
+        assertEquals(1, ReelScrolling.userInput(pager, 1));
     }
 
     @Test

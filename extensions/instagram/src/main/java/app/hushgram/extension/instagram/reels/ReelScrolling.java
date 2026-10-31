@@ -40,12 +40,14 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * gets you past the reel you opened. Taps on the reel and its buttons go where they did. Instagram's own
  * auto scroll is the app moving the pager, not a finger, so it still moves on when it's turned on.
  *
- * <p>Stop after 20 reels: each store of a Reels pager's current page reaches {@link #page}. The first
- * page a pager stores this session is where it starts, and each page past the furthest one it has
- * reached since is one more reel, so going back to a reel and forward again, or a refresh that puts
- * the pager back at the top, counts nothing new. At {@link #CAP} the pager's input goes off and
- * stays off, in this viewer and any that opens, the same as with the first switch on, until
- * Instagram has been in the background for {@link #BREAK_MILLIS}. A reel you open still plays.
+ * <p>Stop after a set number of reels: each store of a Reels pager's current page reaches
+ * {@link #page}. The first page a pager stores this session is where it starts, and each page past
+ * the furthest one it has reached since is one more reel, so going back to a reel and forward again,
+ * or a refresh that puts the pager back at the top, counts nothing new. At the count picked
+ * ({@link #cap}, {@link #CAP} to start) the pager's input goes off and stays off, in this viewer and
+ * any that opens, the same as with the first switch on, until Instagram has been in the background
+ * for the minutes picked ({@link #breakMillis}, {@link #BREAK_MINUTES} to start, #405). A reel you
+ * open still plays.
  * Turning the switch off, or pausing HushGram, gives the swipes back at the next touch in Reels
  * ({@link #settle}).
  *
@@ -63,11 +65,14 @@ public final class ReelScrolling {
     /** What's counted each time a session reaches the cap. */
     static final String CAPPED = "stopped after the cap";
 
-    /** The reels a session plays before swiping stops, with Stop after 20 reels on. */
-    static final int CAP = 20;
+    /** The reels a session plays before swiping stops, until another count is picked. */
+    public static final int CAP = 20;
 
-    /** How long Instagram stays in the background before the next session starts. */
-    static final long BREAK_MILLIS = 15 * 60_000L;
+    /** The minutes Instagram stays in the background before the next session starts, until others are picked. */
+    public static final int BREAK_MINUTES = 15;
+
+    /** {@link #BREAK_MINUTES} in milliseconds. */
+    static final long BREAK_MILLIS = BREAK_MINUTES * 60_000L;
 
     /** The furthest page each Reels pager has reached this session. Only a page past it is a new reel. */
     private static final Map<Object, Integer> FURTHEST = Collections.synchronizedMap(new WeakHashMap<>());
@@ -150,9 +155,9 @@ public final class ReelScrolling {
 
     /**
      * Injected after each store of a pager's current page, with the pager and the page. For a Reels
-     * pager past the furthest page it has reached this session, counts a reel while Stop after 20
-     * reels is on, and at the cap turns the pager's input off and says why. The first page a pager
-     * stores in a session is where it starts, not a reel counted. Never throws.
+     * pager past the furthest page it has reached this session, counts a reel while Stop after a set
+     * number of reels is on, and at the cap turns the pager's input off and says why. The first page a
+     * pager stores in a session is where it starts, not a reel counted. Never throws.
      */
     public static void page(Object pager, int position) {
         page(pager, position, ReelScrolling::capOn);
@@ -172,15 +177,16 @@ public final class ReelScrolling {
             }
             watch();
             if (furthest == null) return;
+            int cap = cap();
             synchronized (ReelScrolling.class) {
-                if (capped || ++played < CAP) return;
+                if (capped || ++played < cap) return;
                 capped = true;
             }
             HookStatus.counted(FamilyNames.REEL_SCROLLING, CAPPED);
-            Logger.printDebug(() -> "Reels scrolling: " + CAP + " reels played, swipes are off");
+            Logger.printDebug(() -> "Reels scrolling: " + cap + " reels played, swipes are off");
             setInput(pager, false);
             Utils.showToastLong(L10n.f("That's %1$d reels. Swiping in Reels is off until Instagram has been in the "
-                    + "background for %2$d minutes.", CAP, BREAK_MILLIS / 60_000));
+                    + "background for %2$d minutes.", cap, breakMillis() / 60_000));
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_SCROLLING, PAGE, failure);
         }
@@ -192,19 +198,19 @@ public final class ReelScrolling {
     }
 
     /**
-     * An Instagram screen started at [now]. After a break of {@link #BREAK_MILLIS} or more a new
+     * An Instagram screen started at [now]. After a break of {@link #breakMillis} or more a new
      * session starts ({@link #release}).
      */
     static void shown(long now) {
         long since = hiddenAt;
         if (since == 0) return;
         hiddenAt = 0;
-        if (now - since < BREAK_MILLIS) return;
+        if (now - since < breakMillis()) return;
         release();
     }
 
     /**
-     * Asked first by every hook. While a session is capped and Stop after 20 reels is no longer on,
+     * Asked first by every hook. While a session is capped and the reel stop is no longer on,
      * switched off or with HushGram paused, Instagram's own behavior comes back right away rather than
      * after the break: the session ends ({@link #release}). No hook runs while a capped pager sits
      * still, but the pull-down layout around the viewer sees every touch in Reels, so the first one
@@ -295,5 +301,15 @@ public final class ReelScrolling {
 
     private static boolean capOn() {
         return Utils.settingsReady() && Settings.REEL_CAP.get();
+    }
+
+    /** The reels picked for a session, or {@link #CAP} before the settings are read. */
+    static int cap() {
+        return Utils.settingsReady() ? Settings.REEL_CAP_COUNT.get() : CAP;
+    }
+
+    /** The break picked, in milliseconds, or {@link #BREAK_MILLIS} before the settings are read. */
+    static long breakMillis() {
+        return Utils.settingsReady() ? Settings.REEL_CAP_BREAK.get() * 60_000L : BREAK_MILLIS;
     }
 }

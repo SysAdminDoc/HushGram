@@ -582,7 +582,7 @@ Stop after the chat's reels	Fermati dopo i reel della chat
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	I reel aperti da una chat finiscono dopo l'ultimo condiviso in quella chat, senza reel suggeriti dopo. Funziona con Scorri tra i reel di una chat attivo.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	Aggiunge Scarica la copertina sotto Scarica. Salva l'immagine fissa che un reel mostra prima di partire, alla dimensione massima.
 Adds Download audio under Download. It saves the sound of the reel as an audio file.	Aggiunge Scarica l'audio sotto Scarica. Salva il suono del reel come file audio.
-After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	Dopo 20 reel, lo scorrimento nei reel si ferma finché Instagram non resta in background per 15 minuti. Un reel che apri da un messaggio o da un post parte comunque.
+After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	Dopo i reel che scegli qui sotto, lo scorrimento nei reel si ferma finché Instagram non resta in background per il tempo che scegli. Un reel che apri da un messaggio o da un post parte comunque.
 Find the reel you came from	Trova il reel da cui arrivi
 Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Apri il profilo di un creator da un reel, poi la sua scheda Reel, e scorre fino a quel reel e lo evidenzia per un momento. Un reel di foto viene trovato tra i suoi post. Smetti di cercare termina la ricerca dov'è.
 Wait for a tap to find it	Aspetta un tocco per trovarlo
@@ -613,7 +613,12 @@ Send downloads to another app	Invia i download a un'altra app
 Send to	Invia a
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Inviato a un'altra app. Per salvare qui, disattiva Invia i download a un'altra app in Download.
 Spoof location	Simula la posizione
-Stop after 20 reels	Fermati dopo 20 reel
+Stop after a set number of reels	Fermati dopo un certo numero di reel
+# context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
+Reels before swiping stops	Reel prima che lo scorrimento si fermi
+%1$d reels	%1$d reel
+Time away before swiping comes back	Pausa prima che torni lo scorrimento
+%1$d minutes in the background	%1$d minuti in background
 Take a scroll break	Fai una pausa dallo scroll
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	Dopo %1$d minuti

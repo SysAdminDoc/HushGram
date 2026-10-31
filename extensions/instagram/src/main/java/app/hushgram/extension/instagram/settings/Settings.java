@@ -2330,12 +2330,29 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_reel_swipe_to_profile", FALSE, true);
 
     /**
-     * After 20 reels in a session, swiping in Reels stops until Instagram has been in the
-     * background for 15 minutes ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). Read
-     * at each new reel. Off to start.
+     * After {@link #REEL_CAP_COUNT} reels in a session, swiping in Reels stops until Instagram has been
+     * in the background for {@link #REEL_CAP_BREAK} minutes
+     * ({@link app.hushgram.extension.instagram.reels.ReelScrolling}). Read at each new reel. Off to start.
      */
     public static final BooleanSetting REEL_CAP =
             new BooleanSetting("hushgram_reel_cap", FALSE);
+
+    /**
+     * Under {@link #REEL_CAP}: how many reels a session plays before swiping stops, from a slider (#405).
+     * Starts on the 20 it has always been. Read as each reel is counted, so no restart.
+     */
+    public static final IntegerSetting REEL_CAP_COUNT =
+            new IntegerSetting("hushgram_reel_cap_count", app.hushgram.extension.instagram.reels.ReelScrolling.CAP,
+                    false, parent(REEL_CAP)).withRange(5, 100);
+
+    /**
+     * Under {@link #REEL_CAP}: how many minutes Instagram stays in the background before swiping comes
+     * back, from a slider (#405). Starts on the 15 it has always been. Read as Instagram comes back.
+     */
+    public static final IntegerSetting REEL_CAP_BREAK =
+            new IntegerSetting("hushgram_reel_cap_break",
+                    app.hushgram.extension.instagram.reels.ReelScrolling.BREAK_MINUTES, false, parent(REEL_CAP))
+                    .withRange(5, 120);
 
     /**
      * After this long on Home's feed, Reels and Explore, a break screen covers them for 5 minutes

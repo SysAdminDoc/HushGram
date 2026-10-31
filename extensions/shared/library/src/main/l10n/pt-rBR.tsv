@@ -582,7 +582,7 @@ Stop after the chat's reels	Parar depois dos reels da conversa
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	Os reels abertos de uma conversa terminam no último compartilhado nela, sem reels sugeridos depois. Funciona com Deslizar pelos reels de uma conversa ativado.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	Adiciona Baixar capa embaixo de Baixar. Salva a imagem estática que um reel mostra antes de começar, no maior tamanho.
 Adds Download audio under Download. It saves the sound of the reel as an audio file.	Adiciona Baixar áudio embaixo de Baixar. Salva o som do reel como um arquivo de áudio.
-After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	Depois de 20 reels, deslizar no Reels para até o Instagram ficar 15 minutos em segundo plano. Um reel aberto de uma mensagem ou de um post continua tocando.
+After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	Depois dos reels que você escolher abaixo, deslizar no Reels para até o Instagram ficar em segundo plano pelo tempo que você escolher. Um reel aberto de uma mensagem ou de um post continua tocando.
 Find the reel you came from	Encontrar o reel de onde você veio
 Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	Abra o perfil de um criador a partir de um reel e depois a aba Reels dele, e ela rola até esse reel e o destaca por um momento. Um reel de foto é encontrado nas publicações dele. Parar de procurar encerra a busca onde ela estiver.
 Wait for a tap to find it	Esperar um toque para procurar
@@ -613,7 +613,12 @@ Send downloads to another app	Enviar downloads para outro app
 Send to	Enviar para
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	Enviado para outro app. Para salvar aqui, desative Enviar downloads para outro app em Downloads.
 Spoof location	Falsificar localização
-Stop after 20 reels	Parar depois de 20 reels
+Stop after a set number of reels	Parar depois de um número de reels
+# context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
+Reels before swiping stops	Reels antes de o deslizar parar
+%1$d reels	%1$d reels
+Time away before swiping comes back	Tempo fora antes de o deslizar voltar
+%1$d minutes in the background	%1$d minutos em segundo plano
 Take a scroll break	Fazer uma pausa da rolagem
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	Depois de %1$d minutos

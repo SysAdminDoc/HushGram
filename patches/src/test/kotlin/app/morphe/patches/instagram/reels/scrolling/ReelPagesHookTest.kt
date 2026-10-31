@@ -32,7 +32,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** Stop after 20 reels hears of every page the Reels pager lands on, from each store of its current page. */
+/** Stop after a set number of reels hears of every page the Reels pager lands on, from each store of its current page. */
 class ReelPagesHookTest {
     private val current = ImmutableFieldReference(VIEW_PAGER, "A00", "I")
     private val other = ImmutableFieldReference(VIEW_PAGER, "A01", "I")

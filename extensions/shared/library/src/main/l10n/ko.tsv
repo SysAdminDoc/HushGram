@@ -581,7 +581,7 @@ Stop after the chat's reels	채팅의 릴스까지만 보기
 Reels you opened from a chat end after the last one shared in that chat, with no suggested reels after it. Works with Swipe through a chat's reels on.	채팅에서 연 릴스는 그 채팅에 공유된 마지막 릴스에서 끝나고, 그 뒤에 추천 릴스가 나오지 않습니다. 채팅의 릴스 넘겨보기가 켜져 있을 때 작동합니다.
 Adds Download cover under Download. It saves the still picture a reel shows before it plays, at its largest size.	다운로드 아래에 커버 다운로드를 추가합니다. 릴스가 재생되기 전에 보여 주는 정지 이미지를 가장 큰 크기로 저장합니다.
 Adds Download audio under Download. It saves the sound of the reel as an audio file.	다운로드 아래에 오디오 다운로드를 추가합니다. 릴스의 소리를 오디오 파일로 저장합니다.
-After 20 reels, swiping in Reels stops until Instagram has been in the background for 15 minutes. A reel you open from a message or a post still plays.	릴스 20개를 보면 Instagram이 15분 동안 백그라운드에 있을 때까지 릴스 스와이프가 멈춥니다. 메시지나 게시물에서 연 릴스는 계속 재생됩니다.
+After the reels you pick below, swiping in Reels stops until Instagram has been in the background for the time you pick. A reel you open from a message or a post still plays.	아래에서 고른 개수만큼 릴스를 보면 Instagram이 고른 시간 동안 백그라운드에 있을 때까지 릴스 스와이프가 멈춥니다. 메시지나 게시물에서 연 릴스는 계속 재생됩니다.
 Find the reel you came from	보던 릴스 찾기
 Open a creator's profile from a reel, then their Reels tab, and it scrolls to that reel and outlines it for a moment. A photo reel is found in their posts. Stop looking ends the search where it is.	릴스에서 크리에이터의 프로필을 연 다음 릴스 탭을 열면 그 릴스로 스크롤하고 잠깐 테두리를 표시합니다. 사진 릴스는 게시물에서 찾습니다. 찾기 중지를 누르면 그 자리에서 찾기를 멈춥니다.
 Wait for a tap to find it	탭할 때까지 기다렸다 찾기
@@ -612,7 +612,12 @@ Send downloads to another app	다운로드를 다른 앱으로 보내기
 Send to	보낼 앱
 Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.	다른 앱으로 보냈습니다. 여기에 저장하려면 다운로드에서 다운로드를 다른 앱으로 보내기를 끄세요.
 Spoof location	위치 위장
-Stop after 20 reels	릴스 20개 후 멈추기
+Stop after a set number of reels	정한 개수의 릴스 후 멈추기
+# context: Reels settings: two sliders under Stop after a set number of reels (#405). The first picks how many reels play before swiping stops, %1$d is 5 to 100; the second how long Instagram stays in the background before swiping comes back, %1$d is 5 to 120 minutes
+Reels before swiping stops	스와이프가 멈추기 전 릴스 수
+%1$d reels	릴스 %1$d개
+Time away before swiping comes back	스와이프가 돌아오기까지 쉬는 시간
+%1$d minutes in the background	백그라운드에서 %1$d분
 Take a scroll break	스크롤 쉬는 시간 갖기
 # context: a choice in the scroll break list; %1$d is 10, 20, 30 or 60
 After %1$d minutes	%1$d분 후

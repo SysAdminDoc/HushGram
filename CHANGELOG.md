@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Stop Reels scrolling:** `Stop after 20 reels` is now `Stop after a set number of reels`. Two sliders under it pick how many reels play (5 to 100) and how long Instagram sits in the background before swiping returns (5 to 120 minutes). Asked for in #405.
 * **Instagram:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, on this phone only. `Clear viewing history` empties it. Starts off. Asked for in #228.
 * **Instagram:** The `App icon` list now shows each choice's real icon in its own colors next to its name, with the one in use marked, so you can see what you're picking before you leave Instagram. Asked for in #321 and #327.
 * **Instagram:** The `Accent color` list on Android 11 and older marks the color in use again.

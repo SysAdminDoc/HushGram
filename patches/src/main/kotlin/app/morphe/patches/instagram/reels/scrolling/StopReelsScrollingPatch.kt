@@ -70,9 +70,9 @@ private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 val stopReelsScrollingPatch = bytecodePatch(
     name = "Stop Reels scrolling",
     description = "Stops a swipe in Reels from moving to the next reel, so you stay on the one you opened. A " +
-        "second switch lets you watch 20 reels, then stops swiping for 15 minutes, and Take a scroll break " +
-        "covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn it on in " +
-        "HushGram settings > Reels.",
+        "second switch stops swiping after as many reels as you pick, for as long as you pick, and Take a " +
+        "scroll break covers Home, Reels and Explore for 5 minutes after the time you pick. Starts off. Turn " +
+        "it on in HushGram settings > Reels.",
     default = true,
 ) {
     category("Reels")
