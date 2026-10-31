@@ -310,6 +310,14 @@ try {
         Assert-PlanContent $destination $document $false "$($destination.id) ambiguous empty container"
     }
     $homeDestination = $all | Where-Object id -CEQ 'home'
+    # Home on an account that follows nobody draws the IGDS headline form (release walk 2026-10-31).
+    $document = Get-NativePlanDocument $homeDestination -Empty
+    foreach ($idPair in @(@('igds_empty_state_title','igds_headline_emphasized_headline'), @('igds_empty_state_body_text','igds_headline_body'))) {
+        $document.SelectSingleNode("//node[@resource-id='${script:package}:id/$($idPair[0])']").SetAttribute('resource-id', "${script:package}:id/$($idPair[1])")
+    }
+    Assert-PlanContent $homeDestination $document $true 'Home headline empty state'
+    $document.SelectSingleNode("//node[@resource-id='${script:package}:id/igds_headline_body']").SetAttribute('text','')
+    Assert-PlanContent $homeDestination $document $false 'Home headline empty state without a body'
     $document = Get-NativePlanDocument $homeDestination
     $fragment = $document.CreateDocumentFragment()
     $fragment.InnerXml = Get-PlanNode -Class 'android.widget.FrameLayout' -Text 'Screen unavailable'

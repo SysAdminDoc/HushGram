@@ -466,8 +466,10 @@ function Test-WalkDestinationContent {
             if (@(Get-WalkIdNode $requiredId).Count -ne 1) { return Get-WalkContentFailure 'The native destination header is missing or duplicated.' }
         }
         # The native explicit empty state is legitimate, including a profile with zero posts.
-        # IDs/title/body are present in audit-2026-10-25/02-baseline-profile.xml. Scope it
-        # to the selected destination, and reject loading/error states before accepting it.
+        # IDs/title/body are present in audit-2026-10-25/02-baseline-profile.xml. Home on an
+        # account that follows nobody draws the IGDS headline form instead (Welcome to
+        # Instagram, release walk 2026-10-31). Scope it to the selected destination, and reject
+        # loading/error states before accepting it.
         $emptyScope = switch -CaseSensitive ($Destination.id) {
             'home' { 'android:id/list' }; 'explore' { 'recycler_view' }; 'reels' { 'clips_viewer_view_pager' }
             'inbox' { 'inbox_refreshable_thread_list_recyclerview' }; 'profile' { 'user_detail_fragment' }
@@ -477,9 +479,9 @@ function Test-WalkDestinationContent {
             foreach ($scope in @(Get-WalkIdNode $emptyScope)) {
                 foreach ($empty in @(Get-WalkDescendant $scope | Where-Object { $_.GetAttribute('resource-id') -ceq "${Package}:id/empty_state_view_root" })) {
                     $emptyChildren = @(Get-WalkDescendant $empty)
-                    $hasTitle = @($emptyChildren | Where-Object { $_.GetAttribute('resource-id') -ceq "${Package}:id/igds_empty_state_title" -and
+                    $hasTitle = @($emptyChildren | Where-Object { $_.GetAttribute('resource-id') -cin @("${Package}:id/igds_empty_state_title", "${Package}:id/igds_headline_emphasized_headline") -and
                         $_.GetAttribute('class') -ceq 'android.widget.TextView' -and -not [string]::IsNullOrWhiteSpace($_.GetAttribute('text')) }).Count -gt 0
-                    $hasBody = @($emptyChildren | Where-Object { $_.GetAttribute('resource-id') -ceq "${Package}:id/igds_empty_state_body_text" -and
+                    $hasBody = @($emptyChildren | Where-Object { $_.GetAttribute('resource-id') -cin @("${Package}:id/igds_empty_state_body_text", "${Package}:id/igds_headline_body") -and
                         $_.GetAttribute('class') -ceq 'android.widget.TextView' -and -not [string]::IsNullOrWhiteSpace($_.GetAttribute('text')) }).Count -gt 0
                     $hasEmptyState = $hasEmptyState -or ($hasTitle -and $hasBody)
                 }
