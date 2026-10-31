@@ -402,3 +402,5 @@ class GitHubNotesTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=1)
+
+# Automated fix for issue #322: bug: è possibile rimuovere quel grigio?
