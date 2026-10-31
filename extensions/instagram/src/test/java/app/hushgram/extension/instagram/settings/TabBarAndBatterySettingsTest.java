@@ -131,7 +131,8 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(Settings.GLASS_TAB_BAR.rebootApp);
         assertEquals(Arrays.asList(Settings.GLASS_TAB_BAR, Settings.GLASS_TAB_BAR_BLUR, Settings.GLASS_TAB_BAR_FLOAT,
                 Settings.GLASS_TAB_BAR_HAPTICS, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, Settings.GLASS_TAB_BAR_SLIDE,
-                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_REFRACT),
+                Settings.GLASS_TAB_BAR_LIQUID, Settings.GLASS_TAB_BAR_KEEP_SIZE, Settings.GLASS_TAB_BAR_REFRACT,
+                Settings.GLASS_TAB_BAR_REELS_BEHIND),
                 PatchFamily.GLASS_TAB_BAR.switches);
         for (String key : List.of(Settings.GLASS_TAB_BAR_BLUR.key, Settings.GLASS_TAB_BAR_HAPTICS.key, Settings.GLASS_TAB_BAR_FLOAT.key,
                 Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.key, Settings.GLASS_TAB_BAR_SLIDE.key, Settings.GLASS_TAB_BAR_LIQUID.key,

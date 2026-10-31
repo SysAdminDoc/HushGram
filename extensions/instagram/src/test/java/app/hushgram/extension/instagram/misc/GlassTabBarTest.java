@@ -1761,6 +1761,9 @@ public class GlassTabBarTest {
         GlassTabBar.animationsOnForTests = false;
         for (boolean refract : new boolean[]{true, false}) {
             try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, true)) {
+                FrameLayout feed = new FrameLayout(host.activity);
+                feed.setBackgroundColor(Color.RED);
+                host.root.addView(feed, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
                 host.nameSearch(1);
                 Settings.GLASS_TAB_BAR_LIQUID.save(true);
                 Settings.GLASS_TAB_BAR_REFRACT.save(refract);
