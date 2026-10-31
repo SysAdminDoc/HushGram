@@ -355,7 +355,7 @@ $fixtureLedger = [ordered]@{
             forks = @(); contentHashes = @(); mirrors = @(); lastChecked = '2026-09-01' }
         [ordered]@{ id = 'gamma'; repository = 'https://gitlab.com/fixture-group/gamma-patches'; lineage = 'gamma'; upstream = $null
             kind = 'revanced-patches'; packages = @('com.instagram.android'); targetVersions = [ordered]@{ 'com.instagram.android' = @() }
-            features = @('Open links outside'); branches = @([ordered]@{ name = 'main'; commit = $commitG1 }); watchPaths = @()
+            features = @('Open links outside'); branches = @([ordered]@{ name = 'main'; commit = $commitG1 }); watchPaths = @('patches/instagram', 'extensions/instagram')
             license = [ordered]@{ spdx = 'GPL-3.0'; url = "https://gitlab.com/fixture-group/gamma-patches/-/blob/$commitG1/LICENSE"; sha256 = $licenseHash }
             licenseHistory = @([ordered]@{ spdx = 'MIT'; url = "https://gitlab.com/fixture-group/gamma-patches/-/blob/$('c0' * 20)/LICENSE"
                 sha256 = ('ab' * 32); commit = ('c0' * 20); until = '2026-08-01' })
@@ -417,6 +417,13 @@ function New-FakeAnswers {
         gammaLicense = @{ Status = 200; Content = (@{ file_name = 'LICENSE'; content = $licenseBase64 } | ConvertTo-Json) }
         gammaBranches = @{ Status = 200; Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}}]" }
         gammaForks = @{ Status = 200; Content = '[]' }
+        # The newest commit GitLab's GraphQL answers for a branch and path; anything else has none. A
+        # gammaGraphql answer stands in for the whole reply.
+        gammaWatch = @{
+            'main|patches/instagram' = @{ sha = $commitG1; committedDate = '2026-09-01T12:00:00+02:00' }
+            'old|patches/instagram' = @{ sha = ('c3' * 20); committedDate = '2026-08-01T12:00:00+02:00' }
+        }
+        gammaGraphql = $null
         gitlabHits = @()
         gitlabProject = @{ Status = 200; Content = '{"path_with_namespace":"fixture-group/gamma-patches"}' }
         repoMeta = @{ Status = 200; Content = '{"full_name":"newcomer/ig-patches","license":{"spdx_id":"MIT"},"fork":false,"archived":false,"pushed_at":"2026-09-20T00:00:00Z","description":"Instagram patches"}' }
@@ -432,10 +439,10 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     # Stands in for every request the audit makes, so no case needs the network. A request it
     # doesn't recognize fails the case that made it.
     function Invoke-WebRequest {
-        param($Uri, $Headers, $UserAgent, [switch]$UseBasicParsing, $TimeoutSec, $Method, $OutFile, $MaximumRedirection, [switch]$PassThru)
+        param($Uri, $Headers, $UserAgent, [switch]$UseBasicParsing, $TimeoutSec, $Method, $Body, $ContentType, $OutFile, $MaximumRedirection, [switch]$PassThru)
         $url = [string]$Uri
         $authorization = if ($Headers -and $Headers.ContainsKey('Authorization')) { [string]$Headers['Authorization'] } else { $null }
-        $fakeForge.Requests.Add([pscustomobject]@{ Uri = $url; Authorization = $authorization })
+        $fakeForge.Requests.Add([pscustomobject]@{ Uri = $url; Authorization = $authorization; Method = $Method; Body = $Body })
         foreach ($pattern in @($fakeForge.Drops.Keys)) {
             if ($url -like $pattern -and $fakeForge.Drops[$pattern] -gt 0) {
                 $fakeForge.Drops[$pattern]--
@@ -492,6 +499,17 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
                     $commits = if ($status -eq 'ahead') { @(@{ id = $Matches[2] }) } else { @() }
                     $answer = @{ Status = 200; Content = (@{ commits = $commits } | ConvertTo-Json -Depth 4) }
                 }
+                break
+            }
+            '^https://gitlab\.com/api/graphql$' {
+                if ($null -ne $a.gammaGraphql) { $answer = $a.gammaGraphql; break }
+                $query = [string](($Body | ConvertFrom-Json).query)
+                if ($Method -ne 'Post' -or $query -notlike '*project(fullPath: "fixture-group/gamma-patches")*') { break }
+                $commits = [ordered]@{}
+                foreach ($asked in [regex]::Matches($query, '(q\d+): lastCommit\(ref: "([^"]+)", path: "([^"]+)", refType: HEADS\) \{ sha committedDate \}')) {
+                    $commits[$asked.Groups[1].Value] = $a.gammaWatch["$($asked.Groups[2].Value)|$($asked.Groups[3].Value)"]
+                }
+                $answer = @{ Status = 200; Content = (@{ data = @{ project = @{ repository = $commits } } } | ConvertTo-Json -Depth 6) }
                 break
             }
             '^https://gitlab\.com/api/v4/search\?scope=blobs&search=([^&]+)&per_page=100&page=1$' {
@@ -683,6 +701,78 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
 
     $fakeForge.Answers.alphaForks.Content = '[{"full_name":"someone/alpha-patches"},{"full_name":"stranger/alpha-patches"}]'
     Assert-Drift 'unseen-fork' '*alpha-patches*fork stranger/alpha-patches*' 'A fork the ledger has not seen'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # GitLab's watched paths are read through GraphQL. The hourly limit on REST can't hold a
+    # branch and path each: ReVanced's mirror needs 70 of those and an address gets about 60.
+    $watchedClean = Invoke-Audit
+    Assert-True ($watchedClean.ExitCode -eq 0) ("A GitLab source whose watched code stayed put was reported: " +
+        (@($watchedClean.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+    $questions = @($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/graphql' })
+    Assert-True ($questions.Count -eq 1 -and $questions[0].Body -like '*patches/instagram*' -and $questions[0].Body -like '*extensions/instagram*') `
+        "One GitLab branch and two watched paths weren't one question: $(@($questions | ForEach-Object { $_.Body }) -join ' | ')"
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -like 'https://gitlab.com/api/v4/*/repository/commits*' }).Count -eq 0) `
+        'A GitLab watched path was still read through REST.'
+    Reset-FixtureLedger
+
+    # The newest of the watched paths is the branch's head, whichever way the zones fall: 13:00 at
+    # +05:00 is before 12:00 at +02:00, though it reads later.
+    $fakeForge.Answers.gammaWatch['main|extensions/instagram'] = @{ sha = ('d1' * 20); committedDate = '2026-09-01T13:00:00+05:00' }
+    $olderPath = Invoke-Audit
+    Assert-True ($olderPath.ExitCode -eq 0) ("A watched path older than the pin moved the branch: " +
+        (@($olderPath.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+    Reset-FixtureLedger
+    $fakeForge.Answers.gammaWatch['main|extensions/instagram'] = @{ sha = ('d1' * 20); committedDate = '2026-09-01T11:00:00+00:00' }
+    Assert-Drift 'changed-head' "*gamma-patches*branch main moved from $commitG1 to $('d1' * 20)*" 'A GitLab branch whose second watched path moved'
+    $fakeForge.Answers = New-FakeAnswers
+    $fakeForge.Answers.gammaWatch = @{}
+    Assert-Drift 'changed-head' "*gamma-patches*branch main moved from $commitG1 to no watched code*" 'A GitLab branch that lost its watched code'
+    $fakeForge.Answers = New-FakeAnswers
+
+    # Forty branches and two paths are three questions, and the last one is read: its branch holds
+    # the only work the ledger hasn't pinned. A branch name with slashes reaches GitLab whole.
+    $manyBranches = @('main') + @(1..39 | ForEach-Object { "github/fork/someone/b$_" })
+    $fakeForge.Answers.gammaBranches.Content = ConvertTo-Json -Compress -Depth 4 -InputObject @($manyBranches | ForEach-Object { @{ name = $_; commit = @{ id = ('c4' * 20) } } })
+    $fakeForge.Answers.gammaWatch['main|patches/instagram'] = @{ sha = $commitG1; committedDate = '2026-09-01T12:00:00+02:00' }
+    $fakeForge.Answers.gammaWatch['github/fork/someone/b39|extensions/instagram'] = @{ sha = ('c4' * 20); committedDate = '2026-09-02T12:00:00+02:00' }
+    $fakeForge.Answers.compare[('c4' * 20)] = 'ahead'
+    $manyRun = Invoke-Audit
+    $manyFindings = @($manyRun.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/graphql' }).Count -eq 3) `
+        "Forty branches and two paths weren't three questions: $(@($fakeForge.Requests | Where-Object { $_.Uri -ceq 'https://gitlab.com/api/graphql' }).Count)"
+    Assert-True (@($manyRun.Report.findings | Where-Object { $_.kind -eq 'new-branch' -and $_.detail -like '*branch github/fork/someone/b39 carries work*' }).Count -eq 1) `
+        "The last question's branch wasn't read: $manyFindings"
+    $fakeForge.Answers = New-FakeAnswers
+    Reset-FixtureLedger
+
+    # Branches that share a head share one comparison, since each counts against that limit.
+    $fakeForge.Answers.gammaBranches.Content = "[{`"name`":`"main`",`"commit`":{`"id`":`"$commitG1`"}},{`"name`":`"one`",`"commit`":{`"id`":`"$('c5' * 20)`"}},{`"name`":`"two`",`"commit`":{`"id`":`"$('c5' * 20)`"}}]"
+    foreach ($sharing in 'one', 'two') { $fakeForge.Answers.gammaWatch["$sharing|patches/instagram"] = @{ sha = ('c5' * 20); committedDate = '2026-08-01T12:00:00+02:00' } }
+    $fakeForge.Answers.compare[('c5' * 20)] = 'behind'
+    $sharedRun = Invoke-Audit
+    Assert-True ($sharedRun.ExitCode -eq 0) ("Branches behind a pinned one were reported: " +
+        (@($sharedRun.Report.findings | ForEach-Object { "$($_.kind): $($_.detail)" }) -join ' | '))
+    Assert-True (@($fakeForge.Requests | Where-Object { $_.Uri -like 'https://gitlab.com/api/v4/*/repository/compare*' }).Count -eq 1) `
+        'Two branches with one head were compared twice.'
+    $fakeForge.Answers = New-FakeAnswers
+    Reset-FixtureLedger
+
+    # An answer that doesn't hold the commits leaves the source unread and the ledger alone. A
+    # missing project mustn't read as a branch with no watched code.
+    foreach ($broken in @(
+            @{ Answer = @{ Status = 200; Content = '{"errors":[{"message":"Query has complexity of 300, which exceeds max complexity of 200"}]}' }; Said = '*gamma-patches could not be read*GitLab refused*exceeds max complexity*'; Case = 'A GraphQL refusal' }
+            @{ Answer = @{ Status = 200; Content = '{"data":{"project":null}}' }; Said = '*gamma-patches could not be read*with no repository*'; Case = 'A GraphQL answer with no project' }
+            @{ Answer = @{ Status = 429; Content = $null }; Said = '*gamma-patches could not be read: gitlab.com was still rate limiting the audit (HTTP 429) when it read the commits under its watched paths*'; Case = 'A limit on GraphQL' }
+            @{ Answer = @{ Status = 500; Content = $null }; Said = '*gamma-patches could not be read*HTTP 500*'; Case = 'A server error on GraphQL' })) {
+        $fakeForge.Answers.gammaGraphql = $broken.Answer
+        $brokenRun = Invoke-Audit
+        $brokenFindings = @($brokenRun.Report.findings | ForEach-Object { "$($_.kind): $($_.repository) $($_.detail)" }) -join ' | '
+        Assert-True ($brokenRun.ExitCode -eq 1 -and @($brokenRun.Report.findings | Where-Object { $_.kind -eq 'source-failed' -and $_.detail -like $broken.Said }).Count -eq 1) `
+            "$($broken.Case) didn't leave the source unread (exit $($brokenRun.ExitCode)): $brokenFindings"
+        Assert-True (@($brokenRun.Report.findings | Where-Object { $_.kind -eq 'changed-head' -and $_.repository -like '*gamma-patches*' }).Count -eq 0) `
+            "$($broken.Case) read as a moved branch: $brokenFindings"
+        Assert-True ([IO.File]::ReadAllText($fixtureLedgerPath) -ceq $fixtureLedgerText) "$($broken.Case) changed the ledger."
+    }
     $fakeForge.Answers = New-FakeAnswers
 
     $fakeForge.Answers.gammaProject = @{ Status = 404; Content = $null }
