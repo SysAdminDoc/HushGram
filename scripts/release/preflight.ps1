@@ -9,7 +9,9 @@
     2. The fixtures: HUSHGRAM_FIXTURE_DIR holds every build the catalog declares, and the desktop
        CLI is found, or the gate patches nothing and the receipt can't be cut.
     3. The release facts, with the set an ordinary push uses (no network-heavy asset checks, no
-       description test counts, no build outputs read).
+       description test counts, no build outputs read). With -Version, which means a release, the
+       source census too: the index push refuses one past its 14 days, and that push comes after
+       the gate, the walk and the publish.
     4. The CHANGELOG section the notes are built from: every bullet scoped, no dashes.
     5. The tests a code-only commit left stale, read from the sources in under a second: every
        method verifyAndroidBoundaries requires is still a test method, and every text the settings
@@ -48,6 +50,7 @@ if (-not $Root) { $Root = Split-Path -Parent $scripts }
 . (Join-Path $scripts 'common.ps1')
 . (Join-Path $scripts 'patch-target.ps1')
 . (Join-Path $scripts 'build-jobs.ps1')
+. (Join-Path $scripts 'instagram-sources.ps1')
 if ($env:HUSHGRAM_ALLOW_RELEASE -eq '1') { $env:BUILD_QUEUE_PRIORITY = 'release' }
 foreach ($name in @('HUSHGRAM_FIXTURE_DIR', 'HUSHGRAM_DESKTOP_JAR', 'HUSHGRAM_WORKDIR')) {
     if (-not (Test-Path "Env:\$name")) {
@@ -112,6 +115,14 @@ Start-Step 'the release facts'
     @(ConvertTo-ScriptArguments (Get-ReleaseFactsArguments -Push Ordinary -Root $Root))
 if ($LASTEXITCODE -ne 0) { Stop-Preflight "validate-release-facts.ps1 exited $LASTEXITCODE" }
 Complete-Step
+
+if ($Version) {
+    Start-Step 'the source census'
+    try { $census = Test-SourceCensus -Ledger (Read-SourceLedger -Path (Get-SourceLedgerPath -Root $Root)) } catch { Stop-Preflight $_.Exception.Message }
+    if (-not $census.Valid) { Stop-Preflight $census.Reason }
+    Write-Host "[preflight]   checked $($census.CheckedAt), $($census.AgeDays) day(s) ago"
+    Complete-Step
+}
 
 Start-Step 'the CHANGELOG section for the notes'
 $notes = @('-3.13', '-I', (Join-Path $PSScriptRoot 'release_notes.py'), '--check', '--changelog', (Join-Path $Root 'CHANGELOG.md'))

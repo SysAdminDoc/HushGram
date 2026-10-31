@@ -176,6 +176,10 @@ try {
     $run = Invoke-Python $countTool '--root' $countRoot '--description'
     Assert-True ($run.Exit -eq 0 -and $run.Output -like '*Validation: 5 runtime tests passed locally. All 7 patch tests passed too.*') `
         "The counter didn't count test cases the way the release check does: $($run.Output)"
+    # What the notes builder's --validation file holds is stdout, and it wants the one sentence.
+    $sentenceLines = @(& py -3.13 -I $countTool --root $countRoot --description 2>$null | ForEach-Object { "$_" })
+    Assert-True ($sentenceLines.Count -eq 1 -and $sentenceLines[0] -ceq 'Validation: 5 runtime tests passed locally. All 7 patch tests passed too.') `
+        "--description's stdout isn't the one sentence: $($sentenceLines -join ' / ')"
     Write-Results (Join-Path $countRoot 'patches/build/test-results/test/direct') 7 -Skipped 1
     $run = Invoke-Python $countTool '--root' $countRoot
     Assert-True ($run.Exit -eq 1 -and $run.Output -like '*skipped=1*' -and $run.Output -like '*no release can quote it*') `
@@ -494,13 +498,15 @@ function Get-BuildQueueMask { param([int]$Slot) [System.Diagnostics.Process]::Ge
     # release check and a patch run that log what they were asked, and a Gradle wrapper that logs
     # its tasks and leaves a bundle where buildAndroid would. A case can have the wrapper fail,
     # leave no bundle, or rewrite the catalog the way a stale one comes out, or the patch run fail.
-    foreach ($name in @('common.ps1', 'patch-target.ps1', 'build-jobs.ps1', 'gate-evidence.ps1')) {
+    foreach ($name in @('common.ps1', 'patch-target.ps1', 'build-jobs.ps1', 'gate-evidence.ps1', 'instagram-sources.ps1')) {
         Write-Text (Join-Path $repo "scripts/$name") ([IO.File]::ReadAllText((Join-Path $Root "scripts/$name")))
     }
     foreach ($name in @('preflight.ps1', 'release_notes.py', 'stale_tests.py')) {
         Write-Text (Join-Path $repo "scripts/release/$name") ([IO.File]::ReadAllText((Join-Path $releaseDir $name)))
     }
     Write-StaleFixture $repo
+    $censusLedger = Join-Path $repo 'sources/instagram-sources.json'
+    Write-Text $censusLedger "{`"census`":{`"checkedAt`":`"$([datetime]::UtcNow.ToString('yyyy-MM-dd'))`"}}"
     Write-Text (Join-Path $repo 'scripts/validate-release-facts.ps1') @'
 Add-Content -LiteralPath $env:HUSHGRAM_HELPERS_LOG -Value "facts $($args -join ' ')"
 exit 0
@@ -564,8 +570,23 @@ exit [int]$env:HUSHGRAM_HELPERS_GRADLE_EXIT
         $run.Output -like '*every patch on the declared build*') `
         "The preflight didn't run every patch on the declared build with the new bundle and clean up after: $($verify -join '; ') $($run.Output)"
     $run = Invoke-Preflight @('-Version', '0.0.2', '-SkipGradle')
-    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*0.0.2: 3 bullets*' -and @(Read-Log | Where-Object { $_ -like 'gradle *' -or $_ -like 'verify *' }).Count -eq 0) `
+    Assert-True ($run.Exit -eq 0 -and $run.Output -like '*0.0.2: 3 bullets*' -and $run.Output -like '*the source census passed*' -and
+        @(Read-Log | Where-Object { $_ -like 'gradle *' -or $_ -like 'verify *' }).Count -eq 0) `
         "-Version or -SkipGradle didn't do what it says: $($run.Output)"
+    # A release hears about a stale census here, before the gate and the walk. Other runs aren't held to it.
+    Write-Text $censusLedger '{"census":{"checkedAt":"2026-01-01"}}'
+    Invoke-RepoGit -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -am 'old census' | Out-Null
+    $run = Invoke-Preflight @('-Version', '0.0.2')
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*refused after*the source census*days old*audit-instagram-sources.ps1*' -and
+        @(Read-Log | Where-Object { $_ -like 'gradle *' -or $_ -like 'verify *' }).Count -eq 0) `
+        "A release's preflight went on with a stale source census: $($run.Output)"
+    $run = Invoke-Preflight @('-SkipGradle')
+    Assert-True ($run.Exit -eq 0 -and $run.Output -notlike '*the source census*') "A preflight that isn't a release's read the census: $($run.Output)"
+    Write-Text $censusLedger 'not a ledger'
+    Invoke-RepoGit -c user.name=SysAdminDoc -c user.email=matt_parker@outlook.com commit -q -am 'broken ledger' | Out-Null
+    $run = Invoke-Preflight @('-Version', '0.0.2', '-SkipGradle')
+    Assert-True ($run.Exit -eq 1 -and $run.Output -like '*refused after*the source census*not JSON*') "A release's preflight read a broken ledger: $($run.Output)"
+    Invoke-RepoGit reset -q --hard $preflightHead | Out-Null
 
     # Each refusal stops the run there, so nothing after it runs.
     $emptyFixtures = Join-Path $scratch 'empty-fixtures'

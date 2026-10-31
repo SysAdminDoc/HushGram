@@ -11,7 +11,8 @@ names another commit or tree than the one asked for.
 Nested area reports are read recursively. Tests are counted one per testcase element, the way
 validate-release-facts.ps1 counts them, so the numbers are the ones the index description has to
 quote. A folder with no results, or with a failure, an error or a skip, makes the run exit 1.
---description prints the description's validation sentence from the two counts.
+--description prints the description's validation sentence from the two counts, alone on stdout,
+with the counts on stderr, so stdout is what release_notes.py's --validation file holds.
 
     py -3.13 -I scripts/release/count_tests.py --gate --description
 
@@ -119,7 +120,8 @@ def main(argv: list[str] | None = None) -> int:
         totals = count(folder)
         results.append(totals)
         print(f"[tests] {folder}: {totals['tests']} tests in {totals['files']} files, "
-              f"failures={totals['failures']} errors={totals['errors']} skipped={totals['skipped']}")
+              f"failures={totals['failures']} errors={totals['errors']} skipped={totals['skipped']}",
+              file=sys.stderr if args.description else sys.stdout)
         if totals["files"] == 0:
             print(f"[tests] {folder} holds no results", file=sys.stderr)
             status = 1

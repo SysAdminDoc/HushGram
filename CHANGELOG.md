@@ -4,6 +4,11 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Improvements
+
+* **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.
+* **Tooling:** `count_tests.py --description` prints only the validation sentence on stdout and its counts on stderr, so saving its output gives `release_notes.py` the one line it wants.
+
 ## 0.0.18 (2026-10-31)
 
 ### Features
