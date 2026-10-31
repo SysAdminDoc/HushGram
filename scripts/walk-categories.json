@@ -17,7 +17,8 @@
               "Sanitize sharing links",
               "Open links in external browser",
               "Spoof location",
-              "App-only proxy"
+              "App-only proxy",
+              "Skip the contacts and location popups"
             ]
           },
           {

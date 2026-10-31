@@ -525,6 +525,24 @@ no-call Landroid/location/Location;->distanceTo(Landroid/location/Location;)F ou
 # rule names the read by its name alone, as the patch does: what it answers is a Redex name that
 # differs between builds (LX/00D9; on the arm64 453).
 single-call Lapp/hushgram/extension/instagram/misc/AppProxy;->route()V in getProxyHostAndPort
+# Skip the contacts and location popups (#295, #329, #421) asks SetupPopups.skip first thing in each
+# of the Bloks screen opener's three ways of showing a screen, with the app id it reads off itself,
+# and returns on a yes. Full screen holds the fetch's trace name and the bottom sheet its two bundle
+# keys. The third holds no string: it's the class's one instance (Context, IgBloksScreenConfig)V that
+# hands the screen on to the opener's (Context, IgBloksScreenConfig, options, int) method (0nBV.A0B
+# calling A0C on 453), and its class is picked by the TTL check none of the three loads. Left out, the
+# contacts and location setup screens open on every start with the switch on.
+start-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding BKDataFetcher.fetch
+shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding BKDataFetcher.fetch
+start-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding bloks_screen_config bottom_sheet_content_fragment
+shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V holding bloks_screen_config bottom_sheet_content_fragment
+start-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V calling instance LX/*;->*(Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;LX/*;I)V class-holding CacheTTL\smust\sbe\spositive
+shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;)V calling instance LX/*;->*(Landroid/content/Context;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;LX/*;I)V class-holding CacheTTL\smust\sbe\spositive
+# The direct screen presenter (0ms6.A02 on 453), which the opener's hand-on and the openScreenOptions
+# action both reach, asks the same hook before reading its screen data's app id, and lets null data
+# through. The opener's routes share the hook, so the rule asks for one call here without forbidding
+# them. Some builds ask a string pool for the presenter's strings, so pool asks count (pooled).
+shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;L*;L*;I)V pooled holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet foa_bottom_sheet_config cds_bloks
 # Don't save recent searches asks RecentSearches.keep first in the call that tells Instagram's
 # servers about a search result you opened, and in the recent searches cache's add, picked from its
 # remove by the add at the top of its list. Each is skipped on a false. Left out, what you open

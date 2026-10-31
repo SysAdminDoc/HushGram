@@ -72,6 +72,11 @@ final class PrivacyCategory {
                             + "settings aren't changed.")));
             privacy.add(proxyServerRow(context));
         }
+        if (build.contains(PatchFamily.SETUP_POPUPS)) {
+            privacy.add(toggle(context, Settings.SKIP_SETUP_POPUPS, L10n.t("Skip the contacts and location popups"),
+                    L10n.t("The screens asking you to sync your contacts and turn on location services stop "
+                            + "opening each time Instagram starts. Nothing else is skipped.")));
+        }
         if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
             privacy.add(toggle(context, Settings.VIEWING_HISTORY, L10n.t("Keep a viewing history"),
                     L10n.t("Remembers the posts, reels, stories and profiles that come up on screen, newest first, "

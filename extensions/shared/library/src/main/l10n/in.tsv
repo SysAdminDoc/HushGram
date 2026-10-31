@@ -1485,3 +1485,7 @@ Couldn't load your emoji, so the phone's show.	Emojimu gagal dimuat, jadi emoji 
 # context: Stories settings: the Ambient light in stories switch (#420)
 Ambient light in stories	Cahaya sekitar di cerita
 Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Mengisi bidang di atas dan di bawah cerita yang tidak memenuhi layar dengan cahaya lembut berwarna sama dengan ceritanya. Sebaran cahaya dan Kecepatan cahaya, di Feed, juga mengaturnya.
+# context: Ads and privacy settings: switch that keeps Instagram's screens asking to sync contacts and to turn on location services from opening at each start (#295, #329, #421)
+Skip the contacts and location popups	Lewati pop-up kontak dan lokasi
+# context: summary under that switch
+The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Layar yang memintamu menyinkronkan kontak dan menyalakan layanan lokasi tidak lagi terbuka setiap kali Instagram dimulai. Tidak ada hal lain yang dilewati.

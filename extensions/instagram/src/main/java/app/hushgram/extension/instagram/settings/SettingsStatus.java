@@ -112,6 +112,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Skip the contacts and location popups patch. */
+    public static boolean setupPopups() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

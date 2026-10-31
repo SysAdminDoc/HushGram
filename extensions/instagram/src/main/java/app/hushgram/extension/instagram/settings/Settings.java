@@ -457,6 +457,14 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_app_proxy_server", "", true, parent(APP_PROXY));
 
     /**
+     * The setup screens asking to sync contacts and turn on location services stay closed when the
+     * server sends them at start (#295, #329, #421, {@link app.hushgram.extension.instagram.misc.SetupPopups}).
+     * Read each time a screen opens. Off to start.
+     */
+    public static final BooleanSetting SKIP_SETUP_POPUPS =
+            new BooleanSetting("hushgram_skip_setup_popups", FALSE);
+
+    /**
      * The seen receipt a chat sends when you open it, the one that puts Seen under the other
      * person's message ({@link app.hushgram.extension.instagram.direct.ThreadSeen}). Read each time
      * Instagram goes to send one, so a change applies to the next receipt. Off to start.

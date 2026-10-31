@@ -1485,3 +1485,7 @@ Couldn't load your emoji, so the phone's show.	Emojilerin yüklenemedi. Telefonu
 # context: Stories settings: the Ambient light in stories switch (#420)
 Ambient light in stories	Hikayelerde ortam ışığı
 Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Ekranı doldurmayan bir hikayenin üstündeki ve altındaki boşlukları kendi renklerinde yumuşak bir parıltıyla doldurur. Akış altındaki Parıltı yayılımı ve Parıltı hızı bunu da ayarlar.
+# context: Ads and privacy settings: switch that keeps Instagram's screens asking to sync contacts and to turn on location services from opening at each start (#295, #329, #421)
+Skip the contacts and location popups	Kişiler ve konum açılır pencerelerini atla
+# context: summary under that switch
+The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Kişilerini eşitlemeni ve konum hizmetlerini açmanı isteyen ekranlar, Instagram her açıldığında artık açılmaz. Başka hiçbir şey atlanmaz.

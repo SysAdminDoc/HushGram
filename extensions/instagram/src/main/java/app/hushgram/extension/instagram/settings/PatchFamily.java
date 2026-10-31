@@ -80,6 +80,7 @@ public enum PatchFamily {
     DM_MEDIA_SEEN(FamilyNames.DM_MEDIA_SEEN, "visualSeen", null, Settings.VIEW_DM_MEDIA_ANONYMOUSLY),
     SPOOF_LOCATION(FamilyNames.SPOOF_LOCATION, "spoofLocation", null, Settings.SPOOF_LOCATION),
     APP_PROXY(FamilyNames.APP_PROXY, "appProxy", null, Settings.APP_PROXY),
+    SETUP_POPUPS(FamilyNames.SETUP_POPUPS, "setupPopups", null, Settings.SKIP_SETUP_POPUPS),
     THREAD_SEEN(FamilyNames.THREAD_SEEN, "threadSeen", null, Settings.READ_WITHOUT_SEEN_RECEIPT,
             Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY),
     TYPING(FamilyNames.TYPING, "typing", null, Settings.HIDE_TYPING),

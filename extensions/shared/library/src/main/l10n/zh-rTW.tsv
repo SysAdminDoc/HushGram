@@ -1488,3 +1488,7 @@ Couldn't load your emoji, so the phone's show.	無法載入你的表情符號，
 # context: Stories settings: the Ambient light in stories switch (#420)
 Ambient light in stories	限時動態環境光
 Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	用限時動態自己的顏色，以柔和光暈填滿未佔滿螢幕的限時動態上下方的空白。動態首頁裡的光暈範圍和光暈速度也會套用。
+# context: Ads and privacy settings: switch that keeps Instagram's screens asking to sync contacts and to turn on location services from opening at each start (#295, #329, #421)
+Skip the contacts and location popups	略過聯絡人和位置彈出視窗
+# context: summary under that switch
+The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	要求你同步聯絡人並開啟定位服務的畫面，不會再於每次啟動 Instagram 時開啟。其他畫面都不會略過。

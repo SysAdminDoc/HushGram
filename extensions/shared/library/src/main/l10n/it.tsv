@@ -1485,3 +1485,7 @@ Couldn't load your emoji, so the phone's show.	Emoji non caricate, restano quell
 # context: Stories settings: the Ambient light in stories switch (#420)
 Ambient light in stories	Luce ambientale nelle storie
 Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Riempie le fasce sopra e sotto una storia che non occupa tutto lo schermo con un bagliore morbido dei suoi stessi colori. Anche Ampiezza del bagliore e Velocità del bagliore, in Feed, lo regolano.
+# context: Ads and privacy settings: switch that keeps Instagram's screens asking to sync contacts and to turn on location services from opening at each start (#295, #329, #421)
+Skip the contacts and location popups	Salta i popup di contatti e posizione
+# context: summary under that switch
+The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Le schermate che ti chiedono di sincronizzare i contatti e di attivare i servizi di localizzazione smettono di aprirsi a ogni avvio di Instagram. Nient'altro viene saltato.

@@ -1484,3 +1484,7 @@ Couldn't load your emoji, so the phone's show.	이모지를 불러오지 못해 
 # context: Stories settings: the Ambient light in stories switch (#420)
 Ambient light in stories	스토리 주변광
 Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	화면을 가득 채우지 않는 스토리의 위아래 빈 공간을 스토리 고유의 색으로 부드럽게 채웁니다. 피드의 빛 퍼짐과 빛 속도도 여기에 적용됩니다.
+# context: Ads and privacy settings: switch that keeps Instagram's screens asking to sync contacts and to turn on location services from opening at each start (#295, #329, #421)
+Skip the contacts and location popups	연락처 및 위치 팝업 건너뛰기
+# context: summary under that switch
+The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	연락처를 동기화하고 위치 서비스를 켜라고 요청하는 화면이 Instagram을 시작할 때마다 열리지 않습니다. 다른 화면은 건너뛰지 않습니다.

@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram:** `Hide Subscribe on profiles` and `Hide the arrow at the end of the buttons` are new under Profiles. The other buttons fill the row, and the arrow's menu goes with it. Both start off. Asked for in #248.
+* **Instagram:** `Skip the contacts and location popups` is a new patch. With its switch on under Ads and privacy, the screens asking you to sync contacts and turn on location stop opening at every start. It starts off. Asked for in #295, #329 and #421.
 * **Instagram:** `Emoji style` gets `Emoji pack` under Layout. Keep your phone's emoji, download Twemoji, OpenMoji or Blobmoji, or pick a color emoji font, then restart Instagram. A pack only switches in once its download checks out. Asked for in #166.
 * **Instagram:** `Smooth story opening` is a new patch under Stories. A story you tap in the stories row zooms open more slowly and stops without the little bounce at the end, and it closes the same way. It starts off. Asked for in #409.
 * **Instagram:** `App-only proxy` is a new patch under Ads and privacy. Type an HTTP proxy's address and port in `Proxy server`, restart, and only Instagram goes through it. Proxies with a password and SOCKS proxies don't work. Starts off. Asked for in #219.
