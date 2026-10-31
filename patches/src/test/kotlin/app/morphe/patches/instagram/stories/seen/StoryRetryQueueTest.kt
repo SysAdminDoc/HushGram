@@ -622,18 +622,19 @@ class StoryRetryQueueTest {
     }
 
     private fun forOtherInputs(check: (List<ClassDef>) -> Unit) {
-        for ((label, classes) in otherNativeProofInputs) {
+        for (base in Fixtures.otherBuilds()) {
             try {
-                check(classes)
+                check(fixtures.keptFixtureClasses(base))
             } catch (failure: Throwable) {
-                throw AssertionError("$label: ${failure.message}", failure)
+                throw AssertionError("${base.parentFile.name}: ${failure.message}", failure)
             }
         }
     }
 
     private fun proofInputs(): List<List<ClassDef>> {
-        assertTrue("the authoritative declared 453 build (385914557) is required", nativeProofInputs.isNotEmpty())
-        return nativeProofInputs + listOf(fixtures.standIns())
+        val declared = Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
+        assertTrue("the authoritative declared 453 build (385914557) is required", declared.isNotEmpty())
+        return declared.map { fixtures.keptFixtureClasses(it) } + listOf(fixtures.standIns())
     }
 
     /** [classes] written to a dex and read back, the way the patcher gets the app's classes. */
@@ -655,15 +656,5 @@ class StoryRetryQueueTest {
     private fun target(code: List<Instruction>, at: Int): Int {
         val addresses = addresses(code)
         return addresses.indexOf(addresses[at] + (code[at] as OffsetInstruction).codeOffset)
-    }
-
-    companion object {
-        private val nativeProofInputs by lazy {
-            Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
-                .map { StorySeenHookTest().fixtureClasses(it) }
-        }
-        private val otherNativeProofInputs by lazy {
-            Fixtures.otherBuilds().map { it.parentFile.name to StorySeenHookTest().fixtureClasses(it) }
-        }
     }
 }

@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.FixtureCache
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
@@ -338,6 +339,9 @@ class StorySeenHookTest {
      * the account's, then their superclasses up to the view holder base and the store's, and the
      * extension's two classes.
      */
+    /** [fixtureClasses] kept for the retry tests, which check most of their mutations on every build. */
+    internal fun keptFixtureClasses(bundle: java.io.File): List<ClassDef> = kept.get(bundle) { fixtureClasses(bundle) }
+
     internal fun fixtureClasses(bundle: java.io.File): List<ClassDef> {
         val strings = setOf("media/seen/?reel=%s&live_vod=0", "pending_reel_seen_states_", STORY_BINDER_TRACE, "itemView may not be null")
         val found = mutableMapOf<String, ClassDef>()
@@ -910,6 +914,7 @@ class StorySeenHookTest {
     private fun Instruction.string(): String? = ((this as? ReferenceInstruction)?.reference as? StringReference)?.string
 
     private companion object {
+        val kept = FixtureCache<List<ClassDef>>()
         const val BATCH = "Lfixture/PendingReelSeenState;"
         const val BATCH_BASE = "Lfixture/SeenStateBase;"
         const val SEEN_STATE = "Lfixture/SeenState;"

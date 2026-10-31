@@ -218,15 +218,17 @@ class StoryRetryOwnershipTest {
 
     private fun forInputs(check: (List<ClassDef>) -> Unit) {
         check(StorySeenHookTest().standIns())
-        for (classes in declaredNative) check(classes)
+        for (bundle in Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }) {
+            check(StorySeenHookTest().keptFixtureClasses(bundle))
+        }
     }
 
     private fun forOtherInputs(check: (List<ClassDef>) -> Unit) {
-        for ((label, classes) in otherNative) {
+        for (base in Fixtures.otherBuilds()) {
             try {
-                check(classes)
+                check(StorySeenHookTest().keptFixtureClasses(base))
             } catch (failure: Throwable) {
-                throw AssertionError("$label: ${failure.message}", failure)
+                throw AssertionError("${base.parentFile.name}: ${failure.message}", failure)
             }
         }
     }
@@ -261,14 +263,4 @@ class StoryRetryOwnershipTest {
     private fun Method.proof() = implementation?.instructions?.toList()?.map { listOf(it.opcode,
         (it as? ReferenceInstruction)?.reference?.toString(), it.namedRegisters(),
         (it as? NarrowLiteralInstruction)?.narrowLiteral, (it as? OffsetInstruction)?.codeOffset) }
-
-    companion object {
-        private val declaredNative by lazy {
-            Fixtures.files { it.name == "instagram-453.0.0.57.79-385914557.apks" }
-                .map { StorySeenHookTest().fixtureClasses(it) }
-        }
-        private val otherNative by lazy {
-            Fixtures.otherBuilds().map { it.parentFile.name to StorySeenHookTest().fixtureClasses(it) }
-        }
-    }
 }
