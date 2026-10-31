@@ -36,9 +36,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * settings) can still hold Instagram lower. The mode asked for has the same pixel size as the current
  * one, so the screen never changes resolution, only its rate.
  *
- * <p>The request is made as each activity resumes, so turning the switch on or off in the settings
- * shows as soon as Instagram is in front again. Turning it off, pausing HushGram or a settings read
- * that isn't ready puts back the no-preference value, but only on windows this class asked for.
+ * <p>The request is made as each activity resumes, and again the moment the switch is flipped, on
+ * the activity under HushGram settings: the settings open over Instagram's screen, which never
+ * resumes when they close, so without that the request waited for the next screen or a cold start
+ * (#401). Turning it off, pausing HushGram or a settings read that isn't ready puts back the
+ * no-preference value, but only on windows this class asked for.
  */
 public final class RefreshRate {
     /** Windows this class set a mode on, so turning it off only undoes its own request. */
@@ -79,6 +81,11 @@ public final class RefreshRate {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REFRESH_RATE, "start", failure);
         }
+    }
+
+    /** Called as the switch is flipped in HushGram settings, with the activity under them. */
+    public static void switchChanged(@Nullable Activity activity) {
+        if (activity != null) Utils.runOnMainThread(() -> apply(activity));
     }
 
     /**

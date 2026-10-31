@@ -6,8 +6,10 @@ package app.hushgram.extension.instagram.misc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.os.Looper;
 import android.view.WindowManager;
 
 import org.junit.After;
@@ -118,6 +120,31 @@ public class RefreshRateTest {
             RefreshRate.apply(third);
             assertEquals("no context", 0, third.getWindow().getAttributes().preferredDisplayModeId);
         });
+    }
+
+    /**
+     * HushGram settings open over Instagram's screen, which never resumes when they close, so the
+     * flip itself reaches the activity under them (#401). Before, the request waited for a cold start.
+     */
+    @Test
+    public void flippingTheSwitchReachesTheActivityUnderTheSettingsWithoutAResume() {
+        Settings.HIGHEST_REFRESH_RATE.save(false);
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        RefreshRate.apply(activity);
+        assertEquals(0, activity.getWindow().getAttributes().preferredDisplayModeId);
+
+        Settings.HIGHEST_REFRESH_RATE.save(true);
+        RefreshRate.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("on asks at once", 2, activity.getWindow().getAttributes().preferredDisplayModeId);
+
+        Settings.HIGHEST_REFRESH_RATE.save(false);
+        RefreshRate.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        assertEquals("off takes it back at once", 0, activity.getWindow().getAttributes().preferredDisplayModeId);
+
+        RefreshRate.switchChanged(null);
+        shadowOf(Looper.getMainLooper()).idle();
     }
 
     /** A mode somebody else put on the window is not this class's to undo. */

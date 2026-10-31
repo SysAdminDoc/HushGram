@@ -11,6 +11,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.info;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
 import android.content.Context;
@@ -19,6 +20,7 @@ import android.preference.PreferenceScreen;
 
 import java.util.Set;
 
+import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Layout category of HushGram settings. */
@@ -75,10 +77,10 @@ final class LayoutCategory {
                                 + "starts, on Android 13 and newer. It shows from the next start.")));
             }
             if (build.contains(PatchFamily.REFRESH_RATE)) {
-                layout.addPreference(toggle(context, Settings.HIGHEST_REFRESH_RATE, L10n.t("Use the highest refresh rate"),
+                layout.addPreference(onFlip(toggle(context, Settings.HIGHEST_REFRESH_RATE, L10n.t("Use the highest refresh rate"),
                         L10n.t("Asks Android to run Instagram at your screen's fastest refresh rate, at the same "
                                 + "resolution. Some phones keep their own limit for apps, and battery saver can "
-                                + "still lower it.")));
+                                + "still lower it.")), RefreshRate::switchChanged));
             }
             if (build.contains(PatchFamily.APP_ICON)) layout.addPreference(appIconRow(context));
             if (build.contains(PatchFamily.SETTINGS_ROWS)) layout.addPreference(page.settingsRowsRow(context));
