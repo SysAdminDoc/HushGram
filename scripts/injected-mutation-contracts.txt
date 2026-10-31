@@ -2225,6 +2225,16 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->pausing(Ljava/lang
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->paused(Ljava/lang/Object;I)I in instance ()V holding onOfflineViewerPaused\sfailed android_purge_26_q3_ClipsViewerPiPDelegate_onPause
 start-call Lapp/hushgram/extension/instagram/reels/ReelSound;->resuming(Ljava/lang/Object;)I in instance ()V holding ClipsViewerFragment.onResume:initializeAdsDelivery
 once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->resuming(Ljava/lang/Object;)I in instance ()V holding ClipsViewerFragment.onResume:initializeAdsDelivery
+# Start reels muted keeps the sound off through Instagram's own changes as the app opens (#342). The
+# audio state's foreground listener (the onAppForegrounded that times the app's absence and reads
+# the phone's playing media) asks ReelSound.letsReset() before it clears the state to Instagram's
+# defaults and ReelSound.letsSoundOn() before it turns it on, and the check for a reel opened with
+# the app just opened (the one of its shape in the class loading homecoming_sound_play_on_app_open)
+# asks ReelSound.letsSoundOn() before it turns it on. Left out, a reel opened from a link on a cold
+# start plays with sound.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSound;->letsReset(Ljava/lang/Boolean;Ljava/lang/Boolean;)I in instance ()V holding Landroid/os/SystemClock;->elapsedRealtime()J Landroid/media/AudioManager;->getActivePlaybackConfigurations()Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/ReelSound;->letsSoundOn(I)I in instance ()V holding Landroid/os/SystemClock;->elapsedRealtime()J Landroid/media/AudioManager;->getActivePlaybackConfigurations()Ljava/util/List;
+shared-call Lapp/hushgram/extension/instagram/reels/ReelSound;->letsSoundOn(I)I in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/Boolean;Ljava/lang/Boolean;IZZ)Z pooled class-holding homecoming_sound_play_on_app_open
 # Pinch to zoom on Reels hands both zoom flags Reels reads into its zoom settings (0SXH.A0A on 453,
 # the static method building the class ClipsZoomUtil_createZoomConfig copies from) to
 # ReelZoom.zoom(int), the zoomable component flag and the zoom gesture flag (#382). Fewer calls

@@ -226,4 +226,53 @@ public class ReelSoundTest {
         assertEquals("paused is Instagram's own", 0, ReelSound.wanted());
         assertEquals(0, ReelSound.startWithSound(new Object(), Source.FEED_TIMELINE));
     }
+
+    /**
+     * A reel opened from a link as Instagram starts was set muted just before Instagram, coming to
+     * the front for the first time, cleared the sound to its defaults and played it with sound (#342).
+     * With Start reels muted on, only a clear of a muted state is skipped.
+     */
+    @Test
+    public void mutedKeepsAMutedStateThroughInstagramsClear() {
+        Settings.START_REELS_MUTED.save(true);
+        assertEquals("muted, cleared: kept", 0, ReelSound.letsReset(Boolean.FALSE, null));
+        assertEquals("muted, turned on: kept", 0, ReelSound.letsReset(Boolean.FALSE, Boolean.TRUE));
+        assertEquals("muted, set muted: Instagram's own", 1, ReelSound.letsReset(Boolean.FALSE, Boolean.FALSE));
+        assertEquals("on, cleared: Instagram's own", 1, ReelSound.letsReset(Boolean.TRUE, null));
+        assertEquals("nothing set yet: Instagram's own", 1, ReelSound.letsReset(null, null));
+        assertTrue(report(), report().contains(ReelSound.KEPT_MUTED + " 2"));
+    }
+
+    /** Instagram turning the sound on by itself is held back while Start reels muted is on; an off goes through. */
+    @Test
+    public void mutedHoldsBackInstagramsOwnTurnOn() {
+        Settings.START_REELS_MUTED.save(true);
+        assertEquals(0, ReelSound.letsSoundOn(1));
+        assertEquals("any non-zero is on", 0, ReelSound.letsSoundOn(2));
+        assertEquals("off goes through", 1, ReelSound.letsSoundOn(0));
+        assertTrue(report(), report().contains(ReelSound.HELD_OFF + " 2"));
+    }
+
+    /** Off, Start reels with sound alone, paused and before the settings are read, Instagram changes its sound as it does. */
+    @Test
+    public void offSoundOnlyPausedAndUnreadyLeaveInstagramsChangesAlone() {
+        assertEquals(1, ReelSound.letsReset(Boolean.FALSE, null));
+        assertEquals(1, ReelSound.letsSoundOn(1));
+        Settings.START_REELS_WITH_SOUND.save(true);
+        assertEquals(1, ReelSound.letsReset(Boolean.FALSE, null));
+        assertEquals(1, ReelSound.letsSoundOn(1));
+        Settings.START_REELS_MUTED.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1, ReelSound.letsReset(Boolean.FALSE, null));
+        assertEquals("paused", 1, ReelSound.letsSoundOn(1));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> {
+            assertEquals("no context", 1, ReelSound.letsReset(Boolean.FALSE, null));
+            assertEquals("no context", 1, ReelSound.letsSoundOn(1));
+        });
+        assertFalse(report(), report().contains(ReelSound.KEPT_MUTED));
+        assertFalse(report(), report().contains(ReelSound.HELD_OFF));
+    }
 }

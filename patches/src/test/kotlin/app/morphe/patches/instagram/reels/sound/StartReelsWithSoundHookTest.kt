@@ -49,7 +49,8 @@ class StartReelsWithSoundHookTest {
         val declared = ExtensionDex.classDef(REEL_SOUND).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(REEL_WANTED, REEL_START_WITH_SOUND, REEL_OPENED, REEL_PAUSING, REEL_PAUSED, REEL_RESUMING)) {
+        for (hook in listOf(REEL_WANTED, REEL_START_WITH_SOUND, REEL_OPENED, REEL_PAUSING, REEL_PAUSED, REEL_RESUMING,
+            REEL_LETS_RESET, REEL_LETS_SOUND_ON)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -84,6 +85,21 @@ class StartReelsWithSoundHookTest {
                 assertTrue("$what: the borrowed locals fit an invoke", (site.scratch + site.pauseScratch + site.resumeScratch).all { it in 0..15 })
                 assertEquals("$what: the config getter", "Lcom/instagram/clips/intf/ClipsViewerConfig;", site.config.returnType)
                 assertEquals("$what: the source field", "Lcom/instagram/clips/intf/ClipsViewerSource;", site.source.type)
+                val stateType = site.factory.returnType
+                assertEquals("$what: the foreground listener", "onAppForegrounded", site.reset.method.name)
+                assertEquals("$what: Instagram's turn-ons, the listener's and the app-open check's",
+                    listOf(site.reset.method.definingClass, null),
+                    site.soundOns.map { it.method.definingClass.takeIf { type -> type == site.reset.method.definingClass } })
+                assertTrue("$what: the borrowed locals fit an iget and an invoke",
+                    (site.soundOns + site.reset).all { it.scratch in 0..15 && it.scratch != it.state && it.scratch != it.value })
+                val stateOriginals = (site.soundOns + site.reset).map { it.method }.distinctBy { "${it.definingClass}->${it.name}" }
+                    .map { m ->
+                        context.mutableClassDefBy(m.definingClass).methods.single {
+                            it.name == m.name && it.returnType == m.returnType &&
+                                it.parameterTypes.map(Any::toString) == m.parameterTypes.map(Any::toString)
+                        }
+                    }
+                    .associateWith(::NeutralNativePath)
                 context.apply { applyReelSound(site) }
 
                 val asking = classes.flatMap { c ->
@@ -152,6 +168,39 @@ class StartReelsWithSoundHookTest {
                     val mine = method.code().indices.filter { it in added.getValue(method.name) }.toSet()
                     original.assertPreserved("$what ${method.name}", method, mine)
                 }
+
+                // Instagram's clear as the app comes to the front asks first with the state's value and the
+                // new one, and a no skips just the clear. Each of its two turn-ons asks with the value it sets.
+                val listener = stateOriginals.keys.single { it.name == "onAppForegrounded" }
+                val lcode = listener.code()
+                val reset = lcode.indexOfFirst { it.referenceText() == REEL_LETS_RESET }
+                assertEquals("$what: one clear hook", 1, lcode.count { it.referenceText() == REEL_LETS_RESET })
+                assertEquals("$what: the clear hook", listOf(Opcode.IGET_OBJECT, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_STATIC),
+                    lcode.subList(reset - 1, reset + 4).map { it.opcode })
+                assertEquals("$what: reads the state's value", site.value.toString(), lcode[reset - 1].referenceText())
+                val clear = lcode[reset + 3] as FiveRegisterInstruction
+                assertEquals("$what: the clear", listOf(stateType, "Ljava/lang/Boolean;"),
+                    (clear as ReferenceInstruction).reference.let { it as MethodReference }.parameterTypes.map(Any::toString))
+                assertEquals("$what: the value read from the state the clear gets",
+                    clear.registerC, (lcode[reset - 1] as com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction).registerB)
+                assertEquals("$what: asked with the clear's new value", listOf((lcode[reset - 1] as OneRegisterInstruction).registerA, clear.registerD),
+                    lcode[reset].arguments())
+                assertEquals("$what: a no skips just the clear", reset + 4, (lcode[reset + 2] as BuilderOffsetInstruction).target.location.index)
+                assertTrue("$what: a jump lands inside the clear hook", (reset..reset + 3).none { it in listener.jumpTargets() })
+                val turnOns = stateOriginals.keys.associateWith { m -> m.code().indices.filter { m.code()[it].referenceText() == REEL_LETS_SOUND_ON } }
+                assertEquals("$what: one turn-on hook in each", stateOriginals.keys.map { 1 }, turnOns.values.map { it.size })
+                for ((method, at) in turnOns.mapValues { it.value.single() }) {
+                    val c = method.code()
+                    assertEquals("$what: ${method.name}'s turn-on hook", listOf(Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.INVOKE_VIRTUAL),
+                        c.subList(at, at + 4).map { it.opcode })
+                    val on = c[at + 3] as FiveRegisterInstruction
+                    assertEquals("$what: ${method.name} turns the state", stateType, ((on as ReferenceInstruction).reference as MethodReference).definingClass)
+                    assertEquals("$what: ${method.name} asks with the value it sets", listOf(on.registerD), c[at].arguments())
+                    assertEquals("$what: ${method.name}'s no skips just the call", at + 4, (c[at + 2] as BuilderOffsetInstruction).target.location.index)
+                    assertTrue("$what: a jump lands inside ${method.name}'s hook", (at + 1..at + 3).none { it in method.jumpTargets() })
+                    val mine = (at..at + 2).toSet() + if (method === listener) (reset - 1..reset + 2).toSet() else emptySet()
+                    stateOriginals.getValue(method).assertPreserved("$what ${method.definingClass}->${method.name}", method, mine)
+                }
             }
         }
     }
@@ -172,7 +221,13 @@ class StartReelsWithSoundHookTest {
                     else -> emptyList()
                 }
             } } }.filter { it.startsWith("L") }
-        return viewerType to (seed + named)
+        // The audio state's own field types hold its foreground listener; the app-open check loads its flag's name.
+        val fields = FixtureDex.classes(apk, named.toSet()).values
+            .flatMap { c -> c.fields.filter { !AccessFlags.STATIC.isSet(it.accessFlags) }.map { it.type } }
+            .filter { it.startsWith("L") }
+        val opening = FixtureDex.classesLoading(apk, SOUND_ON_APP_OPEN).map { it.type }
+        assertTrue("${apk.name}: classes loading \"$SOUND_ON_APP_OPEN\"", opening.isNotEmpty())
+        return viewerType to (seed + named + fields + opening)
     }
 
     private fun MutableMethod.jumpTargets(): Set<Int> =
