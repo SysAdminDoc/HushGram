@@ -324,6 +324,7 @@
         "patches": [
           "Hide suggested stories",
           "Story ring size",
+          "Smooth story opening",
           "Thicker story progress bar",
           "Seek bar on stories",
           "Stop Story auto-advance",

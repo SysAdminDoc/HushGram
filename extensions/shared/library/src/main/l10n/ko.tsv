@@ -1461,3 +1461,7 @@ That isn't a proxy server. Try 10.0.0.2:8080.	프록시 서버가 아닙니다. 
 No server set. Until there is one, Instagram goes out directly.	설정된 서버가 없습니다. 서버를 정할 때까지 Instagram은 직접 연결됩니다.
 # context: the server row's summary; %1$s is the server as host:port
 Instagram goes through %1$s.	Instagram이 %1$s을(를) 통해 연결됩니다.
+# context: Stories settings: switch that slows the zoom a story opens with from the stories row and takes out its bounce (#409)
+Smooth story opening	스토리 부드럽게 열기
+# context: summary under that switch
+A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	스토리 목록에서 누른 스토리가 튕기지 않는 더 느린 확대로 열리고, 닫힐 때도 같은 방식으로 닫힙니다.

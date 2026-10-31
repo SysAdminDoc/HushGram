@@ -1462,3 +1462,7 @@ That isn't a proxy server. Try 10.0.0.2:8080.	Proxy sunucusu değil. Örnek: 10.
 No server set. Until there is one, Instagram goes out directly.	Sunucu ayarlanmadı. Ayarlanana kadar Instagram doğrudan bağlanır.
 # context: the server row's summary; %1$s is the server as host:port
 Instagram goes through %1$s.	Instagram %1$s üzerinden bağlanır.
+# context: Stories settings: switch that slows the zoom a story opens with from the stories row and takes out its bounce (#409)
+Smooth story opening	Hikâyeleri yumuşak aç
+# context: summary under that switch
+A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	Hikâye satırında dokunduğun bir hikâye, sekmeyen daha yavaş bir yakınlaştırmayla açılır ve aynı şekilde kapanır.

@@ -632,6 +632,13 @@ once-call Lapp/hushgram/extension/instagram/direct/LastActive;->exact(J)Ljava/la
 # on 452). Left out, a finished story moves on; twice or elsewhere, it isn't the answer the patch
 # wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in instance (Lcom/instagram/model/reels/ReelItem;)Z holding const:0x810fdd000155ff
+# Smooth story opening passes the story viewer animator's spring stiffness and damping ratio
+# through stiffness() and damping() right before its constructor sets them (#409). The constructor
+# holds no string, so the rules name the class by the reveal it logs and pick the constructor by
+# its shape (03AU on 453). Left out, the story opens on Instagram's quick spring with the switch
+# on; twice or elsewhere, it isn't the spring the patch eased.
+once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->stiffness(F)F in instance (Landroid/app/Activity;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)V pooled class-holding ReelViewerAnimator.animateReveal
+once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->damping(F)F in instance (Landroid/app/Activity;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)V pooled class-holding ReelViewerAnimator.animateReveal
 # Swipe through a chat's reels answers the read of Instagram's own chat reels flag through chain(),
 # right after it in the test taking the session that the opener of a reel shared in a chat asks
 # (01Oo.A00 on 453's 385914285, 01PZ.A00 on 385914282, #350). Its sibling tests share the shape,

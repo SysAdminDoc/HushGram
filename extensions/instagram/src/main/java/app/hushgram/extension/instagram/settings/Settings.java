@@ -250,6 +250,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_loop_stories", FALSE);
 
     /**
+     * A story tapped in the stories row grows out of its ring on a slower spring with no bounce
+     * ({@link app.hushgram.extension.instagram.stories.SmoothStoryOpen}). The story viewer builds
+     * its spring once, so a change waits for a restart. Off to start.
+     */
+    public static final BooleanSetting SMOOTH_STORY_OPEN =
+            new BooleanSetting("hushgram_smooth_story_open", FALSE, true);
+
+    /**
      * Stories open with their sound on, through Instagram's own audio state, when the phone's ringer
      * is on and its volume is up ({@link app.hushgram.extension.instagram.stories.StorySound}). Off
      * to start.

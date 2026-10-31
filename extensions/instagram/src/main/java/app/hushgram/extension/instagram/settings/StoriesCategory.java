@@ -75,6 +75,11 @@ final class StoriesCategory {
             stories.add(storyRingRow(context));
             stories.add(storyRingColorRow(context));
         }
+        if (build.contains(PatchFamily.SMOOTH_STORY_OPEN)) {
+            stories.add(toggle(context, Settings.SMOOTH_STORY_OPEN, L10n.t("Smooth story opening"),
+                    L10n.t("A story you tap in the stories row opens with a slower zoom that doesn't bounce, "
+                            + "and closes the same way.")));
+        }
         if (build.contains(PatchFamily.STORY_PROGRESS_BAR)) {
             stories.add(onFlip(toggle(context, Settings.THICKER_STORY_BAR, L10n.t("Thicker story progress bar"),
                     L10n.t("Draws the bar along the top of a story as thick as the choice below. Its segments "

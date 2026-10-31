@@ -76,6 +76,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean smoothStoryOpen() {
+        return false;
+    }
+
     public static boolean storySound() {
         return false;
     }
