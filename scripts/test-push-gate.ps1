@@ -754,6 +754,22 @@ fun hook() {
     $expected = @(@($mix[0].Name, $mix[1].Name, $mix[4].Name) | Sort-Object)
     Assert-True (($left -join ',') -eq ($expected -join ',')) "Pruning left $($left -join ', '), not both passed runs and the newest failed one."
 
+    # The gate that just failed keeps its results, even with three passed runs ahead of it.
+    $justFailed = Join-Path $scratch 'prune-just-failed-cache'
+    $env:HUSHGRAM_GATE_CACHE = $justFailed
+    $sequence = @(@{ Name = '{0:x40}' -f 21; Passed = 'true'; Hours = 9 }, @{ Name = '{0:x40}' -f 22; Passed = 'true'; Hours = 8 },
+        @{ Name = '{0:x40}' -f 23; Passed = 'true'; Hours = 7 }, @{ Name = '{0:x40}' -f 24; Passed = 'false'; Hours = 1 })
+    foreach ($entry in $sequence) {
+        $dir = Join-Path $justFailed $entry.Name
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        Set-Content -LiteralPath (Join-Path $dir 'manifest.json') -Value "{ `"passed`": $($entry.Passed) }"
+        (Get-Item -LiteralPath (Join-Path $dir 'manifest.json')).LastWriteTimeUtc = [DateTime]::UtcNow.AddHours(-$entry.Hours)
+    }
+    Remove-StaleGateEvidence
+    $left = @(Get-ChildItem -LiteralPath $justFailed -Directory | ForEach-Object Name | Sort-Object)
+    $expected = @(@($sequence[1].Name, $sequence[2].Name, $sequence[3].Name) | Sort-Object)
+    Assert-True (($left -join ',') -eq ($expected -join ',')) "Pruning left $($left -join ', '), not the failed run just saved and the two newest passed ones."
+
     # Two gates of one commit: the second stops while the first holds it, and goes ahead once it's done.
     $lockCommit = 'd' * 40
     $null = Start-GateEvidence -Commit $lockCommit

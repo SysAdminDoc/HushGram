@@ -322,8 +322,10 @@ function Save-GateEvidence {
 function Remove-StaleGateEvidence {
     <#
     Keeps the newest runs and deletes the rest, failed ones first, so a release's passed run
-    outlives a busy drain of failing pushes. A folder with no manifest is a gate still running
-    or one that was cut short; it goes only once it's two days old.
+    outlives a busy drain of failing pushes. The newest run always stays: this runs right after a
+    gate saves its results, and with three passed runs kept a failed gate's went first, so the
+    test results it had just said it kept were gone. A folder with no manifest is a gate still
+    running or one that was cut short; it goes only once it's two days old.
     #>
     $root = Get-GateEvidenceRoot
     if (-not (Test-Path -LiteralPath $root -PathType Container)) { return }
@@ -336,8 +338,9 @@ function Remove-StaleGateEvidence {
         [pscustomobject]@{ Run = $run; Passed = $passed; Written = (Get-Item -LiteralPath $manifestFile).LastWriteTimeUtc }
     })
     $excess = $finished.Count - $script:GateEvidenceKeep
+    $older = @($finished | Sort-Object @{ Expression = 'Written' } | Select-Object -SkipLast 1)
     $stale = @(if ($excess -gt 0) {
-        $finished | Sort-Object @{ Expression = 'Passed' }, @{ Expression = 'Written' } | Select-Object -First $excess | ForEach-Object { $_.Run }
+        $older | Sort-Object @{ Expression = 'Passed' }, @{ Expression = 'Written' } | Select-Object -First $excess | ForEach-Object { $_.Run }
     }) + @($runs | Where-Object { -not (Test-Path -LiteralPath (Join-Path $_.FullName 'manifest.json')) -and
             $_.LastWriteTimeUtc -lt [DateTime]::UtcNow.AddDays(-2) })
     foreach ($run in $stale) {
