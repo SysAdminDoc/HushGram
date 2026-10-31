@@ -6,16 +6,21 @@
 # Its reason starts with jar-sha256=<the JAR's SHA-256>, and it counts only when that JAR is the one audited.
 # Dates may be at most 90 days ahead. Expired or unmatched exceptions fail the audit.
 #
-# Desktop 1.19.1, reviewed 2026-10-25 against the exact JAR below (javap and class hashes).
-# Its 3380 Bouncy Castle class entries and all six outside references match 1.19.0 byte for byte.
+# Desktop 1.20.0, reviewed 2026-10-30 against the exact JAR below (javap and class hashes).
+# Its 3387 Bouncy Castle entries and the six outside references 1.19.1 had match 1.19.1 byte for byte,
+# so the 2026-10-25 review below carries over. The one new reference is patcher 2.1.0's
+# PatchBundleSignature, which signs and verifies bundles with BC's lightweight Ed25519Signer and the
+# JDK's SHA-256: no GOST, certificate path, certificate parsing, LDAP store or operator verifier.
+# Desktop 1.19.1, reviewed 2026-10-25: its 3380 Bouncy Castle class entries and all six outside
+# references matched 1.19.0 byte for byte.
 # Direct calls are in ApkSigner and OkHttp's optional BC platform. KeystoreImporter,
 # KeystoreService and SignatureIdentity register the provider reflectively and use Java's
 # keystore APIs. SdkDexVerifier carries a package-name string. Provider registration appends BC.
 # This review covers the repository's patch CLI with its trusted local BKS signing key and
 # normal JDK provider order. It does not certify imported third-party keys, altered providers
 # or every Desktop GUI flow. The library stays old; these findings are not patched away.
-external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573 The reviewed CLI signs with RSA and a trusted BKS key. It does not select GOST 28147 CTR mode.
-external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573 The reviewed CLI does not build or validate a BC certificate path. Normal JDK provider order handles the vendor certificate.
-external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573 The reviewed CLI reads a trusted local BKS key and creates its own certificate. Vendor certificate parsing uses the JDK under normal provider order.
-external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573 The reviewed CLI opens no LDAP certificate store. LDAPStoreHelper and X509LDAPCertStoreSpi are not selected by its BKS and RSA signing path.
-external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=a51472252cd63b2eac635dbb5a154ff918bfc15268da89679feb3d760230c573 CompositeVerifier is absent from this JAR. The reviewed CLI does not verify signatures through BC operator classes.
+external-desktop GHSA-574f-3g2m-x479 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=679f579b3ad743ac0ca697ef71e57430d00be59411b04494afd1845c43fb79f0 The reviewed CLI signs with RSA and a trusted BKS key. It does not select GOST 28147 CTR mode.
+external-desktop GHSA-9pwp-9qqc-pr26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=679f579b3ad743ac0ca697ef71e57430d00be59411b04494afd1845c43fb79f0 The reviewed CLI does not build or validate a BC certificate path. Normal JDK provider order handles the vendor certificate.
+external-desktop GHSA-qp49-qgx5-5m26 org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=679f579b3ad743ac0ca697ef71e57430d00be59411b04494afd1845c43fb79f0 The reviewed CLI reads a trusted local BKS key and creates its own certificate. Vendor certificate parsing uses the JDK under normal provider order.
+external-desktop GHSA-c3fc-8qff-9hwx org.bouncycastle:bcprov-jdk18on 2027-01-14 jar-sha256=679f579b3ad743ac0ca697ef71e57430d00be59411b04494afd1845c43fb79f0 The reviewed CLI opens no LDAP certificate store. LDAPStoreHelper and X509LDAPCertStoreSpi are not selected by its BKS and RSA signing path.
+external-desktop GHSA-wg6q-6289-32hp org.bouncycastle:bcpkix-jdk18on 2027-01-14 jar-sha256=679f579b3ad743ac0ca697ef71e57430d00be59411b04494afd1845c43fb79f0 CompositeVerifier is absent from this JAR. The reviewed CLI does not verify signatures through BC operator classes.
