@@ -1489,6 +1489,10 @@ Fills the bands above and below a story that doesn't fill the screen with a soft
 Skip the contacts and location popups	Salta i popup di contatti e posizione
 # context: summary under that switch
 The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Le schermate che ti chiedono di sincronizzare i contatti e di attivare i servizi di localizzazione smettono di aprirsi a ogni avvio di Instagram. Nient'altro viene saltato.
+# context: Ads and privacy settings: switch that keeps Instagram's reminder to review whether it can process your data for ads from opening by itself; it answers nothing and changes no ad choice (#331)
+Skip the ad data reminder	Salta il promemoria sui dati per le pubblicità
+# context: summary under that switch
+Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.	Il promemoria di Instagram per verificare se può trattare i tuoi dati per le pubblicità smette di aprirsi da solo. La tua scelta sulle pubblicità non cambia e non viene data nessuna risposta al posto tuo.
 # context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
 Stop videos looping	Non ripetere i video
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on

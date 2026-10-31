@@ -259,6 +259,8 @@
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/proxy/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/misc/setupscreens/**",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/setupscreens/**",
+        "patches/src/main/kotlin/app/morphe/patches/instagram/misc/consent/**",
+        "patches/src/test/kotlin/app/morphe/patches/instagram/misc/consent/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/profile/**",
         "extensions/instagram/src/main/java/app/hushgram/extension/instagram/profile/**",
         "patches/src/main/kotlin/app/morphe/patches/instagram/reels/**",

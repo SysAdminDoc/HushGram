@@ -4,6 +4,10 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+### Features
+
+* **Instagram:** `Skip the ad data reminder` is a new patch. With its switch on under Ads and privacy, Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change and nothing is answered for you. It starts off. Asked for in #331.
+
 ### Improvements
 
 * **Tooling:** `preflight.ps1 -Version` now refuses a source census past its 14 days. Until now the index push was the first thing to say so, after the gate, the walk and the publish.

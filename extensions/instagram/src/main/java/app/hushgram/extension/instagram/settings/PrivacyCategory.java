@@ -77,6 +77,11 @@ final class PrivacyCategory {
                     L10n.t("The screens asking you to sync your contacts and turn on location services stop "
                             + "opening each time Instagram starts. Nothing else is skipped.")));
         }
+        if (build.contains(PatchFamily.AD_DATA_REMINDER)) {
+            privacy.add(toggle(context, Settings.SKIP_AD_DATA_REMINDER, L10n.t("Skip the ad data reminder"),
+                    L10n.t("Instagram's reminder to review whether it can process your data for ads stops opening "
+                            + "by itself. Your ad choice doesn't change, and nothing is answered for you.")));
+        }
         if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
             privacy.add(toggle(context, Settings.VIEWING_HISTORY, L10n.t("Keep a viewing history"),
                     L10n.t("Remembers the posts, reels, stories and profiles that come up on screen, newest first, "

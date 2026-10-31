@@ -18,7 +18,8 @@
               "Open links in external browser",
               "Spoof location",
               "App-only proxy",
-              "Skip the contacts and location popups"
+              "Skip the contacts and location popups",
+              "Skip the ad data reminder"
             ]
           },
           {

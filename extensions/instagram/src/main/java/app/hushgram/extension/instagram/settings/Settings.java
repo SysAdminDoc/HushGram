@@ -465,6 +465,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_skip_setup_popups", FALSE);
 
     /**
+     * Instagram's reminder to review whether it can process your data for ads stays closed when one
+     * of its routes would bring it up by itself (#331, {@link app.hushgram.extension.instagram.misc.AdDataReminder}).
+     * Read each time a route runs. Off to start.
+     */
+    public static final BooleanSetting SKIP_AD_DATA_REMINDER =
+            new BooleanSetting("hushgram_skip_ad_data_reminder", FALSE);
+
+    /**
      * The seen receipt a chat sends when you open it, the one that puts Seen under the other
      * person's message ({@link app.hushgram.extension.instagram.direct.ThreadSeen}). Read each time
      * Instagram goes to send one, so a change applies to the next receipt. Off to start.

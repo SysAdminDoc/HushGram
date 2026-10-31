@@ -49,6 +49,7 @@ public final class FamilyNames {
     public static final String SPOOF_LOCATION = "Spoof location";
     public static final String APP_PROXY = "App-only proxy";
     public static final String SETUP_POPUPS = "Skip the contacts and location popups";
+    public static final String AD_DATA_REMINDER = "Skip the ad data reminder";
     public static final String THREAD_SEEN = "Read messages without the seen receipt";
     public static final String TYPING = "Hide that you're typing";
     public static final String ACTIVE_STATUS = "Hide your active status";

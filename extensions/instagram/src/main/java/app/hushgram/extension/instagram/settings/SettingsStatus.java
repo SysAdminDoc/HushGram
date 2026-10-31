@@ -117,6 +117,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Skip the ad data reminder patch. */
+    public static boolean adDataReminder() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

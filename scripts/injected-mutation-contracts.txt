@@ -543,6 +543,18 @@ shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang
 # through. The opener's routes share the hook, so the rule asks for one call here without forbidding
 # them. Some builds ask a string pool for the presenter's strings, so pool asks count (pooled).
 shared-call Lapp/hushgram/extension/instagram/misc/SetupPopups;->skip(Ljava/lang/String;)Z in static (Landroid/content/Context;L*;Lcom/instagram/bloks/hosting/IgBloksScreenConfig;L*;L*;I)V pooled holding FragmentActivity\sis\srequired\sto\sopen\sCDS\sbottom\ssheet foa_bottom_sheet_config cds_bloks
+# Skip the ad data reminder (#331) asks AdDataReminder.skip first thing in the three routes that bring
+# up Instagram's ad data review by themselves, and leaves on a yes. The Quick Promotion's callback
+# holds what it logs once the Bloks parsed (0ELu.A04 on 453). The evergreen launcher's launch holds
+# no string of its own, and its class is picked by its two eligibility queries (A02 on 453). The
+# trigger holds its query's name, and it answers null on a yes. Left out, the review keeps opening
+# by itself with the switch on.
+start-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Ljava/lang/Object;)V pooled holding consent_qp_controller_load_qp_bloks_parse_success
+once-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Ljava/lang/Object;)V pooled holding consent_qp_controller_load_qp_bloks_parse_success
+start-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled class-holding ACVOrganicWinbackEligibilityCheckWrapperQuery ACVAdvertiserProfileClickEligibilityCheckQuery
+once-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Landroid/content/Context;L*;Lcom/instagram/common/session/UserSession;L*;L*;)V pooled class-holding ACVOrganicWinbackEligibilityCheckWrapperQuery ACVAdvertiserProfileClickEligibilityCheckQuery
+start-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Ljava/lang/String;L*;)Ljava/lang/Object; pooled holding IGACVUCFLaunchForTriggerQuery
+once-call Lapp/hushgram/extension/instagram/misc/AdDataReminder;->skip(Ljava/lang/String;)Z in instance (Lcom/instagram/common/session/UserSession;Ljava/lang/String;Ljava/lang/String;L*;)Ljava/lang/Object; pooled holding IGACVUCFLaunchForTriggerQuery
 # Don't save recent searches asks RecentSearches.keep first in the call that tells Instagram's
 # servers about a search result you opened, and in the recent searches cache's add, picked from its
 # remove by the add at the top of its list. Each is skipped on a false. Left out, what you open

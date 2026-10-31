@@ -1489,6 +1489,10 @@ Fills the bands above and below a story that doesn't fill the screen with a soft
 Skip the contacts and location popups	Kişiler ve konum açılır pencerelerini atla
 # context: summary under that switch
 The screens asking you to sync your contacts and turn on location services stop opening each time Instagram starts. Nothing else is skipped.	Kişilerini eşitlemeni ve konum hizmetlerini açmanı isteyen ekranlar, Instagram her açıldığında artık açılmaz. Başka hiçbir şey atlanmaz.
+# context: Ads and privacy settings: switch that keeps Instagram's reminder to review whether it can process your data for ads from opening by itself; it answers nothing and changes no ad choice (#331)
+Skip the ad data reminder	Reklam verisi hatırlatıcısını atla
+# context: summary under that switch
+Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change, and nothing is answered for you.	Instagram'ın verilerini reklamlar için işleyip işleyemeyeceğini gözden geçirmeni isteyen hatırlatıcısı artık kendiliğinden açılmaz. Reklam tercihin değişmez ve senin yerine hiçbir şey yanıtlanmaz.
 # context: Playback settings: switch that stops feed videos and reels from playing again from the start when they end (#248, #175)
 Stop videos looping	Videoları tekrarlama
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
