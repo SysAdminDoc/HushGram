@@ -267,6 +267,12 @@ shared-call Lapp/hushgram/extension/instagram/direct/ScreenshotReports;->hold()Z
 # longer the guard Hide ads wrote.
 start-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z holding cross_surface_duplicate_ad
 once-call Lapp/hushgram/extension/instagram/ads/Ads;->hide()Z in static (*)Z holding cross_surface_duplicate_ad
+# Hide ads (#415) answers the comments sheet config's write of the flag its bundle writer puts under
+# "enable_comment_ads" (A1G on 453), in the config's constructor. The constructor loads no string,
+# so the rule names two fields it writes, and its two search contexts after four Redex classes,
+# since five other constructors write fields of those names. Left out, the comments sheet fetches
+# its ad again; twice or elsewhere, it isn't the flag Hide ads turned off.
+once-call Lapp/hushgram/extension/instagram/ads/Ads;->commentAds(I)I in instance (L*;L*;L*;L*;Lcom/instagram/search/common/analytics/SearchContext;Lcom/instagram/search/common/analytics/SearchContext;*)V holding LX/*;->A1G:Z LX/*;->A1g:Z
 # Remove build expired popup asks the extension first thing in the method that shows the "this
 # version has expired" lockout over the main activity. Two methods of its class hold
 # "lockout_active"; the lockout is the one taking the activity first.
