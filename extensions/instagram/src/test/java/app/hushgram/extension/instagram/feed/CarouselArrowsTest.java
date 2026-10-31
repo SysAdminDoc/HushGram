@@ -602,6 +602,48 @@ public class CarouselArrowsTest {
         assertEquals(13, CarouselArrows.Pill.first(19, 20));
     }
 
+    /** Instagram's page dots as 453 draws them: a CirclePageIndicator with no id. */
+    public static class CirclePageIndicator extends View {
+        public CirclePageIndicator(Context context) {
+            super(context);
+        }
+    }
+
+    /** #419 on a phone: 453's feed row holds the dots with no id, so they fade by their class, and come back. */
+    @Test
+    public void dotsWithNoIdFadeByTheirClass() {
+        footer.removeView(instagramDots);
+        View dots = new CirclePageIndicator(activity);
+        footer.addView(dots, new FrameLayout.LayoutParams(60, 12, Gravity.CENTER));
+        shadowOf(Looper.getMainLooper()).idle();
+
+        pillOn();
+        settle();
+
+        assertTrue(shows(pill()));
+        assertEquals(0f, dots.getAlpha(), 0f);
+
+        Settings.CAROUSEL_DOTS_PILL.save(false);
+        frame();
+
+        assertEquals(1f, dots.getAlpha(), 0f);
+    }
+
+    /** With the switch off, dots of that class are never touched. */
+    @Test
+    public void dotsWithNoIdStayWithThePillOff() {
+        footer.removeView(instagramDots);
+        View dots = new CirclePageIndicator(activity);
+        footer.addView(dots, new FrameLayout.LayoutParams(60, 12, Gravity.CENTER));
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+        settle();
+
+        assertTrue(shows(next()));
+        assertEquals(1f, dots.getAlpha(), 0f);
+    }
+
     /** A build without Instagram's dots id still shows the pill, and says the dots couldn't be found. */
     @Test
     public void withoutTheDotsIdThePillShowsAndSaysSo() {

@@ -79,6 +79,12 @@ public final class CarouselArrows {
     /** Instagram's own page dots, in the row under a carousel post's photo. */
     static final String DOTS = "carousel_page_indicator";
 
+    /**
+     * The class of Instagram's page dots. In 453 the feed's button row holds them with no id at all, so
+     * they're known by their class as well as by {@link #DOTS}.
+     */
+    static final String DOTS_CLASS = "CirclePageIndicator";
+
     /** The pill's dots, the gap between them, its height, its padding at each end and its gap from the carousel's bottom edge, in dp. */
     static final float DOT = 6, DOT_GAP = 7, PILL_HEIGHT = 18, PILL_PAD = 8, PILL_MARGIN = 12;
 
@@ -339,6 +345,12 @@ public final class CarouselArrows {
             }
         }
         return nearest;
+    }
+
+    /** True when [view] is a set of Instagram's page dots: [dotsId] when known, else {@link #DOTS_CLASS}. */
+    static boolean isDots(View view, int dotsId) {
+        if (dotsId != 0 && view.getId() == dotsId) return true;
+        return DOTS_CLASS.equals(view.getClass().getSimpleName());
     }
 
     /** Tests give the page frame an id of their own, since a test app has none of Instagram's. */
@@ -695,14 +707,15 @@ public final class CarouselArrows {
                     HookStatus.recoveredViewId(FamilyNames.CAROUSEL_ARROWS, PAGE);
                     int video = ids.resolve(owner.getResources(), owner.getPackageName(), VIDEO_PAGE, false);
                     dots.clear();
+                    boolean dotted = Settings.CAROUSEL_DOTS_PILL.get();
                     int dotsId = 0;
-                    if (Settings.CAROUSEL_DOTS_PILL.get()) {
-                        // Without it the pill still shows, over Instagram's dots instead of in their place.
+                    if (dotted) {
+                        // Without it Instagram's dots are still known by their class.
                         dotsId = ids.resolve(owner.getResources(), owner.getPackageName(), DOTS, false);
                         if (dotsId == 0) HookStatus.missingViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                         else HookStatus.recoveredViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                     }
-                    changed = walk(owner.getWindow().getDecorView(), id, video, dotsId, new int[] {ReelCorners.MAX_VIEWS});
+                    changed = walk(owner.getWindow().getDecorView(), id, video, dotted, dotsId, new int[] {ReelCorners.MAX_VIEWS});
                 }
                 changed |= follow();
             } catch (Throwable failure) {
@@ -714,12 +727,12 @@ public final class CarouselArrows {
 
         /**
          * Gives arrows or a pill to the carousel of each photo page frame with [id], or video page frame with
-         * [video], under [view], and keeps Instagram's page dots with [dotsId] for {@link #dotsUnder}. True
-         * when any were added.
+         * [video], under [view], and while [dotted] keeps Instagram's page dots ({@link #isDots}) for
+         * {@link #dotsUnder}. True when any were added.
          */
-        private boolean walk(View view, int id, int video, int dotsId, int[] budget) {
+        private boolean walk(View view, int id, int video, boolean dotted, int dotsId, int[] budget) {
             if (budget[0]-- <= 0) return false;
-            if (dotsId != 0 && view.getId() == dotsId) dots.add(new WeakReference<>(view));
+            if (dotted && isDots(view, dotsId)) dots.add(new WeakReference<>(view));
             if (view.getId() == id || (video != 0 && view.getId() == video)) {
                 ViewGroup pager = pagerOf(view);
                 if (pager == null || !give(pager)) return false;
@@ -734,7 +747,7 @@ public final class CarouselArrows {
             boolean changed = false;
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
-                for (int i = 0; i < group.getChildCount(); i++) changed |= walk(group.getChildAt(i), id, video, dotsId, budget);
+                for (int i = 0; i < group.getChildCount(); i++) changed |= walk(group.getChildAt(i), id, video, dotted, dotsId, budget);
             }
             return changed;
         }
