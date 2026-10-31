@@ -40,10 +40,11 @@ public final class LargerPhotos {
 
     /**
      * The shorter side reported under Full size covers. The server sizes a reel cover or grid
-     * picture to a third of the reported width (#214: 240 on a 720 screen, 480 on 1440), and reel
-     * covers are 1080 wide at most, so three times that gets them whole.
+     * picture to a third of the reported width (#214: 240 on a 720 screen, 480 on 1440). A picked
+     * cover can be wider than 1080 (piko saved De1JGCNTkzo's at 1290), and Instagram keeps nothing
+     * wider than 1440, so three times that gets every cover whole.
      */
-    static final int COVER_WIDTH = 3240;
+    static final int COVER_WIDTH = 4320;
 
     /** The step a failure in {@link #wanted} is reported under. */
     static final String ASK = "asked width";

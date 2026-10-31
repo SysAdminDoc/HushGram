@@ -100,16 +100,20 @@ public class LargerPhotosTest {
     public void fullSizeCoversReportThreeTimesACoversWidthOnAnyPhone() {
         Object[] narrow = {320, 720, 1600};
         LargerPhotos.screen(narrow, OFF, ON);
-        assertArrayEquals(new Object[] {320, 3240, 7200}, narrow);
+        assertArrayEquals(new Object[] {320, 4320, 9600}, narrow);
         Object[] wide = {560, 1440, 3088};
         LargerPhotos.screen(wide, ON, ON);
-        assertArrayEquals("a 1440 phone, which Ask for larger photos leaves alone", new Object[] {560, 3240, 6948}, wide);
+        assertArrayEquals("a 1440 phone, which Ask for larger photos leaves alone", new Object[] {560, 4320, 9264}, wide);
         Object[] landscape = {420, 2400, 1080};
         LargerPhotos.screen(landscape, OFF, ON);
-        assertArrayEquals(new Object[] {420, 7200, 3240}, landscape);
-        Object[] huge = {640, 3240, 7200};
+        assertArrayEquals(new Object[] {420, 9600, 4320}, landscape);
+        Object[] coverWider = {640, 3240, 7200};
+        LargerPhotos.screen(coverWider, OFF, ON);
+        assertArrayEquals("a 1290 cover (#214) needs more than 3240", new Object[] {640, 4320, 9600}, coverWider);
+        Object[] huge = {640, 4320, 9600};
         LargerPhotos.screen(huge, OFF, ON);
-        assertArrayEquals(new Object[] {640, 3240, 7200}, huge);
+        assertArrayEquals(new Object[] {640, 4320, 9600}, huge);
+        assertEquals("a third of the reported width covers Instagram's widest photo", 1440, LargerPhotos.COVER_WIDTH / 3);
         assertEquals("the asked width stays Ask for larger photos'", 1080, LargerPhotos.wanted(1080, 1080, OFF));
     }
 
@@ -123,7 +127,7 @@ public class LargerPhotosTest {
         Settings.FULL_SIZE_COVERS.save(true);
         try {
             LargerPhotos.screen(parts);
-            assertArrayEquals(new Object[] {420, 3240, 7020}, parts);
+            assertArrayEquals(new Object[] {420, 4320, 9360}, parts);
             Object[] throwing = {420, 1080, 2340};
             LargerPhotos.screen(throwing, ON, THROWS);
             assertArrayEquals(new Object[] {420, 1080, 2340}, throwing);
