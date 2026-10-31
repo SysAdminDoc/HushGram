@@ -105,7 +105,9 @@ class NativeMarkReadTest {
             assertEquals("native $type changed", original.filterNot { (name, _) -> hooked.any(name::startsWith) },
                 now.filterNot { (name, _) -> hooked.any(name::startsWith) })
         }
-        assertBridgesCallInstagram(context.mutableClassDefBy(INSTAGRAM_CHATS).methods.toList(), classes)
+        // The reply's bridges are written only where the composer's send is in the slice, which this
+        // one leaves out; NativeReplySeenTest writes and checks them on a slice that has it.
+        assertBridgesCallInstagram(context.mutableClassDefBy(INSTAGRAM_CHATS).methods.filter { it.name !in REPLY_BRIDGES }, classes)
     }
 
     @Test fun dexBackedInstructionReReadsResolveTheSameTargets() = fixtures { bundle -> dexBackedInstructionReReadsResolveTheSameTargetsOn(bundle) }
@@ -137,6 +139,7 @@ class NativeMarkReadTest {
 
     companion object {
         private val cached = FixtureCache<Map<String, ClassDef>>()
+        private val REPLY_BRIDGES = setOf("composerThread", "receiptSender")
 
         /**
          * The chat receipt's classes, plus the chat menu's enum, the classes whose methods take it or
