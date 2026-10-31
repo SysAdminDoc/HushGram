@@ -170,6 +170,7 @@ internal fun BytecodePatchContext.applyGifReply(surface: CommentSurface, plan: G
         invoke-virtual { p0, v0, p1, p2 }, ${plan.reply}
         return-void
     """)
+    // Answers an Object: a composer that isn't made yet answers null.
     replace(bridges.getValue("target"), 1, """
         check-cast p0, $screen
         iget-object p0, p0, ${plan.composer}
