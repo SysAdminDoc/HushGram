@@ -95,7 +95,7 @@ val keepReelSpeedPatch = bytecodePatch(
         "slide down), until you slide the lock off. On by default. Turn it off in HushGram settings > Reels.",
     default = true,
 ) {
-    category("Reels")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

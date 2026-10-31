@@ -2770,7 +2770,7 @@
     {
       "name": "Keep the reel speed",
       "description": "Keeps the 2x speed on for the next reels after you lock a reel at 2x (hold its edge, then slide down), until you slide the lock off. On by default. Turn it off in HushGram settings > Reels.",
-      "category": "Reels",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -4178,7 +4178,7 @@
     {
       "name": "Start feed videos with sound",
       "description": "Starts the first video on Home with its sound on, the same as tapping the video's speaker. Your phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
-      "category": "Feed",
+      "category": "Playback",
       "use": true,
       "dependencies": [
         "BytecodePatch",
@@ -5074,7 +5074,7 @@
     },
     {
       "name": "View live anonymously",
-      "description": "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. Your own lives still count their viewers. Ghost mode turns it on too. Starts off. Turn it on in HushGram settings > Stories.",
+      "description": "Keeps you off the viewer list of the lives you watch, so the host isn't told you're there. Your own lives still count their viewers. An optional eye button at the top of a live puts you on that one's list. Ghost mode turns it on too. Starts off. Turn it on in HushGram settings > Stories.",
       "category": "Ghost mode",
       "use": true,
       "dependencies": [

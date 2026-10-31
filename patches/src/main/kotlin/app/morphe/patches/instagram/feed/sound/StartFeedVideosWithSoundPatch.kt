@@ -67,7 +67,7 @@ val startFeedVideosWithSoundPatch = bytecodePatch(
     description = "Starts the first video on Home with its sound on, the same as tapping the video's speaker. Your " +
         "phone's ringer and volume still count. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
-    category("Feed")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
