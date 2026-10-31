@@ -7,6 +7,8 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram:** `Accent color` gets an `Icons in the accent color` switch, off to start. After a restart Instagram's icons on the top bar, your profile, the tab bar and under posts (the saved bookmark too) take the color you picked, a lighter shade in dark mode and a deeper one in light mode. Text keeps its color. Asked for in #8.
+* **Instagram:** `Keep Featured off the heart's dot` under Notifications stops a Featured item from lighting the red dot on the heart. Likes, comments and follows still do. Starts off. Asked for in #189.
+* **Instagram:** `Pinned chats` under Messages pins the chat you opened last to the top of your inbox. Pins stay on this phone, per account, and the same row unpins them. Asked for in #345.
 * **Instagram:** `App icon` adds Hand-drawn Instagram, a pencil sketch of Instagram's glyph on white. Themed icons show the same sketch. Asked for in #406.
 * **Instagram:** `Chat history tools` is a new patch. Its switch under Messages lets you long press a chat's name to jump to its first message or a date, loading older messages with a count and Cancel. Starts off. Asked for in #246.
 * **Instagram:** `Chat history tools` gets a second switch, `Export a chat as text`. Long press a chat's name and pick Export chat to save the whole chat to Downloads/HushGram, one line per message. Starts off. Asked for in #247.
@@ -39,6 +41,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Hide Featured in notifications` works on Instagram 453 again, Threads suggestions included. Featured rows were back at the top of Notifications. Reported in #259.
 * **Instagram:** With `Hide the Muse card`, the Meet Muse card stays off Home and your profile when Instagram sends it some other way. It still showed up now and then. Reported in #294.
 * **Instagram:** With `Pure black dark mode`, a story now opens straight on black. It flashed Instagram's dark blue for a moment first. Reported in #360.
 * **Instagram:** With `Pure black dark mode`, the screen Instagram shows while it starts up is black in dark mode too. It stayed dark gray. Reported in #410.
