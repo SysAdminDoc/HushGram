@@ -8,7 +8,6 @@
  */
 package app.hushgram.extension.shared;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -29,11 +28,15 @@ public class ResourceUtils {
     private ResourceUtils() {
     } // utility class
 
-    private static Context getActivityOrContext() {
-        Activity mActivity = Utils.getActivity();
-        return mActivity != null
-                ? mActivity
-                : Utils.getContext();
+    /**
+     * The context before the activity: it carries HushGram's own language, and an activity Instagram
+     * shows carries Instagram's.
+     */
+    private static Context contextOrActivity() {
+        Context context = Utils.context;
+        return context != null
+                ? context
+                : Utils.getActivity();
     }
 
     /**
@@ -41,7 +44,7 @@ public class ResourceUtils {
      * @return zero, if the resource is not found.
      */
     public static int getIdentifier(@Nullable ResourceType type, String name) {
-        Context mContext = getActivityOrContext();
+        Context mContext = contextOrActivity();
         if (mContext == null) {
             handleException(type, name);
             return 0;
@@ -55,7 +58,7 @@ public class ResourceUtils {
      * @see #getIdentifier(ResourceType, String)
      */
     public static int getIdentifierOrThrow(@Nullable ResourceType type, String name) {
-        return getIdentifierOrThrow(getActivityOrContext(), type, name);
+        return getIdentifierOrThrow(contextOrActivity(), type, name);
     }
 
     /**
@@ -164,15 +167,15 @@ public class ResourceUtils {
             handleException(ResourceType.ANIM, name);
             identifier = android.R.anim.fade_in;
         }
-        return AnimationUtils.loadAnimation(getActivityOrContext(), identifier);
+        return AnimationUtils.loadAnimation(contextOrActivity(), identifier);
     }
 
     public static float getDimension(String name) throws Resources.NotFoundException {
-        return getActivityOrContext().getResources().getDimension(getIdentifierOrThrow(ResourceType.DIMEN, name));
+        return contextOrActivity().getResources().getDimension(getIdentifierOrThrow(ResourceType.DIMEN, name));
     }
 
     public static int getDimensionPixelSize(String name) throws Resources.NotFoundException {
-        return getActivityOrContext().getResources().getDimensionPixelSize(getIdentifierOrThrow(ResourceType.DIMEN, name));
+        return contextOrActivity().getResources().getDimensionPixelSize(getIdentifierOrThrow(ResourceType.DIMEN, name));
     }
 
     @Nullable
@@ -182,7 +185,7 @@ public class ResourceUtils {
             handleException(ResourceType.DRAWABLE, name);
             return null;
         }
-        return getActivityOrContext().getDrawable(identifier);
+        return contextOrActivity().getDrawable(identifier);
     }
 
     public static Drawable getDrawableOrThrow(String name) {
@@ -196,7 +199,7 @@ public class ResourceUtils {
             handleException(ResourceType.STRING, name);
             return name;
         }
-        return getActivityOrContext().getString(identifier);
+        return contextOrActivity().getString(identifier);
     }
 
     public static String getStringOrThrow(String name) {

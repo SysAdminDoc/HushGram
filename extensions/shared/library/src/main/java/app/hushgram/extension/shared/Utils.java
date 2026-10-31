@@ -11,6 +11,7 @@ package app.hushgram.extension.shared;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Application;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.ClipData;
@@ -454,13 +455,13 @@ public class Utils {
         settingsReady = true;
 
         // Follow the activity rather than keeping the first one. The host recreates its main
-        // activity on a configuration change it does not swallow, and this hook runs again for
-        // the new one; holding the old instance left every overlay attaching to a window nobody
-        // is looking at, which isFinishing() does not report because a recreated activity is
-        // destroyed rather than finishing.
+        // activity on a configuration change it does not swallow; holding the old instance left
+        // every overlay attaching to a window nobody is looking at, which isFinishing() does not
+        // report because a recreated activity is destroyed rather than finishing.
         if (appContext instanceof Activity activity && getActivity() != activity) {
             setActivity(activity);
         }
+        followActivities(appContext);
 
         AppLanguage language = BaseSettings.MORPHE_LANGUAGE.get();
         if (language != AppLanguage.DEFAULT) {
@@ -474,6 +475,52 @@ public class Utils {
 
         setThemeLightColor(getThemeColor(getThemeLightColorResourceName(), Color.WHITE));
         setThemeDarkColor(getThemeColor(getThemeDarkColorResourceName(), Color.BLACK));
+    }
+
+    /** The application whose activities {@link #followActivities} follows. */
+    private static WeakReference<Application> followed = new WeakReference<>(null);
+
+    /**
+     * Follows the activity on screen from here on, once per application. Instagram's start hook hands
+     * {@link #setContext} the application, so no hook ever names an activity, and without this
+     * {@link #getActivity()} stayed null for the whole process. The one shown last is kept until it's
+     * destroyed, so one behind a see-through activity still answers once that closes and it resumes.
+     */
+    private static void followActivities(Context appContext) {
+        Context base = appContext instanceof Application ? appContext : appContext.getApplicationContext();
+        if (!(base instanceof Application application) || followed.get() == application) return;
+        followed = new WeakReference<>(application);
+        application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityResumed(@NonNull Activity activity) {
+                if (getActivity() != activity) setActivity(activity);
+            }
+
+            @Override
+            public void onActivityDestroyed(@NonNull Activity activity) {
+                if (getActivity() == activity) activityRef = new WeakReference<>(null);
+            }
+
+            @Override
+            public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
+            }
+
+            @Override
+            public void onActivityStarted(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivityPaused(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivityStopped(@NonNull Activity activity) {
+            }
+
+            @Override
+            public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
+            }
+        });
     }
 
     public static void setClipboard(CharSequence text) {
