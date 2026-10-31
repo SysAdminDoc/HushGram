@@ -13,9 +13,10 @@ import org.junit.Test
 
 /**
  * What the README's Privacy section says about the extension, held to its source: which web
- * addresses the code names, and the one place that opens a connection by itself, the save
- * pipeline's Downloader, which fetches only what the person saves, opens in View profile picture
- * or sees in See who a story mentions' list, and only from Meta's media servers (MediaUrlPolicy).
+ * addresses the code names, and the two places that open a connection by themselves. The save
+ * pipeline's Downloader fetches only what the person saves, opens in View profile picture or sees
+ * in See who a story mentions' list, and only from Meta's media servers (MediaUrlPolicy).
+ * EmojiFonts downloads the emoji pack the person picks, from its maker's release.
  *
  * <p>Comments don't count. Licence headers and design notes name hosts the code never contacts,
  * so string literals and code are read apart first, which also stops the `//` inside a URL from
@@ -106,18 +107,20 @@ class ExtensionHostsTest {
         /**
          * The hosts the README's Privacy section names: the source code link, Instagram's own site,
          * for the link Send downloads to another app builds and the profile link See who a story
-         * mentions opens inside Instagram, and the Ko-fi page the Support HushGram row opens in a
-         * browser.
+         * mentions opens inside Instagram, the Ko-fi page the Support HushGram row opens in a
+         * browser, and the GitHub file the OpenMoji emoji pack downloads from (#166).
          */
-        val ALLOWED_HOSTS = setOf("github.com", "www.instagram.com", "ko-fi.com")
+        val ALLOWED_HOSTS = setOf("github.com", "www.instagram.com", "ko-fi.com", "raw.githubusercontent.com")
 
         /**
          * The files that may open a connection. The save pipeline's Downloader fetches what the
-         * person saves or views, from Meta's media servers only. The README's Privacy section has to say so
-         * once a patch calls it.
+         * person saves or views, from Meta's media servers only, and EmojiFonts downloads the emoji
+         * pack picked under Emoji style, keeping it only when its size and SHA-256 match (#166). The
+         * README's Privacy section has to say so once a patch calls it.
          */
         val TRANSPORTS = listOf(
             "extensions/instagram/src/main/java/app/hushgram/extension/instagram/download/Downloader.java",
+            "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/EmojiFonts.java",
         )
         val URL = Regex("""(?:https?|wss?)://([A-Za-z0-9.-]+)""")
         val NETWORK = Regex(

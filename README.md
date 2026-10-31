@@ -314,9 +314,10 @@ On Windows, `Get-FileHash -Algorithm SHA256 .\patches-<version>.mpp` prints the 
 
 ## Privacy
 
-HushGram doesn't collect anything and has no server. The one connection it opens itself fetches media you ask for, like a save, a picture you open with View profile picture or the small pictures in See who a story mentions. It all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. Apart from that, its code names three addresses:
+HushGram doesn't collect anything and has no server. It opens connections itself in two places. One fetches media you ask for, like a save, a picture you open with View profile picture or the small pictures in See who a story mentions. That all comes over HTTPS from Meta's media servers (`cdninstagram.com`, `fbcdn.net` and `fbsbx.com`), and an address anywhere else is refused. The other downloads an emoji pack when you pick one under Emoji style, once, from its maker's own release on GitHub, and keeps it only if its size and SHA-256 match the file HushGram names. Apart from that, its code names four addresses:
 
-- `github.com`, for the link to this page in settings. It opens in your browser, only when you tap it.
+- `github.com`, for the link to this page in settings. It opens in your browser, only when you tap it. The Twemoji and Blobmoji packs download from their release pages there.
+- `raw.githubusercontent.com`, where the OpenMoji pack downloads from, only when you pick it.
 - `ko-fi.com`, for the Support HushGram row at the end of settings, again only when you tap it.
 - `www.instagram.com`, in the link Send downloads to another app hands to the app you pick, and in the profile links See who a story mentions opens inside Instagram.
 
