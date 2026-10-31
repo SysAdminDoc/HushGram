@@ -156,6 +156,7 @@ internal fun writeChatHistory(found: ChatHistoryTargets) {
             check-cast p0, ${f.owner}
             iget-object p0, p0, ${kind.definingClass}->${kind.name}:${kind.type}
             if-nez p0, :named
+            const/4 p0, 0x0
             return-object p0
             :named
             invoke-virtual { p0 }, $ENUM->name()Ljava/lang/String;

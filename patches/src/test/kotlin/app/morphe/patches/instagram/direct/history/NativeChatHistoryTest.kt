@@ -16,6 +16,9 @@ import app.morphe.patches.instagram.direct.seen.visualReference
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -84,6 +87,32 @@ class NativeChatHistoryTest {
         assertTrue(bridges.getValue("kind").visualCode().any { (it.visualReference() as? MethodReference)?.name == "name" })
         for (read in listOf("id", "sender", "text", "time")) {
             assertTrue("$name: $read reads a field", bridges.getValue(read).visualCode().any { it.opcode == Opcode.IGET_OBJECT })
+        }
+        for (text in listOf("id", "sender", "text", "time", "kind")) assertReturnsText(name, bridges.getValue(text))
+    }
+
+    /**
+     * What each return-object hands back is text to the verifier: a String field, a call answering String, or null
+     * written as a const. The message type's enum is a null reference on its null path too, and returning that
+     * register uncast fails the whole class on the phone.
+     */
+    private fun assertReturnsText(name: String, bridge: Method) {
+        val code = bridge.visualCode().filter { it.opcode != Opcode.NOP }
+        for ((at, instruction) in code.withIndex()) {
+            if (instruction.opcode != Opcode.RETURN_OBJECT) continue
+            val before = code.getOrNull(at - 1)
+            val text = when (before?.opcode) {
+                Opcode.CONST_4 -> (before as NarrowLiteralInstruction).narrowLiteral == 0
+                Opcode.IGET_OBJECT -> (before.visualReference() as FieldReference).type == "Ljava/lang/String;"
+                Opcode.MOVE_RESULT_OBJECT -> (code[at - 2].visualReference() as MethodReference).returnType == "Ljava/lang/String;"
+                else -> false
+            }
+            assertTrue("$name: ${bridge.name} returns what the verifier reads as text at $at (after ${before?.opcode})", text)
+            assertEquals(
+                "$name: ${bridge.name} returns the register it just wrote at $at",
+                (before as OneRegisterInstruction).registerA,
+                (instruction as OneRegisterInstruction).registerA,
+            )
         }
     }
 
