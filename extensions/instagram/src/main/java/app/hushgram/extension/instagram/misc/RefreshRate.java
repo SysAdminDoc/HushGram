@@ -36,6 +36,10 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * settings) can still hold Instagram lower. The mode asked for has the same pixel size as the current
  * one, so the screen never changes resolution, only its rate.
  *
+ * <p>The request is made even when the display already reports that mode. A Galaxy S25 reports its
+ * 120 Hz mode as the current one while it draws Instagram at 60 Hz from a slower base mode, so
+ * asking only for a mode faster than the reported one asked for nothing there (#401).
+ *
  * <p>The request is made as each activity resumes, and again the moment the switch is flipped, on
  * the activity under HushGram settings: the settings open over Instagram's screen, which never
  * resumes when they close, so without that the request waited for the next screen or a cold start
@@ -89,9 +93,9 @@ public final class RefreshRate {
     }
 
     /**
-     * The id of the fastest mode among those with [current]'s pixel size, or 0 (no preference) when
-     * [current] isn't in [modes] or nothing runs faster than it. The first of equal rates wins, so the
-     * answer doesn't move between calls.
+     * The id of the fastest mode among those with [current]'s pixel size, [current] itself when
+     * nothing runs faster, or 0 (no preference) when [current] isn't in [modes]. The first of equal
+     * rates wins, so the answer doesn't move between calls.
      */
     public static int fastestId(int current, @Nullable Mode[] modes) {
         if (modes == null) return 0;
@@ -103,7 +107,7 @@ public final class RefreshRate {
             if (mode == null || mode.width != now.width || mode.height != now.height) continue;
             if (mode.hertz > best.hertz + 0.5f) best = mode;
         }
-        return best == now ? 0 : best.id;
+        return best.id;
     }
 
     /** Whether the switch answers yes right now. Off while paused or before the settings are read. */

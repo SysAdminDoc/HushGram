@@ -74,13 +74,30 @@ public class RefreshRateTest {
     @Test
     public void picksTheFastestModeAtTheCurrentResolution() {
         assertEquals(2, RefreshRate.fastestId(1, panel()));
+        assertEquals(2, RefreshRate.fastestId(5, panel()));
         assertEquals(4, RefreshRate.fastestId(3, panel()));
     }
 
-    /** Already on the fastest mode, an unknown current mode and no modes at all leave the choice to Android. */
+    /**
+     * A display that reports its fastest mode still gets asked for it: the S25 reports 120 Hz while
+     * it draws Instagram at 60 from a slower base mode, and only the request moves it (#401).
+     */
     @Test
-    public void noPreferenceWhenThereIsNothingFasterOrNothingKnown() {
-        assertEquals(0, RefreshRate.fastestId(2, panel()));
+    public void alreadyOnTheFastestModeStillAsksForIt() {
+        assertEquals(2, RefreshRate.fastestId(2, panel()));
+        assertEquals(4, RefreshRate.fastestId(4, panel()));
+        RefreshRate.source = (activity, current) -> {
+            current[0] = 2;
+            return panel();
+        };
+        Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+        RefreshRate.apply(activity);
+        assertEquals(2, activity.getWindow().getAttributes().preferredDisplayModeId);
+    }
+
+    /** An unknown current mode and no modes at all leave the choice to Android. */
+    @Test
+    public void noPreferenceWhenNothingIsKnown() {
         assertEquals(0, RefreshRate.fastestId(99, panel()));
         assertEquals(0, RefreshRate.fastestId(1, null));
         assertEquals(0, RefreshRate.fastestId(1, new RefreshRate.Mode[0]));
