@@ -30,7 +30,7 @@ class PatchCategoriesTest {
         "Profiles", "Interface", "Downloads", "Updates", "Fixes", "Settings",
     )
 
-    /** Interface once held 43 patches. A group past this is too long to scan on a phone. Feed, Interface and Reels are at the limit. Keep Home's top bar (#408) and Keep the Reels top bar (#411) took Feed and Reels past it, so Start feed videos with sound and Keep the reel speed moved to Playback. Explore without personalization (#311) went to Privacy beside Don't save recent searches rather than take Interface past it. */
+    /** Interface once held 43 patches. A group past this is too long to scan on a phone. Feed, Interface and Reels are at the limit. Keep Home's top bar (#408) and Keep the Reels top bar (#411) took Feed and Reels past it, so Start feed videos with sound and Keep the reel speed moved to Playback. Explore without personalization (#311) went to Privacy beside Don't save recent searches rather than take Interface past it. Ambient light (#416) and Carousel arrows (#417) took Feed to 18, so Ask before a like and Long press to zoom moved to Interaction beside Change the like animation; their switches stay on the Feed settings page. */
     private val largestGroup = 16
 
     private fun shippedPatches() = run {

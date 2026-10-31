@@ -65,7 +65,7 @@ val askBeforeLikePatch = bytecodePatch(
         "doesn't do it for you. Starts off. Turn it on in HushGram settings > Feed.",
     default = true,
 ) {
-    category("Feed")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

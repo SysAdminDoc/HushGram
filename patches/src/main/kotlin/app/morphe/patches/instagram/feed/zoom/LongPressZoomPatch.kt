@@ -77,7 +77,7 @@ val longPressZoomPatch = bytecodePatch(
         "from 1x to 4x until a tap or Back closes it. While its switch is on, it takes the place of Instagram's " +
         "own long press on a photo. Starts off. Turn it on in HushGram settings > Feed.",
 ) {
-    category("Feed")
+    category("Interaction")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

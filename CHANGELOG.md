@@ -95,6 +95,7 @@ Every HushGram release, newest first.
 ### Improvements
 
 * **Tooling:** Updated to Morphe patcher 2.1.0, so patching needs Morphe Manager 2.3.0 or newer. On a computer, use morphe-desktop 1.20.0 or newer. The dependency audit now reviews Morphe Desktop 1.20.0.
+* **Instagram:** In Morphe Manager, `Ask before a like` and `Long press to zoom` now sit under Interaction beside `Change the like animation`, so the Feed group stays short enough to scan. Their switches are still on the Feed settings page.
 * **Instagram:** `See who a story mentions` opens its list again when you come back from an account's profile, so you can go down the list without reopening it each time. Close ends it. Asked for in #403.
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
 * **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.
