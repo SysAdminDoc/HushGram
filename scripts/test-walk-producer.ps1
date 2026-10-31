@@ -29,6 +29,7 @@ function Reset-Producer {
     $script:state.headingTop=300; $script:state.footStuck=$false; $script:state.headingTapYs=[Collections.Generic.List[int]]::new()
     $script:state.animateFor=0; $script:state.animating=0; $script:state.tapCaptures=0
     $script:state.headingAbsent=$false; $script:state.searchScrolledAway=$false
+    $script:state.listDepth=0; $script:state.listOffset=0
 }
 # Strict APK/report/PNG validation has its own real-byte fixtures. These tests cover the
 # producer's choice of operations and its propagation of each reader's refusal.
@@ -91,6 +92,12 @@ function Invoke-HushgramAdbCommand {
             $state.current=@('home','explore','reels','inbox','profile')[$index]
         }
     }
+    # The long list scrolls by the stroke, and a stroke quicker than a second flings it as far again.
+    elseif ($command -like 'shell input swipe *' -and $state.current -ceq 'settings-root' -and $state.listDepth -gt 0) {
+        $travel=[int]$Arguments[6]-[int]$Arguments[8]
+        if ([int]$Arguments[9] -lt 1000) { $travel*=2 }
+        $state.listOffset=[Math]::Max(0,[Math]::Min($state.listDepth+1500,$state.listOffset+$travel))
+    }
     # A slow lift from the list's 80% line brings a heading at its foot up into the list.
     elseif ($command -like 'shell input swipe *' -and $state.current -ceq 'settings-root' -and [int]$Arguments[6] -le 800 -and -not $state.footStuck) {
         $state.headingTop=[Math]::Min($state.headingTop, 300)
@@ -111,6 +118,7 @@ function New-ProducerUi([switch]$Animating) {
             "<node package='com.instagram.android' class='android.widget.ListView' resource-id='android:id/list' scrollable='true' enabled='true' visible-to-user='true' bounds='[0,200][700,950]'>"+
             $(if (-not $state.headingAbsent) { "<node package='com.instagram.android' class='android.widget.TextView' text='Fixture category' clickable='true' enabled='true' visible-to-user='true' bounds='$headingBounds' />" })+
             $(if ($state.expanded) { "<node package='com.instagram.android' class='android.widget.TextView' text='Known row' enabled='true' visible-to-user='true' bounds='$rowBounds' />" })+
+            $(if ($state.listDepth -gt 0) { "<node package='com.instagram.android' class='android.widget.TextView' text='Row at $($state.listOffset)' enabled='true' visible-to-user='true' bounds='[0,900][700,950]' />" })+
             '</node>'
         return [xml]"<hierarchy><node package='com.instagram.android' enabled='true' visible-to-user='true' bounds='[0,0][720,1000]'>$children</node></hierarchy>"
     }
@@ -140,7 +148,9 @@ function Test-WalkDestinationContent {
     $landed=$null -eq $Document -or -not $Document.OuterXml.Contains('[0,0][0,0]')
     $valid=$Destination.id -ceq $state.current -or
         ($Destination.id -ceq 'settings-pause' -and $state.current -ceq 'settings-root') -or
-        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or ($state.expanded -and $landed)))
+        ($Destination.id -ceq 'settings-fixture' -and $state.current -ceq 'settings-root' -and ($state.settingsMode -ceq 'flat' -or ($state.expanded -and $landed)) -and
+            # In the long list the heading and its row, 200 px under it, must both sit in the 750 px window.
+            ($state.listDepth -eq 0 -or ($state.listDepth -ge $state.listOffset -and $state.listDepth+200 -le $state.listOffset+750)))
     [pscustomobject]@{ Valid=$valid; Reason='The requested destination is not active.' }
 }
 function Test-WalkReceipt { [pscustomobject]@{ Valid=(-not $state.rejectProof); Reason='The complete proof was refused.' } }
@@ -260,6 +270,15 @@ try {
             @($state.calls | Where-Object { $_ -like 'shell input swipe *' }).Count -eq $expectedSwipes -and
             @($receipt.problems | Where-Object { $_ -like '*was unavailable*' }).Count -eq 1) "An absent heading kept the search swiping (search scrolled away: $scrolledAway)."
     }
+
+    # The saved long list runs many screens below the search row. 0.0.18's first walk flung past a heading with
+    # quick strokes and gave up after 24, so a section deep in it is found going down, slowly, past that count.
+    Reset-Producer; $state.settingsMode='flat'; $state.listDepth=9700
+    $path=Invoke-WalkApp @arguments
+    $receipt=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $swipes=@($state.calls | Where-Object { $_ -like 'shell input swipe *' } | ForEach-Object { ,@($_ -split ' ') })
+    Assert-Producer ($receipt.result -ceq 'PASS' -and $swipes.Count -gt 24 -and [int]$swipes[0][4] -gt [int]$swipes[0][6] -and
+        @($swipes | Where-Object { [int]$_[7] -lt 1000 -or [Math]::Abs([int]$_[4]-[int]$_[6]) -gt 375 }).Count -eq 0) "A section deep in the long list was flung past or given up on: $($receipt.problems -join '; ')"
 
     # Coordinates come from one visible, enabled native target and all ancestor clipping.
     Reset-Producer

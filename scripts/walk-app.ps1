@@ -259,11 +259,13 @@ function Invoke-WalkApp {
         function Send-WalkSettingsSwipe($Capture, [string]$Direction) {
             $listBounds = Get-WalkCaptureActionArea -Capture $Capture -Package $Package -Scroll
             if ($null -eq $listBounds) { return $false }
-            $top = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.2)
-            $bottom = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.8)
+            # A quick stroke flings the list more than a screen, past a heading and the row under it.
+            # A slow stroke under half the list keeps about half a screen in view from one look to the next.
+            $top = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.3)
+            $bottom = [int]($listBounds.Top + ($listBounds.Bottom-$listBounds.Top)*0.75)
             $from = if ($Direction -ceq 'up') { $top } else { $bottom }
             $to = if ($Direction -ceq 'up') { $bottom } else { $top }
-            [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$from,[string]$listBounds.X,[string]$to,'300'))
+            [void](Invoke-WalkAdb @('shell','input','swipe',[string]$listBounds.X,[string]$from,[string]$listBounds.X,[string]$to,'1000'))
             Start-Sleep -Milliseconds 400
             return $true
         }
@@ -289,9 +291,13 @@ function Invoke-WalkApp {
             # Preferences can be reordered. Search both directions using only the verified settings list.
             # A category heading expands its rows in place under it, so it is tapped once, never Back
             # (Back closes settings), and the rows are then looked for further down.
-            foreach ($direction in @('up','down')) {
+            # The long list holds every row, many screens of them, in walk order, so it is searched
+            # downward first and to its foot. The signature check still ends a search at either end.
+            $directions = if ($Destination.page) { @('up','down') } else { @('down','up') }
+            $swipeLimit = if ($Destination.page) { 24 } else { 400 }
+            foreach ($direction in $directions) {
                 $signature = $null
-                for ($scrollIndex=0; $scrollIndex -lt 24; $scrollIndex++) {
+                for ($scrollIndex=0; $scrollIndex -lt $swipeLimit; $scrollIndex++) {
                     $current = Read-WalkSettingsCapture
                     $content = Test-WalkDestinationContent -Destination $Destination -Document $current.ParsedXml -Package $Package
                     if ($content.Valid) { return [pscustomobject]@{ Capture=$current; Expanded=$false } }
