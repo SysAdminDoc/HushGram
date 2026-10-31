@@ -911,6 +911,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_logo_on_following", FALSE, true, parent(START_ON_FOLLOWING));
 
     /**
+     * An account whose For you brings page after page of nothing but suggested posts opens Home on
+     * Following, while no feed is picked for it (#308, {@link app.hushgram.extension.instagram.feed.ForYouFallback}).
+     * Works without Start Home on Following. Off to start.
+     */
+    public static final BooleanSetting FOLLOWING_FALLBACK =
+            new BooleanSetting("hushgram_following_fallback", FALSE, true);
+
+    /**
+     * The ids of the accounts {@link #FOLLOWING_FALLBACK} moved to Following, a line each. Not a
+     * switch, and left out of a backup, since the ids are only good on this phone's accounts.
+     */
+    public static final StringSetting FOLLOWING_FALLBACK_ACCOUNTS =
+            new StringSetting("hushgram_following_fallback_accounts", "", false, false);
+
+    /**
      * Meta AI in the search bars: the Search tab's ("Search with Meta AI") and the one at the top of
      * your messages ("Search or ask Meta AI"), and the "Ask a follow-up…" bar under search results.
      */

@@ -1397,3 +1397,6 @@ Viewing history cleared.	본 기록을 지웠습니다.
 Couldn't clear the viewing history. Try again.	본 기록을 지우지 못했습니다. 다시 시도해 주세요.
 Mark one-time photos and videos	한 번만 볼 수 있는 사진과 동영상 표시
 Puts a border and Instagram's view once icon on a one-time photo or video in a chat, so you can tell it from the rest before you open it. Only how the chat looks changes.	채팅에서 한 번만 볼 수 있는 사진이나 동영상에 테두리와 Instagram의 한 번 보기 아이콘을 넣어, 열기 전에 다른 것과 구분할 수 있게 합니다. 채팅의 모양만 바뀝니다.
+Fall back to Following	팔로잉으로 대체
+When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.	추천 피드가 한 계정에 페이지마다 추천 게시물만 보여 주면 그 계정은 홈이 팔로잉으로 열립니다. 홈 상단에서 직접 고른 피드는 그대로 유지됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Only suggestions in For you. Home will open on Following.	추천 피드에 추천 게시물만 있습니다. 홈을 팔로잉으로 엽니다.

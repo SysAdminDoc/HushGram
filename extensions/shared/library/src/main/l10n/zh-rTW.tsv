@@ -1401,3 +1401,6 @@ Viewing history cleared.	已清除瀏覽紀錄。
 Couldn't clear the viewing history. Try again.	無法清除瀏覽紀錄，請再試一次。
 Mark one-time photos and videos	標示僅限檢視一次的相片和影片
 Puts a border and Instagram's view once icon on a one-time photo or video in a chat, so you can tell it from the rest before you open it. Only how the chat looks changes.	在聊天中僅限檢視一次的相片或影片上加上邊框和 Instagram 的檢視一次圖示，讓你在開啟前就能分辨。只有聊天的外觀會改變。
+Fall back to Following	改用「追蹤中」
+When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.	若「為你推薦」對某個帳號一頁接一頁只顯示推薦貼文，該帳號的首頁會改為開啟「追蹤中」。你在首頁頂端選擇的動態會維持不變。請重新啟動 Instagram 以套用變更。
+Only suggestions in For you. Home will open on Following.	「為你推薦」只有推薦貼文，首頁將改開「追蹤中」。

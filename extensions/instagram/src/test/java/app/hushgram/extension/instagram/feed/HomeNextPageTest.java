@@ -1083,6 +1083,51 @@ public class HomeNextPageTest {
         assertEquals(1, watches.size());
     }
 
+    /**
+     * With Fall back to Following on, For you's next page isn't asked for an account whose For you
+     * held only suggestions, so those pages aren't asked for over and over (#308). Off, it is.
+     */
+    @Test
+    public void anAccountWithOnlySuggestionsGetsNoNextPageAskedFor() {
+        List<String> toasts = new ArrayList<>();
+        HiddenAccounts.resetForTests();
+        ForYouFallback.resetForTests();
+        ForYouFallback.toaster = toasts::add;
+        ForYouFallback.followingInBuild = () -> true;
+        Settings.FEED_ACCOUNT.save("1001");
+        Settings.FOLLOWING_FALLBACK.save(true);
+        try {
+            FeedSuggestions.homeReadsForTests = true;
+            for (int page = 0; page < ForYouFallback.STREAK; page++) {
+                homePage(FeedSuggestionsTest.Kind.EXPLORE_STORY, FeedSuggestionsTest.Kind.EXPLORE_STORY);
+            }
+            assertEquals(1, toasts.size());
+            asks.clear();
+            posted.clear();
+            watches.clear();
+            settles.clear();
+            clear();
+            shortPage();
+            build();
+            runWatches();
+            runSettles();
+            assertTrue("not asked", asks.isEmpty());
+            assertEquals(1, counted(ForYouFallback.NOT_ASKED));
+
+            Settings.FOLLOWING_FALLBACK.save(false);
+            clear();
+            shortPage();
+            build();
+            assertEquals("switch off, asked as before", 1, asks.size());
+        } finally {
+            ForYouFallback.resetForTests();
+            HiddenAccounts.resetForTests();
+            Settings.FOLLOWING_FALLBACK.resetToDefault();
+            Settings.FOLLOWING_FALLBACK_ACCOUNTS.resetToDefault();
+            Settings.FEED_ACCOUNT.resetToDefault();
+        }
+    }
+
     /** A page of Home's response holding items of [kinds], read through the filter and homeItem as Home's parser does. */
     private static void homePage(FeedSuggestionsTest.Kind... kinds) {
         FeedSuggestions.homePageStarts();

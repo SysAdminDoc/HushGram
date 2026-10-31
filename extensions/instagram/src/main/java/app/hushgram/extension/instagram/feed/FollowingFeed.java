@@ -49,6 +49,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The end of Following links back to the plain Home feed, which the picker doesn't offer, so
  * {@link #picked} answers a feed the picker switches Home to in place. When that's Following, the
  * feed Home is already on, the link then taps the Home tab, which takes Home back to its top.
+ *
+ * <p>A fourth switch works without the first: an account whose For you holds only suggested posts
+ * is moved to Following ({@link ForYouFallback}), and {@link #flag}, {@link #saved} and
+ * {@link #picked} answer for that account as they do with the first switch on.
  */
 public final class FollowingFeed {
     /** The name Instagram 449 saves for the Following feed, its feed type constant's. */
@@ -121,14 +125,16 @@ public final class FollowingFeed {
 
     /**
      * Injected right after each read of the feed picker's flags, with Instagram's answer as an int
-     * (non-zero is yes). Answers true while the switch is on, and Instagram's answer otherwise, or
-     * when anything goes wrong. Never throws, and never waits for the settings: before they're
-     * ready Instagram's answer stands.
+     * (non-zero is yes). Answers true while the switch is on, or while the signed-in account was
+     * moved to Following ({@link ForYouFallback}), and Instagram's answer otherwise, or when
+     * anything goes wrong. Never throws, and never waits for the settings: before they're ready
+     * Instagram's answer stands.
      */
     public static boolean flag(int enabled) {
         try {
             HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
-            if (!Utils.settingsReady() || !Settings.START_ON_FOLLOWING.get()) return enabled != 0;
+            if (!Utils.settingsReady()) return enabled != 0;
+            if (!Settings.START_ON_FOLLOWING.get() && !ForYouFallback.movedToFollowing()) return enabled != 0;
             if (!loggedFlag) {
                 loggedFlag = true;
                 Logger.printDebug(() -> "Following feed: feed picker flags answered on");
@@ -179,14 +185,23 @@ public final class FollowingFeed {
     /**
      * Injected where Instagram hands back the feed you last picked, with that feed's name. Answers
      * Following when there's no name and the switch is on, and in place of For you while the second
-     * switch is on too. Otherwise, or when anything goes wrong, answers the name. Never throws.
+     * switch is on too. With the switch off, answers Following when there's no name and the
+     * signed-in account was moved to Following ({@link ForYouFallback}), whose picks this notes so
+     * a picked feed keeps winning. Otherwise, or when anything goes wrong, answers the name. Never
+     * throws.
      */
     public static String saved(String name) {
         boolean picked = name != null && !name.isEmpty();
+        if (picked) ForYouFallback.sawPick();
         if (picked && !FOR_YOU.contains(name)) return name;
         try {
             HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
-            if (!Utils.settingsReady() || !Settings.START_ON_FOLLOWING.get()) return name;
+            if (!Utils.settingsReady()) return name;
+            if (!Settings.START_ON_FOLLOWING.get()) {
+                if (picked || !ForYouFallback.movedToFollowing()) return name;
+                HookStatus.counted(FamilyNames.FOLLOWING_FEED, ForYouFallback.OPENED);
+                return FOLLOWING;
+            }
             if (picked) {
                 if (!Settings.ONLY_FOLLOWING.get()) return name;
                 if (!loggedLimit) {
@@ -213,16 +228,19 @@ public final class FollowingFeed {
      * Home feed, which has no page, and Instagram closed on the empty one it opened. While the
      * switch is on, answers For you for it, or Following while For you is taken out. Following is
      * the feed Home is already on, so Instagram's switch does nothing and the link then taps the
-     * Home tab, a moment later, to take Home back to its newest post. Answers [feed] otherwise, or
-     * when anything goes wrong. Never throws.
+     * Home tab, a moment later, to take Home back to its newest post. An account moved to Following
+     * ({@link ForYouFallback}) gets For you for it. Answers [feed] otherwise, or when anything goes
+     * wrong. Never throws.
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object picked(Object feed) {
         if (!(feed instanceof Enum) || !PLAIN_HOME.equals(((Enum<?>) feed).name())) return feed;
         try {
             HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
-            if (!Utils.settingsReady() || !Settings.START_ON_FOLLOWING.get()) return feed;
-            boolean following = Settings.ONLY_FOLLOWING.get();
+            if (!Utils.settingsReady()) return feed;
+            boolean start = Settings.START_ON_FOLLOWING.get();
+            if (!start && !ForYouFallback.movedToFollowing()) return feed;
+            boolean following = start && Settings.ONLY_FOLLOWING.get();
             String name = following ? FOLLOWING : PICKER_FOR_YOU;
             Object kept = Enum.valueOf((Class) ((Enum<?>) feed).getDeclaringClass(), name);
             HookStatus.counted(FamilyNames.FOLLOWING_FEED, HOME_LINK_KEPT);

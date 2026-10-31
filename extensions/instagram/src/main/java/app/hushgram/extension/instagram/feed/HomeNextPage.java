@@ -69,7 +69,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * page has builders of its own and is left alone. It fails open: with every switch that took
  * something out of Home off ({@link FeedSuggestions#switchesTookOut}), HushGram paused, the settings
  * not read yet, a stub the patch couldn't fill or anything thrown, Home waits for the scroll as
- * Instagram has it.
+ * Instagram has it. With Fall back to Following on, it doesn't ask for an account whose For you
+ * held only suggestions ({@link ForYouFallback#holdsNextPage}), since the next page brings more.
  */
 public final class HomeNextPage {
     /** A page of Home's response is short when it keeps fewer items than this. */
@@ -379,6 +380,12 @@ public final class HomeNextPage {
                 decided = page;
                 return;
             }
+            if (ForYouFallback.holdsNextPage()) {
+                decided = page;
+                HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, ForYouFallback.NOT_ASKED);
+                Logger.printDebug(() -> "Home next page: this account's For you holds only suggestions, so it doesn't ask");
+                return;
+            }
             Object feed = build.feed();
             if (feed == null) {
                 Logger.printDebug(() -> "Home next page: the build never read its feed, so the short page waits");
@@ -453,6 +460,7 @@ public final class HomeNextPage {
             if (!Utils.settingsReady() || !FeedSuggestions.switchesTookOut()) return;
             long age = clock.getAsLong() - requestAt;
             if (age < 0 || age > WATCH_NANOS) return;
+            if (ForYouFallback.holdsNextPage()) return;
             Build build = home;
             Object adapter = build == null ? null : build.adapter.get();
             Object feed = build == null ? null : build.feed();

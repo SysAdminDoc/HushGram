@@ -42,6 +42,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Glass tab bar` adds `Bend light at the edges` under Tab bar. With `Liquid glass look` on, the pill's rim bends what passes under it the way real glass does, on Android 13 and up. Starts off. Asked for in #369.
 * **Instagram:** `Glass tab bar` adds `Run Reels behind the tab bar` under Tab bar, next to `Show content behind the tab bar`. The reel fills the screen behind the pill, and its caption, buttons and seek bar sit just above it. Starts off. Asked for in #372.
 * **Instagram:** `Clean up Reels` adds `Hide suggested searches on reels`, `Hide shopping buttons on reels` and `Hide poll prompts on reels` under Reels. Each takes its prompt away from beside the reel's author. All three start off. Asked for in #332.
+* **Instagram:** `Start Home on Following` adds `Fall back to Following` under Feed. When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick stays picked. Starts off. Asked for in #308.
 
 ### Bug Fixes
 

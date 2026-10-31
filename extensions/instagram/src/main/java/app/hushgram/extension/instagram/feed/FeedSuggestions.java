@@ -162,8 +162,9 @@ public final class FeedSuggestions {
 
     /**
      * The page of Home's feed response being parsed on this thread, from {@link #homePageStarts} to
-     * {@link #homePageParsed}: how many items it read, how many were taken out, and whether a real
-     * MEDIA post with a positive media_type stayed.
+     * {@link #homePageParsed}: how many items it read, how many were taken out, whether a real
+     * MEDIA post with a positive media_type stayed, and for {@link ForYouFallback} how many
+     * suggested posts, MEDIA posts and end of feed cards it read, taken out or not.
      * Null outside a page, so Home's store and every other feed's reads, on this thread or another,
      * never count toward one.
      */
@@ -389,7 +390,7 @@ public final class FeedSuggestions {
      */
     public static void homePageStarts() {
         try {
-            PAGE.set(new int[3]);
+            PAGE.set(new int[6]);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "home page start", failure);
         }
@@ -399,7 +400,8 @@ public final class FeedSuggestions {
      * Injected right before each return of Home's feed response parser. A page that held items
      * replaces the verdict of the one before: whether it lost any to {@link #filter}. It also tells
      * {@link HomeNextPage} how many items the page kept, so a page the switches left short gets the
-     * next one asked for. A page with no items, the parser giving up on a response for one, leaves
+     * next one asked for, and {@link ForYouFallback} how many suggested posts, posts and end of
+     * feed cards it read. A page with no items, the parser giving up on a response for one, leaves
      * the verdict, and only tells {@link HomeNextPage} a request of its own was answered. Never throws.
      */
     public static void homePageParsed() {
@@ -412,6 +414,7 @@ public final class FeedSuggestions {
                 return;
             }
             HomeNextPage.pageParsed(page[0], page[1]);
+            ForYouFallback.pageParsed(page[3], page[4], page[5]);
             homePageKeptMedia = page[2] != 0;
             homePageLost = page[1] > 0;
             homePageEndCounted = false;
@@ -566,6 +569,10 @@ public final class FeedSuggestions {
             String kind = FeedItemKinds.kindIn(item, KINDS, FamilyNames.FEED_SUGGESTIONS);
             if (kind == null) return item;
             FeedFilterCounters.sawKind(ROUTE, kind);
+            if (SUGGESTED_POST.equals(kind)) {
+                int[] page = PAGE.get();
+                if (page != null) page[3]++;
+            }
             BooleanSetting setting = switchFor(kind);
             if (!Utils.settingsReady() || !setting.get()) return item;
             FeedFilterCounters.removed(ROUTE, 1, kind);
@@ -618,14 +625,23 @@ public final class FeedSuggestions {
             if (lost) page[1]++;
         }
         if (item == null) return null;
+        String kind = null;
+        if (page != null) {
+            try {
+                kind = FeedItemKinds.kindOf(item, "MEDIA", FamilyNames.FEED_SUGGESTIONS);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "retained home media", failure);
+            }
+            if ("MEDIA".equals(kind)) page[4]++;
+            else if (END_CARD_KIND.equals(kind)) page[5]++;
+        }
         Object kept = byType(item, typeOf) == null ? null
                 : byLiked(item, likedOf) == null ? null
                 : byAuthor(item, authorOf) == null ? null : byCaption(item, captionOf);
         if (kept == null && page != null) page[1]++;
-        if (kept != null && page != null) {
+        if (kept != null && page != null && "MEDIA".equals(kind)) {
             try {
-                if ("MEDIA".equals(FeedItemKinds.kindOf(kept, "MEDIA", FamilyNames.FEED_SUGGESTIONS))
-                        && typeOf.applyAsInt(kept) > 0) page[2] = 1;
+                if (typeOf.applyAsInt(kept) > 0) page[2] = 1;
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "retained home media", failure);
             }

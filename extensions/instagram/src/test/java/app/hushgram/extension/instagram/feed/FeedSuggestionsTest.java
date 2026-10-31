@@ -924,4 +924,44 @@ public class FeedSuggestionsTest {
         assertFalse(FeedSuggestions.adsTookOut);
         assertEquals("waiting on its first page", 0, adapterReads(new Feed(true), 0));
     }
+
+    /**
+     * Fall back to Following reads the pages Home's parser reads: suggested posts, with Hide
+     * suggested posts on or off, count, and a followed post or the end card keeps For you (#308).
+     */
+    @Test
+    public void pagesOfOnlySuggestedPostsMoveTheAccountToFollowing() {
+        List<String> toasts = new java.util.ArrayList<>();
+        HiddenAccounts.resetForTests();
+        ForYouFallback.resetForTests();
+        ForYouFallback.toaster = toasts::add;
+        ForYouFallback.followingInBuild = () -> true;
+        Settings.FEED_ACCOUNT.save("1001");
+        Settings.FOLLOWING_FALLBACK.save(true);
+        try {
+            homePage(new Item(Kind.EXPLORE_STORY), new Item(Kind.SUGGESTED_USERS), new Item(Kind.EXPLORE_STORY));
+            Settings.HIDE_SUGGESTED_POSTS.save(true);
+            homePage(new Item(Kind.EXPLORE_STORY), new Item(Kind.EXPLORE_STORY));
+            assertTrue(toasts.isEmpty());
+            homePage(new Item(Kind.EXPLORE_STORY));
+            assertEquals(1, toasts.size());
+            assertTrue(ForYouFallback.movedToFollowing());
+
+            Settings.FEED_ACCOUNT.save("2002");
+            for (int page = 0; page < ForYouFallback.STREAK; page++) {
+                homePage(new Item(Kind.EXPLORE_STORY), new Item(Kind.MEDIA));
+            }
+            Settings.FEED_ACCOUNT.save("3003");
+            homePage(new Item(Kind.END_OF_FEED_DEMARCATOR));
+            for (int page = 0; page < ForYouFallback.STREAK; page++) homePage(new Item(Kind.EXPLORE_STORY));
+            assertEquals("a followed post or the end card keeps For you", 1, toasts.size());
+            assertEquals(java.util.Collections.singleton("1001"), ForYouFallback.saved());
+        } finally {
+            ForYouFallback.resetForTests();
+            HiddenAccounts.resetForTests();
+            Settings.FOLLOWING_FALLBACK.resetToDefault();
+            Settings.FOLLOWING_FALLBACK_ACCOUNTS.resetToDefault();
+            Settings.FEED_ACCOUNT.resetToDefault();
+        }
+    }
 }
