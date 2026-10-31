@@ -475,6 +475,7 @@ public class StoryMentionsTest {
 
         assertSame("the pill stayed in the row", column, pill.getParent());
         assertEquals("the pill isn't right under the header's row", column.indexOfChild(headerRow) + 1, column.indexOfChild(pill));
+        // A name view that starts at its row's edge puts the pill at the header's edge too.
         assertEquals("the pill doesn't line up with the name", 88,
                 ((LinearLayout.LayoutParams) pill.getLayoutParams()).getMarginStart());
         layOut(pill);
@@ -502,7 +503,8 @@ public class StoryMentionsTest {
      * #405: on Instagram 453 the name's row is a Compose view with no name view in it, and the
      * header centers the name's column, so a pill under the name moved the name up under the
      * progress bars. With the header's row inside a column, the pill goes right under that row,
-     * lined up with the name, and the name's column keeps what it had.
+     * lined up with the name's text (the row keeps an inset before it, so lined up with the row's
+     * edge the pill sat left of the name on the S22), and the name's column keeps what it had.
      */
     @Test
     public void withAComposeNameRowThePillGoesUnderTheHeader() {
@@ -533,7 +535,8 @@ public class StoryMentionsTest {
         assertSame("the pill isn't under the header", column, pill.getParent());
         assertEquals("the pill isn't right under the header's row", column.indexOfChild(headerRow) + 1, column.indexOfChild(pill));
         assertEquals("the name's column grew", 2, header.getChildCount());
-        assertEquals("the pill doesn't line up with the name", 88,
+        // The Compose row keeps a little room before its text, and the pill lines up with the text, not the row.
+        assertEquals("the pill doesn't line up with the name's text", 88 + Dim.dp(StoryMentions.COMPOSE_NAME_INSET_DP),
                 ((LinearLayout.LayoutParams) pill.getLayoutParams()).getMarginStart());
         layOut(pill);
         assertTrue("the pill isn't below the header", pill.getTop() >= headerRow.getBottom());

@@ -81,6 +81,8 @@ public final class StoryMentions {
 
     /** How far up from the story's media view the header is looked for. */
     private static final int MAX_DEPTH = 8;
+    /** How far into 453's Compose name row the name's text starts, measured on the S22. */
+    static final int COMPOSE_NAME_INSET_DP = 12;
 
     /**
      * When a page's header is looked for, in milliseconds after the bind, while Instagram hasn't
@@ -489,13 +491,29 @@ public final class StoryMentions {
         return found.getOrientation() == LinearLayout.VERTICAL ? found : null;
     }
 
-    /** Puts [pill] right under the header's row in [under], lined up with the name. */
+    /** Puts [pill] right under the header's row in [under], lined up with the name's text. */
     private static void putUnder(Pill pill, LinearLayout header, LinearLayout under) {
         View headerRow = (View) header.getParent();
         LinearLayout.LayoutParams place = placement(false);
-        place.setMarginStart(headerRow.getLeft() + header.getLeft());
+        place.setMarginStart(headerRow.getLeft() + header.getLeft() + nameStart(header));
         pill.setLayoutParams(place);
         under.addView(pill, under.indexOfChild(headerRow) + 1);
+    }
+
+    /**
+     * Where the name's text starts inside [header]: the name view's left, summed up to the header,
+     * or with no name view (453's Compose row) the room that row keeps before its text. Lined up
+     * with the header's edge instead, the pill sat a name's inset left of the name on the S22 (#405).
+     */
+    static int nameStart(ViewGroup header) {
+        int id = titleId(header.getContext());
+        View title = id == 0 ? null : header.findViewById(id);
+        if (title == null) return Dim.dp(COMPOSE_NAME_INSET_DP);
+        int start = 0;
+        for (View at = title; at != null && at != header; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+            start += at.getLeft();
+        }
+        return start;
     }
 
     /**
