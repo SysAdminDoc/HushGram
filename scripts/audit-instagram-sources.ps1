@@ -928,8 +928,11 @@ function Read-GitLabSource {
         $branches[[string]$branch.name] = [pscustomobject]@{ Head = [string]$branch.commit.id
             Watched = $(if ($watch.Count -eq 0) { [string]$branch.commit.id } else { $watched[[string]$branch.name] }) }
     }
+    # GitLab renames a project waiting to be deleted after its own id. A scanner forks ReVanced's
+    # mirror and deletes the fork again every six hours, faster than any census could record them.
+    $keptForks = @($forkList.Items | Where-Object { [string]$_.path_with_namespace -cnotlike "*-deletion_scheduled-$($_.id)" })
     return [pscustomobject]@{ Status = 200; FullName = "gitlab.com/$($repo.path_with_namespace)".ToLowerInvariant(); Archived = [bool]$repo.archived
-        License = $license; Branches = $branches; Forks = @($forkList.Items | ForEach-Object { [string]$_.path_with_namespace }) }
+        License = $license; Branches = $branches; Forks = @($keptForks | ForEach-Object { [string]$_.path_with_namespace }) }
 }
 
 $forkCount = 0

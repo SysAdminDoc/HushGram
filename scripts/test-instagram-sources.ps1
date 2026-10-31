@@ -703,6 +703,16 @@ $fakeForge = @{ Answers = (New-FakeAnswers); Requests = (New-Object System.Colle
     Assert-Drift 'unseen-fork' '*alpha-patches*fork stranger/alpha-patches*' 'A fork the ledger has not seen'
     $fakeForge.Answers = New-FakeAnswers
 
+    # A GitLab fork renamed after its own id is waiting to be deleted, and it isn't a source. The
+    # same words under another project's id are only a name.
+    $fakeForge.Answers.gammaForks.Content = '[{"id":42,"path_with_namespace":"scanner/temp-deletion_scheduled-42"}]'
+    $leaving = Invoke-Audit
+    Assert-True ($leaving.ExitCode -eq 0) "A fork waiting to be deleted was reported: $($leaving.Said)"
+    Reset-FixtureLedger
+    $fakeForge.Answers.gammaForks.Content = '[{"id":41,"path_with_namespace":"scanner/temp-deletion_scheduled-42"}]'
+    Assert-Drift 'unseen-fork' '*gamma-patches*fork scanner/temp-deletion_scheduled-42*' 'A fork that only reads like one waiting to be deleted'
+    $fakeForge.Answers = New-FakeAnswers
+
     # GitLab's watched paths are read through GraphQL. The hourly limit on REST can't hold a
     # branch and path each: ReVanced's mirror needs 70 of those and an address gets about 60.
     $watchedClean = Invoke-Audit
