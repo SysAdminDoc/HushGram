@@ -43,6 +43,8 @@ public class ThreadsButtonSettingsTest {
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
         Settings.HIDE_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
+        Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.resetToDefault();
+        Settings.HIDE_PROFILE_OVERFLOW_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -55,6 +57,8 @@ public class ThreadsButtonSettingsTest {
         Settings.HIDE_THREADS_BUTTON.resetToDefault();
         Settings.HIDE_CREATE_BUTTON.resetToDefault();
         Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
+        Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.resetToDefault();
+        Settings.HIDE_PROFILE_OVERFLOW_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -91,11 +95,13 @@ public class ThreadsButtonSettingsTest {
         String[] keys = new String[profiles.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = profiles.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_HIGHLIGHTS.key, Settings.HIDE_THREADS_BUTTON.key,
-                Settings.HIDE_CREATE_BUTTON.key, Settings.HIDE_SHARE_PROFILE_BUTTON.key), Arrays.asList(keys));
+                Settings.HIDE_CREATE_BUTTON.key, Settings.HIDE_SHARE_PROFILE_BUTTON.key,
+                Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.key, Settings.HIDE_PROFILE_OVERFLOW_BUTTON.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_THREADS_BUTTON.get());
         assertEquals(Arrays.asList(Settings.HIDE_THREADS_BUTTON, Settings.HIDE_CREATE_BUTTON,
-                Settings.HIDE_SHARE_PROFILE_BUTTON), PatchFamily.THREADS_BUTTON.switches);
+                Settings.HIDE_SHARE_PROFILE_BUTTON, Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON,
+                Settings.HIDE_PROFILE_OVERFLOW_BUTTON), PatchFamily.THREADS_BUTTON.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.HIDE_THREADS_BUTTON.key));
 
         Settings.HIDE_THREADS_BUTTON.save(true);
@@ -118,10 +124,23 @@ public class ThreadsButtonSettingsTest {
         assertEquals("Hide Share profile", share.getTitle().toString());
         assertEquals("Takes the Share profile button off your profile, and Edit profile stretches to fill the "
                 + "space.", share.getSummary().toString());
+        SwitchPreference subscribe = (SwitchPreference) page.getPreferenceScreen()
+                .findPreference(Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON.key);
+        SwitchPreference arrow = (SwitchPreference) page.getPreferenceScreen()
+                .findPreference(Settings.HIDE_PROFILE_OVERFLOW_BUTTON.key);
+        assertEquals("Hide Subscribe on profiles", subscribe.getTitle().toString());
+        assertEquals("Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill "
+                + "the space.", subscribe.getSummary().toString());
+        assertEquals("Hide the arrow at the end of the buttons", arrow.getTitle().toString());
+        assertEquals("Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, "
+                + "and the other buttons stretch to fill the space.", arrow.getSummary().toString());
         assertFalse(create.isChecked());
         assertFalse(share.isChecked());
+        assertFalse(subscribe.isChecked());
+        assertFalse(arrow.isChecked());
         for (app.hushgram.extension.shared.settings.BooleanSetting setting
-                : Arrays.asList(Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON)) {
+                : Arrays.asList(Settings.HIDE_CREATE_BUTTON, Settings.HIDE_SHARE_PROFILE_BUTTON,
+                        Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON, Settings.HIDE_PROFILE_OVERFLOW_BUTTON)) {
             assertEquals(Boolean.FALSE, setting.defaultValue);
             assertTrue(ConfigurationBackup.eligible().containsKey(setting.key));
             setting.save(true);

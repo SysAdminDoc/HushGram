@@ -29,9 +29,13 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.BooleanSetting;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** When Hide Share profile takes Share profile out of a profile's action row (#253), and how the row fills the space. */
+/**
+ * When Hide Share profile (#253), Hide Subscribe and the arrow's switch (#248) take buttons out of a
+ * profile's action row, and how the row fills the space.
+ */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class ShareProfileButtonTest {
@@ -41,7 +45,7 @@ public class ShareProfileButtonTest {
     @Before
     public void prepare() {
         context = RuntimeEnvironment.getApplication();
-        Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
+        for (BooleanSetting setting : switches()) setting.resetToDefault();
         Settings.HIDE_PROFILE_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -50,20 +54,25 @@ public class ShareProfileButtonTest {
 
     @After
     public void restore() {
-        Settings.HIDE_SHARE_PROFILE_BUTTON.resetToDefault();
+        for (BooleanSetting setting : switches()) setting.resetToDefault();
         Settings.HIDE_PROFILE_SUGGESTIONS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
     }
 
-    /** Off to start, and unpatched the stub never names a Share model, so nothing goes even with the switch on. */
+    /** Off to start, and unpatched the stubs never name a model, so nothing goes even with the switches on. */
     @Test
     public void offToStartAndUnpatchedNothingGoes() {
-        assertEquals(Boolean.FALSE, Settings.HIDE_SHARE_PROFILE_BUTTON.defaultValue);
-        assertFalse("the next profile opened shows a change", Settings.HIDE_SHARE_PROFILE_BUTTON.rebootApp);
-        Settings.HIDE_SHARE_PROFILE_BUTTON.save(true);
+        for (BooleanSetting setting : switches()) {
+            assertEquals(Boolean.FALSE, setting.defaultValue);
+            assertFalse("the next profile opened shows a change", setting.rebootApp);
+            setting.save(true);
+        }
         assertFalse(ShareProfileButton.isShare(new Object()));
+        assertFalse(ShareProfileButton.isSubscribe(new Object()));
+        assertFalse(ShareProfileButton.isOverflow(new Object()));
+        assertFalse(ShareProfileButton.hides(new Object()));
         View button = new View(context);
         ShareProfileButton.button(button, new Object());
         ShareProfileButton.button(null, new Object());
@@ -79,8 +88,8 @@ public class ShareProfileButtonTest {
         View share = add(row, "generic", 400);
         assertEquals(List.of(400, 400), measure(row, edit, share));
 
-        ShareProfileButton.button(share, true, () -> true);
-        ShareProfileButton.button(edit, false, () -> true);
+        ShareProfileButton.button(share, () -> true);
+        ShareProfileButton.button(edit, () -> false);
         ActionRow.fitRow(share, FamilyNames.THREADS_BUTTON);
         assertEquals(View.GONE, share.getVisibility());
         assertEquals(View.VISIBLE, edit.getVisibility());
@@ -89,7 +98,7 @@ public class ShareProfileButtonTest {
         assertTrue(report, report.contains(ShareProfileButton.HIDDEN + " 1"));
         assertTrue(report, report.contains(ActionRow.ROW_SPREAD + " 1"));
 
-        ShareProfileButton.button(share, true, () -> false);
+        ShareProfileButton.button(share, () -> false);
         ActionRow.fitRow(share, FamilyNames.THREADS_BUTTON);
         assertEquals(View.VISIBLE, share.getVisibility());
         assertEquals(List.of(400, 400), measure(row, edit, share));
@@ -97,22 +106,51 @@ public class ShareProfileButtonTest {
         assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ActionRow.ROW_PUT_BACK + " 1"));
     }
 
+    /**
+     * On a creator's profile (#248), Subscribe and the arrow at the row's end go, and Following and
+     * Message share the row. Switched off, the row is back at Instagram's widths.
+     */
+    @Test
+    public void followingAndMessageFillACreatorsRow() {
+        LinearLayout row = row();
+        View following = add(row, "generic", 280);
+        View message = add(row, "generic", 280);
+        View subscribe = add(row, "generic", 280);
+        View arrow = add(row, "overflow_menu", 90);
+        assertEquals(List.of(280, 280, 280, 90), measure(row, following, message, subscribe, arrow));
+
+        ShareProfileButton.button(following, () -> false);
+        ShareProfileButton.button(message, () -> false);
+        ShareProfileButton.button(subscribe, () -> true);
+        ShareProfileButton.button(arrow, () -> true);
+        ActionRow.fitRow(subscribe, FamilyNames.THREADS_BUTTON);
+        assertEquals(View.GONE, subscribe.getVisibility());
+        assertEquals(View.GONE, arrow.getVisibility());
+        assertEquals(List.of(500, 500), measure(row, following, message));
+        assertTrue(HookStatus.report().toString(), HookStatus.report().toString().contains(ShareProfileButton.HIDDEN + " 2"));
+
+        ShareProfileButton.button(subscribe, () -> false);
+        ShareProfileButton.button(arrow, () -> false);
+        ActionRow.fitRow(subscribe, FamilyNames.THREADS_BUTTON);
+        assertEquals(List.of(280, 280, 280, 90), measure(row, following, message, subscribe, arrow));
+    }
+
     /** Instagram pools the row's buttons, so a hidden Share view built again for Follow or Message shows again. */
     @Test
     public void aPooledButtonBuiltForAnotherModelShows() {
         View button = new View(context);
         button.setVisibility(View.INVISIBLE);
-        ShareProfileButton.button(button, true, () -> true);
+        ShareProfileButton.button(button, () -> true);
         assertEquals(View.GONE, button.getVisibility());
-        ShareProfileButton.button(button, true, () -> true);
-        ShareProfileButton.button(button, false, () -> true);
+        ShareProfileButton.button(button, () -> true);
+        ShareProfileButton.button(button, () -> false);
         assertEquals("its own visibility from before the first hide", View.INVISIBLE, button.getVisibility());
 
         View other = new View(context);
-        ShareProfileButton.button(other, false, () -> true);
+        ShareProfileButton.button(other, () -> false);
         assertEquals(View.VISIBLE, other.getVisibility());
         other.setVisibility(View.INVISIBLE);
-        ShareProfileButton.button(other, false, () -> true);
+        ShareProfileButton.button(other, () -> false);
         assertEquals("a button it never hid is left as Instagram set it", View.INVISIBLE, other.getVisibility());
     }
 
@@ -126,12 +164,12 @@ public class ShareProfileButtonTest {
         View chaining = add(row, "chaining_icon", 150);
 
         ProfileSuggestions.chainingButton(chaining);
-        ShareProfileButton.button(share, true, () -> true);
+        ShareProfileButton.button(share, () -> true);
         ActionRow.fitRow(share, FamilyNames.THREADS_BUTTON);
         assertEquals(View.GONE, chaining.getVisibility());
         assertEquals(List.of(1000), measure(row, edit));
 
-        ShareProfileButton.button(share, true, () -> false);
+        ShareProfileButton.button(share, () -> false);
         ActionRow.fitRow(share, FamilyNames.THREADS_BUTTON);
         assertEquals("the person-plus button's space is still shared", List.of(500, 500), measure(row, edit, share));
 
@@ -145,13 +183,19 @@ public class ShareProfileButtonTest {
     @Test
     public void aThrowingSwitchLeavesTheButton() {
         View button = new View(context);
-        ShareProfileButton.button(button, true, () -> {
+        ShareProfileButton.button(button, () -> {
             throw new IllegalStateException("settings went away");
         });
         assertEquals(View.VISIBLE, button.getVisibility());
         String missing = HookStatus.missing(FamilyNames.THREADS_BUTTON).toString();
         assertTrue(missing, missing.contains("'" + ShareProfileButton.BUTTON + "'"));
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    /** The row's three switches, built per call so Settings loads only once the rule gave it a context. */
+    private static List<BooleanSetting> switches() {
+        return List.of(Settings.HIDE_SHARE_PROFILE_BUTTON, Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON,
+                Settings.HIDE_PROFILE_OVERFLOW_BUTTON);
     }
 
     private LinearLayout row() {

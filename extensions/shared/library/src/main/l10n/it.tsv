@@ -1229,6 +1229,11 @@ Hide the Create button	Nascondi il pulsante Crea
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Toglie il più per i nuovi post dalla parte alta del tuo profilo. Gli altri pulsanti restano dove erano.
 Hide Share profile	Nascondi Condividi profilo
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Toglie il pulsante Condividi profilo dal tuo profilo, e Modifica profilo si allarga per riempire lo spazio.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	Nascondi Iscriviti nei profili
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	Toglie il pulsante Iscriviti dai profili dei creator, e gli altri pulsanti si allargano per riempire lo spazio.
+Hide the arrow at the end of the buttons	Nascondi la freccia alla fine dei pulsanti
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Toglie la freccia alla fine della fila di pulsanti di un profilo, insieme al menu che apre, e gli altri pulsanti si allargano per riempire lo spazio.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Mantieni la pillola a grandezza piena
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Scorrendo un elenco verso il basso la pillola liquid glass resta com'è, con ogni scheda al suo posto. Riavvia Instagram dopo averlo cambiato.

@@ -1229,6 +1229,11 @@ Hide the Create button	Ocultar o botão Criar
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Tira o mais para novos posts do topo do seu próprio perfil. Os outros botões continuam onde estavam.
 Hide Share profile	Ocultar Compartilhar perfil
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Tira o botão Compartilhar perfil do seu perfil, e Editar perfil estica para ocupar o espaço.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	Ocultar Inscrever-se nos perfis
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	Tira o botão Inscrever-se dos perfis de criadores, e os outros botões esticam para ocupar o espaço.
+Hide the arrow at the end of the buttons	Ocultar a seta no fim dos botões
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Tira a seta do fim da fileira de botões de um perfil, junto com o menu que ela abre, e os outros botões esticam para ocupar o espaço.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Manter a pílula no tamanho cheio
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Rolar uma lista para baixo deixa a pílula de vidro líquido como está, com cada aba no lugar. Reinicie o Instagram depois de alterar.

@@ -1229,6 +1229,11 @@ Hide the Create button	Erstellen-Schaltfläche ausblenden
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Entfernt das Plus für neue Beiträge oben auf deinem eigenen Profil. Die anderen Schaltflächen bleiben, wo sie waren.
 Hide Share profile	Profil teilen ausblenden
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Entfernt die Schaltfläche Profil teilen von deinem Profil, und Profil bearbeiten wird breiter und füllt den Platz.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	Abonnieren auf Profilen ausblenden
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	Entfernt die Schaltfläche Abonnieren von Creator-Profilen, und die anderen Schaltflächen werden breiter und füllen den Platz.
+Hide the arrow at the end of the buttons	Pfeil am Ende der Schaltflächen ausblenden
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Entfernt den Pfeil am Ende der Schaltflächenreihe eines Profils samt dem Menü, das er öffnet, und die anderen Schaltflächen werden breiter und füllen den Platz.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Pille in voller Größe lassen
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Scrollst du eine Liste nach unten, bleibt die Liquid-Glass-Pille, wie sie ist, mit jedem Tab an seinem Platz. Starte Instagram nach der Änderung neu.

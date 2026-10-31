@@ -1229,6 +1229,11 @@ Hide the Create button	Oluştur düğmesini gizle
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Yeni gönderiler için artı düğmesini kendi profilinin üstünden kaldırır. Diğer düğmeler oldukları yerde kalır.
 Hide Share profile	Profili paylaş düğmesini gizle
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Profili paylaş düğmesini profilinden kaldırır, Profili düzenle de boşluğu dolduracak şekilde genişler.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	Profillerde Abone Ol düğmesini gizle
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	Abone Ol düğmesini içerik üreticilerinin profillerinden kaldırır, diğer düğmeler de boşluğu dolduracak şekilde genişler.
+Hide the arrow at the end of the buttons	Düğmelerin sonundaki oku gizle
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Bir profilin düğme sırasının sonundaki oku, açtığı menüyle birlikte kaldırır, diğer düğmeler de boşluğu dolduracak şekilde genişler.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Hapı tam boyutta tut
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Bir listeyi aşağı kaydırınca sıvı cam hap olduğu gibi kalır, her sekme yerinde durur. Değiştirdikten sonra Instagram'ı yeniden başlat.

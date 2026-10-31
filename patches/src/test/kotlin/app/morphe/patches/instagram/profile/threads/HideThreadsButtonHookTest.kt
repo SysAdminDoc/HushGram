@@ -58,14 +58,14 @@ class HideThreadsButtonHookTest {
         assertTrue("$HIDE_CREATE is not in the extension: $declared", HIDE_CREATE.substringAfter("->") in declared)
     }
 
-    /** Share profile's hook and the stub the patch writes are in the ShareProfileButton the bundle ships, public and static. */
+    /** The action row's hook and the three stubs the patch writes are in the ShareProfileButton the bundle ships, public and static. */
     @Test
     fun theShareHookAndStubAreInTheExtension() {
         val declared = ExtensionDex.classDef(SHARE_BUTTON).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$SHARE_HOOK is not in the extension: $declared", SHARE_HOOK.substringAfter("->") in declared)
-        assertTrue("the $SHARE_STUB stub is not in the extension: $declared", "$SHARE_STUB(Ljava/lang/Object;)Z" in declared)
+        for (stub in stubs) assertTrue("the $stub stub is not in the extension: $declared", "$stub(Ljava/lang/Object;)Z" in declared)
     }
 
     /**
@@ -96,6 +96,10 @@ class HideThreadsButtonHookTest {
             shareClasses(texts = 2) to "expected one method in $rowButtons building the action row's text buttons from a $kind, found 2",
             shareClasses(writesModel = true) to "$rowButtons->A01 writes over its model in v2",
             shareClasses(extension = null) to "the extension has no $SHARE_BUTTON",
+            shareClasses(subscribes = 0) to "expected one Subscribe button of $kind loading \"$SUBSCRIBE_TAP\" and \"$PROFILE_HEADER\" when tapped, found 0",
+            shareClasses(subscribes = 2) to "expected one Subscribe button of $kind loading \"$SUBSCRIBE_TAP\" and \"$PROFILE_HEADER\" when tapped, found 2",
+            shareClasses(arrows = 0) to "expected one arrow button of $kind loading \"$OVERFLOW_TAP\" and \"$PROFILE_HEADER\" when tapped, found 0",
+            shareClasses(extension = withoutStub(OVERFLOW_STUB)) to "$SHARE_BUTTON has no public static Z $OVERFLOW_STUB(Ljava/lang/Object;)",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -117,7 +121,8 @@ class HideThreadsButtonHookTest {
     }
 
     private fun share(bundle: File, label: String) {
-        val loading = (FixtureDex.classesLoading(bundle, SHARE_URL) + FixtureDex.classesLoading(bundle, SHARE_ICON_TAG)).distinctBy { it.type }
+        val loading = listOf(SHARE_URL, SHARE_ICON_TAG, SUBSCRIBE_TAP, OVERFLOW_TAP)
+            .flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading) + ExtensionDex.classDef(SHARE_BUTTON))
         val site = context.findShareButton()
         val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
@@ -127,11 +132,15 @@ class HideThreadsButtonHookTest {
         assertShareHooked(label, context, site, before)
     }
 
-    /** The stub's check, then for each builder one hook right before its return, Instagram's own code otherwise untouched. */
+    /** The stubs' checks, then for each builder one hook right before its return, Instagram's own code otherwise untouched. */
     private fun assertShareHooked(what: String, context: BytecodePatchContext, site: ShareButtonSite, before: List<List<String>>) {
-        val stub = context.mutableClassDefBy(SHARE_BUTTON).methods.single { it.name == SHARE_STUB }.code()
-        assertEquals("$what: the stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), stub.map { it.opcode })
-        assertEquals("$what: the stub's type", site.model, (stub[0].reference() as TypeReference).type)
+        val models = listOf(site.model, site.subscribe, site.overflow)
+        assertEquals("$what: three different models", 3, models.toSet().size)
+        for ((stub, model) in stubs.zip(models)) {
+            val code = context.mutableClassDefBy(SHARE_BUTTON).methods.single { it.name == stub }.code()
+            assertEquals("$what: $stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), code.map { it.opcode })
+            assertEquals("$what: $stub's type", model, (code[0].reference() as TypeReference).type)
+        }
         assertEquals("$what: the builders", 2, site.builders.size)
         for ((index, builder) in site.builders.withIndex()) {
             val method = context.shareMethod(builder)
@@ -153,28 +162,48 @@ class HideThreadsButtonHookTest {
     private val kind = "Lfixture/ActionButton;"
     private val shareModel = "Lfixture/ShareModel;"
     private val rowButtons = "Lfixture/RowButtons;"
+    private val stubs = listOf(SHARE_STUB, SUBSCRIBE_STUB, OVERFLOW_STUB)
+
+    /** The extension's ShareProfileButton with [stub] left out. */
+    private fun withoutStub(stub: String): ClassDef {
+        val real = ExtensionDex.classDef(SHARE_BUTTON)
+        return ImmutableClassDef(real.type, real.accessFlags, real.superclass, real.interfaces, real.sourceFile,
+            real.annotations, real.fields, real.methods.filter { it.name != stub })
+    }
+
+    /** An action button [type] of [interfaces] whose onClick loads [strings]. */
+    private fun model(type: String, interfaces: List<String>, vararg strings: String): ClassDef {
+        val loads = strings.joinToString("\n") { "const-string v0, \"$it\"" }
+        val onClick = method(type, "onClick", listOf("Landroid/view/View;"), "V", 1, body = "$loads\nreturn-void")
+        return ImmutableClassDef(type, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
+            interfaces, null, null, emptyList(), listOf(onClick))
+    }
 
     /**
      * Share profile's model, an action button whose onClick loads the share link and the tray it
-     * opens; the class building the row's buttons, the text ones (with a branch to the return, as
-     * 451's has) and Share profile as an icon; and the extension.
+     * opens; [subscribes] Subscribe and [arrows] arrow models of the same kind logging their taps on
+     * the profile header, beside a Subscribe of another kind that must not count; the class building
+     * the row's buttons, the text ones (with a branch to the return, as 451's has) and Share profile
+     * as an icon; and the extension.
      */
     private fun shareClasses(
         models: Int = 1,
         kinds: Int = 1,
         icons: Int = 1,
         texts: Int = 1,
+        subscribes: Int = 1,
+        arrows: Int = 1,
         writesModel: Boolean = false,
         extension: ClassDef? = ExtensionDex.classDef(SHARE_BUTTON),
     ): List<ClassDef> {
         val view = "Landroid/view/View;"
         val classes = mutableListOf<ClassDef>()
         if (models == 1) {
-            val onClick = method(shareModel, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nconst-string v0, \"$SHARE_TRAY\"\nreturn-void")
-            val interfaces = List(kinds) { if (it == 0) kind else "Lfixture/Other$it;" }
-            classes += ImmutableClassDef(shareModel, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "Ljava/lang/Object;",
-                interfaces, null, null, emptyList(), listOf(onClick))
+            classes += model(shareModel, List(kinds) { if (it == 0) kind else "Lfixture/Other$it;" }, SHARE_URL, SHARE_TRAY)
         }
+        classes += List(subscribes) { model("Lfixture/Subscribe$it;", listOf(kind), SUBSCRIBE_TAP, PROFILE_HEADER) }
+        classes += List(arrows) { model("Lfixture/Arrow$it;", listOf(kind), OVERFLOW_TAP, PROFILE_HEADER) }
+        classes += model("Lfixture/SubscribeElsewhere;", listOf("Lfixture/Other;"), SUBSCRIBE_TAP, PROFILE_HEADER)
         val builders = mutableListOf<Method>()
         builders += (0 until texts).map {
             method(rowButtons, "A0${it + 1}", listOf(kind, "Ljava/lang/Integer;", "I"), view, 2, static = true, body = """

@@ -1229,6 +1229,11 @@ Hide the Create button	Sembunyikan tombol Buat
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	Menghapus tanda plus untuk postingan baru dari bagian atas profilmu sendiri. Tombol lainnya tetap di tempatnya.
 Hide Share profile	Sembunyikan Bagikan profil
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	Menghapus tombol Bagikan profil dari profilmu, dan Edit profil melebar mengisi ruangnya.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	Sembunyikan Berlangganan di profil
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	Menghapus tombol Berlangganan dari profil kreator, dan tombol lainnya melebar mengisi ruangnya.
+Hide the arrow at the end of the buttons	Sembunyikan panah di ujung tombol
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	Menghapus panah di ujung deretan tombol profil, beserta menu yang dibukanya, dan tombol lainnya melebar mengisi ruangnya.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	Pertahankan pil dalam ukuran penuh
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	Menggulir daftar ke bawah membiarkan pil kaca cair apa adanya, setiap tab tetap di tempatnya. Mulai ulang Instagram setelah mengubahnya.

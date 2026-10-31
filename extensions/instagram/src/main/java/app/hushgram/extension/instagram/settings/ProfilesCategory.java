@@ -110,6 +110,14 @@ final class ProfilesCategory {
                 profiles.addPreference(toggle(context, Settings.HIDE_SHARE_PROFILE_BUTTON, L10n.t("Hide Share profile"),
                         L10n.t("Takes the Share profile button off your profile, and Edit profile stretches to fill "
                                 + "the space.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_SUBSCRIBE_PROFILE_BUTTON,
+                        L10n.t("Hide Subscribe on profiles"),
+                        L10n.t("Takes the Subscribe button off creators' profiles, and the other buttons "
+                                + "stretch to fill the space.")));
+                profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_OVERFLOW_BUTTON,
+                        L10n.t("Hide the arrow at the end of the buttons"),
+                        L10n.t("Takes the arrow off the end of a profile's row of buttons, along with the menu it "
+                                + "opens, and the other buttons stretch to fill the space.")));
             }
             if (build.contains(PatchFamily.PROFILE_NOTES)) {
                 profiles.addPreference(toggle(context, Settings.HIDE_PROFILE_NOTES, L10n.t("Hide Notes on profile pictures"),

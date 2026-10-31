@@ -1228,6 +1228,11 @@ Hide the Create button	만들기 버튼 숨기기
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	내 프로필 상단에서 새 게시물용 더하기 버튼을 숨깁니다. 다른 버튼은 원래 자리에 그대로 있습니다.
 Hide Share profile	프로필 공유 숨기기
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	내 프로필에서 프로필 공유 버튼을 숨기고, 프로필 편집 버튼이 늘어나 빈 공간을 채웁니다.
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	프로필에서 구독 숨기기
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	크리에이터 프로필에서 구독 버튼을 숨기고, 다른 버튼이 늘어나 빈 공간을 채웁니다.
+Hide the arrow at the end of the buttons	버튼 끝의 화살표 숨기기
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	프로필 버튼 줄 끝의 화살표와 그 화살표가 여는 메뉴를 숨기고, 다른 버튼이 늘어나 빈 공간을 채웁니다.
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	알약 크기 그대로 유지
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	목록을 아래로 스크롤해도 리퀴드 글래스 알약이 그대로 유지되고 모든 탭이 제자리에 있습니다. 변경한 뒤에는 Instagram을 다시 시작하세요.

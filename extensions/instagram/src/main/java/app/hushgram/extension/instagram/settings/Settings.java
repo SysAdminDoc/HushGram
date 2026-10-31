@@ -1712,6 +1712,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_share_profile_button", FALSE);
 
     /**
+     * The Subscribe button in a creator's row of action buttons, with Following and Message taking
+     * its space ({@link app.hushgram.extension.instagram.profile.ShareProfileButton}, #248). Read each
+     * time Instagram builds the row, so a change shows on the next profile opened. Off to start.
+     */
+    public static final BooleanSetting HIDE_SUBSCRIBE_PROFILE_BUTTON =
+            new BooleanSetting("hushgram_hide_subscribe_profile_button", FALSE);
+
+    /**
+     * The arrow at the end of a profile's row of action buttons, which opens a menu of the buttons
+     * that didn't fit ({@link app.hushgram.extension.instagram.profile.ShareProfileButton}, #248).
+     * Read each time Instagram builds the row. Off to start.
+     */
+    public static final BooleanSetting HIDE_PROFILE_OVERFLOW_BUTTON =
+            new BooleanSetting("hushgram_hide_profile_overflow_button", FALSE);
+
+    /**
      * The Notes bubble on profile pictures, yours included
      * ({@link app.hushgram.extension.instagram.profile.ProfileNotes}). Read each time Instagram opens
      * a profile, so a change shows on the next profile opened. Off to start.

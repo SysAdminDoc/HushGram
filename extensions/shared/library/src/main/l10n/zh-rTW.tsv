@@ -1223,6 +1223,11 @@ Hide the Create button	隱藏建立按鈕
 Takes the plus for new posts off the top of your own profile. The other buttons stay where they were.	移除自己個人檔案頂端用來建立貼文的加號。其他按鈕仍留在原位。
 Hide Share profile	隱藏分享個人檔案
 Takes the Share profile button off your profile, and Edit profile stretches to fill the space.	移除個人檔案上的「分享個人檔案」按鈕，並將「編輯個人檔案」加寬以填滿空間。
+# context: Profiles: switches that hide Subscribe and the arrow at the end of the action buttons on someone's profile, which opens a menu of the buttons that didn't fit (#248). Subscribe is Instagram's own button label, as in the Feed switch that hides Follow and Subscribe.
+Hide Subscribe on profiles	隱藏個人檔案上的訂閱
+Takes the Subscribe button off creators' profiles, and the other buttons stretch to fill the space.	移除創作者個人檔案上的「訂閱」按鈕，並將其他按鈕加寬以填滿空間。
+Hide the arrow at the end of the buttons	隱藏按鈕列尾端的箭頭
+Takes the arrow off the end of a profile's row of buttons, along with the menu it opens, and the other buttons stretch to fill the space.	移除個人檔案按鈕列尾端的箭頭及其開啟的選單，並將其他按鈕加寬以填滿空間。
 # context: Layout: Glass tab bar's switch that stops the liquid pill shrinking as you scroll (#256)
 Keep the pill full size	保持膠囊完整大小
 Scrolling a list down leaves the liquid pill as it is, every tab in place. Restart Instagram after changing it.	向下捲動清單時，液態膠囊會維持原樣，所有分頁皆保留在原位。變更後請重新啟動 Instagram。
