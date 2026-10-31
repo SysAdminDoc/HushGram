@@ -20,8 +20,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * Following and Message, take the space.
  *
  * <p>Instagram builds each button of the row from a model, and each button's models are one class,
- * whether the row shows it as text or as an icon. The two methods building those forms hand each
- * button here with its model right before giving it back, and the patch writes those classes into
+ * whether the row shows it as text or as an icon. The methods building those forms, and the one
+ * building the arrow, hand each button here with its model right before giving it back, and the
+ * patch writes those classes into
  * {@link #isShare}, {@link #isSubscribe} and {@link #isOverflow}. A button whose switch is on is
  * hidden and the row's other text buttons spread over its space ({@link ActionRow}). Instagram reuses
  * a row's buttons for other models, so a button hidden earlier gets its own visibility back whenever
@@ -41,8 +42,8 @@ public final class ShareProfileButton {
     }
 
     /**
-     * Injected right before Instagram hands back a button it built for a profile's action row, text
-     * or icon, with the button's model. Hides the button when it's one whose switch is on, and
+     * Injected right before Instagram hands back a button it built for a profile's action row, text,
+     * icon or the arrow, with the button's model. Hides the button when it's one whose switch is on, and
      * otherwise shows one this hid before. Never throws.
      */
     public static void button(View button, Object model) {

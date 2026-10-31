@@ -69,8 +69,9 @@ class HideThreadsButtonHookTest {
     }
 
     /**
-     * #253: the stub tells Share profile's model, and each builder hands its button and model over
-     * right before its return, with the branches that went to the return going through the hook.
+     * #253, #248: the stubs tell the models apart, and each builder hands its button and model over
+     * right before each return, with the branches that went to a return going through its hook. The
+     * arrow's builder returns in two places, as 453's does.
      */
     @Test
     fun eachRowButtonGoesToTheExtensionBeforeItsReturned() {
@@ -81,8 +82,29 @@ class HideThreadsButtonHookTest {
         context.hideShareButton(site)
 
         assertShareHooked("the stand-in", context, site, before)
-        val text = site.builders.first()
-        assertTrue("the stand-in: the branch to the return goes through the hook", text.returnAt in context.shareMethod(text).jumpTargets())
+        val (text, _, menu) = site.builders
+        assertEquals("the stand-in: the arrow's builder", listOf("Lfixture/Arrow0;", "Ljava/util/List;"), menu.parameters)
+        assertEquals("the stand-in: the arrow's returns", 2, menu.returns.size)
+        assertTrue("the stand-in: the branch to the return goes through the hook", text.returns.single() in context.shareMethod(text).jumpTargets())
+        assertTrue("the stand-in: the branch to the arrow's last return goes through its hook", menu.returns[1] + 1 in context.shareMethod(menu).jumpTargets())
+    }
+
+    /**
+     * An arrow builder that copies its model out first and builds the button in the parameter's
+     * register, as 453's 385914503 does, hands the copy over.
+     */
+    @Test
+    fun anArrowBuilderThatMovesItsModelHandsTheCopy() {
+        val context = PatchContexts.of(shareClasses(menuCopy = MenuCopy.FIRST))
+        val site = context.findShareButton()
+        val before = site.builders.map { context.shareMethod(it).code().map { i -> i.describe() } }
+        val menu = site.builders[2]
+        assertEquals("the moved model", 1, menu.from)
+        assertEquals("the button in the model's old register", 2, menu.view)
+
+        context.hideShareButton(site)
+
+        assertShareHooked("the moved model", context, site, before)
     }
 
     /** A Share profile button the patch can't place fails at patch time, saying what it found. */
@@ -99,7 +121,12 @@ class HideThreadsButtonHookTest {
             shareClasses(subscribes = 0) to "expected one Subscribe button of $kind loading \"$SUBSCRIBE_TAP\" and \"$PROFILE_HEADER\" when tapped, found 0",
             shareClasses(subscribes = 2) to "expected one Subscribe button of $kind loading \"$SUBSCRIBE_TAP\" and \"$PROFILE_HEADER\" when tapped, found 2",
             shareClasses(arrows = 0) to "expected one arrow button of $kind loading \"$OVERFLOW_TAP\" and \"$PROFILE_HEADER\" when tapped, found 0",
+            shareClasses(menus = 0) to "expected one method in $rowButtons building the arrow from its Lfixture/Arrow0;, found 0",
+            shareClasses(menus = 2) to "expected one method in $rowButtons building the arrow from its Lfixture/Arrow0;, found 2",
             shareClasses(extension = withoutStub(OVERFLOW_STUB)) to "$SHARE_BUTTON has no public static Z $OVERFLOW_STUB(Ljava/lang/Object;)",
+            shareClasses(menuCopy = MenuCopy.AFTER_A_RETURN) to "$rowButtons->C00 can return before copying its model out of v2",
+            shareClasses(menuCopy = MenuCopy.OVERWRITTEN) to "$rowButtons->C00 writes over its model's copy in v1",
+            shareClasses(menuCopy = MenuCopy.IN_A_LOOP) to "$rowButtons->C00 copies its model out of v2 more than once",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -108,7 +135,7 @@ class HideThreadsButtonHookTest {
         }
     }
 
-    /** In each declared build both of the row's builders hand Share profile over once, before their return. */
+    /** In each declared build the row's three builders hand their buttons over before each return. */
     @Test
     fun eachDeclaredBuildHandsShareProfileToTheExtension() {
         forEachFixture { share(it, it.name) }
@@ -132,7 +159,7 @@ class HideThreadsButtonHookTest {
         assertShareHooked(label, context, site, before)
     }
 
-    /** The stubs' checks, then for each builder one hook right before its return, Instagram's own code otherwise untouched. */
+    /** The stubs' checks, then for each builder one hook right before each return, Instagram's own code otherwise untouched. */
     private fun assertShareHooked(what: String, context: BytecodePatchContext, site: ShareButtonSite, before: List<List<String>>) {
         val models = listOf(site.model, site.subscribe, site.overflow)
         assertEquals("$what: three different models", 3, models.toSet().size)
@@ -141,23 +168,32 @@ class HideThreadsButtonHookTest {
             assertEquals("$what: $stub", listOf(Opcode.INSTANCE_OF, Opcode.RETURN), code.map { it.opcode })
             assertEquals("$what: $stub's type", model, (code[0].reference() as TypeReference).type)
         }
-        assertEquals("$what: the builders", 2, site.builders.size)
+        assertEquals("$what: the builders", 3, site.builders.size)
+        assertEquals("$what: the arrow's builder takes its model", site.overflow, site.builders[2].parameters.first())
         for ((index, builder) in site.builders.withIndex()) {
             val method = context.shareMethod(builder)
             val code = method.code()
             val where = "$what: ${builder.type}->${builder.name}"
-            assertEquals("$where: hooks", listOf(builder.returnAt), code.indices.filter { code[it].referenceText() == SHARE_HOOK })
-            assertEquals("$where: hands over the button and its model", listOf(builder.view, builder.from), code[builder.returnAt].arguments())
-            assertEquals("$where: the return after it", Opcode.RETURN_OBJECT, code[builder.returnAt + 1].opcode)
-            assertEquals("$where: the button returned", builder.view, (code[builder.returnAt + 1] as OneRegisterInstruction).registerA)
-            assertTrue("$where: a jump skips the hook", builder.returnAt + 1 !in method.jumpTargets())
-            val expected = before[index].toMutableList().apply { add(builder.returnAt, code[builder.returnAt].describe()) }
+            // Each hook moves the returns after it down by one.
+            val hooks = builder.returns.sorted().mapIndexed { shift, returnAt -> returnAt + shift }
+            assertEquals("$where: hooks", hooks, code.indices.filter { code[it].referenceText() == SHARE_HOOK })
+            val expected = before[index].toMutableList()
+            for (at in hooks) {
+                assertEquals("$where: hands over the button and its model", listOf(builder.view, builder.from), code[at].arguments())
+                assertEquals("$where: the return after it", Opcode.RETURN_OBJECT, code[at + 1].opcode)
+                assertEquals("$where: the button returned", builder.view, (code[at + 1] as OneRegisterInstruction).registerA)
+                assertTrue("$where: a jump skips the hook", at + 1 !in method.jumpTargets())
+                expected.add(at, code[at].describe())
+            }
             assertEquals("$where: Instagram's own code", expected, code.map { it.describe() })
         }
     }
 
     private fun BytecodePatchContext.shareMethod(builder: ShareBuilder): MutableMethod =
         mutableClassDefBy(builder.type).methods.single { it.name == builder.name && it.parameterTypes.map(CharSequence::toString) == builder.parameters }
+
+    /** How the arrow's builder copies its model out of its parameter before reusing that register. */
+    private enum class MenuCopy { FIRST, AFTER_A_RETURN, OVERWRITTEN, IN_A_LOOP }
 
     private val kind = "Lfixture/ActionButton;"
     private val shareModel = "Lfixture/ShareModel;"
@@ -183,8 +219,10 @@ class HideThreadsButtonHookTest {
      * Share profile's model, an action button whose onClick loads the share link and the tray it
      * opens; [subscribes] Subscribe and [arrows] arrow models of the same kind logging their taps on
      * the profile header, beside a Subscribe of another kind that must not count; the class building
-     * the row's buttons, the text ones (with a branch to the return, as 451's has) and Share profile
-     * as an icon; and the extension.
+     * the row's buttons, the text ones (with a branch to the return, as 451's has), Share profile as
+     * an icon and [menus] arrows from the first arrow's model (two returns, one of them branched
+     * onto, as 453's has, or the model copied out of its parameter as [menuCopy] says); and the
+     * extension.
      */
     private fun shareClasses(
         models: Int = 1,
@@ -193,6 +231,8 @@ class HideThreadsButtonHookTest {
         texts: Int = 1,
         subscribes: Int = 1,
         arrows: Int = 1,
+        menus: Int = 1,
+        menuCopy: MenuCopy? = null,
         writesModel: Boolean = false,
         extension: ClassDef? = ExtensionDex.classDef(SHARE_BUTTON),
     ): List<ClassDef> {
@@ -223,6 +263,54 @@ class HideThreadsButtonHookTest {
                 const/4 v0, 0x0
                 return-object v0
             """)
+        }
+        val menuBody = when (menuCopy) {
+            null -> """
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object v0
+                if-eqz p1, :plain
+                return-object v0
+                :plain
+                return-object v0
+            """
+            MenuCopy.FIRST -> """
+                move-object v1, p0
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object p0
+                if-eqz p1, :plain
+                return-object p0
+                :plain
+                return-object p0
+            """
+            MenuCopy.AFTER_A_RETURN -> """
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object v0
+                if-eqz p1, :plain
+                move-object v1, p0
+                const/4 p0, 0x0
+                return-object v0
+                :plain
+                return-object v0
+            """
+            MenuCopy.OVERWRITTEN -> """
+                move-object v1, p0
+                const/4 v1, 0x0
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object p0
+                return-object p0
+            """
+            MenuCopy.IN_A_LOOP -> """
+                const/4 v0, 0x0
+                :again
+                move-object v1, p0
+                invoke-static {}, Lfixture/Views;->make()$view
+                move-result-object p0
+                if-eqz p1, :again
+                return-object p0
+            """
+        }
+        builders += (0 until menus).map {
+            method(rowButtons, "C0$it", listOf("Lfixture/Arrow0;", "Ljava/util/List;"), view, 2, static = true, body = menuBody)
         }
         // The share link loaded beside the row's builders by a method that isn't Share's onClick.
         builders += method(rowButtons, "onClick", listOf(view), "V", 1, body = "const-string v0, \"$SHARE_URL\"\nreturn-void")
