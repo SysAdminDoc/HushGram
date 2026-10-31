@@ -73,12 +73,16 @@ public final class ScreenColors {
     /** The colours the screen on show was built with, or null for the black page. */
     @Nullable
     static volatile ScreenColors shown;
-    public static final ScreenColors DEFAULT = new ScreenColors();
+    public static final ScreenColors DEFAULT = new ScreenColors(SettingsStatus.pureBlack());
 
-    private ScreenColors() {
+    /**
+     * [pureBlack]: the build has Pure black dark mode, so the cards and dialogs go black like
+     * Instagram's own sheets do, and their outlines keep them apart (#374).
+     */
+    ScreenColors(boolean pureBlack) {
         light = false;
         background = Color.BLACK;
-        dialog = 0xFF18161D;
+        dialog = pureBlack ? Color.BLACK : 0xFF18161D;
         title = 0xFFF8F5F8;
         summary = 0xFFAAA5AF;
         // Instagram's own blues (AccentColor.role): its link on a dark screen, 7:1 on the charcoal,
@@ -87,7 +91,7 @@ public final class ScreenColors {
         accent = 0xFF4A5DF9;
         // At least 3:1 against either charcoal surface, with a white thumb above 5:1.
         switchOff = 0xFF696370;
-        card = 0xFF151419;
+        card = pureBlack ? Color.BLACK : 0xFF151419;
         outline = 0xFF2D2832;
         iconSurface = 0xFF211D27;
         onAccent = Color.WHITE;

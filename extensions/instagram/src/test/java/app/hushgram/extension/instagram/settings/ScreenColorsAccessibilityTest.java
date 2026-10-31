@@ -101,7 +101,22 @@ public class ScreenColorsAccessibilityTest {
     }
 
     @Test public void enabledTextAndSwitchPartsRemainDistinctOnEverySurface() {
-        ScreenColors colors = ScreenColors.DEFAULT;
+        readable(ScreenColors.DEFAULT);
+    }
+
+    @Test public void pureBlackTurnsCardsAndDialogsBlackAndKeepsTheirOutlines() {
+        ScreenColors black = new ScreenColors(true);
+        assertEquals(Color.BLACK, black.card);
+        assertEquals(Color.BLACK, black.dialog);
+        assertEquals(ScreenColors.DEFAULT.outline, black.outline);
+        contrast("card edge", black.outline, Color.BLACK, 1.3);
+        readable(black);
+        ScreenColors charcoal = new ScreenColors(false);
+        assertNotEquals(Color.BLACK, charcoal.card);
+        assertNotEquals(Color.BLACK, charcoal.dialog);
+    }
+
+    private static void readable(ScreenColors colors) {
         for (int surface : new int[]{colors.background, colors.card, colors.dialog}) {
             contrast("title", colors.title, surface, 4.5);
             contrast("summary", colors.summary, surface, 4.5);
