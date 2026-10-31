@@ -380,10 +380,10 @@ public final class ProfileSaved {
 
     /**
      * AccessibilityNodeInfo's hidden getChildId, which gives a node's children by id. Looked up once; null when
-     * Android refuses it, and then no menu row can be found.
+     * Android refuses it, and then no menu row can be found. Hide the Muse card reads Bloks cards with it too.
      */
     @Nullable
-    static Method childId() {
+    public static Method childId() {
         if (!childIdLooked) {
             try {
                 Method method = AccessibilityNodeInfo.class.getDeclaredMethod("getChildId", int.class);

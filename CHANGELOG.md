@@ -39,6 +39,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** With `Hide the Muse card`, the Meet Muse card stays off Home and your profile when Instagram sends it some other way. It still showed up now and then. Reported in #294.
 * **Instagram:** With `Pure black dark mode`, a story now opens straight on black. It flashed Instagram's dark blue for a moment first. Reported in #360.
 * **Instagram:** With `Pure black dark mode`, the screen Instagram shows while it starts up is black in dark mode too. It stayed dark gray. Reported in #410.
 * **Instagram:** With `Gray out stories you've watched`, your own `Your story` now stays first in the tray, ahead of the watched stories pushed to the back. Before, it could end up among them. Reported in #241.

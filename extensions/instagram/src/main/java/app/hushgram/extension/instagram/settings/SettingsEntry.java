@@ -46,6 +46,7 @@ import app.hushgram.extension.instagram.feed.HideCaptions;
 import app.hushgram.extension.instagram.feed.FollowingFeed;
 import app.hushgram.extension.instagram.feed.ReelCorners;
 import app.hushgram.extension.instagram.feed.StoryCorners;
+import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
@@ -164,6 +165,7 @@ public final class SettingsEntry {
         StoryProgressBar.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);
+        MuseCard.install(context);
         LaunchScreen.install(context);
         AppIcon.install(context);
         if (SettingsStatus.messagesLock()) MessagesLock.watch(context);
