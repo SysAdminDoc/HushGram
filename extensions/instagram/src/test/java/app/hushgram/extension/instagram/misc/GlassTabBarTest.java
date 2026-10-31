@@ -2475,24 +2475,14 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #335: with the Reels auto-hide holding the pill all the way off, the reel gets the slot's space
-     * instead of a black band, in the Reels tab and wherever else the slot would be kept.
+     * #335: with the Reels auto-hide holding the pill all the way off, the reel gets the pill's height
+     * instead of a black band. Only the navigation bar's room stays under it (#221).
      */
     @Test
-    public void reelsGiveUpTheSlotWhileTheAutoHideHasThePillOff() {
-        Context context = RuntimeEnvironment.getApplication();
-        int reelsTab = 0x7f0b0c68;
-        FrameLayout bar = new FrameLayout(context);
-        View reels = new View(context);
-        reels.setId(reelsTab);
-        bar.addView(reels);
-        reels.setSelected(true);
-
-        assertTrue("pill showing", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, false));
-        assertFalse("pill slid all the way off", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, true));
-        bar.setVisibility(View.GONE);
-        assertTrue("a paused reel's hidden bar still keeps it (#221)", GlassTabBar.reelsKeepTheSlot(bar, reelsTab, false));
-        assertFalse(GlassTabBar.reelsKeepTheSlot(bar, reelsTab, true));
+    public void reelsGiveUpThePillsHeightWhileTheAutoHideHasItOff() {
+        assertEquals("pill showing", GlassTabBar.reelsMargin(150), GlassTabBar.reelsSlot(150, false));
+        assertEquals("pill slid all the way off", GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(150, true));
+        assertEquals(GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(0, false));
     }
 
     /**

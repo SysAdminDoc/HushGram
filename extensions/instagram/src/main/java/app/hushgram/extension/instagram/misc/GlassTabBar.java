@@ -211,16 +211,6 @@ public final class GlassTabBar {
      * over Home, and the slot kept there was a blank band under the reel (#347).
      */
     static boolean reelsKeepTheSlot(View bar, int reelsTab) {
-        return reelsKeepTheSlot(bar, reelsTab, false);
-    }
-
-    /**
-     * {@link #reelsKeepTheSlot(View, int)}, except that a bar the Reels auto-hide ({@link GlassReelsHide}) has
-     * slid all the way off, [slidOff], gives its slot to the reel: the slot kept under it was a black band
-     * where the pill had been (#335). The slot comes back as the bar starts to return.
-     */
-    static boolean reelsKeepTheSlot(View bar, int reelsTab, boolean slidOff) {
-        if (slidOff) return false;
         if (bar.getVisibility() == View.VISIBLE) return true;
         if (reelsTab == 0 || !(bar instanceof ViewGroup)) return false;
         ViewGroup tabs = (ViewGroup) bar;
@@ -230,6 +220,17 @@ public final class GlassTabBar {
             if (tab.getId() == reelsTab && tab.isSelected()) return true;
         }
         return false;
+    }
+
+    /**
+     * The slot kept under a Reels viewer for a pill [pill] tall, its lift included ({@link #reelsMargin}). A
+     * pill the Reels auto-hide ({@link GlassReelsHide}) has slid all the way off, [slidOff], gives its own
+     * height to the reel, since the slot kept under it was a black band where the pill had been (#335). The
+     * navigation bar's room under it stays, so the seek bar is still clear of the gesture handle (#221). The
+     * pill's height comes back as it starts to return.
+     */
+    static int reelsSlot(int pill, boolean slidOff) {
+        return reelsMargin(slidOff ? 0 : pill);
     }
 
     /**
@@ -1893,14 +1894,14 @@ public final class GlassTabBar {
          * {@link #REELS_LOOK_MS}, and at once when the margin they want changes, so a viewer is never left
          * a frame at a size Instagram's own layout just gave it. Where Instagram hides the bar outside the
          * Reels tab, as over a reel opened from a feed post, the viewers get Instagram's 0 back
-         * ({@link #reelsKeepTheSlot}, #347), and where an auto-hide has the pill all the way off, so the
-         * reel runs to the bottom while the pill is away (#335).
+         * ({@link #reelsKeepTheSlot}, #347). Where an auto-hide has the pill all the way off, the reel runs
+         * down to the gesture handle while the pill is away ({@link #reelsSlot}, #335).
          */
         private void keepReelsAboveTheSlot(View holder, long now) {
             if (originalBarHeight <= 0) return;
-            boolean keep = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB),
+            boolean keep = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB));
+            int slot = reelsSlot(barHeightPx(height, originalBarHeight, density) + lift,
                     scrollHide != null && scrollHide.isOffScreen());
-            int slot = reelsMargin(barHeightPx(height, originalBarHeight, density) + lift);
             boolean behind = Settings.GLASS_TAB_BAR_REELS_BEHIND.get();
             int wanted = reelsViewerMargin(keep, behind, slot);
             int bandLift = reelsBandLift(keep, behind, slot);

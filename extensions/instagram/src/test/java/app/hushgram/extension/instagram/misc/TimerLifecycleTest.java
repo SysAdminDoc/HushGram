@@ -415,13 +415,14 @@ public class TimerLifecycleTest {
     }
 
     /**
-     * #221, #280: under a floating pill the Reels viewer stops at the top of the pill's slot and keeps
-     * that one size while the wait on Reels slides the pill away and a tap brings it back, with nothing
-     * of the reel raised. Grown and shrunk with the pill, the video rescaled and the caption dropped
-     * (#221). Run on behind the pill, the reel sat half the pill's height lower, with a wide black band
-     * over it (#280).
+     * #221, #280, #335: under a floating pill the Reels viewer stops at the top of the pill's slot and
+     * keeps that one size while the wait on Reels slides the pill away, with nothing of the reel raised.
+     * Grown and shrunk with the pill, the video rescaled and the caption dropped (#221). Run on behind
+     * the pill, the reel sat half the pill's height lower, with a wide black band over it (#280). Once
+     * the pill is all the way off the reel takes its slot, which was a black band (#335), and a tap
+     * brings the pill and the slot back.
      */
-    @Test public void aReelStopsAtThePillsSlotAndKeepsItsSizeWhileThePillSlidesAwayAndBack() {
+    @Test public void aReelStopsAtThePillsSlotAndTakesItOnlyWhileThePillIsAllTheWayOff() {
         LinearLayout tabs = namedTabBar();
         Reel reel = showReel();
         Settings.GLASS_TAB_BAR.save(true);
@@ -442,8 +443,8 @@ public class TimerLifecycleTest {
         assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
         idle(500);
         layout();
-        assertEquals("the reel keeps its margin", pill, bottomMargin(reel.viewer));
-        assertEquals("and its size", height, reel.media.getHeight());
+        assertEquals("the reel takes the slot", 0, bottomMargin(reel.viewer));
+        assertEquals("and runs to the bottom", 1920, reel.media.getHeight());
         assertRaised(reel, 0);
 
         tapAt(spot);
@@ -457,11 +458,12 @@ public class TimerLifecycleTest {
     }
 
     /**
-     * #221: with the screens run behind the gesture handle, the reel stops above the pill and the
-     * navigation bar's height Instagram was answered 0 for, whether the pill shows or not. Run to the
-     * bottom edge, the reel's seek bar sat in the handle's reach and took no touches.
+     * #221, #335: with the screens run behind the gesture handle, the reel stops above the pill and the
+     * navigation bar's height Instagram was answered 0 for. With the pill all the way off it gives up
+     * only the pill's height and still stops above the handle. Run to the bottom edge, the reel's seek
+     * bar sat in the handle's reach and took no touches.
      */
-    @Test public void aReelStopsAboveThePillAndTheGestureHandleWhetherThePillShowsOrNot() {
+    @Test public void aReelStopsAboveTheGestureHandleWhetherThePillShowsOrNot() {
         LinearLayout tabs = namedTabBar();
         Reel reel = showReel();
         Settings.GLASS_TAB_BAR.save(true);
@@ -483,7 +485,7 @@ public class TimerLifecycleTest {
         idle(2500);
         assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
         idle(500);
-        assertEquals("the reel stays where it was", pill, bottomMargin(reel.viewer));
+        assertEquals("the reel stops above the handle", 63, bottomMargin(reel.viewer));
         assertRaised(reel, 0);
 
         tapAt(spot);
