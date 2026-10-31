@@ -42,6 +42,7 @@ public final class FamilyNames {
     public static final String LONG_PRESS_ZOOM = "Long press to zoom";
     public static final String ROUNDED_POST_CORNERS = "Rounded post corners";
     public static final String CAROUSEL_ARROWS = "Carousel arrows";
+    public static final String AMBIENT_LIGHT = "Ambient light";
     public static final String STORY_SEEN = "View stories anonymously";
     public static final String DM_MEDIA_SEEN = "View DM photos and videos anonymously";
     public static final String SPOOF_LOCATION = "Spoof location";

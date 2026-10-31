@@ -1418,3 +1418,13 @@ Carousel arrows	Panah carousel
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Menaruh panah mundur dan maju pada foto dan video kiriman carousel. Ketuk salah satunya untuk pindah halaman tanpa menggeser.
 Previous page	Halaman sebelumnya
 Next page	Halaman berikutnya
+# context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
+Ambient light	Cahaya ambien
+Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Menambahkan cahaya lembut dengan warna postingan di sekitar foto atau videonya, dan di pita sekitar reel yang tidak memenuhi layar. Cahayanya mengikuti video saat diputar.
+Glow spread	Sebaran cahaya
+Glow speed	Kecepatan cahaya
+Narrow	Sempit
+Medium	Sedang
+Wide	Lebar
+Slow	Lambat
+Fast	Cepat

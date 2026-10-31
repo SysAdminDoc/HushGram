@@ -377,6 +377,23 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_carousel_arrows", FALSE);
 
     /**
+     * A soft glow in a post's or a reel's own colors around it ({@link app.hushgram.extension.instagram.feed.AmbientLight},
+     * #416). Only a stage's background is wrapped, so off or paused, every stage has its own back at once. Off to start.
+     */
+    public static final BooleanSetting AMBIENT_LIGHT =
+            new BooleanSetting("hushgram_ambient_light", FALSE);
+
+    /** Under {@link #AMBIENT_LIGHT}: how far the glow reaches. Medium to start. */
+    public static final EnumSetting<app.hushgram.extension.instagram.feed.AmbientSpread> AMBIENT_LIGHT_SPREAD =
+            new EnumSetting<>("hushgram_ambient_light_spread", app.hushgram.extension.instagram.feed.AmbientSpread.MEDIUM,
+                    parent(AMBIENT_LIGHT));
+
+    /** Under {@link #AMBIENT_LIGHT}: how quickly the glow follows a video. Medium to start. */
+    public static final EnumSetting<app.hushgram.extension.instagram.feed.AmbientSpeed> AMBIENT_LIGHT_SPEED =
+            new EnumSetting<>("hushgram_ambient_light_speed", app.hushgram.extension.instagram.feed.AmbientSpeed.MEDIUM,
+                    parent(AMBIENT_LIGHT));
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */

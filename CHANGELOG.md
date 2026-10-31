@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Ambient light` is a new patch. Turn it on under Feed and a post's photo or video in Home and Following gets a soft glow in its own colors, and so do the bands around a reel that doesn't fill the screen. The glow follows a video while it plays. `Glow spread` picks how far the light reaches and `Glow speed` how fast it changes. It starts off. Asked for in #416.
 * **Instagram:** `Carousel arrows` is a new patch. Its switch under Feed puts a back and a next arrow on a carousel post, so a tap moves to the next photo or video without swiping. It starts off. Asked for in #417.
 * **Instagram:** `Hide ads` now hides the ad that shows up among a post's or reel's comments too. Asked for in #415.
 * **Instagram - Stop Reels scrolling:** `Stop after 20 reels` is now `Stop after a set number of reels`. Two sliders under it pick how many reels play (5 to 100) and how long Instagram sits in the background before swiping returns (5 to 120 minutes). Asked for in #405.

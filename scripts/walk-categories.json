@@ -89,6 +89,7 @@
           "Long press to zoom",
           "Rounded post corners",
           "Carousel arrows",
+          "Ambient light",
           "Full screen Reels and Home",
           "Hide Follow on feed posts",
           "Hide captions",
@@ -120,6 +121,15 @@
             "op": "any",
             "patches": [
               "Carousel arrows"
+            ]
+          }
+        },
+        {
+          "title": "Ambient light",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Ambient light"
             ]
           }
         }

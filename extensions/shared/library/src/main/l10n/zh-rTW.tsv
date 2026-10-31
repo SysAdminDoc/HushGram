@@ -1421,3 +1421,13 @@ Carousel arrows	輪播箭頭
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	在輪播貼文的相片和影片上加上上一頁和下一頁箭頭。點一下就能換頁，不用滑動。
 Previous page	上一頁
 Next page	下一頁
+# context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
+Ambient light	環境光
+Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	在貼文的相片或影片周圍加上貼文本身色彩的柔和光暈，沒有填滿螢幕的 Reels 周圍空白處也會亮起。影片播放時光暈會跟著變化。
+Glow spread	光暈範圍
+Glow speed	光暈速度
+Narrow	窄
+Medium	中
+Wide	寬
+Slow	慢
+Fast	快

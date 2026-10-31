@@ -1235,7 +1235,7 @@ public final class ReelBlurBars {
      * or null when all of it is black.
      */
     @Nullable
-    static Rect trim(int[] pixels, int width, int height) {
+    public static Rect trim(int[] pixels, int width, int height) {
         int top = 0;
         int bottom = height;
         int left = 0;
@@ -1267,7 +1267,7 @@ public final class ReelBlurBars {
     }
 
     /** One pass of a box blur along rows or columns, the edge pixel standing in past the edge. */
-    static int[] boxBlur(int[] in, int width, int height, int radius, boolean horizontal) {
+    public static int[] boxBlur(int[] in, int width, int height, int radius, boolean horizontal) {
         int[] out = new int[in.length];
         int length = horizontal ? width : height;
         int lines = horizontal ? height : width;

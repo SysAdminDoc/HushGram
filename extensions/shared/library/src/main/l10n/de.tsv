@@ -1418,3 +1418,13 @@ Carousel arrows	Karussellpfeile
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Setzt einen Zurück- und einen Weiter-Pfeil auf die Fotos und Videos eines Karussellbeitrags. Tippe auf einen, um ohne Wischen eine Seite weiterzugehen.
 Previous page	Vorherige Seite
 Next page	Nächste Seite
+# context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
+Ambient light	Umgebungslicht
+Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Legt ein weiches Leuchten in den Farben eines Beitrags um sein Foto oder Video und in die Streifen um ein Reel, das den Bildschirm nicht füllt. Das Leuchten folgt einem Video, während es läuft.
+Glow spread	Reichweite des Leuchtens
+Glow speed	Tempo des Leuchtens
+Narrow	Schmal
+Medium	Mittel
+Wide	Breit
+Slow	Langsam
+Fast	Schnell

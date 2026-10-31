@@ -1418,3 +1418,13 @@ Carousel arrows	Setas do carrossel
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Coloca uma seta de voltar e uma de avançar nas fotos e vídeos de uma publicação em carrossel. Toque em uma para mudar de página sem deslizar.
 Previous page	Página anterior
 Next page	Próxima página
+# context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
+Ambient light	Luz ambiente
+Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Coloca um brilho suave nas cores do post em volta da foto ou do vídeo, e nas faixas em volta de um reel que não ocupa a tela toda. O brilho acompanha o vídeo enquanto ele toca.
+Glow spread	Alcance do brilho
+Glow speed	Velocidade do brilho
+Narrow	Estreito
+Medium	Médio
+Wide	Amplo
+Slow	Lento
+Fast	Rápido

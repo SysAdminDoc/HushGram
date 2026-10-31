@@ -103,6 +103,8 @@ import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.media.ResumePlayback;
 import app.hushgram.extension.instagram.feed.HiddenAccounts;
+import app.hushgram.extension.instagram.feed.AmbientSpeed;
+import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.MediaCache;
@@ -642,6 +644,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORY_RING && (Settings.STORY_RING_SCALE.key.equals(key)
                             || Settings.STORY_RING_COLOR.key.equals(key));
                     belongs |= family == PatchFamily.ROUNDED_POST_CORNERS && Settings.ROUNDED_CORNER_SIZE.key.equals(key);
+                    belongs |= family == PatchFamily.AMBIENT_LIGHT && (Settings.AMBIENT_LIGHT_SPREAD.key.equals(key)
+                            || Settings.AMBIENT_LIGHT_SPEED.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PROGRESS_BAR && Settings.STORY_BAR_THICKNESS.key.equals(key);
                     belongs |= family == PatchFamily.STORIES_TRAY && Settings.TRAY_BADGE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
@@ -4317,6 +4321,58 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return size == CornerSize.LARGE ? L10n.t("Large") : L10n.t("Small");
     }
 
+    /** How far Ambient light's glow reaches. Its summary is the choice. */
+    static AmbientSpreadRow ambientSpreadRow(Context context) {
+        AmbientSpreadRow row = new AmbientSpreadRow(context);
+        row.setKey(Settings.AMBIENT_LIGHT_SPREAD.key);
+        row.setTitle(L10n.t("Glow spread"));
+        row.setDialogTitle(L10n.t("Glow spread"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AmbientSpread[] choices = AmbientSpread.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = ambientSpreadLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.AMBIENT_LIGHT_SPREAD.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [spread]. */
+    static String ambientSpreadLabel(AmbientSpread spread) {
+        if (spread == AmbientSpread.NARROW) return L10n.t("Narrow");
+        return spread == AmbientSpread.WIDE ? L10n.t("Wide") : L10n.t("Medium");
+    }
+
+    /** How quickly Ambient light's glow follows a video. Its summary is the choice. */
+    static AmbientSpeedRow ambientSpeedRow(Context context) {
+        AmbientSpeedRow row = new AmbientSpeedRow(context);
+        row.setKey(Settings.AMBIENT_LIGHT_SPEED.key);
+        row.setTitle(L10n.t("Glow speed"));
+        row.setDialogTitle(L10n.t("Glow speed"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        AmbientSpeed[] choices = AmbientSpeed.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = ambientSpeedLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.AMBIENT_LIGHT_SPEED.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [speed]. */
+    static String ambientSpeedLabel(AmbientSpeed speed) {
+        if (speed == AmbientSpeed.SLOW) return L10n.t("Slow");
+        return speed == AmbientSpeed.FAST ? L10n.t("Fast") : L10n.t("Medium");
+    }
+
     /** How much thicker Thicker story progress bar draws the bar. Its summary is the choice. */
     static StoryBarRow storyBarRow(Context context) {
         StoryBarRow row = new StoryBarRow(context);
@@ -6964,6 +7020,70 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(value)) size = candidate;
             }
             setSummary(cornerSizeLabel(size));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class AmbientSpreadRow extends ListPreference {
+        AmbientSpreadRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the spread chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            AmbientSpread spread = AmbientSpread.MEDIUM;
+            for (AmbientSpread candidate : AmbientSpread.values()) {
+                if (candidate.name().equals(value)) spread = candidate;
+            }
+            setSummary(ambientSpreadLabel(spread));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class AmbientSpeedRow extends ListPreference {
+        AmbientSpeedRow(Context context) {
+            super(context);
+        }
+
+        /** The summary is the speed chosen. */
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            AmbientSpeed speed = AmbientSpeed.MEDIUM;
+            for (AmbientSpeed candidate : AmbientSpeed.values()) {
+                if (candidate.name().equals(value)) speed = candidate;
+            }
+            setSummary(ambientSpeedLabel(speed));
         }
 
         @Override

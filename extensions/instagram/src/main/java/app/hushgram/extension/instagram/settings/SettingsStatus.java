@@ -587,6 +587,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Ambient light patch. */
+    public static boolean ambientLight() {
+        return false;
+    }
+
     /** Rewritten by the Keep in chat patch. */
     public static boolean keepInChat() {
         return false;
