@@ -6380,7 +6380,15 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            if (getDialog() instanceof AlertDialog) {
+                AlertDialog dialog = (AlertDialog) getDialog();
+                ListView choices = dialog.getListView();
+                if (choices != null && choices.getAdapter() != null) {
+                    // Each choice shows its actual icon before its name (#321, #327).
+                    choices.setAdapter(new IconChoices(getContext(), choices.getAdapter(), AppIconChoice.values()));
+                }
+                ScreenColors.dialog(dialog);
+            }
         }
     }
 

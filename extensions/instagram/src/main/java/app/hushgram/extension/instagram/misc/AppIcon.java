@@ -138,6 +138,22 @@ public final class AppIcon {
         return null;
     }
 
+    /**
+     * The icon [choice] gives the home screen, as its alias declares it (adaptive layers and all), for
+     * the picker to draw (#321, #327). Null when this build has no such alias or it can't be loaded.
+     */
+    @Nullable
+    public static android.graphics.drawable.Drawable preview(Context context, AppIconChoice choice) {
+        try {
+            PackageManager manager = context.getPackageManager();
+            android.content.pm.ActivityInfo info = manager.getActivityInfo(
+                    alias(context.getPackageName(), choice), PackageManager.MATCH_DISABLED_COMPONENTS);
+            return info.loadIcon(manager);
+        } catch (Throwable absent) {
+            return null;
+        }
+    }
+
     static ComponentName alias(String owner, AppIconChoice choice) {
         return new ComponentName(owner, choice.key == null ? INSTAGRAM_ALIAS : HUSHGRAM_ALIAS + choice.key);
     }
