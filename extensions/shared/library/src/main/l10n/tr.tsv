@@ -1413,3 +1413,8 @@ Explore without personalization	Kişiselleştirme olmadan Keşfet
 Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	Instagram'ın sunduğu yerlerde (AB'de), Keşfet her seferinde kişiselleştirilmemiş ızgarayla açılır ve on dakika sonra da öyle kalır.
 Hide Explore's personalized menu	Keşfet'in kişiselleştirme menüsünü gizle
 Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	Instagram'ın gösterdiği yerlerde (AB'de), Keşfet'in kişiselleştirmesini değiştiren üst çubuk düğmesini gizler.
+# context: Feed settings: the Carousel arrows switch and the two arrow buttons' TalkBack labels (#417)
+Carousel arrows	Çoklu gönderi okları
+Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Çoklu gönderinin fotoğraf ve videolarına bir geri ve bir ileri oku koyar. Kaydırmadan sayfa değiştirmek için birine dokun.
+Previous page	Önceki sayfa
+Next page	Sonraki sayfa

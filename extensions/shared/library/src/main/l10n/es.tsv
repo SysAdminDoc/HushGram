@@ -1413,3 +1413,8 @@ Explore without personalization	Explorar sin personalización
 Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	Donde Instagram lo ofrece (en la UE), Explorar se abre siempre con la cuadrícula no personalizada y sigue así pasados diez minutos.
 Hide Explore's personalized menu	Ocultar el menú de personalización de Explorar
 Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	Oculta el botón de la barra superior que cambia la personalización de Explorar, donde Instagram lo muestra (en la UE).
+# context: Feed settings: the Carousel arrows switch and the two arrow buttons' TalkBack labels (#417)
+Carousel arrows	Flechas del carrusel
+Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Pone una flecha para volver y otra para avanzar en las fotos y videos de una publicación en carrusel. Toca una para cambiar de página sin deslizar.
+Previous page	Página anterior
+Next page	Página siguiente

@@ -1,0 +1,436 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.feed;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.robolectric.Shadows.shadowOf;
+
+import android.app.Activity;
+import android.content.Context;
+import android.os.Looper;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Adapter;
+import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+
+import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
+import app.hushgram.extension.shared.settings.PauseForTests;
+
+/** Carousel arrows (#417): a back and a next arrow over each feed carousel, shown where they lead somewhere, and a tap turns the page. */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 37})
+public class CarouselArrowsTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+
+    private static final int WIDTH = 720, HEIGHT = 900, HEADER = 120;
+    private static final String FAMILY = "Carousel arrows";
+
+    /** A carousel's pages, as many as asked for. */
+    static BaseAdapter pages(int count) {
+        return new BaseAdapter() {
+            @Override public int getCount() {
+                return count;
+            }
+            @Override public Object getItem(int position) {
+                return null;
+            }
+            @Override public long getItemId(int position) {
+                return position;
+            }
+            @Override public View getView(int position, View convertView, ViewGroup parent) {
+                return null;
+            }
+        };
+    }
+
+    /** Instagram's pager as far as the helper sees it: the page getters 453's ReboundViewPager keeps by name. */
+    public static class FakePager extends FrameLayout {
+        int at;
+        /** How far the pager's own count is from the page shown, as in a carousel that loops. */
+        int loop;
+        BaseAdapter pages = pages(3);
+
+        public FakePager(Context context) {
+            super(context);
+        }
+
+        public int getCurrentDataIndex() {
+            return pages == null ? -1 : at;
+        }
+
+        public int getCurrentRawDataIndex() {
+            return at + loop;
+        }
+
+        public Adapter getAdapter() {
+            return pages;
+        }
+    }
+
+    /** A pager with the page getters but no adapter getter. */
+    public static class OldPager extends FrameLayout {
+        public OldPager(Context context) {
+            super(context);
+        }
+
+        public int getCurrentDataIndex() {
+            return 0;
+        }
+
+        public int getCurrentRawDataIndex() {
+            return 0;
+        }
+    }
+
+    private ActivityController<Activity> controller;
+    private Activity activity;
+    private FrameLayout root;
+    private LinearLayout column;
+    private FakePager pager;
+    private int frameId;
+    private final List<Integer> turned = new ArrayList<>();
+
+    @Before
+    public void prepare() {
+        controller = Robolectric.buildActivity(Activity.class).setup().visible();
+        activity = controller.get();
+        CarouselArrows.resetForTests();
+        frameId = View.generateViewId();
+        CarouselArrows.idForTests(activity, frameId);
+        CarouselArrows.turnForTests((carousel, page) -> {
+            assertTrue(carousel == pager);
+            turned.add(page);
+        });
+
+        // The post: a frame layout holding a column with the header above the carousel.
+        root = new FrameLayout(activity);
+        column = new LinearLayout(activity);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.addView(new View(activity), new LinearLayout.LayoutParams(WIDTH, HEADER));
+        pager = new FakePager(activity);
+        column.addView(pager, new LinearLayout.LayoutParams(WIDTH, HEIGHT));
+        root.addView(column, new FrameLayout.LayoutParams(WIDTH, HEADER + HEIGHT));
+        page(pager);
+        page(pager);
+        activity.setContentView(root);
+        shadowOf(Looper.getMainLooper()).idle();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.CAROUSEL_ARROWS.resetToDefault();
+        HookStatus.clear();
+    }
+
+    /** A carousel page as 453 builds it: the page, its zoom container, then the photo frame. */
+    private FrameLayout page(FrameLayout parent) {
+        FrameLayout page = new FrameLayout(activity);
+        FrameLayout zoom = new FrameLayout(activity);
+        FrameLayout frame = new FrameLayout(activity);
+        frame.setId(frameId);
+        zoom.addView(frame);
+        page.addView(zoom);
+        parent.addView(page, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        return page;
+    }
+
+    @After
+    public void restore() {
+        CarouselArrows.resetForTests();
+        Settings.CAROUSEL_ARROWS.resetToDefault();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        HookStatus.clear();
+        controller.pause().stop().destroy();
+    }
+
+    private boolean frame() {
+        return root.getViewTreeObserver().dispatchOnPreDraw();
+    }
+
+    /** Lays the screen out and draws a frame, as after a swipe. */
+    private void settle() {
+        shadowOf(Looper.getMainLooper()).idle();
+        frame();
+    }
+
+    private float density() {
+        return activity.getResources().getDisplayMetrics().density;
+    }
+
+    private boolean shows(View arrow) {
+        return arrow.getVisibility() == View.VISIBLE;
+    }
+
+    private View back() {
+        return CarouselArrows.backForTests(pager);
+    }
+
+    private View next() {
+        return CarouselArrows.nextForTests(pager);
+    }
+
+    private void on() {
+        Settings.CAROUSEL_ARROWS.save(true);
+        CarouselArrows.watch(activity);
+        assertTrue("arrows were added, so the frame is drawn again", frame());
+    }
+
+    @Test
+    public void offToStartLeavesCarouselsAlone() {
+        assertFalse(Settings.CAROUSEL_ARROWS.get());
+
+        CarouselArrows.watch(activity);
+        frame();
+
+        assertFalse(CarouselArrows.listeningForTests(activity));
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(1, root.getChildCount());
+    }
+
+    @Test
+    public void theFirstPageShowsOnlyNextOverTheCarouselsRightEdgeHalfwayDown() {
+        on();
+        settle();
+
+        assertEquals(1, CarouselArrows.withArrowsForTests());
+        assertEquals("both arrows sit in the post's frame layout", 3, root.getChildCount());
+        assertTrue(back().getParent() == root && next().getParent() == root);
+        assertFalse(shows(back()));
+        assertTrue(shows(next()));
+        assertEquals("Previous page", back().getContentDescription().toString());
+        assertEquals("Next page", next().getContentDescription().toString());
+        assertTrue(next().isClickable());
+
+        float d = density(), touch = CarouselArrows.TOUCH * d;
+        float inset = (CarouselArrows.MARGIN - (CarouselArrows.TOUCH - CarouselArrows.BUTTON) / 2) * d;
+        float top = HEADER + HEIGHT / 2f - touch / 2;
+        assertEquals(Math.round(touch), next().getWidth());
+        assertEquals(Math.round(WIDTH - inset - touch), next().getLeft() + next().getTranslationX(), 0f);
+        assertEquals(Math.round(top), next().getTop() + next().getTranslationY(), 0f);
+        assertEquals(Math.round(inset), back().getLeft() + back().getTranslationX(), 0f);
+        assertEquals(Math.round(top), back().getTop() + back().getTranslationY(), 0f);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("Counted: " + CarouselArrows.COUNT_SHOWN + " 1"));
+        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+
+        assertFalse("nothing left to change on the next frame", frame());
+        settle();
+        assertEquals("a carousel gets its arrows once", 3, root.getChildCount());
+    }
+
+    @Test
+    public void theArrowsFollowTheCarouselsPage() {
+        on();
+
+        pager.at = 1;
+        assertTrue(frame());
+        assertTrue("a middle page shows both", shows(back()) && shows(next()));
+
+        pager.at = 2;
+        assertTrue(frame());
+        assertTrue("the last page shows back only", shows(back()) && !shows(next()));
+
+        pager.at = 0;
+        assertTrue(frame());
+        assertTrue(!shows(back()) && shows(next()));
+    }
+
+    @Test
+    public void aCarouselOfOnePageShowsNeither() {
+        pager.pages = pages(1);
+
+        on();
+
+        assertNotNull(back());
+        assertFalse(shows(back()));
+        assertFalse(shows(next()));
+    }
+
+    @Test
+    public void aCarouselWithNoPagesYetShowsNeither() {
+        pager.pages = null;
+
+        Settings.CAROUSEL_ARROWS.save(true);
+        CarouselArrows.watch(activity);
+        frame();
+
+        assertFalse(shows(back()));
+        assertFalse(shows(next()));
+    }
+
+    @Test
+    public void aTapTurnsThePagerOnePageThroughItsOwnCount() {
+        on();
+        pager.at = 1;
+        pager.loop = 300;
+        frame();
+
+        assertTrue(next().performClick());
+        assertTrue(back().performClick());
+
+        assertEquals(Arrays.asList(302, 300), turned);
+    }
+
+    @Test
+    public void aTapPastEitherEndTurnsNothing() {
+        on();
+
+        back().performClick();
+        pager.at = 2;
+        next().performClick();
+
+        assertTrue(turned.toString(), turned.isEmpty());
+    }
+
+    @Test
+    public void aTurnThatThrowsIsReportedAndTheScreenStays() {
+        CarouselArrows.turnForTests((carousel, page) -> {
+            throw new IllegalStateException("refused");
+        });
+        on();
+
+        next().performClick();
+
+        assertTrue(shows(next()));
+        String missing = HookStatus.missing(FAMILY).toString();
+        assertTrue(missing, missing.contains("'carousel arrows tap' hook (it threw java.lang.IllegalStateException)"));
+    }
+
+    @Test
+    public void aCarouselThatLeavesTheWindowLosesItsArrows() {
+        on();
+
+        root.removeView(column);
+        frame();
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(0, root.getChildCount());
+    }
+
+    @Test
+    public void offTakesEveryArrowAway() {
+        on();
+
+        Settings.CAROUSEL_ARROWS.save(false);
+        frame();
+
+        assertFalse(CarouselArrows.listeningForTests(activity));
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(1, root.getChildCount());
+        assertNull(back());
+    }
+
+    @Test
+    public void pausedReadsAsOff() {
+        Settings.CAROUSEL_ARROWS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+
+        CarouselArrows.watch(activity);
+        frame();
+
+        assertFalse(CarouselArrows.listeningForTests(activity));
+        assertEquals(1, root.getChildCount());
+    }
+
+    @Test
+    public void flippingTheSwitchUnderSettingsShowsArrowsWithoutAResume() {
+        CarouselArrows.watch(activity);
+        assertFalse(CarouselArrows.listeningForTests(activity));
+
+        Settings.CAROUSEL_ARROWS.save(true);
+        CarouselArrows.switchChanged(activity);
+        shadowOf(Looper.getMainLooper()).idle();
+        frame();
+
+        assertTrue(CarouselArrows.listeningForTests(activity));
+        assertTrue(shows(next()));
+    }
+
+    /** A carousel whose pages on screen are all videos is found by the video page frame. */
+    @Test
+    public void aCarouselShowingOnlyVideosGetsArrowsToo() {
+        int videoId = View.generateViewId();
+        CarouselArrows.videoIdForTests(activity, videoId);
+        pager.removeAllViews();
+        frameId = videoId;
+        page(pager);
+        shadowOf(Looper.getMainLooper()).idle();
+
+        on();
+
+        assertTrue(shows(next()));
+    }
+
+    @Test
+    public void aPagerWithoutItsAdapterGetterIsLeftAloneAndSaysSo() {
+        column.removeView(pager);
+        OldPager old = new OldPager(activity);
+        column.addView(old, new LinearLayout.LayoutParams(WIDTH, HEIGHT));
+        page(old);
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.CAROUSEL_ARROWS.save(true);
+
+        CarouselArrows.watch(activity);
+        assertFalse(frame());
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(1, root.getChildCount());
+        String missing = HookStatus.missing(FAMILY).toString();
+        assertTrue(missing, missing.contains("getAdapter"));
+    }
+
+    /** A page frame with no pager above it is left as it is. */
+    @Test
+    public void aFrameWithoutAKnownPagerIsLeftAlone() {
+        column.removeView(pager);
+        FrameLayout plain = new FrameLayout(activity);
+        column.addView(plain, new LinearLayout.LayoutParams(WIDTH, HEIGHT));
+        page(plain);
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.CAROUSEL_ARROWS.save(true);
+
+        CarouselArrows.watch(activity);
+        assertFalse(frame());
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+    }
+
+    @Test
+    public void aBuildWithoutTheFrameIdShowsNothingAndSaysSo() {
+        CarouselArrows.resetForTests();
+        Settings.CAROUSEL_ARROWS.save(true);
+
+        CarouselArrows.watch(activity);
+        frame();
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertFalse(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+    }
+}

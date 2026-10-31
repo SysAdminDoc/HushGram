@@ -39,6 +39,7 @@ import java.util.function.Predicate;
 
 import app.hushgram.extension.instagram.direct.MessagesLock;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
+import app.hushgram.extension.instagram.feed.CarouselArrows;
 import app.hushgram.extension.instagram.feed.CarouselPeek;
 import app.hushgram.extension.instagram.feed.CommentEmojiRow;
 import app.hushgram.extension.instagram.feed.FeedFollowButton;
@@ -162,6 +163,7 @@ public final class SettingsEntry {
         ReelCorners.install(context);
         StoryCorners.install(context);
         CarouselPeek.install(context);
+        CarouselArrows.install(context);
         StoryProgressBar.install(context);
         ProfileMenuPress.install(context);
         ProfileTitle.install(context);

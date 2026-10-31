@@ -1416,3 +1416,8 @@ Explore without personalization	不個人化的探索
 Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	在 Instagram 提供此選項的地區（歐盟），探索每次都會以非個人化的網格開啟，十分鐘後也不會切換回去。
 Hide Explore's personalized menu	隱藏探索的個人化選單
 Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	在 Instagram 顯示此按鈕的地區（歐盟），隱藏頂端列上切換探索個人化的按鈕。
+# context: Feed settings: the Carousel arrows switch and the two arrow buttons' TalkBack labels (#417)
+Carousel arrows	輪播箭頭
+Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	在輪播貼文的相片和影片上加上上一頁和下一頁箭頭。點一下就能換頁，不用滑動。
+Previous page	上一頁
+Next page	下一頁

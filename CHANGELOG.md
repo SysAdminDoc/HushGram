@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Carousel arrows` is a new patch. Its switch under Feed puts a back and a next arrow on a carousel post, so a tap moves to the next photo or video without swiping. It starts off. Asked for in #417.
 * **Instagram:** `Hide ads` now hides the ad that shows up among a post's or reel's comments too. Asked for in #415.
 * **Instagram - Stop Reels scrolling:** `Stop after 20 reels` is now `Stop after a set number of reels`. Two sliders under it pick how many reels play (5 to 100) and how long Instagram sits in the background before swiping returns (5 to 120 minutes). Asked for in #405.
 * **Instagram:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, on this phone only. `Clear viewing history` empties it. Starts off. Asked for in #228.

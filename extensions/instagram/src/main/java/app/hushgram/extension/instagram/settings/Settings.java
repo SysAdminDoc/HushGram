@@ -370,6 +370,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_peek_carousel_pages", FALSE);
 
     /**
+     * A back and a next arrow over each feed carousel ({@link app.hushgram.extension.instagram.feed.CarouselArrows},
+     * #417). Off to start.
+     */
+    public static final BooleanSetting CAROUSEL_ARROWS =
+            new BooleanSetting("hushgram_carousel_arrows", FALSE);
+
+    /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.
      * Held back, you stay off them. Replies and reactions still show you. Off to start.
      */

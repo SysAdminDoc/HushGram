@@ -88,6 +88,7 @@
           "Seek bar on feed videos",
           "Long press to zoom",
           "Rounded post corners",
+          "Carousel arrows",
           "Full screen Reels and Home",
           "Hide Follow on feed posts",
           "Hide captions",
@@ -110,6 +111,15 @@
             "op": "any",
             "patches": [
               "Hide suggested posts"
+            ]
+          }
+        },
+        {
+          "title": "Carousel arrows",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Carousel arrows"
             ]
           }
         }
