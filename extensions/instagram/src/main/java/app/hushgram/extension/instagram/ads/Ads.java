@@ -58,6 +58,9 @@ public final class Ads {
     /** The report's count of {@link #AD_UNITS} taken out of a feed's own pages. */
     static final String UNITS_REMOVED = "ad pivots removed";
 
+    /** The report's count of comments sheets built with their ad turned off. */
+    static final String COMMENT_ADS_OFF = "comment ads turned off";
+
     private Ads() {}
 
     /**
@@ -112,6 +115,26 @@ public final class Ads {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HIDE_ADS, "feed item", failure);
             return item;
+        }
+    }
+
+    /**
+     * Handed each value the comments sheet's settings keep for "enable_comment_ads" as they're
+     * built (#415). Answers 0 while Hide ads is on, so the sheet neither fetches an ad nor shows one
+     * among the comments, and [wanted] otherwise: with the switch off, HushGram paused, the settings
+     * not ready or anything thrown. Never throws.
+     */
+    public static int commentAds(int wanted) {
+        if (wanted == 0) return 0;
+        HookStatus.invoked(FamilyNames.HIDE_ADS);
+        try {
+            if (!Utils.settingsReady() || !Settings.HIDE_ADS.get()) return wanted;
+            HookStatus.counted(FamilyNames.HIDE_ADS, COMMENT_ADS_OFF);
+            Logger.printDebug(() -> "Hide ads: turned the comments sheet's ad off");
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.HIDE_ADS, "comment ads", failure);
+            return wanted;
         }
     }
 

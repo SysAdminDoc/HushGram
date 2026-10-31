@@ -1493,7 +1493,7 @@
     },
     {
       "name": "Hide ads",
-      "description": "Hides sponsored posts, reels and stories, and leaves no gap where an ad would have been. On by default. Turn it off in HushGram settings > Ads and privacy.",
+      "description": "Hides sponsored posts, reels, stories and the ad in comments, and leaves no gap where an ad would have been. On by default. Turn it off in HushGram settings > Ads and privacy.",
       "category": "Ads",
       "use": true,
       "dependencies": [

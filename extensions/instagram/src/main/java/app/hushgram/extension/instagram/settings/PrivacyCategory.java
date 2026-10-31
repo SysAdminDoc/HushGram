@@ -44,8 +44,8 @@ final class PrivacyCategory {
         }
         if (build.contains(PatchFamily.HIDE_ADS)) {
             privacy.add(toggle(context, Settings.HIDE_ADS, L10n.t("Hide ads"),
-                    L10n.t("Hides sponsored posts, reels and stories. No empty gap is left where an ad would have "
-                            + "been.")));
+                    L10n.t("Hides sponsored posts, reels, stories and the ad in comments. No empty gap is left where an "
+                            + "ad would have been.")));
         }
         if (build.contains(PatchFamily.SANITIZE_SHARING_LINKS)) {
             privacy.add(toggle(context, Settings.SANITIZE_SHARING_LINKS, L10n.t("Sanitize sharing links"),

@@ -218,6 +218,27 @@ public class AdsTest {
         assertEquals(0, sponsored.asked);
     }
 
+    /** #415: with the switch on the comments sheet is built with its ad off, and Diagnostics counts it. */
+    @Test
+    public void anOnSwitchTurnsTheCommentsSheetsAdOff() {
+        assertEquals(0, Ads.commentAds(1));
+        String family = String.join("\n", HookStatus.report());
+        assertTrue(family, family.contains(Ads.COMMENT_ADS_OFF + " 1"));
+    }
+
+    /** Off, paused or unready, the sheet keeps what Instagram asked for, and a sheet without an ad stays without one. */
+    @Test
+    public void otherwiseTheCommentsSheetKeepsInstagramsAnswer() {
+        assertEquals("no ad asked for", 0, Ads.commentAds(0));
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", 1, Ads.commentAds(1));
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals("no context", 1, Ads.commentAds(1)));
+        Settings.HIDE_ADS.save(false);
+        assertEquals("off", 1, Ads.commentAds(1));
+        assertFalse(String.join("\n", HookStatus.report()).contains(Ads.COMMENT_ADS_OFF));
+    }
+
     /** As built, before the patch writes the stub, nothing is sponsored and every item stays. */
     @Test
     public void theUnwrittenStubKeepsEveryItem() {
