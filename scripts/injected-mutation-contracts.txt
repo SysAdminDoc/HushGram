@@ -521,8 +521,10 @@ no-call Landroid/location/Location;->getLatitude()D outside Lapp/hushgram/extens
 no-call Landroid/location/Location;->getLongitude()D outside Lapp/hushgram/extension/
 no-call Landroid/location/Location;->distanceTo(Landroid/location/Location;)F outside Lapp/hushgram/extension/
 # App-only proxy calls AppProxy.route first thing where Instagram's network stack reads its proxy
-# (#219). Left out, Instagram goes out through the phone's proxy, or none, with the switch on.
-first-call Lcom/instagram/api/tigon/TigonServiceLayer;->getProxyHostAndPort()Ljava/lang/String; on Lapp/hushgram/extension/instagram/misc/AppProxy;
+# (#219). Left out, Instagram goes out through the phone's proxy, or none, with the switch on. The
+# rule names the read by its name alone, as the patch does: what it answers is a Redex name that
+# differs between builds (LX/00D9; on the arm64 453).
+single-call Lapp/hushgram/extension/instagram/misc/AppProxy;->route()V in getProxyHostAndPort
 # Don't save recent searches asks RecentSearches.keep first in the call that tells Instagram's
 # servers about a search result you opened, and in the recent searches cache's add, picked from its
 # remove by the add at the top of its list. Each is skipped on a false. Left out, what you open
