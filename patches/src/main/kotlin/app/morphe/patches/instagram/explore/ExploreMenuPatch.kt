@@ -74,7 +74,7 @@ val exploreMenuPatch = bytecodePatch(
         "the grid that isn't personalized every time and keeps it from switching back after ten minutes. A " +
         "second switch hides the menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
 ) {
-    category("Interface")
+    category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
