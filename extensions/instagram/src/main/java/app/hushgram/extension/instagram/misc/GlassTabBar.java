@@ -464,7 +464,7 @@ public final class GlassTabBar {
      * drawn a second time, into the glass, has its picture moved there (#136): the video dropped to the
      * bottom of the screen, under the bar, and left black where it played.
      */
-    static boolean surfacePaths(ViewGroup parent, int count, java.util.Set<View> into) {
+    public static boolean surfacePaths(ViewGroup parent, int count, java.util.Set<View> into) {
         into.clear();
         boolean found = false;
         for (int i = 0; i < count; i++) found |= findSurfaces(parent.getChildAt(i), into, 0);
@@ -529,7 +529,7 @@ public final class GlassTabBar {
      * place is cleared, the way the SurfaceView clears its hole in the window, and the pill shows the video
      * through its tint. Before, the backgrounds round the video drew there, black on a feed post (#144).
      */
-    static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
+    public static void drawLeavingOutSurfaces(Canvas canvas, View view, java.util.Set<View> paths, int depth) {
         drawLeavingOutSurfaces(canvas, view, paths, java.util.Collections.emptySet(), null, depth);
     }
 
@@ -649,7 +649,7 @@ public final class GlassTabBar {
      * at 90, and each recording makes the GPU render the blur layer again for that frame: on a phone at 90 Hz
      * recording every frame doubled the GPU's busy time.
      */
-    static final long RECORD_EVERY_MS = 33;
+    public static final long RECORD_EVERY_MS = 33;
     /** Blur recordings that may fail in a row before the blur rests ({@link BlurTries}, #262). */
     static final int BLUR_TRIES = 3;
     /** How long the blur rests on the plain tint after {@link #BLUR_TRIES} failed recordings in a row. */
@@ -1004,7 +1004,7 @@ public final class GlassTabBar {
     }
 
     /** Whether a colour is dark enough that a lighter tint reads against it. */
-    static boolean isDark(int color) {
+    public static boolean isDark(int color) {
         double luminance = 0.2126 * Color.red(color) + 0.7152 * Color.green(color) + 0.0722 * Color.blue(color);
         return luminance < 128;
     }
@@ -1027,7 +1027,7 @@ public final class GlassTabBar {
     }
 
     /** {@link #tint(int, boolean)} with the strength of the fill scaled by [scale], the opacity slider's share. */
-    static int tint(int base, boolean blurred, float scale) {
+    public static int tint(int base, boolean blurred, float scale) {
         boolean dark = isDark(base);
         if (blurred) return (base & 0x00ffffff) | (scaledAlpha(dark ? 0x70 : 0xa6, scale) << 24);
         int solid = dark ? blend(base, Color.WHITE, 0.10f) : base;
@@ -1039,7 +1039,7 @@ public final class GlassTabBar {
     }
 
     /** The opacity slider as a share of the standard tint, read as the pill draws so a move shows at once (#391). */
-    static float opacityScale() {
+    public static float opacityScale() {
         return Settings.GLASS_TAB_BAR_OPACITY.get() / 100f;
     }
 
@@ -2873,12 +2873,12 @@ public final class GlassTabBar {
      * frame, and then tries again. Before, one failure turned the blur off for as long as the bar lived.
      * Main thread.
      */
-    static final class BlurTries {
+    public static final class BlurTries {
         private int failedInARow;
         private long restUntil = Long.MIN_VALUE;
 
         /** Whether the blur rests at [now], drawing the plain tint and recording nothing. */
-        boolean resting(long now) {
+        public boolean resting(long now) {
             return now < restUntil;
         }
 
@@ -2887,7 +2887,7 @@ public final class GlassTabBar {
         }
 
         /** A recording failed at [now]. Says whether that was one too many in a row and the blur rests. */
-        boolean failed(long now) {
+        public boolean failed(long now) {
             if (++failedInARow < BLUR_TRIES) return false;
             failedInARow = 0;
             restUntil = now + BLUR_REST_MS;
@@ -2895,7 +2895,7 @@ public final class GlassTabBar {
         }
 
         /** A recording worked, so the count of failures starts over. */
-        void worked() {
+        public void worked() {
             failedInARow = 0;
         }
     }

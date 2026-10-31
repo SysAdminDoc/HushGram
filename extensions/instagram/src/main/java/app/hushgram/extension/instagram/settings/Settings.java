@@ -1861,6 +1861,14 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting KEEP_HOME_TOP_BAR =
             new BooleanSetting("hushgram_keep_home_top_bar", FALSE, true);
 
+    /**
+     * Home's header showing the feed blurred under it, like frosted glass (#418,
+     * {@link app.hushgram.extension.instagram.feed.GlassTopBar}). It takes the header as Home hands
+     * it over, so the restart card comes up. Off to start.
+     */
+    public static final BooleanSetting SEE_THROUGH_HOME_TOP_BAR =
+            new BooleanSetting("hushgram_see_through_home_top_bar", FALSE, true);
+
     /** The Follow button beside a reel's author in the Reels viewer. Off to start. */
     public static final BooleanSetting HIDE_REEL_FOLLOW_BUTTON =
             new BooleanSetting("hushgram_hide_reel_follow_button", FALSE);

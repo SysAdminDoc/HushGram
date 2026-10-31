@@ -54,7 +54,7 @@ private const val LIST = "Ljava/util/List;"
 val keepHomeTopBarPatch = bytecodePatch(
     name = "Keep Home's top bar",
     description = "Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll. " +
-        "Starts off. Turn it on in HushGram settings > Feed.",
+        "A second switch shows your feed blurred under them. Both start off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

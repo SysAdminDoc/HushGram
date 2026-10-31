@@ -1394,6 +1394,9 @@ Hide captions	隱藏說明文字
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	移除動態貼文與 Reels 上的說明文字。貼文會保留，留言頁面頂端仍會顯示。
 Keep Home's top bar	固定首頁頂端列
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	捲動時讓 Instagram 標誌和旁邊的按鈕留在首頁頂端，不會滑走。
+# context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.
+See-through top bar	透明頂端列
+Shows your feed blurred under Home's top bar, like frosted glass.	在首頁頂端列下方以霧面玻璃般的模糊效果顯示你的動態。
 Keep the Reels top bar	固定 Reels 頂端列
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	滑動瀏覽 Reels 時讓 Reels 標題、好友分頁和旁邊的按鈕留在頂端，不會滑走。
 Keep a viewing history	保留瀏覽紀錄

@@ -1391,6 +1391,9 @@ Hide captions	Sembunyikan keterangan
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Menghapus keterangan dari kiriman di beranda dan dari reel. Kiriman tetap ada, dan lembar komentar masih menampilkannya.
 Keep Home's top bar	Tetap tampilkan bilah atas Beranda
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Menjaga logo Instagram dan tombol di sampingnya tetap di atas Beranda saat Anda menggulir, tidak digeser hilang.
+# context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.
+See-through top bar	Bilah atas tembus pandang
+Shows your feed blurred under Home's top bar, like frosted glass.	Menampilkan feed Anda secara buram di bawah bilah atas Beranda, seperti kaca buram.
 Keep the Reels top bar	Tetap tampilkan bilah atas Reels
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Menjaga judul Reels, tab Teman, dan tombol di sampingnya tetap di atas saat Anda menggeser reel, tidak digeser hilang.
 Keep a viewing history	Simpan riwayat tontonan

@@ -8,7 +8,7 @@ import static org.junit.Assert.*;
 import android.app.Activity;
 import android.preference.PreferenceGroup;
 import android.preference.SwitchPreference;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.EnumSet;
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +37,7 @@ public class HomeTopBarSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.KEEP_HOME_TOP_BAR.resetToDefault();
+        Settings.SEE_THROUGH_HOME_TOP_BAR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -47,6 +48,7 @@ public class HomeTopBarSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.KEEP_HOME_TOP_BAR.resetToDefault();
+        Settings.SEE_THROUGH_HOME_TOP_BAR.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -84,9 +86,30 @@ public class HomeTopBarSettingsTest {
         assertFalse(row.isChecked());
         assertFalse(Settings.KEEP_HOME_TOP_BAR.get());
         assertTrue("Home hands its header over as it opens, so a flip needs a restart", Settings.KEEP_HOME_TOP_BAR.rebootApp);
-        assertEquals(Collections.singletonList(Settings.KEEP_HOME_TOP_BAR), PatchFamily.HOME_TOP_BAR.switches);
+        assertEquals(Arrays.asList(Settings.KEEP_HOME_TOP_BAR, Settings.SEE_THROUGH_HOME_TOP_BAR),
+                PatchFamily.HOME_TOP_BAR.switches);
         assertEquals("Keep Home's top bar", PatchFamily.HOME_TOP_BAR.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_HOME_TOP_BAR.key));
+    }
+    /** See-through top bar (#418): right under Keep Home's top bar, off to start, asks for a restart. */
+    @Test public void seeThroughStartsOffRightUnderKeep() throws Exception {
+        open(EnumSet.of(PatchFamily.FEED_FOLLOW, PatchFamily.HIDE_CAPTIONS, PatchFamily.HOME_TOP_BAR));
+        SwitchPreference keep = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.KEEP_HOME_TOP_BAR.key);
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.SEE_THROUGH_HOME_TOP_BAR.key);
+        assertNotNull(row);
+        assertEquals("See-through top bar", row.getTitle().toString());
+        assertEquals("Shows your feed blurred under Home's top bar, like frosted glass.", row.getSummary().toString());
+        PreferenceGroup feed = row.getParent();
+        assertEquals("Feed", feed.getTitle().toString());
+        assertEquals("right after Keep Home's top bar", indexOf(feed, keep) + 1, indexOf(feed, row));
+        assertFalse(row.isChecked());
+        assertFalse(Settings.SEE_THROUGH_HOME_TOP_BAR.get());
+        assertTrue("the glass goes on as Home hands its header over", Settings.SEE_THROUGH_HOME_TOP_BAR.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SEE_THROUGH_HOME_TOP_BAR.key));
+    }
+    @Test public void missingPatchHasNoSeeThroughSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.HIDE_CAPTIONS));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.SEE_THROUGH_HOME_TOP_BAR.key));
     }
     private static int indexOf(PreferenceGroup group, SwitchPreference row) {
         for (int i = 0; i < group.getPreferenceCount(); i++) if (group.getPreference(i) == row) return i;

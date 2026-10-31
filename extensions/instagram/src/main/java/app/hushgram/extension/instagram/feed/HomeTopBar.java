@@ -27,6 +27,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
  * anything thrown, the controller gets Instagram's list.
+ *
+ * <p>The same hook hands the header to {@link GlassTopBar} for the See-through top bar switch (#418).
  */
 public final class HomeTopBar {
     static final String HOOK = "header list";
@@ -43,7 +45,10 @@ public final class HomeTopBar {
     static List<?> slidingViews(List<?> views, BooleanSupplier on) {
         try {
             HookStatus.invoked(FamilyNames.HOME_TOP_BAR);
-            if (views == null || !on.getAsBoolean()) return views;
+            if (views == null) return null;
+            // The see-through top bar is its own switch: the header gets the glass whether it slides or not (#418).
+            GlassTopBar.glaze(views);
+            if (!on.getAsBoolean()) return views;
             for (Object view : views) {
                 if (view instanceof View) ((View) view).setTranslationY(0f);
             }

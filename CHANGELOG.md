@@ -10,6 +10,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Ambient light` is a new patch. Turn it on under Feed and a post's photo or video in Home and Following gets a soft glow in its own colors, and so do the bands around a reel that doesn't fill the screen. The glow follows a video while it plays. `Glow spread` picks how far the light reaches and `Glow speed` how fast it changes. It starts off. Asked for in #416.
 * **Instagram:** `Carousel arrows` is a new patch. Its switch under Feed puts a back and a next arrow on a carousel post, so a tap moves to the next photo or video without swiping. It starts off. Asked for in #417.
 * **Instagram - Carousel arrows:** `Page dots on a pill` is a new switch right under the arrows. It moves a carousel post's page dots onto a round pill at the bottom of the photo or video, with the page you're on in blue, and it starts off. Asked for in #419.
+* **Instagram - Keep Home's top bar:** `See-through top bar` is a new switch right under it. Home's top bar turns into frosted glass, so your posts show through it blurred as they scroll under. It works whether the bar stays or slides away. Restart Instagram after you flip it. Starts off. Asked for in #418.
 * **Instagram:** `Hide ads` now hides the ad that shows up among a post's or reel's comments too. Asked for in #415.
 * **Instagram - Stop Reels scrolling:** `Stop after 20 reels` is now `Stop after a set number of reels`. Two sliders under it pick how many reels play (5 to 100) and how long Instagram sits in the background before swiping returns (5 to 120 minutes). Asked for in #405.
 * **Instagram:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, on this phone only. `Clear viewing history` empties it. Starts off. Asked for in #228.
@@ -94,8 +95,8 @@ Every HushGram release, newest first.
 
 ### Improvements
 
-* **Tooling:** Updated to Morphe patcher 2.1.0, so patching needs Morphe Manager 2.3.0 or newer. On a computer, use morphe-desktop 1.20.0 or newer. The dependency audit now reviews Morphe Desktop 1.20.0.
 * **Instagram:** In Morphe Manager, `Ask before a like` and `Long press to zoom` now sit under Interaction beside `Change the like animation`, so the Feed group stays short enough to scan. Their switches are still on the Feed settings page.
+* **Tooling:** Updated to Morphe patcher 2.1.0, so patching needs Morphe Manager 2.3.0 or newer. On a computer, use morphe-desktop 1.20.0 or newer. The dependency audit now reviews Morphe Desktop 1.20.0.
 * **Instagram:** `See who a story mentions` opens its list again when you come back from an account's profile, so you can go down the list without reopening it each time. Close ends it. Asked for in #403.
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
 * **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.

@@ -256,6 +256,8 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.KEEP_HOME_TOP_BAR, L10n.t("Keep Home's top bar"),
                     L10n.t("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, "
                             + "instead of sliding them away.")));
+            feed.addPreference(toggle(context, Settings.SEE_THROUGH_HOME_TOP_BAR, L10n.t("See-through top bar"),
+                    L10n.t("Shows your feed blurred under Home's top bar, like frosted glass.")));
         }
     }
 }

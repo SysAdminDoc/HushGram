@@ -1391,6 +1391,9 @@ Hide captions	Açıklamaları gizle
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Akıştaki gönderilerden ve reel'lerden açıklamayı kaldırır. Gönderi kalır, yorumlar sayfası açıklamayı yine gösterir.
 Keep Home's top bar	Ana sayfanın üst çubuğunu sabitle
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Kaydırırken Instagram logosunu ve yanındaki düğmeleri kaydırıp gizlemek yerine Ana sayfanın üstünde tutar.
+# context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.
+See-through top bar	Saydam üst çubuk
+Shows your feed blurred under Home's top bar, like frosted glass.	Akışınızı Ana sayfanın üst çubuğunun altında buzlu cam gibi bulanık gösterir.
 Keep the Reels top bar	Reels üst çubuğunu sabitle
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Reels arasında kaydırırken Reels başlığını, Arkadaşlar sekmesini ve yanındaki düğmeleri gizlemek yerine üstte tutar.
 Keep a viewing history	Görüntüleme geçmişi tut

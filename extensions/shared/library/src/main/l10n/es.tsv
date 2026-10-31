@@ -1391,6 +1391,9 @@ Hide captions	Ocultar descripciones
 Takes the caption off posts in your feed and off reels. The post stays, and the comments sheet still shows it.	Quita la descripción de las publicaciones del feed y de los reels. La publicación se queda y la hoja de comentarios la sigue mostrando.
 Keep Home's top bar	Fijar la barra superior de Inicio
 Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.	Mantiene el logo de Instagram y los botones de al lado arriba en Inicio mientras te desplazas, en vez de ocultarlos.
+# context: Feed settings: the See-through top bar switch, right under Keep Home's top bar (#418). It blurs the posts that scroll under Home's header, the bar with the Instagram logo.
+See-through top bar	Barra superior translúcida
+Shows your feed blurred under Home's top bar, like frosted glass.	Muestra tu feed desenfocado bajo la barra superior de Inicio, como un cristal esmerilado.
 Keep the Reels top bar	Fijar la barra superior de Reels
 Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.	Mantiene arriba el título Reels, la pestaña Amigos y los botones de al lado mientras deslizas entre reels, en vez de ocultarlos.
 Keep a viewing history	Guardar un historial de lo visto
