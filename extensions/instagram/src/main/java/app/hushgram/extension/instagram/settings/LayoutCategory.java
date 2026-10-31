@@ -48,6 +48,7 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.NOTO_EMOJI, L10n.t("Google's emoji everywhere"),
                         L10n.t("Shows every emoji in Google's style instead of your phone's own. Restart Instagram "
                                 + "to see the change.")));
+                layout.addPreference(page.emojiRow(context));
             }
             if (build.contains(PatchFamily.ACCENT_COLOR)) {
                 layout.addPreference(toggle(context, Settings.ACCENT_COLOR, L10n.t("Accent color"),

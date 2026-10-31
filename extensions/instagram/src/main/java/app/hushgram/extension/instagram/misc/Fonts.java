@@ -68,6 +68,7 @@ public final class Fonts {
     /** What's counted for each emoji picture drawn in the picked file, and each one named for it. */
     static final String EMOJI = "Instagram's emoji pictures drawn in the picked file";
     static final String EMOJI_NAMED = "Instagram's emoji pictures named for the picked file";
+    static final String EMOJI_CHOSEN = "Instagram's emoji pictures drawn in the chosen emoji";
 
     /** The weight a TextView with no Typeface of its own draws in. */
     static final int REGULAR = 400;
@@ -168,13 +169,20 @@ public final class Fonts {
      * reaches them as it reaches text, or [instagrams] otherwise. Instagram draws those pictures in
      * black, so a file without colors (a text font with a few emoji, or a black and white emoji font)
      * would leave them black, unseen on a dark screen. Emoji the file lacks still draw from the
-     * phone's. Always the same Typeface, since Instagram compares them. Never throws.
+     * phone's. Always the same Typeface, since Instagram compares them. An emoji pack or file
+     * chosen under Emoji style ({@link EmojiFonts}) comes first. Never throws.
      */
     @Nullable
     public static Typeface emojiTypeface(@Nullable Typeface instagrams) {
         try {
             HookStatus.invoked(FamilyNames.FONT);
-            if (!Utils.settingsReady() || Settings.FONT.get() != FontChoice.FILE) return instagrams;
+            if (!Utils.settingsReady()) return instagrams;
+            Typeface emoji = EmojiFonts.active();
+            if (emoji != null) {
+                HookStatus.counted(FamilyNames.FONT, EMOJI_CHOSEN);
+                return emoji;
+            }
+            if (Settings.FONT.get() != FontChoice.FILE) return instagrams;
             Typeface picked = chosen();
             if (picked == null || fileMark == null) return instagrams;
             HookStatus.counted(FamilyNames.FONT, EMOJI);
@@ -192,19 +200,25 @@ public final class Fonts {
      * first "//", which says nothing of the font. With a font file that has color emoji picked, that
      * part also carries the file's size and time, so emoji drawn before it was picked aren't shown in
      * its place and picking another file draws them again. The rest, which Instagram reads to draw,
-     * stays. Answers [name] as it is with any other choice. Never throws.
+     * stays. An emoji pack or file chosen under Emoji style marks it the same way, with its own
+     * prefix. Answers [name] as it is with any other choice. Never throws.
      */
     public static String emojiName(String name) {
         try {
             HookStatus.invoked(FamilyNames.FONT);
-            if (name == null || !Utils.settingsReady() || Settings.FONT.get() != FontChoice.FILE) return name;
-            if (chosen() == null) return name;
-            String mark = fileMark;
+            if (name == null || !Utils.settingsReady()) return name;
+            String mark = EmojiFonts.mark();
+            String prefix = "-hge";
+            if (mark == null) {
+                if (Settings.FONT.get() != FontChoice.FILE || chosen() == null) return name;
+                mark = fileMark;
+                prefix = "-hg";
+            }
             if (mark == null) return name;
             HookStatus.counted(FamilyNames.FONT, EMOJI_NAMED);
             int end = name.indexOf("//");
-            if (end < 0) return name + "-hg" + mark;
-            return name.substring(0, end) + "-hg" + mark + name.substring(end);
+            if (end < 0) return name + prefix + mark;
+            return name.substring(0, end) + prefix + mark + name.substring(end);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FONT, "emoji name", failure);
             return name;
@@ -485,6 +499,9 @@ public final class Fonts {
 
         private Prepared(File temporary) { this.temporary = temporary; }
 
+        /** The staged copy, for a check of its own before it's installed. */
+        File staged() { return temporary; }
+
         /** Copies the previous file before final authorization, without moving it out of the way. */
         public boolean prepareTarget(File destination) {
             if (target != null || !temporary.getParentFile().equals(destination.getParentFile())) return false;
@@ -633,9 +650,12 @@ public final class Fonts {
         try {
             Setting<?> setting = key.equals(Settings.FONT.key) ? Settings.FONT
                     : key.equals(Settings.STORY_FONTS.key) ? Settings.STORY_FONTS
-                    : key.equals(Settings.STORY_EMOJI.key) ? Settings.STORY_EMOJI : null;
+                    : key.equals(Settings.STORY_EMOJI.key) ? Settings.STORY_EMOJI
+                    : key.equals(Settings.EMOJI_FONT.key) ? Settings.EMOJI_FONT : null;
             if (setting == null) return;
-            if (!(setting == Settings.FONT ? FontChoice.FILE.name() : "true").equals(expected)) return;
+            boolean known = setting == Settings.FONT ? FontChoice.FILE.name().equals(expected)
+                    : setting == Settings.EMOJI_FONT ? EmojiChoice.kept(expected) : "true".equals(expected);
+            if (!known) return;
             File target = new File(journal.getParentFile(), name);
             File previous = new File(journal.getParentFile(), name + PREVIOUS);
             // FILE/true may predate the import, so the option cannot prove that this file committed.

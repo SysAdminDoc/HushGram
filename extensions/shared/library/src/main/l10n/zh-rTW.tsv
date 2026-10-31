@@ -1469,3 +1469,14 @@ Instagram goes through %1$s.	Instagram 透過 %1$s 連線。
 Smooth story opening	平順開啟限時動態
 # context: summary under that switch
 A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	在限時動態橫列點選的限時動態會以較慢、不回彈的縮放開啟，關閉時也一樣。
+Emoji pack	表情符號套件
+Your phone's emoji	手機的表情符號
+An emoji font file	表情符號字型檔案
+Your phone's emoji, or Google's with the switch above on. You can also download a free emoji pack or pick a color emoji font file.	使用手機的表情符號，開啟上方開關時則使用 Google 的表情符號。你也可以下載免費的表情符號套件，或選擇彩色表情符號字型檔案。
+Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.	表情符號以 %1$s 顯示，從其製作者下載。請重新啟動 Instagram 以套用變更。
+Emoji draw from the emoji font file you picked. Pick it again to change the file. Restart Instagram to see a change.	表情符號使用所選的表情符號字型檔案。再次選擇即可變更檔案。請重新啟動 Instagram 以套用變更。
+Downloading the emoji...	正在下載表情符號...
+Couldn't download the emoji. Try again.	無法下載表情符號，請再試一次。
+Emoji saved. Restart Instagram to see them.	表情符號已儲存。請重新啟動 Instagram 以查看。
+No color emoji in that file. Nothing changed.	該檔案中沒有彩色表情符號，未做任何變更。
+Couldn't load your emoji, so the phone's show.	無法載入你的表情符號，因此顯示手機的表情符號。

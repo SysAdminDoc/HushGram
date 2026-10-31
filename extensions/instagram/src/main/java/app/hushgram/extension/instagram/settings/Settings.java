@@ -1422,6 +1422,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_noto_emoji", FALSE, true);
 
     /**
+     * Where Instagram's emoji draw from: the phone's, a free emoji pack HushGram downloads, or an
+     * emoji font file picked in settings ({@link app.hushgram.extension.instagram.misc.EmojiFonts}).
+     * Any but the phone's goes ahead of {@link #NOTO_EMOJI}. Read once per process, so a change shows
+     * after a restart. Starts on the phone's.
+     */
+    public static final EnumSetting<app.hushgram.extension.instagram.misc.EmojiChoice> EMOJI_FONT =
+            new EnumSetting<>("hushgram_emoji_font", app.hushgram.extension.instagram.misc.EmojiChoice.PHONE, true);
+
+    /**
      * Instagram's blue turns into the color picked in {@link #ACCENT_HUE} wherever it's read from the
      * theme ({@link app.hushgram.extension.instagram.misc.AccentColor}). Colors already on screen keep
      * theirs, so a change shows after a restart. Off to start.

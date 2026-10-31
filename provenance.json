@@ -432,6 +432,10 @@
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/ConfigurationGuardTest.java",
         "extensions/instagram/src/test/java/app/hushgram/extension/instagram/settings/SettingsDeferredSaveTest.java",
         "extensions/instagram/src/test/resources/settings-row-ids-452.txt",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/EmojiFontsTest.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/instagram/misc/EmojiFontsForTests.java",
+        "extensions/instagram/src/test/java/app/hushgram/extension/shared/ToastWidthTest.java",
+        "extensions/instagram/src/test/resources/toast-width-baseline.txt",
         "patches/src/test/kotlin/app/morphe/patches/instagram/misc/extension/RuntimeFloorTest.kt"
       ],
       "origin": "original",

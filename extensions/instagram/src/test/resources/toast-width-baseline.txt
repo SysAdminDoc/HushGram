@@ -1,0 +1,303 @@
+# Copyright 2026 HushGram contributors. https://github.com/SysAdminDoc/HushGram
+# Toasts that ran past two lines of 28 characters when ToastWidthTest came in: the language,
+# a tab, then the English. Shorten one and take its line off. Nothing new goes on this list.
+de	A save or an export is still running. Restart once it's done.
+de	A username is up to 30 letters, numbers, dots and underscores
+de	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+de	Couldn't change every Ghost mode switch. Check them below.
+de	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+de	Couldn't clear the download history. Try again.
+de	Couldn't clear the saved copies. Try again.
+de	Couldn't clear the unfollower list. Try again.
+de	Couldn't clear the viewing history. Try again.
+de	Couldn't export HushGram settings. Try another file.
+de	Couldn't hide this notice. Try again.
+de	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+de	Couldn't put back the diagnostic data. Try again.
+de	Couldn't restart Instagram. Close it and open it again.
+de	Couldn't save the playback quality. Open HushGram settings to set it.
+de	Couldn't start that. Try again.
+de	Couldn't start the report export. Try again shortly.
+de	Couldn't turn HushGram back on. Try again.
+de	Couldn't update the remembered playback positions.
+de	Couldn't use that folder. Saves still go where they did.
+de	Couldn't use that settings file. Your settings haven't changed.
+de	Diagnostic data cleared. Tap again to put it back.
+de	Emoji font saved. Emoji in story text draw in it.
+de	Font saved. Restart Instagram to see it.
+de	Ghost mode needs at least one switch to turn.
+de	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+de	No app on this phone can open the link. The address is %1$s.
+de	Playback quality: %1$s. The next video you open uses it.
+de	Posts from @%1$s are hidden from Home and Following
+de	Remembered playback positions restored.
+de	Restart Instagram to bring Search back to your tab bar.
+de	Restart Instagram to put Messages on your tab bar.
+de	Search isn't on your tab bar, so this button can't open it here.
+de	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+de	Set a screen lock on your phone so HushGram can lock Instagram.
+de	Set a screen lock on your phone so HushGram can lock your messages.
+de	That file isn't a font HushGram can use. Nothing was added.
+de	That file isn't a font HushGram can use. Story emoji haven't changed.
+de	That file isn't a font HushGram can use. Your font hasn't changed.
+de	That isn't a domain. Type one like example.com, or leave it blank.
+de	That isn't a place. Type a latitude and a longitude with a comma between them.
+de	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+de	That's a trial reel, so it isn't on their profile
+de	The diagnostic report couldn't be saved yet. Try again in a moment.
+de	The diagnostic report couldn't be saved. Try again.
+de	The setting couldn't finish updating. Its saved value is shown.
+de	These settings are locked. Ask to unlock first.
+de	These settings open at %1$s, for 10 minutes.
+de	This phone has no file picker. Your settings haven't changed.
+de	To open Messages here, turn on Show the Messages tab and restart.
+de	To open Search here, turn off Hide the Search tab and restart.
+de	Undo has expired.
+de	Wait stopped. These settings stay locked.
+de	You cleared the remembered playback positions.
+en	A save or an export is still running. Restart once it's done.
+en	A username is up to 30 letters, numbers, dots and underscores
+en	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+en	Couldn't change every Ghost mode switch. Check them below.
+en	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+en	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+en	Couldn't save the playback quality. Open HushGram settings to set it.
+en	Couldn't update the remembered playback positions.
+en	Couldn't use that folder. Saves still go where they did.
+en	Couldn't use that settings file. Your settings haven't changed.
+en	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+en	No app on this phone can open the link. The address is %1$s.
+en	Playback quality: %1$s. The next video you open uses it.
+en	Posts from @%1$s are hidden from Home and Following
+en	Search isn't on your tab bar, so this button can't open it here.
+en	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+en	Set a screen lock on your phone so HushGram can lock Instagram.
+en	Set a screen lock on your phone so HushGram can lock your messages.
+en	That file isn't a font HushGram can use. Nothing was added.
+en	That file isn't a font HushGram can use. Story emoji haven't changed.
+en	That file isn't a font HushGram can use. Your font hasn't changed.
+en	That isn't a domain. Type one like example.com, or leave it blank.
+en	That isn't a place. Type a latitude and a longitude with a comma between them.
+en	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+en	The diagnostic report couldn't be saved yet. Try again in a moment.
+en	The diagnostic report couldn't be saved. Try again.
+en	The setting couldn't finish updating. Its saved value is shown.
+en	This phone has no file picker. Your settings haven't changed.
+en	To open Messages here, turn on Show the Messages tab and restart.
+en	To open Search here, turn off Hide the Search tab and restart.
+es	A save or an export is still running. Restart once it's done.
+es	A username is up to 30 letters, numbers, dots and underscores
+es	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+es	Couldn't change every Ghost mode switch. Check them below.
+es	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+es	Couldn't clear the download history. Try again.
+es	Couldn't clear the saved copies. Try again.
+es	Couldn't clear the viewing history. Try again.
+es	Couldn't export HushGram settings. Try another file.
+es	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+es	Couldn't put back the diagnostic data. Try again.
+es	Couldn't restart Instagram. Close it and open it again.
+es	Couldn't save the playback quality. Open HushGram settings to set it.
+es	Couldn't start the report export. Try again shortly.
+es	Couldn't turn HushGram back on. Try again.
+es	Couldn't update the remembered playback positions.
+es	Couldn't use that folder. Saves still go where they did.
+es	Couldn't use that settings file. Your settings haven't changed.
+es	Diagnostic data cleared. Tap again to put it back.
+es	Emoji font saved. Emoji in story text draw in it.
+es	Ghost mode needs at least one switch to turn.
+es	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+es	No app on this phone can open the link. The address is %1$s.
+es	Playback quality: %1$s. The next video you open uses it.
+es	Posts from @%1$s are hidden from Home and Following
+es	Posts from @%1$s show again
+es	Remembered playback positions restored.
+es	Restart Instagram to bring Search back to your tab bar.
+es	Restart Instagram to put Messages on your tab bar.
+es	Search isn't on your tab bar, so this button can't open it here.
+es	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+es	Set a screen lock on your phone so HushGram can lock Instagram.
+es	Set a screen lock on your phone so HushGram can lock your messages.
+es	That file isn't a font HushGram can use. Nothing was added.
+es	That file isn't a font HushGram can use. Story emoji haven't changed.
+es	That file isn't a font HushGram can use. Your font hasn't changed.
+es	That isn't a domain. Type one like example.com, or leave it blank.
+es	That isn't a place. Type a latitude and a longitude with a comma between them.
+es	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+es	The diagnostic report couldn't be saved yet. Try again in a moment.
+es	The diagnostic report couldn't be saved. Try again.
+es	The setting couldn't finish updating. Its saved value is shown.
+es	These settings are locked. Ask to unlock first.
+es	These settings open at %1$s, for 10 minutes.
+es	This phone has no file picker. Your settings haven't changed.
+es	To open Messages here, turn on Show the Messages tab and restart.
+es	To open Search here, turn off Hide the Search tab and restart.
+in	A save or an export is still running. Restart once it's done.
+in	A username is up to 30 letters, numbers, dots and underscores
+in	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+in	Couldn't change every Ghost mode switch. Check them below.
+in	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+in	Couldn't clear the unfollower list. Try again.
+in	Couldn't export HushGram settings. Try another file.
+in	Couldn't hide this notice. Try again.
+in	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+in	Couldn't restart Instagram. Close it and open it again.
+in	Couldn't save the playback quality. Open HushGram settings to set it.
+in	Couldn't start the report export. Try again shortly.
+in	Couldn't use that folder. Saves still go where they did.
+in	Couldn't use that settings file. Your settings haven't changed.
+in	Diagnostic data cleared. Tap again to put it back.
+in	Emoji font saved. Emoji in story text draw in it.
+in	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+in	No app on this phone can open the link. The address is %1$s.
+in	Playback quality: %1$s. The next video you open uses it.
+in	Posts from @%1$s are hidden from Home and Following
+in	Restart Instagram to bring Search back to your tab bar.
+in	Search isn't on your tab bar, so this button can't open it here.
+in	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+in	Set a screen lock on your phone so HushGram can lock Instagram.
+in	Set a screen lock on your phone so HushGram can lock your messages.
+in	That file isn't a font HushGram can use. Nothing was added.
+in	That file isn't a font HushGram can use. Story emoji haven't changed.
+in	That file isn't a font HushGram can use. Your font hasn't changed.
+in	That isn't a domain. Type one like example.com, or leave it blank.
+in	That isn't a place. Type a latitude and a longitude with a comma between them.
+in	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+in	The diagnostic report couldn't be saved yet. Try again in a moment.
+in	The setting couldn't finish updating. Its saved value is shown.
+in	This phone has no file picker. Your settings haven't changed.
+in	To open Messages here, turn on Show the Messages tab and restart.
+in	To open Search here, turn off Hide the Search tab and restart.
+in	Wait stopped. These settings stay locked.
+it	A save or an export is still running. Restart once it's done.
+it	A username is up to 30 letters, numbers, dots and underscores
+it	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+it	Couldn't change every Ghost mode switch. Check them below.
+it	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+it	Couldn't clear the download history. Try again.
+it	Couldn't clear the viewing history. Try again.
+it	Couldn't export HushGram settings. Try another file.
+it	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+it	Couldn't restart Instagram. Close it and open it again.
+it	Couldn't save the playback quality. Open HushGram settings to set it.
+it	Couldn't start the report export. Try again shortly.
+it	Couldn't update the remembered playback positions.
+it	Couldn't use that folder. Saves still go where they did.
+it	Couldn't use that settings file. Your settings haven't changed.
+it	Diagnostic data cleared. Tap again to put it back.
+it	Emoji font saved. Emoji in story text draw in it.
+it	Ghost mode needs at least one switch to turn.
+it	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+it	No app on this phone can open the link. The address is %1$s.
+it	Playback quality: %1$s. The next video you open uses it.
+it	Posts from @%1$s are hidden from Home and Following
+it	Restart Instagram to bring Search back to your tab bar.
+it	Restart Instagram to put Messages on your tab bar.
+it	Search isn't on your tab bar, so this button can't open it here.
+it	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+it	Set a screen lock on your phone so HushGram can lock Instagram.
+it	Set a screen lock on your phone so HushGram can lock your messages.
+it	That file isn't a font HushGram can use. Nothing was added.
+it	That file isn't a font HushGram can use. Story emoji haven't changed.
+it	That file isn't a font HushGram can use. Your font hasn't changed.
+it	That isn't a domain. Type one like example.com, or leave it blank.
+it	That isn't a place. Type a latitude and a longitude with a comma between them.
+it	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+it	The diagnostic report couldn't be saved yet. Try again in a moment.
+it	The setting couldn't finish updating. Its saved value is shown.
+it	These settings are locked. Ask to unlock first.
+it	These settings open at %1$s, for 10 minutes.
+it	This phone has no file picker. Your settings haven't changed.
+it	To open Messages here, turn on Show the Messages tab and restart.
+it	To open Search here, turn off Hide the Search tab and restart.
+it	Wait stopped. These settings stay locked.
+ko	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+ko	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+ko	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+ko	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+pt-rbr	A save or an export is still running. Restart once it's done.
+pt-rbr	A username is up to 30 letters, numbers, dots and underscores
+pt-rbr	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+pt-rbr	Couldn't change every Ghost mode switch. Check them below.
+pt-rbr	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+pt-rbr	Couldn't clear the download history. Try again.
+pt-rbr	Couldn't clear the saved copies. Try again.
+pt-rbr	Couldn't export HushGram settings. Try another file.
+pt-rbr	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+pt-rbr	Couldn't put back the diagnostic data. Try again.
+pt-rbr	Couldn't restart Instagram. Close it and open it again.
+pt-rbr	Couldn't save the playback quality. Open HushGram settings to set it.
+pt-rbr	Couldn't start the report export. Try again shortly.
+pt-rbr	Couldn't update the remembered playback positions.
+pt-rbr	Couldn't use that folder. Saves still go where they did.
+pt-rbr	Couldn't use that settings file. Your settings haven't changed.
+pt-rbr	Diagnostic data cleared. Tap again to put it back.
+pt-rbr	Diagnostic report copied to the clipboard.
+pt-rbr	Emoji font saved. Emoji in story text draw in it.
+pt-rbr	Ghost mode needs at least one switch to turn.
+pt-rbr	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+pt-rbr	No app on this phone can open the link. The address is %1$s.
+pt-rbr	Playback quality: %1$s. The next video you open uses it.
+pt-rbr	Posts from @%1$s are hidden from Home and Following
+pt-rbr	Restart Instagram to bring Search back to your tab bar.
+pt-rbr	Restart Instagram to put Messages on your tab bar.
+pt-rbr	Search isn't on your tab bar, so this button can't open it here.
+pt-rbr	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+pt-rbr	Set a screen lock on your phone so HushGram can lock Instagram.
+pt-rbr	Set a screen lock on your phone so HushGram can lock your messages.
+pt-rbr	That file isn't a font HushGram can use. Nothing was added.
+pt-rbr	That file isn't a font HushGram can use. Story emoji haven't changed.
+pt-rbr	That file isn't a font HushGram can use. Your font hasn't changed.
+pt-rbr	That isn't a domain. Type one like example.com, or leave it blank.
+pt-rbr	That isn't a place. Type a latitude and a longitude with a comma between them.
+pt-rbr	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+pt-rbr	The diagnostic report couldn't be saved yet. Try again in a moment.
+pt-rbr	The diagnostic report couldn't be saved. Try again.
+pt-rbr	The setting couldn't finish updating. Its saved value is shown.
+pt-rbr	These settings are locked. Ask to unlock first.
+pt-rbr	This phone has no file picker. Your settings haven't changed.
+pt-rbr	To open Messages here, turn on Show the Messages tab and restart.
+pt-rbr	To open Search here, turn off Hide the Search tab and restart.
+pt-rbr	Wait stopped. These settings stay locked.
+tr	A save or an export is still running. Restart once it's done.
+tr	A username is up to 30 letters, numbers, dots and underscores
+tr	Added %1$s. Pick it in the story text editor alongside Instagram's fonts.
+tr	Chat saved in Downloads/HushGram.
+tr	Chat saved in the app's Download folder.
+tr	Couldn't change every Ghost mode switch. Check them below.
+tr	Couldn't change every Ghost mode switch. Open HushGram settings to check them.
+tr	Couldn't export HushGram settings. Try another file.
+tr	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+tr	Couldn't restart Instagram. Close it and open it again.
+tr	Couldn't save the playback quality. Open HushGram settings to set it.
+tr	Couldn't start the report export. Try again shortly.
+tr	Couldn't use that folder. Saves still go where they did.
+tr	Couldn't use that settings file. Your settings haven't changed.
+tr	Diagnostic data cleared. Tap again to put it back.
+tr	Emoji font saved. Emoji in story text draw in it.
+tr	Font saved. Restart Instagram to see it.
+tr	Ghost mode needs at least one switch to turn.
+tr	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+tr	No app on this phone can open the link. The address is %1$s.
+tr	Playback quality: %1$s. The next video you open uses it.
+tr	Posts from @%1$s are hidden from Home and Following
+tr	Restart Instagram to bring Search back to your tab bar.
+tr	Restart Instagram to put Messages on your tab bar.
+tr	Saves go to Movies and Pictures again.
+tr	Search isn't on your tab bar, so this button can't open it here.
+tr	Sent to another app. To save here instead, turn off Send downloads to another app under Downloads.
+tr	Set a screen lock on your phone so HushGram can lock Instagram.
+tr	Set a screen lock on your phone so HushGram can lock your messages.
+tr	That file isn't a font HushGram can use. Nothing was added.
+tr	That file isn't a font HushGram can use. Story emoji haven't changed.
+tr	That file isn't a font HushGram can use. Your font hasn't changed.
+tr	That isn't a domain. Type one like example.com, or leave it blank.
+tr	That isn't a place. Type a latitude and a longitude with a comma between them.
+tr	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.
+tr	The diagnostic report couldn't be saved yet. Try again in a moment.
+tr	The setting couldn't finish updating. Its saved value is shown.
+tr	To open Messages here, turn on Show the Messages tab and restart.
+tr	To open Search here, turn off Hide the Search tab and restart.
+zh-rtw	Couldn't load your font file, so Instagram's font shows. Pick it again in HushGram settings > Layout.
+zh-rtw	HushGram paused itself because Instagram kept crashing as it started. Its switches stay off until you turn it back on in HushGram settings.
+zh-rtw	That's %1$d reels. Swiping in Reels is off until Instagram has been in the background for %2$d minutes.

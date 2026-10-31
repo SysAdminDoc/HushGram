@@ -18,10 +18,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * EmojiCompat's process with a replace strategy, and the patch asks {@link #replaceStrategy} for it
  * first. With the switch on it answers {@link #REPLACE_ALL}, so EmojiCompat draws every emoji it
  * knows from Google's font. Text already on screen keeps how it was drawn, so a change shows fully
- * after a restart.
+ * after a restart. With an emoji pack or file chosen ({@link EmojiFonts}) it answers the same, so
+ * every emoji becomes a span the chosen font draws in place of EmojiCompat's (#166).
  *
- * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
- * anything thrown, Instagram's own strategy goes through.
+ * <p>The hook fails open: with the switch off and no emoji font chosen, HushGram paused, the
+ * settings not read yet or anything thrown, Instagram's own strategy goes through.
  */
 public final class EmojiStyle {
     /** EmojiCompat's REPLACE_STRATEGY_ALL: draw every emoji from its font. */
@@ -29,6 +30,9 @@ public final class EmojiStyle {
 
     /** What's counted when text is drawn with Google's emoji throughout. */
     static final String GOOGLE = "every emoji in Google's style";
+
+    /** What's counted when text is handed to EmojiCompat for the chosen emoji font. */
+    static final String CHOSEN = "every emoji for the chosen pack or file";
 
     private EmojiStyle() {
     }
@@ -40,7 +44,12 @@ public final class EmojiStyle {
     public static int replaceStrategy(int strategy) {
         try {
             HookStatus.invoked(FamilyNames.EMOJI_STYLE);
-            if (!Utils.settingsReady() || !Settings.NOTO_EMOJI.get()) return strategy;
+            if (!Utils.settingsReady()) return strategy;
+            if (EmojiFonts.active() != null) {
+                HookStatus.counted(FamilyNames.EMOJI_STYLE, CHOSEN);
+                return REPLACE_ALL;
+            }
+            if (!Settings.NOTO_EMOJI.get()) return strategy;
             HookStatus.counted(FamilyNames.EMOJI_STYLE, GOOGLE);
             return REPLACE_ALL;
         } catch (Throwable failure) {

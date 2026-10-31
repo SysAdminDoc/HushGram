@@ -1465,3 +1465,14 @@ Instagram goes through %1$s.	Instagram이 %1$s을(를) 통해 연결됩니다.
 Smooth story opening	스토리 부드럽게 열기
 # context: summary under that switch
 A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	스토리 목록에서 누른 스토리가 튕기지 않는 더 느린 확대로 열리고, 닫힐 때도 같은 방식으로 닫힙니다.
+Emoji pack	이모지 팩
+Your phone's emoji	휴대폰 이모지
+An emoji font file	이모지 글꼴 파일
+Your phone's emoji, or Google's with the switch above on. You can also download a free emoji pack or pick a color emoji font file.	휴대폰 이모지를 사용하며, 위의 스위치를 켜면 Google 이모지를 사용합니다. 무료 이모지 팩을 다운로드하거나 컬러 이모지 글꼴 파일을 선택할 수도 있습니다.
+Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.	이모지를 제작자에게서 받은 %1$s 스타일로 표시합니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Emoji draw from the emoji font file you picked. Pick it again to change the file. Restart Instagram to see a change.	선택한 이모지 글꼴 파일로 이모지를 그립니다. 파일을 바꾸려면 다시 선택하세요. 변경 사항을 보려면 Instagram을 다시 시작하세요.
+Downloading the emoji...	이모지를 다운로드하는 중...
+Couldn't download the emoji. Try again.	이모지를 다운로드하지 못했습니다. 다시 시도하세요.
+Emoji saved. Restart Instagram to see them.	이모지를 저장했습니다. Instagram을 다시 시작하세요.
+No color emoji in that file. Nothing changed.	그 파일에 컬러 이모지가 없습니다. 바뀐 것은 없습니다.
+Couldn't load your emoji, so the phone's show.	이모지를 불러오지 못해 휴대폰 이모지가 표시됩니다.

@@ -146,7 +146,7 @@ public class FontSettingsTest {
         PreferenceGroup layout = row().getParent();
         String[] keys = new String[layout.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = layout.getPreference(i).getKey();
-        assertArrayEquals(new String[] {Settings.REMOVE_BOTTOM_SPACE.key, Settings.FONT.key, Settings.NOTO_EMOJI.key,
+        assertArrayEquals(new String[] {Settings.REMOVE_BOTTOM_SPACE.key, Settings.FONT.key, Settings.NOTO_EMOJI.key, Settings.EMOJI_FONT.key,
                 LayoutCategory.PURE_BLACK_HINT_ROW}, keys);
     }
 

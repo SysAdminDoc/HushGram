@@ -130,6 +130,8 @@ import app.hushgram.extension.instagram.misc.AccentHue;
 import app.hushgram.extension.instagram.misc.AppProxy;
 import app.hushgram.extension.instagram.misc.MaterialYou;
 import app.hushgram.extension.instagram.misc.AppIconChoice;
+import app.hushgram.extension.instagram.misc.EmojiChoice;
+import app.hushgram.extension.instagram.misc.EmojiFonts;
 import app.hushgram.extension.instagram.misc.FontChoice;
 import app.hushgram.extension.instagram.misc.Fonts;
 import app.hushgram.extension.instagram.misc.HapticStyle;
@@ -239,6 +241,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_STORY_FONT = 0x484e;
     private static final int PICK_STORY_EMOJI = 0x484f;
     private static final int PICK_SAVE_FOLDER = 0x4850;
+    private static final int PICK_EMOJI = 0x4851;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -681,6 +684,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || HIDDEN_SOUNDS_ROW.equals(key));
                     belongs |= family == PatchFamily.ACCENT_COLOR && Settings.ACCENT_HUE.key.equals(key);
                     belongs |= family == PatchFamily.FONT && Settings.FONT.key.equals(key);
+                    belongs |= family == PatchFamily.EMOJI_STYLE && Settings.EMOJI_FONT.key.equals(key);
                     belongs |= family == PatchFamily.STORY_FONTS && STORY_FONTS_ROW.equals(key);
                     belongs |= family == PatchFamily.APP_ICON && Settings.APP_ICON.key.equals(key);
                     belongs |= family == PatchFamily.SETTINGS_ROWS && Settings.HIDDEN_SETTINGS_ROWS.key.equals(key);
@@ -1694,7 +1698,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     private void refreshFontRows() {
         boolean busy = Fonts.importActive() || documentRequest != 0;
-        for (String key : new String[]{Settings.FONT.key, Settings.STORY_FONTS.key, Settings.STORY_EMOJI.key, STORY_FONTS_ROW}) {
+        for (String key : new String[]{Settings.FONT.key, Settings.STORY_FONTS.key, Settings.STORY_EMOJI.key, STORY_FONTS_ROW,
+                Settings.EMOJI_FONT.key}) {
             Preference row = findPreference(key);
             if (row == null) continue;
             Setting<?> setting = Setting.getSettingFromPath(key);
@@ -1909,14 +1914,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     private static boolean isFontRequest(int request) {
-        return request == PICK_FONT || request == PICK_STORY_FONT || request == PICK_STORY_EMOJI;
+        return request == PICK_FONT || request == PICK_STORY_FONT || request == PICK_STORY_EMOJI || request == PICK_EMOJI;
     }
 
     private static Setting<?> fontSetting(int request) {
-        return request == PICK_FONT ? Settings.FONT : request == PICK_STORY_FONT ? Settings.STORY_FONTS : Settings.STORY_EMOJI;
+        return request == PICK_FONT ? Settings.FONT : request == PICK_STORY_FONT ? Settings.STORY_FONTS
+                : request == PICK_EMOJI ? Settings.EMOJI_FONT : Settings.STORY_EMOJI;
     }
 
-    private enum FontVerdict { SAVED, INVALID, HELD, STALE, SAVE_FAILED }
+    /** UNREACHED: an emoji pack that couldn't be downloaded, or wasn't the exact file it names. */
+    private enum FontVerdict { SAVED, INVALID, UNREACHED, HELD, STALE, SAVE_FAILED }
 
     private static final class FontResult {
         final int request;
@@ -1960,12 +1967,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     if (input != null) {
                         prepared = request == PICK_FONT ? Fonts.prepare(application, input)
                                 : request == PICK_STORY_FONT ? StoryFonts.prepare(application, input)
+                                : request == PICK_EMOJI ? EmojiFonts.prepare(application, input)
                                 : StoryEmoji.prepare(application, input);
                         if (request == PICK_STORY_FONT) shown = shownName(application, uri);
                     }
                 }
                 result = prepared == null ? new FontResult(request, FontVerdict.INVALID, null)
-                        : installPickedFont(application, request, token, expectedRevision, prepared, shown);
+                        : installPickedFont(application, request, EmojiChoice.FILE, token, expectedRevision, prepared, shown);
             } catch (Exception failure) {
                 Logger.printInfo(() -> "Font: couldn't finish reading the picked file", failure);
                 result = new FontResult(request, FontVerdict.INVALID, null);
@@ -1982,24 +1990,26 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    private static FontResult installPickedFont(Context context, int request, long token, long revision,
+    /** [emoji] is what the Emoji pack row saves for PICK_EMOJI: the pack downloaded, or FILE for a picked file. */
+    private static FontResult installPickedFont(Context context, int request, EmojiChoice emoji, long token, long revision,
                                                 Fonts.Prepared prepared, @Nullable String shown) {
         if (!asyncChangesAllowed()) return new FontResult(request, FontVerdict.HELD, null);
         if (request == PICK_STORY_FONT) {
             synchronized (StoryFonts.class) {
                 String name = StoryFonts.prepareInstall(context, prepared, shown);
                 return name == null ? new FontResult(request, FontVerdict.INVALID, null)
-                        : commitPickedFont(request, token, revision, prepared, name);
+                        : commitPickedFont(request, emoji, token, revision, prepared, name);
             }
         }
         boolean ready = request == PICK_FONT ? Fonts.prepareInstall(context, prepared)
+                : request == PICK_EMOJI ? EmojiFonts.prepareInstall(context, prepared)
                 : StoryEmoji.prepareInstall(context, prepared);
-        return ready ? commitPickedFont(request, token, revision, prepared, null)
+        return ready ? commitPickedFont(request, emoji, token, revision, prepared, null)
                 : new FontResult(request, FontVerdict.INVALID, null);
     }
 
     /** Authorization and the setting revision are read again at the actual transaction boundary. */
-    private static FontResult commitPickedFont(int request, long token, long revision,
+    private static FontResult commitPickedFont(int request, EmojiChoice emoji, long token, long revision,
                                                Fonts.Prepared prepared, @Nullable String name) {
         synchronized (Setting.class) {
             if (!asyncChangesAllowed()) return new FontResult(request, FontVerdict.HELD, null);
@@ -2007,7 +2017,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (!Fonts.ownsImport(token) || setting.savedRevision() != revision) {
                 return new FontResult(request, FontVerdict.STALE, null);
             }
-            if (!prepared.recordSetting(setting, request == PICK_FONT ? FontChoice.FILE : true)) {
+            if (!prepared.recordSetting(setting, request == PICK_FONT ? FontChoice.FILE : request == PICK_EMOJI ? emoji : true)) {
                 return new FontResult(request, FontVerdict.SAVE_FAILED, null);
             }
             if (!prepared.install()) {
@@ -2017,7 +2027,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             Object before = setting.savedValue();
             AbstractPreferenceFragment.noteRunningValue(setting, before);
             boolean saved = request == PICK_FONT ? Settings.FONT.save(FontChoice.FILE)
-                    : request == PICK_STORY_FONT ? Settings.STORY_FONTS.save(true) : Settings.STORY_EMOJI.save(true);
+                    : request == PICK_STORY_FONT ? Settings.STORY_FONTS.save(true)
+                    : request == PICK_EMOJI ? Settings.EMOJI_FONT.save(emoji) : Settings.STORY_EMOJI.save(true);
             if (!saved) {
                 prepared.rollback();
                 return new FontResult(request, FontVerdict.SAVE_FAILED, null);
@@ -2027,6 +2038,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     // This live transaction still owns Setting.class; no later choice can be lost.
                     boolean restored = request == PICK_FONT ? Settings.FONT.save((FontChoice) before)
                             : request == PICK_STORY_FONT ? Settings.STORY_FONTS.save((Boolean) before)
+                            : request == PICK_EMOJI ? Settings.EMOJI_FONT.save((EmojiChoice) before)
                             : Settings.STORY_EMOJI.save((Boolean) before);
                     if (!restored) Logger.printException(() -> "Font: couldn't restore the previous choice");
                 }
@@ -2034,6 +2046,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
             if (request == PICK_FONT) Fonts.fileInstalled();
             else if (request == PICK_STORY_FONT) StoryFonts.installed();
+            else if (request == PICK_EMOJI) EmojiFonts.installed();
             return new FontResult(request, FontVerdict.SAVED, name);
         }
     }
@@ -2042,12 +2055,18 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (result.verdict == FontVerdict.HELD) Utils.showToastLong(heldMessage());
         else if (result.verdict == FontVerdict.STALE || result.verdict == FontVerdict.SAVE_FAILED) {
             Utils.showToastShort(L10n.t("The setting couldn't finish updating. Its saved value is shown."));
+        } else if (result.verdict == FontVerdict.UNREACHED) {
+            Utils.showToastLong(L10n.t("Couldn't download the emoji. Try again."));
         } else if (result.verdict == FontVerdict.INVALID) {
             Utils.showToastLong(result.request == PICK_FONT
                     ? L10n.t("That file isn't a font HushGram can use. Your font hasn't changed.")
                     : result.request == PICK_STORY_FONT
                     ? L10n.t("That file isn't a font HushGram can use. Nothing was added.")
+                    : result.request == PICK_EMOJI
+                    ? L10n.t("No color emoji in that file. Nothing changed.")
                     : L10n.t("That file isn't a font HushGram can use. Story emoji haven't changed."));
+        } else if (result.request == PICK_EMOJI) {
+            Utils.showToastLong(L10n.t("Emoji saved. Restart Instagram to see them."));
         } else if (result.request == PICK_FONT) {
             Utils.showToastLong(L10n.t("Font saved. Restart Instagram to see it."));
         } else if (result.request == PICK_STORY_FONT) {
@@ -2690,7 +2709,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         if (context == null) return false;
         boolean pausedNext = HushgramPause.pausesNextStart(context);
         if (pausedNext != HushgramPause.isPaused()) return true;
-        return !pausedNext && (RestartNow.owed() || Fonts.restartPending());
+        return !pausedNext && (RestartNow.owed() || Fonts.restartPending() || EmojiFonts.restartPending());
     }
 
     /**
@@ -4123,6 +4142,122 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * Where Instagram's emoji draw from (#166): the phone's, a free pack or an emoji font file.
+     * Choosing a pack downloads it, and choosing a file opens the file picker. Either is kept only
+     * once the font has color emoji, and until then the row keeps what it had.
+     */
+    EmojiRow emojiRow(Context context) {
+        EmojiRow row = new EmojiRow(context);
+        row.setKey(Settings.EMOJI_FONT.key);
+        row.setTitle(L10n.t("Emoji pack"));
+        row.setDialogTitle(L10n.t("Emoji pack"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EmojiChoice[] choices = EmojiChoice.values();
+        CharSequence[] entries = new CharSequence[choices.length];
+        CharSequence[] values = new CharSequence[choices.length];
+        for (int i = 0; i < choices.length; i++) {
+            entries[i] = emojiLabel(choices[i]);
+            values[i] = choices[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.EMOJI_FONT.savedValue().name());
+        row.setOnPreferenceChangeListener((preference, value) -> {
+            EmojiChoice choice = emojiChoice(String.valueOf(value));
+            if (choice == EmojiChoice.FILE) {
+                pickFont(PICK_EMOJI);
+                return false;
+            }
+            if (!choice.pack()) return true;
+            downloadEmoji(choice);
+            return false;
+        });
+        return row;
+    }
+
+    static EmojiChoice emojiChoice(@Nullable String value) {
+        for (EmojiChoice candidate : EmojiChoice.values()) if (candidate.name().equals(value)) return candidate;
+        return EmojiChoice.PHONE;
+    }
+
+    /** What the emoji list calls [choice]. The packs keep their makers' names. */
+    static String emojiLabel(EmojiChoice choice) {
+        switch (choice) {
+            case TWEMOJI:
+                return "Twemoji";
+            case OPENMOJI:
+                return "OpenMoji";
+            case BLOBMOJI:
+                return "Blobmoji";
+            case FILE:
+                return L10n.t("An emoji font file");
+            default:
+                return L10n.t("Your phone's emoji");
+        }
+    }
+
+    /** The sentence under the emoji row for [choice]. */
+    static String emojiSummary(EmojiChoice choice) {
+        switch (choice) {
+            case PHONE:
+                return L10n.t("Your phone's emoji, or Google's with the switch above on. You can also download a free "
+                        + "emoji pack or pick a color emoji font file.");
+            case FILE:
+                return L10n.t("Emoji draw from the emoji font file you picked. Pick it again to change the file. "
+                        + "Restart Instagram to see a change.");
+            default:
+                return L10n.f("Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.",
+                        L10n.isolate(emojiLabel(choice)));
+        }
+    }
+
+    /**
+     * Downloads [choice]'s pack off the main thread and keeps it the way a picked file is kept, then
+     * saves the choice. The row keeps what it had until then. Choosing the pack already kept does nothing.
+     */
+    private void downloadEmoji(EmojiChoice choice) {
+        Context context = getContext();
+        if (context == null || documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active()
+                || Fonts.importActive()) return;
+        if (!allowMutation() || EmojiFonts.keeps(context, choice)) return;
+        if (MessagesLock.locked()) {
+            Activity activity = getActivity();
+            if (activity != null) MessagesLock.confirmThen(activity, () -> downloadEmoji(choice));
+            return;
+        }
+        long token = Fonts.beginImport();
+        if (token == 0) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        Context application = context.getApplicationContext() == null ? context : context.getApplicationContext();
+        long revision = Settings.EMOJI_FONT.savedRevision();
+        Utils.showToastShort(L10n.t("Downloading the emoji..."));
+        showConfiguration();
+        if (!Utils.runOnBackgroundThread(() -> {
+            Fonts.Prepared prepared = null;
+            FontResult result;
+            try {
+                prepared = EmojiFonts.download(application, choice);
+                result = prepared == null ? new FontResult(PICK_EMOJI, FontVerdict.UNREACHED, null)
+                        : installPickedFont(application, PICK_EMOJI, choice, token, revision, prepared, null);
+            } catch (Exception failure) {
+                Logger.printInfo(() -> "Emoji: couldn't keep the " + choice + " pack", failure);
+                result = new FontResult(PICK_EMOJI, FontVerdict.UNREACHED, null);
+            } finally {
+                if (prepared != null) prepared.close();
+                Fonts.finishImport(token);
+            }
+            FontResult finished = result;
+            Utils.runOnMainThread(() -> fontFinished(finished));
+        })) {
+            Fonts.finishImport(token);
+            showConfiguration();
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+        }
+    }
+
     /** What the list calls [choice]. */
     static String fontLabel(FontChoice choice) {
         switch (choice) {
@@ -5172,8 +5307,10 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     @Override
     protected void updatePreferenceAvailability(Preference preference, Setting<?> setting) {
         super.updatePreferenceAvailability(preference, setting);
-        if ((setting == Settings.FONT || setting == Settings.STORY_FONTS || setting == Settings.STORY_EMOJI)
-                && (Fonts.importActive() || documentRequest != 0)) preference.setEnabled(false);
+        if ((setting == Settings.FONT || setting == Settings.STORY_FONTS || setting == Settings.STORY_EMOJI
+                || setting == Settings.EMOJI_FONT) && (Fonts.importActive() || documentRequest != 0)) {
+            preference.setEnabled(false);
+        }
         if (resumingFromOverview && setting == BaseSettings.PAUSED) preference.setEnabled(false);
         if (setting == Settings.SETTINGS_SHORTCUT || setting == Settings.SETTINGS_LOGO_PRESS
                 || setting == Settings.HIDE_MENU_ROW) {
@@ -5210,6 +5347,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((TabBarLayoutRow) preference).showSummary();
         } else if (preference instanceof FontRow) {
             ((FontRow) preference).showSummary();
+        } else if (preference instanceof EmojiRow) {
+            ((EmojiRow) preference).showSummary();
         } else if (preference instanceof LockDelayRow) {
             ((LockDelayRow) preference).showSummary();
         } else if (preference instanceof UnlockWithRow) {
@@ -5253,6 +5392,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((TabBarLayoutRow) listPreference).showSummary();
         } else if (listPreference instanceof FontRow) {
             ((FontRow) listPreference).showSummary();
+        } else if (listPreference instanceof EmojiRow) {
+            ((EmojiRow) listPreference).showSummary();
         } else if (listPreference instanceof LockDelayRow) {
             ((LockDelayRow) listPreference).showSummary();
         } else if (listPreference instanceof UnlockWithRow) {
@@ -7322,6 +7463,38 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (candidate.name().equals(getValue())) choice = candidate;
             }
             setSummary(fontSummary(choice));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class EmojiRow extends ListPreference {
+        EmojiRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        /** The summary is the sentence for the emoji chosen, not the entry. */
+        void showSummary() {
+            setSummary(emojiSummary(emojiChoice(getValue())));
         }
 
         @Override

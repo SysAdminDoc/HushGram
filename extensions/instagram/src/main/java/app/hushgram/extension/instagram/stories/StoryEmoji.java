@@ -109,7 +109,7 @@ public final class StoryEmoji {
     }
 
     /** The part of [text] from [start] to [end] the picked font draws: all of it but the emoji selectors. */
-    static String drawn(CharSequence text, int start, int end) {
+    public static String drawn(CharSequence text, int start, int end) {
         StringBuilder kept = new StringBuilder(end - start);
         for (int at = start; at < end; at++) {
             char unit = text.charAt(at);

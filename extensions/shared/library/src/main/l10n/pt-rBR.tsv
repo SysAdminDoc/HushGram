@@ -1466,3 +1466,14 @@ Instagram goes through %1$s.	O Instagram passa por %1$s.
 Smooth story opening	Abrir stories suavemente
 # context: summary under that switch
 A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	Um story que você toca na fileira de stories abre com um zoom mais lento que não quica, e fecha do mesmo jeito.
+Emoji pack	Pacote de emojis
+Your phone's emoji	Emojis do seu celular
+An emoji font file	Um arquivo de fonte de emoji
+Your phone's emoji, or Google's with the switch above on. You can also download a free emoji pack or pick a color emoji font file.	Os emojis do seu celular, ou os do Google com a chave acima ligada. Você também pode baixar um pacote de emojis grátis ou escolher um arquivo de fonte de emoji colorido.
+Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.	Os emojis aparecem como %1$s, baixados do criador. Reinicie o Instagram para ver uma mudança.
+Emoji draw from the emoji font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Os emojis usam o arquivo de fonte de emoji que você escolheu. Escolha de novo para trocar o arquivo. Reinicie o Instagram para ver uma mudança.
+Downloading the emoji...	Baixando os emojis...
+Couldn't download the emoji. Try again.	Não foi possível baixar os emojis. Tente de novo.
+Emoji saved. Restart Instagram to see them.	Emojis salvos. Reinicie o Instagram para vê-los.
+No color emoji in that file. Nothing changed.	Esse arquivo não tem emojis coloridos. Nada mudou.
+Couldn't load your emoji, so the phone's show.	Seus emojis não carregaram, então ficam os do celular.

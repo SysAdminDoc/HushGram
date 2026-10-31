@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Emoji style:** `Emoji pack` is a new choice under Layout. Keep your phone's emoji, download Twemoji, OpenMoji or Blobmoji, or pick a color emoji font file, then restart Instagram and every emoji in posts, comments, chats and reactions draws in that pack. A pack is only switched to once it has downloaded and checked out, so a failed download leaves your emoji alone. Asked for in #166.
 * **Instagram:** `Smooth story opening` is a new patch. With its switch on under Stories, a story you tap in the stories row zooms open more slowly and stops without the little bounce at the end, and it closes the same way. It starts off. Asked for in #409.
 * **Instagram:** `App-only proxy` is a new patch. Turn it on under Ads and privacy, type an HTTP proxy's address and port in `Proxy server`, restart, and Instagram goes through that proxy while every other app keeps the phone's own connection. Proxies that need a password and SOCKS proxies don't work with it. It starts off. Asked for in #219.
 * **Instagram:** `Copy text button on reels` and `Copy text button on stories` are new switches under Reels and Stories. Each adds a Lens icon, beside a reel or at the top of a story, and a tap opens Google Lens on what's showing so you can select and copy its words. Phones without the Google app get the share sheet instead. Both start off. Asked for in #303.

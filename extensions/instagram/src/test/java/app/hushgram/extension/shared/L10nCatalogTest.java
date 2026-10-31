@@ -521,7 +521,7 @@ public class L10nCatalogTest {
         throw new AssertionError("no repository root above " + new File("").getAbsolutePath());
     }
 
-    private static final byte CODE = 0;
+    static final byte CODE = 0;
     private static final byte COMMENT = 1;
     private static final byte LITERAL = 2;
     private static final byte WRAPPED = 3;

@@ -184,6 +184,7 @@ public final class ConfigurationBackup {
         }
         if (PatchFamily.ACCENT_COLOR.inBuild()) settings.put(Settings.ACCENT_HUE.key, Settings.ACCENT_HUE);
         if (PatchFamily.FONT.inBuild()) settings.put(Settings.FONT.key, Settings.FONT);
+        if (PatchFamily.EMOJI_STYLE.inBuild()) settings.put(Settings.EMOJI_FONT.key, Settings.EMOJI_FONT);
         if (PatchFamily.APP_ICON.inBuild()) settings.put(Settings.APP_ICON.key, Settings.APP_ICON);
         if (PatchFamily.SETTINGS_ROWS.inBuild()) settings.put(Settings.HIDDEN_SETTINGS_ROWS.key, Settings.HIDDEN_SETTINGS_ROWS);
         if (PatchFamily.REEL_DOWNLOAD.inBuild()) {

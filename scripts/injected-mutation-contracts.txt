@@ -1559,6 +1559,11 @@ once-call Lapp/hushgram/extension/instagram/misc/BottomSpace;->navigationBarHeig
 # but first, process may already have read the strategy. EmojiStyleHookTest checks it on 450.
 start-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)I in instance (Ljava/lang/CharSequence;III)Ljava/lang/CharSequence; holding start\sshould\sbe\s<=\sthan\send end\sshould\sbe\s<\sthan\scharSequence\slength
 once-call Lapp/hushgram/extension/instagram/misc/EmojiStyle;->replaceStrategy(I)I in instance (Ljava/lang/CharSequence;III)Ljava/lang/CharSequence; holding start\sshould\sbe\s<=\sthan\send end\sshould\sbe\s<\sthan\scharSequence\slength
+# EmojiCompat's span (00ae on 453) hands its draw to EmojiFonts.drawn right before it reads its
+# paint's typeface, the one read in that draw, and returns when the extension drew the emoji from the
+# chosen pack (#166). Left out, a chosen pack never shows and every emoji stays Google's or the
+# phone's; twice or elsewhere, it isn't the hook the patch wrote. EmojiStyleHookTest checks it on 453.
+once-call Lapp/hushgram/extension/instagram/misc/EmojiFonts;->drawn(Ljava/lang/Object;Landroid/graphics/Canvas;Ljava/lang/CharSequence;IIFIIILandroid/graphics/Paint;)Z in instance (Landroid/graphics/Canvas;Ljava/lang/CharSequence;IIFIIILandroid/graphics/Paint;)V calling instance Landroid/graphics/Canvas;->drawText([CIIFFLandroid/graphics/Paint;)V holding Landroid/graphics/Paint;->getTypeface()Landroid/graphics/Typeface;
 # Accent color hands each color state list AndroidX ResourcesCompat's loader returns to AccentColor.list
 # at all three of its returns (00Et.A01 on 450, the one static (Context, int) list holding the log line
 # below), and the color each of Instagram's two theme color reads returns to AccentColor.color (00ON.A0Y

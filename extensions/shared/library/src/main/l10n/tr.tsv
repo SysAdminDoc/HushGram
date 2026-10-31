@@ -1466,3 +1466,14 @@ Instagram goes through %1$s.	Instagram %1$s üzerinden bağlanır.
 Smooth story opening	Hikâyeleri yumuşak aç
 # context: summary under that switch
 A story you tap in the stories row opens with a slower zoom that doesn't bounce, and closes the same way.	Hikâye satırında dokunduğun bir hikâye, sekmeyen daha yavaş bir yakınlaştırmayla açılır ve aynı şekilde kapanır.
+Emoji pack	Emoji paketi
+Your phone's emoji	Telefonunun emojileri
+An emoji font file	Bir emoji yazı tipi dosyası
+Your phone's emoji, or Google's with the switch above on. You can also download a free emoji pack or pick a color emoji font file.	Telefonunun emojileri, yukarıdaki anahtar açıksa Google'ınkiler. Ücretsiz bir emoji paketi indirebilir ya da renkli bir emoji yazı tipi dosyası seçebilirsin.
+Emoji draw as %1$s, downloaded from its maker. Restart Instagram to see a change.	Emojiler, yapımcısından indirilen %1$s olarak çizilir. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Emoji draw from the emoji font file you picked. Pick it again to change the file. Restart Instagram to see a change.	Emojiler seçtiğin emoji yazı tipi dosyasından çizilir. Dosyayı değiştirmek için yeniden seç. Bir değişikliği görmek için Instagram'ı yeniden başlat.
+Downloading the emoji...	Emojiler indiriliyor...
+Couldn't download the emoji. Try again.	Emojiler indirilemedi. Tekrar dene.
+Emoji saved. Restart Instagram to see them.	Emojiler kaydedildi. Instagram'ı yeniden başlat.
+No color emoji in that file. Nothing changed.	Bu dosyada renkli emoji yok. Hiçbir şey değişmedi.
+Couldn't load your emoji, so the phone's show.	Emojilerin yüklenemedi. Telefonunkiler görünüyor.

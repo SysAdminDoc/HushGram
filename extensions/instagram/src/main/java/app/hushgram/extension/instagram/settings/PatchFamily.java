@@ -554,6 +554,8 @@ public enum PatchFamily {
         switch (this) {
             case FONT:
                 return Collections.singletonList(Settings.FONT);
+            case EMOJI_STYLE:
+                return Collections.singletonList(Settings.EMOJI_FONT);
             case MESSAGE_BOX:
                 return Collections.singletonList(Settings.HIDDEN_MESSAGE_BOX_BUTTONS);
             case NOTIFICATION_GROUPS:
