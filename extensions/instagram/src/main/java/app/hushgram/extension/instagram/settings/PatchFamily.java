@@ -85,6 +85,7 @@ public enum PatchFamily {
     SCREENSHOT_REPORTS(FamilyNames.SCREENSHOT_REPORTS, "screenshotReports", null, Settings.HIDE_SCREENSHOTS),
     SCREENSHOT_BLOCK(FamilyNames.SCREENSHOT_BLOCK, "screenshotBlock", null, Settings.ALLOW_SCREENSHOTS),
     KEEP_IN_CHAT(FamilyNames.KEEP_IN_CHAT, "keepInChat", null, Settings.KEEP_IN_CHAT),
+    VIEW_ONCE_MARK(FamilyNames.VIEW_ONCE_MARK, "viewOnceMark", null, Settings.MARK_VIEW_ONCE),
     CHAT_REELS(FamilyNames.CHAT_REELS, "chatReels", null, Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS),
     CHAT_HISTORY(FamilyNames.CHAT_HISTORY, "chatHistory", null, Settings.JUMP_IN_CHAT, Settings.EXPORT_CHAT),
     ASK_BEFORE_CALL(FamilyNames.ASK_BEFORE_CALL, "askBeforeCall", null, Settings.ASK_BEFORE_CALL,

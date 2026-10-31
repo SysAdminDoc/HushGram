@@ -568,6 +568,13 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting KEEP_IN_CHAT = new BooleanSetting("hushgram_keep_in_chat", FALSE);
 
     /**
+     * A view once photo or video in a chat gets a border and Instagram's own view once icon before
+     * it's opened ({@link app.hushgram.extension.instagram.direct.ViewOnceMark}, #165). Only the
+     * chat's drawing changes. Off to start.
+     */
+    public static final BooleanSetting MARK_VIEW_ONCE = new BooleanSetting("hushgram_mark_view_once", FALSE);
+
+    /**
      * Swiping up on a reel opened from a chat goes to the next reel shared in that chat, by
      * Instagram's own chat reels test ({@link app.hushgram.extension.instagram.direct.ChatReels}, #350).
      * Off to start.

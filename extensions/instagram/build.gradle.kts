@@ -760,6 +760,16 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.stories.LiveSeenTest" to listOf(
                 "withTheSwitchOnTheViewerHeartbeatIsHeld[28]", "withTheSwitchOnTheViewerHeartbeatIsHeld[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]"),
+            "app.hushgram.extension.instagram.direct.ViewOnceMarkTest" to listOf(
+                "theSwitchStartsOffAndNeedsNoRestart", "offLeavesTheBubbleAsInstagramDrewIt",
+                "onMarksAViewOnceBubbleAndCountsIt", "aBubbleThatIsNotViewOnceIsLeftAlone",
+                "aRecycledBubbleLosesTheMarkWhenItIsNotViewOnceOrTheSwitchIsOff",
+                "aForegroundInstagramSetItselfIsNeverCovered", "pausedAndUnreadyReadAsOff",
+                "nullAndThrowingInputsFailOpen", "theMarkDrawsWithOrWithoutInstagramsIcon"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.ViewOnceMarkSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsMessages", "switchStartsOffUnderMessagesRightAfterKeepInChat"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.direct.KeepInChatTest" to listOf(
                 "withTheSwitchOnViewOnceAndReplayableStayInChat[28]", "withTheSwitchOnViewOnceAndReplayableStayInChat[37]",
                 "offPausedUnreadyAndThrowingLeaveItToInstagram[28]", "offPausedUnreadyAndThrowingLeaveItToInstagram[37]",

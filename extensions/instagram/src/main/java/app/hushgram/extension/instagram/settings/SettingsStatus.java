@@ -583,6 +583,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Mark one-time photos and videos patch. */
+    public static boolean viewOnceMark() {
+        return false;
+    }
+
     /** Rewritten by the Swipe through a chat's reels patch. */
     public static boolean chatReels() {
         return false;

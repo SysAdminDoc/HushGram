@@ -375,6 +375,11 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelDeclutter;->hideEveryComme
 # Left out, the title, the tabs and the buttons slide away with the switch on.
 start-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
 once-call Lapp/hushgram/extension/instagram/reels/ReelsTopBarScroll;->keepInPlace(I)Z in instance (Lcom/instagram/common/session/UserSession;LX/*;IIZZZZZ)V holding android_purge_26_q2_ClipsViewerActionBar_onReelScroll
+# Mark one-time photos and videos hands the bubble frame and the message flag to ViewOnceMark.mark
+# once, in the old photo and video bubble bind, right after it casts its holder and message (#165).
+# The bind is the one (holder, message) method loading both reply keys. Left out, the border and
+# icon never show on a one-time photo or video.
+once-call Lapp/hushgram/extension/instagram/direct/ViewOnceMark;->mark(Landroid/view/View;I)V in instance (L*;L*;)V pooled holding story_camera_reply story_remix_reply
 # Hide the reply bar on reels from chats asks hideDirectReplyBar(Object) with the viewer's source
 # right after each read of the direct reply bar controller's hidden flag, when the flag is clear:
 # once in the showReplyBar that turns the flag into visible or gone (merged into the controller's

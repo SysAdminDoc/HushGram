@@ -36,6 +36,7 @@ final class MessagesCategory {
                 || build.contains(PatchFamily.SCREENSHOT_REPORTS)
                 || build.contains(PatchFamily.SCREENSHOT_BLOCK)
                 || build.contains(PatchFamily.KEEP_IN_CHAT)
+                || build.contains(PatchFamily.VIEW_ONCE_MARK)
                 || build.contains(PatchFamily.CHAT_REELS)
                 || build.contains(PatchFamily.CHAT_HISTORY)
                 || build.contains(PatchFamily.ASK_BEFORE_CALL)
@@ -116,6 +117,11 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.KEEP_IN_CHAT, L10n.t("Keep in chat"),
                         L10n.t("Photos and videos sent as view once or replayable stay in the chat so you can open "
                                 + "them again. Open the chat again to update ones already loaded.")));
+            }
+            if (build.contains(PatchFamily.VIEW_ONCE_MARK)) {
+                messages.addPreference(toggle(context, Settings.MARK_VIEW_ONCE, L10n.t("Mark one-time photos and videos"),
+                        L10n.t("Puts a border and Instagram's view once icon on a one-time photo or video in a chat, "
+                                + "so you can tell it from the rest before you open it. Only how the chat looks changes.")));
             }
             if (build.contains(PatchFamily.CHAT_REELS)) {
                 messages.addPreference(toggle(context, Settings.SWIPE_CHAT_REELS, L10n.t("Swipe through a chat's reels"),
