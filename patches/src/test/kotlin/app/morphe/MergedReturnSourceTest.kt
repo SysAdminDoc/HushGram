@@ -21,6 +21,11 @@ import org.junit.Test
  * every fixture check passed: nothing off a device runs ART's verifier. The fix is a return of its
  * own on the null path (`const/4 p0, 0x0`), which is what the String stubs do.
  *
+ * <p>The verifier doesn't narrow a register to null on the null path either, so `if-nez p0, :named`
+ * followed by `return-object p0` hands back p0 as it was read. ChatMessages.kind read the message
+ * type's enum that way and returned it from a String stub on that path, and the device verifier
+ * rejected the class. That path writes a `const/4` null too.
+ *
  * <p>Stubs that answer an Object may keep the shared return, and say so in a comment just above
  * their smali ("Answers an Object"), which is how this scan tells them apart. Like
  * [ConstantReturnSourceTest], it's a net for the shape spelled out below, not a proof.
@@ -34,6 +39,9 @@ class MergedReturnSourceTest {
 
     /** A null check that jumps to a label. */
     private val nullBranch = Regex("^if-eqz ([vp]\\d+), :(\\w+)$", RegexOption.MULTILINE)
+
+    /** A check that jumps when the register isn't null, then returns that register on the null path. */
+    private val nullFallThrough = Regex("^if-nez ([vp]\\d+), :\\w+\\nreturn-object \\1$", RegexOption.MULTILINE)
 
     /** The note that marks a stub answering an Object, written above its smali. */
     private val answersObject = Regex("[Aa]nswers? an Object")
@@ -120,6 +128,18 @@ class MergedReturnSourceTest {
             "                return-object p0\n" +
             "            " + triple + ",\n"
         assertEquals(listOf("p0 at :none"), mergedReturns(throughACall))
+
+        // The null path of a non-null check hands back the register as it was read: here an enum, from a String stub.
+        val enumOnItsNullPath = "            " + triple + "\n" +
+            "                iget-object p0, p0, LX/message;->kind:LX/kind;\n" +
+            "                if-nez p0, :named\n" +
+            "                return-object p0\n" +
+            "                :named\n" +
+            "                invoke-virtual { p0 }, Ljava/lang/Enum;->name()Ljava/lang/String;\n" +
+            "                move-result-object p0\n" +
+            "                return-object p0\n" +
+            "            " + triple + ",\n"
+        assertEquals(listOf("p0 returned on its null path"), mergedReturns(enumOnItsNullPath))
     }
 
     /** Each null check in [source]'s smali whose register is written again before it meets the return. */
@@ -143,6 +163,7 @@ class MergedReturnSourceTest {
                 )
                 if (rewritten.containsMatchIn(between)) found += "$register at :$label"
             }
+            for (fall in nullFallThrough.findAll(body)) found += "${fall.groupValues[1]} returned on its null path"
         }
         return found
     }

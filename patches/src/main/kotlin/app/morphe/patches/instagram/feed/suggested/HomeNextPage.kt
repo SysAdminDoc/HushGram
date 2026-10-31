@@ -97,6 +97,7 @@ internal class HomeNextPageTargets(
      */
     fun write(context: BytecodePatchContext) {
         list?.let { path ->
+            // Answers an Object: the list's view, or the null list itself.
             stubs.getValue("listOf").addInstructionsWithLabels(
                 0,
                 """
