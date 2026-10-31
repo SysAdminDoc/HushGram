@@ -9,6 +9,7 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
@@ -186,7 +187,8 @@ public final class ChatPager {
             View root = viewOf(fragment);
             View title = root == null ? null : titleIn(root);
             if (title != null) {
-                if (attached.get() != title && !title.isLongClickable()) {
+                HookStatus.recoveredViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
+                if (attached.get() != title && !hasLongPress(title)) {
                     title.setOnLongClickListener(new View.OnLongClickListener() {
                         @Override public boolean onLongClick(View v) {
                             return menu(fragment, v);
@@ -198,6 +200,11 @@ public final class ChatPager {
             }
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+            return;
+        }
+        if (tries + 1 >= ATTACH_TRIES) {
+            // The diagnostics report then says the name was never found, instead of a silent long press.
+            HookStatus.missingViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
             return;
         }
         MAIN.postDelayed(new Runnable() {
@@ -217,15 +224,31 @@ public final class ChatPager {
         }
     }
 
-    /** The chat header's title under [root], when it is there and shown. */
+    /**
+     * The chat header's title, when it is there. Instagram keeps the header in the screen's action
+     * bar beside the chat's view, not inside it, so the lookup walks from [root] up through its
+     * parents the way the chat lock does, and the nearest title is the chat's own. Under the root
+     * alone it was never found, and the long press stayed Instagram's (#246, #247).
+     */
     static View titleIn(View root) {
         for (String name : ChatLocks.TITLES) {
-            int id = app.hushgram.extension.instagram.direct.MessagesLock.id(root.getContext(), name);
+            int id = MessagesLock.id(root.getContext(), name);
             if (id == 0) continue;
-            View title = root.findViewById(id);
-            if (title != null) return title;
+            for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+                View title = at.findViewById(id);
+                if (title != null) return title;
+            }
         }
         return null;
+    }
+
+    /**
+     * Whether Instagram already answers a long press on [view], in which case its listener stays.
+     * A view that is merely long-clickable, with nothing listening, still gets the menu: on it a
+     * long press fell through to Instagram's click.
+     */
+    static boolean hasLongPress(View view) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? view.hasOnLongClickListeners() : view.isLongClickable();
     }
 
     private static boolean menu(Object fragment, View title) {
