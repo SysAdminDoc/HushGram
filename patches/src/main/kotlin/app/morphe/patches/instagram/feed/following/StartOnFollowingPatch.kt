@@ -259,8 +259,10 @@ internal fun BytecodePatchContext.findTitleLabel(): TitleLabel {
 }
 
 /**
- * First thing in the name method, asks [KEEP_LOGO]. A yes shows the logo, with the arrow the caller
- * asked for, and returns before the name is set. Only called once [findTitleLabel] found it.
+ * First thing in the name method, asks [KEEP_LOGO]. A 1 shows the logo, with the arrow the caller
+ * asked for, and returns before the name is set. A 2 (the logo is already up) returns without
+ * showing it again, since that restarts its fade on every scroll step. Only called once
+ * [findTitleLabel] found it.
  */
 internal fun BytecodePatchContext.keepLogoInTitle(title: TitleLabel) {
     val method = mutableClassDefBy(title.type).methods.single {
@@ -273,8 +275,11 @@ internal fun BytecodePatchContext.keepLogoInTitle(title: TitleLabel) {
             invoke-static/range { p0 .. p0 }, $KEEP_LOGO
             move-result $free
             if-eqz $free, :name
+            add-int/lit8 $free, $free, -0x1
+            if-nez $free, :shown
             const/4 $free, 0x0
             invoke-virtual { p0, $free, $free, $free, p1 }, ${title.type}->${title.logo}(${STRING}${STRING}ZZ)V
+            :shown
             return-void
         """,
         ExternalLabel("name", method.getInstruction(0)),

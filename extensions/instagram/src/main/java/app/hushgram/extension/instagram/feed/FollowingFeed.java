@@ -10,6 +10,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewParent;
+import android.widget.ViewAnimator;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -42,9 +43,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * of a remembered For you, and {@link #limitPicker} takes For you out of the picker's list before
  * Instagram freezes it.
  *
- * <p>A third switch keeps Instagram's logo at the top of Home where the picked feed's name would
- * be: {@link #keepLogo} is asked as the header's title view is about to show that name, and a yes
- * has it show the logo with its arrow instead. The arrow still opens the picker.
+ * <p>A third switch, which works without the first, keeps Instagram's logo at the top of Home where
+ * the picked feed's name would be, scrolled or not: {@link #keepLogo} is asked as the header's title
+ * view is about to show that name, and a yes has it show the logo with its arrow instead. The arrow
+ * still opens the picker.
  *
  * <p>The end of Following links back to the plain Home feed, which the picker doesn't offer, so
  * {@link #picked} answers a feed the picker switches Home to in place. When that's Following, the
@@ -148,24 +150,26 @@ public final class FollowingFeed {
 
     /**
      * Injected first thing as Home's title view is about to show the picked feed's name. Answers 1
-     * to have it show Instagram's logo with its arrow instead, which happens while Start Home on
-     * Following and its logo switch are both on and [titleView] sits in Home's header. Answers 0
-     * for any other title view, a switch off, HushGram paused, the settings not read yet or
-     * anything thrown, and the name is shown as Instagram has it. Never throws, and never waits for
-     * the settings.
+     * to have it show Instagram's logo with its arrow instead, or 2 when the logo is already up, so
+     * nothing is shown again: Home asks for the name on every scroll step past the top, and showing
+     * the logo again starts its fade over each time. That happens while the logo switch is on and
+     * [titleView] sits in Home's header, with or without Start Home on Following. Answers 0 for any
+     * other title view, the switch off, HushGram paused, the settings not read yet or anything
+     * thrown, and the name is shown as Instagram has it. Never throws, and never waits for the
+     * settings.
      */
     public static int keepLogo(Object titleView) {
         try {
             HookStatus.invoked(FamilyNames.FOLLOWING_FEED);
             if (!(titleView instanceof View) || !Utils.settingsReady()) return 0;
-            if (!Settings.START_ON_FOLLOWING.get() || !Settings.LOGO_ON_FOLLOWING.get()) return 0;
+            if (!Settings.LOGO_ON_FOLLOWING.get()) return 0;
             if (!underBar((View) titleView, HOME_BAR)) return 0;
             HookStatus.counted(FamilyNames.FOLLOWING_FEED, LOGO_KEPT);
             if (!loggedLogo) {
                 loggedLogo = true;
                 Logger.printDebug(() -> "Following feed: Home's title shows Instagram's logo in place of the feed name");
             }
-            return 1;
+            return titleView instanceof ViewAnimator && ((ViewAnimator) titleView).getDisplayedChild() == 0 ? 2 : 1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FOLLOWING_FEED, "feed title logo", failure);
             return 0;

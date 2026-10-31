@@ -66,7 +66,7 @@ final class FeedCategory {
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")));
             feed.addPreference(toggle(context, Settings.LOGO_ON_FOLLOWING, L10n.t("Instagram logo on Home"),
                     L10n.t("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch "
-                            + "feeds. Needs Start Home on Following. Restart Instagram to see the change.")));
+                            + "feeds. Restart Instagram to see the change.")));
             if (suggestions && PatchFamily.feedTypesInBuild()) {
                 feed.addPreference(toggle(context, Settings.FOLLOWING_FALLBACK, L10n.t("Fall back to Following"),
                         L10n.t("When For you brings an account only suggested posts, page after page, Home opens on "

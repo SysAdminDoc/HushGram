@@ -50,6 +50,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Instagram logo on Home` works without `Start Home on Following` now. Turned on, the logo stays put as you scroll instead of switching to "Home" and flashing blank in between. Reported in #413.
 * **Instagram:** `Turn off HDR brightness boosts` also stops the brighter white Instagram 452 and later give some reels on phones with HDR headroom, like the Galaxy S25 FE. Reported in #85 and #26.
 * **Instagram:** `Full size covers` asks for covers up to 1440 pixels wide now. It used to stop at 1080, and some picked covers are 1290 wide. Reported in #214.
 * **Instagram:** Turning `Full size covers` on or off now reaches reels you'd already opened. Instagram keeps the cover sizes it was sent across restarts, so the first start after a change now drops those saved answers. Reported in #214.

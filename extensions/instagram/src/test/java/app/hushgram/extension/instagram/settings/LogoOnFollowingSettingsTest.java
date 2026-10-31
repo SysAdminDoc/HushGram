@@ -83,11 +83,13 @@ public class LogoOnFollowingSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LOGO_ON_FOLLOWING.key));
     }
 
-    @Test public void withStartHomeOnFollowingOffTheRowSaysWhatItNeeds() throws Exception {
+    /** #413: Home shows its name on scroll with For you too, so the row works on its own. */
+    @Test public void withStartHomeOnFollowingOffTheRowStillWorks() throws Exception {
         open(PatchFamily.FOLLOWING_FEED);
         Preference row = page.getPreferenceScreen().findPreference(Settings.LOGO_ON_FOLLOWING.key);
         assertNotNull(row);
-        assertFalse(row.isEnabled());
-        assertEquals("Turn on Start Home on Following to use this choice.", String.valueOf(row.getSummary()));
+        assertTrue(row.isEnabled());
+        assertEquals("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch "
+                + "feeds. Restart Instagram to see the change.", String.valueOf(row.getSummary()));
     }
 }

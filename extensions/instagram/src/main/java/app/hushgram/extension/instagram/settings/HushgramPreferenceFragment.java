@@ -5128,11 +5128,6 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     ? L10n.t("Removes For you from the choices at the top of Home, so it stays on Following or "
                             + "Favorites. Needs Start Home on Following. Restart Instagram to see the change.")
                     : L10n.t("Turn on Start Home on Following to use this choice."));
-        } else if (setting == Settings.LOGO_ON_FOLLOWING) {
-            preference.setSummary(setting.isAvailable()
-                    ? L10n.t("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch "
-                            + "feeds. Needs Start Home on Following. Restart Instagram to see the change.")
-                    : L10n.t("Turn on Start Home on Following to use this choice."));
         } else if (preference instanceof PlaybackQualityRow) {
             ((PlaybackQualityRow) preference).showSummary();
         } else if (preference instanceof TapToPlayScopeRow) {

@@ -16,6 +16,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
@@ -94,10 +95,10 @@ class TitleLogoHookTest {
             assertEquals(
                 "$name: the injected opcodes",
                 listOf(
-                    Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4,
-                    Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID,
+                    Opcode.INVOKE_STATIC_RANGE, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.ADD_INT_LIT8, Opcode.IF_NEZ,
+                    Opcode.CONST_4, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID,
                 ),
-                code.take(6).map { it.opcode },
+                code.take(8).map { it.opcode },
             )
             assertEquals("$name: the hook", KEEP_LOGO, code[0].referenceText())
             // p0 is the view, p1 the arrow flag: both sit past the locals, and the answer lives in a local.
@@ -106,9 +107,13 @@ class TitleLogoHookTest {
             assertTrue("$name: the answer stays in a local, not on a parameter register", title.free < locals)
             assertEquals("$name: the answer's register", title.free, (code[1] as OneRegisterInstruction).registerA)
             assertEquals("$name: the test's register", title.free, (code[2] as OneRegisterInstruction).registerA)
-            assertEquals("$name: the null and false", title.free, (code[3] as OneRegisterInstruction).registerA)
-            assertEquals("$name: the constant is zero", 0, (code[3] as NarrowLiteralInstruction).narrowLiteral)
-            val call = code[4] as FiveRegisterInstruction
+            // #413: a 2 (the logo already up) skips the logo call, so its fade doesn't start over.
+            assertEquals("$name: one less", listOf(title.free, -1), listOf((code[3] as OneRegisterInstruction).registerA, (code[3] as NarrowLiteralInstruction).narrowLiteral))
+            assertEquals("$name: the skip's register", title.free, (code[4] as OneRegisterInstruction).registerA)
+            assertEquals("$name: the skip lands on the return", 7, code.targetOf(4))
+            assertEquals("$name: the null and false", title.free, (code[5] as OneRegisterInstruction).registerA)
+            assertEquals("$name: the constant is zero", 0, (code[5] as NarrowLiteralInstruction).narrowLiteral)
+            val call = code[6] as FiveRegisterInstruction
             assertEquals(
                 "$name: the logo call's registers",
                 listOf(locals, title.free, title.free, title.free, locals + 1),
@@ -117,16 +122,22 @@ class TitleLogoHookTest {
             assertEquals(
                 "$name: the logo call",
                 "$TITLE_SWITCHER->${title.logo}(Ljava/lang/String;Ljava/lang/String;ZZ)V",
-                code[4].referenceText(),
+                code[6].referenceText(),
             )
             assertNotEquals("$name: the logo method is not the name method", title.name, title.logo)
             assertTrue("$name: every register the call names is within v15", listOf(call.registerC, call.registerG).all { it <= 15 })
-            assertEquals("$name: the method's own code", before, code.drop(6).map { it.describe() })
-            assertEquals("$name: the branch skips to the first original instruction", before[0], code[6].describe())
+            assertEquals("$name: the method's own code", before, code.drop(8).map { it.describe() })
+            assertEquals("$name: the branch skips to the first original instruction", 8, code.targetOf(2))
         }
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+
+    /** The index of the instruction the branch at [at] jumps to. */
+    private fun List<Instruction>.targetOf(at: Int): Int {
+        val addresses = runningFold(0) { address, instruction -> address + instruction.codeUnits }
+        return addresses.indexOf(addresses[at] + (this[at] as OffsetInstruction).codeOffset)
+    }
 
     private fun Instruction.referenceText(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 

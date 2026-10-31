@@ -65,18 +65,19 @@ public class FollowingFeedTest {
         return title;
     }
 
+    /** #413: the logo switch works on its own, since Home shows its name on scroll with For you too. */
     @Test
-    public void theLogoSwitchStartsOffAndNeedsStartOnFollowing() {
+    public void theLogoSwitchStartsOffAndWorksWithoutStartOnFollowing() {
         org.junit.Assert.assertEquals(Boolean.FALSE, Settings.LOGO_ON_FOLLOWING.defaultValue);
         assertTrue(Settings.LOGO_ON_FOLLOWING.rebootApp);
         Settings.LOGO_ON_FOLLOWING.save(true);
         assertTrue(Settings.LOGO_ON_FOLLOWING.isAvailable());
         Settings.START_ON_FOLLOWING.save(false);
-        assertFalse(Settings.LOGO_ON_FOLLOWING.isAvailable());
+        assertTrue(Settings.LOGO_ON_FOLLOWING.isAvailable());
     }
 
     @Test
-    public void theLogoStandsInForTheNameOnlyInHomesHeaderWithBothSwitchesOn() {
+    public void theLogoStandsInForTheNameOnlyInHomesHeader() {
         View title = titleInHomeHeader();
         assertEquals("off to start", 0, FollowingFeed.keepLogo(title));
         Settings.LOGO_ON_FOLLOWING.save(true);
@@ -92,7 +93,31 @@ public class FollowingFeedTest {
         assertEquals(0, FollowingFeed.keepLogo(null));
         assertEquals(0, FollowingFeed.keepLogo("not a view"));
         Settings.START_ON_FOLLOWING.save(false);
-        assertEquals("Start Home on Following off", 0, FollowingFeed.keepLogo(title));
+        assertEquals("#413: Start Home on Following off", 1, FollowingFeed.keepLogo(title));
+        Settings.LOGO_ON_FOLLOWING.save(false);
+        assertEquals("the logo switch off", 0, FollowingFeed.keepLogo(title));
+    }
+
+    /**
+     * #413: Home asks for its name on every scroll step past the top. With the logo already up the
+     * answer is 2, so the logo isn't shown again and its fade doesn't start over.
+     */
+    @Test
+    public void aLogoAlreadyUpIsLeftAlone() {
+        Settings.LOGO_ON_FOLLOWING.save(true);
+        Context context = RuntimeEnvironment.getApplication();
+        MainFeedActionBar bar = new MainFeedActionBar(context);
+        android.widget.ViewAnimator title = new android.widget.ViewAnimator(context);
+        title.addView(new View(context));
+        title.addView(new View(context));
+        bar.addView(title);
+
+        title.setDisplayedChild(1);
+        assertEquals("the name is up: show the logo", 1, FollowingFeed.keepLogo(title));
+        title.setDisplayedChild(0);
+        assertEquals("the logo is up: leave it", 2, FollowingFeed.keepLogo(title));
+        Settings.LOGO_ON_FOLLOWING.save(false);
+        assertEquals("the switch off", 0, FollowingFeed.keepLogo(title));
     }
 
     @Test

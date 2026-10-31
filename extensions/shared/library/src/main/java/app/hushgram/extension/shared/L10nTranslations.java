@@ -1396,8 +1396,8 @@ public final class L10nTranslations {
                 "Deine Stelle auf der Startseite behalten");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Verhindert, dass Instagrams Karte \u201eMusik f\u00fcr dich\u201c zwischen den Stories auftaucht, die du dir ansiehst. Die Stories selbst bleiben.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Zeigt oben auf der Startseite das Instagram-Logo statt des Feed-Namens. Tippe darauf, um den Feed zu wechseln. Setzt voraus, dass Startseite mit \u201eGefolgt\u201c \u00f6ffnen an ist. Starte Instagram neu, um die \u00c4nderung zu sehen.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Zeigt oben auf der Startseite das Instagram-Logo statt des Feed-Namens. Tippe darauf, um den Feed zu wechseln. Starte Instagram neu, um die \u00c4nderung zu sehen.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "H\u00e4lt das Instagram-Logo und die Schaltfl\u00e4chen daneben beim Scrollen oben auf der Startseite, statt sie wegzuschieben.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -4173,8 +4173,8 @@ public final class L10nTranslations {
                 "Mantener tu lugar en Inicio");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Evita que la tarjeta M\u00fasica para ti de Instagram aparezca entre las historias que ves. Las historias en s\u00ed se quedan.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Mantiene el logo de Instagram arriba de Inicio en lugar del nombre del feed. T\u00f3calo para cambiar de feed. Necesita Abrir Inicio en Seguidos. Reinicia Instagram para ver el cambio.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Mantiene el logo de Instagram arriba de Inicio en lugar del nombre del feed. T\u00f3calo para cambiar de feed. Reinicia Instagram para ver el cambio.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "Mantiene el logo de Instagram y los botones de al lado arriba en Inicio mientras te desplazas, en vez de ocultarlos.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -6950,8 +6950,8 @@ public final class L10nTranslations {
                 "Tetap di posisi Anda di Beranda");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Mencegah kartu Musik untuk Anda dari Instagram muncul di antara cerita yang Anda tonton. Ceritanya sendiri tetap ada.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Menampilkan logo Instagram di bagian atas Beranda sebagai pengganti nama feed. Ketuk untuk berganti feed. Perlu Buka Beranda di Mengikuti. Mulai ulang Instagram untuk melihat perubahannya.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Menampilkan logo Instagram di bagian atas Beranda sebagai pengganti nama feed. Ketuk untuk berganti feed. Mulai ulang Instagram untuk melihat perubahannya.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "Menjaga logo Instagram dan tombol di sampingnya tetap di atas Beranda saat Anda menggulir, tidak digeser hilang.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -9727,8 +9727,8 @@ public final class L10nTranslations {
                 "Mantieni la posizione in Home");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Impedisce alla scheda Musica per te di Instagram di comparire tra le storie che guardi. Le storie restano.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Mantiene il logo di Instagram in alto nella Home al posto del nome del feed. Toccalo per cambiare feed. Richiede Apri la Home su Seguiti. Riavvia Instagram per vedere la modifica.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Mantiene il logo di Instagram in alto nella Home al posto del nome del feed. Toccalo per cambiare feed. Riavvia Instagram per vedere la modifica.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "Tiene il logo di Instagram e i pulsanti accanto in cima alla Home mentre scorri, invece di farli scorrere via.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -12504,8 +12504,8 @@ public final class L10nTranslations {
                 "\ud648\uc5d0\uc11c \ubcf4\ub358 \uc704\uce58 \uc720\uc9c0");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "\uc2dc\uccad\ud558\ub294 \uc2a4\ud1a0\ub9ac \uc0ac\uc774\uc5d0 \uc778\uc2a4\ud0c0\uadf8\ub7a8\uc758 \u2018\ud68c\uc6d0\ub2d8\uc744 \uc704\ud55c \uc74c\uc545\u2019 \uce74\ub4dc\uac00 \ub07c\uc5b4\ub4e4\uc9c0 \uc54a\uac8c \ud569\ub2c8\ub2e4. \uc2a4\ud1a0\ub9ac\ub294 \uadf8\ub300\ub85c \ub0a8\uc2b5\ub2c8\ub2e4.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "\ud648 \uc0c1\ub2e8\uc5d0 \ud53c\ub4dc \uc774\ub984 \ub300\uc2e0 Instagram \ub85c\uace0\ub97c \uc720\uc9c0\ud569\ub2c8\ub2e4. \ud0ed\ud558\uba74 \ud53c\ub4dc\ub97c \ubc14\uafc0 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ud314\ub85c\uc789\uc5d0\uc11c \ud648 \uc2dc\uc791\uc774 \ud544\uc694\ud569\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "\ud648 \uc0c1\ub2e8\uc5d0 \ud53c\ub4dc \uc774\ub984 \ub300\uc2e0 Instagram \ub85c\uace0\ub97c \uc720\uc9c0\ud569\ub2c8\ub2e4. \ud0ed\ud558\uba74 \ud53c\ub4dc\ub97c \ubc14\uafc0 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ubcc0\uacbd \uc0ac\ud56d\uc744 \ubcf4\ub824\uba74 Instagram\uc744 \ub2e4\uc2dc \uc2dc\uc791\ud558\uc138\uc694.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "\uc2a4\ud06c\ub864\ud560 \ub54c Instagram \ub85c\uace0\uc640 \uc606\uc758 \ubc84\ud2bc\uc744 \ubc00\uc5b4 \uc62c\ub9ac\uc9c0 \uc54a\uace0 \ud648 \ub9e8 \uc704\uc5d0 \uadf8\ub300\ub85c \ub461\ub2c8\ub2e4.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -15281,8 +15281,8 @@ public final class L10nTranslations {
                 "Manter seu lugar no In\u00edcio");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Impede que o card M\u00fasica para voc\u00ea do Instagram apare\u00e7a entre os stories que voc\u00ea assiste. Os stories em si continuam.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Mant\u00e9m o logo do Instagram no topo do In\u00edcio no lugar do nome do feed. Toque nele para trocar de feed. Precisa de Abrir o In\u00edcio em Seguindo. Reinicie o Instagram para ver a mudan\u00e7a.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Mant\u00e9m o logo do Instagram no topo do In\u00edcio no lugar do nome do feed. Toque nele para trocar de feed. Reinicie o Instagram para ver a mudan\u00e7a.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "Mant\u00e9m o logo do Instagram e os bot\u00f5es ao lado no topo do In\u00edcio enquanto voc\u00ea rola, em vez de escond\u00ea-los.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -18058,8 +18058,8 @@ public final class L10nTranslations {
                 "Ana sayfadaki yerini koru");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "Instagram'\u0131n \u201cSenin i\u00e7in m\u00fczik\u201d kart\u0131n\u0131n izledi\u011fin hikayelerin aras\u0131nda \u00e7\u0131kmas\u0131n\u0131 engeller. Hikayelerin kendisi kal\u0131r.");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "Ana Sayfa'n\u0131n \u00fcst\u00fcnde ak\u0131\u015f\u0131n ad\u0131 yerine Instagram logosunu tutar. Ak\u0131\u015f\u0131 de\u011fi\u015ftirmek i\u00e7in \u00fczerine dokun. Ana Sayfa'y\u0131 Takip Edilenler ile a\u00e7 gerekir. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "Ana Sayfa'n\u0131n \u00fcst\u00fcnde ak\u0131\u015f\u0131n ad\u0131 yerine Instagram logosunu tutar. Ak\u0131\u015f\u0131 de\u011fi\u015ftirmek i\u00e7in \u00fczerine dokun. De\u011fi\u015fikli\u011fi g\u00f6rmek i\u00e7in Instagram'\u0131 yeniden ba\u015flat.");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "Kayd\u0131r\u0131rken Instagram logosunu ve yan\u0131ndaki d\u00fc\u011fmeleri kayd\u0131r\u0131p gizlemek yerine Ana sayfan\u0131n \u00fcst\u00fcnde tutar.");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
@@ -20835,8 +20835,8 @@ public final class L10nTranslations {
                 "\u4fdd\u7559\u9996\u9801\u7684\u700f\u89bd\u4f4d\u7f6e");
         table.put("Keeps Instagram's Music for you card from turning up between the stories you watch. The stories themselves stay.",
                 "\u4e0d\u8b93 Instagram \u7684\u300c\u70ba\u4f60\u63a8\u85a6\u7684\u97f3\u6a02\u300d\u5361\u7247\u51fa\u73fe\u5728\u89c0\u770b\u4e2d\u7684\u9650\u6642\u52d5\u614b\u4e4b\u9593\u3002\u9650\u6642\u52d5\u614b\u672c\u8eab\u4ecd\u6703\u4fdd\u7559\u3002");
-        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Needs Start Home on Following. Restart Instagram to see the change.",
-                "\u5728\u9996\u9801\u9802\u7aef\u4fdd\u7559 Instagram \u6a19\u8a8c\uff0c\u53d6\u4ee3\u52d5\u614b\u540d\u7a31\u3002\u9ede\u64ca\u5373\u53ef\u5207\u63db\u52d5\u614b\u3002\u9700\u555f\u7528\u300c\u9996\u9801\u9810\u8a2d\u986f\u793a\u8ffd\u8e64\u4e2d\u300d\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
+        table.put("Keeps Instagram's logo at the top of Home in place of the feed's name. Tap it to switch feeds. Restart Instagram to see the change.",
+                "\u5728\u9996\u9801\u9802\u7aef\u4fdd\u7559 Instagram \u6a19\u8a8c\uff0c\u53d6\u4ee3\u52d5\u614b\u540d\u7a31\u3002\u9ede\u64ca\u5373\u53ef\u5207\u63db\u52d5\u614b\u3002\u8acb\u91cd\u65b0\u555f\u52d5 Instagram \u4ee5\u5957\u7528\u8b8a\u66f4\u3002");
         table.put("Keeps the Instagram logo and the buttons beside it at the top of Home while you scroll, instead of sliding them away.",
                 "\u6372\u52d5\u6642\u8b93 Instagram \u6a19\u8a8c\u548c\u65c1\u908a\u7684\u6309\u9215\u7559\u5728\u9996\u9801\u9802\u7aef\uff0c\u4e0d\u6703\u6ed1\u8d70\u3002");
         table.put("Keeps the Reels title, the Friends tab and the buttons beside them at the top while you swipe through reels, instead of sliding them away.",
