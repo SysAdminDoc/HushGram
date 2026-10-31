@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram - Accent color:** On Android 11 and older, `Material You` now stays in the `Color` list, greyed out, with the reason written on it. Before, the choice just wasn't there. Asked for in #187 and #264.
 * **Instagram:** `Accent color` gets an `Icons in the accent color` switch, off to start. After a restart Instagram's icons on the top bar, your profile, the tab bar and under posts (the saved bookmark too) take the color you picked, a lighter shade in dark mode and a deeper one in light mode. Text keeps its color. Asked for in #8.
 * **Instagram:** `Keep Featured off the heart's dot` under Notifications stops a Featured item from lighting the red dot on the heart. Likes, comments and follows still do. Starts off. Asked for in #189.
 * **Instagram:** `Pinned chats` under Messages pins the chat you opened last to the top of your inbox. Pins stay on this phone, per account, and the same row unpins them. Asked for in #345.

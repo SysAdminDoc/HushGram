@@ -4055,11 +4055,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setDialogTitle(L10n.t("Accent color"));
         row.setNegativeButtonText(L10n.t("Cancel"));
         List<AccentHue> hues = new ArrayList<>(Arrays.asList(AccentHue.values()));
-        if (!MaterialYou.available()) hues.remove(AccentHue.WALLPAPER);
         CharSequence[] entries = new CharSequence[hues.size()];
         CharSequence[] values = new CharSequence[hues.size()];
         for (int i = 0; i < hues.size(); i++) {
-            entries[i] = accentHueLabel(hues.get(i));
+            // Material You stays in the list on Android 11 and older, greyed out with its reason.
+            entries[i] = hues.get(i) == AccentHue.WALLPAPER && !MaterialYou.available()
+                    ? L10n.t("Material You needs Android 12 or newer, so Instagram's blue stays.")
+                    : accentHueLabel(hues.get(i));
             values[i] = hues.get(i).name();
         }
         row.setEntries(entries);
@@ -6535,7 +6537,17 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);
-            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            if (getDialog() instanceof AlertDialog) {
+                AlertDialog dialog = (AlertDialog) getDialog();
+                ListView choices = dialog.getListView();
+                CharSequence[] values = getEntryValues();
+                if (!MaterialYou.available() && choices != null && choices.getAdapter() != null && values != null) {
+                    boolean[] off = new boolean[values.length];
+                    for (int i = 0; i < values.length; i++) off[i] = AccentHue.WALLPAPER.name().contentEquals(values[i]);
+                    choices.setAdapter(new DisabledChoices(choices.getAdapter(), off));
+                }
+                ScreenColors.dialog(dialog);
+            }
         }
     }
 

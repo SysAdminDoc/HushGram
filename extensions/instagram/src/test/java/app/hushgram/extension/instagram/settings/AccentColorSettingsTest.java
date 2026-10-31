@@ -127,12 +127,14 @@ public class AccentColorSettingsTest {
         List<String> offered = new ArrayList<>(Arrays.asList("Instagram blue", "Purple", "Pink", "Red", "Orange", "Green", "Teal"));
         // Material You (#187) is offered only where the phone has a wallpaper palette, Android 12 and newer.
         boolean materialYou = android.os.Build.VERSION.SDK_INT >= 31;
-        if (materialYou) offered.add("Material You");
+        // Before that the choice stays listed, greyed out in the dialog, with its reason as the text.
+        offered.add(materialYou ? "Material You"
+                : "Material You needs Android 12 or newer, so Instagram's blue stays.");
         assertEquals(offered, entries);
         List<String> values = new ArrayList<>();
         for (CharSequence value : hue.getEntryValues()) values.add(String.valueOf(value));
         List<String> names = new ArrayList<>();
-        for (AccentHue each : AccentHue.values()) if (materialYou || each != AccentHue.WALLPAPER) names.add(each.name());
+        for (AccentHue each : AccentHue.values()) names.add(each.name());
         assertEquals(names, values);
         assertEquals("PURPLE", hue.getValue());
         assertEquals("Purple", String.valueOf(hue.getSummary()));
