@@ -427,6 +427,21 @@ public class Settings extends BaseSettings {
             new StringSetting("hushgram_spoof_location_place", "", parent(SPOOF_LOCATION));
 
     /**
+     * Instagram's requests go through {@link #APP_PROXY_SERVER}, inside Instagram only
+     * ({@link app.hushgram.extension.instagram.misc.AppProxy}). Its network stack reads the proxy
+     * as it starts, so a change waits for a restart. Off to start.
+     */
+    public static final BooleanSetting APP_PROXY =
+            new BooleanSetting("hushgram_app_proxy", FALSE, true);
+
+    /**
+     * The HTTP proxy server, as host:port. Empty sends Instagram out directly even while
+     * {@link #APP_PROXY} is on. A value control, not a switch.
+     */
+    public static final StringSetting APP_PROXY_SERVER =
+            new StringSetting("hushgram_app_proxy_server", "", true, parent(APP_PROXY));
+
+    /**
      * The seen receipt a chat sends when you open it, the one that puts Seen under the other
      * person's message ({@link app.hushgram.extension.instagram.direct.ThreadSeen}). Read each time
      * Instagram goes to send one, so a change applies to the next receipt. Off to start.

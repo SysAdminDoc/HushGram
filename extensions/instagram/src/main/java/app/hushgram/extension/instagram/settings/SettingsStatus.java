@@ -104,6 +104,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean appProxy() {
+        return false;
+    }
+
     public static boolean threadSeen() {
         return false;
     }

@@ -1448,3 +1448,17 @@ Copy text with	Salin teks dengan
 Couldn't copy this screen	Layar ini tidak dapat disalin
 # context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
 No app here can read text	Tak ada aplikasi pembaca teks
+# context: Ads and privacy settings: switch that sends only Instagram's traffic through a proxy server the person sets (#219)
+App-only proxy	Proxy khusus aplikasi
+# context: summary under that switch
+Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.	Mengirim Instagram lewat proxy HTTP yang diatur di bawah. Aplikasi lain dan pengaturan ponselmu tidak berubah.
+# context: title of the row and its dialog where the proxy server is typed
+Proxy server	Server proxy
+# context: that dialog's message; keep the example address as it is
+An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.	Alamat dan port proxy HTTP, dipisahkan titik dua, seperti 192.168.1.10:8080. Proxy yang perlu kata sandi dan proxy SOCKS tidak bisa dipakai di sini. Instagram perlu dimulai ulang untuk memakainya.
+# context: toast and field error, under two lines of about 28 characters: what was typed isn't host:port; keep the example address
+That isn't a proxy server. Try 10.0.0.2:8080.	Bukan server proxy. Coba 10.0.0.2:8080.
+# context: the server row's summary while it's blank
+No server set. Until there is one, Instagram goes out directly.	Belum ada server. Sampai ada, Instagram terhubung langsung.
+# context: the server row's summary; %1$s is the server as host:port
+Instagram goes through %1$s.	Instagram terhubung lewat %1$s.

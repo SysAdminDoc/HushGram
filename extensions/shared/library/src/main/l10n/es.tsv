@@ -1448,3 +1448,17 @@ Copy text with	Copiar texto con
 Couldn't copy this screen	No se pudo copiar la pantalla
 # context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
 No app here can read text	Ninguna app lee texto aquí
+# context: Ads and privacy settings: switch that sends only Instagram's traffic through a proxy server the person sets (#219)
+App-only proxy	Proxy solo para la app
+# context: summary under that switch
+Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.	Envía Instagram a través del proxy HTTP indicado abajo. Las demás apps y los ajustes del teléfono no cambian.
+# context: title of the row and its dialog where the proxy server is typed
+Proxy server	Servidor proxy
+# context: that dialog's message; keep the example address as it is
+An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.	La dirección y el puerto de un proxy HTTP, separados por dos puntos, como 192.168.1.10:8080. Los proxies con contraseña y los SOCKS no funcionan aquí. Instagram necesita reiniciarse para usarlo.
+# context: toast and field error, under two lines of about 28 characters: what was typed isn't host:port; keep the example address
+That isn't a proxy server. Try 10.0.0.2:8080.	No es un servidor proxy. Prueba 10.0.0.2:8080.
+# context: the server row's summary while it's blank
+No server set. Until there is one, Instagram goes out directly.	No hay servidor. Hasta que lo haya, Instagram se conecta directamente.
+# context: the server row's summary; %1$s is the server as host:port
+Instagram goes through %1$s.	Instagram se conecta a través de %1$s.

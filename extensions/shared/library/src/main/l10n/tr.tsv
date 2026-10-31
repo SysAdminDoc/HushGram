@@ -1448,3 +1448,17 @@ Copy text with	Metni şununla kopyala
 Couldn't copy this screen	Bu ekran kopyalanamadı
 # context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
 No app here can read text	Metni okuyacak uygulama yok
+# context: Ads and privacy settings: switch that sends only Instagram's traffic through a proxy server the person sets (#219)
+App-only proxy	Yalnızca uygulama için proxy
+# context: summary under that switch
+Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.	Instagram'ı aşağıda ayarlanan HTTP proxy üzerinden gönderir. Diğer uygulamalar ve telefonunun kendi ayarları değişmez.
+# context: title of the row and its dialog where the proxy server is typed
+Proxy server	Proxy sunucusu
+# context: that dialog's message; keep the example address as it is
+An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.	Bir HTTP proxy'nin adresi ve portu, aralarında iki nokta üst üste ile, örneğin 192.168.1.10:8080. Parola isteyen proxy'ler ve SOCKS proxy'ler burada çalışmaz. Kullanmak için Instagram'ın yeniden başlaması gerekir.
+# context: toast and field error, under two lines of about 28 characters: what was typed isn't host:port; keep the example address
+That isn't a proxy server. Try 10.0.0.2:8080.	Proxy sunucusu değil. Örnek: 10.0.0.2:8080
+# context: the server row's summary while it's blank
+No server set. Until there is one, Instagram goes out directly.	Sunucu ayarlanmadı. Ayarlanana kadar Instagram doğrudan bağlanır.
+# context: the server row's summary; %1$s is the server as host:port
+Instagram goes through %1$s.	Instagram %1$s üzerinden bağlanır.

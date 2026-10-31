@@ -1447,3 +1447,17 @@ Copy text with	텍스트 복사에 사용할 앱
 Couldn't copy this screen	이 화면을 복사하지 못했어요
 # context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
 No app here can read text	텍스트를 읽을 앱이 없어요
+# context: Ads and privacy settings: switch that sends only Instagram's traffic through a proxy server the person sets (#219)
+App-only proxy	앱 전용 프록시
+# context: summary under that switch
+Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.	아래에 설정한 HTTP 프록시를 통해 Instagram을 연결합니다. 다른 앱과 휴대폰 자체 설정은 바뀌지 않습니다.
+# context: title of the row and its dialog where the proxy server is typed
+Proxy server	프록시 서버
+# context: that dialog's message; keep the example address as it is
+An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.	HTTP 프록시의 주소와 포트를 콜론으로 구분해 입력하세요(예: 192.168.1.10:8080). 비밀번호가 필요한 프록시와 SOCKS 프록시는 여기서 작동하지 않습니다. 사용하려면 Instagram을 다시 시작해야 합니다.
+# context: toast and field error, under two lines of about 28 characters: what was typed isn't host:port; keep the example address
+That isn't a proxy server. Try 10.0.0.2:8080.	프록시 서버가 아닙니다. 예: 10.0.0.2:8080
+# context: the server row's summary while it's blank
+No server set. Until there is one, Instagram goes out directly.	설정된 서버가 없습니다. 서버를 정할 때까지 Instagram은 직접 연결됩니다.
+# context: the server row's summary; %1$s is the server as host:port
+Instagram goes through %1$s.	Instagram이 %1$s을(를) 통해 연결됩니다.

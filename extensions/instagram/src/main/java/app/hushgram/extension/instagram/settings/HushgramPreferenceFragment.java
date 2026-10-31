@@ -127,6 +127,7 @@ import app.hushgram.extension.instagram.misc.GlassHeight;
 import app.hushgram.extension.instagram.misc.GlassLift;
 import app.hushgram.extension.instagram.misc.GlassReelsHide;
 import app.hushgram.extension.instagram.misc.AccentHue;
+import app.hushgram.extension.instagram.misc.AppProxy;
 import app.hushgram.extension.instagram.misc.MaterialYou;
 import app.hushgram.extension.instagram.misc.AppIconChoice;
 import app.hushgram.extension.instagram.misc.FontChoice;
@@ -5338,6 +5339,50 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     /**
+     * The server App-only proxy sends Instagram through. What's typed is saved as host:port (no
+     * scheme, no closing slash), and what isn't a server is refused with a toast.
+     */
+    static ProxyServerRow proxyServerRow(Context context) {
+        ProxyServerRow row = new ProxyServerRow(context);
+        row.setKey(Settings.APP_PROXY_SERVER.key);
+        row.setTitle(L10n.t("Proxy server"));
+        row.setDialogTitle(L10n.t("Proxy server"));
+        row.setDialogMessage(L10n.t("An HTTP proxy's address and port, with a colon between them, like "
+                + "192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. "
+                + "Instagram needs a restart to use it."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(true);
+        field.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+        field.setTextDirection(View.TEXT_DIRECTION_LTR);
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        field.setHint("192.168.1.10:8080");
+        row.setText(Settings.APP_PROXY_SERVER.savedValue());
+        row.setOnPreferenceChangeListener((preference, typed) -> {
+            String raw = typed == null ? "" : typed.toString();
+            String server = AppProxy.normalize(raw);
+            if (server == null) {
+                Utils.showToastShort(L10n.t("That isn't a proxy server. Try 10.0.0.2:8080."));
+                return false;
+            }
+            if (server.equals(raw)) return true;
+            // Keeps the plain host:port in place of what was typed, as the sharing domain row does.
+            ((ProxyServerRow) preference).setText(server);
+            return false;
+        });
+        return row;
+    }
+
+    /** What the proxy server row says: where Instagram goes out, or that it goes out directly. */
+    static String proxyServerSummary(String text) {
+        String server = AppProxy.normalize(text);
+        return server == null || server.isEmpty()
+                ? L10n.t("No server set. Until there is one, Instagram goes out directly.")
+                : L10n.f("Instagram goes through %1$s.", L10n.isolate(server));
+    }
+
+    /**
      * The domain Sanitize sharing links moves links to instagram.com to. What's typed is saved
      * bare (no scheme, no closing slash), and what isn't a domain is refused with a toast.
      */
@@ -6096,6 +6141,34 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (!callChangeListener(value)) return;
             setText(value);
             dialog.dismiss();
+        }
+    }
+
+    static final class ProxyServerRow extends ValidatedEditRow {
+        ProxyServerRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(proxyServerSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        @Override String validatedValue(String typed) {
+            return AppProxy.normalize(typed);
+        }
+
+        @Override String validationError() {
+            return L10n.t("That isn't a proxy server. Try 10.0.0.2:8080.");
         }
     }
 

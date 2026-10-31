@@ -1451,3 +1451,17 @@ Copy text with	選擇複製文字的應用程式
 Couldn't copy this screen	無法複製這個畫面
 # context: toast, under two lines of about 28 characters: no installed app takes a picture to read its text
 No app here can read text	沒有可讀取文字的應用程式
+# context: Ads and privacy settings: switch that sends only Instagram's traffic through a proxy server the person sets (#219)
+App-only proxy	僅限此應用程式的 Proxy
+# context: summary under that switch
+Sends Instagram through the HTTP proxy set below. Other apps and your phone's own settings aren't changed.	讓 Instagram 透過下方設定的 HTTP Proxy 連線。其他應用程式和手機本身的設定都不會變更。
+# context: title of the row and its dialog where the proxy server is typed
+Proxy server	Proxy 伺服器
+# context: that dialog's message; keep the example address as it is
+An HTTP proxy's address and port, with a colon between them, like 192.168.1.10:8080. Proxies that need a password, and SOCKS proxies, don't work here. Instagram needs a restart to use it.	HTTP Proxy 的位址和連接埠，中間用冒號隔開，例如 192.168.1.10:8080。需要密碼的 Proxy 和 SOCKS Proxy 無法在這裡使用。Instagram 需要重新啟動才會使用。
+# context: toast and field error, under two lines of about 28 characters: what was typed isn't host:port; keep the example address
+That isn't a proxy server. Try 10.0.0.2:8080.	這不是 Proxy 伺服器。例如 10.0.0.2:8080
+# context: the server row's summary while it's blank
+No server set. Until there is one, Instagram goes out directly.	尚未設定伺服器。設定之前，Instagram 會直接連線。
+# context: the server row's summary; %1$s is the server as host:port
+Instagram goes through %1$s.	Instagram 透過 %1$s 連線。

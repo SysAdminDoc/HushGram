@@ -16,7 +16,8 @@
               "Hide ads",
               "Sanitize sharing links",
               "Open links in external browser",
-              "Spoof location"
+              "Spoof location",
+              "App-only proxy"
             ]
           },
           {

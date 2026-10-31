@@ -12,6 +12,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.viewingHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.placeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.proxyServerRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sharingDomainRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.withCoverage;
@@ -64,6 +65,12 @@ final class PrivacyCategory {
                     L10n.t("Tells Instagram your phone is at the place set below, for the location sticker, nearby "
                             + "places and maps. Photos keep their own places.")));
             privacy.add(placeRow(context));
+        }
+        if (build.contains(PatchFamily.APP_PROXY)) {
+            privacy.add(toggle(context, Settings.APP_PROXY, L10n.t("App-only proxy"),
+                    L10n.t("Sends Instagram through the HTTP proxy set below. Other apps and your phone's own "
+                            + "settings aren't changed.")));
+            privacy.add(proxyServerRow(context));
         }
         if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
             privacy.add(toggle(context, Settings.VIEWING_HISTORY, L10n.t("Keep a viewing history"),
