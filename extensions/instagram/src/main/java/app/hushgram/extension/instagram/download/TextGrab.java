@@ -8,6 +8,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -134,12 +135,12 @@ public final class TextGrab {
 
     static volatile Authority authority = TextGrab::fileProvider;
 
-    /** Starts [intent] from [activity]. Tests stand in to see what went. */
+    /** Starts [intent] from [context]. Tests stand in to see what went. */
     interface Starter {
-        void start(Activity activity, Intent intent);
+        void start(Context context, Intent intent);
     }
 
-    static volatile Starter starter = Activity::startActivity;
+    static volatile Starter starter = Context::startActivity;
 
     /**
      * Where the picture is written: a thread of its own, so a tap never waits in line behind HushGram's
@@ -165,25 +166,28 @@ public final class TextGrab {
     public static void grab(@Nullable View page, @Nullable Activity activity, String family) {
         try {
             Activity owner = ownerOf(page, activity);
-            if (owner == null) {
-                Logger.printDebug(() -> "copy text: no open activity to send from");
+            Window window = owner == null ? null : owner.getWindow();
+            View shown = page != null && page.isAttachedToWindow() ? page : window == null ? null : window.peekDecorView();
+            // With no activity open, the app sends it, as long as the page is on screen.
+            Context from = owner != null ? owner : shown != null ? shown.getContext().getApplicationContext() : null;
+            if (from == null) {
+                Logger.printDebug(() -> "copy text: no open activity and nothing on screen");
                 Context context = page != null ? page.getContext() : activity != null ? activity : Utils.getContext();
                 if (context != null) fail(context, family, COUNT_NO_COPY);
                 else HookStatus.counted(family, COUNT_NO_COPY);
                 return;
             }
-            Window window = owner.getWindow();
-            View shown = page != null && page.isAttachedToWindow() ? page : window == null ? null : window.peekDecorView();
             View root = shown == null ? null : shown.getRootView();
             Rect area = root == null ? new Rect() : areaOf(shown, root);
             if (area.isEmpty()) {
                 Logger.printDebug(() -> "copy text: nothing on screen to copy");
-                fail(owner, family, COUNT_NO_COPY);
+                fail(from, family, COUNT_NO_COPY);
                 return;
             }
-            boolean ownWindow = holds(owner, root);
+            boolean ownWindow = owner != null && holds(owner, root);
             Logger.printDebug(() -> "copy text: copying " + area.width() + "x" + area.height() + " of "
-                    + (ownWindow ? "" : "a window over ") + owner.getClass().getSimpleName());
+                    + (owner == null ? "a window with no activity" : (ownWindow ? "" : "a window over ")
+                    + owner.getClass().getSimpleName()));
             Bitmap top = Bitmap.createBitmap(area.width(), area.height(), Bitmap.Config.ARGB_8888);
             List<SurfaceView> surfaces = new ArrayList<>();
             surfacesUnder(shown, surfaces);
@@ -191,10 +195,10 @@ public final class TextGrab {
                 if (!Boolean.TRUE.equals(worked)) {
                     // A copy that never answered may still be writing into it, so only an answered one is let go.
                     if (worked != null) top.recycle();
-                    fail(owner, family, COUNT_NO_COPY);
+                    fail(from, family, COUNT_NO_COPY);
                     return;
                 }
-                underlay(owner, area, top, surfaces, family);
+                underlay(from, area, top, surfaces, family);
             }));
         } catch (Throwable failure) {
             HookStatus.threw(family, "copy text", failure);
@@ -202,17 +206,36 @@ public final class TextGrab {
     }
 
     /**
-     * The open activity whose window holds [view]: [given], or the one HushGram last saw. When neither
-     * holds it, the first of them still open. Null when both are gone.
+     * The open activity whose window holds [view]: [given], the one [view] or a parent of it was made
+     * for, or the one HushGram last saw. When none holds it, the first of them still open. Null when
+     * all are gone.
+     *
+     * <p>A story's views carry no activity of their own: Instagram makes them with a plain context, in
+     * an activity over its main one, so the parents are asked too.
      */
     @Nullable
     static Activity ownerOf(@Nullable View view, @Nullable Activity given) {
         View root = view == null || !view.isAttachedToWindow() ? null : view.getRootView();
-        Activity last = Utils.getActivity();
-        if (open(given) && holds(given, root)) return given;
-        if (open(last) && holds(last, root)) return last;
-        if (open(given)) return given;
-        return open(last) ? last : null;
+        Activity[] candidates = {given, madeFor(view), Utils.getActivity()};
+        for (Activity candidate : candidates) {
+            if (open(candidate) && holds(candidate, root)) return candidate;
+        }
+        for (Activity candidate : candidates) {
+            if (open(candidate)) return candidate;
+        }
+        return null;
+    }
+
+    /** The activity behind the context of [view] or the nearest parent of it that has one, or null. */
+    @Nullable
+    static Activity madeFor(@Nullable View view) {
+        for (View at = view; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+            for (Context context = at.getContext(); context instanceof ContextWrapper;
+                    context = ((ContextWrapper) context).getBaseContext()) {
+                if (context instanceof Activity) return (Activity) context;
+            }
+        }
+        return null;
     }
 
     private static boolean open(@Nullable Activity activity) {
@@ -281,7 +304,7 @@ public final class TextGrab {
      * Copies each of [surfaces] that crosses [area] and draws them under [top] on black, then writes the
      * picture. A surface that won't copy, a protected video say, stays black under the rest.
      */
-    private static void underlay(Activity activity, Rect area, Bitmap top, List<SurfaceView> surfaces, String family) {
+    private static void underlay(Context from, Rect area, Bitmap top, List<SurfaceView> surfaces, String family) {
         List<SurfaceView> crossing = new ArrayList<>();
         List<Rect> places = new ArrayList<>();
         for (SurfaceView surface : surfaces) {
@@ -299,7 +322,7 @@ public final class TextGrab {
         int[] left = {crossing.size()};
         Runnable finish = () -> {
             try {
-                save(activity, compose(top, frames, places), family);
+                save(from, compose(top, frames, places), family);
             } catch (Throwable failure) {
                 HookStatus.threw(family, "copy text", failure);
             }
@@ -339,8 +362,8 @@ public final class TextGrab {
     }
 
     /** Writes [picture] off the main thread, then sends it from the main thread. */
-    private static void save(Activity activity, Bitmap picture, String family) {
-        Context app = activity.getApplicationContext();
+    private static void save(Context from, Bitmap picture, String family) {
+        Context app = from.getApplicationContext();
         try {
             writer.execute(() -> {
                 File file = null;
@@ -352,14 +375,14 @@ public final class TextGrab {
                 File written = file;
                 Logger.printDebug(() -> "copy text: " + (written == null ? "the picture didn't write" : "wrote " + written.getName()));
                 Utils.runOnMainThread(() -> {
-                    if (written == null) fail(activity, family, COUNT_NO_COPY);
-                    else send(activity, written, family);
+                    if (written == null) fail(from, family, COUNT_NO_COPY);
+                    else send(from, written, family);
                 });
             });
         } catch (RuntimeException | OutOfMemoryError unstarted) {
             Logger.printException(() -> "copy text: the picture couldn't be written", unstarted);
             picture.recycle();
-            fail(activity, family, COUNT_NO_COPY);
+            fail(from, family, COUNT_NO_COPY);
         }
     }
 
@@ -388,16 +411,19 @@ public final class TextGrab {
         }
     }
 
-    /** Offers [file] to Google Lens, or to the share sheet when Lens isn't there. */
-    static void send(Activity activity, File file, String family) {
+    /**
+     * Offers [file] to Google Lens, or to the share sheet when Lens isn't there. [from] is the activity
+     * showing the page, or the app when there's none, which then starts Lens in a task of its own.
+     */
+    static void send(Context from, File file, String family) {
         try {
-            if (activity.isFinishing() || activity.isDestroyed()) {
-                Logger.printDebug(() -> "copy text: " + activity.getClass().getSimpleName() + " closed before sending");
+            if (from instanceof Activity && (((Activity) from).isFinishing() || ((Activity) from).isDestroyed())) {
+                Logger.printDebug(() -> "copy text: " + from.getClass().getSimpleName() + " closed before sending");
                 return;
             }
-            String provider = authority.of(activity);
+            String provider = authority.of(from);
             if (provider == null) {
-                fail(activity, family, COUNT_NO_PROVIDER);
+                fail(from, family, COUNT_NO_PROVIDER);
                 return;
             }
             Uri uri = new Uri.Builder().scheme("content").authority(provider)
@@ -405,16 +431,17 @@ public final class TextGrab {
             Intent share = new Intent(Intent.ACTION_SEND).setType("image/jpeg").putExtra(Intent.EXTRA_STREAM, uri)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             share.setClipData(ClipData.newRawUri("", uri));
+            int task = from instanceof Activity ? 0 : Intent.FLAG_ACTIVITY_NEW_TASK;
             try {
-                starter.start(activity, new Intent(share).setClassName(LENS_PACKAGE, LENS_ENTRY));
+                starter.start(from, new Intent(share).setClassName(LENS_PACKAGE, LENS_ENTRY).addFlags(task));
             } catch (ActivityNotFoundException noEntry) {
                 // A Google app that moved its Lens target still takes the picture by package.
                 try {
-                    starter.start(activity, new Intent(share).setPackage(LENS_PACKAGE));
+                    starter.start(from, new Intent(share).setPackage(LENS_PACKAGE).addFlags(task));
                 } catch (ActivityNotFoundException noLens) {
-                    Intent chooser = Intent.createChooser(share, L10n.t(activity, "Copy text with"));
-                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    starter.start(activity, chooser);
+                    Intent chooser = Intent.createChooser(share, L10n.t(from, "Copy text with"));
+                    chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | task);
+                    starter.start(from, chooser);
                 }
             }
             HookStatus.counted(family, COUNT_SENT);
@@ -424,7 +451,7 @@ public final class TextGrab {
                 Logger.diagnosticInfo(DiagnosticCategory.DOWNLOADS, SOURCE, () -> "copy text sent a picture to read");
             }
         } catch (ActivityNotFoundException none) {
-            fail(activity, family, COUNT_NO_APP);
+            fail(from, family, COUNT_NO_APP);
         } catch (Throwable failure) {
             HookStatus.threw(family, "copy text", failure);
         }

@@ -16,6 +16,7 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ProviderInfo;
 import android.graphics.Bitmap;
@@ -23,6 +24,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.view.ContextThemeWrapper;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
@@ -326,7 +328,7 @@ public class TextGrabTest {
 
         Answering copier = new Answering();
         TextGrab.copier = copier;
-        List<Activity> from = new ArrayList<>();
+        List<Context> from = new ArrayList<>();
         TextGrab.starter = (sender, intent) -> {
             from.add(sender);
             started.add(intent);
@@ -339,11 +341,63 @@ public class TextGrabTest {
     }
 
     @Test
+    public void aStorysPlainContextViewsAreSentFromTheActivityHoldingThem() {
+        // What the S22 showed: the story's views carry no activity, and none was handed in or recorded.
+        Activity story = open();
+        FrameLayout holder = pageIn(story);
+        Context plain = new ContextThemeWrapper(story.getApplicationContext(), android.R.style.Theme_DeviceDefault);
+        FrameLayout page = new FrameLayout(plain);
+        holder.addView(page, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+        ShadowLooper.idleMainLooper();
+        Utils.setActivity(null);
+        assertSame("found through the parents", story, TextGrab.ownerOf(page, null));
+
+        Answering copier = new Answering();
+        TextGrab.copier = copier;
+        List<Context> from = new ArrayList<>();
+        TextGrab.starter = (sender, intent) -> {
+            from.add(sender);
+            started.add(intent);
+        };
+        TextGrab.grab(page, null, FAMILY);
+        ShadowLooper.idleMainLooper();
+        assertSame(story.getWindow(), copier.windows.get(0));
+        assertEquals(Collections.singletonList(story), from);
+        assertEquals(0, started.get(0).getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
+    @Test
+    public void withNoActivityOpenThePageStillSendsInATaskOfItsOwn() {
+        Activity closing = open();
+        FrameLayout page = pageIn(closing);
+        closing.finish();
+        Utils.setActivity(null);
+        assertNull(TextGrab.ownerOf(page, closing));
+
+        Answering copier = new Answering();
+        TextGrab.copier = copier;
+        List<Context> from = new ArrayList<>();
+        TextGrab.starter = (sender, intent) -> {
+            from.add(sender);
+            started.add(intent);
+        };
+        TextGrab.grab(page, closing, FAMILY);
+        ShadowLooper.idleMainLooper();
+        assertNull(copier.windows.get(0));
+        assertEquals(1, started.size());
+        assertSame(closing.getApplicationContext(), from.get(0));
+        assertTrue("outside an activity it needs a task", (started.get(0).getFlags() & Intent.FLAG_ACTIVITY_NEW_TASK) != 0);
+        assertEquals(new ComponentName(TextGrab.LENS_PACKAGE, TextGrab.LENS_ENTRY), started.get(0).getComponent());
+    }
+
+    @Test
     public void aPageInNoKnownWindowIsStillReadByItsView() {
         Activity elsewhere = open();
         FrameLayout page = pageIn(elsewhere);
+        elsewhere.finish();
         Utils.setActivity(null);
-        assertSame("the one it was handed, when nothing holds it", activity, TextGrab.ownerOf(page, activity));
+        assertSame("the one it was handed, when nothing open holds it", activity, TextGrab.ownerOf(page, activity));
         Answering copier = new Answering();
         TextGrab.copier = copier;
         TextGrab.grab(page, activity, FAMILY);
