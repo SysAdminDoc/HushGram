@@ -1477,3 +1477,6 @@ Couldn't download the emoji. Try again.	Emoji gagal diunduh. Coba lagi.
 Emoji saved. Restart Instagram to see them.	Emoji disimpan. Mulai ulang Instagram untuk melihatnya.
 No color emoji in that file. Nothing changed.	Tak ada emoji berwarna di file itu. Tidak berubah.
 Couldn't load your emoji, so the phone's show.	Emojimu gagal dimuat, jadi emoji ponsel yang tampil.
+# context: Stories settings: the Ambient light in stories switch (#420)
+Ambient light in stories	Cahaya sekitar di cerita
+Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Mengisi bidang di atas dan di bawah cerita yang tidak memenuhi layar dengan cahaya lembut berwarna sama dengan ceritanya. Sebaran cahaya dan Kecepatan cahaya, di Feed, juga mengaturnya.

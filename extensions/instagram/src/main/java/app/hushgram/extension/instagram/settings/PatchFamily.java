@@ -73,7 +73,7 @@ public enum PatchFamily {
             Settings.ROUNDED_REEL_CORNERS, Settings.ROUNDED_STORY_CORNERS, Settings.PEEK_CAROUSEL_PAGES),
     CAROUSEL_ARROWS(FamilyNames.CAROUSEL_ARROWS, "carouselArrows", null, Settings.CAROUSEL_ARROWS,
             Settings.CAROUSEL_DOTS_PILL),
-    AMBIENT_LIGHT(FamilyNames.AMBIENT_LIGHT, "ambientLight", null, Settings.AMBIENT_LIGHT),
+    AMBIENT_LIGHT(FamilyNames.AMBIENT_LIGHT, "ambientLight", null, Settings.AMBIENT_LIGHT, Settings.AMBIENT_LIGHT_STORIES),
     STORY_SEEN(FamilyNames.STORY_SEEN, "storySeen", null, Settings.VIEW_STORIES_ANONYMOUSLY,
             Settings.MARK_STORIES_SEEN, Settings.GRAY_OUT_WATCHED_STORIES),
     LIVE_SEEN(FamilyNames.LIVE_SEEN, "liveSeen", null, Settings.VIEW_LIVE_ANONYMOUSLY, Settings.MARK_LIVE_SEEN),

@@ -1477,3 +1477,6 @@ Couldn't download the emoji. Try again.	Emojiler indirilemedi. Tekrar dene.
 Emoji saved. Restart Instagram to see them.	Emojiler kaydedildi. Instagram'ı yeniden başlat.
 No color emoji in that file. Nothing changed.	Bu dosyada renkli emoji yok. Hiçbir şey değişmedi.
 Couldn't load your emoji, so the phone's show.	Emojilerin yüklenemedi. Telefonunkiler görünüyor.
+# context: Stories settings: the Ambient light in stories switch (#420)
+Ambient light in stories	Hikayelerde ortam ışığı
+Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Ekranı doldurmayan bir hikayenin üstündeki ve altındaki boşlukları kendi renklerinde yumuşak bir parıltıyla doldurur. Akış altındaki Parıltı yayılımı ve Parıltı hızı bunu da ayarlar.

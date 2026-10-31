@@ -28,7 +28,8 @@ val ambientLightPatch = bytecodePatch(
     name = "Ambient light",
     description = "Puts a soft glow in a post's own colors around its photo or video in Home and Following, and in " +
         "the bands around a reel that doesn't fill the screen. The glow follows a video as it plays, and you pick " +
-        "how far it spreads and how fast it changes. Starts off. Turn it on in HushGram settings > Feed.",
+        "how far it spreads and how fast it changes. A second switch fills the bands above and below a story that " +
+        "doesn't fill the screen. Both start off. Turn them on in HushGram settings > Feed and Stories.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

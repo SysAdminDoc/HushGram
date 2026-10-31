@@ -29,6 +29,7 @@ import org.junit.Test
 class AmbientLightHookTest {
     private val light = "$EXTENSION_PACKAGE/feed/AmbientLight;"
     private val reelFrame = ExtensionDex.stringConstant(light, "REEL_FRAME")
+    private val storyFrame = ExtensionDex.stringConstant(light, "STORY_FRAME")
     private val mediaFrame = "L" + ExtensionDex.stringConstant(light, "MEDIA_FRAME").replace('.', '/') + ";"
 
     /** The patch switches its status method on and leaves the others as they were. */
@@ -62,7 +63,7 @@ class AmbientLightHookTest {
         assertEquals("every build of the version", Fixtures.BUILDS, bundles.size)
         for (apk in bundles) {
             val name = if (apk.extension == "apk") apk.parentFile.name else apk.name
-            assertEquals("$name: ids the build doesn't declare", emptyList<String>(), ViewIdFixture.missing(ViewIdFixture.resourceTable(apk), listOf(reelFrame)))
+            assertEquals("$name: ids the build doesn't declare", emptyList<String>(), ViewIdFixture.missing(ViewIdFixture.resourceTable(apk), listOf(reelFrame, storyFrame)))
             assertEquals("$name: the media frame", setOf(mediaFrame), FixtureDex.classes(apk, setOf(mediaFrame)).keys)
         }
     }

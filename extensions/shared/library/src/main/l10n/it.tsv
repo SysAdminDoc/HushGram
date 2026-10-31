@@ -1477,3 +1477,6 @@ Couldn't download the emoji. Try again.	Impossibile scaricare le emoji. Riprova.
 Emoji saved. Restart Instagram to see them.	Emoji salvate. Riavvia Instagram per vederle.
 No color emoji in that file. Nothing changed.	Nessuna emoji a colori nel file. Nulla è cambiato.
 Couldn't load your emoji, so the phone's show.	Emoji non caricate, restano quelle del telefono.
+# context: Stories settings: the Ambient light in stories switch (#420)
+Ambient light in stories	Luce ambientale nelle storie
+Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	Riempie le fasce sopra e sotto una storia che non occupa tutto lo schermo con un bagliore morbido dei suoi stessi colori. Anche Ampiezza del bagliore e Velocità del bagliore, in Feed, lo regolano.

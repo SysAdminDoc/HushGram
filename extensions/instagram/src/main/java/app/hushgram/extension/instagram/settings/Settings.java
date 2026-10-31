@@ -398,15 +398,22 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting AMBIENT_LIGHT =
             new BooleanSetting("hushgram_ambient_light", FALSE);
 
-    /** Under {@link #AMBIENT_LIGHT}: how far the glow reaches. Medium to start. */
+    /**
+     * The same glow in the bands around a story that doesn't fill the screen (#420), part of the Ambient light patch.
+     * Shares the spread and the speed. Off to start.
+     */
+    public static final BooleanSetting AMBIENT_LIGHT_STORIES =
+            new BooleanSetting("hushgram_ambient_light_stories", FALSE);
+
+    /** Under {@link #AMBIENT_LIGHT} or {@link #AMBIENT_LIGHT_STORIES}: how far the glow reaches. Medium to start. */
     public static final EnumSetting<app.hushgram.extension.instagram.feed.AmbientSpread> AMBIENT_LIGHT_SPREAD =
             new EnumSetting<>("hushgram_ambient_light_spread", app.hushgram.extension.instagram.feed.AmbientSpread.MEDIUM,
-                    parent(AMBIENT_LIGHT));
+                    parentsAny(AMBIENT_LIGHT, AMBIENT_LIGHT_STORIES));
 
-    /** Under {@link #AMBIENT_LIGHT}: how quickly the glow follows a video. Medium to start. */
+    /** Under {@link #AMBIENT_LIGHT} or {@link #AMBIENT_LIGHT_STORIES}: how quickly the glow follows a video. Medium to start. */
     public static final EnumSetting<app.hushgram.extension.instagram.feed.AmbientSpeed> AMBIENT_LIGHT_SPEED =
             new EnumSetting<>("hushgram_ambient_light_speed", app.hushgram.extension.instagram.feed.AmbientSpeed.MEDIUM,
-                    parent(AMBIENT_LIGHT));
+                    parentsAny(AMBIENT_LIGHT, AMBIENT_LIGHT_STORIES));
 
     /**
      * The stories you watch, which Instagram posts to media/seen/ to put you on their viewer lists.

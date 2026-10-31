@@ -53,6 +53,7 @@ public class AmbientLightSettingsTest {
     }
     private static void reset() {
         Settings.AMBIENT_LIGHT.resetToDefault();
+        Settings.AMBIENT_LIGHT_STORIES.resetToDefault();
         Settings.AMBIENT_LIGHT_SPREAD.resetToDefault();
         Settings.AMBIENT_LIGHT_SPEED.resetToDefault();
     }
@@ -155,6 +156,27 @@ public class AmbientLightSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.AMBIENT_LIGHT.get());
         assertTrue(Settings.AMBIENT_LIGHT.savedValue());
+    }
+    /** #420: a Stories switch that starts off, shares the lists, and wakes them alone. */
+    @Test public void theStoriesSwitchIsUnderStoriesStartsOffAndWakesTheSharedLists() throws Exception {
+        open(EnumSet.of(PatchFamily.AMBIENT_LIGHT));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.AMBIENT_LIGHT_STORIES.key);
+        assertNotNull(row);
+        assertEquals("Ambient light in stories", row.getTitle().toString());
+        assertEquals("Stories", ((PreferenceGroup) row.getParent()).getTitle().toString());
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertFalse(Settings.AMBIENT_LIGHT_STORIES.get());
+        Preference spread = page.getPreferenceScreen().findPreference(Settings.AMBIENT_LIGHT_SPREAD.key);
+        Preference speed = page.getPreferenceScreen().findPreference(Settings.AMBIENT_LIGHT_SPEED.key);
+        assertFalse(spread.isEnabled() || speed.isEnabled());
+        ((SwitchPreference) row).setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue("the story switch alone wakes the lists", spread.isEnabled() && speed.isEnabled());
+        assertTrue(PatchFamily.AMBIENT_LIGHT.switches.contains(Settings.AMBIENT_LIGHT_STORIES));
+        Settings.AMBIENT_LIGHT_STORIES.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.AMBIENT_LIGHT_STORIES.get());
     }
     @Test public void missingPatchHasNeitherRowsNorBackupKeys() throws Exception {
         open(EnumSet.of(PatchFamily.CAROUSEL_ARROWS));

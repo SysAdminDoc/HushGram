@@ -1476,3 +1476,6 @@ Couldn't download the emoji. Try again.	이모지를 다운로드하지 못했�
 Emoji saved. Restart Instagram to see them.	이모지를 저장했습니다. Instagram을 다시 시작하세요.
 No color emoji in that file. Nothing changed.	그 파일에 컬러 이모지가 없습니다. 바뀐 것은 없습니다.
 Couldn't load your emoji, so the phone's show.	이모지를 불러오지 못해 휴대폰 이모지가 표시됩니다.
+# context: Stories settings: the Ambient light in stories switch (#420)
+Ambient light in stories	스토리 주변광
+Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	화면을 가득 채우지 않는 스토리의 위아래 빈 공간을 스토리 고유의 색으로 부드럽게 채웁니다. 피드의 빛 퍼짐과 빛 속도도 여기에 적용됩니다.

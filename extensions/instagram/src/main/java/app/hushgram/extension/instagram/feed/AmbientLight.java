@@ -25,6 +25,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -72,6 +73,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public final class AmbientLight {
     static final String MEDIA_FRAME = "com.instagram.ui.widget.framelayout.MediaFrameLayout";
     static final String REEL_FRAME = ReelCorners.FRAME;
+    /** The frame a story's photo or video sits in, the same one Rounded corners on stories finds. */
+    static final String STORY_FRAME = StoryCorners.FRAME;
+
+    /** What a light shines around. */
+    enum Kind { POST, REEL, STORY }
 
     /** How many pictures glow at once. A feed shows two or three, Reels one and its neighbours. */
     static final int MAX_LIGHTS = 6;
@@ -96,6 +102,7 @@ public final class AmbientLight {
 
     static final String HOOK = "ambient light";
     static final String COUNT_LIT = "pictures lit";
+    static final String COUNT_STORIES = "story pictures lit";
     static final String NO_COPY = "copies that failed";
 
     /** Copies [source]'s picture into [into], then answers whether it worked. Tests stand in for the screen. */
@@ -128,7 +135,8 @@ public final class AmbientLight {
     /** Whether each view class asked about is Instagram's media frame. */
     private static final Map<Class<?>, Boolean> frames = new WeakHashMap<>();
     private static final Runnable TICK = AmbientLight::tick;
-    private static final Rect scratch = new Rect();
+    private static final Rect scratch = new Rect(), aim = new Rect();
+    private static final int[] where = new int[2];
     private static boolean ticking;
     private static volatile boolean registered;
     private static volatile boolean logged;
@@ -151,9 +159,19 @@ public final class AmbientLight {
         }
     }
 
-    /** Whether pictures glow now: the switch on, HushGram not paused, the settings read. */
+    /** Whether anything glows now: a switch on, HushGram not paused, the settings read. */
     static boolean wanted() {
+        return Utils.settingsReady() && (Settings.AMBIENT_LIGHT.get() || Settings.AMBIENT_LIGHT_STORIES.get());
+    }
+
+    /** Whether posts and reels glow now. */
+    static boolean feedWanted() {
         return Utils.settingsReady() && Settings.AMBIENT_LIGHT.get();
+    }
+
+    /** Whether stories glow now. */
+    static boolean storiesWanted() {
+        return Utils.settingsReady() && Settings.AMBIENT_LIGHT_STORIES.get();
     }
 
     /** Whether Blur the bars around Reels has the reels, which are then left to it. */
@@ -236,8 +254,55 @@ public final class AmbientLight {
         return null;
     }
 
+    /**
+     * A story's stage: the nearest parent of [media] that spans at least nine tenths of the window both
+     * ways, so the glow can fill the bands the picture leaves above, below and beside it.
+     */
+    @Nullable
+    static ViewGroup storyStageOf(View media, View window) {
+        ViewParent parent = media.getParent();
+        for (int i = 0; i < STAGE_DEPTH && parent instanceof ViewGroup; i++, parent = parent.getParent()) {
+            ViewGroup group = (ViewGroup) parent;
+            if (group.getWidth() >= window.getWidth() * 0.9f && group.getHeight() >= window.getHeight() * 0.9f) return group;
+        }
+        return null;
+    }
+
+    /** The first video, or with [video] false the first photo, that shows under [view]. */
+    @Nullable
+    static View storyMediaIn(View view, boolean video, int[] budget) {
+        if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return null;
+        if (video ? view instanceof TextureView : view instanceof ImageView && ((ImageView) view).getDrawable() != null) {
+            return view.getWidth() > 0 && view.getHeight() > 0 ? view : null;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = storyMediaIn(group.getChildAt(i), video, budget);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Lights the picture in a story's [frame]: its video if it has one showing, else its photo. A
+     * picture that took its place (the next story, a photo giving way to a video) puts the old
+     * one's light out.
+     */
+    static void lightStory(Activity owner, View frame, int[] budget) {
+        View window = owner.getWindow().getDecorView();
+        View media = storyMediaIn(frame, true, budget);
+        if (media == null) media = storyMediaIn(frame, false, budget);
+        for (Map.Entry<View, Light> entry : new ArrayList<>(lights.entrySet())) {
+            Light old = entry.getValue();
+            if (old.kind == Kind.STORY && old.anchor.get() == frame && entry.getKey() != media) drop(entry.getKey(), old);
+        }
+        if (media != null) light(owner, media, Kind.STORY, frame, storyStageOf(media, window));
+    }
+
     /** Lights [media] on [stage], if it isn't already and there's room. True when it was. */
-    static boolean light(Activity owner, View media, boolean reel, @Nullable ViewGroup stage) {
+    static boolean light(Activity owner, View media, Kind kind, @Nullable View anchor, @Nullable ViewGroup stage) {
         if (stage == null || media.getWidth() <= 0 || media.getHeight() <= 0) return false;
         Light old = lights.get(media);
         if (old != null) {
@@ -246,14 +311,14 @@ public final class AmbientLight {
         }
         if (lights.size() >= MAX_LIGHTS) return false;
         Glow glow = glowOn(stage);
-        Light light = new Light(owner, media, stage, reel);
+        Light light = new Light(owner, media, anchor, stage, kind);
         lights.put(media, light);
         glow.lights.add(light);
         light.place(media, stage);
-        HookStatus.counted(FamilyNames.AMBIENT_LIGHT, COUNT_LIT);
+        HookStatus.counted(FamilyNames.AMBIENT_LIGHT, kind == Kind.STORY ? COUNT_STORIES : COUNT_LIT);
         if (!logged) {
             logged = true;
-            Logger.printDebug(() -> "Ambient light: lit a " + (reel ? "reel" : "post"));
+            Logger.printDebug(() -> "Ambient light: lit a " + kind.name().toLowerCase(java.util.Locale.ROOT));
         }
         if (!ticking) {
             ticking = true;
@@ -305,13 +370,15 @@ public final class AmbientLight {
      */
     static void follow() {
         boolean blurred = reelsBlurred();
+        boolean feed = feedWanted(), stories = storiesWanted();
         for (Map.Entry<View, Light> entry : new ArrayList<>(lights.entrySet())) {
             View media = entry.getKey();
             Light light = entry.getValue();
             if (media == null) continue;
             ViewGroup stage = light.stage.get();
+            boolean story = light.kind == Kind.STORY;
             if (stage == null || !media.isAttachedToWindow() || !stage.isAttachedToWindow() || !under(media, stage)
-                    || (light.reel && blurred)) {
+                    || (story ? !stories || !media.isShown() : !feed || (light.kind == Kind.REEL && blurred))) {
                 drop(media, light);
                 continue;
             }
@@ -339,6 +406,13 @@ public final class AmbientLight {
         if (media == null || owner == null || light.asking || !media.isShown() || !media.getGlobalVisibleRect(scratch)) return;
         light.asking = true;
         try {
+            if (!light.inView.isEmpty()) {
+                // A letterboxed story photo: copy the picture, not the black bands of its view.
+                media.getLocationInWindow(where);
+                aim.set(light.inView);
+                aim.offset(where[0], where[1]);
+                if (aim.intersect(scratch)) scratch.set(aim);
+            }
             sampler.copy(owner, media, new Rect(scratch), light.copy, copied -> {
                 light.asking = false;
                 if (lights.get(media) != light) return;
@@ -445,6 +519,10 @@ public final class AmbientLight {
         ids.putForTests(context.getPackageName(), REEL_FRAME, id);
     }
 
+    static void storyIdForTests(Context context, int id) {
+        ids.putForTests(context.getPackageName(), STORY_FRAME, id);
+    }
+
     static void samplerForTests(@Nullable Sampler stand) {
         sampler = stand == null ? SCREEN : stand;
     }
@@ -496,9 +574,13 @@ public final class AmbientLight {
         final WeakReference<Activity> owner;
         final WeakReference<View> media;
         final WeakReference<ViewGroup> stage;
-        final boolean reel;
+        final Kind kind;
+        /** For a story, the frame its picture sits in, which tells a picture that took another's place. */
+        final WeakReference<View> anchor;
         /** Where the picture is on the stage, empty while it fills the stage or doesn't show. */
         final Rect lit = new Rect();
+        /** For a story's photo, where the picture is inside its view, which is all the copy takes. */
+        final Rect inView = new Rect();
         /** How far the glow reaches past the picture, in pixels. */
         int spread;
         final Bitmap copy = Bitmap.createBitmap(SAMPLE, SAMPLE, Bitmap.Config.ARGB_8888);
@@ -513,11 +595,12 @@ public final class AmbientLight {
         private final Matrix transform = new Matrix();
         private final RectF content = new RectF();
 
-        Light(Activity owner, View media, ViewGroup stage, boolean reel) {
+        Light(Activity owner, View media, @Nullable View anchor, ViewGroup stage, Kind kind) {
             this.owner = new WeakReference<>(owner);
             this.media = new WeakReference<>(media);
+            this.anchor = new WeakReference<>(anchor);
             this.stage = new WeakReference<>(stage);
-            this.reel = reel;
+            this.kind = kind;
         }
 
         /**
@@ -526,13 +609,26 @@ public final class AmbientLight {
          */
         boolean place(View media, ViewGroup stage) {
             at.setEmpty();
+            inView.setEmpty();
+            boolean story = kind == Kind.STORY;
             if (media.isShown() && media.getGlobalVisibleRect(at) && at.width() * 2 >= media.getWidth()) {
                 at.setEmpty();
-                if (reel && media instanceof TextureView) {
+                if (kind != Kind.POST && media instanceof TextureView) {
                     ((TextureView) media).getTransform(transform);
                     content.set(0, 0, media.getWidth(), media.getHeight());
                     transform.mapRect(content);
                     content.round(at);
+                } else if (story && media instanceof ImageView && ((ImageView) media).getDrawable() != null
+                        && ((ImageView) media).getDrawable().getIntrinsicWidth() > 0
+                        && ((ImageView) media).getDrawable().getIntrinsicHeight() > 0) {
+                    // A photo letterboxed inside its own view: where the drawable lands, padding included.
+                    ImageView photo = (ImageView) media;
+                    content.set(0, 0, photo.getDrawable().getIntrinsicWidth(), photo.getDrawable().getIntrinsicHeight());
+                    photo.getImageMatrix().mapRect(content);
+                    content.offset(photo.getPaddingLeft(), photo.getPaddingTop());
+                    content.round(at);
+                    at.intersect(0, 0, media.getWidth(), media.getHeight());
+                    inView.set(at);
                 } else {
                     at.set(0, 0, media.getWidth(), media.getHeight());
                 }
@@ -543,6 +639,10 @@ public final class AmbientLight {
                 at.setEmpty();
             }
             int reach = Math.round(Settings.AMBIENT_LIGHT_SPREAD.get().dp * stage.getResources().getDisplayMetrics().density);
+            // A story's bands can be deeper than the glow reaches, so the glow reaches the stage's edge.
+            if (story && !at.isEmpty()) {
+                reach = Math.max(reach, Math.max(Math.max(at.left, at.top), Math.max(stage.getWidth() - at.right, stage.getHeight() - at.bottom)));
+            }
             if (at.equals(lit) && reach == spread) return false;
             lit.set(at);
             spread = reach;
@@ -766,6 +866,8 @@ public final class AmbientLight {
     /** One activity's place in the shared view watcher. */
     private static final class Session implements ViewWatcher.Member {
         private final WeakReference<Activity> activity;
+        /** Whether posts glow, as of the last search. */
+        private boolean posts;
 
         Session(Activity activity) {
             this.activity = new WeakReference<>(activity);
@@ -803,14 +905,28 @@ public final class AmbientLight {
                 }
                 follow();
                 if (laidOut) {
-                    int frame = ids.resolve(owner.getResources(), owner.getPackageName(), REEL_FRAME, false);
-                    // Without the reel frame posts still glow.
-                    if (frame == 0) {
-                        HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
-                    } else {
-                        HookStatus.recoveredViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
+                    boolean feed = feedWanted(), stories = storiesWanted();
+                    int frame = 0, storyFrame = 0;
+                    if (feed) {
+                        frame = ids.resolve(owner.getResources(), owner.getPackageName(), REEL_FRAME, false);
+                        // Without the reel frame posts still glow.
+                        if (frame == 0) {
+                            HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
+                        } else {
+                            HookStatus.recoveredViewId(FamilyNames.AMBIENT_LIGHT, REEL_FRAME);
+                        }
                     }
-                    walk(owner, owner.getWindow().getDecorView(), frame, !reelsBlurred(), new int[] {ReelCorners.MAX_VIEWS});
+                    if (stories) {
+                        storyFrame = ids.resolve(owner.getResources(), owner.getPackageName(), STORY_FRAME, false);
+                        if (storyFrame == 0) {
+                            HookStatus.missingViewId(FamilyNames.AMBIENT_LIGHT, STORY_FRAME);
+                        } else {
+                            HookStatus.recoveredViewId(FamilyNames.AMBIENT_LIGHT, STORY_FRAME);
+                        }
+                    }
+                    posts = feed;
+                    walk(owner, owner.getWindow().getDecorView(), frame, storyFrame, feed && !reelsBlurred(),
+                            new int[] {ReelCorners.MAX_VIEWS});
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.AMBIENT_LIGHT, HOOK, failure);
@@ -820,22 +936,26 @@ public final class AmbientLight {
         }
 
         /** Lights each post's media frame and, with [reels], each reel's video in a frame with [frame], under [view]. */
-        private void walk(Activity owner, View view, int frame, boolean reels, int[] budget) {
+        private void walk(Activity owner, View view, int frame, int storyFrame, boolean reels, int[] budget) {
             if (budget[0]-- <= 0 || view.getVisibility() != View.VISIBLE) return;
-            if (mediaFrame(view)) {
-                light(owner, view, false, stageOf(view));
+            if (posts && mediaFrame(view)) {
+                light(owner, view, Kind.POST, null, stageOf(view));
                 return;
             }
             if (frame != 0 && view.getId() == frame) {
                 if (reels) {
                     TextureView video = videoIn(view, budget);
-                    if (video != null) light(owner, video, true, reelStageOf(video, view));
+                    if (video != null) light(owner, video, Kind.REEL, null, reelStageOf(video, view));
                 }
+                return;
+            }
+            if (storyFrame != 0 && view.getId() == storyFrame) {
+                lightStory(owner, view, budget);
                 return;
             }
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
-                for (int i = 0; i < group.getChildCount(); i++) walk(owner, group.getChildAt(i), frame, reels, budget);
+                for (int i = 0; i < group.getChildCount(); i++) walk(owner, group.getChildAt(i), frame, storyFrame, reels, budget);
             }
         }
 

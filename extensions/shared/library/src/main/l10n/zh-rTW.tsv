@@ -1480,3 +1480,6 @@ Couldn't download the emoji. Try again.	無法下載表情符號，請再試一�
 Emoji saved. Restart Instagram to see them.	表情符號已儲存。請重新啟動 Instagram 以查看。
 No color emoji in that file. Nothing changed.	該檔案中沒有彩色表情符號，未做任何變更。
 Couldn't load your emoji, so the phone's show.	無法載入你的表情符號，因此顯示手機的表情符號。
+# context: Stories settings: the Ambient light in stories switch (#420)
+Ambient light in stories	限時動態環境光
+Fills the bands above and below a story that doesn't fill the screen with a soft glow in its own colors. Glow spread and Glow speed, under Feed, set it too.	用限時動態自己的顏色，以柔和光暈填滿未佔滿螢幕的限時動態上下方的空白。動態首頁裡的光暈範圍和光暈速度也會套用。

@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import app.hushgram.extension.instagram.feed.AmbientLight;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
 import app.hushgram.extension.shared.L10n;
 
@@ -90,6 +91,12 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.STORY_SEEK_BAR, L10n.t("Seek bar on stories"),
                     L10n.t("Shows a bar near the bottom of a video story. Drag it to jump to any point in the "
                             + "video. Photos don't get one.")));
+        }
+        if (build.contains(PatchFamily.AMBIENT_LIGHT)) {
+            stories.add(onFlip(toggle(context, Settings.AMBIENT_LIGHT_STORIES, L10n.t("Ambient light in stories"),
+                    L10n.t("Fills the bands above and below a story that doesn't fill the screen with a soft glow in "
+                            + "its own colors. Glow spread and Glow speed, under Feed, set it too.")),
+                    AmbientLight::switchChanged));
         }
         if (build.contains(PatchFamily.STORY_AUTO_ADVANCE)) {
             stories.add(toggle(context, Settings.BLOCK_STORY_AUTO_ADVANCE, L10n.t("Stop Story auto-advance"),
