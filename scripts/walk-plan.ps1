@@ -325,6 +325,25 @@ function Get-WalkVisibleNodes {
     @($geometricallyVisible | Where-Object { Test-WalkNodeUncovered -Node $_ -Visible $visible -Geometry $geometry })
 }
 
+function Get-WalkSlidTabBar {
+    param([xml]$Document, [string]$Package)
+    # Hide the tab bar on Reels slides Instagram's bar below its window with a translation
+    # (GlassScrollHide.java:274-276), so none of it is visible while its tabs keep their selection.
+    # Only a bar wholly past its window's bottom edge counts. One covered on screen is still missing.
+    $bars = @($Document.SelectNodes("//node[@resource-id='${Package}:id/tab_bar']"))
+    if ($bars.Count -ne 1) { return }
+    $window = $bars[0].SelectSingleNode('ancestor::node[last()]')
+    if ($null -eq $window -or $window.GetAttribute('visible-to-user') -cne 'true') { return }
+    $edges = '^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$'
+    $windowBounds = [regex]::Match($window.GetAttribute('bounds'), $edges)
+    $barBounds = [regex]::Match($bars[0].GetAttribute('bounds'), $edges)
+    if (-not $windowBounds.Success -or -not $barBounds.Success -or
+        [int]$barBounds.Groups[2].Value -lt [int]$windowBounds.Groups[4].Value) { return }
+    if (@($bars[0].SelectNodes('descendant-or-self::node') | Where-Object {
+        $_.GetAttribute('visible-to-user') -ceq 'true' }).Count) { return }
+    ,$bars[0]
+}
+
 function Test-WalkDestinationContent {
     param($Destination, [xml]$Document, [string]$Package)
     function Get-WalkContentFailure([string]$Reason) { [pscustomobject]@{ Valid=$false; Reason=$Reason } }
@@ -458,7 +477,19 @@ function Test-WalkDestinationContent {
             ($_.GetAttribute('selected') -ceq 'true' -or
                 @($_.SelectNodes('.//node[@selected="true"]') | Where-Object { $visibleSet.Contains($_) }).Count -gt 0)
         })
-        if (@(Get-WalkIdNode $Destination.tab).Count -ne 1 -or $selectedTabs.Count -ne 1 -or
+        $tabNodes = @(Get-WalkIdNode $Destination.tab)
+        $slidBar = if (-not $tabNodes.Count) { Get-WalkSlidTabBar -Document $Document -Package $Package }
+        if ($null -ne $slidBar) {
+            # Nothing of a slid bar is on screen, so its tabs' own selection names the destination.
+            $barNodes = @($slidBar.SelectNodes('.//node'))
+            $tabNodes = @($barNodes | Where-Object { $_.GetAttribute('resource-id') -ceq $tabId })
+            $selectedTabs += @($barNodes | Where-Object {
+                $_.GetAttribute('resource-id').StartsWith("${Package}:id/", [StringComparison]::Ordinal) -and
+                $_.GetAttribute('resource-id') -cmatch '_tab$' -and
+                ($_.GetAttribute('selected') -ceq 'true' -or $_.SelectNodes('.//node[@selected="true"]').Count -gt 0)
+            })
+        }
+        if ($tabNodes.Count -ne 1 -or $selectedTabs.Count -ne 1 -or
             $selectedTabs[0].GetAttribute('resource-id') -cne $tabId) {
             return Get-WalkContentFailure 'The required native tab is not the sole selected tab.'
         }

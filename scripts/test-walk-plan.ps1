@@ -318,6 +318,30 @@ try {
     Assert-PlanContent $homeDestination $document $true 'Home headline empty state'
     $document.SelectSingleNode("//node[@resource-id='${script:package}:id/igds_headline_body']").SetAttribute('text','')
     Assert-PlanContent $homeDestination $document $false 'Home headline empty state without a body'
+    $reelsDestination = $all | Where-Object id -CEQ 'reels'
+    # Hide the tab bar on Reels slides the bar below the window while a reel plays (release walk 2026-10-31).
+    foreach ($case in @('slid','slid wrong tab','slid two tabs','covered','partly shown')) {
+        $document = Get-NativePlanDocument $reelsDestination
+        $tabBar = $document.SelectSingleNode("//node[@resource-id='${script:package}:id/tab_bar']")
+        foreach ($uiNode in @($tabBar.SelectNodes('descendant-or-self::node'))) {
+            $uiNode.SetAttribute('visible-to-user','false')
+            if ($case -cne 'covered') { $uiNode.SetAttribute('bounds','[0,1623][720,1600]') }
+        }
+        if ($case -ceq 'slid wrong tab') {
+            $document.SelectSingleNode("//node[@resource-id='${script:package}:id/clips_tab']/node").SetAttribute('selected','false')
+            $document.SelectSingleNode("//node[@resource-id='${script:package}:id/feed_tab']/node").SetAttribute('selected','true')
+        }
+        if ($case -ceq 'slid two tabs') {
+            $document.SelectSingleNode("//node[@resource-id='${script:package}:id/feed_tab']").SetAttribute('selected','true')
+        }
+        if ($case -ceq 'partly shown') {
+            $tabBar.SetAttribute('visible-to-user','true'); $tabBar.SetAttribute('bounds','[0,1580][720,1600]')
+        }
+        Assert-PlanContent $reelsDestination $document ($case -ceq 'slid') "Reels with its tab bar $case"
+        $barSlid = $null -ne (Get-WalkSlidTabBar -Document $document -Package $script:package)
+        Assert-PlanTest ($barSlid -eq ($case -clike 'slid*')) "Reels slid bar detection, $case."
+    }
+    Assert-PlanTest ($null -eq (Get-WalkSlidTabBar -Document (Get-NativePlanDocument $reelsDestination) -Package $script:package)) 'A shown tab bar is not slid.'
     $document = Get-NativePlanDocument $homeDestination
     $fragment = $document.CreateDocumentFragment()
     $fragment.InnerXml = Get-PlanNode -Class 'android.widget.FrameLayout' -Text 'Screen unavailable'

@@ -394,6 +394,13 @@ function Invoke-WalkApp {
                     $navigation = Read-WalkCapture
                 }
                 if (Test-WalkSettingsVisible $navigation.ParsedXml) { throw 'Settings still cover the native tabs.' }
+                # Hide the tab bar on Reels slid the bar away while a reel played. Back leaves the Reels
+                # viewer, and the bar returns once the viewer is off screen (GlassScrollHide.java:59-61).
+                if ($null -ne (Get-WalkSlidTabBar -Document $navigation.ParsedXml -Package $Package)) {
+                    [void](Invoke-WalkAdb @('shell','input','keyevent','KEYCODE_BACK'))
+                    Start-Sleep -Seconds $SettleSeconds
+                    $navigation = Read-WalkCapture
+                }
                 Send-WalkTap (Get-WalkCaptureActionArea -Capture $navigation -Package $Package -ResourceId "${Package}:id/$($destination.tab)")
                 Add-WalkObservation $destination (Read-WalkCapture)
             }
