@@ -1058,6 +1058,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	릴스 옆 버튼 열에서 저장 버튼과 그 아래 숫자를 없앱니다. 피드 게시물의 저장 버튼은 그대로 남습니다.
 Keep clear mode on	클리어 모드 유지
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	릴스에서 Instagram의 클리어 모드를 켜면 다음 릴스도 클리어 모드로 열립니다. 클리어 모드를 직접 끄면 다음 릴스에는 버튼이 다시 표시됩니다.
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	모든 릴스를 클리어 모드로 시작
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	첫 릴스부터 탭하지 않아도 클리어 모드로 열립니다. 직접 끄면 다음 릴스에는 버튼이 다시 표시됩니다. 스크린샷 허용이 켜져 있지 않으면 Instagram은 클리어 모드에서 스크린샷을 막습니다.
 Unlock with	잠금 해제 방법
 Phone lock	휴대폰 잠금
 HushGram PIN	HushGram PIN

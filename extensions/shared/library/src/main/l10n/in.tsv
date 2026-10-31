@@ -1059,6 +1059,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Menghapus tombol Simpan dari deretan tombol di samping reel, beserta angka di bawahnya. Postingan di feed-mu tetap punya tombolnya.
 Keep clear mode on	Tetap aktifkan mode bersih
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Aktifkan mode bersih Instagram di sebuah reel dan reels berikutnya juga terbuka dalam mode itu. Keluar sendiri dari mode bersih dan reels berikutnya menampilkan tombolnya lagi.
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	Mulai setiap reel dalam mode bersih
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Reels terbuka dalam mode bersih sejak yang pertama, tanpa ketukan. Keluar sendiri dan reels berikutnya menampilkan tombolnya lagi. Instagram memblokir tangkapan layar dalam mode bersih kecuali Izinkan tangkapan layar aktif.
 Unlock with	Buka kunci dengan
 Phone lock	Kunci ponsel
 HushGram PIN	PIN HushGram

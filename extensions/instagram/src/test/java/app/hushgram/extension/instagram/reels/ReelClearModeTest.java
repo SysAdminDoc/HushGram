@@ -117,6 +117,14 @@ public class ReelClearModeTest {
             return pager == this.pager && pagerShown;
         }
 
+        /** The handler's menu row reason, or null for a handler without one. */
+        Object menuReason = Reason.OVERFLOW_MENU;
+
+        @Override
+        public Object reason(Object handler) {
+            return menuReason;
+        }
+
         void runPosted() {
             List<Runnable> work = new ArrayList<>(posted);
             posted.clear();
@@ -140,6 +148,7 @@ public class ReelClearModeTest {
     @After
     public void restore() {
         Settings.KEEP_REEL_CLEAR_MODE.resetToDefault();
+        Settings.START_REEL_CLEAR_MODE.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         ReelClearMode.forget();
@@ -928,5 +937,182 @@ public class ReelClearModeTest {
         ReelClearMode.left(viewer.handler, third, Reason.EXIT_BUTTON);
         assertEquals("leaving clear mode yourself, Instagram's fade back in goes through", 1f, ReelClearMode.chrome(1f, 0.9f), 0f);
         assertEquals("and so does a reset", 1f, ReelClearMode.chrome(1f, 0f), 0f);
+    }
+
+    private static boolean started(int times) {
+        return HookStatus.report().toString().contains(ReelClearMode.STARTED + " " + times);
+    }
+
+    /** Stands in for Instagram's handler: its turn-on takes the reason enum, its other methods don't. */
+    @SuppressWarnings("unused")
+    private static final class StockHandler {
+        void A00(Object action) {
+        }
+
+        void A01(Reason reason) {
+        }
+    }
+
+    /** A handler whose only enum parameter names no menu row. */
+    @SuppressWarnings("unused")
+    private static final class OtherHandler {
+        void A01(Scroll state) {
+        }
+    }
+
+    @Test
+    public void theMenuReasonIsTheHandlersOwnEnumConstant() {
+        assertSame(Reason.OVERFLOW_MENU, ReelClearMode.PATCHED.reason(new StockHandler()));
+        assertNull("no enum parameter names one", ReelClearMode.PATCHED.reason(new OtherHandler()));
+        assertNull("no enum parameter at all", ReelClearMode.PATCHED.reason(new Object()));
+    }
+
+    /** Start every reel in clear mode (#138): the first reel with an exit button gets it with no tap. */
+    @Test
+    public void startEveryReelPutsTheFirstReelWithAButtonInClearModeAndCarriesIt() {
+        assertFalse("starts off", Settings.START_REEL_CLEAR_MODE.defaultValue);
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        Reel first = new Reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.starting());
+
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("tried once", 1, viewer.asked);
+        assertEquals("a reel with no exit button yet could never leave it, so it waits", Collections.emptyList(), viewer.turnedOn);
+        assertFalse(ReelClearMode.wanted());
+        assertTrue(ReelClearMode.starting());
+
+        ReelClearMode.built(first);
+        viewer.runPosted();
+        assertEquals(Collections.singletonList("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
+        assertTrue(started(1));
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("nothing more is asked while it's on", 2, viewer.asked);
+
+        Reel second = reel("reel 1");
+        swipe(first, second);
+        assertEquals("carried like your own", Arrays.asList("reel 0 OVERFLOW_MENU", "reel 1 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(counted(1));
+        assertTrue(started(1));
+    }
+
+    @Test
+    public void leavingItYourselfStopsTheStartingUntilAnotherViewer() {
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertTrue(ReelClearMode.wanted());
+
+        ReelClearMode.left(viewer.handler, first, Reason.EXIT_BUTTON);
+        assertFalse(ReelClearMode.wanted());
+        assertFalse(ReelClearMode.starting());
+        Reel second = reel("reel 1");
+        viewer.page = second;
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("the next reels show their buttons", Collections.singletonList("reel 0 OVERFLOW_MENU"), viewer.turnedOn);
+
+        ReelClearMode.ready(viewer.handler);
+        assertFalse("the same viewer set up again doesn't start it", ReelClearMode.starting());
+        Object another = new Object();
+        ReelClearMode.ready(another);
+        assertTrue("another viewer does", ReelClearMode.starting());
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals(Arrays.asList("reel 0 OVERFLOW_MENU", "reel 1 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(started(2));
+    }
+
+    @Test
+    public void anotherViewerForgetsTheClearModeOfTheOneBefore() {
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertTrue(ReelClearMode.wanted());
+
+        // Reels closed with no turn-off, and opened again.
+        Reel again = reel("reel 5");
+        viewer.page = again;
+        ReelClearMode.ready(new Object());
+        assertFalse("what the old viewer was in went with it", ReelClearMode.wanted());
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals(Arrays.asList("reel 0 OVERFLOW_MENU", "reel 5 OVERFLOW_MENU"), viewer.turnedOn);
+        assertTrue(ReelClearMode.wanted());
+    }
+
+    @Test
+    public void offPausedOrUnreadyNothingIsStarted() {
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        ReelClearMode.ready(viewer.handler);
+        assertFalse("its own switch off", ReelClearMode.starting());
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals(0, viewer.asked);
+
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        Settings.KEEP_REEL_CLEAR_MODE.save(false);
+        ReelClearMode.ready(viewer.handler);
+        assertFalse("Keep clear mode on off", ReelClearMode.starting());
+        Settings.KEEP_REEL_CLEAR_MODE.save(true);
+
+        ReelClearMode.ready(viewer.handler);
+        assertTrue(ReelClearMode.starting());
+        Settings.START_REEL_CLEAR_MODE.save(false);
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("turned off before the try", 0, viewer.asked);
+        assertFalse(ReelClearMode.starting());
+
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        ReelClearMode.ready(viewer.handler);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("paused", 0, viewer.asked);
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> ReelClearMode.ready(viewer.handler));
+        assertFalse("unready", ReelClearMode.starting());
+        assertTrue(viewer.turnedOn.isEmpty());
+        assertFalse(started(1));
+    }
+
+    @Test
+    public void aHandlerWithNoMenuReasonOrATurnOnThatThrowsStartsNothing() {
+        Settings.START_REEL_CLEAR_MODE.save(true);
+        Reel first = reel("reel 0");
+        viewer.page = first;
+        viewer.menuReason = null;
+        ReelClearMode.ready(viewer.handler);
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals(0, viewer.asked);
+        assertFalse(ReelClearMode.starting());
+
+        viewer.menuReason = Reason.OVERFLOW_MENU;
+        viewer.enterFailure = new IllegalStateException("the handler changed");
+        ReelClearMode.ready(new Object());
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals(1, viewer.asked);
+        assertTrue(reported("clear mode start"));
+        assertFalse(ReelClearMode.starting());
+        assertFalse(ReelClearMode.wanted());
+        ReelClearMode.paged();
+        viewer.runPosted();
+        assertEquals("not tried again", 1, viewer.asked);
     }
 }

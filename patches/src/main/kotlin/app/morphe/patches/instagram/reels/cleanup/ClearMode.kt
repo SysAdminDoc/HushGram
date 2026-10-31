@@ -52,6 +52,7 @@ internal const val CLEAR_MODE_BUILT = "$CLEAR_MODE->built(Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_SCRUBBER = "$CLEAR_MODE->scrubber(II)Z"
 internal const val CLEAR_MODE_CHROME_ALPHA = "$CLEAR_MODE->chrome(FF)F"
 internal const val CLEAR_MODE_SETTLED = "$CLEAR_MODE->settled(Ljava/lang/Object;Ljava/lang/Object;)V"
+internal const val CLEAR_MODE_READY = "$CLEAR_MODE->ready(Ljava/lang/Object;)V"
 internal const val CLEAR_MODE_ENTER_STUB = "enter"
 internal const val CLEAR_MODE_ID_STUB = "reelId"
 
@@ -65,7 +66,8 @@ internal const val CLEAR_MODE_ID_STUB = "reelId"
  * writes the one alpha its buttons, author row and top bar share through its holder's setter,
  * which clear mode's fade animates and Instagram resets to shown when it binds a page (#233). The
  * pager's listener also handles each change of the pager's scroll state, and reads the pager on its
- * way to rest, which is where a swipe that snapped back shows (#233).
+ * way to rest, which is where a swipe that snapped back shows (#233). The Reels viewer's setup hands
+ * the handler its turn-on action, which is the first moment the handler can turn clear mode on (#138).
  */
 internal const val CLEAR_MODE_ENABLE = "FullscreenViewActionHandler_handleFullscreenViewEnable"
 internal const val CLEAR_MODE_DISMISS = "FullscreenViewActionHandler_handleFullscreenViewDismiss"
@@ -75,10 +77,11 @@ internal const val REEL_PAGE_SELECTED = "ClipsViewerViewPagerListener_onPageSele
 internal const val CLEAR_MODE_SCRUBBER_ROW = "ClipsScrubberRowComponent_render"
 internal const val CLEAR_MODE_CHROME = "LithoClipsItemDefinition_Holder_updateChromeAlpha"
 internal const val REEL_SCROLL_STATE = "ClipsViewerViewPagerListener_onScrollStateChanged"
+internal const val CLEAR_MODE_SETUP = "FullscreenViewActionHandler_setFullscreenViewEnableAction"
 
 internal val CLEAR_MODE_MARKERS = listOf(
     CLEAR_MODE_ENABLE, CLEAR_MODE_DISMISS, CLEAR_MODE_ENABLED, CLEAR_MODE_BUTTON, REEL_PAGE_SELECTED, CLEAR_MODE_SCRUBBER_ROW,
-    CLEAR_MODE_CHROME, REEL_SCROLL_STATE,
+    CLEAR_MODE_CHROME, REEL_SCROLL_STATE, CLEAR_MODE_SETUP,
 )
 
 /** The reason Instagram turns clear mode off with when a reel leaves the screen, which its enum has to name. */
@@ -110,8 +113,9 @@ private const val STRING = "Ljava/lang/String;"
  * mode flag, and tests what comes back. The reel holder's chrome alpha setter passes the alpha it
  * was asked for through the extension, with the one it holds, right after reading that one, and
  * stores what comes back. The pager listener's scroll state change hands the extension the pager
- * and the state right after reading the pager. The extension's two stubs are filled with the
- * handler's turn-on and the reel's getId.
+ * and the state right after reading the pager. The viewer's setup hands the extension the handler
+ * right after setting its turn-on action. The extension's two stubs are filled with the handler's
+ * turn-on and the reel's getId.
  *
  * Everything is found by Instagram's own markers and checked before anything changes, so a build
  * that differs stops the patch saying what it couldn't find, and nothing is half done.
@@ -177,9 +181,13 @@ internal class ClearModeHooks(
     val settle: Int,
     val pager: Int,
     val scrollState: Int,
+    /** The viewer's setup, the index after it set the handler's turn-on action, and the register the handler is in. */
+    val setup: Method,
+    val ready: Int,
+    val readyHandler: Int,
     /**
      * How many instructions the turn-on, the turn-off, the viewer's turn-on, the row, the chrome
-     * setter and the scroll state change had when their places were found.
+     * setter, the scroll state change and the viewer's setup had when their places were found.
      */
     val lengths: List<Int>,
 )
@@ -387,7 +395,26 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
     }
     scrolled.requireParameterIntact(KEEP, 0, listOf(settle))
 
-    val every = listOf(enable, dismiss, enabled, paged, button, row, chrome, scrolled).map { it.describe() }
+    // The viewer's setup: the one write of the field the handler's turn-on reads its action from.
+    // The hook goes right after it, where the register written through still holds the handler (#138).
+    val actions = enable.body().filter { it.opcode == Opcode.IGET_OBJECT }
+        .map { (it as ReferenceInstruction).reference as FieldReference }.filter { it.definingClass == handler }
+    val action = actions.singleOrNull()
+        ?: stop("${enable.describe()} reads ${actions.size} fields of its own, expected its action alone")
+    val setup = single(CLEAR_MODE_SETUP)
+    val setupCode = setup.body()
+    val sets = setupCode.indices.filter { at ->
+        val written = (setupCode[at] as? ReferenceInstruction)?.reference as? FieldReference
+        setupCode[at].opcode == Opcode.IPUT_OBJECT && written != null &&
+            written.definingClass == action.definingClass && written.name == action.name && written.type == action.type
+    }
+    val set = sets.singleOrNull() ?: stop("${setup.describe()} sets the handler's turn-on action ${sets.size} times, expected once")
+    val ready = set + 1
+    if (ready >= setupCode.size) stop("${setup.describe()} ends at setting the handler's turn-on action")
+    if (ready in setup.jumpTargets()) stop("${setup.describe()} jumps past its setting of the turn-on action, so the hook would be skipped")
+    val readyHandler = (setupCode[set] as TwoRegisterInstruction).registerB
+
+    val every = listOf(enable, dismiss, enabled, paged, button, row, chrome, scrolled, setup).map { it.describe() }
     if (every.toSet().size != every.size) stop("two hooks would go in one method: $every")
 
     return ClearModeHooks(
@@ -396,7 +423,8 @@ internal fun BytecodePatchContext.findClearMode(): ClearModeHooks {
         row, scrubber, shown, borrowed, rowState.describe(), reelState.describe(), flag.describe(),
         chrome, hold, alpha,
         scrolled, settle, pager, scrollState,
-        listOf(enable, dismiss, enabled, row, chrome, scrolled).map { it.body().size },
+        setup, ready, readyHandler,
+        listOf(enable, dismiss, enabled, row, chrome, scrolled, setup).map { it.body().size },
     )
 }
 
@@ -521,9 +549,9 @@ private val THROWS = setOf(Opcode.THROW)
  * goes in first where no local holds anything yet, and the seek bar row's, a local nothing reads
  * past its test. The two handler hooks and the viewer's go in with a plain insert on purpose: the
  * handler's own branch around a missing action keeps landing past the hook. Those three, the row's,
- * the chrome setter's and the scroll state change's go in by the index the find phase read, which
- * holds only while each method is as long as it was, so one that changed in between stops the patch
- * before any hook is in.
+ * the chrome setter's, the scroll state change's and the setup's go in by the index the find phase
+ * read, which holds only while each method is as long as it was, so one that changed in between
+ * stops the patch before any hook is in.
  */
 internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val enable = changing(found.enable)
@@ -532,7 +560,8 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     val row = changing(found.row)
     val chrome = changing(found.chrome)
     val scrolled = changing(found.scrolled)
-    listOf(enable, dismiss, enabled, row, chrome, scrolled).forEachIndexed { at, method ->
+    val setup = changing(found.setup)
+    listOf(enable, dismiss, enabled, row, chrome, scrolled, setup).forEachIndexed { at, method ->
         if (method.body().size != found.lengths[at]) stop("${method.describe()} changed after its hook's place was found")
     }
     enable.addInstructions(found.entered, "invoke-static/range { p0 .. p1 }, $CLEAR_MODE_ENTERED")
@@ -586,6 +615,9 @@ internal fun BytecodePatchContext.applyClearMode(found: ClearModeHooks) {
     )
     // The pager just read and the state go in, and nothing comes back.
     scrolled.addInstructions(found.settle, "invoke-static { v${found.pager}, v${found.scrollState} }, $CLEAR_MODE_SETTLED")
+    // The handler just handed its turn-on action goes in, by range since the setup's locals run past v15.
+    val handler = found.readyHandler
+    setup.addInstructions(found.ready, "invoke-static/range { v$handler .. v$handler }, $CLEAR_MODE_READY")
 }
 
 /** The extension's stubs, found before anything changes, and the step that fills them. */

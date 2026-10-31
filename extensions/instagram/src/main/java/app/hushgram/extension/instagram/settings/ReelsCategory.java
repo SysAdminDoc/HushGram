@@ -112,6 +112,10 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.KEEP_REEL_CLEAR_MODE, L10n.t("Keep clear mode on"),
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));
+            reels.add(toggle(context, Settings.START_REEL_CLEAR_MODE, L10n.t("Start every reel in clear mode"),
+                    L10n.t("Reels open in clear mode from the first one, with no tap. Leave it yourself and the next "
+                            + "reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow "
+                            + "screenshots is on.")));
         }
         if (build.contains(PatchFamily.KEEP_REELS_TOP_BAR)) {
             reels.add(toggle(context, Settings.KEEP_REELS_TOP_BAR, L10n.t("Keep the Reels top bar"),

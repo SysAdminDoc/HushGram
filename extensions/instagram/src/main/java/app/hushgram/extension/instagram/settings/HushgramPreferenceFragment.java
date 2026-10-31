@@ -646,7 +646,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.STORIES_TRAY && Settings.TRAY_BADGE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_TAP_AND_VOLUME && Settings.REEL_TAP_CHOICE.key.equals(key);
                     belongs |= family == PatchFamily.REEL_DECLUTTER && (Settings.BURN_IN_GUARD.key.equals(key)
-                            || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key));
+                            || Settings.BURN_IN_WAIT.key.equals(key) || Settings.BURN_IN_STAY_DIM.key.equals(key)
+                            || Settings.START_REEL_CLEAR_MODE.key.equals(key));
                     belongs |= family == PatchFamily.REEL_SCROLLING && Settings.SCROLL_BREAK.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.PLAYBACK_QUALITY.key.equals(key);
                     belongs |= family == PatchFamily.PLAYBACK_QUALITY && Settings.QUALITY_TAB_TARGET.key.equals(key);

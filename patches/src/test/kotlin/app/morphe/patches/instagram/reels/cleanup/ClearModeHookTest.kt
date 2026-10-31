@@ -75,7 +75,7 @@ class ClearModeHookTest {
     private val pagerHost = "Lfixture/PagerHost;"
     private val hooks = listOf(
         CLEAR_MODE_ENTERED, CLEAR_MODE_LEFT, CLEAR_MODE_CURRENT, CLEAR_MODE_PAGED, CLEAR_MODE_BUILT, CLEAR_MODE_SCRUBBER, CLEAR_MODE_CHROME_ALPHA,
-        CLEAR_MODE_SETTLED,
+        CLEAR_MODE_SETTLED, CLEAR_MODE_READY,
     )
 
     private fun marker(name: String, quarter: String = "q3") = "android_purge_26_${quarter}_$name"
@@ -99,6 +99,7 @@ class ClearModeHookTest {
      * the exit button's render each ask first thing. The reel holder's chrome setter passes the
      * alpha it was asked for through the extension right after reading the one it holds. The pager
      * listener's scroll state change hands over the pager right after reading it, with the state.
+     * The viewer's setup hands over the handler right after giving it its turn-on action (#138).
      * The stubs call the handler's turn-on and the reel's getId.
      */
     @Test
@@ -106,6 +107,12 @@ class ClearModeHookTest {
         val context = PatchContexts.of(classes())
 
         context.keepClearMode()
+
+        val setup = context.method(actions, "setup")
+        assertEquals("the turn-on action isn't set just before", "$handler->onEnable:$function1", setup[2].referenceText())
+        // One local, then the handler and the action.
+        assertCall("the setup's hook", setup[3], CLEAR_MODE_READY, listOf(1))
+        assertEquals(Opcode.RETURN_VOID, setup[4].opcode)
 
         val enable = context.method(handler, "enable")
         // One local, then this and the reason.
@@ -320,6 +327,13 @@ class ClearModeHookTest {
             Shape(jumpToSettle = true) to "jumps past its read of the pager",
             Shape(settleHigh = true) to "keeps the pager and the state in v1 and v17, which the hook's call can't name",
             Shape(stateOverwritten = true) to "PagerListener;->onScrollStateChanged writes over parameter 0",
+            Shape(enableReadsPager = true) to "reads 2 fields of its own, expected its action alone",
+            Shape(setups = 0) to "expected one method marked $CLEAR_MODE_SETUP, found 0",
+            Shape(setups = 2) to "expected one method marked $CLEAR_MODE_SETUP, found 2",
+            Shape(setupSets = 0) to "sets the handler's turn-on action 0 times, expected once",
+            Shape(setupSets = 2) to "sets the handler's turn-on action 2 times, expected once",
+            Shape(setupEndsAtSet = true) to "ends at setting the handler's turn-on action",
+            Shape(jumpToReady = true) to "jumps past its setting of the turn-on action",
             Shape(stubs = false) to "has no static $stringType $CLEAR_MODE_ID_STUB(",
         )
         for ((shape, expected) in cases) {
@@ -343,7 +357,7 @@ class ClearModeHookTest {
     fun aMethodChangedAfterItsPlaceWasFoundStopsThePatch() {
         for (changed in listOf(
             handler to "enable", handler to "dismiss", actions to "enabled", row to "render", holder to "updateChrome",
-            listener to "onScrollStateChanged",
+            listener to "onScrollStateChanged", actions to "setup",
         )) {
             val classes = classes()
             val context = PatchContexts.of(classes)
@@ -363,8 +377,8 @@ class ClearModeHookTest {
      * the handler's turn-on and turn-off, in front of the viewer's own test of the pager's reel,
      * first thing in the pager listener's page report and the exit button's render, in front of
      * the seek bar row's test of whether to draw the scrubber, right after the reel holder's chrome
-     * setter reads the alpha it holds, and right after the pager listener's scroll state change
-     * reads the pager.
+     * setter reads the alpha it holds, right after the pager listener's scroll state change reads
+     * the pager, and right after the viewer's setup gives the handler its turn-on action.
      */
     @Test
     fun eachDeclaredBuildGetsEveryHook() {
@@ -412,6 +426,7 @@ class ClearModeHookTest {
         val scrubberRow = methods.single { CLEAR_MODE_SCRUBBER_ROW in it.markers() }
         val chrome = methods.single { CLEAR_MODE_CHROME in it.markers() }
         val scrolled = methods.single { REEL_SCROLL_STATE in it.markers() }
+        val setup = methods.single { CLEAR_MODE_SETUP in it.markers() }
         val handlerType = enable.definingClass
         val reasonType = enable.parameterTypes.single().toString()
         val itemType = dismiss.parameterTypes.first().toString()
@@ -555,6 +570,25 @@ class ClearModeHookTest {
             newScrolled[settles].registers(),
         )
 
+        // The viewer's setup: the handler, by range, right after it's given the action its turn-on reads.
+        val newSetup = after(setup)
+        val unpadded = { code: List<Instruction> -> code.filter { it.opcode != Opcode.NOP } }
+        assertEquals("$name: the viewer's setup grew", unpadded(setup.code()).size + 1, unpadded(newSetup).size)
+        val ready = newSetup.indexOfFirst { it.referenceText() == CLEAR_MODE_READY }
+        assertEquals("$name: the setup hands over once", 1, newSetup.count { it.referenceText() == CLEAR_MODE_READY })
+        assertEquals("$name: the turn-on action is set just before", Opcode.IPUT_OBJECT, newSetup[ready - 1].opcode)
+        val action = (newSetup[ready - 1] as ReferenceInstruction).reference as FieldReference
+        assertEquals("$name: the action set is the handler's", handlerType, action.definingClass)
+        val enableAction = enable.code().filter { it.opcode == Opcode.IGET_OBJECT }
+            .map { (it as ReferenceInstruction).reference as FieldReference }.single { it.definingClass == handlerType }
+        assertEquals("$name: the action set is the one the turn-on reads", enableAction.name, action.name)
+        assertEquals("$name: the hook is a range call", Opcode.INVOKE_STATIC_RANGE, newSetup[ready].opcode)
+        assertEquals(
+            "$name: the hook hands over the handler the action went to",
+            listOf((newSetup[ready - 1] as TwoRegisterInstruction).registerB),
+            newSetup[ready].registers(),
+        )
+
         val enter = context.method(CLEAR_MODE, CLEAR_MODE_ENTER_STUB)
         assertEquals("$name: the stub calls the handler's turn-on", "$handlerType->${enable.name}($reasonType)V", enter[2].referenceText())
         val reelId = context.method(CLEAR_MODE, CLEAR_MODE_ID_STUB)
@@ -635,6 +669,11 @@ class ClearModeHookTest {
         val settleHigh: Boolean = false,
         val stateOverwritten: Boolean = false,
         val stubs: Boolean = true,
+        val enableReadsPager: Boolean = false,
+        val setups: Int = 1,
+        val setupSets: Int = 1,
+        val setupEndsAtSet: Boolean = false,
+        val jumpToReady: Boolean = false,
     )
 
     /**
@@ -668,6 +707,7 @@ class ClearModeHookTest {
             """
                 const-string v0, "${marker(CLEAR_MODE_ENABLE)}"
                 invoke-static { v0 }, $purge
+                ${if (shape.enableReadsPager) "iget-object v0, p0, $handler->pager:$pager" else ""}
                 iget-object v0, p0, $handler->onEnable:$function1
                 if-eqz v0, :done
                 ${if (shape.reasonOverwritten) "const/4 p1, 0x0" else ""}
@@ -766,6 +806,32 @@ class ClearModeHookTest {
             ${if (shape.noReelCalls) "invoke-static { }, Lfixture/Log;->none()V" else ""}
             ${if (shape.noReelReturns) answer else "const/4 v0, 0x0"}
         """, AccessFlags.PUBLIC.value or AccessFlags.STATIC.value)
+
+        // The viewer's setup (453's 03VS.A08) gives the handler the action its turn-on reads.
+        val setAction = "iput-object p1, p0, $handler->onEnable:$function1\n".repeat(shape.setupSets)
+        val setupBody = when {
+            shape.setupEndsAtSet -> "const-string v0, \"${marker(CLEAR_MODE_SETUP)}\"\ninvoke-static { v0 }, $purge\n$setAction"
+            shape.jumpToReady -> """
+                const-string v0, "${marker(CLEAR_MODE_SETUP)}"
+                invoke-static { v0 }, $purge
+                if-eqz p1, :ready
+                $setAction
+                :ready
+                return-void
+            """
+            else -> """
+                const-string v0, "${marker(CLEAR_MODE_SETUP)}"
+                invoke-static { v0 }, $purge
+                $setAction
+                return-void
+            """
+        }
+        val setups = (0 until shape.setups).map { copy ->
+            method(
+                actions, if (copy == 0) "setup" else "setupAgain", listOf(handler, function1), "V", 3, setupBody,
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value,
+            )
+        }
 
         val paged = method(listener, "onPageSelected", if (shape.pageTakesInts) listOf("I", "I") else listOf("I"), "V", 5, """
             const/4 v0, 0x0
@@ -1024,7 +1090,7 @@ class ClearModeHookTest {
             if (shape.dismissElsewhere) classDef("Lfixture/Other;", listOf(dismiss)) else null,
             if (shape.reasonInApp) reasonClass else null,
             if (shape.itemInApp) itemClass else null,
-            classDef(actions, listOf(enabled)),
+            classDef(actions, listOf(enabled) + setups),
             classDef(listener, listOf(paged) + scrolls, fields = listOf(field(listener, "host", pagerHost))),
             if (shape.stateInApp) stateClass else null,
             classDef(button, listOf(render), fields = buttonFields),

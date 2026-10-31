@@ -1053,6 +1053,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	移除 Reel 旁按鈕列中的儲存按鈕與下方數量。動態首頁貼文的儲存按鈕仍會保留。
 Keep clear mode on	保持清爽模式
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	在 Reel 啟用 Instagram 的清爽模式後，後續 Reels 也會以此模式開啟。手動離開清爽模式後，後續 Reels 會重新顯示按鈕。
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	每個 Reel 都以清爽模式開始
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	從第一個 Reel 起就以清爽模式開啟，不必點按。手動離開清爽模式後，後續 Reels 會重新顯示按鈕。除非開啟「允許截圖」，否則 Instagram 會在清爽模式中封鎖截圖。
 Unlock with	解鎖方式
 Phone lock	手機鎖定
 HushGram PIN	HushGram PIN 碼

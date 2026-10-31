@@ -11,6 +11,9 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 
@@ -67,12 +70,19 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * as long as the pager is still on screen: leaving Reels takes the exit button away the same way,
  * and turning clear mode on for a viewer nobody sees would act on whatever shows instead (#233).
  *
+ * <p>Start every reel in clear mode (#138) doesn't wait for your tap. The patch hands this class
+ * the handler as soon as the Reels viewer gives it its turn-on action ({@link #ready}), and the
+ * first reel with an exit button, by a page report or the button being built, gets clear mode
+ * through that handler with the reason Instagram's own menu row gives ({@link #MENU}). From there
+ * it's carried like your own. Leaving it yourself stops the starting too, until another Reels
+ * viewer is set up, and a reel that couldn't be carried to gets it started instead.
+ *
  * <p>Leaving clear mode yourself, by its exit button or the menu, forgets it, and the next reels
  * show their buttons. What is kept is small and holds no view: whether clear mode is wanted, the
  * reason your turn-on gave (an enum constant), a few reel ids, and for the length of the wait the
- * handler, weakly. It lives in memory only. Nothing is carried while the switch is off, HushGram is
- * paused, the settings aren't ready, or anything here fails, and Instagram's own turn-on and
- * turn-off always run as they would.
+ * handler, weakly, as the handler is held for starting. It lives in memory only. Nothing is carried
+ * or started while the switch is off, HushGram is paused, the settings aren't ready, or anything
+ * here fails, and Instagram's own turn-on and turn-off always run as they would.
  *
  * <p>The hooks run on Instagram's main thread, where it handles taps and page changes. The one that
  * doesn't, {@link #built}, keeps to a lock of its own.
@@ -86,6 +96,12 @@ public final class ReelClearMode {
 
     /** Counted under the patch's name for each reel put back in clear mode after its swipe snapped back. */
     static final String KEPT = "reels kept in clear mode after a swipe snapped back";
+
+    /** Counted under the patch's name for each reel clear mode was started on with no tap (#138). */
+    static final String STARTED = "reels put in clear mode with no tap";
+
+    /** The reason Instagram's own menu row turns clear mode on with, which a started clear mode gives. */
+    static final String MENU = "OVERFLOW_MENU";
 
     /** What the pager's scroll state calls the pager at rest. */
     static final String AT_REST = "IDLE";
@@ -123,6 +139,10 @@ public final class ReelClearMode {
 
         /** Whether the Reels pager is on screen: shown, with at least half of it in view each way. */
         boolean showing(Object pager);
+
+        /** The handler's own reason for a turn-on from Instagram's menu row, or null when it has none. */
+        @Nullable
+        Object reason(Object handler);
     }
 
     static final Viewer PATCHED = new Viewer() {
@@ -153,6 +173,29 @@ public final class ReelClearMode {
             Rect seen = new Rect();
             return view.isShown() && view.getGlobalVisibleRect(seen)
                     && 2 * seen.width() >= view.getWidth() && 2 * seen.height() >= view.getHeight();
+        }
+
+        /**
+         * The reason enum is the one parameter of the handler's turn-on. Its constants are read from
+         * its own static fields, since Redex may leave an enum without values().
+         */
+        @Override
+        public Object reason(Object handler) {
+            for (Method method : handler.getClass().getDeclaredMethods()) {
+                Class<?>[] parameters = method.getParameterTypes();
+                if (parameters.length != 1 || !Enum.class.isAssignableFrom(parameters[0])) continue;
+                for (Field field : parameters[0].getDeclaredFields()) {
+                    if (!Modifier.isStatic(field.getModifiers()) || field.getType() != parameters[0]) continue;
+                    try {
+                        field.setAccessible(true);
+                        Object constant = field.get(null);
+                        if (constant instanceof Enum && MENU.equals(((Enum<?>) constant).name())) return constant;
+                    } catch (ReflectiveOperationException | RuntimeException unreadable) {
+                        // Another constant may still be readable.
+                    }
+                }
+            }
+            return null;
         }
     };
 
@@ -218,6 +261,19 @@ public final class ReelClearMode {
     @Nullable
     private static volatile String lastBuilt;
 
+    /** The handler, weakly, while Start every reel in clear mode waits to start it (#138). */
+    @Nullable
+    private static volatile WeakReference<Object> starting;
+
+    private static volatile boolean startPosted;
+
+    /** The handler the last Reels viewer was set up with, weakly, to tell a new viewer from it. */
+    @Nullable
+    private static volatile WeakReference<Object> viewer;
+
+    /** You left clear mode yourself in that viewer, so it isn't started there again. */
+    private static volatile boolean declined;
+
     private ReelClearMode() {
     }
 
@@ -271,6 +327,9 @@ public final class ReelClearMode {
             if (carrying) return;
             if (!swipedAway(reason)) {
                 if (wanted) Logger.printDebug(() -> "Clear mode: turned off, the next reels show their buttons");
+                // You left it yourself, so this viewer doesn't start it again (#138).
+                starting = null;
+                declined = true;
                 drop();
                 return;
             }
@@ -341,13 +400,17 @@ public final class ReelClearMode {
 
     /**
      * The hook, first thing when the Reels pager reports the page it landed on. A reel that left
-     * clear mode before its swipe landed is tried again, once Instagram is done with the page.
+     * clear mode before its swipe landed is tried again, once Instagram is done with the page. With
+     * nothing waiting, Start every reel in clear mode gets its try.
      */
     public static void paged() {
         try {
             HookStatus.invoked(FAMILY);
             long until = retryUntil;
-            if (until == 0) return;
+            if (until == 0) {
+                wakeIfStarting();
+                return;
+            }
             if (!on() || access.now() > until) {
                 Logger.printDebug(() -> "Clear mode: the wait for the next reel ran out, the next reels show their buttons");
                 drop();
@@ -394,7 +457,8 @@ public final class ReelClearMode {
 
     /**
      * The hook, first thing where Instagram builds a reel's exit button, with the reel. Only a reel
-     * seen here can leave clear mode again, so only such a reel is put in it.
+     * seen here can leave clear mode again, so only such a reel is put in it. A new one wakes a reel
+     * waiting for its button, or Start every reel in clear mode.
      */
     public static void built(@Nullable Object item) {
         try {
@@ -413,8 +477,36 @@ public final class ReelClearMode {
                 lastBuilt = id;
             }
             wakeIfWaiting();
+            wakeIfStarting();
         } catch (Throwable failure) {
             HookStatus.threw(FAMILY, "clear mode exit button", failure);
+        }
+    }
+
+    /**
+     * The hook, in the Reels viewer's setup right after it handed the handler its turn-on action.
+     * With Start every reel in clear mode on, the handler is kept, weakly, for the first reel with
+     * an exit button. Otherwise nothing is kept (#138).
+     */
+    public static void ready(@Nullable Object handler) {
+        try {
+            HookStatus.invoked(FAMILY);
+            if (handler == null || !startsOn()) {
+                starting = null;
+                return;
+            }
+            WeakReference<Object> last = viewer;
+            if (last == null || last.get() != handler) {
+                // Another viewer: the clear mode the one before it was in went with it, and leaving
+                // it there doesn't hold this one back.
+                viewer = new WeakReference<>(handler);
+                declined = false;
+                drop();
+            }
+            starting = declined ? null : new WeakReference<>(handler);
+        } catch (Throwable failure) {
+            starting = null;
+            HookStatus.threw(FAMILY, "clear mode start", failure);
         }
     }
 
@@ -465,6 +557,70 @@ public final class ReelClearMode {
         if (until == 0 || retryPosted || access.now() > until) return;
         retryPosted = true;
         access.post(ReelClearMode::retry);
+    }
+
+    /**
+     * Start every reel in clear mode holds a handler and nothing is in clear mode or waiting: the
+     * next try runs once Instagram is done with the page or button (#138).
+     */
+    private static void wakeIfStarting() {
+        if (starting == null || wanted || retryUntil != 0 || startPosted) return;
+        startPosted = true;
+        access.post(ReelClearMode::start);
+    }
+
+    /**
+     * Start every reel in clear mode's try: the handler kept since the viewer's setup turns clear
+     * mode on for the reel the pager is on, with the reason Instagram's menu row gives, just as a
+     * tap on that row would. A reel {@link #current} holds back leaves it for the next page or
+     * button. Once a reel is in it, clear mode is carried as if you had turned it on (#138).
+     */
+    private static void start() {
+        try {
+            startPosted = false;
+            WeakReference<Object> held = starting;
+            if (held == null || wanted || retryUntil != 0 || carrying) return;
+            Object handler = held.get();
+            if (handler == null || !startsOn()) {
+                starting = null;
+                return;
+            }
+            Object reason = access.reason(handler);
+            if (reason == null) {
+                starting = null;
+                Logger.printDebug(() -> "Clear mode: the handler gives no " + MENU + " reason, nothing started");
+                return;
+            }
+            from = null;
+            outcome = NOTHING;
+            reached = null;
+            carrying = true;
+            try {
+                access.enter(handler, reason);
+            } finally {
+                carrying = false;
+            }
+            int found = outcome;
+            String id = reached;
+            outcome = NOTHING;
+            reached = null;
+            if (found != REACHED || id == null) {
+                Logger.printDebug(() -> "Clear mode: not started yet, trying again on the next page or button ("
+                        + (found == NOTHING ? "Instagram didn't look for a reel" : "found " + found) + ")");
+                return;
+            }
+            HookStatus.bound(FAMILY, "clear mode");
+            wanted = true;
+            source = reason;
+            shown = id;
+            clearRetry();
+            HookStatus.counted(FAMILY, STARTED);
+            Logger.printDebug(() -> "Clear mode: started with no tap, the next reels start in it too");
+        } catch (Throwable failure) {
+            starting = null;
+            drop();
+            HookStatus.threw(FAMILY, "clear mode start", failure);
+        }
     }
 
     /**
@@ -572,6 +728,10 @@ public final class ReelClearMode {
         return Utils.settingsReady() && Settings.KEEP_REEL_CLEAR_MODE.get();
     }
 
+    private static boolean startsOn() {
+        return on() && Settings.START_REEL_CLEAR_MODE.get();
+    }
+
     private static boolean swipedAway(@Nullable Object reason) {
         return reason instanceof Enum && SWIPED_AWAY.equals(((Enum<?>) reason).name());
     }
@@ -614,9 +774,18 @@ public final class ReelClearMode {
         return retryUntil != 0;
     }
 
+    /** Whether Start every reel in clear mode holds a handler. For tests. */
+    static boolean starting() {
+        return starting != null;
+    }
+
     /** Forgets everything, the reels with an exit button too. For tests. */
     static void forget() {
         drop();
+        starting = null;
+        startPosted = false;
+        viewer = null;
+        declined = false;
         carrying = false;
         returning = false;
         outcome = NOTHING;

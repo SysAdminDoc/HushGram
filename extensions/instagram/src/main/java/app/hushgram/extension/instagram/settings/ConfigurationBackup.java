@@ -141,6 +141,7 @@ public final class ConfigurationBackup {
             settings.put(Settings.BURN_IN_GUARD.key, Settings.BURN_IN_GUARD);
             settings.put(Settings.BURN_IN_WAIT.key, Settings.BURN_IN_WAIT);
             settings.put(Settings.BURN_IN_STAY_DIM.key, Settings.BURN_IN_STAY_DIM);
+            settings.put(Settings.START_REEL_CLEAR_MODE.key, Settings.START_REEL_CLEAR_MODE);
         }
         if (GhostMode.offered(GhostMode.switches(PatchFamily.inThisBuild()))) {
             settings.put(Settings.GHOST_MODE_PICKS.key, Settings.GHOST_MODE_PICKS);

@@ -1931,6 +1931,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_reel_clear_mode", FALSE);
 
     /**
+     * With {@link #KEEP_REEL_CLEAR_MODE} on, Reels starts in clear mode with no tap, until you leave
+     * it yourself (#138, {@link app.hushgram.extension.instagram.reels.ReelClearMode}). Read when the
+     * Reels viewer is set up and at each try, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting START_REEL_CLEAR_MODE =
+            new BooleanSetting("hushgram_start_reel_clear_mode", FALSE, parent(KEEP_REEL_CLEAR_MODE));
+
+    /**
      * The top bar of a reels viewer staying in place while you swipe through reels (#411,
      * {@link app.hushgram.extension.instagram.reels.ReelsTopBarScroll}). Read at each scroll, so a
      * change needs no restart. Off to start.

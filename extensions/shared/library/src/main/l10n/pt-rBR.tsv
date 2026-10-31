@@ -1059,6 +1059,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Tira o botão Salvar da coluna de botões ao lado de um reel, junto com o número embaixo dele. As publicações do seu feed continuam com o delas.
 Keep clear mode on	Manter o modo limpo ativado
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Ative o modo limpo do Instagram em um reel e os próximos reels também abrem nele. Saia do modo limpo você mesmo e os próximos reels voltam a mostrar os botões.
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	Começar cada reel no modo limpo
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Os reels abrem no modo limpo desde o primeiro, sem tocar. Saia você mesmo e os próximos reels voltam a mostrar os botões. O Instagram bloqueia capturas no modo limpo, a menos que Permitir capturas de tela esteja ativado.
 Unlock with	Desbloquear com
 Phone lock	Bloqueio do celular
 HushGram PIN	PIN do HushGram

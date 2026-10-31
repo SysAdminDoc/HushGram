@@ -1059,6 +1059,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Kaydet düğmesini reel'in yanındaki düğme sütunundan ve altındaki sayıyı kaldırır. Akışındaki gönderiler kendi düğmesini korur.
 Keep clear mode on	Temiz mod açık kalsın
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Bir reel'de Instagram'ın temiz modunu aç, sonraki reels'ler de bu modda açılır. Temiz moddan kendin çıkarsan sonraki reels'ler düğmelerini yeniden gösterir.
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	Her reel'i temiz modda başlat
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	Reels'ler ilkinden itibaren dokunmadan temiz modda açılır. Temiz moddan kendin çıkarsan sonraki reels'ler düğmelerini yeniden gösterir. Ekran görüntülerine izin ver açık değilse Instagram temiz modda ekran görüntülerini engeller.
 Unlock with	Kilidi şununla aç
 Phone lock	Telefon kilidi
 HushGram PIN	HushGram PIN'i

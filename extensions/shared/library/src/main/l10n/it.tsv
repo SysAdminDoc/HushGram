@@ -1059,6 +1059,9 @@ Off. It can fade a reel's buttons while the screen sits untouched, so they don't
 Takes the Save button out of the column of buttons beside a reel, and the count under it. Posts in your feed keep theirs.	Toglie il pulsante Salva dalla colonna di pulsanti accanto a un reel, e il conteggio sotto. I post nel tuo feed mantengono il loro.
 Keep clear mode on	Mantieni attiva la modalità pulita
 Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear mode yourself and the next reels show their buttons again.	Attiva la modalità pulita di Instagram su un reel e anche i reel successivi si aprono così. Esci tu dalla modalità pulita e i reel successivi mostrano di nuovo i loro pulsanti.
+# context: Reels settings: a switch under Keep clear mode on (#138). Clear mode is the name used for Instagram's own mode that hides a reel's buttons; Allow screenshots is HushGram's switch of that name
+Start every reel in clear mode	Avvia ogni reel in modalità pulita
+Reels open in clear mode from the first one, with no tap. Leave it yourself and the next reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow screenshots is on.	I reel si aprono in modalità pulita dal primo, senza tocchi. Se ne esci tu, i reel successivi mostrano di nuovo i loro pulsanti. Instagram blocca gli screenshot in modalità pulita a meno che Consenti gli screenshot sia attivo.
 Unlock with	Sblocca con
 Phone lock	Blocco del telefono
 HushGram PIN	PIN di HushGram

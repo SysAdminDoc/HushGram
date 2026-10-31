@@ -79,9 +79,38 @@ public class ReelClearModeSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.KEEP_REEL_CLEAR_MODE.key));
         assertTrue(PatchFamily.REEL_DECLUTTER.switches.contains(Settings.KEEP_REEL_CLEAR_MODE));
     }
+    /** Start every reel in clear mode (#138) sits right under Keep clear mode on, starts off and needs it on. */
+    @Test public void startEveryReelSitsUnderItStartsOffAndNeedsIt() throws Exception {
+        open(EnumSet.of(PatchFamily.REEL_DECLUTTER));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.START_REEL_CLEAR_MODE.key);
+        assertNotNull(row);
+        assertTrue(row instanceof SwitchPreference);
+        assertEquals("Start every reel in clear mode", row.getTitle().toString());
+        assertEquals("Reels open in clear mode from the first one, with no tap. Leave it yourself and the next "
+                + "reels show their buttons again. Instagram blocks screenshots in clear mode unless Allow "
+                + "screenshots is on.", row.getSummary().toString());
+        PreferenceGroup reels = (PreferenceGroup) row.getParent();
+        int keep = -1;
+        int start = -1;
+        for (int i = 0; i < reels.getPreferenceCount(); i++) {
+            String key = reels.getPreference(i).getKey();
+            if (Settings.KEEP_REEL_CLEAR_MODE.key.equals(key)) keep = i;
+            if (Settings.START_REEL_CLEAR_MODE.key.equals(key)) start = i;
+        }
+        assertEquals("right after Keep clear mode on", keep + 1, start);
+        assertFalse(((SwitchPreference) row).isChecked());
+        assertEquals(Boolean.FALSE, Settings.START_REEL_CLEAR_MODE.defaultValue);
+        assertFalse("read at each try, so no restart", Settings.START_REEL_CLEAR_MODE.rebootApp);
+        assertFalse("waits for Keep clear mode on", Settings.START_REEL_CLEAR_MODE.isAvailable());
+        Settings.KEEP_REEL_CLEAR_MODE.save(true);
+        assertTrue(Settings.START_REEL_CLEAR_MODE.isAvailable());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.START_REEL_CLEAR_MODE.key));
+    }
     @Test public void withoutCleanUpReelsThereIsNoSwitch() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.KEEP_REEL_CLEAR_MODE.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.START_REEL_CLEAR_MODE.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.KEEP_REEL_CLEAR_MODE.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.START_REEL_CLEAR_MODE.key));
     }
 }
