@@ -169,6 +169,7 @@ The rows of suggested reels between posts in your home feed. A reel someone you 
 Hide the Follow button	Sembunyikan tombol Ikuti
 The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	Tombol Ikuti dan Berlangganan di samping pembuat reel. Profilnya tetap punya tombol itu.
 Hide promotion buttons on reels	Sembunyikan tombol promosi di reel
+# context: Reels settings: three switches for overlays Instagram shows next to a reel's author name, suggested searches, shopping buttons and poll prompts (#332)
 Hide suggested searches on reels	Sembunyikan saran pencarian di Reels
 The search terms Instagram suggests near a reel's author.	Kata pencarian yang disarankan Instagram di dekat pembuat Reels.
 Hide shopping buttons on reels	Sembunyikan tombol belanja di Reels
@@ -849,6 +850,7 @@ Glass tab bar	Bilah tab kaca
 Haptics on the tab bar	Getaran pada bilah tab
 Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	Beranda, Reels, dan tab lainnya berlanjut di belakang pil, sehingga kaca punya konten nyata untuk diburamkan.
 Show content behind the tab bar	Tampilkan konten di belakang bilah tab
+# context: Layout: Glass tab bar's switch that runs the Reels video behind the pill and lifts its caption, buttons and seek bar above it (#372)
 Run Reels behind the tab bar	Putar Reels di belakang bilah tab
 The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.	Video Reels memenuhi layar di belakang pil. Keterangan, tombol, dan bilah geser berada tepat di atasnya.
 Tab bar	Bilah tab

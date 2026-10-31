@@ -170,6 +170,7 @@ The rows of suggested reels between posts in your home feed. A reel someone you 
 Hide the Follow button	팔로우 버튼 숨기기
 The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	릴스 작성자 이름 옆에 표시되는 팔로우 및 구독 버튼을 숨깁니다. 작성자 프로필에는 이 버튼이 그대로 표시됩니다
 Hide promotion buttons on reels	릴스의 홍보 버튼 숨기기
+# context: Reels settings: three switches for overlays Instagram shows next to a reel's author name, suggested searches, shopping buttons and poll prompts (#332)
 Hide suggested searches on reels	릴스의 추천 검색어 숨기기
 The search terms Instagram suggests near a reel's author.	릴스 작성자 근처에 Instagram이 제안하는 검색어입니다.
 Hide shopping buttons on reels	릴스의 쇼핑 버튼 숨기기
@@ -848,6 +849,7 @@ Glass tab bar	유리 탭 바
 Haptics on the tab bar	탭 바 햅틱
 Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	홈, 릴스와 다른 탭이 알약 뒤로 이어져 유리가 흐리게 만들 실제 콘텐츠를 갖게 됩니다.
 Show content behind the tab bar	탭 바 뒤에 콘텐츠 표시
+# context: Layout: Glass tab bar's switch that runs the Reels video behind the pill and lifts its caption, buttons and seek bar above it (#372)
 Run Reels behind the tab bar	릴스를 탭 바 뒤에서 재생
 The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.	릴스 영상이 알약 뒤까지 화면을 가득 채웁니다. 설명, 버튼, 탐색 바는 알약 바로 위에 놓입니다.
 Tab bar	탭 바

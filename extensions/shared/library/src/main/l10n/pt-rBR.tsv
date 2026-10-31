@@ -169,6 +169,7 @@ The rows of suggested reels between posts in your home feed. A reel someone you 
 Hide the Follow button	Ocultar o botão Seguir
 The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	Os botões Seguir e Assinar ao lado de quem postou o reel. O perfil da pessoa continua com eles.
 Hide promotion buttons on reels	Esconder botões de promoção nos reels
+# context: Reels settings: three switches for overlays Instagram shows next to a reel's author name, suggested searches, shopping buttons and poll prompts (#332)
 Hide suggested searches on reels	Ocultar pesquisas sugeridas nos Reels
 The search terms Instagram suggests near a reel's author.	Os termos de pesquisa que o Instagram sugere perto do autor de um Reel.
 Hide shopping buttons on reels	Ocultar botões de compra nos Reels
@@ -849,6 +850,7 @@ Glass tab bar	Barra de abas de vidro
 Haptics on the tab bar	Vibração na barra de abas
 Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	O Início, os Reels e as outras abas continuam atrás da pílula, para o vidro ter conteúdo real para desfocar.
 Show content behind the tab bar	Mostrar conteúdo atrás da barra de abas
+# context: Layout: Glass tab bar's switch that runs the Reels video behind the pill and lifts its caption, buttons and seek bar above it (#372)
 Run Reels behind the tab bar	Exibir Reels atrás da barra de abas
 The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.	O vídeo do Reels preenche a tela atrás da pílula. Legenda, botões e barra de progresso ficam logo acima dela.
 Tab bar	Barra de abas

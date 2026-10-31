@@ -174,6 +174,7 @@ The rows of suggested reels between posts in your home feed. A reel someone you 
 Hide the Follow button	隱藏追蹤按鈕
 The Follow and Subscribe buttons beside a reel's author. Their profile still has them.	隱藏 Reel 創作者旁的「追蹤」與「訂閱」按鈕。個人檔案中的按鈕仍會保留。
 Hide promotion buttons on reels	隱藏 Reels 推廣按鈕
+# context: Reels settings: three switches for overlays Instagram shows next to a reel's author name, suggested searches, shopping buttons and poll prompts (#332)
 Hide suggested searches on reels	隱藏 Reels 的建議搜尋
 The search terms Instagram suggests near a reel's author.	Instagram 在 Reels 作者旁建議的搜尋字詞。
 Hide shopping buttons on reels	隱藏 Reels 的購物按鈕
@@ -847,6 +848,7 @@ Glass tab bar	玻璃分頁列
 Haptics on the tab bar	分頁列觸覺回饋
 Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	首頁、Reels 與其他分頁的內容會延伸到膠囊後方，讓玻璃能模糊實際內容。
 Show content behind the tab bar	在分頁列後方顯示內容
+# context: Layout: Glass tab bar's switch that runs the Reels video behind the pill and lifts its caption, buttons and seek bar above it (#372)
 Run Reels behind the tab bar	讓 Reels 在分頁列後方播放
 The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.	Reels 影片會填滿膠囊後方的畫面，說明文字、按鈕與進度列則位於膠囊正上方。
 Tab bar	分頁列
