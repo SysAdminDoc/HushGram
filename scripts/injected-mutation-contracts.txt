@@ -1822,11 +1822,14 @@ once-call Lapp/hushgram/extension/instagram/profile/ThreadsButton;->hideBanner()
 # The same patch hands ShareProfileButton.button each button of the row under a profile's bio, with
 # its model, right before the method building it hands it back: the text buttons' builder (0EoQ.A01
 # on 451, holding their "generic" pool tag and setting the button's icon padding) and Share
-# profile's icon builder (0EoQ.A00, holding "share_profile_icon"). Left out, Share profile stays;
-# twice or elsewhere, it isn't the hook the patch wrote. HideThreadsButtonHookTest checks on every
-# 451 fixture that it lands before each builder's return.
+# profile's icon builder (0EoQ.A00, holding "share_profile_icon"), and the arrow's builder in the
+# same class (0HdX.A03 on 453, its one static method taking a List, holding no string of its own),
+# once before each of its two returns (#248). Left out, Share profile or the arrow stays; more
+# often or elsewhere, it isn't the hook the patch wrote. HideThreadsButtonHookTest checks on every
+# 453 fixture that it lands before each builder's return.
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/lang/Integer;I)Landroid/view/View; calling instance Lcom/instagram/igds/components/button/IgdsButton;->setIconPadding(I)V holding generic
 once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;)Landroid/view/View; holding share_profile_icon
+once-call Lapp/hushgram/extension/instagram/profile/ShareProfileButton;->button(Landroid/view/View;Ljava/lang/Object;)V in static (L*;L*;L*;Ljava/util/List;)Landroid/view/View; sites 2 class-holding generic share_profile_icon
 # Hide the Reels tab's Home header switches hand the list of buttons Home's header draws from to
 # HomeHeader.buttons first thing in the constructor of the header's state (03iJ on 450), the one
 # (List, int, boolean, boolean, boolean) constructor keeping that list in A01, which
