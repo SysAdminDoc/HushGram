@@ -7,6 +7,9 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.clearViewingHistory;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.viewingHistoryRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ghostTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.placeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.sharingDomainRow;
@@ -61,6 +64,26 @@ final class PrivacyCategory {
                     L10n.t("Tells Instagram your phone is at the place set below, for the location sticker, nearby "
                             + "places and maps. Photos keep their own places.")));
             privacy.add(placeRow(context));
+        }
+        if (build.contains(PatchFamily.VIDEO_DOWNLOAD)) {
+            privacy.add(toggle(context, Settings.VIEWING_HISTORY, L10n.t("Keep a viewing history"),
+                    L10n.t("Remembers the posts, reels, stories and profiles that come up on screen, newest first, "
+                            + "on this phone only. Nothing is sent anywhere, and nothing is read about other accounts. "
+                            + "Turn it off and it stops at once. Clear it below.")));
+            Preference history = viewingHistoryRow(context);
+            privacy.add(history);
+            HushgramPreferenceFragment.Row clear = new HushgramPreferenceFragment.Row(context);
+            clear.setKey(HushgramPreferenceFragment.CLEAR_VIEWING_HISTORY);
+            clear.setPersistent(false);
+            clear.actsAtOnce = true;
+            clear.setTitle(L10n.t("Clear viewing history"));
+            clear.setSummary(L10n.t("Forgets every post, reel, story and profile on the list, for all your accounts. "
+                    + "The switch stays as it is."));
+            clear.setOnPreferenceClickListener(p -> {
+                clearViewingHistory(p, history);
+                return true;
+            });
+            privacy.add(mark(clear, SettingsIcons.DELETE));
         }
         if (!privacy.isEmpty()) {
             PreferenceCategory section = category(screen, L10n.t("Ads and privacy"), SettingsIcons.PRIVACY,

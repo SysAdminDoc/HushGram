@@ -484,6 +484,7 @@ public final class FeedDownloadButton {
      * [activity] the row belongs to. Never throws.
      */
     public static void bind(@Nullable View save, @Nullable Object post, @Nullable Object itemState, @Nullable Activity activity) {
+        ViewingHistory.post(post);
         try {
             if (save == null) return;
             ViewParent parent = save.getParent();

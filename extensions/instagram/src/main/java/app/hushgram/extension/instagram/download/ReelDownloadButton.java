@@ -225,8 +225,21 @@ public final class ReelDownloadButton {
         return make(column, filter, size, margin, true);
     }
 
+    /** The reel beside this column came up: the viewing history notes it while its switch is on. Never throws. */
+    private static void seen(@Nullable Object column) {
+        try {
+            if (column == null || !ViewingHistory.on()) return;
+            Object item = bridge.item(column);
+            if (item == null || !ORGANIC.equals(bridge.kind(item))) return;
+            ViewingHistory.reel(bridge.media(item));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DOWNLOAD, "viewing history reel", failure);
+        }
+    }
+
     @Nullable
     private static Object make(@Nullable Object column, @Nullable Object filter, long size, long margin, boolean aboveMore) {
+        seen(column);
         try {
             if (column == null || !enabled()) return null;
             HookStatus.invoked(FamilyNames.REEL_DOWNLOAD);

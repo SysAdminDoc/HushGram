@@ -151,6 +151,7 @@ import app.hushgram.extension.instagram.download.SaveControl;
 import app.hushgram.extension.instagram.download.SaveLeftovers;
 import app.hushgram.extension.instagram.download.SaveFolder;
 import app.hushgram.extension.instagram.download.SaveTree;
+import app.hushgram.extension.instagram.download.ViewingHistory;
 import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
@@ -197,6 +198,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String CLEAR_DOWNLOAD_HISTORY = "hushgram_clear_download_history";
     /** The row listing who left your Followers list, and the row that forgets them. */
     static final String UNFOLLOWERS_ROW = "hushgram_unfollowers_row";
+    static final String VIEWING_HISTORY_ROW = "hushgram_viewing_history_row";
+    static final String CLEAR_VIEWING_HISTORY = "hushgram_clear_viewing_history";
     static final String CLEAR_UNFOLLOWERS = "hushgram_clear_unfollowers";
     /** The row that lists the chats locked one at a time. */
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
@@ -698,6 +701,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD)
                             && (Settings.DOWNLOAD_SKIP_SAVED.key.equals(key) || CLEAR_DOWNLOAD_HISTORY.equals(key));
                     belongs |= family == PatchFamily.VIDEO_DOWNLOAD && CLEAR_DOWNLOAD_HISTORY.equals(key);
+                    belongs |= family == PatchFamily.VIDEO_DOWNLOAD && (Settings.VIEWING_HISTORY.key.equals(key)
+                            || VIEWING_HISTORY_ROW.equals(key) || CLEAR_VIEWING_HISTORY.equals(key));
                     belongs |= family == PatchFamily.RESTORE_TRUST && L10n.t("Instagram accepts this build").equals(row.getTitle());
                     belongs |= family == PatchFamily.REMOVE_AD_ID && L10n.t("Advertising ID removed").equals(row.getTitle());
                     belongs |= family == PatchFamily.PURE_BLACK && L10n.t("Pure black dark mode").equals(row.getTitle());
@@ -3709,6 +3714,82 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             });
         })) {
             Utils.showToastLong(L10n.t("Couldn't clear the download history. Try again."));
+        }
+    }
+
+    /** How many of the newest viewing history rows the list row shows. */
+    static final int VIEWING_HISTORY_SHOWN = 50;
+
+    /**
+     * The row listing what the viewing history kept, newest first. Read off the main thread, so it
+     * says so until it's read. It isn't tappable: the summary is the list.
+     */
+    static Preference viewingHistoryRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(VIEWING_HISTORY_ROW);
+        row.setPersistent(false);
+        row.setSelectable(false);
+        row.setTitle(L10n.t("Viewing history"));
+        row.setSummary(L10n.t("Reading the list…"));
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        if (!Utils.runOnBackgroundThread(() -> {
+            String summary = viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis());
+            Utils.runOnMainThread(() -> row.setSummary(summary));
+        })) {
+            row.setSummary(viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis()));
+        }
+        return mark(row, SettingsIcons.PERSON);
+    }
+
+    /** What the viewing history row says for [rows], newest first, at [now]. */
+    static String viewingHistorySummary(List<ViewingHistory.Row> rows, long now) {
+        if (rows.isEmpty()) {
+            return L10n.t("Nothing here yet. With Keep a viewing history on, what you look at shows up here.");
+        }
+        StringBuilder text = new StringBuilder();
+        int shown = 0;
+        for (ViewingHistory.Row seen : rows) {
+            if (shown == VIEWING_HISTORY_SHOWN) break;
+            String who = seen.owner.isEmpty() ? "" : "@" + seen.owner + ", ";
+            String ago = android.text.format.DateUtils.getRelativeTimeSpanString(seen.time, now,
+                    android.text.format.DateUtils.MINUTE_IN_MILLIS).toString();
+            text.append(who).append(viewingKindLabel(seen.kind)).append(", ").append(ago).append('\n');
+            shown++;
+        }
+        if (rows.size() > VIEWING_HISTORY_SHOWN) text.append(L10n.t("Only the newest 50 are shown."));
+        return text.toString().trim();
+    }
+
+    /** What the list calls [kind]. */
+    static String viewingKindLabel(ViewingHistory.Kind kind) {
+        switch (kind) {
+            case POST: return L10n.t("Post");
+            case REEL: return L10n.t("Reel");
+            case STORY: return L10n.t("Story");
+            default: return L10n.t("Profile");
+        }
+    }
+
+    /** Forgets the viewing history off the main thread, says so, and empties [list]. */
+    static void clearViewingHistory(Preference row, Preference list) {
+        if (!allowMutation(row, true)) return;
+        Context context = row.getContext();
+        if (!Utils.runOnBackgroundThread(() -> {
+            if (!asyncChangesAllowed()) {
+                Utils.showToastLong(heldMessage());
+                return;
+            }
+            boolean cleared = ViewingHistory.clear(context);
+            Utils.runOnMainThread(() -> {
+                if (cleared) {
+                    Utils.showToastShort(L10n.t("Viewing history cleared."));
+                    list.setSummary(viewingHistorySummary(java.util.Collections.emptyList(), System.currentTimeMillis()));
+                } else {
+                    Utils.showToastLong(L10n.t("Couldn't clear the viewing history. Try again."));
+                }
+            });
+        })) {
+            Utils.showToastLong(L10n.t("Couldn't clear the viewing history. Try again."));
         }
     }
 

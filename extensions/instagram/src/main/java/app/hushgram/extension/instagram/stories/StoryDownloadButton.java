@@ -27,6 +27,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.download.StoryDownload;
+import app.hushgram.extension.instagram.download.ViewingHistory;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
@@ -109,6 +110,7 @@ public final class StoryDownloadButton {
                      Consumer<Object> saver) {
         try {
             HookStatus.invoked(FamilyNames.STORY_DOWNLOAD);
+            if (item != null && ViewingHistory.on()) ViewingHistory.story(reader.media(item));
             boolean showing = on.getAsBoolean();
             if (!showing && !added) return;
             View root = holder == null ? null : reader.itemView(holder);
