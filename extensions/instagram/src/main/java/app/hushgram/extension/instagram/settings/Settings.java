@@ -1006,6 +1006,22 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_all_recent_searches", FALSE);
 
     /**
+     * Where Instagram offers a grid that isn't personalized (the EU), Explore opens with it each
+     * time and the ten-minute switch back is skipped
+     * ({@link app.hushgram.extension.instagram.explore.ExploreMenu}). Read each time Explore
+     * resumes. Off to start.
+     */
+    public static final BooleanSetting EXPLORE_WITHOUT_PERSONALIZATION =
+            new BooleanSetting("hushgram_explore_without_personalization", FALSE);
+
+    /**
+     * The menu button on Explore's top bar that picks the personalized or the other grid, where
+     * Instagram shows one (the EU). Read as the bar is built. Off to start.
+     */
+    public static final BooleanSetting HIDE_EXPLORE_MENU =
+            new BooleanSetting("hushgram_hide_explore_menu", FALSE);
+
+    /**
      * The row of notes at the top of your messages, its Map bubble included
      * ({@link app.hushgram.extension.instagram.direct.NotesRow}). Read each time Instagram works out
      * your messages again, so a change shows the next time they update. Off to start.

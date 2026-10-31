@@ -149,6 +149,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean exploreMenu() {
+        return false;
+    }
+
     public static boolean notesRow() {
         return false;
     }

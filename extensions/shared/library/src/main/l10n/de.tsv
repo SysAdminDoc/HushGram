@@ -1401,3 +1401,7 @@ Puts a border and Instagram's view once icon on a one-time photo or video in a c
 Fall back to Following	Auf „Gefolgt“ ausweichen
 When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.	Wenn „Für dich“ einem Konto Seite um Seite nur vorgeschlagene Beiträge bringt, öffnet die Startseite für dieses Konto auf „Gefolgt“. Ein Feed, den du oben auf der Startseite auswählst, bleibt ausgewählt. Starte Instagram neu, um die Änderung zu sehen.
 Only suggestions in For you. Home will open on Following.	Nur Vorschläge in „Für dich“. Startseite öffnet „Gefolgt“.
+Explore without personalization	Entdecken ohne Personalisierung
+Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	Wo Instagram es anbietet (in der EU), öffnet Entdecken jedes Mal mit dem nicht personalisierten Raster und bleibt auch nach zehn Minuten dabei.
+Hide Explore's personalized menu	Personalisierungsmenü in Entdecken ausblenden
+Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	Blendet die Schaltfläche in der oberen Leiste aus, die die Personalisierung von Entdecken umschaltet, wo Instagram sie zeigt (in der EU).

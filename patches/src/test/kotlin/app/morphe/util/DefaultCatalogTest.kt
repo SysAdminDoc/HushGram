@@ -29,6 +29,7 @@ import app.morphe.patches.instagram.direct.typing.hideTypingPatch
 import app.morphe.patches.instagram.download.reel.downloadReelPatch
 import app.morphe.patches.instagram.download.story.downloadStoryPatch
 import app.morphe.patches.instagram.download.video.downloadVideoPatch
+import app.morphe.patches.instagram.explore.exploreMenuPatch
 import app.morphe.patches.instagram.explore.hideExploreGridPatch
 import app.morphe.patches.instagram.explore.recent.dontSaveRecentSearchesPatch
 import app.morphe.patches.instagram.explore.recent.showAllRecentSearchesPatch
@@ -187,6 +188,7 @@ class DefaultCatalogTest {
         keepReelsTopBarPatch,
         markViewOncePatch,
         hideExploreGridPatch,
+        exploreMenuPatch,
         hideFeedReelsPatch,
         hideHighlightsPatch,
         hideHomeFeedPatch,

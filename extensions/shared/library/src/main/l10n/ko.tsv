@@ -1400,3 +1400,7 @@ Puts a border and Instagram's view once icon on a one-time photo or video in a c
 Fall back to Following	팔로잉으로 대체
 When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.	추천 피드가 한 계정에 페이지마다 추천 게시물만 보여 주면 그 계정은 홈이 팔로잉으로 열립니다. 홈 상단에서 직접 고른 피드는 그대로 유지됩니다. 변경 사항을 보려면 Instagram을 다시 시작하세요.
 Only suggestions in For you. Home will open on Following.	추천 피드에 추천 게시물만 있습니다. 홈을 팔로잉으로 엽니다.
+Explore without personalization	개인화 없는 탐색
+Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	Instagram이 제공하는 곳(EU)에서는 탐색이 항상 개인화되지 않은 그리드로 열리고 10분이 지나도 그대로 유지됩니다.
+Hide Explore's personalized menu	탐색 개인화 메뉴 숨기기
+Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	Instagram이 표시하는 곳(EU)에서 탐색의 개인화를 바꾸는 상단 바 버튼을 숨깁니다.

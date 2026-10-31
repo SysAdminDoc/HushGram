@@ -23,7 +23,7 @@ final class ExploreCategory {
 
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.EXPLORE_GRID) || build.contains(PatchFamily.RECENT_SEARCHES)
-                || build.contains(PatchFamily.ALL_RECENT_SEARCHES)) {
+                || build.contains(PatchFamily.ALL_RECENT_SEARCHES) || build.contains(PatchFamily.EXPLORE_MENU)) {
             PreferenceCategory explore = category(screen, L10n.t("Explore"), SettingsIcons.EXPLORE,
                     L10n.t("Search, suggestions and the Explore grid."));
             if (build.contains(PatchFamily.EXPLORE_GRID)) {
@@ -46,6 +46,16 @@ final class ExploreCategory {
                         L10n.t("Show all recent searches"),
                         L10n.t("Lists every recent search under the search bar, not just the first few. See all and "
                                 + "the x on each row work as before.")));
+            }
+            if (build.contains(PatchFamily.EXPLORE_MENU)) {
+                explore.addPreference(toggle(context, Settings.EXPLORE_WITHOUT_PERSONALIZATION,
+                        L10n.t("Explore without personalization"),
+                        L10n.t("Where Instagram offers it (in the EU), Explore opens with the grid that isn't "
+                                + "personalized every time, and stays on it past ten minutes.")));
+                explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_MENU,
+                        L10n.t("Hide Explore's personalized menu"),
+                        L10n.t("Hides the top bar button that switches Explore's personalization, where Instagram "
+                                + "shows it (in the EU).")));
             }
         }
     }

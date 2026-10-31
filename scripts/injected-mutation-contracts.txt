@@ -905,6 +905,17 @@ once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->hideSect
 start-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 once-call Lapp/hushgram/extension/instagram/explore/SearchSuggestions;->items(Ljava/util/List;)Ljava/util/List; in static (L*;L*;Ljava/util/List;Z)L*; holding null_state_suggested_users show_more_recents
 #
+# Explore without personalization (#311) asks ExploreMenu first in the ten-minute timer, the one
+# instance ()Z method loading explore_dsa_experience_expired (some builds may pool it), and nowhere
+# else. Explore's onResume asks unpersonalize once and counts the reload once, both in the hook in
+# front of the personalized flag read. Left out, the personalized grid comes back after ten minutes
+# or Explore opens on it; twice or elsewhere, it isn't the hook the patch wrote. ExploreMenuHookTest
+# checks all three on every build of the declared version.
+start-call Lapp/hushgram/extension/instagram/explore/ExploreMenu;->keepUnpersonalized()Z in instance ()Z pooled holding explore_dsa_experience_expired
+once-call Lapp/hushgram/extension/instagram/explore/ExploreMenu;->keepUnpersonalized()Z in instance ()Z pooled holding explore_dsa_experience_expired
+single-call Lapp/hushgram/extension/instagram/explore/ExploreMenu;->unpersonalize()Z in onResume
+single-call Lapp/hushgram/extension/instagram/explore/ExploreMenu;->reloaded()V in onResume
+#
 # Hide suggested posts' Hide shopping asks the extension once, at the return of the same topical
 # Explore page parser Hide the Explore grid hooks, with the page's section list. The section parser
 # also builds the sections nested inside a section, so a hook there emptied a slot of the outer

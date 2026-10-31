@@ -6,10 +6,11 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram - Viewing history:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, newest first, on this phone only. A `Clear viewing history` row empties it. Starts off. Asked for in #228.
-* **Instagram - Pick the app icon:** The `App icon` list now shows each choice's real icon next to its name, so you can see what you're picking before you leave Instagram. Asked for in #321 and #327.
-* **Instagram - Accent color:** On Android 11 and older, `Material You` now stays in the `Color` list, greyed out, with the reason written on it. Before, the choice just wasn't there. Asked for in #187 and #264.
-* **Instagram:** `Accent color` gets an `Icons in the accent color` switch, off to start. After a restart Instagram's icons on the top bar (Home's heart and Create button too), your profile, the tab bar and under posts (the saved bookmark too) take the color you picked, a lighter shade in dark mode and a deeper one in light mode. Text keeps its color. Asked for in #8.
+* **Instagram:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, on this phone only. `Clear viewing history` empties it. Starts off. Asked for in #228.
+* **Instagram:** The `App icon` list now shows each choice's real icon next to its name, so you can see what you're picking before you leave Instagram. Asked for in #321 and #327.
+* **Instagram:** On Android 11 and older, `Material You` now stays in the `Color` list, greyed out, with the reason on it. Before, it just wasn't there. Asked for in #187 and #264.
+* **Instagram:** `Icons in the accent color` is a new switch under `Accent color`, off to start. After a restart the top bar, profile, tab bar and post icons take your color. Text keeps its own. Asked for in #8.
+* **Instagram:** `Explore without personalization` is a new patch for the EU, where Instagram offers that grid. One switch under Explore opens it every time. Another hides its menu button. Both start off. Asked for in #311.
 * **Instagram:** `Keep Featured off the heart's dot` under Notifications stops a Featured item from lighting the red dot on the heart. Likes, comments and follows still do. Starts off. Asked for in #189.
 * **Instagram:** `Pinned chats` under Messages pins the chat you opened last to the top of your inbox. Pins stay on this phone, per account, and the same row unpins them. Asked for in #345.
 * **Instagram:** `App icon` adds Hand-drawn Instagram, a pencil sketch of Instagram's glyph on white. Themed icons show the same sketch. Asked for in #406.

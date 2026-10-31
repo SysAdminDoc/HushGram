@@ -1401,3 +1401,7 @@ Puts a border and Instagram's view once icon on a one-time photo or video in a c
 Fall back to Following	Takip edilenler'e geç
 When For you brings an account only suggested posts, page after page, Home opens on Following for that account. A feed you pick at the top of Home stays picked. Restart Instagram to see the change.	Senin için bir hesaba sayfa sayfa yalnızca önerilen gönderiler getirirse, Ana Sayfa o hesap için Takip edilenler'de açılır. Ana Sayfa'nın üstünde seçtiğin akış seçili kalır. Değişikliği görmek için Instagram'ı yeniden başlat.
 Only suggestions in For you. Home will open on Following.	Senin için'de sadece öneri var. Takip edilenler açılacak.
+Explore without personalization	Kişiselleştirme olmadan Keşfet
+Where Instagram offers it (in the EU), Explore opens with the grid that isn't personalized every time, and stays on it past ten minutes.	Instagram'ın sunduğu yerlerde (AB'de), Keşfet her seferinde kişiselleştirilmemiş ızgarayla açılır ve on dakika sonra da öyle kalır.
+Hide Explore's personalized menu	Keşfet'in kişiselleştirme menüsünü gizle
+Hides the top bar button that switches Explore's personalization, where Instagram shows it (in the EU).	Instagram'ın gösterdiği yerlerde (AB'de), Keşfet'in kişiselleştirmesini değiştiren üst çubuk düğmesini gizler.

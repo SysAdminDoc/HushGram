@@ -157,7 +157,8 @@
         "patches": [
           "Hide the Explore grid",
           "Don't save recent searches",
-          "Show all recent searches"
+          "Show all recent searches",
+          "Explore without personalization"
         ]
       },
       "anchors": [
@@ -176,6 +177,15 @@
             "op": "any",
             "patches": [
               "Don't save recent searches"
+            ]
+          }
+        },
+        {
+          "title": "Explore without personalization",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Explore without personalization"
             ]
           }
         }
