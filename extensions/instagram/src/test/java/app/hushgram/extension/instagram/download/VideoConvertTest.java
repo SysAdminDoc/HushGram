@@ -86,6 +86,14 @@ public class VideoConvertTest {
         assertTrue("VP9 HLG", VideoConvert.hdr("vp09.02.10.10.01.09.18.09.01"));
         assertFalse("AV1 SDR", VideoConvert.hdr(AV1));
         assertFalse("VP9 without its color fields", VideoConvert.hdr("vp09.00.40.08"));
+        // Meta codes 10-bit only for HDR, so a short codecs string with the depth alone says it too (#352).
+        assertTrue("AV1 10-bit", VideoConvert.hdr("av01.0.08M.10"));
+        assertTrue("VP9 10-bit", VideoConvert.hdr("vp09.02.10.10"));
+        assertFalse("AV1 8-bit without its color fields", VideoConvert.hdr("av01.0.08M.08"));
+        assertTrue("H.265 Main 10", VideoConvert.hdr("hvc1.2.4.L120.B0"));
+        assertTrue("H.265 Main 10 with a profile space", VideoConvert.hdr("hev1.A2.4.L120.B0"));
+        assertFalse("H.265 Main", VideoConvert.hdr("hvc1.1.6.L93.90"));
+        assertFalse("H.264 is never HDR", VideoConvert.hdr("avc1.64001f"));
     }
 
     /** Twice the source's bitrate, or a tenth of a bit a pixel a frame when it isn't known, within 2 to 12 Mbps. */

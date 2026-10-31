@@ -64,6 +64,23 @@ public class ConvertSaveTest {
 
     private static final String AV1_TRACK = "video/mp4 " + AV1 + " 1080x1920 1525kbps 1080p";
     private static final String FULL_AV1 = AV1_TRACK + " + audio/mp4 mp4a.40.2 0x0 64kbps";
+
+    /** VP9 profile 2, 10-bit, PQ: how Instagram codes an HDR reel. */
+    private static final String HDR_VP9 = "vp09.02.10.10.01.09.16.09.01";
+
+    /** The reel in #352: its 1080p only in HDR, its standard range H.264 at 720p. */
+    private static final String HDR_MANIFEST = manifest(
+            representation(HDR_VP9, 1080, 1920, 1_900_000, "1080p", "v1080hdr")
+                    + representation("avc1.64001f", 720, 1280, 1_200_000, "720p", "v720"),
+            sound("mp4a.40.2", 64_000, "lc"));
+
+    /** HDR pictures only. */
+    private static final String HDR_ONLY = manifest(
+            representation(HDR_VP9, 1080, 1920, 1_900_000, "1080p", "v1080hdr"),
+            sound("mp4a.40.2", 64_000, "lc"));
+
+    private static final String HDR_TRACK = "video/mp4 " + HDR_VP9 + " 1080x1920 1900kbps 1080p HDR";
+    private static final String FULL_HDR = HDR_TRACK + " + audio/mp4 mp4a.40.2 0x0 64kbps";
     private static final String H264 = "video/mp4 avc1.64001f 720x1280 1200kbps 720p + audio/mp4 mp4a.40.2 0x0 64kbps";
     private static final String CONVERTED = ", converted to H.264 for other apps";
     private static final String KEPT = ", kept to files other apps can open";
@@ -108,6 +125,7 @@ public class ConvertSaveTest {
         Settings.DOWNLOAD_COMPATIBLE.resetToDefault();
         Settings.DOWNLOAD_CONVERT.resetToDefault();
         Settings.DOWNLOAD_NO_AV1.resetToDefault();
+        Settings.DOWNLOAD_NO_HDR.resetToDefault();
         Settings.DOWNLOAD_QUALITY.resetToDefault();
         PauseForTests.resume();
         LogBufferManager.clearLogBuffer();
@@ -204,6 +222,64 @@ public class ConvertSaveTest {
         Settings.DOWNLOAD_NO_AV1.save(false);
         planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), MANIFEST);
         assertEquals(1080, planned.width());
+    }
+
+    /**
+     * Never save HDR video (#352): with it on, the HDR 1080p is passed over for the largest standard
+     * range picture, the report says the switch did it rather than calling the save lower than the
+     * manifest's best, Convert to keep the full size leaves the HDR picture alone and says so, and a
+     * manifest with HDR pictures only falls back to the single file.
+     */
+    @Test
+    public void theHdrSwitchPassesHdrOverForTheLargestSdrPicture() throws Exception {
+        assertFalse(Settings.DOWNLOAD_NO_HDR.get());
+        assertFalse(MediaSave.skipsHdr());
+        String control = save(false, false, HDR_MANIFEST, SD);
+        assertTrue(control, control.contains("saving the video from its DASH manifest: " + FULL_HDR
+                + ", instead of mp4 (360p)\n"));
+
+        Settings.DOWNLOAD_NO_HDR.save(true);
+        assertTrue(MediaSave.skipsHdr());
+        String report = save(false, false, HDR_MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264
+                + ", instead of mp4 (360p), passing over the manifest's " + HDR_TRACK
+                + " as Never save HDR video is on\n"));
+        assertFalse(report, report.contains(FULL_HDR));
+        assertFalse("a choice isn't a shortfall", report.contains("below the manifest's " + HDR_TRACK));
+        // The refused DASH save falls back to the single file, which is below the H.264 the manifest offers.
+        assertTrue(report, report.contains("below the manifest's " + H264.substring(0, H264.indexOf(" + "))));
+
+        report = save(true, true, HDR_MANIFEST, SD);
+        assertTrue(report, report.contains("saving the video from its DASH manifest: " + H264));
+        assertFalse(report, report.contains(CONVERTED));
+        assertTrue(report, report.contains(": Never save HDR video is on"));
+
+        report = save(false, false, HDR_ONLY, SD);
+        assertTrue(report, report.contains("has no track to save with Never save HDR video on: "));
+        assertTrue(report, report.contains("saving video mp4 (360p)"));
+        assertFalse("a choice isn't a shortfall", report.contains("below the manifest's " + HDR_TRACK));
+
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused, the switch is off", MediaSave.skipsHdr());
+    }
+
+    /** Details shows what the switch leaves: the H.264 720p, or the single file of an HDR-only manifest. */
+    @Test
+    public void detailsShowsThePictureTheHdrSwitchLeaves() {
+        Settings.DOWNLOAD_NO_HDR.save(true);
+        MediaSave.Planned planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), HDR_MANIFEST);
+        assertEquals(720, planned.width());
+        assertEquals("avc1.64001f", planned.joined.codecs);
+        assertFalse(planned.joined.hdr);
+
+        planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), HDR_ONLY);
+        assertNull("the single file", planned.joined);
+        assertEquals(SD, planned.file.url);
+
+        Settings.DOWNLOAD_NO_HDR.save(false);
+        planned = MediaSave.plannedVideo(SavesForTests.renditions(SD), HDR_MANIFEST);
+        assertEquals(1080, planned.width());
+        assertTrue(planned.joined.hdr);
     }
 
     /** Details shows the picture a Download saves: the full size it converts. */

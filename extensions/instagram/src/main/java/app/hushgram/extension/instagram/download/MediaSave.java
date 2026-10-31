@@ -737,6 +737,44 @@ public final class MediaSave {
     }
 
     /**
+     * What the report adds to a save line when Never save HDR video (#352) passed over an HDR
+     * picture of [tracks] larger than the [saved] one within [quality], or nothing.
+     */
+    private static String hdrNote(boolean skipHdr, List<DashManifest.Track> tracks, int saved, DownloadQuality quality) {
+        if (!skipHdr) return "";
+        DashManifest.Track passed = better(hdrSplit(tracks, true), saved, quality);
+        return passed == null ? "" : ", passing over the manifest's " + passed + " as Never save HDR video is on";
+    }
+
+    /** [tracks] without its HDR pictures: what a save with Never save HDR video on picks from (#352). */
+    private static List<DashManifest.Track> withoutHdr(List<DashManifest.Track> tracks) {
+        return hdrSplit(tracks, false);
+    }
+
+    /** The HDR pictures of [tracks] when [hdr], else everything but them. Sound tracks stay with the latter. */
+    private static List<DashManifest.Track> hdrSplit(List<DashManifest.Track> tracks, boolean hdr) {
+        List<DashManifest.Track> kept = new ArrayList<>(tracks.size());
+        for (DashManifest.Track track : tracks) {
+            if (track.hdr == hdr) kept.add(track);
+        }
+        return kept;
+    }
+
+    /**
+     * What "has no track to save" adds when a switch is why: the switches that took a track out of
+     * [tracks], leaving [picks], or nothing.
+     */
+    private static String switchesNote(List<DashManifest.Track> tracks, List<DashManifest.Track> picks,
+            boolean skipAv1, boolean skipHdr) {
+        boolean av1 = skipAv1 && withoutAv1(picks).size() < picks.size();
+        boolean hdr = skipHdr && picks.size() < tracks.size();
+        if (av1 && hdr) return " with Never save AV1 video and Never save HDR video on";
+        if (av1) return " with Never save AV1 video on";
+        if (hdr) return " with Never save HDR video on";
+        return "";
+    }
+
+    /**
      * The largest picture of [tracks] that fits [quality] and is larger than a saved one of quality
      * [saved], whatever its format, or null: the picture the app's player can show that the save
      * didn't keep. AV1 on a phone with no AV1 decoder is one, and so is any picture of a DASH save
@@ -830,6 +868,19 @@ public final class MediaSave {
     static boolean skipsAv1() {
         try {
             return Utils.settingsReady() && Settings.DOWNLOAD_NO_AV1.get();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the save starting now passes HDR tracks over ({@link Settings#DOWNLOAD_NO_HDR}), for
+     * an app that plays them with a yellow or green cast (#352). Read when the save starts. Never
+     * throws: before the settings are ready, or when they can't be read, it's off.
+     */
+    static boolean skipsHdr() {
+        try {
+            return Utils.settingsReady() && Settings.DOWNLOAD_NO_HDR.get();
         } catch (Throwable t) {
             return false;
         }
@@ -1056,20 +1107,25 @@ public final class MediaSave {
         }
         renditions = metaOnly(renditions);
         boolean skipAv1 = skipsAv1();
+        boolean skipHdr = skipsHdr();
         boolean allowAv1 = DashSave.canWriteAv1() && !skipAv1;
+        // Never save HDR video (#352) takes the HDR pictures out before the pick, so no choice
+        // below ever sees them. The report still lists every track the manifest offered.
+        List<DashManifest.Track> picks = skipHdr ? withoutHdr(tracks) : tracks;
         // What a save below is weighed against when it tells the person it's lower. Not with saves
         // other apps can open on: that switch passes better pictures over by choice, and its own
-        // report lines say so. Nor an AV1 picture with Never save AV1 video on (#379): the save
-        // line names what that switch passed over, and a choice isn't a shortfall.
+        // report lines say so. Nor an AV1 picture with Never save AV1 video on (#379), nor an HDR
+        // one with Never save HDR video on: the save line names what the switch passed over, and a
+        // choice isn't a shortfall.
         List<DashManifest.Track> offered = compatible ? Collections.emptyList()
-            : skipAv1 ? withoutAv1(tracks) : tracks;
+            : skipAv1 ? withoutAv1(picks) : picks;
 
         // What the pick below chose from, as each track's type, codec, size and bitrate. Never its
         // address: the report is pasted into public issues.
         Logger.diagnosticDebug(DiagnosticCategory.DOWNLOADS, SOURCE,
             () -> "the manifest of " + label + " offers " + tracks.size() + " track(s): " + tracks);
 
-        DashChoice choice = DashChoice.of(tracks, renditions, quality, compatible, allowAv1, convertible(convert));
+        DashChoice choice = DashChoice.of(picks, renditions, quality, compatible, allowAv1, convertible(convert));
         Rendition fallback = choice.fallback;
         DashManifest.Pick kept = choice.kept;
         DashManifest.Pick usual = choice.usual;
@@ -1077,7 +1133,7 @@ public final class MediaSave {
         // why the single file is saved.
         Dash leftToFile = compatible && usual != null && beatsFile(usual.video, fallback, choice.fallbackQuality, quality)
             ? Dash.SINGLE_FILE_FOR_OTHER_APPS : Dash.SINGLE_FILE;
-        if (convert && !choice.converts) noConversion(label, tracks, allowAv1);
+        if (convert && !choice.converts) noConversion(label, tracks, allowAv1, skipHdr);
 
         if (choice.taken == null && kept == null && usual != null) {
             info(() -> "the manifest of " + label + " has no H.264 video with AAC-LC or HE-AAC sound, "
@@ -1087,8 +1143,7 @@ public final class MediaSave {
         }
         if (choice.taken == null && kept == null) {
             info(() -> "the manifest of " + label + " has no track to save"
-                + (skipAv1 && withoutAv1(tracks).size() < tracks.size() ? " with Never save AV1 video on" : "")
-                + ": " + tracks);
+                + switchesNote(tracks, picks, skipAv1, skipHdr) + ": " + tracks);
             return saveSingleVideo(application, renditions, offered, Dash.SINGLE_FILE,
                 "the manifest has no track to save", null, quality, writer, progress);
         }
@@ -1121,7 +1176,8 @@ public final class MediaSave {
             + (choice.converts ? ", converted to H.264 for other apps" : compatibleNote(keptCompatible))
             + (choice.soundFromFile ? ", the manifest's sound being only xHE-AAC" : soundNote(audio))
             + belowNote(better)
-            + av1Note(skipAv1, tracks, picture(video, quality), quality));
+            + av1Note(skipAv1, picks, picture(video, quality), quality)
+            + hdrNote(skipHdr, tracks, picture(video, quality), quality));
 
         Downloader.Result result = dashJob(application, video, audio, fallback, quality, choice.converts, instead,
             choice.soundFromFile).run(writer, progress);
@@ -1133,7 +1189,7 @@ public final class MediaSave {
      * Tells the report why a save that converts didn't convert [tracks]' largest VP9 or AV1 picture
      * (#236), so a report shows whether the phone or the pick passed it over.
      */
-    private static void noConversion(String label, List<DashManifest.Track> tracks, boolean allowAv1) {
+    private static void noConversion(String label, List<DashManifest.Track> tracks, boolean allowAv1, boolean skipHdr) {
         DashManifest.Track largest = null;
         for (DashManifest.Track track : tracks) {
             if (track.isVideo() && VideoConvert.needsConversion(track.codecs)
@@ -1143,8 +1199,9 @@ public final class MediaSave {
         }
         if (largest == null) return;
         DashManifest.Track picture = largest;
-        String why = picture.codecs.startsWith("av01") && skipsAv1()
-            ? "Never save AV1 video is on" : VideoConvert.whyNot(picture, allowAv1);
+        String why = picture.codecs.startsWith("av01") && skipsAv1() ? "Never save AV1 video is on"
+            : picture.hdr && skipHdr ? "Never save HDR video is on"
+            : VideoConvert.whyNot(picture, allowAv1);
         info(() -> "not converting " + label + "'s " + picture + ": "
             + (why != null ? why : "what's saved suits the quality as well"));
     }
@@ -1283,6 +1340,7 @@ public final class MediaSave {
         for (DashManifest.Track track : DashManifest.parse(manifest)) {
             if (MediaUrlPolicy.shapeRefusal(track.url) == null) tracks.add(track);
         }
+        if (skipsHdr()) tracks = withoutHdr(tracks);
         DashChoice choice = DashChoice.of(tracks, files, quality, compatibleSaves(), DashSave.canWriteAv1() && !skipsAv1(),
             convertible(convertSaves()));
         return new Planned(choice.fallback, choice.taken == null ? null : choice.taken.video);

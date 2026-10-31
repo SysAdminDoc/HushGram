@@ -88,7 +88,7 @@ final class VideoConvert {
     static boolean canConvert(DashManifest.Track track) {
         Predicate<DashManifest.Track> forTests = convertibleForTests;
         if (forTests != null) return forTests.test(track);
-        if (!track.isVideo() || !needsConversion(track.codecs) || hdr(track.codecs)) return false;
+        if (!track.isVideo() || !needsConversion(track.codecs) || track.hdr) return false;
         if (track.width <= 0 || track.height <= 0) return false;
         return codecs(track.codecs.startsWith("vp09") ? VP9 : AV1, track.width, track.height) != null;
     }
@@ -102,21 +102,19 @@ final class VideoConvert {
         if (track.codecs.startsWith("vp09") && !"video/mp4".equals(track.mime)) return "its VP9 isn't in an MP4";
         if (track.codecs.startsWith("av01") && !allowAv1) return "this phone can't read AV1 tracks";
         if (canConvert(track)) return null;
-        if (hdr(track.codecs)) return "it's HDR";
+        if (track.hdr) return "it's HDR";
         if (track.width <= 0 || track.height <= 0) return "the manifest gives no size";
         return "this phone has no " + (track.codecs.startsWith("vp09") ? "VP9" : "AV1")
             + " decoder and H.264 encoder for " + track.width + "x" + track.height;
     }
 
     /**
-     * Whether [codecs] names an HDR picture: PQ or HLG (16 or 18) in the transfer field, AV1's
-     * eighth and VP9's seventh. A file can leave its colour out of its own boxes, so the manifest's
-     * word is taken before a byte is fetched.
+     * Whether [codecs] names an HDR picture, by {@link DashManifest#hdrCodecs}: PQ or HLG in the
+     * transfer field, or a 10-bit profile. A track parsed from a manifest knows it as
+     * {@link DashManifest.Track#hdr}, which also reads the manifest's own colour properties.
      */
     static boolean hdr(String codecs) {
-        String[] fields = codecs.split("\\.");
-        int at = codecs.startsWith("av01") ? 7 : 6;
-        return fields.length > at && (fields[at].equals("16") || fields[at].equals("18"));
+        return DashManifest.hdrCodecs(codecs);
     }
 
     /**

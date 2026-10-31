@@ -60,6 +60,8 @@ final class CoverFrame {
         if (manifest != null) {
             for (DashManifest.Track track : DashManifest.parse(manifest)) {
                 if (!track.isVideo() || !decodes(track.codecs)) continue;
+                // Never save HDR video (#352) keeps a frame of an HDR picture out of the gallery too.
+                if (track.hdr && MediaSave.skipsHdr()) continue;
                 best = larger(new MediaSave.Rendition(track.url, track.width, track.height, track.bandwidth), best);
             }
         }

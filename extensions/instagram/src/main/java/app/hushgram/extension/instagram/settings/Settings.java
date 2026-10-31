@@ -2683,6 +2683,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_download_no_av1", FALSE);
 
     /**
+     * Passes HDR tracks over (#352), 10-bit ones included: a video Instagram has at full size only
+     * in HDR is saved at its largest standard range size, so an app that plays HDR as SDR with a
+     * yellow or green cast, Messenger among them, shows the save as the reel looked. A cover frame
+     * is taken from a standard range picture too. Starts off.
+     */
+    public static final BooleanSetting DOWNLOAD_NO_HDR =
+            new BooleanSetting("hushgram_download_no_hdr", FALSE);
+
+    /**
      * A save remembers what reached the gallery, and the same post, carousel page, reel, story,
      * cover or recording isn't saved again while its file is still where the save put it (#150).
      * Save all saves only the pages not saved before. Asked again within 30 seconds of being

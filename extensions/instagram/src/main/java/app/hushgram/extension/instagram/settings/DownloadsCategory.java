@@ -112,6 +112,9 @@ final class DownloadsCategory {
                     L10n.t("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved "
                             + "as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size "
                             + "then converts only VP9.")));
+            downloads.addPreference(toggle(context, Settings.DOWNLOAD_NO_HDR, L10n.t("Never save HDR video"),
+                    L10n.t("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
+                            + "has at full size only in HDR is saved at its largest standard size instead.")));
             downloads.addPreference(qualityRow(context));
             downloads.addPreference(folderRow(context));
             downloads.addPreference(fileNameRow(context));

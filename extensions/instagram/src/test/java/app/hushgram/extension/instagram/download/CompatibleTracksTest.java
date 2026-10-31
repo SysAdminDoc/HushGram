@@ -128,6 +128,65 @@ public class CompatibleTracksTest {
         assertNotNull(DashManifest.pick(tracks, true, DownloadQuality.BEST, false));
     }
 
+    /**
+     * A manifest says HDR in its cicp properties, on the set for every picture in it or on one
+     * representation alone, or in a codecs string's bit depth or transfer field (#352). Meta writes
+     * the three cicp properties with value 1 on its SDR sets, which marks nothing, and the captured
+     * manifest's tracks are all standard range.
+     */
+    @Test
+    public void hdrIsReadFromTheManifestsColourPropertiesAndCodecs() throws IOException {
+        String cicp = "urn:mpeg:mpegB:cicp:";
+        String manifest = "<MPD><Period>"
+                + "<AdaptationSet mimeType=\"video/mp4\">"
+                + "<SupplementalProperty schemeIdUri=\"" + cicp + "TransferCharacteristics\" value=\"16\"/>"
+                + "<SupplementalProperty schemeIdUri=\"" + cicp + "ColourPrimaries\" value=\"9\"/>"
+                + representation("hvc1.2.4.L120.B0", 1080, 1920, 2_000_000, "hevc", "")
+                + representation("avc1.64001f", 720, 1280, 1_200_000, "h264-in-the-hdr-set", "")
+                + "</AdaptationSet>"
+                + "<AdaptationSet mimeType=\"video/mp4\">"
+                + "<SupplementalProperty schemeIdUri=\"" + cicp + "TransferCharacteristics\" value=\"1\"/>"
+                + "<SupplementalProperty schemeIdUri=\"" + cicp + "ColourPrimaries\" value=\"1\"/>"
+                + "<SupplementalProperty schemeIdUri=\"" + cicp + "MatrixCoefficients\" value=\"1\"/>"
+                + representation("avc1.64001f", 720, 1280, 1_000_000, "sdr", "")
+                + representation("avc1.640028", 1080, 1920, 1_800_000, "wide",
+                        "<EssentialProperty schemeIdUri=\"" + cicp + "ColourPrimaries\" value=\"9\"/>")
+                + representation("av01.0.08M.10.0.110.09.16.09.0", 1080, 1920, 1_500_000, "av1-hdr", "")
+                + representation("vp09.00.40.08", 1080, 1920, 1_400_000, "vp9-sdr", "")
+                + "</AdaptationSet></Period></MPD>";
+        List<DashManifest.Track> tracks = DashManifest.parse(manifest);
+        assertEquals(tracks.toString(), 6, tracks.size());
+        assertTrue("a set's PQ marks every picture in it", named(tracks, "hevc").hdr);
+        assertTrue(named(tracks, "h264-in-the-hdr-set").hdr);
+        assertFalse("cicp value 1 is BT.709", named(tracks, "sdr").hdr);
+        assertTrue("a representation's own BT.2020 primaries", named(tracks, "wide").hdr);
+        assertFalse("one representation's properties don't mark its siblings", named(tracks, "vp9-sdr").hdr);
+        assertTrue("PQ in the codecs", named(tracks, "av1-hdr").hdr);
+        assertEquals("video/mp4 hvc1.2.4.l120.b0 1080x1920 2000kbps HDR", named(tracks, "hevc").toString());
+        assertEquals("video/mp4 vp09.00.40.08 1080x1920 1400kbps", named(tracks, "vp9-sdr").toString());
+
+        assertFalse(DashManifest.hdrSignalled(null));
+        assertFalse(DashManifest.hdrSignalled("<SupplementalProperty schemeIdUri=\"urn:mpeg:dash:role:2011\" value=\"16\"/>"));
+        assertTrue(DashManifest.hdrSignalled("<EssentialProperty value=\"18\" schemeIdUri=\"" + cicp + "TransferCharacteristics\"></EssentialProperty>"));
+
+        for (DashManifest.Track track : DashManifest.parse(resource("meta-public-dash.mpd"))) {
+            assertFalse(track.toString(), track.hdr);
+        }
+    }
+
+    private static String representation(String codecs, int width, int height, long bandwidth, String name, String inside) {
+        return "<Representation codecs=\"" + codecs + "\" width=\"" + width + "\" height=\"" + height
+                + "\" bandwidth=\"" + bandwidth + "\">" + inside
+                + "<BaseURL>" + BASE + name + ".mp4?oh=1&amp;oe=2</BaseURL></Representation>";
+    }
+
+    private static DashManifest.Track named(List<DashManifest.Track> tracks, String name) {
+        for (DashManifest.Track track : tracks) {
+            if (track.url.contains("/" + name + ".mp4")) return track;
+        }
+        throw new AssertionError(name + " isn't in " + tracks);
+    }
+
     /** AAC-LC first, whatever its bitrate, then HE-AAC, then HE-AAC v2 at the same rank. */
     @Test
     public void heAacIsTakenWhenThereIsNoLc() {

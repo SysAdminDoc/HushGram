@@ -190,6 +190,9 @@ For WhatsApp, video editors such as CapCut and InShot, or a gallery or player th
 Convert to keep the full size	轉換格式以保留完整尺寸
 For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size then converts only VP9.	適用於 AV1 播放不順的手機。Instagram 只有 AV1 完整尺寸的影片，有 VP9 時以 VP9 儲存，否則以最大的 H.264 尺寸儲存。轉換格式以保留完整尺寸此時只會轉換 VP9。
 Never save AV1 video	永不儲存 AV1 影片
+# context: Downloads settings: a switch that passes HDR pictures over for apps that show HDR with a yellow or green cast (#352)
+Never save HDR video	永不儲存 HDR 影片
+For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram has at full size only in HDR is saved at its largest standard size instead.	適用於會把 HDR 顯示成偏黃或偏綠的應用程式，例如 Messenger。Instagram 只有 HDR 完整尺寸的影片，會改以最大的標準尺寸儲存。
 Saves videos other apps can open, at full size. A video Instagram only has as VP9 or AV1 is converted to H.264 on your phone instead of saved smaller. Slower, and videos over 3 minutes stay smaller.	以完整尺寸儲存其他應用程式可開啟的影片。若 Instagram 僅提供 VP9 或 AV1，會在手機上轉換為 H.264，而非儲存較小的版本。處理較慢，超過 3 分鐘的影片仍會儲存較小的版本。
 Converting to H.264	正在轉換為 H.264
 Download quality	下載畫質

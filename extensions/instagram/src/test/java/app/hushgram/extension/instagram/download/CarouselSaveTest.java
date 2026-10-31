@@ -746,13 +746,15 @@ public class CarouselSaveTest {
     /**
      * The video a cover is taken from is the largest picture the phone decodes, of the files and
      * the manifest's tracks: AV1 only on a phone with an AV1 decoder and Never save AV1 video off
-     * (#379), and only Meta's addresses.
+     * (#379), an HDR picture only with Never save HDR video off (#352), and only Meta's addresses.
      */
     @Test public void theCoverComesFromTheLargestVideoThePhoneDecodes() {
         Object av1Before = org.robolectric.util.ReflectionHelpers.getStaticField(DashSave.class, "canWriteAv1");
         try {
             String cdn = "https://video-iad3-1.xx.fbcdn.net/o1/v/t2/f2/m69/";
             String manifest = "<MPD><Period><AdaptationSet mimeType=\"video/mp4\">"
+                    + "<Representation codecs=\"vp09.02.10.10.01.09.16.09.01\" width=\"1440\" height=\"2560\" bandwidth=\"2500000\">"
+                    + "<BaseURL>" + cdn + "v1440hdr.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
                     + "<Representation codecs=\"av01.0.08m.08.0.111.01.01.01.0\" width=\"1080\" height=\"1920\" bandwidth=\"1525000\">"
                     + "<BaseURL>" + cdn + "v1080.mp4?oh=1&amp;oe=2</BaseURL></Representation>"
                     + "<Representation codecs=\"avc1.64001f\" width=\"720\" height=\"1280\" bandwidth=\"900000\">"
@@ -764,7 +766,12 @@ public class CarouselSaveTest {
             MediaSave.Rendition still = new MediaSave.Rendition(cdn + "c.jpg", 360, 640, 0);
 
             org.robolectric.util.ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", Boolean.TRUE);
-            assertEquals(cdn + "v1080.mp4?oh=1&oe=2", CoverFrame.source(files, manifest, still).url);
+            assertEquals("every phone decodes VP9, HDR included", cdn + "v1440hdr.mp4?oh=1&oe=2",
+                    CoverFrame.source(files, manifest, still).url);
+
+            Settings.DOWNLOAD_NO_HDR.save(true);
+            assertEquals("the HDR switch passes the HDR picture over", cdn + "v1080.mp4?oh=1&oe=2",
+                    CoverFrame.source(files, manifest, still).url);
 
             Settings.DOWNLOAD_NO_AV1.save(true);
             assertEquals("the switch passes the AV1 over on a phone that decodes it", cdn + "v720.mp4?oh=1&oe=2",
@@ -783,6 +790,7 @@ public class CarouselSaveTest {
         } finally {
             org.robolectric.util.ReflectionHelpers.setStaticField(DashSave.class, "canWriteAv1", av1Before);
             Settings.DOWNLOAD_NO_AV1.resetToDefault();
+            Settings.DOWNLOAD_NO_HDR.resetToDefault();
         }
     }
 

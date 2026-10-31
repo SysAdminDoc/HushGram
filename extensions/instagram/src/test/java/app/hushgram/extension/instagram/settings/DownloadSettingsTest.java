@@ -351,7 +351,6 @@ public class DownloadSettingsTest {
 
             int noAv1 = indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key);
             assertEquals("the AV1 switch isn't right under the convert one (#379)", convert + 1, noAv1);
-            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, noAv1);
             Preference noAv1Row = rows.get(noAv1);
             assertTrue(noAv1Row instanceof SwitchPreference);
             assertFalse(((SwitchPreference) noAv1Row).isChecked());
@@ -359,6 +358,17 @@ public class DownloadSettingsTest {
             assertEquals("For phones that play AV1 badly. A video Instagram has at full size only as AV1 is saved "
                     + "as VP9 when it has one, or at its largest H.264 size. Convert to keep the full size "
                     + "then converts only VP9.", String.valueOf(noAv1Row.getSummary()));
+
+            int noHdr = indexOfKey(rows, Settings.DOWNLOAD_NO_HDR.key);
+            assertEquals("the HDR switch isn't right under the AV1 one (#352)", noAv1 + 1, noHdr);
+            assertEquals(indexOfKey(rows, Settings.DOWNLOAD_QUALITY.key) - 1, noHdr);
+            Preference noHdrRow = rows.get(noHdr);
+            assertTrue(noHdrRow instanceof SwitchPreference);
+            assertFalse(((SwitchPreference) noHdrRow).isChecked());
+            assertEquals("Never save HDR video", String.valueOf(noHdrRow.getTitle()));
+            assertEquals("For apps that show HDR with a yellow or green cast, such as Messenger. A video Instagram "
+                    + "has at full size only in HDR is saved at its largest standard size instead.",
+                    String.valueOf(noHdrRow.getSummary()));
         }
 
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
@@ -370,6 +380,8 @@ public class DownloadSettingsTest {
                     -1, indexOfKey(rows, Settings.DOWNLOAD_CONVERT.key));
             assertEquals("an AV1 row with no download in the build",
                     -1, indexOfKey(rows, Settings.DOWNLOAD_NO_AV1.key));
+            assertEquals("an HDR row with no download in the build",
+                    -1, indexOfKey(rows, Settings.DOWNLOAD_NO_HDR.key));
         }
     }
 

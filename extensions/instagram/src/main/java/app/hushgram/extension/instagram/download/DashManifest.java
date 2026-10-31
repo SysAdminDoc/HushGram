@@ -48,11 +48,22 @@ final class DashManifest {
          */
         final int label;
 
+        /**
+         * Whether the picture is HDR, or 10-bit, which Meta streams only for HDR: PQ or HLG in the
+         * codecs string or the manifest's cicp properties, BT.2020 primaries there, or a 10-bit
+         * profile. An app that plays it as SDR gives it a yellow or green cast (#352).
+         */
+        final boolean hdr;
+
         Track(String mime, String codecs, int width, int height, long bandwidth, String url) {
             this(mime, codecs, width, height, bandwidth, url, 0);
         }
 
         Track(String mime, String codecs, int width, int height, long bandwidth, String url, int label) {
+            this(mime, codecs, width, height, bandwidth, url, label, hdrCodecs(codecs));
+        }
+
+        Track(String mime, String codecs, int width, int height, long bandwidth, String url, int label, boolean hdr) {
             this.mime = mime;
             this.codecs = codecs;
             this.width = width;
@@ -60,6 +71,7 @@ final class DashManifest {
             this.bandwidth = bandwidth;
             this.url = url;
             this.label = label;
+            this.hdr = hdr;
         }
 
         boolean isVideo() {
@@ -83,8 +95,55 @@ final class DashManifest {
         @Override
         public String toString() {
             return mime + " " + codecs + " " + width + "x" + height + " " + (bandwidth / 1000) + "kbps"
-                + (label > 0 ? " " + label + "p" : "");
+                + (label > 0 ? " " + label + "p" : "") + (hdr ? " HDR" : "");
         }
+    }
+
+    /**
+     * Whether [codecs] names an HDR picture, or a 10-bit one, which Meta encodes only for HDR: PQ
+     * or HLG (16 or 18) in the transfer field, AV1's eighth and VP9's seventh, 10 or 12 in the bit
+     * depth field, AV1's and VP9's fourth, or H.265's Main 10 profile (2). A file can leave its
+     * colour out of its own boxes, so the manifest's word is taken before a byte is fetched.
+     */
+    static boolean hdrCodecs(String codecs) {
+        String[] fields = codecs.split("\\.");
+        if (codecs.startsWith("av01")) {
+            return (fields.length > 3 && number(fields[3]) > 8) || (fields.length > 7 && pqOrHlg(fields[7]));
+        }
+        if (codecs.startsWith("vp09")) {
+            return (fields.length > 3 && number(fields[3]) > 8) || (fields.length > 6 && pqOrHlg(fields[6]));
+        }
+        if (codecs.startsWith("hvc1") || codecs.startsWith("hev1")) {
+            // The profile may carry a general profile space letter in front, "A2".
+            return fields.length > 1 && fields[1].replaceAll("[a-cA-C]", "").equals("2");
+        }
+        return false;
+    }
+
+    private static boolean pqOrHlg(String transfer) {
+        return transfer.equals("16") || transfer.equals("18");
+    }
+
+    private static final Pattern PROPERTY = Pattern.compile("<(?:Supplemental|Essential)Property\\b([^>]*?)/?>");
+
+    /**
+     * Whether [body], the inside of an adaptation set with its representations taken out, or of one
+     * representation, carries a cicp property that names HDR: TransferCharacteristics 16 (PQ) or 18
+     * (HLG), or ColourPrimaries 9 (BT.2020). Meta writes all three cicp properties on every set,
+     * value 1 for its SDR pictures.
+     */
+    static boolean hdrSignalled(String body) {
+        if (body == null) return false;
+        Matcher properties = PROPERTY.matcher(body);
+        while (properties.find()) {
+            String scheme = attribute(properties.group(1), "schemeIdUri");
+            String value = attribute(properties.group(1), "value");
+            if (scheme == null || value == null) continue;
+            value = value.trim();
+            if (scheme.endsWith(":cicp:TransferCharacteristics") && pqOrHlg(value)) return true;
+            if (scheme.endsWith(":cicp:ColourPrimaries") && value.equals("9")) return true;
+        }
+        return false;
     }
 
     private static final Pattern ADAPTATION_SET =
@@ -139,10 +198,12 @@ final class DashManifest {
             Matcher sets = ADAPTATION_SET.matcher(manifest);
             while (sets.find()) {
                 String setAttributes = sets.group(1);
+                // A set's own colour properties speak for every track in it (#352).
+                boolean setHdr = hdrSignalled(REPRESENTATION.matcher(sets.group(2)).replaceAll(""));
                 Matcher representations = REPRESENTATION.matcher(sets.group(2));
 
                 while (representations.find()) {
-                    Track track = track(setAttributes, representations.group(1), representations.group(2));
+                    Track track = track(setAttributes, setHdr, representations.group(1), representations.group(2));
                     if (track != null) tracks.add(track);
                 }
             }
@@ -406,7 +467,7 @@ final class DashManifest {
         return 0;
     }
 
-    private static Track track(String setAttributes, String attributes, String body) {
+    private static Track track(String setAttributes, boolean setHdr, String attributes, String body) {
         if (body == null) return null;
 
         Matcher base = BASE_URL.matcher(body);
@@ -426,15 +487,17 @@ final class DashManifest {
 
         String codecs = attribute(attributes, "codecs");
         if (codecs == null) codecs = attribute(setAttributes, "codecs");
+        codecs = codecs == null ? "" : codecs.toLowerCase(Locale.US);
 
         return new Track(
             mime.toLowerCase(Locale.US),
-            codecs == null ? "" : codecs.toLowerCase(Locale.US),
+            codecs,
             number(attribute(attributes, "width")),
             number(attribute(attributes, "height")),
             number(attribute(attributes, "bandwidth")),
             url,
-            qualityLabel(attribute(attributes, "FBQualityLabel"))
+            qualityLabel(attribute(attributes, "FBQualityLabel")),
+            setHdr || hdrSignalled(body) || hdrCodecs(codecs)
         );
     }
 
