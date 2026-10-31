@@ -156,11 +156,38 @@ internal fun badgeColor(palette: AccentPalette): String = "hushgram_accent_${pal
 internal fun badgeStyle(palette: AccentPalette): String = "HushGramAccentBadge_${palette.name}"
 
 /**
- * The theme attribute Instagram's icons read, through `glyphColorPrimary`, `igdsPrimaryIcon` and the
- * save icon's color (#8). Its themes point it at the primary text color, so setting it colors the
- * icons and leaves the text alone.
+ * The theme attribute Instagram's icons read, through `igdsPrimaryIcon` among others (#8). Its themes
+ * point it at the primary text color, so setting it colors the icons and leaves the text alone.
  */
 internal const val ICON_ATTRIBUTE = "igds_color_primary_icon"
+
+/**
+ * The glyph attributes the icon styles set along with [ICON_ATTRIBUTE] (#8). Only Instagram's forced
+ * dark feed overlay ties them to it: its light and dark themes give each a color of its own (grey 9,
+ * or the primary text color and white), so the top bar's heart, a screen's back and overflow buttons,
+ * the post buttons, the selected profile tab and the saved bookmark kept that color. Each holds icons
+ * alone. The unselected tabs' `glyphColorSecondary` stays gray, and the liked heart's red is
+ * `igds_color_icon_badge`, so neither is in the list.
+ */
+internal val GLYPH_ATTRIBUTES = listOf("glyphColorPrimary", "glyphColorSecondaryActive", "feedSaveActiveColor")
+
+/** [ICON_ATTRIBUTE] and each of [GLYPH_ATTRIBUTES] that [attrs] declares, or none without [ICON_ATTRIBUTE]. */
+private fun iconAttributes(attrs: Document): List<String> {
+    val declared = attrs.children("attr").mapTo(HashSet()) { it.getAttribute("name") }
+    return if (ICON_ATTRIBUTE in declared) listOf(ICON_ATTRIBUTE) + GLYPH_ATTRIBUTES.filter { it in declared } else emptyList()
+}
+
+/** A style named [name] setting each of [attributes] to the color resource [color]. */
+private fun Document.colorStyle(name: String, attributes: List<String>, color: String): Element =
+    createElement("style").apply {
+        setAttribute("name", name)
+        for (attribute in attributes) {
+            appendChild(createElement("item").apply {
+                setAttribute("name", attribute)
+                textContent = "@color/$color"
+            })
+        }
+    }
 
 /** The theme an icon color is for, and the shade it takes there: a link's, made to read on that background. */
 internal enum class IconTheme(val role: AccentRole) { LIGHT(AccentRole.LINK_ON_LIGHT), DARK(AccentRole.LINK_ON_DARK) }
@@ -250,8 +277,8 @@ internal fun accentUses(styles: List<Document>, colors: Map<String, Set<Int>>): 
  * - when attrs.xml declares [BADGE_ATTRIBUTE], each color's fill as a badge color and a style setting
  *   the attribute to it, `HushGramAccentBadge_PURPLE`, for Badges in the accent color (#315);
  * - when attrs.xml declares [ICON_ATTRIBUTE], each color's light and dark link shades as icon colors
- *   and a style setting the attribute to each, `HushGramAccentIcons_PURPLE_dark`, for Icons in the
- *   accent color (#8).
+ *   and a style setting the attribute, and each of [GLYPH_ATTRIBUTES] declared, to each,
+ *   `HushGramAccentIcons_PURPLE_dark`, for Icons in the accent color (#8).
  *
  * The extension lays a color's style and the styles for whatever its theme's attributes hold onto the
  * theme. The shade attributes stand between them because a part and alpha is the same whatever color
@@ -264,7 +291,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
     val taken = (attrs.children("attr") + colors.children("color") + styles.children("style"))
         .mapTo(HashSet()) { it.getAttribute("name") }
     val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
-    val icons = attrs.children("attr").any { it.getAttribute("name") == ICON_ATTRIBUTE }
+    val iconAttributes = iconAttributes(attrs)
+    val icons = iconAttributes.isNotEmpty()
     val adding = shades.map(::shadeAttribute) +
         ACCENT_PALETTES.flatMap { palette -> shades.map { paletteColor(palette, it) } + paletteStyle(palette) } +
         uses.map { it.style } +
@@ -327,13 +355,7 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
                     setAttribute("name", iconColor(palette.name, theme))
                     textContent = "#ff%06x".format(palette.shades.getValue(theme.role))
                 })
-                styles.documentElement.appendChild(styles.createElement("style").apply {
-                    setAttribute("name", iconStyle(palette.name, theme))
-                    appendChild(styles.createElement("item").apply {
-                        setAttribute("name", ICON_ATTRIBUTE)
-                        textContent = "@color/${iconColor(palette.name, theme)}"
-                    })
-                })
+                styles.documentElement.appendChild(styles.colorStyle(iconStyle(palette.name, theme), iconAttributes, iconColor(palette.name, theme)))
             }
         }
     }
@@ -349,7 +371,8 @@ internal fun addAccentResources(uses: Set<AccentUse>, attrs: Document, colors: D
  * - when attrs.xml declares [BADGE_ATTRIBUTE], a badge color at the fill and a style pointing the
  *   attribute at it, for Badges in the accent color (#315);
  * - when attrs.xml declares [ICON_ATTRIBUTE], a light and a dark icon color at the link shades and a
- *   style pointing the attribute at each, for Icons in the accent color (#8).
+ *   style pointing the attribute, and each of [GLYPH_ATTRIBUTES] declared, at each, for Icons in the
+ *   accent color (#8).
  *
  * A see-through shade gets none: a plain color can't give a system color another alpha, and a color
  * state list reads back as a file name to Instagram's own reads, so the extension leaves those
@@ -360,7 +383,8 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     val taken = (colors.children("color") + colorsV31.children("color") + styles.children("style"))
         .mapTo(HashSet()) { it.getAttribute("name") }
     val badges = attrs.children("attr").any { it.getAttribute("name") == BADGE_ATTRIBUTE }
-    val icons = attrs.children("attr").any { it.getAttribute("name") == ICON_ATTRIBUTE }
+    val iconAttributes = iconAttributes(attrs)
+    val icons = iconAttributes.isNotEmpty()
     val adding = opaque.map { wallpaperColor(it.shade) } + WALLPAPER_PALETTE_STYLE +
         (if (badges) listOf(WALLPAPER_BADGE_COLOR, WALLPAPER_BADGE_STYLE) else emptyList()) +
         (if (icons) IconTheme.entries.flatMap { listOf(iconColor(WALLPAPER, it), iconStyle(WALLPAPER, it)) } else emptyList())
@@ -399,13 +423,7 @@ internal fun addWallpaperResources(uses: Set<AccentUse>, attrs: Document, colors
     if (icons) {
         for (theme in IconTheme.entries) {
             color(iconColor(WALLPAPER, theme), theme.role)
-            styles.documentElement.appendChild(styles.createElement("style").apply {
-                setAttribute("name", iconStyle(WALLPAPER, theme))
-                appendChild(styles.createElement("item").apply {
-                    setAttribute("name", ICON_ATTRIBUTE)
-                    textContent = "@color/${iconColor(WALLPAPER, theme)}"
-                })
-            })
+            styles.documentElement.appendChild(styles.colorStyle(iconStyle(WALLPAPER, theme), iconAttributes, iconColor(WALLPAPER, theme)))
         }
     }
 }

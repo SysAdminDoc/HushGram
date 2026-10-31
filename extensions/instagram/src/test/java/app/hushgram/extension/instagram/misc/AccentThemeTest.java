@@ -32,6 +32,7 @@ import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
 @RunWith(RobolectricTestRunner.class)
@@ -232,6 +233,33 @@ public class AccentThemeTest {
         AccentTheme.apply(bare, "igds_color_link");
         assertEquals(List.of(FamilyNames.ACCENT_COLOR + ": invoked 1, 0 found, 0 missing. Counted: " + AccentTheme.NO_BLUE + " 1, "
                 + AccentTheme.ICONS_MISSING + " 1"), HookStatus.report());
+    }
+
+    /**
+     * Paused, the icon style never goes on with both switches on, so the glyph colors it also sets
+     * (#8) stay Instagram's, and nothing is looked up or counted.
+     */
+    @Test
+    public void pausedTheIconStyleNeverGoesOn() {
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.TEAL);
+        Settings.ACCENT_ICONS.save(true);
+        List<String> asked = new ArrayList<>();
+        Context light = new ContextThemeWrapper(themed(THEMED + ".icons.paused", (name, type) -> {
+            asked.add(type + "/" + name);
+            if (type.equals("style")) return android.R.style.TextAppearance_Small;
+            return type.equals("attr") && name.equals(AccentTheme.ICON_ATTRIBUTE) ? android.R.attr.colorForeground : 0;
+        }), android.R.style.Theme_Material_Light);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        AccentTheme.apply(light, "igds_color_link");
+        assertEquals(List.of(), asked);
+        assertEquals(List.of(), HookStatus.report());
+
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        AccentTheme.apply(light, "igds_color_link");
+        assertTrue("resumed, " + asked, asked.contains("style/" + AccentTheme.iconStyle(AccentHue.TEAL, false)));
     }
 
     @Test

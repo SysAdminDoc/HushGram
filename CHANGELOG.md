@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram:** `Accent color` gets an `Icons in the accent color` switch, off to start. After a restart Instagram's icons on the top bar, the tab bar and under posts take the color you picked, a lighter shade in dark mode and a deeper one in light mode. Text keeps its color. Asked for in #8.
+* **Instagram:** `Accent color` gets an `Icons in the accent color` switch, off to start. After a restart Instagram's icons on the top bar, your profile, the tab bar and under posts (the saved bookmark too) take the color you picked, a lighter shade in dark mode and a deeper one in light mode. Text keeps its color. Asked for in #8.
 * **Instagram:** `App icon` adds Hand-drawn Instagram, a pencil sketch of Instagram's glyph on white. Themed icons show the same sketch. Asked for in #406.
 * **Instagram:** `Chat history tools` is a new patch. Its switch under Messages lets you long press a chat's name to jump to its first message or a date, loading older messages with a count and Cancel. Starts off. Asked for in #246.
 * **Instagram:** `Chat history tools` gets a second switch, `Export a chat as text`. Long press a chat's name and pick Export chat to save the whole chat to Downloads/HushGram, one line per message. Starts off. Asked for in #247.

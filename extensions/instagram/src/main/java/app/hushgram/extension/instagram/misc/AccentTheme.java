@@ -49,7 +49,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>With {@link Settings#ACCENT_ICONS} on, the picked color's icon style goes on as well (#8). It
  * points {@code igds_color_primary_icon}, which Instagram's glyphs read and its themes tie to the
  * primary text color, at the picked link shade for the theme: the light shade on a light theme, the
- * dark one on a dark theme. Text keeps its own color.
+ * dark one on a dark theme. It points the glyph attributes Instagram's themes color on their own at
+ * the same shade: {@code glyphColorPrimary} (the top bar's heart, the back and overflow buttons, the
+ * post buttons), {@code glyphColorSecondaryActive} (the selected profile tab) and
+ * {@code feedSaveActiveColor} (the saved bookmark). Text keeps its own color, the unselected tabs stay
+ * gray and the liked heart stays red. The wordmark is tinted with the primary text color, so it stays
+ * too.
  *
  * <p>Fails open: with the switch off, Instagram blue picked, HushGram paused, the resources missing or
  * anything thrown, the theme stays Instagram's. A change shows on screens opened after a restart.

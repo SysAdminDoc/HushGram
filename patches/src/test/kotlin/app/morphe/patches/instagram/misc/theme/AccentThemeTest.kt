@@ -303,6 +303,42 @@ class AccentThemeTest {
         assertTrue(again.message, again.message!!.contains("already have a hushgram_accent_red_icon_light"))
     }
 
+    /**
+     * Instagram's light and dark themes give the glyph attributes colors of their own rather than the
+     * icon attribute, so the icon styles set each one declared to the same shade (#8). Without the icon
+     * attribute there are no icon styles at all, glyphs or not.
+     */
+    @Test
+    fun theIconStylesAlsoSetEachDeclaredGlyphAttribute() {
+        val uses = setOf(AccentUse("igds_color_link", AccentRole.LINK_ON_DARK, 0xff))
+        val declared = (listOf(ICON_ATTRIBUTE, "glyphColorSecondary") + GLYPH_ATTRIBUTES.drop(1))
+            .joinToString("") { "<attr name=\"$it\" format=\"reference|color\" />" }
+        val attrs = parse("<resources>$declared</resources>")
+        val colors = parse("<resources />")
+        val styles = parse("<resources />")
+
+        addAccentResources(uses, attrs, colors, styles)
+        addWallpaperResources(uses, attrs, colors, parse("<resources />"), styles)
+
+        val icons = styles.elements("style").filter { it.getAttribute("name").startsWith("HushGramAccentIcons_") }
+            .associate { style -> style.getAttribute("name") to style.elements("item").map { it.getAttribute("name") to it.textContent } }
+        assertEquals(
+            listOf(ICON_ATTRIBUTE, "glyphColorSecondaryActive", "feedSaveActiveColor").map { it to "@color/hushgram_accent_purple_icon_light" },
+            icons[iconStyle("PURPLE", IconTheme.LIGHT)],
+        )
+        assertEquals(
+            listOf(ICON_ATTRIBUTE, "glyphColorSecondaryActive", "feedSaveActiveColor").map { it to "@color/hushgram_accent_wallpaper_icon_dark" },
+            icons[iconStyle(WALLPAPER, IconTheme.DARK)],
+        )
+        assertTrue("the unselected tabs' gray stays", icons.values.flatten().none { it.first == "glyphColorSecondary" })
+        assertTrue("the like heart's red stays", icons.values.flatten().none { it.first == BADGE_ATTRIBUTE })
+
+        val glyphsOnly = parse("<resources>${GLYPH_ATTRIBUTES.joinToString("") { "<attr name=\"$it\" />" }}</resources>")
+        val bare = parse("<resources />")
+        addAccentResources(uses, glyphsOnly, parse("<resources />"), bare)
+        assertTrue(bare.elements("style").none { it.getAttribute("name").startsWith("HushGramAccentIcons_") })
+    }
+
     @Test
     fun theHookAndTheStubAreInTheExtension() {
         val declared = app.morphe.ExtensionDex.classDef(ACCENT_THEME).methods
@@ -445,6 +481,15 @@ class AccentThemeTest {
                 assertTrue("$code: the dark icons", "style/${iconStyle("PURPLE", IconTheme.DARK)}" in added)
                 assertTrue("$code: the light icons", "style/${iconStyle("PURPLE", IconTheme.LIGHT)}" in added)
                 assertTrue("$code: the wallpaper icons", "style/${iconStyle(WALLPAPER, IconTheme.DARK)}" in added)
+                // It declares the glyph attributes too, so the icon styles reach the heart, the action bars and the post buttons.
+                // The encode puts a style's items in attribute number order.
+                val icons = parse(File(res, "values/styles.xml").readText()).elements("style")
+                    .single { it.getAttribute("name") == iconStyle("PURPLE", IconTheme.DARK) }
+                assertEquals(
+                    "$code: the dark icons' attributes",
+                    (listOf(ICON_ATTRIBUTE) + GLYPH_ATTRIBUTES).map { it to "@color/hushgram_accent_purple_icon_dark" }.toSet(),
+                    icons.elements("item").map { it.getAttribute("name") to it.textContent.trim() }.toSet(),
+                )
                 val system = parse(File(res, "values-v31/colors.xml").readText()).elements("color")
                     .associate { it.getAttribute("name") to it.textContent.trim() }
                 assertEquals("$code: the wallpaper's fill", "@android:color/system_accent1_500", system["hushgram_accent_wallpaper_fill_ff"])
