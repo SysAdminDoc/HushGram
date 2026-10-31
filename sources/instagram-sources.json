@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "note": "Every public source found for com.instagram.android, with the branches and commits it was last read at, its licence and what HushGram may take from it, plus the two Facebook sources HushGram's shared code came from. scripts/instagram-sources.ps1 holds it to its rules and scripts/audit-instagram-sources.ps1 refreshes it. docs/sources.md is the readable version.",
   "census": {
-    "checkedAt": "2026-10-15",
+    "checkedAt": "2026-10-31",
     "skipped": [
       "gitlab-code-search"
     ]
@@ -24,7 +24,7 @@
       "hushgram": {
         "status": "listed",
         "url": "https://morphe-patches.software/?github=SysAdminDoc/HushGram#bundles:new",
-        "checked": "2026-10-15"
+        "checked": "2026-10-31"
       }
     },
     {
@@ -34,7 +34,7 @@
       "hushgram": {
         "status": "listed",
         "url": "https://github.com/nvbangg/awesome-morphe/blob/main/data/hashes.json",
-        "checked": "2026-10-15"
+        "checked": "2026-10-31"
       }
     },
     {
@@ -44,7 +44,7 @@
       "hushgram": {
         "status": "listed",
         "url": "https://github.com/drnx64/morphe-track-patches/blob/main/data/bundles.json",
-        "checked": "2026-10-15"
+        "checked": "2026-10-31"
       }
     },
     {
@@ -54,7 +54,7 @@
       "hushgram": {
         "status": "listed",
         "url": "https://patch-bundles.api.jmancentral.com/sources?q=hushgram",
-        "checked": "2026-10-15"
+        "checked": "2026-10-31"
       }
     },
     {
@@ -64,7 +64,7 @@
       "hushgram": {
         "status": "listed",
         "url": "https://github.com/rushiforai/morphe-archive/tree/main/examplepatches/SysAdminDoc/HushGram",
-        "checked": "2026-10-15"
+        "checked": "2026-10-31"
       }
     }
   ],
@@ -96,7 +96,7 @@
       "branches": [
         {
           "name": "main",
-          "commit": "26133332f6dc016975a4a2efa184998aa4e37dce"
+          "commit": "cd8307ba7910a300d87cb39feca470270e5ab875"
         },
         {
           "name": "feat/bgaudio",
@@ -153,17 +153,28 @@
       "reason": "HushGram's scaffold, from the same author. The shared extension, the settings screen, the link cleaner and the re-signed build fix were copied from its commit c15d4f79 and renamed for Instagram, and all six of HushGram's patches applied unforced to Instagram 449.0.0.52.84. It patches Facebook, not Instagram, so only the files HushGram took are watched. The video and photo save pipeline came later, from its commit 3a473639, as a core that takes plain inputs, with its Facebook hooks left out. Its commit 814acd23 gave the release scripts and the Tap to play and Resume long videos rules (TapClock, TapToPlay, ResumePlayback, ResumePoints), so those files are watched too, and so are PlaybackQuality and QualityChoice, the quality ladder and choice rules behind Default playback quality from its commit 830f9499.",
       "archived": false,
       "forks": [
+        "de0921188/HushFacebook",
+        "dijitalcozum/HushFacebook-Developer",
+        "huytqse170597/HushFacebook",
+        "JhouHank/HushFacebook",
         "kazimmt/Hushfacebook",
+        "mikhoul/HushFacebook",
+        "Neerpandey/HushFacebook",
         "Nezumi-2711/HushFacebook",
+        "NikolaJyun/HushFacebook",
+        "ozeroztas/HushFacebook",
+        "petervavrinecz/HushFacebook",
         "princeahmedbd/Facebook",
-        "rakibulhasanrihad10/HushFacebook",
+        "Psychoninja1623/HushFacebook",
         "SA-SUJON/HushFacebook",
         "sjnhnp/Hushfacebook",
+        "toidicakhia/HushFacebook",
+        "tranthanhbinh2603/HushFacebook",
         "ViictorNunes/Hushfacebook"
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "andrewliang25",
@@ -237,7 +248,7 @@
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "piko",
@@ -250,7 +261,8 @@
       ],
       "targetVersions": {
         "com.instagram.android": [
-          "439.0.0.37.89"
+          "452.1.0.53.64",
+          "447.0.0.55.81"
         ]
       },
       "features": [
@@ -278,6 +290,7 @@
         "Disable stories",
         "Disable story flipping",
         "Disable swipe to create",
+        "Disable telemetry",
         "Disable typing status",
         "Disable video autoplay",
         "Download media",
@@ -286,17 +299,25 @@
         "Filter stories",
         "Focus Lock",
         "Friendship status indicator",
+        "Hidden chats",
+        "Hide feed posts",
         "Hide group creation button on sharesheet",
+        "Hide hidden requests",
         "Hide navigation buttons",
         "Hide notes tray",
         "Hide Reels follow button",
         "Hide reshare button",
+        "Hide save buttons",
+        "Hide share button",
         "Hide stories tray",
+        "Hide story follow button",
         "Hide suggested content",
         "Improve image viewing",
+        "Inbox lock",
         "Limit feed to following profiles",
         "Loop story",
         "Make ephemeral media permanent",
+        "Mark as read after reply",
         "Mark chat as read manually",
         "More options on post",
         "More options on profile",
@@ -306,6 +327,7 @@
         "Remove empty bottom space",
         "Sanitize share links",
         "Save deleted messages",
+        "Save Instants",
         "Save media comment",
         "Stories audio autoplay",
         "Theme",
@@ -333,7 +355,7 @@
         },
         {
           "name": "crowdin",
-          "commit": "e76e726af81bb8a52172a7b3ac3b0012257cd041"
+          "commit": "f5915a9424735d39fdbc2f42d70564a910f1e995"
         },
         {
           "name": "dependabot/npm_and_yarn/dev/conventional-changelog-conventionalcommits-10.4.0",
@@ -341,11 +363,11 @@
         },
         {
           "name": "dev",
-          "commit": "e76e726af81bb8a52172a7b3ac3b0012257cd041"
+          "commit": "f5915a9424735d39fdbc2f42d70564a910f1e995"
         },
         {
           "name": "x-lite",
-          "commit": "34a5f74515a00f5ab4c5fd66b69d935a3b879c08"
+          "commit": "c7256d5d3a34abf3cbd3e4965c9da7e257dfafec"
         }
       ],
       "watchPaths": [
@@ -359,7 +381,7 @@
       },
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "The biggest Instagram source by far, GPL-3.0 with a NOTICE that asks for attribution under GPL section 7(b). Its 3.10.0-dev.9 build applies all 60 Instagram patches to 439.0.0.37.89 but only 5 to 449.0.0.52.84, because Add settings misses its NativeSwitchInitializer fingerprint and the rest depend on it. HushGram reads it for behavior and anchors and carries none of its code. It carried two of its data files from commit ea752648 (the MetaConfig name list for 447 and the recommended flag list) until Open developer options was removed in October 2026, so nothing of it ships now.",
+      "reason": "The biggest Instagram source by far, GPL-3.0 with a NOTICE that asks for attribution under GPL section 7(b). Its main v3.10.0 lists 62 Instagram patches on 447.0.0.55.81, and dev v3.11.0-dev.3 (read 2026-10-30) lists 68 on 452.1.0.53.64. HushGram reads it for behavior and anchors and carries none of its code. It carried two of its data files from commit ea752648 (the MetaConfig name list for 447 and the recommended flag list) until Open developer options was removed in October 2026, so nothing of it ships now.",
       "archived": false,
       "forks": [
         "0scvr/piko",
@@ -388,9 +410,11 @@
         "ArchitektApx/piko",
         "argsno/piko",
         "Aria-NL/piko",
+        "ArmandoRl1/piko",
         "asmodeus-oos/piko",
         "Astronaut10/piko",
         "aubymori/piko",
+        "AWTMODS/awtinstapatch",
         "Aymen104/piko",
         "BakaronLab/piko",
         "bbppllo/piko",
@@ -399,27 +423,36 @@
         "breakingit3rd/piko",
         "broimluna/piko",
         "brosssh/piko",
+        "Brunovncs/piko",
         "CaesiusSky/piko",
         "cancheantonio23-eng/piko",
+        "carmoran0/piko",
         "CC3003/piko",
         "chaitut715/piko",
         "chemchetchagio/piko",
         "chloricacid/piko",
         "chunyinkwong/piko",
+        "crafty991/piko",
         "cyberboh/piko",
         "cybort/piko",
+        "cybxprt/piko",
         "daniyal123gb-svg/piko",
         "DaUnknow1/piko",
         "dave-palt/piko",
+        "Dekum69/piko-dekum",
         "Delphox/piko",
+        "Dheerajchalasani0051/piko",
         "discomposed8890/piko",
         "dissociativity/piko",
+        "Djihads80/piko",
         "draskmont/piko",
         "dunecache/piko",
         "durantech/piko",
         "dustyla00-afk/piko",
+        "EddyBlacko/piko",
         "elythh/piko",
         "EncryptedCicada/piko",
+        "EncycloAcid/piko",
         "esdfurkan/piko",
         "finnff/piko",
         "FlaminSarge/piko",
@@ -429,15 +462,17 @@
         "Foxtrot47/piko",
         "fuwamocoanon/piko",
         "GamerJagdish/piko",
+        "gcapurro89/piko",
         "GET100PERCENT/piko",
         "ghostpepperkidd-spec/piko",
         "Gibua/piko",
         "Gintoki93/piko",
         "Golde2341/piko",
         "goldganji/piko",
+        "Gontier-Julien/piko",
         "gototheskinny/piko",
         "gybmike-collab/piko",
-        "haphazard9/piko",
+        "hiraginoyuki/piko",
         "hotcici/piko",
         "hunnybunnypumpkin/piko",
         "i91314/piko",
@@ -465,32 +500,38 @@
         "Karuizawakeii/piko-",
         "Kawansejalanproduction2019/piko",
         "kerodkibatu/piko",
+        "Kgeek33/piko",
         "kitadai31/piko",
         "kkabouris/piko",
         "kKuteKuto/piko-dev",
+        "Koperbtw/piko",
         "koz-nik/piko-newx-ru",
         "kraty1312/piko",
         "kunikunin-92/piko",
         "kuntal-devrat/piko",
+        "kylewhite0225/piko",
+        "kyousyanoyoubun/piko",
         "Lampe73/piko",
         "leavingheretostay/Insteroid",
         "lemezohaib/piko",
+        "LemonDouble/piko",
         "lgernierO/piko",
         "lilnoes/piko",
         "lilorin/piko",
         "LisoUseInAIKyrios/piko",
         "manavchaudhary1/piko",
-        "Manishrdy/piko",
         "marsderp/piko",
         "Mehlsine/piko",
         "milkywaystorm/piko",
+        "mitegab/piko",
         "Mocha313/piko",
         "monefiera/piko",
         "moram225/piko",
+        "mvanhorn/piko",
         "nakedlittlezombie/piko",
         "naotoh-fs/piko",
-        "nassim-arifette/piko",
         "naoverse06/piko",
+        "nassim-arifette/piko-tor",
         "Nevner999/piko",
         "Nich87/piko",
         "nicospz/piko",
@@ -505,6 +546,7 @@
         "Oleepre/piko",
         "otakretak/piko",
         "ourora-hub/piko",
+        "oviron/piko",
         "ozeroztas/piko",
         "ozon1985/piko",
         "patriziomoscogiuri3-source/piko",
@@ -525,9 +567,12 @@
         "realies/piko",
         "red2kit/pikobyserikli",
         "reforget-id/piko-patches",
+        "rei284/piko",
         "reindex-ot/piko",
         "restartxx/piko",
+        "ricky123mm/piko",
         "riolove1/piko",
+        "RishiHMT/riko",
         "rito50500-coder/piko",
         "rlauuzo/piko",
         "robbirizaldi/piko",
@@ -546,6 +591,7 @@
         "serkanege/piko",
         "ShahilAsh/piko",
         "Skeletonpun/piko",
+        "skyhelldragon-oss/piko",
         "skykoderhere/piko",
         "smithjohn1998/piko",
         "snake-git/piko",
@@ -553,22 +599,25 @@
         "someone5678/piko",
         "somilkhan/piko",
         "stdedos/piko",
+        "stickyfran/piko",
         "stopper2408/piko",
         "swakwork/piko-patches",
         "t3rr0rbit/piko",
+        "Taifuuni/piko",
         "taku-nm/piko",
         "theGenes1s/piko",
         "ThigSchuch/piko",
         "tjelite1986/piko",
         "totto357/piko",
         "Trauergeist/piko",
+        "tyuburarin/piko",
         "uvzen/piko",
         "Vagelis1608/piko",
         "vaginessa/piko-1",
         "VicLee-Worker/piko",
         "ViictorNunes/piko",
-        "ViiniMart/piko",
         "ViniciussSantos/piko",
+        "vippium/-",
         "viridivn/piko",
         "vishnuprasad0/piko",
         "vodkacsa/piko",
@@ -591,6 +640,7 @@
         "yashau/piko",
         "yaybrianna/piko",
         "yorhagin/piko",
+        "Zephyrastic/piko",
         "zhangwei43721/piko",
         "zhoupu210/piko"
       ],
@@ -608,7 +658,7 @@
           ]
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "ahmedyarub",
@@ -620,41 +670,40 @@
         "com.instagram.android"
       ],
       "targetVersions": {
-        "com.instagram.android": []
+        "com.instagram.android": [
+          "453.0.0.57.79"
+        ]
       },
       "features": [
+        "Auto not interested",
         "Bypass signature check",
         "Disable analytics",
         "Disable screenshot detection",
         "Download media",
         "Download voice message",
         "Filter stories",
-        "Hide Instants",
-        "Hide Threads profile button",
         "Hide ads",
+        "Hide Instants",
+        "Hide Reels cards",
         "Hide suggested content",
+        "Hide Threads profile button",
         "Improve image viewing",
+        "Keep signed in across reinstalls",
         "Make ephemeral media permanent",
         "Open links externally",
+        "Reels interested buttons",
+        "Reorder menu options",
         "Sanitize share links",
         "Save deleted messages"
       ],
       "branches": [
         {
           "name": "main",
-          "commit": "2a08da5eb8c394f48616c8d2d5d44a5f319e6bb1"
+          "commit": "52e671e99c9d4f86d676a491b1b0c4911af8c708"
         },
         {
           "name": "dev",
-          "commit": "2a08da5eb8c394f48616c8d2d5d44a5f319e6bb1"
-        },
-        {
-          "name": "feat/twitter",
-          "commit": "0c7a3fe086a658fc66244d2cf1bf648d32ca5edf"
-        },
-        {
-          "name": "fix/duplicate-download-row",
-          "commit": "0c7a3fe086a658fc66244d2cf1bf648d32ca5edf"
+          "commit": "52e671e99c9d4f86d676a491b1b0c4911af8c708"
         }
       ],
       "watchPaths": [
@@ -669,15 +718,18 @@
       },
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "GPL-3.0. Carries piko's Instagram package (app/crimera/patches/instagram) beside patches of its own, with a test that checks its fingerprints. Anything taken from here needs piko's NOTICE kept.",
+      "reason": "GPL-3.0. Carries piko's Instagram package (app/crimera/patches/instagram) beside patches of its own, with a test that checks its fingerprints. Anything taken from here needs piko's NOTICE kept. v1.22.0 (2026-10-30) lists 20 Instagram patches on 453.0.0.57.79.",
       "archived": false,
-      "forks": [],
+      "forks": [
+        "fakeoomblues/X-Morphe-Patch",
+        "krishnaenviro12-cell/morphe-patches"
+      ],
       "contentHashes": [
         "a096cdce97048433e856e54ed58ede6531c33a15",
         "e8a9917f5dd62fa6ec3b83343424b24084e2b9b2"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "chirag127",
@@ -725,7 +777,7 @@
         "e2087567e566275d56d97ce77a57001ecf95ccda"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "revanced",
@@ -814,23 +866,6 @@
         "blaxor1/revanced-patches",
         "Bobocato/revanced-patches",
         "brskt/revanced-patches",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86014315",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86126979",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86179411",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86217480",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86259657",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86577065",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86675967",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86927103",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86949965",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-86981388",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87026966",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87117622",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87193458",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87291057",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87336999",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87382344",
-        "chandler.bing/ecoscan-80488462-deletion_scheduled-87521398",
         "cornyabs/revanced-patches-neo",
         "Crafter-Y/revanced-patches",
         "culpen0/revanced-patches",
@@ -841,7 +876,6 @@
         "drunkbatya/revanced-patches",
         "dtricks/revanced-patches",
         "dwismath/revanced-patches",
-        "eathtespagheti/revanced-patches",
         "EddSC/revanced-patches",
         "elia_vandi/revanced-patches",
         "francescograzioso1995/revanced-patches",
@@ -876,27 +910,6 @@
         "pengleixinkuzi/revanced-patches",
         "PhateValleyman/revanced-patches",
         "proivan1711/revanced-patches",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-85950944",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86093532",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86146681",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86347573",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86383433",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86411624",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86447130",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86488202",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86533980",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86653713",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86707754",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86783510",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86849772",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-86892377",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87072100",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87246759",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87427817",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87462565",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87487475",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87563593",
-        "rachel.green.r/ecoscan-80488462-deletion_scheduled-87616265",
         "radkawwa/revanced-patches",
         "RikoDEV/revanced-patches",
         "rosset.nocpes/revanced-patches",
@@ -915,7 +928,12 @@
         "XCossale/revanced-patches",
         "yonggamer/revanced-patches",
         "yuanleo/revanced-patches",
-        "zappybiby/revanced-patches"
+        "zappybiby/revanced-patches",
+        "0naught/revanced-patches",
+        "bulatec/revanced-patches",
+        "americanpride2026/revanced-patches",
+        "sujithacrysis/revanced-patches",
+        "Tejs1/revanced-patches"
       ],
       "contentHashes": [
         "00bd45fa45f61d3c393c07e4da6bf609cebeeb43",
@@ -1268,7 +1286,7 @@
           ]
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "bluecxt",
@@ -1351,7 +1369,48 @@
         "febcb53f2db5d56cf33b3a8959c7cc9c5d074dd4"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "notplancha-revanced",
+      "repository": "https://github.com/notPlancha/revanced-patches",
+      "lineage": "revanced",
+      "upstream": "https://gitlab.com/ReVanced/revanced-patches",
+      "kind": "revanced-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": []
+      },
+      "features": [
+        "Hide ads",
+        "Download media",
+        "Hide suggested posts",
+        "Sanitize sharing links"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "1c06be64f27213eb5b7ecb95bddc04084a813404"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/revanced/patches/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/notPlancha/revanced-patches/blob/b582c364919025f89e0ed1d7ad75684e7b1bd7cf/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "GPL-3.0. A copy of ReVanced's patches that isn't a GitHub fork. Its Instagram package holds Hide ads and Sanitize sharing links, which ReVanced has, and Download media and Hide suggested posts, which ReVanced's entry doesn't record. No patch list or release, so it declares no Instagram version.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "kydaix",
@@ -1391,7 +1450,7 @@
         "1a455bf638496a2f1d3306e4cb4721645a329e09"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "daboynb",
@@ -1429,7 +1488,7 @@
         "f5d5edd053d97ea7c405f30e6bc38b5b5db116f9"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "auna",
@@ -1507,7 +1566,7 @@
           ]
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "wb1016",
@@ -1543,7 +1602,7 @@
         "d18651e8725a37ce509ce2a059e9b03ec0be3f4c"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "brosssh",
@@ -1622,7 +1681,7 @@
         "e3aa227fdb40176ffe1cde34d39bf0fb2f52c89d"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "feurstagram",
@@ -1652,7 +1711,7 @@
       "branches": [
         {
           "name": "main",
-          "commit": "3e02bcc99e874b5195b90e0a1748a4a218f822ba"
+          "commit": "169610185de0ecdd436be7b5247afe7f180064af"
         }
       ],
       "watchPaths": [
@@ -1670,6 +1729,7 @@
       "archived": false,
       "forks": [
         "17h59/FeurStagram",
+        "54keesh/FeurStagram",
         "adam-ajroudi/FeurStagram",
         "akbartelbank-ux/FeurStagram",
         "akshaybd121205-cmd/FeurStagram",
@@ -1686,28 +1746,34 @@
         "derek-pohl/FeurStagram",
         "Dimitrije-Jimmy/FeurStagram",
         "donalmcdermott/FeurStagram",
+        "flagsnerd41/PrismGram",
         "gopin0011/FeurStagram",
         "harsha-jayarama/FeurStagram",
         "HydRen-fr/FeurStagram",
         "ibrque/FeurStagram",
+        "iiierie/FeurStagram",
         "iluhamuha/FeurStagram",
         "jademinrabbit09/FeurStagram---freind-s-reel-is-available",
-        "Juan-Martin-Cerezo/antiscroll-ig-patcher",
         "jvkamnani/FeurStagram",
         "k754a/FeurStagram",
+        "KabraX/FeurStagram",
         "kalyar197/FeurStagram",
         "karanraj-ux/FeurStagram",
         "khan-umirzakoff/FeurStagram-DFinstagram-Khan",
         "leparlon/FeurStagramPaulo",
         "luisobarnet/mInstaGram",
         "marcodotsh/FeurStagram",
+        "MarioRapSan/FeurStagram",
         "Marto19/FeurStagram",
         "MaTriXy/FeurStagram",
         "mkshaonexe/My-Instragram-",
+        "mvanhorn/FeurStagram",
         "na-ji/FeurStagram",
         "o7ux/UXStagram",
+        "Okkel/reels_blocker_instagram",
         "OPZENITSUUU/FeurStagram",
         "otterer/FeurStagram",
+        "pablis333/FeurStagram",
         "poldevapple-lgtm/FeurStagram",
         "PUSHPAK-JAISWAL/FeurStagram",
         "Rad-Sam/FeurStagram",
@@ -1715,6 +1781,7 @@
         "readyplayer3s/FeurStagram",
         "Reza-Babakhani/Lessgram",
         "RhodyDS/FeurStagram",
+        "ricardoavilesfoto-collab/FeurStagram",
         "Rmontala99/FeurStagram",
         "s-bhatla/FeurStagram",
         "ScheckGuillermo/FeurStagram",
@@ -1734,7 +1801,7 @@
         "064da70855eda3e47855789fe98be556c6deb7f3"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "foxxo",
@@ -1746,25 +1813,23 @@
         "com.instagram.android"
       ],
       "targetVersions": {
-        "com.instagram.android": []
+        "com.instagram.android": [
+          "447.0.0.55.81"
+        ]
       },
       "features": [
+        "Chat only",
         "Clone",
-        "Debug bridge",
-        "Feed item filtering",
-        "Force SDR display",
-        "Install-packages permission",
-        "Limit feed to following profiles",
-        "Network content blocking",
-        "Popup hiding",
-        "Restart relay",
-        "Settings entry point",
-        "Signature check bypass"
+        "Debug bridge"
       ],
       "branches": [
         {
           "name": "main",
-          "commit": "0840458dc8b76b82a99891df91b10d9581864370"
+          "commit": "7ad5597eabf5be508048d48c3ad462882834a651"
+        },
+        {
+          "name": "dev",
+          "commit": "7ad5597eabf5be508048d48c3ad462882834a651"
         }
       ],
       "watchPaths": [
@@ -1778,15 +1843,75 @@
       },
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "GPL-3.0. FeurStagram's patches (the com.feurstagram package) republished as a bundle with a patch list, which the indexes list on their own.",
+      "reason": "GPL-3.0. FeurStagram's patches (the com.feurstagram package) republished as a bundle with a patch list, which the indexes list on their own. v1.4.2 (2026-10-22) merged the distraction-free patches into one Chat only patch, and v1.8.1 (2026-10-31) still lists Chat only, Clone and Debug bridge on 447.0.0.55.81, with an optional Stories tab in place of Home.",
       "archived": false,
-      "forks": [],
+      "forks": [
+        "mihai-s3rb/foxxo-patches"
+      ],
       "contentHashes": [
         "064da70855eda3e47855789fe98be556c6deb7f3",
         "5b27563a428206f1de8d9a0b63e46ec6cec55dbe"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "oxbow",
+      "repository": "https://github.com/aic0d3r/oxbow",
+      "lineage": "feurstagram",
+      "upstream": "https://github.com/jean-voila/FeurStagram",
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "453.0.0.55.79"
+        ]
+      },
+      "features": [
+        "Clean share links",
+        "Clone",
+        "Comments and endless scroll",
+        "Debug bridge",
+        "Download media",
+        "Feed item filtering",
+        "Force SDR display",
+        "Ghost mode",
+        "Hide Meta AI",
+        "Install-packages permission",
+        "Limit feed to following profiles",
+        "Network content blocking",
+        "Oxbow icon",
+        "Popup hiding",
+        "Restart relay",
+        "Settings entry point",
+        "Signature check bypass",
+        "Suggested accounts in the story tray"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "d025ce9f0548a20abe17530f2b9ebd29a46f0486"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/com/feurstagram",
+        "extensions/extension/src/main/java/com/feurstagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/aic0d3r/oxbow/blob/add4e886c3bcd209765289a4bda12878fad61557/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "GPL-3.0. FeurStagram's code (the com.feurstagram packages, with FeurStagram's licence commit add4e886 in its history) republished as Oxbow with prebuilt APKs. Not a GitHub fork. v1.2.0 lists 18 Instagram patches on 453.0.0.55.79; next to the ones FeurStagram's entry records it adds Download media, Ghost mode, Clean share links, Hide Meta AI and Comments and endless scroll.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "stylus",
@@ -1806,11 +1931,11 @@
       "branches": [
         {
           "name": "main",
-          "commit": "8f9849668693b255d572854510775e2a26250f39"
+          "commit": "bbd0bb6c1f529165f663d56eb59ce8f2fa575315"
         },
         {
           "name": "dev",
-          "commit": "c66590e893fc1c4ad21b1d0589c33199071302e8"
+          "commit": "bbd0bb6c1f529165f663d56eb59ce8f2fa575315"
         }
       ],
       "watchPaths": [
@@ -1831,7 +1956,7 @@
         "8a0aa3093911297c065c084d99e51629f7965701"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-27"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "dudek",
@@ -1890,7 +2015,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "nifty",
@@ -1929,7 +2054,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "kareemlukitomo",
@@ -1975,7 +2100,7 @@
         "bcfabe832d152c5a54d9194e3c792fbdd9b50010"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "lobotagram",
@@ -2015,7 +2140,7 @@
         "6f6a6b0caa9879683416516352df3d82107e3838"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "piko-ig-lite",
@@ -2028,8 +2153,7 @@
       ],
       "targetVersions": {
         "com.instagram.android": [
-          "449.0.0.52.84",
-          "448.0.0.52.84"
+          "453.0.0.57.79"
         ]
       },
       "features": [
@@ -2041,11 +2165,19 @@
       "branches": [
         {
           "name": "main",
-          "commit": "68afb8c9d3b298d85add5bbf120c276a1d9ca8ea"
+          "commit": "03ad6f0bbb851064cd32462b31388547d16b0e15"
         },
         {
-          "name": "dependabot/github_actions/dev/actions/setup-java-6.0.1",
-          "commit": "c65132aa6f8a61fb6cb522745a899c7da1ef7aec"
+          "name": "dependabot/github_actions/dev/cycjimmy/semantic-release-action-8",
+          "commit": "2ab7f97909f318d98a82cc1826f303c1036a6c6f"
+        },
+        {
+          "name": "dependabot/gradle/dev/gradle-wrapper-9.8.2",
+          "commit": "2ab7f97909f318d98a82cc1826f303c1036a6c6f"
+        },
+        {
+          "name": "dev",
+          "commit": "03ad6f0bbb851064cd32462b31388547d16b0e15"
         }
       ],
       "watchPaths": [
@@ -2059,14 +2191,14 @@
       },
       "contaminatedBy": null,
       "disposition": "rejected",
-      "reason": "GPL-3.0. A lean Instagram build from piko's author: Hide ads, Media downloads, Ghost mode and Disable swipe to camera on 449.0.0.52.84 and 448.0.0.52.84. It is piko's code cut down, so whatever is worth reading is read from piko.",
+      "reason": "GPL-3.0. A lean Instagram build from piko's author: Hide ads, Media downloads, Ghost mode and Disable swipe to camera. It ships no patch list; v0.5.0 added 452.1.0.53.64 and v0.6.0 (2026-10-29) 453.0.0.57.79, by its commits. It is piko's code cut down, so whatever is worth reading is read from piko.",
       "archived": false,
       "forks": [
         "KaliRootSuperUser/piko-ig-lite"
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "kveld9",
@@ -2085,13 +2217,16 @@
       "features": [
         "AR Effects Slimmer",
         "Block Crash & Diagnostics",
-        "Block Telemetry & Trackers",
-        "MLKit Vision Slimmer"
+        "Block Telemetry & Trackers"
       ],
       "branches": [
         {
           "name": "main",
-          "commit": "e64569a7d3adad8f35b65fe7efc72e9863c37493"
+          "commit": "6eff44a524c8f166a4d3c448965f597d868c0b21"
+        },
+        {
+          "name": "dependabot/github_actions/main/minor-and-patch-4430c5f07e",
+          "commit": "6eff44a524c8f166a4d3c448965f597d868c0b21"
         }
       ],
       "watchPaths": [
@@ -2104,15 +2239,24 @@
       },
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "GPL-3.0 bundle for several apps with four Instagram patches that cut telemetry, crash diagnostics, AR effects and ML Kit vision code, all on 447.0.0.55.81. The Morphe directory, Awesome Morphe and the Morphe Archive list it.",
+      "reason": "GPL-3.0 bundle for several apps with three Instagram patches that cut telemetry, crash diagnostics and AR effects code, all on 447.0.0.55.81. It dropped MLKit Vision Slimmer as redundant in October 2026. The Morphe directory, Awesome Morphe and the Morphe Archive list it.",
       "archived": false,
-      "forks": [],
+      "forks": [
+        "aeries0x/kveld-extra-morphe-patches",
+        "b0f1df79/capcut-morphe-patch",
+        "dicowerrr/kveld-extradisfruta-morphe-patches",
+        "Lxchoooo/kveld-extra-morphe-patches",
+        "MSMods-Pro/kveld-extra-morphe-patches",
+        "ozeroztas/kveld-extra-morphe-patches",
+        "sadicii/kveld-extra-morphe-patches",
+        "nguyenhoaivandebug/kveld-extra-morphe-patches"
+      ],
       "contentHashes": [
         "0984ca845be3fa06c58807eb1655ca3307f9484f",
         "5eae93dc3740962858678339b74c965ba298c1b9"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "waggbr",
@@ -2134,7 +2278,11 @@
       "branches": [
         {
           "name": "main",
-          "commit": "1059a5d4d10ec70285929a51c1c0ac9607141104"
+          "commit": "f6df24078ce53ae4c1ed8e1391412d0eee66764a"
+        },
+        {
+          "name": "dev",
+          "commit": "f6df24078ce53ae4c1ed8e1391412d0eee66764a"
         }
       ],
       "watchPaths": [
@@ -2150,13 +2298,15 @@
       "disposition": "candidate",
       "reason": "GitHub reads the licence as GPL-3.0. A bundle for several apps with one Instagram patch, Story mention indicator, on 439.0.0.37.89. The Morphe directory, Awesome Morphe and the Morphe Archive list it.",
       "archived": false,
-      "forks": [],
+      "forks": [
+        "0v3rfl00w/Wagg13Patch_Morphe"
+      ],
       "contentHashes": [
         "a25e2f1e9e984255ae677533565d05459dda6ada",
         "f438e1e9ea1ffd5cee464330032c50dfa639ca3a"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "ghd95",
@@ -2212,7 +2362,7 @@
           ]
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "dmoniak",
@@ -2302,7 +2452,11 @@
       "branches": [
         {
           "name": "main",
-          "commit": "f662c82d670879fe1efa6d5f755e5036fc5c0a36"
+          "commit": "64ce3d6b01784653b3fc972a912fd34c80a16dcc"
+        },
+        {
+          "name": "dev",
+          "commit": "64ce3d6b01784653b3fc972a912fd34c80a16dcc"
         }
       ],
       "watchPaths": [
@@ -2323,7 +2477,349 @@
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "manishrdy-piko",
+      "repository": "https://github.com/Manishrdy/piko",
+      "lineage": "piko",
+      "upstream": "https://github.com/crimera/piko",
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "439.0.0.37.89"
+        ]
+      },
+      "features": [
+        "Add settings",
+        "Allow user network certificate",
+        "Change like animation",
+        "Change version code",
+        "Clone",
+        "Copy comment",
+        "Customise story ring size",
+        "Customise story timestamp",
+        "Disable Reels scrolling",
+        "Disable ads",
+        "Disable analytics",
+        "Disable comments",
+        "Disable discover people",
+        "Disable double tap like",
+        "Disable explore",
+        "Disable highlights",
+        "Disable screenshot detection",
+        "Disable stories",
+        "Disable story flipping",
+        "Disable swipe to create",
+        "Disable typing status",
+        "Disable video autoplay",
+        "Download media",
+        "Download voice message",
+        "External downloader",
+        "Filter stories",
+        "Friendship status indicator",
+        "Hide group creation button on sharesheet",
+        "Hide navigation buttons",
+        "Hide notes tray",
+        "Hide reshare button",
+        "Hide stories tray",
+        "Hide suggested content",
+        "Improve image viewing",
+        "Limit feed to following profiles",
+        "Make ephemeral media permanent",
+        "Mark chat as read manually",
+        "More options on post",
+        "More options on profile",
+        "Open links externally",
+        "Remove build expired popup",
+        "Remove empty bottom space",
+        "Sanitize share links",
+        "Save media comment",
+        "Stories audio autoplay",
+        "Theme",
+        "Unlock Plus benefits",
+        "Unlock developer options",
+        "Unlock employee options",
+        "Validate links",
+        "View DMs anonymously",
+        "View live anonymously",
+        "View stories anonymously",
+        "View story mentions"
+      ],
+      "branches": [
+        {
+          "name": "dev",
+          "commit": "7899c59370ca69de47f312a1bdb71f15b2a8cf67"
+        },
+        {
+          "name": "ci/add-flake",
+          "commit": "b40ba7f30bbf25ac151190a92cee1bf06a20387c"
+        },
+        {
+          "name": "crowdin",
+          "commit": "ebf8ff1d9031c7e3a974a646d8dc4fde4419e1e8"
+        },
+        {
+          "name": "dependabot/npm_and_yarn/dev/conventional-changelog-conventionalcommits-10.2.1",
+          "commit": "f12ada69dc499a2e9da38ddb98b36862d09462bb"
+        },
+        {
+          "name": "feat/custom-download-folder-chooser",
+          "commit": "c550cbfd92882b733bd91b12ec34d991a14ca30a"
+        },
+        {
+          "name": "feat/restore-classic-search-recents",
+          "commit": "833e1eb581a94f1d42c81a8cfff4022f6b84c631"
+        },
+        {
+          "name": "feat/xlite-single-choice-settings",
+          "commit": "c6651df52aab328755ea4138f87ab079cad25cf1"
+        },
+        {
+          "name": "main",
+          "commit": "b3b01f7f5a9f8f01b66a32299cec06a3748e23b3"
+        },
+        {
+          "name": "update/download-dialog-improvements",
+          "commit": "c428e7ea762cf2ec94e5e9a9f17ea207a976176f"
+        },
+        {
+          "name": "x-lite",
+          "commit": "a69805dd6dbf74ec52d32584f7d49402a2e64cd1"
+        },
+        {
+          "name": "x-lite-post-filter",
+          "commit": "9d97f590cd17e79c66a39deeedcb12a2f9f510f8"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/crimera/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/Manishrdy/piko/blob/c2d0d3a117ddd4cdcc800aa826cb267756dd3ece/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "rejected",
+      "reason": "GPL-3.0. Was a GitHub fork of piko and isn't one any more. v3.10.0-dev.8-fork.2 (2026-09-14) lists 57 Instagram patches on 439.0.0.37.89, every name one piko itself carried at v3.10.0-dev.8, so whatever is worth reading is read from piko.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "myselfnandha-piko",
+      "repository": "https://github.com/Myselfnandha/piko",
+      "lineage": "piko",
+      "upstream": "https://github.com/crimera/piko",
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "447.0.0.55.81"
+        ]
+      },
+      "features": [
+        "Add settings",
+        "Allow user network certificate",
+        "Change like animation",
+        "Change version code",
+        "Clone",
+        "Copy comment",
+        "Custom font",
+        "Custom sharing domain",
+        "Customise story ring size",
+        "Customise story timestamp",
+        "Customize navigation bar",
+        "Disable Reels scrolling",
+        "Disable ads",
+        "Disable analytics",
+        "Disable comments",
+        "Disable discover people",
+        "Disable double tap like",
+        "Disable explore",
+        "Disable highlights",
+        "Disable screenshot detection",
+        "Disable stories",
+        "Disable story flipping",
+        "Disable swipe to create",
+        "Disable typing status",
+        "Disable video autoplay",
+        "Download media",
+        "Download voice message",
+        "External downloader",
+        "Filter stories",
+        "Focus Lock",
+        "Friendship status indicator",
+        "Hide Reels follow button",
+        "Hide group creation button on sharesheet",
+        "Hide notes tray",
+        "Hide reshare button",
+        "Hide save buttons",
+        "Hide share button",
+        "Hide stories tray",
+        "Hide suggested content",
+        "Improve image viewing",
+        "Inbox lock",
+        "Limit feed to following profiles",
+        "Loop story",
+        "Make ephemeral media permanent",
+        "Mark chat as read manually",
+        "More options on post",
+        "More options on profile",
+        "Open links externally",
+        "Recommended flags",
+        "Remove empty bottom space",
+        "Sanitize share links",
+        "Save Instants",
+        "Save deleted messages",
+        "Save media comment",
+        "Theme",
+        "Unlock Plus benefits",
+        "Unlock developer options",
+        "Unlock employee options",
+        "View DMs anonymously",
+        "View live anonymously",
+        "View stories anonymously",
+        "View story mentions"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "7b1d838129c5a68bfa1f44134c32df9736a51d8e"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/crimera/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/Myselfnandha/piko/blob/c2d0d3a117ddd4cdcc800aa826cb267756dd3ece/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "rejected",
+      "reason": "GPL-3.0. Calls itself a customized piko, but its v3.10.0 builds (2026-10-29) list piko main's 136 patches with the same 62 Instagram names on 447.0.0.55.81, from piko's licence commit c2d0d3a1. Not a GitHub fork; piko is read instead.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "awtmods-instagram-patch",
+      "repository": "https://github.com/AWTMODS/instagram-patch",
+      "lineage": "piko",
+      "upstream": "https://github.com/crimera/piko",
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "447.0.0.55.81"
+        ]
+      },
+      "features": [
+        "Add settings",
+        "Allow user network certificate",
+        "Change like animation",
+        "Change version code",
+        "Clone",
+        "Copy comment",
+        "Custom font",
+        "Custom sharing domain",
+        "Customise story ring size",
+        "Customise story timestamp",
+        "Customize navigation bar",
+        "Disable Reels scrolling",
+        "Disable ads",
+        "Disable analytics",
+        "Disable comments",
+        "Disable discover people",
+        "Disable double tap like",
+        "Disable explore",
+        "Disable highlights",
+        "Disable screenshot detection",
+        "Disable stories",
+        "Disable story flipping",
+        "Disable swipe to create",
+        "Disable typing status",
+        "Disable video autoplay",
+        "Download media",
+        "Download voice message",
+        "External downloader",
+        "Filter stories",
+        "Focus Lock",
+        "Friendship status indicator",
+        "Hide Reels follow button",
+        "Hide group creation button on sharesheet",
+        "Hide notes tray",
+        "Hide reshare button",
+        "Hide save buttons",
+        "Hide share button",
+        "Hide stories tray",
+        "Hide suggested content",
+        "Improve image viewing",
+        "Inbox lock",
+        "Limit feed to following profiles",
+        "Loop story",
+        "Make ephemeral media permanent",
+        "Mark chat as read manually",
+        "More options on post",
+        "More options on profile",
+        "Open links externally",
+        "Recommended flags",
+        "Remove empty bottom space",
+        "Sanitize share links",
+        "Save Instants",
+        "Save deleted messages",
+        "Save media comment",
+        "Theme",
+        "Unlock Plus benefits",
+        "Unlock developer options",
+        "Unlock employee options",
+        "View DMs anonymously",
+        "View live anonymously",
+        "View stories anonymously",
+        "View story mentions"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "9185956e4835c42918cb2c65edcea6a266d66ea2"
+        },
+        {
+          "name": "dev",
+          "commit": "a0d92cb3a723c9d3aa0220d28e85719844d559ab"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/crimera/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/AWTMODS/instagram-patch/blob/c2d0d3a117ddd4cdcc800aa826cb267756dd3ece/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "rejected",
+      "reason": "GPL-3.0. piko 3.10.0 repackaged: v4.0.2 (2026-10-24) lists piko main's 136 patches with the same 62 Instagram names on 447.0.0.55.81, in piko's crimera package and from piko's licence commit c2d0d3a1. Not a GitHub fork; piko is read instead.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "twitter-bookmarker",
@@ -2419,7 +2915,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instaeclipse",
@@ -2431,7 +2927,9 @@
         "com.instagram.android"
       ],
       "targetVersions": {
-        "com.instagram.android": []
+        "com.instagram.android": [
+          "451.0.0.20.80"
+        ]
       },
       "features": [
         "Ghost mode for stories, DMs, typing and view-once",
@@ -2453,6 +2951,14 @@
         {
           "name": "main",
           "commit": "e19ab0def2dc1ac197b7a2d4f8763f701ef68b1d"
+        },
+        {
+          "name": "0.8.2-legacy",
+          "commit": "1515e66176811fae950914645a66a5bff65d98a7"
+        },
+        {
+          "name": "0.9-compose-ui",
+          "commit": "2d434faac17dc0f741b7b2e95c198f1d4747b03d"
         }
       ],
       "watchPaths": [],
@@ -2482,13 +2988,15 @@
       ],
       "contaminatedBy": null,
       "disposition": "candidate",
-      "reason": "GPL-3.0 since 3298e7ed (2026-10-18); Apache-2.0 before that, kept in licenseHistory at the commit last read under it. The most complete maintained module and the second source of demand after piko. Since PR #270 (merged 2026-10-18, 9db51b48) its downloader is adapted from HushGram's own download package (third-party/HushGram/NOTICE.md), so that part is HushGram's lineage and never counts as independent evidence. Its hooks run at runtime, so a port means rewriting each one as a patch.",
+      "reason": "GPL-3.0 since 3298e7ed (2026-10-18); Apache-2.0 before that, kept in licenseHistory at the commit last read under it. The most complete maintained module and the second source of demand after piko. Since PR #270 (merged 2026-10-18, 9db51b48) its downloader is adapted from HushGram's own download package (third-party/HushGram/NOTICE.md), so that part is HushGram's lineage and never counts as independent evidence. v0.8.2 (2026-10-19) is the latest release, and its README names Instagram 451.0.0.20.80 as the build it was tested on. Purrfect merged into it (reddit 1tr9erz, 2026-05-29). Its hooks run at runtime, so a port means rewriting each one as a patch.",
       "archived": false,
       "forks": [
         "2Lias/InstaEclipse",
         "4kanbir/InstaEclipse",
         "a0repo/InstaEclipse",
+        "a1195992737/InstaEclipse",
         "AbishekKatuwal/InstaEclipse",
+        "adahake1512/InstaEclipse",
         "ahmedtohamy1/InstaEclipse",
         "akifakif32/InstaEclipse",
         "akshzyx/InstaEclipse",
@@ -2500,17 +3008,20 @@
         "atlab95/InstaEclipse",
         "b4lol/InstaEclipse",
         "BbayuGt/InstaEclipse",
+        "bellaraxlora/InstaEclipse",
         "Boss-YS/InstaEclipse",
         "CR4SH3UR/InstaEclipse",
         "curious-freak/InstaEclipse",
         "d9k6s/InstaEclipse",
         "darksn00ff/InstaEclipse",
         "DHD2280/InstaEclipse",
+        "Dheerajchalasani0051/InstaEclipse",
         "dpwbusr/InstaEclipse_SE-translation",
         "duckuserpa-26/InstaEclipse",
         "Erzambayu/InstaEclipse",
         "EscapeA/InstaEclipse",
         "Familyye/InstaEclipse",
+        "Fexture69/InstaEclipse",
         "FFNUser/InstaEclipse",
         "Figim/InstaEclipse",
         "Flole998/InstaEclipse",
@@ -2527,17 +3038,21 @@
         "isma3iloiso/InstaEclipse",
         "issac-xt/InstaEclipse",
         "izadiegizabal/InstaEclipse",
+        "jyotidwi/InstaEclipse",
         "kanaminusaena/InstaEclipse",
         "kataki/InstaEclipse",
         "KaukovForks/InstaEclipse",
         "Keinta15/InstaEclipse",
+        "kinavali615-crypto/InstaEclipse",
         "Kyuracat/InstaEclipse",
         "LetsUpdate/InstaEclipse",
         "LololopinkGH/InstaEclipse",
         "LoneDev6/InstaEclipse",
         "LoveHacker14377/InstaPro",
         "lowgun/InstaEclipse",
+        "LumixCode/InstaEclipse",
         "Lxchoooo/InstaEclipse",
+        "marvelsteve806-sudo/InstaEclipse",
         "mohitkumarr60/InstaEclipse",
         "mrabbehassan/InstaEclipse",
         "MrRaita/InstaEclipse",
@@ -2555,12 +3070,15 @@
         "princemalikxp/InstaEclipse",
         "qqlittleice233/InstaEclipse",
         "RadioCat64/InstaEclipse",
+        "RadNotRed/InstaEclipse",
         "roo12312/InstaEclipse",
         "Root-Modules/InstaEclipse",
         "RSR1337/InstaEclipse",
         "run-my-job/InstaEclipse",
         "s1ddhants1/InstaEclipse",
         "satyamisme/InstaEclipse",
+        "shershahx/InstaEclipse",
+        "ShiroiKarasu6991/InstaEclipse",
         "silvzr/InstaEclipse",
         "sma33in/InstaEclipse",
         "somilkhan/InstaEclipse",
@@ -2571,6 +3089,7 @@
         "TeaqariaWTF/InstaEclipse",
         "thaomaitam/InstaEclipse",
         "ThinhNguyen2005/InstaEclipse",
+        "three6mafia/InstaEclipse",
         "TobyG74/InstaEclipse",
         "tqmane/InstaEclipse",
         "tryigit/InstaEclipse",
@@ -2579,10 +3098,12 @@
         "vodkacsa/InstaEclipse",
         "WesleyMarinho/InstaClick",
         "wiwek13/InstaEclipse",
+        "xdreizein666/InstaHacks",
         "Xiddoc/InstaEclipse",
         "xxOrdulu52xx/InstaEclipse",
         "Yezi-yo/InstaEclipse",
         "Yugi0nly/InstaEclipse",
+        "zellbruv/InstaEclipse",
         "Zexaaaal/InstaEclipse"
       ],
       "contentHashes": [],
@@ -2593,7 +3114,7 @@
           "blobs": []
         }
       ],
-      "lastChecked": "2026-10-27"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "igexperiments",
@@ -2638,7 +3159,6 @@
       "forks": [
         "craftalpian/IGexperiments",
         "iCodeIN/IGexperiments",
-        "MK-986123/IGexperiments",
         "paradox12990/IGexperiments",
         "project-material/IGexperiments",
         "ramanveerji/IGexperiments",
@@ -2660,7 +3180,7 @@
           "blobs": []
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "igexperiments-hooks",
@@ -2696,7 +3216,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "nexalloy",
@@ -2734,13 +3254,13 @@
       "forks": [
         "0556sagar/YoutubePremium",
         "1imran397/ReVancedXposed",
+        "1mad3/NexAlloy",
         "2eno/NexAlloy",
         "66sahil01-a11y/ReVancedXposed",
         "A-Archives-and-Forks/NexAlloy",
         "AGmcxiao10/NexAlloy",
         "ahmadhusein17/ReVancedXposed",
         "akkun2/chsbuffer__ReVancedXposed",
-        "Aliyerki/ReVancedXposed",
         "Allenvian/ReVancedXposed",
         "ammlr/RevancedXposed",
         "ammlrr/RevancedXposed",
@@ -2756,7 +3276,10 @@
         "CEOmasterartt/ReVancedXposed",
         "chalau/ReVancedXposed",
         "Chanmingqwerty/ReVancedXposed",
+        "chisewaguri/NexAlloy",
         "chyuwen/ReVancedXposed",
+        "Codename-riho/NexAlloy",
+        "ConorReeves/NexAlloyTV",
         "CrackerCat/RevancedXposed",
         "Dabskutz/ReVancedXposed",
         "daffaibra104-cpu/ReVancedXposed",
@@ -2772,7 +3295,8 @@
         "Familyye/RevancedXposed",
         "ferdi02-123/ReVancedXposed",
         "gassity/NexAlloy",
-        "gnadgnaoh/NexAlloy-XES",
+        "Gbillou/NexAlloy",
+        "gnadgnaoh/SexAlloy",
         "gothight/ReVancedXposed",
         "Greatz08/ReVancedXposed",
         "H3XDaemon/ReVancedXposed",
@@ -2781,6 +3305,7 @@
         "hoa-w/ReVancedXposed",
         "hoangxg4/ReVancedXposed",
         "hohojia886/NexAlloy",
+        "hozin-king/NexAlloy",
         "huicrh/ReVancedXposed",
         "hwt112726/ReVancedXposed",
         "Itsfitts/NexAlloy",
@@ -2791,28 +3316,27 @@
         "johncarlonaldo2-collab/ReVancedXposed",
         "jyotidwi/RevancedXposed",
         "Katak69/ReVancedXposed",
-        "Kerrrrrdda/NexAlloy",
         "kessejay1-glitch/ReVancedXposed",
         "KrazyKleb/ReVancedXposed",
         "kunalxml/ReVancedXposed",
         "lihe07/ReVancedXposed",
-        "littletakbest/NexAlloy",
         "luochaolong520/ReVancedXposedugomin",
         "luthfeew/NexAlloy",
         "lvpre/ReVancedXposed",
         "m4mental/NexAlloy",
         "Macflylegamer/ReVancedXposed",
-        "MarticaI/ReVancedXposed",
         "meiMingle/ReVancedXposed",
         "microllate/NexAlloy",
         "moetayuko/NexAlloy",
         "mohdakil2426/NexAlloy",
         "mosS-Green/ReVancedXposed",
+        "munnaberum-lab/NexAlloy",
         "Muntz33/ReVancedXposed",
         "naijun0403/ReVancedXposed",
         "nanjidae/ReVancedXposed",
         "NordicAdam/ReVancedXposed",
         "NULL0B/NexAlloy",
+        "nutine/NexAlloy",
         "omeos-fork/NexAlloy.NexAlloy",
         "opanx/NexAlloy",
         "pda24/ReVancedXposed",
@@ -2847,7 +3371,6 @@
         "TeiPing/ReVancedXposed",
         "THANOOJ666/ReVancedXposed",
         "thaomaitam/ReVancedXposed",
-        "Tony91590/ReVancedXposed",
         "traviszech/ReVancedXposed",
         "tristan23612/ReVancedXposed",
         "tryigit/NexAlloy",
@@ -2863,9 +3386,7 @@
         "x3cl1Meero/NexAlloy",
         "Xennet7/RevancedXposed",
         "xploitoverload/ReVancedXposed",
-        "xrz324/NexAlloy",
         "xu782734853/ReVancedXposed",
-        "yierxiaokeai/NexAlloy",
         "YudhaPratamaPutra/ReVancedXposed",
         "yukimeguri/ReVancedXposed",
         "YuKnight/ReVancedXposed",
@@ -2882,7 +3403,7 @@
           ]
         }
       ],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "bilispeed",
@@ -2916,7 +3437,6 @@
       "reason": "GPL-3.0 playback speed module for Bilibili that hooks Instagram too.",
       "archived": false,
       "forks": [
-        "1594695300/biliSpeed",
         "FengLiuI/biliSpeed",
         "H1d3r/biliSpeed",
         "MarsGao/io.github.MarsGao.speed",
@@ -2928,7 +3448,7 @@
         "f00a9ef4d4a9aa3cee096c4ae3a1b608e248fa26"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "marsgao-speed",
@@ -2971,7 +3491,7 @@
         "6a4627d63ab6159c67b1a932d126e2223ca76d3b"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instaprefs",
@@ -3011,7 +3531,7 @@
         "6e7a21b5412c55b289d5de273baea5d53d8f0d68"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instalikesettings",
@@ -3053,7 +3573,7 @@
         "145d3e12383afc0ade339d480430d4a49a3514bf"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instagram-robot",
@@ -3089,7 +3609,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "xinsta",
@@ -3156,7 +3676,7 @@
         "986cdf0520f83f8563c2a6453e7e55784b69b3ec"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instagramdownloader",
@@ -3207,7 +3727,7 @@
         "98fd5ee9d5944e6109276d87976854814d1d3fc2"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instagramadkiller",
@@ -3241,7 +3761,7 @@
         "369a9af04408d92cfd65da83ec0129082ad32919"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "unclutterig",
@@ -3276,7 +3796,7 @@
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "disable-ig-search",
@@ -3314,7 +3834,7 @@
         "f1d5a0824530f606055cc9650509ffe805176099"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "disabledt2l",
@@ -3350,7 +3870,7 @@
         "988facfacab68f5c88f1e7e257ce154017f84cbf"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "sectiondisabler",
@@ -3386,7 +3906,7 @@
         "0d733ab9a03acf465bbc2a41015b447ec3b3cc21"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "xgram",
@@ -3420,7 +3940,7 @@
         "4fb8acf2862b54a159415f81e943cc3ea8d34b41"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "fakedevice",
@@ -3452,7 +3972,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instagramxposed",
@@ -3484,7 +4004,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "reelsblocker",
@@ -3518,7 +4038,7 @@
         "06e6d48bc3f7f7551e264c15556b41347820f4d5"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instagramdl",
@@ -3550,7 +4070,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "igtranslate",
@@ -3582,7 +4102,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instax",
@@ -3619,7 +4139,7 @@
       "forks": [],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "sslbypass",
@@ -3659,7 +4179,7 @@
         "0ae59df25398d711750e2a806be63ae684596d87"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "metaplusxposed",
@@ -3693,7 +4213,7 @@
         "161acbab4e391eba322f7913bbb9a9434793b175"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "glitchdraft",
@@ -3713,7 +4233,7 @@
       "branches": [
         {
           "name": "main",
-          "commit": "f7dc34854da85c4dc74afc31def9e14cb0464a51"
+          "commit": "ae7ec48f50b0f528a28decba90d342c155145824"
         },
         {
           "name": "imgbot",
@@ -3737,7 +4257,7 @@
         "310d267fc3ee219929b7cd8f8bd6cddaa0a06ca8"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "igglass",
@@ -3777,7 +4297,7 @@
         "a05381bf1acdd7ce9affa218681c0febd57d19c0"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instamod",
@@ -3819,7 +4339,7 @@
         "cd3a61a84c3ab42a86924c91ec0222cb42b46ac1"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "instafel",
@@ -3845,7 +4365,7 @@
       "branches": [
         {
           "name": "main",
-          "commit": "dd742da46f571a76c868c2ef03cbea57fb66c276"
+          "commit": "ce4960744ff067b0c89eba18fd6f956584d95b04"
         }
       ],
       "watchPaths": [
@@ -3880,14 +4400,12 @@
         "junksidetm/instafel",
         "KevUtjungskeee/instafel",
         "larbibnb/instafel",
-        "madhupatelpspk/instaCore",
         "mami-server-3/instafel_release_arm64-v8a",
         "mami-server/instafel",
         "mnirn/instafel_release_arm64-v8a",
         "MrErenK/instafel-web",
         "muhbintangx/instafel",
         "nscx6ahil-debug/instafel",
-        "pspktech/instalite",
         "ShahParth29/instafel",
         "shifoc/instafel",
         "Snakester23/Club-America-WCS",
@@ -3904,7 +4422,7 @@
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "dfinsta-redux",
@@ -3938,7 +4456,7 @@
         "32ce60a40d102af3c6bd77d6f457f9e1c3fa3b66"
       ],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "id": "pawgram",
@@ -3958,7 +4476,7 @@
       "branches": [
         {
           "name": "main",
-          "commit": "1367da6145e54f0dc29f588e6fcb55dec7a58017"
+          "commit": "5d96d2d76b3823494d9274815fa437667b044728"
         }
       ],
       "watchPaths": [],
@@ -3980,164 +4498,613 @@
       ],
       "contentHashes": [],
       "mirrors": [],
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "dreaming-codes",
+      "repository": "https://github.com/Dreaming-Codes/morphe-patches",
+      "lineage": "dreaming-codes",
+      "upstream": null,
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "447.0.0.55.81"
+        ]
+      },
+      "features": [
+        "Use system photo picker"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "b62bdaa70f7070381d83b6b8876f8415c1f25845"
+        },
+        {
+          "name": "feat/instagram-creation-gallery-picker",
+          "commit": "6481c8ae61ba42e4dc87a95c4df6320810072525"
+        },
+        {
+          "name": "feat/instagram-system-photo-picker",
+          "commit": "adf7c5102ebfbf9e8e688f5f7a2fbbf0df1884ea"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/codes/dreaming/morphe/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/Dreaming-Codes/morphe-patches/blob/708b50972d6849d8799cdc8f2f0df8ce25d2303e/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "GPL-3.0. One Instagram patch, Use system photo picker, which sends Instagram's gallery to Android's own photo picker, on 447.0.0.55.81 (v1.0.1, 2026-10-21). Its branches carry work on the creation gallery and album picker. HushGram has no photo picker patch.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "southstar21",
+      "repository": "https://github.com/southstar21dev/southstar21-patches",
+      "lineage": "southstar21",
+      "upstream": null,
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "453.0.0.57.79",
+          "439.0.0.37.89"
+        ]
+      },
+      "features": [
+        "Liquid Glass navigation bar",
+        "Settings menu for its patches"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "a17882e7aea327516c77a6e34322ff0b205f82c3"
+        },
+        {
+          "name": "dev",
+          "commit": "a17882e7aea327516c77a6e34322ff0b205f82c3"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/southstar21/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/southstar21dev/southstar21-patches/blob/da3155ad4443a868a19dabd99fe87106a6f899e2/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "GPL-3.0. One Instagram patch, Liquid Glass navigation bar, on 453.0.0.57.79 and 439.0.0.37.89 (v1.2.6, 2026-10-31), which now also lets Reels run full screen under the glass and opens a settings menu for its patches from a button in the profile page's action bar. HushGram's Glass tab bar covers the same bar, so it's read for how it draws the glass.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "rishithesavior",
+      "repository": "https://github.com/RishiTheSavior/revanced-instagram-patches",
+      "lineage": "rishithesavior",
+      "upstream": null,
+      "kind": "revanced-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": []
+      },
+      "features": [
+        "Block ads everywhere",
+        "No changes (export only)"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "2645f8fd2b590ab711b51d9ab8d89504c42f5dee"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/revanced/patches/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/RishiTheSavior/revanced-instagram-patches/blob/66be625f25ee2d678dac62a5bf4daa631284f8f6/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "candidate",
+      "reason": "GPL-3.0. ReVanced-style patches that block Instagram's ads on every surface (BlockAllAdsPatch), plus an export-only patch that changes nothing. v0.3.0 (2026-10-24) ships no patch list, so it declares no Instagram version.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "titandrive-catppuccin",
+      "repository": "https://github.com/titandrive/morphe-catppuccin",
+      "lineage": "titandrive",
+      "upstream": null,
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": []
+      },
+      "features": [
+        "Catppuccin theme (not in its patch list yet)"
+      ],
+      "branches": [
+        {
+          "name": "feat/catppuccin",
+          "commit": "905b1175458da688656eeba89225de8251afc1c9"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/morphe/patches/instagram",
+        "tools/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/titandrive/morphe-catppuccin/blob/4d70da3747c9377970c8d6650dffb3f2bacb4214/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "contaminatedBy": null,
+      "disposition": "rejected",
+      "reason": "GPL-3.0 Catppuccin themes for Todoist, GBoard, Boost and other apps. Its Instagram theme (InstagramPatches.kt, with color and story tools under tools/instagram) isn't in the patch list on any branch, so nothing ships for Instagram yet. The watch paths flag it when it does.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "yashsehrawat-branding",
+      "repository": "https://github.com/yashsehrawatdelete550-dotg/instagram-custom-branding-patches",
+      "lineage": "yashsehrawat",
+      "upstream": null,
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": []
+      },
+      "features": [
+        "Custom app icon",
+        "Custom app name",
+        "Custom splash text"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "1ff86eff4e1724379ef20bf749a0bb077e832090"
+        },
+        {
+          "name": "dev",
+          "commit": "f0a283e270dd00549a5bec98784af84f194217c1"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/template/patches/branding"
+      ],
+      "license": null,
+      "contaminatedBy": null,
+      "disposition": "behavior-only",
+      "reason": "No licence, so only what it does is recorded. One CustomBrandingPatch in Morphe's template package sets Instagram's app icon, app name and splash text. It ships no patch list.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "tada-patches",
+      "repository": "https://github.com/nobianh78/tada-patches",
+      "lineage": "tada",
+      "upstream": null,
+      "kind": "morphe-patches",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": [
+          "452.0.0.48.64"
+        ]
+      },
+      "features": [
+        "Accent color",
+        "Allow screenshots",
+        "Ask before a call",
+        "Ask before a like",
+        "Ask before a refresh",
+        "Back leaves Home",
+        "Blur the bars around Reels",
+        "Change the like animation",
+        "Change version code",
+        "Clean up Reels",
+        "Clear the media cache",
+        "Control taps and volume on Reels",
+        "Copy comment",
+        "Custom branding name for Instagram",
+        "Data saver",
+        "Default playback quality",
+        "Don't report screenshots",
+        "Don't save recent searches",
+        "Don't send reel watch history",
+        "Download any reel",
+        "Download any story",
+        "Download any video",
+        "Download voice messages",
+        "Emoji style",
+        "Find the reel you came from",
+        "Font",
+        "Full resolution photos",
+        "Full screen Reels and Home",
+        "Glass tab bar",
+        "Group Instagram's notifications",
+        "Hide AI-labeled reels",
+        "Hide Follow on feed posts",
+        "Hide Follow on stories",
+        "Hide Instants",
+        "Hide Meta AI",
+        "Hide Notes on profile pictures",
+        "Hide Reels in the feed",
+        "Hide ads",
+        "Hide comments",
+        "Hide group buttons on the share sheet",
+        "Hide highlights",
+        "Hide paid partnership Reels",
+        "Hide profile tabs",
+        "Hide reels by caption words",
+        "Hide suggested accounts in DMs",
+        "Hide suggested accounts in Reels",
+        "Hide suggested people on profiles",
+        "Hide suggested posts",
+        "Hide suggested stories",
+        "Hide that you're typing",
+        "Hide the Explore grid",
+        "Hide the Reels tab",
+        "Hide the Repost button",
+        "Hide the Share button",
+        "Hide the Threads button",
+        "Hide the comment emoji row",
+        "Hide the home feed",
+        "Hide the notes row",
+        "Hide the search bar in Messages",
+        "Hide your active status",
+        "Install next to Instagram",
+        "Keep Reels auto scroll on",
+        "Keep a seek bar on Reels",
+        "Keep in chat",
+        "Keep the reel speed",
+        "Lock your messages",
+        "Long press to zoom",
+        "Loop a story",
+        "Message box buttons",
+        "Open comments without the keyboard",
+        "Open links in external browser",
+        "Profile posts as a list",
+        "Pure black dark mode",
+        "Read messages without the seen receipt",
+        "Remove build expired popup",
+        "Remove the advertising ID",
+        "Remove the empty space at the bottom",
+        "Restore trust on re-signed builds",
+        "Resume long videos",
+        "Rounded post corners",
+        "Sanitize sharing links",
+        "Save comment photo",
+        "Save profile picture",
+        "Saved on your profile",
+        "See who a story mentions",
+        "Show a post's exact time",
+        "Show a reel's exact time",
+        "Show a story's exact time",
+        "Show all recent searches",
+        "Show hidden like counts",
+        "Show if a profile follows you",
+        "Show when someone was last active",
+        "Spoof location",
+        "Start Home on Following",
+        "Start feed videos with sound",
+        "Start on x86 devices",
+        "Start stories with sound",
+        "Stop Reels scrolling",
+        "Stop Story auto-advance",
+        "Stop background wake-ups",
+        "Stop swipe to create",
+        "Stop swipe up to reply",
+        "Stop swiping between tabs",
+        "Story ring size",
+        "Swipe left to open the profile",
+        "TADa launch screen",
+        "TADa settings",
+        "Tap a feed video to pause it",
+        "Tap to play",
+        "Turn off HDR brightness boosts",
+        "Turn off double tap to like",
+        "Upload stories at full quality",
+        "Use the system photo picker",
+        "View DM photos and videos anonymously",
+        "View live anonymously",
+        "View stories anonymously"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "8c431a93172ead2d944b3f32dbd177e515a61601"
+        }
+      ],
+      "watchPaths": [
+        "patches/src/main/kotlin/app/tada/patches/instagram",
+        "patches/src/main/kotlin/app/morphe/patches/instagram",
+        "extensions/instagram"
+      ],
+      "license": {
+        "spdx": "GPL-3.0",
+        "url": "https://github.com/nobianh78/tada-patches/blob/328965338a57e78698aa76c373aea6d7965ca632/LICENSE",
+        "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+      },
+      "inherits": [
+        {
+          "source": "https://github.com/SysAdminDoc/HushGram",
+          "lineage": "hushgram",
+          "evidence": "https://github.com/nobianh78/tada-patches/tree/8c431a93172ead2d944b3f32dbd177e515a61601/extensions/instagram/src/main/java/app/hushgram",
+          "paths": [
+            "extensions/instagram/src/main/java/app/hushgram",
+            "patches/src/main/kotlin/app/morphe/patches/instagram"
+          ]
+        }
+      ],
+      "contaminatedBy": null,
+      "disposition": "rejected",
+      "reason": "GPL-3.0 bundle of 282 patches for many apps. Its Instagram part is HushGram's: 325 paths under HushGram's own app/hushgram extension package, and 112 of its 116 Instagram patches carry HushGram's names on 452.0.0.48.64 (v2.0.14, 2026-10-22). The rest are TADa launch screen, TADa settings, Custom branding name for Instagram and Use the system photo picker. Its root NOTICE at 8c431a93 carries only TADa's own section 7 notices, and its in-app licence text says it's based on Morphe, HushGram and ReVanced. HushGram's code never counts as independent evidence.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "id": "broisnees-unscroll",
+      "repository": "https://github.com/broisnees/phone",
+      "lineage": "broisnees",
+      "upstream": null,
+      "kind": "xposed-module",
+      "packages": [
+        "com.instagram.android"
+      ],
+      "targetVersions": {
+        "com.instagram.android": []
+      },
+      "features": [
+        "Hide the Reels tab",
+        "Hide Reels shelves in the feed",
+        "Lock swiping to the next reel",
+        "Open reel links as posts"
+      ],
+      "branches": [
+        {
+          "name": "main",
+          "commit": "7d4e8655ec2f6ec7d6a31e322189ef281014616d"
+        }
+      ],
+      "watchPaths": [
+        "unscroll"
+      ],
+      "license": null,
+      "contaminatedBy": null,
+      "disposition": "behavior-only",
+      "reason": "No licence, so behavior-only. Unscroll, one LSPosed module in a personal phone repository, works on the official app with framework hooks alone. It hides the Reels tab and the Reels shelves in the feed, lets an opened reel play but locks swiping to the next one, and opens reel links as posts. Its README notes Instagram 453.",
+      "archived": false,
+      "forks": [],
+      "contentHashes": [],
+      "mirrors": [],
+      "lastChecked": "2026-10-31"
     }
   ],
   "outOfScope": [
     {
       "repository": "https://github.com/MorpheApp/morphe-patches",
       "reason": "The official Morphe bundle. Its clone patch names Instagram only in its list of apps it won't clone, and it ships no Instagram patch.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/JamQueueSharing/Jam-Patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/mrx7014/MRXHalawa-Patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/ozeroztas/Morphe-Patch",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/ritikthakur22/morphe-patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/sashade8-ship-it/dual-vot-patches",
       "reason": "A voice-over translation bundle that carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/variablenine/morphe-patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/mistu01/Morph",
       "reason": "A build script that runs piko's patches. No patch code of its own.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/yosraq/InstagramMorphe",
       "reason": "Builds of Instagram patched with piko. No patch code.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/pr0meth3us1s/Instagram-morphe-autoMirror",
       "reason": "An automatic build mirror for patched Instagram. No patch code.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/instafel/source-apks",
       "reason": "The stock Instagram APKs Instafel builds from. No patch code.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/mamiiblt/instafel_flags",
       "reason": "Instafel's flag content repository. Empty when checked.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/geiszla/revanced-patch-development",
       "reason": "A ReVanced patch development workspace whose notes mention Instagram's package. No Instagram patch.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/kairusds/yt-revanced-icon",
       "reason": "Build output that keeps a copy of ReVanced's patch list.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/peter9811/ReVanced-APKs-output",
       "reason": "Build output that lists ReVanced's patches. No patch code.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/SodaWithoutSparkles/revanced-troubleshooting-guide",
       "reason": "A troubleshooting guide that keeps copies of ReVanced's patch lists.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/user2user1/rvmm-config-gen",
       "reason": "A build configuration generator that keeps a copy of ReVanced's patch list.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/DavisNT/Pictures2SD",
       "reason": "A camera module that saves pictures to the SD card and lists Instagram among the apps it redirects.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/False-Mask/lsposed-module",
       "reason": "A view-tree debugging tool with a commented-out Instagram case.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/hello-earth/cellular_pro_unlock",
       "reason": "An unlock module that names Instagram's package in a list.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/life2015/OPAmbientMod",
       "reason": "A OnePlus ambient display module that names Instagram for its notifications.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/MinaMichita/MiuiEULocalizationToolsBox",
       "reason": "A MIUI localization module that names Instagram's package in a list.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/rhe91709-netizen/HyperOS3EULocalization",
       "reason": "A HyperOS localization module that names Instagram's package in a list.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/elementtime6969/mycam",
       "reason": "A virtual camera app for rooted phones. No Instagram patch.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/theluckystrike/privacy-tools-guide",
       "reason": "A privacy article that mentions Instagram's package.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/xbyl1234/instagram_lite_bot",
       "reason": "An account creation bot for Instagram Lite.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/nisan-r/InstaXposed",
       "reason": "A nearly empty repository. No Instagram patch.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/cfels/vibe-patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/latanvillegas/modo-patches",
       "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
-    },
-    {
-      "repository": "https://github.com/nobianh78/tada-patches",
-      "reason": "Carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
     },
     {
       "repository": "https://github.com/noire342/moon-patches",
       "reason": "A YouTube watch-together bundle that carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
-      "lastChecked": "2026-10-15"
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/mkr-infinity/mkr-morphe-patches",
+      "reason": "A personal bundle whose patch list is empty; it names Instagram only in its README.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/Chazy12/HushGram",
+      "reason": "A GPL-3.0 copy of HushGram that isn't a GitHub fork. It keeps HushGram's name and file layout, and its main was last pushed 2026-10-09 at aded0ffa. HushGram's own code never counts as independent evidence.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/NikolaJyun/HushGram",
+      "reason": "A GitHub fork of HushGram that merged upstream main on 2026-10-28. HushGram's own code never counts as independent evidence.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/virzak/morphe-patches",
+      "reason": "A GPL-3.0 bundle for RuTube and other apps whose dev build had a Download media patch for Instagram 453.0.0.57.79. The repository answered 404 on 2026-10-31, and HushGram never took anything from it. Its one recorded fork, BanHammerYKT/morphe-patches, was last pushed 2026-10-27, before that patch.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/emotionbug/EBPatcher-patches",
+      "reason": "An ACall and YouTube Music bundle that carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/Fuku856/morphe-patches",
+      "reason": "A copy of Morphe's own bundle that isn't a GitHub fork. It carries Morphe's clone patch, which names Instagram only in its list of apps it won't clone.",
+      "lastChecked": "2026-10-31"
+    },
+    {
+      "repository": "https://github.com/FaroqueTech0/AOSPisland",
+      "reason": "An Xposed module for a notification island in SystemUI. It names Instagram only in its lists of messaging and social apps, and it does not hook Instagram.",
+      "lastChecked": "2026-10-31"
     }
   ]
 }
