@@ -4,6 +4,8 @@ Every HushGram release, newest first.
 
 ## Unreleased
 
+## 0.0.18 (2026-10-31)
+
 ### Features
 
 * **Instagram:** `Stop videos looping` is a new patch under Playback. Feed videos and reels stop on their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on. It starts off. Asked for in #248 and #175.
@@ -11,8 +13,8 @@ Every HushGram release, newest first.
 * **Instagram:** `Skip the contacts and location popups` is a new patch. With its switch on under Ads and privacy, the screens asking you to sync contacts and turn on location stop opening at every start. It starts off. Asked for in #295, #329 and #421.
 * **Instagram:** `Emoji style` gets `Emoji pack` under Layout. Keep your phone's emoji, download Twemoji, OpenMoji or Blobmoji, or pick a color emoji font, then restart Instagram. A pack only switches in once its download checks out. Asked for in #166.
 * **Instagram:** `Smooth story opening` is a new patch under Stories. A story you tap in the stories row zooms open more slowly and stops without the little bounce at the end, and it closes the same way. It starts off. Asked for in #409.
-* **Instagram:** `App-only proxy` is a new patch under Ads and privacy. Type an HTTP proxy's address and port in `Proxy server`, restart, and only Instagram goes through it. Proxies with a password and SOCKS proxies don't work. Starts off. Asked for in #219.
-* **Instagram:** `Copy text button on reels` and `Copy text button on stories` add a Lens icon opening Google Lens on the reel or story, so you can copy its words (or the share sheet without the Google app). Both start off. Asked for in #303.
+* **Instagram:** `App-only proxy` is a new patch under Ads and privacy. Type an HTTP proxy's address and port in `Proxy server`, restart, and only Instagram goes through it. It takes plain HTTP proxies that need no password. Starts off. Asked for in #219.
+* **Instagram:** `Copy text button on reels` and `Copy text button on stories` add a Lens icon that opens Google Lens on the reel or story to copy its words. Without the Google app it opens the share sheet. Both start off. Asked for in #303.
 * **Instagram:** `Ambient light in stories` is a new switch under Stories. A story that doesn't fill the screen gets a soft glow in its own colors in the black bands, and it changes with each photo or video. Starts off. Asked for in #420.
 * **Instagram:** `Ambient light` is a new patch under Feed, off to start. Posts in Home and Following glow softly in their own colors, and so do the bands around a reel that doesn't fill the screen. Asked for in #416.
 * **Instagram:** `Carousel arrows` is a new patch. Its switch under Feed puts a back and a next arrow on a carousel post, so a tap moves to the next photo or video without swiping. It starts off. Asked for in #417.
@@ -102,14 +104,14 @@ Every HushGram release, newest first.
 
 ### Improvements
 
-* **Instagram:** In Morphe Manager, `Ask before a like` and `Long press to zoom` now sit under Interaction beside `Change the like animation`, so the Feed group stays short enough to scan. Their switches are still on the Feed settings page.
+* **Instagram:** In Morphe Manager, `Ask before a like` and `Long press to zoom` now sit under Interaction beside `Change the like animation`, which keeps the Feed group short. Their switches are still on the Feed settings page.
 * **Tooling:** Updated to Morphe patcher 2.1.0, so patching needs Morphe Manager 2.3.0 or newer. On a computer, use morphe-desktop 1.20.0 or newer. The dependency audit now reviews Morphe Desktop 1.20.0.
 * **Instagram:** `See who a story mentions` opens its list again when you come back from an account's profile, so you can go down the list without reopening it each time. Close ends it. Asked for in #403.
 * **Instagram:** HushGram now patches Instagram 453.0.0.57.79 instead of 453.0.0.55.79. Get APKMirror's (arm64-v8a) (480-640dpi) (Android 9.0+) variant, build 385914557. Its armeabi-v7a (385914556) and x86 (385914558) builds are declared too. Meta published no x86_64 build this time.
-* **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, so the Reels group stays short enough to scan. Its switch is still under Reels.
-* **Instagram:** Manager lists `Start feed videos with sound` and `Keep the reel speed` under Playback now, so the Feed and Reels groups stay short enough to scan. Their switches haven't moved.
+* **Instagram:** Manager lists `Keep a seek bar on Reels` under Playback now, next to `Seek bar on feed videos`, and the Reels group gets one row shorter. Its switch is still under Reels.
+* **Instagram:** Manager lists `Start feed videos with sound` and `Keep the reel speed` under Playback now, out of the long Feed and Reels groups. Their switches haven't moved.
 * **Instagram:** In `Download any reel`, Download audio's line in the diagnostics report says when a reel's only sound is xHE-AAC, which some players can't play. The file is still saved as it is, never re-encoded. A follow-up to #216.
-* **Tooling:** The native runner has a share case for the share sheet stand-in. The share and its sender always come through, and only Instagram's links get cleaned, only while `Sanitize sharing links` is on.
+* **Tooling:** The native runner has a share case for the share sheet stand-in. The share and its sender always come through. Instagram's links are the only ones cleaned, and just while `Sanitize sharing links` is on.
 
 ## 0.0.17 (2026-10-28)
 
