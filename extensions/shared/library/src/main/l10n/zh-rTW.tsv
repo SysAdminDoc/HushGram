@@ -841,6 +841,8 @@ Glass tab bar	玻璃分頁列
 Haptics on the tab bar	分頁列觸覺回饋
 Home, Reels and the other tabs run down behind the pill, so the glass has real content to blur.	首頁、Reels 與其他分頁的內容會延伸到膠囊後方，讓玻璃能模糊實際內容。
 Show content behind the tab bar	在分頁列後方顯示內容
+Run Reels behind the tab bar	讓 Reels 在分頁列後方播放
+The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.	Reels 影片會填滿膠囊後方的畫面，說明文字、按鈕與進度列則位於膠囊正上方。
 Tab bar	分頁列
 Saved	已儲存
 Saved tab on your profile	個人檔案的已儲存分頁

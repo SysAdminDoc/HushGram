@@ -77,6 +77,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR.resetToDefault();
         Settings.GLASS_TAB_BAR_FLOAT.resetToDefault();
+        Settings.GLASS_TAB_BAR_REELS_BEHIND.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
         Settings.GLASS_TAB_BAR_CORNERS.resetToDefault();
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
@@ -2451,6 +2452,23 @@ public class GlassTabBarTest {
         assertTrue("a Reels tab tucked out of the bar", GlassTabBar.reelsKeepTheSlot(bar, reelsTab));
         reels.setSelected(false);
         assertFalse(GlassTabBar.reelsKeepTheSlot(bar, reelsTab));
+    }
+
+    /**
+     * #372: with the switch on, the viewer fills the screen behind the pill and its caption, buttons and
+     * seek bar are raised by the slot; off, today's layout. A slot not kept (bar hidden) changes nothing.
+     */
+    @Test
+    public void reelsBehindThePillRaiseTheControlsInsteadOfStoppingTheViewer() {
+        assertFalse("off by default", Settings.GLASS_TAB_BAR_REELS_BEHIND.defaultValue);
+        assertEquals(126, GlassTabBar.reelsViewerMargin(true, false, 126));
+        assertEquals(0, GlassTabBar.reelsBandLift(true, false, 126));
+        assertEquals(0, GlassTabBar.reelsViewerMargin(true, true, 126));
+        assertEquals(126, GlassTabBar.reelsBandLift(true, true, 126));
+        assertEquals("no slot kept, nothing raised", 0, GlassTabBar.reelsBandLift(false, true, 126));
+        assertEquals(0, GlassTabBar.reelsViewerMargin(false, true, 126));
+        assertEquals(0, GlassTabBar.reelsViewerMargin(false, false, 126));
+        assertEquals(0, GlassTabBar.reelsBandLift(true, true, -5));
     }
 
     /**

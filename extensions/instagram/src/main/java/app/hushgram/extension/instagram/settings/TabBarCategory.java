@@ -143,6 +143,8 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_FLOAT, L10n.t("Show content behind the tab bar"),
                         L10n.t("Home, Reels and the other tabs run down behind the pill, so the glass has real content "
                                 + "to blur.")));
+                glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REELS_BEHIND, L10n.t("Run Reels behind the tab bar"),
+                        L10n.t("The Reels video fills the screen behind the pill. Its caption, buttons and seek bar sit just above the pill.")));
                 glass.addPreference(glassLiftRow(context));
             }
         }

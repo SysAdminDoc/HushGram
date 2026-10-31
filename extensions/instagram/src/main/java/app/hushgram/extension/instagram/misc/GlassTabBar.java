@@ -232,6 +232,22 @@ public final class GlassTabBar {
         return false;
     }
 
+    /**
+     * The bottom margin a Reels viewer gets: the pill's [slot] while the slot is kept ([keep]), unless the
+     * reel is to run behind the pill ([behind], #372), when it gets none and the viewer fills the screen.
+     */
+    static int reelsViewerMargin(boolean keep, boolean behind, int slot) {
+        return keep && !behind ? slot : 0;
+    }
+
+    /**
+     * How far a reel's caption, buttons and seek bar are raised so nothing touchable sits under the pill
+     * when the reel runs behind it: the slot, while the slot is kept. Otherwise 0 (#372).
+     */
+    static int reelsBandLift(boolean keep, boolean behind, int slot) {
+        return keep && behind ? Math.max(0, slot) : 0;
+    }
+
     private static int liftReels(View view, View bar, int id, int wanted, java.util.Map<View, Integer> given,
             @Nullable java.util.Collection<View> seen, int depth) {
         if (view == bar || depth > 60) return 0;
@@ -1310,6 +1326,8 @@ public final class GlassTabBar {
         private long reelsLookedAt = Long.MIN_VALUE / 2;
         /** The margin the last look gave the Reels viewers, or -1 before the first. */
         private int reelsWanted = -1;
+        /** How far the last look raised each reel's caption, buttons and seek bar for a reel run behind the pill (#372). */
+        private int reelsBandLift;
         /** Every Reels viewer the last look met. */
         private final java.util.Set<View> viewers = java.util.Collections.newSetFromMap(new WeakHashMap<>());
         /** The views raised over a reel to clear the pill (#221), each with the translation it was given. */
@@ -1880,12 +1898,16 @@ public final class GlassTabBar {
          */
         private void keepReelsAboveTheSlot(View holder, long now) {
             if (originalBarHeight <= 0) return;
-            int wanted = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB),
-                    scrollHide != null && scrollHide.isOffScreen())
-                    ? reelsMargin(barHeightPx(height, originalBarHeight, density) + lift) : 0;
-            if (wanted == reelsWanted && now - reelsLookedAt < REELS_LOOK_MS) return;
+            boolean keep = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB),
+                    scrollHide != null && scrollHide.isOffScreen());
+            int slot = reelsMargin(barHeightPx(height, originalBarHeight, density) + lift);
+            boolean behind = Settings.GLASS_TAB_BAR_REELS_BEHIND.get();
+            int wanted = reelsViewerMargin(keep, behind, slot);
+            int bandLift = reelsBandLift(keep, behind, slot);
+            if (wanted == reelsWanted && bandLift == reelsBandLift && now - reelsLookedAt < REELS_LOOK_MS) return;
             reelsLookedAt = now;
             reelsWanted = wanted;
+            reelsBandLift = bandLift;
             viewers.clear();
             if (reelsAboveTheBar(holder, bar, id(holder.getContext(), REELS_ROOT), wanted, lifted, viewers) > 0) {
                 reelsMoved = true;
@@ -1920,6 +1942,7 @@ public final class GlassTabBar {
                 reelAnchors(viewer, info, scrubber, footers, anchors, footerViews, 0);
                 int footer = 0;
                 for (View view : footerViews) footer += overlapFooter(view);
+                footer += reelsBandLift;
                 for (View anchor : anchors) {
                     View band = bands.get(anchor);
                     if (band == null || !holds(band, anchor)) {
