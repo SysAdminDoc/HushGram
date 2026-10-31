@@ -42,7 +42,8 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** `Turn off HDR brightness boosts` also stops the brighter white Instagram 452 and later give some reels on phones that report HDR headroom, like the Galaxy S25 FE. Those versions read a new option for it and check the screen first, and the switch now holds both. Reported in #85 and #26.
-* **Instagram:** With `Full size covers` on, a picked reel cover wider than 1080 now downloads whole. Some covers are 1290 wide, and the switch used to stop at 1080. Reported in #214.
+* **Instagram:** `Full size covers` asks for covers up to 1440 pixels wide now. It used to stop at 1080, and some picked covers are 1290 wide. Reported in #214.
+* **Instagram:** Turning `Full size covers` on or off now reaches reels you'd already opened. Instagram keeps the cover sizes it was sent across restarts, so those reels kept the old size until its cache was cleared. Now the first start after a change drops just those saved answers. Reported in #214.
 * **Instagram:** `Hide Featured in notifications` works on Instagram 453 again, Threads suggestions included. Featured rows were back at the top of Notifications. Reported in #259.
 * **Instagram:** With `Hide the Muse card`, the Meet Muse card stays off Home and your profile when Instagram sends it some other way. It still showed up now and then. Reported in #294.
 * **Instagram:** With `Pure black dark mode`, a story now opens straight on black. It flashed Instagram's dark blue for a moment first. Reported in #360.

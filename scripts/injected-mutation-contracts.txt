@@ -452,8 +452,12 @@ once-call Lapp/hushgram/extension/instagram/misc/LinkCleaner;->browserLink(Ljava
 # calls the extension before each return of that onCreate. 449's onCreate returns once, so each is
 # one call; a build whose onCreate returns in more places gets a call per return, and the second
 # rule has to change with it. The main activity's onNewIntent hands a shortcut tap to the settings
-# screen first thing. The extension itself calls none of the three.
+# screen first thing. The extension itself calls none of the three. Full resolution photos hands
+# the application to LargerPhotos.atStart right after the context, before Instagram's own startup
+# opens its cache, so a start reporting another screen drops the media replies kept for the old one
+# (#214). Left out, a reel opened before Full size covers came on keeps its old cover sizes.
 single-call Lapp/hushgram/extension/shared/Utils;->setContext(Landroid/content/Context;)V in onCreate
+single-call Lapp/hushgram/extension/instagram/feed/LargerPhotos;->atStart(Landroid/content/Context;)V in onCreate
 single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->onApplicationCreate(Landroid/content/Context;)V in onCreate
 single-call Lapp/hushgram/extension/instagram/settings/SettingsEntry;->onNewIntent(Landroid/app/Activity;Landroid/content/Intent;)V in onNewIntent
 # The settings patch passes the view Instagram's settings screen makes through the extension before

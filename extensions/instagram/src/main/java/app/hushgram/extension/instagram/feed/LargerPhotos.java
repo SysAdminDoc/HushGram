@@ -4,9 +4,17 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.content.Context;
 import android.content.res.Resources;
 import android.util.DisplayMetrics;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
 import app.hushgram.extension.instagram.media.DataSaver;
@@ -31,8 +39,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * changes only the reported screen, not the asked width.
  *
  * <p>Instagram builds its user agent once per run, so the screen it reports changes after a
- * restart. The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
- * anything thrown, Instagram reports and asks for what it would have.
+ * restart. It also keeps the server's media replies in its cache folder across restarts, sized for
+ * the screen it reported when it got them, so a reel opened before the switch came on kept its old
+ * cover sizes until the cache was cleared (#214). {@link #atStart} drops those replies at the first
+ * start that reports another screen. The hooks fail open: with the switch off, HushGram paused, the
+ * settings not read yet or anything thrown, Instagram reports and asks for what it would have.
  */
 public final class LargerPhotos {
     /** The shorter side of the screen reported and the width asked for, in pixels. */
@@ -52,8 +63,26 @@ public final class LargerPhotos {
     /** The step a failure in {@link #screen} is reported under. */
     static final String SCREEN = "reported screen";
 
+    /** The step a failure in {@link #atStart} is reported under. */
+    static final String START = "kept replies";
+
     /** What {@link #wanted} counts each time it asks for a larger size. */
     static final String ASKED = "asked for a larger size";
+
+    /** What {@link #atStart} counts each start that drops the kept replies for a new screen. */
+    static final String FORGOT = "kept replies dropped for a new screen";
+
+    /**
+     * The folder in Instagram's cache folder that keeps the server's media replies, sized for the
+     * screen reported when they came. Only this one: the cache folder also holds Instagram's queues
+     * of likes, comments, follows and saves still to be sent (pending_likes and the rest), which
+     * must never go. Seen on the S25 (#214, 2026-10-31): with it kept, a 720 report still got
+     * De1JGCNTkzo's 1080 cover from an earlier 4320 run, and with it gone, the 240 one.
+     */
+    static final List<String> SIZED_REPLIES = Collections.unmodifiableList(Arrays.asList("http_responses"));
+
+    /** HushGram's note in the cache folder: the shorter side the kept replies were sized for. */
+    static final String SIZED_FOR = "hushgram_replies_sized_for";
 
     /** The screen's shorter side, once read. */
     private static volatile int shorter;
@@ -119,9 +148,8 @@ public final class LargerPhotos {
             int width = (Integer) parts[1];
             int height = (Integer) parts[2];
             int shorter = Math.min(width, height);
-            if (shorter <= 0 || shorter >= COVER_WIDTH) return;
-            int target = covers.getAsBoolean() ? COVER_WIDTH : shorter < WIDTH && on.getAsBoolean() ? WIDTH : 0;
-            if (target == 0) return;
+            int target = reported(shorter, on, covers);
+            if (target == shorter) return;
             parts[1] = scaled(width, shorter, target);
             parts[2] = scaled(height, shorter, target);
             if (!loggedScreen) {
@@ -132,6 +160,76 @@ public final class LargerPhotos {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FULL_RESOLUTION, SCREEN, failure);
         }
+    }
+
+    /**
+     * The shorter side reported for a screen whose own is [shorter]: {@link #COVER_WIDTH} under Full
+     * size covers, {@link #WIDTH} under Ask for larger photos, and the screen's own when it's already
+     * that wide or both are off. A switch is read only when its answer matters.
+     */
+    static int reported(int shorter, BooleanSupplier on, BooleanSupplier covers) {
+        if (shorter <= 0 || shorter >= COVER_WIDTH) return shorter;
+        if (covers.getAsBoolean()) return COVER_WIDTH;
+        return shorter < WIDTH && on.getAsBoolean() ? WIDTH : shorter;
+    }
+
+    /**
+     * Injected right after HushGram gets its context in Instagram's application, before Instagram's
+     * own startup opens its cache. In Instagram's own process, drops the kept media replies when this
+     * run reports another screen than the one they were sized for, so the next reel is asked for at
+     * the new size. Never throws.
+     */
+    public static void atStart(Context context) {
+        try {
+            HookStatus.invoked(FamilyNames.FULL_RESOLUTION);
+            if (context == null || !Utils.isMainProcess()) return;
+            int natural = shorterSide();
+            if (natural <= 0) return;
+            forgetSizedReplies(context.getCacheDir(), natural, reported(natural, LargerPhotos::switchedOn, LargerPhotos::coversOn));
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.FULL_RESOLUTION, START, failure);
+        }
+    }
+
+    /**
+     * Deletes {@link #SIZED_REPLIES} under [cache] when its note says they were sized for another
+     * width than [reported], or it can't be read, or there's none and [reported] isn't the screen's
+     * own [natural] width, then writes the note. Answers whether it deleted them. A link is deleted
+     * without what it points to.
+     */
+    static boolean forgetSizedReplies(File cache, int natural, int reported) throws IOException {
+        if (cache == null) return false;
+        File note = new File(cache, SIZED_FOR);
+        int sizedFor = note.isFile() ? readNote(note) : natural;
+        boolean forget = sizedFor != reported;
+        if (forget) {
+            for (String name : SIZED_REPLIES) delete(new File(cache, name));
+            HookStatus.counted(FamilyNames.FULL_RESOLUTION, FORGOT);
+            Logger.printDebug(() -> "Larger photos: dropped the kept media replies, sized for " + sizedFor
+                    + " where this run reports " + reported);
+        }
+        if (forget || !note.isFile()) {
+            Files.write(note.toPath(), Integer.toString(reported).getBytes(StandardCharsets.UTF_8));
+        }
+        return forget;
+    }
+
+    /** The width in the note, or -1 when it can't be read. */
+    private static int readNote(File note) {
+        try {
+            return Integer.parseInt(new String(Files.readAllBytes(note.toPath()), StandardCharsets.UTF_8).trim());
+        } catch (IOException | NumberFormatException unreadable) {
+            return -1;
+        }
+    }
+
+    /** Deletes [file] and everything under it, a link without what it points to. */
+    private static void delete(File file) {
+        if (!Files.isSymbolicLink(file.toPath()) && file.isDirectory()) {
+            File[] children = file.listFiles();
+            if (children != null) for (File child : children) delete(child);
+        }
+        if (file.exists() && !file.delete()) Logger.printDebug(() -> "Larger photos: couldn't delete " + file);
     }
 
     private static Integer scaled(int side, int shorter, int target) {

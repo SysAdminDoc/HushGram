@@ -11,6 +11,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.misc.extension.INSTAGRAM_APPLICATION
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -44,7 +45,7 @@ class LargerPhotosHookTest {
         val declared = ExtensionDex.classDef(LARGER_PHOTOS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(WANTED, SCREEN)) {
+        for (hook in listOf(WANTED, SCREEN, AT_START)) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
     }
@@ -92,6 +93,41 @@ class LargerPhotosHookTest {
             val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
                 .filter { method -> method.code().any { it.referenceText() == WANTED || it.referenceText() == SCREEN } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /**
+     * The kept replies are dropped right after the extension gets its context, first thing in the
+     * application's onCreate and before Instagram's own startup, handed the application itself.
+     */
+    @Test
+    fun theKeptRepliesAreDroppedRightAfterTheContext() {
+        val context = PatchContexts.of(listOf(application(onCreate())))
+        val before = context.mutableClassDefBy(INSTAGRAM_APPLICATION).methods.single().code().size
+
+        forgetAtStart(context.findStart())
+
+        val onCreate = context.mutableClassDefBy(INSTAGRAM_APPLICATION).methods.single()
+        val code = onCreate.code()
+        assertEquals("onCreate grew by more than the hook", before + 1, code.size)
+        assertEquals("the context comes first", SET_CONTEXT, code[0].referenceText())
+        assertEquals("then the hook", AT_START, code[1].referenceText())
+        assertEquals("hooks", 1, code.count { it.referenceText() == AT_START })
+        val call = code[1] as RegisterRangeInstruction
+        val application = onCreate.implementation!!.registerCount - 1
+        assertEquals("the application handed over", listOf(application, 1), listOf(call.startRegister, call.registerCount))
+        assertEquals("Instagram's own startup follows", Opcode.INVOKE_SUPER, code[2].opcode)
+    }
+
+    /** An onCreate the extension doesn't get its context in once fails at patch time, with nothing written. */
+    @Test
+    fun anOnCreateWithoutTheContextOnceFailsBeforeAnythingChanges() {
+        for (calls in listOf(0, 2)) {
+            val context = PatchContexts.of(listOf(application(onCreate(calls))))
+            val failure = assertThrows(PatchException::class.java) { forgetAtStart(context.findStart()) }
+            assertTrue("$calls: ${failure.message}", failure.message!!.contains("to hand the extension its context once, found $calls"))
+            val code = context.mutableClassDefBy(INSTAGRAM_APPLICATION).methods.single().code()
+            assertTrue("$calls: something was written", code.none { it.referenceText() == AT_START })
         }
     }
 
@@ -206,6 +242,26 @@ class LargerPhotosHookTest {
         }
         return method(reportType, "report", listOf("Landroid/content/Context;"), "Ljava/lang/String;", locals = 5, body)
     }
+
+    /** The application's onCreate as the extension patch leaves it: the context handed over [calls] times, then Instagram's own startup. */
+    private fun onCreate(calls: Int = 1): Method {
+        val body = buildString {
+            repeat(calls) { appendLine("invoke-static/range { p0 .. p0 }, $SET_CONTEXT") }
+            appendLine("invoke-super { p0 }, Landroid/app/Application;->onCreate()V")
+            appendLine("return-void")
+        }
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                INSTAGRAM_APPLICATION, "onCreate", emptyList(), "V", AccessFlags.PUBLIC.value, null, null,
+                ImmutableMethodImplementation(2, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.trimIndent())
+        return ImmutableMethod.of(mutable)
+    }
+
+    private fun application(onCreate: Method): ClassDef =
+        ImmutableClassDef(INSTAGRAM_APPLICATION, AccessFlags.PUBLIC.value, "Landroid/app/Application;", null, null, null, null, listOf(onCreate))
 
     private fun method(type: String, name: String, parameters: List<String>, returns: String, locals: Int, body: String): Method {
         val flags = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value or AccessFlags.FINAL.value
