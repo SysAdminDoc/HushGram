@@ -532,10 +532,11 @@ no-call Landroid/view/Window;->setColorMode(I)V outside Lapp/hushgram/extension/
 no-call Landroid/view/SurfaceControl$Transaction;->setExtendedRangeBrightness(Landroid/view/SurfaceControl;FF)Landroid/view/SurfaceControl$Transaction; outside Lapp/hushgram/extension/
 # It also puts HdrBoost.optionOff first in Instagram's boolean option read, the one every Java read
 # of a server option ends in (09x7.Bam on 452), in the class whose String read holds the marker
-# below, so SDR super white on HDR content and Ultra HDR always on read as off (#85). Left out, those
-# options keep the server's values; twice or elsewhere, it isn't the hook the patch wrote.
-start-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JII)Z in instance (L*;JZ)Z class-holding __fbt_null__
-once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JII)Z in instance (L*;JZ)Z class-holding __fbt_null__
+# below, so SDR super white on HDR content, the reel super white option 452 and later read, and Ultra
+# HDR always on read as off (#85). Left out, those options keep the server's values; twice or
+# elsewhere, it isn't the hook the patch wrote.
+start-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JJ)Z in instance (L*;JZ)Z class-holding __fbt_null__
+once-call Lapp/hushgram/extension/instagram/media/HdrBoost;->optionOff(JJ)Z in instance (L*;JZ)Z class-holding __fbt_null__
 #
 # Not pinned:
 # Sanitize sharing links also sends ClipboardManager.setPrimaryClip and both Intent.createChooser

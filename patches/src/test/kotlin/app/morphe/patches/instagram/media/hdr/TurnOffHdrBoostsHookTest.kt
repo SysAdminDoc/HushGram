@@ -51,7 +51,8 @@ class TurnOffHdrBoostsHookTest {
     private val isHdr = HDR_CALLS[7]
     private val hdrTypes = HDR_CALLS[8]
     private val modeHdrTypes = HDR_CALLS[9]
-    private val screenChecks = listOf(isHdr, hdrTypes, modeHdrTypes)
+    private val ratioAvailable = HDR_CALLS[10]
+    private val screenChecks = listOf(isHdr, hdrTypes, modeHdrTypes, ratioAvailable)
 
     private fun ref(call: HdrCall, definingClass: String = call.definingClass) = ImmutableMethodReference(
         definingClass, call.name,
@@ -61,8 +62,8 @@ class TurnOffHdrBoostsHookTest {
 
     /**
      * Instagram's HDR recording helper as the camera has it: one method holding its marker, one
-     * checking the screen the three ways, isHdr on v0 and the HDR types of capabilities in v1 and a
-     * mode in v2.
+     * checking the screen the four ways, isHdr on v0, the HDR types of capabilities in v1 and a
+     * mode in v2, and whether v0 reports an HDR/SDR ratio.
      */
     private fun recordingHelper(type: String): ClassDef = ImmutableClassDef(
         type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null,
@@ -86,6 +87,7 @@ class TurnOffHdrBoostsHookTest {
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0, ref(isHdr)),
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, ref(hdrTypes)),
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 2, 0, 0, 0, 0, ref(modeHdrTypes)),
+                        ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 0, 0, 0, 0, 0, ref(ratioAvailable)),
                         ImmutableInstruction10x(Opcode.RETURN_VOID),
                     ),
                     null, null,
@@ -100,8 +102,9 @@ class TurnOffHdrBoostsHookTest {
      * range call whose answer it keeps, v5 a window and v6 a color mode, then the transaction's
      * extended range brightness on v2 and v3 with v4 and v1 as its two ratios, its answer kept too,
      * the HDR/SDR ratio of the display in v7, read into v1, the transaction's dataspace on v2 and v3
-     * with v6, its answer kept, and last the display's three HDR checks: isHdr on v7 into v6, the HDR
-     * types of capabilities in v0 and of a mode in v1, each read back into its register.
+     * with v6, its answer kept, and last the display's four HDR checks: isHdr on v7 into v6, the HDR
+     * types of capabilities in v0 and of a mode in v1, each read back into its register, and whether
+     * v7 reports an HDR/SDR ratio, read into v6.
      * A window call of another name and a compat class's setColorMode sit between and stay.
      */
     private fun caller(type: String): ClassDef = ImmutableClassDef(
@@ -133,6 +136,8 @@ class TurnOffHdrBoostsHookTest {
                         ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 0),
                         ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 1, 0, 0, 0, 0, ref(modeHdrTypes)),
                         ImmutableInstruction11x(Opcode.MOVE_RESULT_OBJECT, 1),
+                        ImmutableInstruction35c(Opcode.INVOKE_VIRTUAL, 1, 7, 0, 0, 0, 0, ref(ratioAvailable)),
+                        ImmutableInstruction11x(Opcode.MOVE_RESULT, 6),
                         ImmutableInstruction10x(Opcode.RETURN_VOID),
                     ),
                     null, null,
@@ -194,6 +199,9 @@ class TurnOffHdrBoostsHookTest {
         assertEquals("$HDR_BOOST->modeHdrTypes(Landroid/view/Display\$Mode;)[I", code[17].target())
         assertEquals(listOf(1), code[17].registers())
         assertEquals(Opcode.MOVE_RESULT_OBJECT, code[18].opcode)
+        assertEquals("$HDR_BOOST->hdrSdrRatioAvailable(Landroid/view/Display;)Z", code[19].target())
+        assertEquals(listOf(7), code[19].registers())
+        assertEquals("the answer is still read into v6", Opcode.MOVE_RESULT, code[20].opcode)
     }
 
     /** The extension's own calls are the real ones the stand-ins make. Sent, each would call itself. */
@@ -289,7 +297,8 @@ class TurnOffHdrBoostsHookTest {
      * capability checks. That layer sets its dataspace from one method. The screen's HDR support is
      * checked with isHdr from four methods (two Dolby Vision checks of the video player, the device
      * capability list and a display report), the HDR types of its capabilities from ten and of its
-     * mode from five. One class holds the HDR recording helper's marker, and three of its methods
+     * mode from five, and whether it reports an HDR/SDR ratio from seven, the reel super white gate
+     * among them (#85). One class holds the HDR recording helper's marker, and three of its methods
      * check the screen: those six checks stay, and every other call goes to its stand-in on the same
      * registers, with the instruction count unchanged, and none is left.
      */
@@ -330,7 +339,7 @@ class TurnOffHdrBoostsHookTest {
             "$label: methods making each call",
             mapOf(
                 surface to 1, transaction to 1, windowHeadroom to 2, colorMode to 6, extendedRange to 1, screenRatio to 6,
-                dataSpace to 1, isHdr to 4, hdrTypes to 10, modeHdrTypes to 5,
+                dataSpace to 1, isHdr to 4, hdrTypes to 10, modeHdrTypes to 5, ratioAvailable to 7,
             ),
             byCall,
         )

@@ -41,6 +41,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Turn off HDR brightness boosts` also stops the brighter white Instagram 452 and later give some reels on phones that report HDR headroom, like the Galaxy S25 FE. Those versions read a new option for it and check the screen first, and the switch now holds both. Reported in #85 and #26.
 * **Instagram:** `Hide Featured in notifications` works on Instagram 453 again, Threads suggestions included. Featured rows were back at the top of Notifications. Reported in #259.
 * **Instagram:** With `Hide the Muse card`, the Meet Muse card stays off Home and your profile when Instagram sends it some other way. It still showed up now and then. Reported in #294.
 * **Instagram:** With `Pure black dark mode`, a story now opens straight on black. It flashed Instagram's dark blue for a moment first. Reported in #360.

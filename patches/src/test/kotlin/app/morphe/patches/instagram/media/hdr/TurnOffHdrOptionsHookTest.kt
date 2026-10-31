@@ -36,23 +36,25 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodReference
 import com.android.tools.smali.dexlib2.immutable.reference.ImmutableStringReference
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
  * Instagram's boolean option read asks HdrBoost first, with the specifier and the table indexes of
- * "SDR super white on HDR content" and "Ultra HDR always on", and answers no when HdrBoost says so (#85).
+ * "SDR super white on HDR content", the reel super white option 452 and later read and "Ultra HDR
+ * always on", and answers no when HdrBoost says so (#85).
  */
 class TurnOffHdrOptionsHookTest {
     private val params = "Lfixture/Params;"
     private val reader = "Lfixture/OptionReader;"
+    private val options = HDR_OPTIONS.toIntArray()
 
     /**
-     * An option table of 1200 ids in two arrays, the super white option at 7 and Ultra HDR always on
-     * at 1100, the second array's hundredth.
+     * An option table of 1200 ids in two arrays, the super white option at 7, the reel super white
+     * option at 600 and Ultra HDR always on at 1100, the second array's hundredth.
      */
     private fun table(type: String = "Lfixture/Options;"): ClassDef {
         val ids = tableIds()
@@ -62,6 +64,7 @@ class TurnOffHdrOptionsHookTest {
     private fun tableIds(): List<Int> {
         val ids = (0 until 1200).map { 200000 + it }.toMutableList()
         ids[7] = SUPER_WHITE_OPTION
+        ids[600] = REEL_SUPER_WHITE_OPTION
         ids[1100] = ULTRA_HDR_OPTION
         return ids
     }
@@ -148,15 +151,23 @@ class TurnOffHdrOptionsHookTest {
 
     @Test
     fun theTableGivesEachOptionsPlace() {
-        val context = PatchContexts.of(listOf(initializerListing("Lfixture/Short;", listOf(ULTRA_HDR_OPTION, SUPER_WHITE_OPTION)), table()))
-        assertEquals("a short list of the same ids isn't the table", listOf(7, 1100), context.optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION))
+        val context = PatchContexts.of(listOf(initializerListing("Lfixture/Short;", HDR_OPTIONS.reversed()), table()))
+        assertEquals("a short list of the same ids isn't the table", listOf(7, 600, 1100), context.optionIndexes(*options))
         assertEquals(listOf(-1), PatchContexts.of(listOf(table())).optionIndexes(68886))
     }
 
     /** On the ARMv7 builds the helper's ids come first, then the ones the initializer fills. */
     @Test
     fun aHelpersIdsComeFirst() {
-        assertEquals(listOf(7, 1100), PatchContexts.of(listOf(helperTable())).optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION))
+        assertEquals(listOf(7, 600, 1100), PatchContexts.of(listOf(helperTable())).optionIndexes(*options))
+    }
+
+    /** Each index takes 16 bits from the low end, and a missing index or an unused slot is empty. */
+    @Test
+    fun theIndexesPackIntoOneLong() {
+        assertEquals(7L or (600L shl 16) or (1100L shl 32) or (0xffffL shl 48), heldOptions(listOf(7, 600, 1100)))
+        assertEquals(0xffffL or (4914L shl 16) or (0xffffL shl 32) or (0xffffL shl 48), heldOptions(listOf(-1, 4914)))
+        assertThrows(IllegalArgumentException::class.java) { heldOptions(listOf(1, 2, 3, 4, 5)) }
     }
 
     @Test
@@ -168,14 +179,13 @@ class TurnOffHdrOptionsHookTest {
         assertEquals("read", read?.name)
         val code = context.mutableClassDefBy(reader).methods.single { it.name == "read" }.instructions()
         assertEquals(
-            listOf(Opcode.CONST, Opcode.CONST, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN, Opcode.MOVE, Opcode.RETURN),
+            listOf(Opcode.CONST_WIDE, Opcode.INVOKE_STATIC, Opcode.MOVE_RESULT, Opcode.IF_EQZ, Opcode.CONST_4, Opcode.RETURN, Opcode.MOVE, Opcode.RETURN),
             code.map { it.opcode },
         )
-        assertEquals(7, (code[0] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals(1100, (code[1] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals(OPTION_OFF, (code[2] as ReferenceInstruction).reference.toString())
-        assertEquals("the specifier, then the two indexes", listOf(4, 5, 0, 1), code[2].registers())
-        assertEquals("answers no", 0, (code[5] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals(heldOptions(listOf(7, 600, 1100)), (code[0] as WideLiteralInstruction).wideLiteral)
+        assertEquals(OPTION_OFF, (code[1] as ReferenceInstruction).reference.toString())
+        assertEquals("the specifier, then the held indexes", listOf(4, 5, 0, 1), code[1].registers())
+        assertEquals("answers no", 0, (code[4] as NarrowLiteralInstruction).narrowLiteral)
         val other = context.mutableClassDefBy(reader).methods.single { it.name == "readOther" }.instructions()
         assertEquals("a read of another type stays", listOf(Opcode.MOVE, Opcode.RETURN), other.map { it.opcode })
     }
@@ -200,12 +210,13 @@ class TurnOffHdrOptionsHookTest {
     }
 
     /**
-     * On each declared build, ARMv7 ones too, the table lists both options, a boolean specifier in the build names
-     * Ultra HDR always on's index, which shows the index is the one specifiers carry, and the hook
-     * goes into the one boolean read, the one at least two of its class's other boolean reads end in.
+     * On each declared build, ARMv7 ones too, the table lists every option, boolean specifiers in the
+     * build name Ultra HDR always on's index and the reel super white option's, which shows the index
+     * is the one specifiers carry, and the hook goes into the one boolean read, the one at least two
+     * of its class's other boolean reads end in.
      */
     @Test
-    fun theDeclaredBuildHoldsBothOptions() {
+    fun theDeclaredBuildHoldsEveryOption() {
         val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
         val checked = mutableSetOf<String>()
         for (version in versions) {
@@ -244,11 +255,12 @@ class TurnOffHdrOptionsHookTest {
         }
 
         val context = PatchContexts.of(kept)
-        val (superWhite, ultraHdr) = context.optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION)
-        assertTrue("$label: the table lists $SUPER_WHITE_OPTION", superWhite >= 0)
-        assertTrue("$label: the table lists $ULTRA_HDR_OPTION", ultraHdr >= 0)
-        assertNotEquals(superWhite, ultraHdr)
+        val indexes = context.optionIndexes(*options)
+        HDR_OPTIONS.zip(indexes).forEach { (id, index) -> assertTrue("$label: the table lists $id", index >= 0) }
+        assertEquals("$label: three places", 3, indexes.toSet().size)
+        val (_, reelSuperWhite, ultraHdr) = indexes
         assertTrue("$label: a boolean specifier names index $ultraHdr", ultraHdr in booleanSpecifiers)
+        assertTrue("$label: a boolean specifier names index $reelSuperWhite", reelSuperWhite in booleanSpecifiers)
 
         val read = context.holdHdrOptionsOff() ?: throw AssertionError("$label: the hook didn't go in")
         val owner = kept.single { it.type == read.definingClass }
@@ -259,9 +271,8 @@ class TurnOffHdrOptionsHookTest {
         }
         assertTrue("$label: ${read.definingClass}->${read.name} is called by ${callers.size} boolean reads", callers.size >= 2)
         val code = read.instructions()
-        assertEquals("$label: the hook", OPTION_OFF, (code[2] as ReferenceInstruction).reference.toString())
-        assertEquals("$label: super white index", superWhite, (code[0] as NarrowLiteralInstruction).narrowLiteral)
-        assertEquals("$label: Ultra HDR index", ultraHdr, (code[1] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$label: the hook", OPTION_OFF, (code[1] as ReferenceInstruction).reference.toString())
+        assertEquals("$label: the held indexes", heldOptions(indexes), (code[0] as WideLiteralInstruction).wideLiteral)
     }
 
     private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

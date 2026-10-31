@@ -174,30 +174,63 @@ public class HdrBoostTest {
         assertTrue(report, !report.contains(HdrBoost.SCREEN_CHECKS) && !report.contains(HdrBoost.SRGB_LAYERS));
     }
 
+    /** Packs option indexes the way the patch hands them over, 16 bits each from the low end. */
+    private static long held(int... indexes) {
+        long held = 0;
+        for (int slot = 0; slot < 4; slot++) {
+            long index = slot < indexes.length && indexes[slot] >= 0 ? indexes[slot] : HdrBoost.NO_OPTION;
+            held |= index << (16 * slot);
+        }
+        return held;
+    }
+
     /**
-     * Instagram's boolean read of "SDR super white on HDR content" or "Ultra HDR always on", named by
-     * the table index in the specifier's bits 32 to 47, answers no while the switch is on (#85). Other
-     * options, an index the patch didn't find (-1), and the switch off or paused keep Instagram's.
+     * Instagram's boolean read of "SDR super white on HDR content", the reel super white option 452
+     * and later read (index 4914 in 453) or "Ultra HDR always on", named by the table index in the
+     * specifier's bits 32 to 47, answers no while the switch is on (#85). Other options, an index the
+     * patch didn't find (-1), an empty slot and the switch off or paused keep Instagram's.
      */
     @Test
     public void onInstagramsHdrOptionsReadAsOff() {
         long superWhite = 0x0081_051D_0000_1234L;
+        long reelSuperWhite = 0x0081_1332_0000_66D8L;
         long ultraHdr = 0x0081_1099_0000_5986L;
         long another = 0x0081_109A_0000_5986L;
-        assertTrue(HdrBoost.optionOff(superWhite, 1309, 4249));
-        assertTrue(HdrBoost.optionOff(ultraHdr, 1309, 4249));
-        assertTrue(HdrBoost.optionOff(ultraHdr, -1, 4249));
-        assertEquals(false, HdrBoost.optionOff(another, 1309, 4249));
-        assertEquals(false, HdrBoost.optionOff(superWhite, -1, 4249));
+        long empty = 0x0081_FFFF_0000_0001L;
+        long all = held(1309, 4914, 4249);
+        assertTrue(HdrBoost.optionOff(superWhite, all));
+        assertTrue(HdrBoost.optionOff(reelSuperWhite, all));
+        assertTrue(HdrBoost.optionOff(ultraHdr, all));
+        assertTrue(HdrBoost.optionOff(ultraHdr, held(-1, -1, 4249)));
+        assertEquals(false, HdrBoost.optionOff(another, all));
+        assertEquals(false, HdrBoost.optionOff(superWhite, held(-1, 4914, 4249)));
+        assertEquals(false, HdrBoost.optionOff(empty, all));
         String report = String.join("\n", HookStatus.report());
-        assertTrue(report, report.contains(HdrBoost.OPTIONS_OFF + " 3"));
+        assertTrue(report, report.contains(HdrBoost.OPTIONS_OFF + " 4"));
 
         Settings.TURN_OFF_HDR_BOOSTS.save(false);
-        assertEquals(false, HdrBoost.optionOff(ultraHdr, 1309, 4249));
+        assertEquals(false, HdrBoost.optionOff(reelSuperWhite, all));
         Settings.TURN_OFF_HDR_BOOSTS.save(true);
         BaseSettings.PAUSED.save(true);
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
-        assertEquals(false, HdrBoost.optionOff(superWhite, 1309, 4249));
+        assertEquals(false, HdrBoost.optionOff(reelSuperWhite, all));
+    }
+
+    /**
+     * 452 and later give reels a white brighter than the screen's only on a screen that reports an
+     * HDR/SDR ratio (#85). On, that check answers no, and the stand-in reads the display it's handed.
+     * Off, the screen's answer goes through.
+     */
+    @Test
+    public void onTheScreenReportsNoHdrSdrRatio() {
+        android.view.Display display = Robolectric.buildActivity(Activity.class).setup().get().getWindowManager().getDefaultDisplay();
+        assertEquals(false, HdrBoost.hdrSdrRatioAvailable(display));
+        assertEquals(false, HdrBoost.screenIsHdr(true));
+
+        Settings.TURN_OFF_HDR_BOOSTS.save(false);
+        assertEquals(true, HdrBoost.screenIsHdr(true));
+        boolean reported = Build.VERSION.SDK_INT >= 34 && display.isHdrSdrRatioAvailable();
+        assertEquals(reported, HdrBoost.hdrSdrRatioAvailable(display));
     }
 
     /** The screen stand-ins read the display Instagram asked about and answer for it. */

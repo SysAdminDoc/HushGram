@@ -68,7 +68,8 @@ internal const val RECORDING_HDR_MARKER = "Exception in #getEncoderWithHdrCapabi
  * backs off by (#85). Then the dataspace that layer gives its frames, extended range sRGB, and
  * Instagram's three checks of whether the screen shows HDR, which decide whether synthetic HDR may
  * run, whether Dolby Vision streams and decoders are picked and what video and image requests say
- * the screen can show (#85).
+ * the screen can show (#85). Last, whether the screen reports an HDR/SDR ratio at all, which 452
+ * and later ask before they give an ordinary reel a white brighter than the screen's (#85).
  */
 internal val HDR_CALLS = listOf(
     HdrCall("Landroid/view/SurfaceView;", "setDesiredHdrHeadroom", "(F)V", "surfaceViewHeadroom"),
@@ -90,6 +91,7 @@ internal val HDR_CALLS = listOf(
     HdrCall("Landroid/view/Display;", "isHdr", "()Z", "isHdr", screenCheck = true),
     HdrCall("Landroid/view/Display\$HdrCapabilities;", "getSupportedHdrTypes", "()[I", "hdrTypes", screenCheck = true),
     HdrCall("Landroid/view/Display\$Mode;", "getSupportedHdrTypes", "()[I", "modeHdrTypes", screenCheck = true),
+    HdrCall("Landroid/view/Display;", "isHdrSdrRatioAvailable", "()Z", "hdrSdrRatioAvailable", screenCheck = true),
 )
 
 @Suppress("unused")
@@ -117,8 +119,20 @@ val turnOffHdrBoostsPatch = bytecodePatch(
  */
 internal const val SUPER_WHITE_OPTION = 68885
 
+/**
+ * The option 452 and later read for that super white instead, in ClipsItemUseCase's
+ * shouldRenderSdrInSuperWhite, beside whether the screen reports an HDR/SDR ratio (#85).
+ */
+internal const val REEL_SUPER_WHITE_OPTION = 120903
+
 /** "Ultra HDR always on" (ig_android_uhdr_always_on) (#85). */
 internal const val ULTRA_HDR_OPTION = 109125
+
+/** The options the switch holds off, at most four, the slots [heldOptions] packs. */
+internal val HDR_OPTIONS = listOf(SUPER_WHITE_OPTION, REEL_SUPER_WHITE_OPTION, ULTRA_HDR_OPTION)
+
+/** An empty slot of [heldOptions]. Instagram's option table never runs this long. */
+internal const val NO_OPTION = 0xffff
 
 /**
  * Loaded by the String read of the class Instagram's Java code reads its server options through. That
@@ -129,8 +143,23 @@ internal const val OPTION_READER_MARKER = "__fbt_null__"
 /** The fewest option ids the table lists. Instagram's lists nearly 6000. */
 private const val OPTION_TABLE_MIN = 1000
 
-/** The HdrBoost method the boolean option read asks first: the specifier and the two indexes. */
-internal const val OPTION_OFF = "$HDR_BOOST->optionOff(JII)Z"
+/**
+ * The HdrBoost method the boolean option read asks first: the specifier and the held indexes,
+ * packed by [heldOptions]. The read has two registers to spare, room for one long.
+ */
+internal const val OPTION_OFF = "$HDR_BOOST->optionOff(JJ)Z"
+
+/**
+ * [indexes], at most four, packed 16 bits each from the low end, with [NO_OPTION] in a slot whose
+ * index wasn't found or that nothing fills.
+ */
+internal fun heldOptions(indexes: List<Int>): Long {
+    require(indexes.size <= 4) { "${indexes.size} options don't fit one long" }
+    return (0 until 4).fold(0L) { held, slot ->
+        val index = indexes.getOrNull(slot)?.takeIf { it in 0 until NO_OPTION } ?: NO_OPTION
+        held or (index.toLong() shl (16 * slot))
+    }
+}
 
 /**
  * Where [ids] sit in Instagram's option table: the class initializer whose int arrays list every
@@ -184,15 +213,16 @@ private fun ClassDef.listedIds(method: Method, helpers: Boolean): List<Int> {
 
 /**
  * Puts HdrBoost in front of Instagram's boolean option read, the one every Java read of a server
- * switch ends in, so "SDR super white on HDR content" and "Ultra HDR always on" read as off while
- * the switch is on (#85). The read sits in the class holding [OPTION_READER_MARKER] and takes that
- * class's reader type, the specifier and the default. Answers the read it changed, or null when the
- * table or the read can't be found, which leaves the rest of the patch working and says so in the log.
+ * switch ends in, so the [HDR_OPTIONS] read as off while the switch is on (#85). A UserSession's
+ * own reads (MobileConfigUnsafeContext's BbW) end there too. The read sits in the class holding
+ * [OPTION_READER_MARKER] and takes that class's reader type, the specifier and the default. Answers
+ * the read it changed, or null when the table or the read can't be found, which leaves the rest of
+ * the patch working and says so in the log.
  */
 internal fun BytecodePatchContext.holdHdrOptionsOff(): MutableMethod? {
-    val (superWhite, ultraHdr) = optionIndexes(SUPER_WHITE_OPTION, ULTRA_HDR_OPTION)
-    if (superWhite < 0 && ultraHdr < 0) {
-        patchLog.warning("$PATCH: found no option table listing $SUPER_WHITE_OPTION and $ULTRA_HDR_OPTION, so Instagram's HDR options keep their values.")
+    val indexes = optionIndexes(*HDR_OPTIONS.toIntArray())
+    if (indexes.all { it < 0 }) {
+        patchLog.warning("$PATCH: found no option table listing ${HDR_OPTIONS.joinToString()}, so Instagram's HDR options keep their values.")
         return null
     }
     val reads = classesLoadingString(OPTION_READER_MARKER).flatMap { classDef ->
@@ -219,8 +249,7 @@ internal fun BytecodePatchContext.holdHdrOptionsOff(): MutableMethod? {
     method.addInstructionsWithLabels(
         0,
         """
-            const v0, $superWhite
-            const v1, $ultraHdr
+            const-wide v0, ${heldOptions(indexes)}L
             invoke-static { v$specifier, v${specifier + 1}, v0, v1 }, $OPTION_OFF
             move-result v0
             if-eqz v0, :instagram
