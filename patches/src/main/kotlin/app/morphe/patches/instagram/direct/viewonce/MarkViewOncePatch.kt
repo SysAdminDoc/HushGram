@@ -45,7 +45,7 @@ private const val FRAME_LAYOUT = "Landroid/widget/FrameLayout;"
 val markViewOncePatch = bytecodePatch(
     name = "Mark one-time photos and videos",
     description = "Puts a border and Instagram's own view once icon on a one-time photo or video in a chat, so " +
-        "you can tell it before you open it. Only how the chat looks changes: nothing is saved, replayed, " +
+        "you can tell it before you open it. Only how the chat looks changes. Nothing is saved, replayed, " +
         "marked seen or sent. Starts off. Turn it on in HushGram settings > Messages.",
     default = true,
 ) {
