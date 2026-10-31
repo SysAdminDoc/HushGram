@@ -27,7 +27,6 @@ import android.preference.PreferenceCategory;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceScreen;
 import android.preference.TwoStatePreference;
-import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
@@ -566,14 +565,7 @@ public final class ScreenColors {
         if (window != null) paintMessages(window.getDecorView());
         android.widget.ListView choices = dialog.getListView();
         if (choices != null && choices.getAdapter() != null && !(choices.getAdapter() instanceof DialogChoices)) {
-            SparseBooleanArray checked = choices.getCheckedItemPositions();
-            checked = checked == null ? null : checked.clone();
-            choices.setAdapter(new DialogChoices(choices.getAdapter(), this));
-            if (checked != null) {
-                for (int index = 0; index < checked.size(); index++) {
-                    if (checked.valueAt(index)) choices.setItemChecked(checked.keyAt(index), true);
-                }
-            }
+            DialogChoices.swap(choices, new DialogChoices(choices.getAdapter(), this));
             choices.setDivider(null);
         }
         for (int which : new int[]{AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL}) {

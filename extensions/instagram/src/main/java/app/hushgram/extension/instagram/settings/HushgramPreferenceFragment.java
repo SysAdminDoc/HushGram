@@ -6466,7 +6466,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 ListView choices = dialog.getListView();
                 if (choices != null && choices.getAdapter() != null) {
                     // Each choice shows its actual icon before its name (#321, #327).
-                    choices.setAdapter(new IconChoices(getContext(), choices.getAdapter(), AppIconChoice.values()));
+                    DialogChoices.swap(choices, new IconChoices(getContext(), choices.getAdapter(), AppIconChoice.values()));
                 }
                 ScreenColors.dialog(dialog);
             }
@@ -6633,7 +6633,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (!MaterialYou.available() && choices != null && choices.getAdapter() != null && values != null) {
                     boolean[] off = new boolean[values.length];
                     for (int i = 0; i < values.length; i++) off[i] = AccentHue.WALLPAPER.name().contentEquals(values[i]);
-                    choices.setAdapter(new DisabledChoices(choices.getAdapter(), off));
+                    DialogChoices.swap(choices, new DisabledChoices(choices.getAdapter(), off));
                 }
                 ScreenColors.dialog(dialog);
             }

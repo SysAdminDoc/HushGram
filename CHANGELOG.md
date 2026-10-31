@@ -7,7 +7,8 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram:** `Keep a viewing history` under Ads and privacy keeps a list of the posts, reels, stories and profiles you looked at, on this phone only. `Clear viewing history` empties it. Starts off. Asked for in #228.
-* **Instagram:** The `App icon` list now shows each choice's real icon next to its name, so you can see what you're picking before you leave Instagram. Asked for in #321 and #327.
+* **Instagram:** The `App icon` list now shows each choice's real icon in its own colors next to its name, with the one in use marked, so you can see what you're picking before you leave Instagram. Asked for in #321 and #327.
+* **Instagram:** The `Accent color` list on Android 11 and older marks the color in use again.
 * **Instagram:** On Android 11 and older, `Material You` now stays in the `Color` list, greyed out, with the reason on it. Before, it just wasn't there. Asked for in #187 and #264.
 * **Instagram:** `Icons in the accent color` is a new switch under `Accent color`, off to start. After a restart the top bar, profile, tab bar and post icons take your color. Text keeps its own. Asked for in #8.
 * **Instagram:** `Explore without personalization` is a new patch for the EU, where Instagram offers that grid. One switch under Explore opens it every time. Another hides its menu button. Both start off. Asked for in #311.

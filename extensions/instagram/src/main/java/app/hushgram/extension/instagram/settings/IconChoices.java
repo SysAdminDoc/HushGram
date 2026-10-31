@@ -5,8 +5,10 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.database.DataSetObserver;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.DrawableWrapper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -38,9 +40,22 @@ final class IconChoices extends BaseAdapter {
     static Drawable preview(Context context, AppIconChoice choice, int size) {
         Drawable icon = AppIcon.preview(context, choice);
         if (icon == null) return null;
-        icon = icon.mutate();
-        icon.setBounds(0, 0, size, size);
-        return icon;
+        Drawable shown = new Preview(icon.mutate());
+        shown.setBounds(0, 0, size, size);
+        return shown;
+    }
+
+    /**
+     * An icon in its own colours. The dialog's painter tints a row's compound drawables in the radio's
+     * colours, which turned every icon into the same grey shape (#321), so a tint never reaches it.
+     */
+    static final class Preview extends DrawableWrapper {
+        Preview(Drawable icon) {
+            super(icon);
+        }
+
+        // A tint mode alone draws nothing, so the list is all there is to keep out.
+        @Override public void setTintList(@Nullable ColorStateList tint) { }
     }
 
     @Override public int getCount() { return source.getCount(); }
@@ -60,7 +75,11 @@ final class IconChoices extends BaseAdapter {
             TextView text = (TextView) row;
             float density = context.getResources().getDisplayMetrics().density;
             int size = Math.round(40 * density);
-            text.setCompoundDrawablesRelative(preview(context, choices[position], size), null, null, null);
+            // Material's row draws its radio as the start drawable. It moves to the end, so the icon
+            // leads and the current pick still shows.
+            Drawable[] drawn = text.getCompoundDrawablesRelative();
+            Drawable radio = drawn[0] instanceof Preview ? drawn[2] : drawn[0];
+            text.setCompoundDrawablesRelative(preview(context, choices[position], size), null, radio, null);
             text.setCompoundDrawablePadding(Math.round(12 * density));
         }
         return row;

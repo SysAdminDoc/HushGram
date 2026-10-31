@@ -12,11 +12,13 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.util.SparseBooleanArray;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckedTextView;
 import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.TextView;
 
 /** Styles the framework's real list rows without replacing selection or checkbox behavior. */
@@ -27,6 +29,17 @@ final class DialogChoices extends BaseAdapter {
     DialogChoices(ListAdapter source, ScreenColors colors) {
         this.source = source;
         this.colors = colors;
+    }
+
+    /** Puts [adapter] on [list] with the same rows checked: a new adapter clears ListView's checks. */
+    static void swap(ListView list, ListAdapter adapter) {
+        SparseBooleanArray checked = list.getCheckedItemPositions();
+        checked = checked == null ? null : checked.clone();
+        list.setAdapter(adapter);
+        if (checked == null) return;
+        for (int index = 0; index < checked.size(); index++) {
+            if (checked.valueAt(index)) list.setItemChecked(checked.keyAt(index), true);
+        }
     }
 
     @Override public int getCount() { return source.getCount(); }
