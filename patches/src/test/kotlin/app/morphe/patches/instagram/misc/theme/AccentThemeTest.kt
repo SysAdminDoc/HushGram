@@ -23,6 +23,7 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import app.morphe.patches.instagram.misc.settings.MERGED_LOGO_BAR
+import app.morphe.patches.instagram.reels.tab.MAIN_FEED_ACTION_BAR
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -350,6 +351,7 @@ class AccentThemeTest {
             .associateBy { "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$APPLY_THEME is not in the extension: ${declared.keys}", APPLY_THEME in declared)
         assertTrue("$HEADER_ICONS is not in the extension: ${declared.keys}", HEADER_ICONS in declared)
+        assertTrue("$HEADER_ICON is not in the extension: ${declared.keys}", HEADER_ICON in declared)
         val stub = declared[ATTRIBUTES_STUB]
         assertTrue("$ATTRIBUTES_STUB is not in the extension: ${declared.keys}", stub != null)
         assertTrue("the stub has a register to write into", stub!!.implementation!!.registerCount >= 1)
@@ -499,6 +501,63 @@ class AccentThemeTest {
                 "$code: some method tints with $field",
                 bar.methods.any { method -> method.code().any { it.opcode == Opcode.IGET && (it as ReferenceInstruction).reference.toString() == field } },
             )
+        }
+    }
+
+    /**
+     * Home's older header hands each icon it builds from a Context and a resource to the extension
+     * right after it's made, with the Context it took (#8). A non-drawable built the same way stays as
+     * it is, no header leaves it alone, and an extension without the hook refuses.
+     */
+    @Test
+    fun homesOlderHeaderHandsEachIconItBuildsToTheExtension() {
+        val context = PatchContexts.of(listOf(olderHeader(), icon(), icon(NOT_AN_ICON, "Ljava/lang/Object;"), extension()))
+        context.tintHeaderIcons()
+        for (name in listOf("A07", "A08")) {
+            val code = context.mutableClassDefBy(MAIN_FEED_ACTION_BAR).methods.single { it.name == name }.code()
+            val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == HEADER_ICON }
+            assertEquals("$name: one hook", 1, hooks.size)
+            val at = hooks.single()
+            val made = code[at - 1] as FiveRegisterInstruction
+            assertEquals("$name: right after the icon is made", "$ICON-><init>(${CONTEXT}I)V", (made as ReferenceInstruction).reference.toString())
+            val hook = code[at] as FiveRegisterInstruction
+            assertEquals("$name: the Context and the icon", listOf(made.registerD, made.registerC), listOf(hook.registerC, hook.registerD))
+        }
+
+        PatchContexts.of(listOf(extension(headerIcon = false))).tintHeaderIcons()
+        val failure = assertThrows(PatchException::class.java) {
+            PatchContexts.of(listOf(olderHeader(), icon(), extension(headerIcon = false))).tintHeaderIcons()
+        }
+        assertTrue("no hook in the extension: ${failure.message}", failure.message!!.startsWith("Accent color"))
+    }
+
+    /**
+     * Every build of Instagram: Home's older header hands its heart and its plain buttons to the
+     * extension right after it builds each one from a Context and a resource (#8).
+     */
+    @Test
+    fun everyBuildHandsHomesOlderHeaderIconsToTheExtension() {
+        for ((code, bundle) in builds()) {
+            val bar = FixtureDex.classes(bundle, setOf(MAIN_FEED_ACTION_BAR)).getValue(MAIN_FEED_ACTION_BAR)
+            val made = bar.methods.flatMap { it.code() }.mapNotNull { call ->
+                ((call as? ReferenceInstruction)?.reference as? MethodReference)?.takeIf { it.name == "<init>" && it.parameterTypes.map(Any::toString) == listOf(CONTEXT, "I") }?.definingClass
+            }.toSet()
+            val built = FixtureDex.classes(bundle, made)
+            val context = PatchContexts.of(listOf(bar, extension()) + built.values)
+            context.tintHeaderIcons()
+            val hooked = context.mutableClassDefBy(MAIN_FEED_ACTION_BAR).methods.flatMap { method ->
+                val body = method.code()
+                body.indices.filter { (body[it] as? ReferenceInstruction)?.reference?.toString() == HEADER_ICON }.map { method.name to (body to it) }
+            }
+            assertEquals("$code: the heart and the plain buttons", listOf("A07", "A08"), hooked.map { it.first }.sorted())
+            for ((name, site) in hooked) {
+                val (body, at) = site
+                val init = body[at - 1] as FiveRegisterInstruction
+                val type = ((init as ReferenceInstruction).reference as MethodReference).definingClass
+                assertEquals("$code $name: a drawable", "Landroid/graphics/drawable/Drawable;", built.getValue(type).superclass)
+                val hook = body[at] as FiveRegisterInstruction
+                assertEquals("$code $name: the Context and the icon", listOf(init.registerD, init.registerC), listOf(hook.registerC, hook.registerD))
+            }
         }
     }
 
@@ -699,14 +758,61 @@ class AccentThemeTest {
         }
 
         /** AccentTheme's hooks, and the attribute stub as javac and D8 leave `return null`. */
-        fun extension(stub: Boolean = true, headerIcons: Boolean = true): ClassDef = classOf(
+        fun extension(stub: Boolean = true, headerIcons: Boolean = true, headerIcon: Boolean = true): ClassDef = classOf(
             ACCENT_THEME,
             *listOfNotNull(
                 method(ACCENT_THEME, "apply", listOf(CONTEXT), 0, "return-void", static = true),
                 if (stub) method(ACCENT_THEME, "attributes", emptyList(), 1, "const/4 v0, 0x0\nreturn-object v0", static = true, returns = "Ljava/lang/String;") else null,
                 if (headerIcons) method(ACCENT_THEME, "headerIcons", listOf(CONTEXT, "I"), 0, "return p1", static = true, returns = "I") else null,
+                if (headerIcon) method(ACCENT_THEME, "headerIcon", listOf(CONTEXT, DRAWABLE), 0, "return-void", static = true) else null,
             ).toTypedArray(),
         )
+
+        const val DRAWABLE = "Landroid/graphics/drawable/Drawable;"
+        const val ICON = "Lfixture/HeaderIcon;"
+        const val NOT_AN_ICON = "Lfixture/HeaderState;"
+
+        /** Instagram's header icon, a drawable built from a Context and a resource, or [type] built the same way. */
+        fun icon(type: String = ICON, superclass: String = DRAWABLE): ClassDef = classOf(
+            type,
+            method(type, "<init>", listOf(CONTEXT, "I"), 0, "invoke-direct { p0 }, $superclass-><init>()V\nreturn-void", static = false),
+            superclass = superclass,
+        )
+
+        /**
+         * Home's older header: its heart built in A07, and in A08 a state built from the same Context and
+         * resource, then either the Create button's layers or a plain button's icon, which jumps back to
+         * the one setImageDrawable.
+         */
+        fun olderHeader(): ClassDef {
+            val heart = """
+                invoke-virtual { p1 }, Landroid/view/View;->getContext()$CONTEXT
+                move-result-object v1
+                new-instance v0, $ICON
+                invoke-direct { v0, v1, p2 }, $ICON-><init>(${CONTEXT}I)V
+                invoke-virtual { p1, v0 }, Landroid/widget/ImageView;->setImageDrawable($DRAWABLE)V
+                return-void
+            """.trimIndent()
+            val buttons = """
+                new-instance v1, $NOT_AN_ICON
+                invoke-direct { v1, p1, p3 }, $NOT_AN_ICON-><init>(${CONTEXT}I)V
+                if-eqz p3, :icon
+                invoke-static { p1 }, Lfixture/Layers;->A00($CONTEXT)Landroid/graphics/drawable/LayerDrawable;
+                move-result-object v0
+                :set
+                invoke-virtual { p2, v0 }, Landroid/widget/ImageView;->setImageDrawable($DRAWABLE)V
+                return-void
+                :icon
+                new-instance v0, $ICON
+                invoke-direct { v0, p1, p3 }, $ICON-><init>(${CONTEXT}I)V
+                goto :set
+            """.trimIndent()
+            return classOf(
+                MAIN_FEED_ACTION_BAR,
+                method(MAIN_FEED_ACTION_BAR, "A07", listOf("Landroid/widget/ImageView;", "I"), 2, heart, static = false),
+                method(MAIN_FEED_ACTION_BAR, "A08", listOf(CONTEXT, "Landroid/widget/ImageView;", "I"), 2, buttons, static = false),
+            )
+        }
 
         /**
          * Home's newer header: its constructor keeps the icons' color from Context.getColor, [stored]
@@ -765,8 +871,8 @@ class AccentThemeTest {
             )
         }
 
-        fun classOf(type: String, vararg methods: Method): ClassDef = ImmutableClassDef(
-            type, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, null, methods.toList(),
+        fun classOf(type: String, vararg methods: Method, superclass: String = "Ljava/lang/Object;"): ClassDef = ImmutableClassDef(
+            type, AccessFlags.PUBLIC.value, superclass, null, null, null, null, methods.toList(),
         )
     }
 }

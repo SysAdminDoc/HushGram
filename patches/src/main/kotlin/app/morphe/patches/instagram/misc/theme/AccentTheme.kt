@@ -17,6 +17,7 @@ import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.settings.MERGED_LOGO_BAR
+import app.morphe.patches.instagram.reels.tab.MAIN_FEED_ACTION_BAR
 import app.morphe.util.ControlFlow
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.returnEarly
@@ -50,6 +51,9 @@ internal const val ATTRIBUTES_STUB = "$ACCENT_THEME->attributes()Ljava/lang/Stri
 
 /** The extension's answer to the color Home's newer header tints its heart and Create buttons with (#8). */
 internal const val HEADER_ICONS = "$ACCENT_THEME->headerIcons(Landroid/content/Context;I)I"
+
+/** The extension's hook that lays the icon color over each icon Home's older header builds (#8). */
+internal const val HEADER_ICON = "$ACCENT_THEME->headerIcon(Landroid/content/Context;Landroid/graphics/drawable/Drawable;)V"
 
 /** The activity every screen of Instagram's own extends, whose theme setup ends with Prism's overrides. */
 internal const val IG_FRAGMENT_ACTIVITY = "Lcom/instagram/base/activity/IgFragmentActivity;"
@@ -577,6 +581,7 @@ internal fun BytecodePatchContext.applyAccentTheme(attributes: String = requireA
 }
 
 private const val IMAGE_VIEW = "Landroid/widget/ImageView;"
+private const val DRAWABLE = "Landroid/graphics/drawable/Drawable;"
 
 /** A header constructor's store of its icon color: the store at [index], the Context the color was read through and the color's register. */
 internal class HeaderIconColor(val method: MutableMethod, val index: Int, val context: Int, val color: Int)
@@ -660,20 +665,64 @@ private fun MutableMethod.colorStore(code: List<Instruction>, at: Int, tints: Se
 
 private fun FieldReference.key(): String = "$definingClass->$name:$type"
 
+/** A drawable Home's older header builds for an icon: the constructor call at [index], the Context it took and the drawable it made. */
+internal class HeaderIconDrawable(val method: MutableMethod, val index: Int, val context: Int, val drawable: Int)
+
 /**
- * Hands Home's newer header's icon color to the extension as its constructor keeps it, so its heart
- * and Create buttons take the picked icon color with Icons in the accent color on (#8). Leaves the
- * header as it is when [findHeaderIconColor] finds no one store.
+ * Every icon Home's older header ([MAIN_FEED_ACTION_BAR], the one most accounts get) builds as one of
+ * Instagram's own drawables from a Context and a resource: the heart, and Create and the other plain
+ * buttons (#8). That drawable reads the primary text color as it's made and bakes it into its bitmap,
+ * so no theme attribute reaches it. Reels' header over media builds the same drawable, so the hook
+ * goes at this header's own calls rather than in the drawable. Answers none, with a warning, when
+ * there's no such header or call.
+ */
+internal fun BytecodePatchContext.findHeaderIconDrawables(): List<HeaderIconDrawable> {
+    if (classDefByOrNull(MAIN_FEED_ACTION_BAR) == null) {
+        patchLog.warning("$PATCH: no $MAIN_FEED_ACTION_BAR, so Home's older header keeps its icon color")
+        return emptyList()
+    }
+    if (extensionMethod(HEADER_ICON) == null) refuse("the extension has no public static $HEADER_ICON")
+    val sites = mutableClassDefBy(MAIN_FEED_ACTION_BAR).methods.flatMap { method ->
+        val code = method.code()
+        code.indices.mapNotNull { at -> iconDrawable(method, code[at], at) }
+    }
+    if (sites.isEmpty()) patchLog.warning("$PATCH: Home's older header builds no icon of its own, so its heart stays Instagram's color")
+    return sites
+}
+
+/**
+ * The call at [at] when it constructs a drawable from a Context and a resource, with registers a
+ * plain call can name.
+ */
+private fun BytecodePatchContext.iconDrawable(method: MutableMethod, call: Instruction, at: Int): HeaderIconDrawable? {
+    if (call.opcode != Opcode.INVOKE_DIRECT) return null
+    val target = (call as ReferenceInstruction).reference as MethodReference
+    if (target.name != "<init>" || target.parameterTypes.map(Any::toString) != listOf(CONTEXT, "I")) return null
+    if (classDefByOrNull(target.definingClass)?.superclass != DRAWABLE) return null
+    val made = call as FiveRegisterInstruction
+    if (made.registerC > 15 || made.registerD > 15) return null
+    return HeaderIconDrawable(method, at, made.registerD, made.registerC)
+}
+
+/**
+ * Hands Home's newer header's icon color to the extension as its constructor keeps it, and each icon
+ * Home's older header builds to the extension right after it's made, so the heart and Create buttons
+ * take the picked icon color with Icons in the accent color on (#8). Leaves a header as it is when
+ * [findHeaderIconColor] finds no one store or [findHeaderIconDrawables] no icon.
  */
 internal fun BytecodePatchContext.tintHeaderIcons() {
-    val site = findHeaderIconColor() ?: return
-    site.method.addInstructions(
-        site.index,
-        """
-            invoke-static { v${site.context}, v${site.color} }, $HEADER_ICONS
-            move-result v${site.color}
-        """,
-    )
+    findHeaderIconColor()?.let { site ->
+        site.method.addInstructions(
+            site.index,
+            """
+                invoke-static { v${site.context}, v${site.color} }, $HEADER_ICONS
+                move-result v${site.color}
+            """,
+        )
+    }
+    for (site in findHeaderIconDrawables().sortedByDescending { it.index }) {
+        site.method.addInstructions(site.index + 1, "invoke-static { v${site.context}, v${site.drawable} }, $HEADER_ICON")
+    }
 }
 
 private fun BytecodePatchContext.extensionMethod(signature: String): Method? =
