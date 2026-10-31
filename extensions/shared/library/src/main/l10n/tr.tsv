@@ -1418,6 +1418,9 @@ Carousel arrows	Çoklu gönderi okları
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Çoklu gönderinin fotoğraf ve videolarına bir geri ve bir ileri oku koyar. Kaydırmadan sayfa değiştirmek için birine dokun.
 Previous page	Önceki sayfa
 Next page	Sonraki sayfa
+# context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
+Page dots on a pill	Hap üzerinde sayfa noktaları
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Çoklu gönderinin sayfa noktalarını fotoğrafın veya videonun altındaki yuvarlak bir hapın üzerine taşır. Bulunduğun sayfa mavi görünür.
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	Ortam ışığı
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Bir gönderinin fotoğrafının veya videosunun çevresine kendi renklerinde yumuşak bir parıltı ekler. Ekranı doldurmayan bir reels videosunun çevresindeki şeritlere de ekler. Parıltı, video oynarken onu takip eder.

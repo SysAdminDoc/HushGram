@@ -1417,6 +1417,9 @@ Carousel arrows	캐러셀 화살표
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	캐러셀 게시물의 사진과 동영상에 이전 화살표와 다음 화살표를 표시합니다. 화살표를 탭하면 스와이프하지 않고 페이지를 넘깁니다.
 Previous page	이전 페이지
 Next page	다음 페이지
+# context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
+Page dots on a pill	알약 모양 페이지 점
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	캐러셀 게시물의 페이지 점을 사진이나 동영상 아래쪽의 둥근 알약 모양 위로 옮깁니다. 지금 보고 있는 페이지는 파란색으로 표시됩니다.
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	앰비언트 라이트
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	게시물의 사진이나 동영상 주위에 그 게시물의 색으로 은은한 빛을 비추고, 화면을 다 채우지 않는 릴스 주위의 빈 띠에도 비춥니다. 동영상이 재생되는 동안 빛이 따라 바뀝니다.

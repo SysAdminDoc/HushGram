@@ -224,6 +224,9 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.CAROUSEL_ARROWS, L10n.t("Carousel arrows"),
                     L10n.t("Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a "
                             + "page without swiping.")), CarouselArrows::switchChanged));
+            feed.addPreference(onFlip(toggle(context, Settings.CAROUSEL_DOTS_PILL, L10n.t("Page dots on a pill"),
+                    L10n.t("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, "
+                            + "with the page you're on in blue.")), CarouselArrows::switchChanged));
         }
         if (ambientLight) {
             feed.addPreference(onFlip(toggle(context, Settings.AMBIENT_LIGHT, L10n.t("Ambient light"),

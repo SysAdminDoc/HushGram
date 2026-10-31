@@ -1418,6 +1418,9 @@ Carousel arrows	Setas do carrossel
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Coloca uma seta de voltar e uma de avançar nas fotos e vídeos de uma publicação em carrossel. Toque em uma para mudar de página sem deslizar.
 Previous page	Página anterior
 Next page	Próxima página
+# context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
+Page dots on a pill	Pontos de página em uma pílula
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Move os pontos de página de uma publicação em carrossel para uma pílula arredondada na parte de baixo da foto ou do vídeo, com a página em que você está em azul.
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	Luz ambiente
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Coloca um brilho suave nas cores do post em volta da foto ou do vídeo, e nas faixas em volta de um reel que não ocupa a tela toda. O brilho acompanha o vídeo enquanto ele toca.

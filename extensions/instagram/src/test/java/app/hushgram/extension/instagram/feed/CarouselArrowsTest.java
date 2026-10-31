@@ -14,6 +14,7 @@ import static org.robolectric.Shadows.shadowOf;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Adapter;
@@ -48,7 +49,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class CarouselArrowsTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
-    private static final int WIDTH = 720, HEIGHT = 900, HEADER = 120;
+    private static final int WIDTH = 720, HEIGHT = 900, HEADER = 120, FOOTER = 80;
     private static final String FAMILY = "Carousel arrows";
 
     /** A carousel's pages, as many as asked for. */
@@ -112,6 +113,8 @@ public class CarouselArrowsTest {
     private Activity activity;
     private FrameLayout root;
     private LinearLayout column;
+    private FrameLayout footer;
+    private View instagramDots;
     private FakePager pager;
     private int frameId;
     private final List<Integer> turned = new ArrayList<>();
@@ -123,6 +126,8 @@ public class CarouselArrowsTest {
         CarouselArrows.resetForTests();
         frameId = View.generateViewId();
         CarouselArrows.idForTests(activity, frameId);
+        int dotsId = View.generateViewId();
+        CarouselArrows.dotsIdForTests(activity, dotsId);
         CarouselArrows.turnForTests((carousel, page) -> {
             assertTrue(carousel == pager);
             turned.add(page);
@@ -138,11 +143,21 @@ public class CarouselArrowsTest {
         root.addView(column, new FrameLayout.LayoutParams(WIDTH, HEADER + HEIGHT));
         page(pager);
         page(pager);
-        activity.setContentView(root);
+        // The feed's next row holds Instagram's own dots, centered under the carousel, as 453 lays out a post's buttons.
+        LinearLayout feed = new LinearLayout(activity);
+        feed.setOrientation(LinearLayout.VERTICAL);
+        feed.addView(root, new LinearLayout.LayoutParams(WIDTH, HEADER + HEIGHT));
+        footer = new FrameLayout(activity);
+        instagramDots = new View(activity);
+        instagramDots.setId(dotsId);
+        footer.addView(instagramDots, new FrameLayout.LayoutParams(60, 12, Gravity.CENTER));
+        feed.addView(footer, new LinearLayout.LayoutParams(WIDTH, FOOTER));
+        activity.setContentView(feed);
         shadowOf(Looper.getMainLooper()).idle();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.CAROUSEL_ARROWS.resetToDefault();
+        Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         HookStatus.clear();
     }
 
@@ -162,6 +177,7 @@ public class CarouselArrowsTest {
     public void restore() {
         CarouselArrows.resetForTests();
         Settings.CAROUSEL_ARROWS.resetToDefault();
+        Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -420,6 +436,184 @@ public class CarouselArrowsTest {
 
         assertEquals(0, CarouselArrows.withArrowsForTests());
         assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+    }
+
+    private CarouselArrows.Pill pill() {
+        return CarouselArrows.pillForTests(pager);
+    }
+
+    private void pillOn() {
+        Settings.CAROUSEL_DOTS_PILL.save(true);
+        CarouselArrows.watch(activity);
+        assertTrue("the pill was added, so the frame is drawn again", frame());
+    }
+
+    /** #419: the page dots move onto a round pill over the bottom middle of the carousel, and Instagram's own fade out. */
+    @Test
+    public void thePillShowsThePageOverTheCarouselsBottomAndInstagramsDotsFade() {
+        pillOn();
+        settle();
+
+        assertEquals(1, CarouselArrows.withArrowsForTests());
+        assertNull("the arrows' switch is off", back());
+        assertEquals("the pill sits in the post's frame layout", 2, root.getChildCount());
+        assertTrue(pill().getParent() == root);
+        assertTrue(shows(pill()));
+        assertEquals(0, pill().at);
+        assertEquals(3, pill().count);
+        assertFalse(pill().isClickable());
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, pill().getImportantForAccessibility());
+
+        float d = density();
+        int wide = CarouselArrows.Pill.widest(d);
+        assertEquals(wide, pill().getWidth());
+        assertEquals(Math.round(CarouselArrows.PILL_HEIGHT * d), pill().getHeight());
+        assertEquals(Math.round(WIDTH / 2f - wide / 2f), pill().getLeft() + pill().getTranslationX(), 0f);
+        assertEquals(Math.round(HEADER + HEIGHT - (CarouselArrows.PILL_MARGIN + CarouselArrows.PILL_HEIGHT) * d),
+                pill().getTop() + pill().getTranslationY(), 0f);
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("Counted: " + CarouselArrows.COUNT_PILLS + " 1"));
+        assertFalse(report, report.contains(CarouselArrows.COUNT_SHOWN));
+        assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
+
+        assertFalse("nothing left to change on the next frame", frame());
+    }
+
+    @Test
+    public void thePillFollowsTheCarouselsPage() {
+        pillOn();
+
+        pager.at = 2;
+        assertTrue(frame());
+        assertEquals(2, pill().at);
+
+        pager.at = 1;
+        assertTrue(frame());
+        assertEquals(1, pill().at);
+        assertFalse(frame());
+    }
+
+    @Test
+    public void aCarouselOfOnePageShowsNoPillAndKeepsItsDots() {
+        pager.pages = pages(1);
+
+        Settings.CAROUSEL_DOTS_PILL.save(true);
+        CarouselArrows.watch(activity);
+        frame();
+
+        assertNotNull(pill());
+        assertFalse(shows(pill()));
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+    }
+
+    /** Instagram setting its dots back while the pill shows only lasts until the next frame. */
+    @Test
+    public void dotsInstagramShowsAgainFadeOnTheNextFrame() {
+        pillOn();
+
+        instagramDots.setAlpha(1f);
+
+        assertTrue(frame());
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+    }
+
+    /** Dots further under the carousel than a post's own button row belong to another post. */
+    @Test
+    public void dotsFarUnderTheCarouselAreLeftAlone() {
+        footer.getLayoutParams().height = 600;
+        ((FrameLayout.LayoutParams) instagramDots.getLayoutParams()).gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        footer.requestLayout();
+        shadowOf(Looper.getMainLooper()).idle();
+
+        pillOn();
+
+        assertTrue(shows(pill()));
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+    }
+
+    @Test
+    public void offTakesThePillAwayAndBringsInstagramsDotsBack() {
+        pillOn();
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+
+        Settings.CAROUSEL_DOTS_PILL.save(false);
+        frame();
+
+        assertFalse(CarouselArrows.listeningForTests(activity));
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(1, root.getChildCount());
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+    }
+
+    @Test
+    public void aCarouselThatLeavesTheWindowGivesItsDotsBack() {
+        pillOn();
+
+        root.removeView(column);
+        frame();
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(0, root.getChildCount());
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+    }
+
+    @Test
+    public void bothSwitchesGiveACarouselItsArrowsAndAPill() {
+        Settings.CAROUSEL_ARROWS.save(true);
+        pillOn();
+
+        assertEquals(4, root.getChildCount());
+        assertTrue(shows(next()) && shows(pill()));
+        assertFalse(shows(back()));
+    }
+
+    /** Turning the pill on under carousels already holding arrows swaps in a pill and arrows, with no resume. */
+    @Test
+    public void thePillFlippedOnUnderArrowsJoinsThemWithoutAResume() {
+        on();
+        settle();
+
+        Settings.CAROUSEL_DOTS_PILL.save(true);
+        CarouselArrows.switchChanged(activity);
+        for (int i = 0; i < 3; i++) settle();
+
+        assertNotNull(pill());
+        assertTrue(shows(pill()) && shows(next()));
+        assertEquals(4, root.getChildCount());
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+
+        Settings.CAROUSEL_ARROWS.save(false);
+        for (int i = 0; i < 3; i++) settle();
+
+        assertNull(back());
+        assertTrue(shows(pill()));
+        assertEquals(2, root.getChildCount());
+    }
+
+    /** Past seven pages the dots slide with the page, kept in the middle until an end is reached. */
+    @Test
+    public void aLongCarouselsDotsSlideWithItsPage() {
+        assertEquals(0, CarouselArrows.Pill.first(1, 3));
+        assertEquals(0, CarouselArrows.Pill.first(6, 7));
+        assertEquals(0, CarouselArrows.Pill.first(2, 10));
+        assertEquals(2, CarouselArrows.Pill.first(5, 10));
+        assertEquals(3, CarouselArrows.Pill.first(9, 10));
+        assertEquals(13, CarouselArrows.Pill.first(19, 20));
+    }
+
+    /** A build without Instagram's dots id still shows the pill, and says the dots couldn't be found. */
+    @Test
+    public void withoutTheDotsIdThePillShowsAndSaysSo() {
+        CarouselArrows.resetForTests();
+        CarouselArrows.idForTests(activity, frameId);
+
+        pillOn();
+
+        assertTrue(shows(pill()));
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+        String missing = HookStatus.missing(FAMILY).toString();
+        assertTrue(missing, missing.contains(CarouselArrows.DOTS));
     }
 
     @Test

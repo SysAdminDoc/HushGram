@@ -38,6 +38,7 @@ public class CarouselArrowsSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CAROUSEL_ARROWS.resetToDefault();
+        Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         BaseSettings.SAFE_MODE.save(false);
@@ -49,6 +50,7 @@ public class CarouselArrowsSettingsTest {
         PatchFamily.inBuildForTests = null;
         CarouselArrows.resetForTests();
         Settings.CAROUSEL_ARROWS.resetToDefault();
+        Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -94,5 +96,34 @@ public class CarouselArrowsSettingsTest {
         open(EnumSet.of(PatchFamily.ROUNDED_POST_CORNERS));
         assertNull(page.getPreferenceScreen().findPreference(Settings.CAROUSEL_ARROWS.key));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.CAROUSEL_ARROWS.key));
+        assertNull(page.getPreferenceScreen().findPreference(Settings.CAROUSEL_DOTS_PILL.key));
+        assertFalse(ConfigurationBackup.eligible().containsKey(Settings.CAROUSEL_DOTS_PILL.key));
+    }
+    /** Page dots on a pill (#419) is the patch's second switch, right under the arrows, and starts off. */
+    @Test public void thePillSwitchFollowsTheArrowsAndStartsOff() throws Exception {
+        open(EnumSet.of(PatchFamily.CAROUSEL_ARROWS));
+        Preference arrows = page.getPreferenceScreen().findPreference(Settings.CAROUSEL_ARROWS.key);
+        Preference row = page.getPreferenceScreen().findPreference(Settings.CAROUSEL_DOTS_PILL.key);
+        assertNotNull(row);
+        assertEquals("Page dots on a pill", row.getTitle().toString());
+        assertEquals("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with "
+                + "the page you're on in blue.", row.getSummary().toString());
+        PreferenceGroup feed = arrows.getParent();
+        assertSame(feed, row.getParent());
+        int at = -1;
+        for (int i = 0; i < feed.getPreferenceCount(); i++) if (feed.getPreference(i) == arrows) at = i;
+        assertSame(row, feed.getPreference(at + 1));
+        assertFalse(Settings.CAROUSEL_DOTS_PILL.get());
+        assertTrue(PatchFamily.CAROUSEL_ARROWS.switches.contains(Settings.CAROUSEL_DOTS_PILL));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CAROUSEL_DOTS_PILL.key));
+    }
+    @Test public void flippingThePillOnReachesTheScreenUnderSettings() throws Exception {
+        open(EnumSet.of(PatchFamily.CAROUSEL_ARROWS));
+        Preference row = page.getPreferenceScreen().findPreference(Settings.CAROUSEL_DOTS_PILL.key);
+        assertFalse(CarouselArrows.listeningForTests(controller.get()));
+        assertTrue(row.getOnPreferenceChangeListener().onPreferenceChange(row, true));
+        Settings.CAROUSEL_DOTS_PILL.save(true);
+        org.robolectric.shadows.ShadowLooper.idleMainLooper();
+        assertTrue(CarouselArrows.listeningForTests(controller.get()));
     }
 }

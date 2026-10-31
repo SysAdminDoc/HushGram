@@ -49,7 +49,8 @@ private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $det
 val carouselArrowsPatch = bytecodePatch(
     name = "Carousel arrows",
     description = "Puts a back and a next arrow on a post's carousel in Home and Following, so a tap moves to the " +
-        "next photo or video without a swipe. Starts off. Turn it on in HushGram settings > Feed.",
+        "next photo or video without a swipe, and can move its page dots onto a round pill over the photo. " +
+        "Both start off. Turn them on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)

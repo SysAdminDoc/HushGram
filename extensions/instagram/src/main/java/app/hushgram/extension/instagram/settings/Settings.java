@@ -377,6 +377,13 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_carousel_arrows", FALSE);
 
     /**
+     * A feed carousel's page dots on a round pill over the bottom of its photo, in place of Instagram's own dots
+     * under it ({@link app.hushgram.extension.instagram.feed.CarouselArrows}, #419). Off to start.
+     */
+    public static final BooleanSetting CAROUSEL_DOTS_PILL =
+            new BooleanSetting("hushgram_carousel_dots_pill", FALSE);
+
+    /**
      * A soft glow in a post's or a reel's own colors around it ({@link app.hushgram.extension.instagram.feed.AmbientLight},
      * #416). Only a stage's background is wrapped, so off or paused, every stage has its own back at once. Off to start.
      */

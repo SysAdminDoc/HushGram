@@ -1418,6 +1418,9 @@ Carousel arrows	Flechas del carrusel
 Puts a back and a next arrow on a carousel post's photos and videos. Tap one to move a page without swiping.	Pone una flecha para volver y otra para avanzar en las fotos y videos de una publicación en carrusel. Toca una para cambiar de página sin deslizar.
 Previous page	Página anterior
 Next page	Página siguiente
+# context: Feed settings: the Page dots on a pill switch, right under Carousel arrows (#419). A pill is a small bar with round ends that holds the dots.
+Page dots on a pill	Puntos de página en una cápsula
+Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, with the page you're on in blue.	Mueve los puntos de página de una publicación en carrusel a una cápsula redonda en la parte inferior de su foto o video, con la página en la que estás en azul.
 # context: Feed settings: the Ambient light switch and its Glow spread and Glow speed lists (#416)
 Ambient light	Luz ambiental
 Puts a soft glow in a post's own colors around its photo or video, and in the bands around a reel that doesn't fill the screen. The glow follows a video as it plays.	Pone un brillo suave con los colores de la publicación alrededor de su foto o video, y en las franjas alrededor de un reel que no llena la pantalla. El brillo sigue al video mientras se reproduce.
