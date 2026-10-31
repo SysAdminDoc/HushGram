@@ -118,9 +118,10 @@ public final class HiddenChats {
         try {
             HookStatus.invoked(FamilyNames.MESSAGES_LOCK);
             Set<String> hidden = ids();
-            remember(holder, summaries, hidden);
+            List<String> pins = PinnedChats.ids();
+            remember(holder, summaries, hidden, pins);
             if (summaries == null || summaries.isEmpty()) return summaries;
-            return without(summaries, hidden, LEFT_OUT);
+            return PinnedChats.first(without(summaries, hidden, LEFT_OUT), pins);
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.MESSAGES_LOCK, FILTER, t);
             return summaries;
@@ -182,7 +183,7 @@ public final class HiddenChats {
         return shown;
     }
 
-    private static String idOf(Object summary) {
+    static String idOf(Object summary) {
         try {
             String id = reader.threadId(summary);
             return id == null || id.trim().isEmpty() ? null : id.trim();
@@ -209,11 +210,13 @@ public final class HiddenChats {
         final WeakReference<Object> holder;
         final List<Object> summaries;
         Set<String> hidden;
+        List<String> pins;
 
-        Drawn(Object holder, List<Object> summaries, Set<String> hidden) {
+        Drawn(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins) {
             this.holder = new WeakReference<>(holder);
             this.summaries = summaries;
             this.hidden = hidden;
+            this.pins = pins;
         }
     }
 
@@ -225,14 +228,14 @@ public final class HiddenChats {
      * what it had. A null list forgets the holder. Nothing is kept while HushGram is paused or its
      * settings aren't ready, so nothing is drawn again then either.
      */
-    private static void remember(Object holder, List<Object> summaries, Set<String> hidden) {
+    private static void remember(Object holder, List<Object> summaries, Set<String> hidden, List<String> pins) {
         if (holder == null || !Utils.settingsReady() || HushgramPause.isPaused()) return;
         synchronized (drawn) {
             for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                 Object kept = it.next().holder.get();
                 if (kept == null || kept == holder) it.remove();
             }
-            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden));
+            if (summaries != null) drawn.add(new Drawn(holder, summaries, hidden, pins));
         }
     }
 
@@ -252,6 +255,7 @@ public final class HiddenChats {
             synchronized (drawn) {
                 if (drawn.isEmpty()) return;
                 Set<String> now = ids();
+                List<String> nowPins = PinnedChats.ids();
                 for (Iterator<Drawn> it = drawn.iterator(); it.hasNext(); ) {
                     Drawn one = it.next();
                     Object holder = one.holder.get();
@@ -259,10 +263,11 @@ public final class HiddenChats {
                         it.remove();
                         continue;
                     }
-                    if (one.hidden.equals(now)) continue;
-                    List<Object> before = without(one.summaries, one.hidden, null);
-                    List<Object> after = without(one.summaries, now, null);
+                    if (one.hidden.equals(now) && one.pins.equals(nowPins)) continue;
+                    List<Object> before = PinnedChats.first(without(one.summaries, one.hidden, null), one.pins);
+                    List<Object> after = PinnedChats.first(without(one.summaries, now, null), nowPins);
                     one.hidden = now;
+                    one.pins = nowPins;
                     if (sameRows(before, after)) continue;
                     holders.add(holder);
                     lists.add(after);

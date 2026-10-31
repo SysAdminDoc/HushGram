@@ -166,6 +166,7 @@ final class MessagesCategory {
                         L10n.t("Two quick taps on the Messages button, on the tab bar or at the top of Home, open "
                                 + "your hidden chats. While a lock is on, it asks for it first. One tap opens Messages "
                                 + "as usual.")));
+                messages.addPreference(page.pinnedChatsRow(context));
             }
         }
     }

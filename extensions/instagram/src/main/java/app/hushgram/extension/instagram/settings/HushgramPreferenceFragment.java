@@ -92,6 +92,7 @@ import java.util.regex.Pattern;
 import app.hushgram.extension.instagram.direct.ChatAccounts;
 import app.hushgram.extension.instagram.direct.ChatLocks;
 import app.hushgram.extension.instagram.direct.HiddenChats;
+import app.hushgram.extension.instagram.direct.PinnedChats;
 import app.hushgram.extension.instagram.direct.LockDelay;
 import app.hushgram.extension.instagram.direct.MessageBox;
 import app.hushgram.extension.instagram.direct.MessagesLock;
@@ -201,6 +202,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     static final String LOCKED_CHATS_ROW = "hushgram_locked_chats_row";
     /** The row that lists the chats hidden one at a time. */
     static final String HIDDEN_CHATS_ROW = "hushgram_hidden_chats_row";
+    /** The row that lists the chats pinned to the top of the inbox. */
+    static final String PINNED_CHATS_ROW = "hushgram_pinned_chats_row";
     /** The row that sets or changes the HushGram PIN. */
     static final String CHANGE_PIN_ROW = "hushgram_change_pin_row";
     static final String HIDDEN_ACCOUNTS_ROW = "hushgram_hidden_accounts_row";
@@ -683,7 +686,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
-                            || HIDDEN_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
+                            || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
                             || CHANGE_PIN_ROW.equals(key));
                     belongs |= family == PatchFamily.RESUME_LONG_VIDEOS && row == clearPositions;
                     belongs |= (family == PatchFamily.REEL_DOWNLOAD || family == PatchFamily.STORY_DOWNLOAD
@@ -3053,6 +3056,69 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                         return;
                     }
                     Utils.showToastShort(L10n.f("%1$s is shown again", L10n.isolate(chat.name)));
+                }
+            });
+        }
+        return builder.setPositiveButton(L10n.t("OK"), null);
+    }
+
+    /** The row that opens the list of chats pinned to the top of your inbox (#345). */
+    Row pinnedChatsRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(PINNED_CHATS_ROW);
+        row.setPersistent(false);
+        row.setTitle(L10n.t("Pinned chats"));
+        row.setSummary(L10n.t("Keeps the chats you pick at the top of your inbox. The pins stay on this phone, "
+                + "and Instagram's own order holds for every other chat."));
+        row.setOnPreferenceClickListener(tapped -> {
+            Context host = getActivity();
+            if (host == null) return true;
+            show(pinnedChatsList(host, this::allowMutation));
+            return true;
+        });
+        return row;
+    }
+
+    /**
+     * The chats pinned on the account you're signed in to, each with a check, and the chat you opened
+     * last above them when it isn't pinned. Checking one pins it at once, below the ones pinned
+     * before it; unchecking one puts it back where Instagram has it. Each account keeps its own pins.
+     */
+    private static AlertDialog.Builder pinnedChatsList(Context context, BooleanSupplier allowMutation) {
+        String account = ChatAccounts.active();
+        List<ChatLocks.Chat> chats = new ArrayList<>(PinnedChats.saved(account));
+        ChatLocks.Chat last = PinnedChats.lastOpened(account);
+        int offered = last == null ? 0 : 1;
+        if (last != null) chats.add(0, last);
+        AlertDialog.Builder builder = new AlertDialog.Builder(context).setTitle(L10n.t("Pinned chats"));
+        if (chats.isEmpty()) {
+            builder.setMessage(L10n.t("Open a chat in Instagram, then come back here to pin it."));
+        } else {
+            CharSequence[] names = new CharSequence[chats.size()];
+            boolean[] pinned = new boolean[chats.size()];
+            for (int i = 0; i < names.length; i++) {
+                boolean offer = i < offered;
+                names[i] = offer ? L10n.f("%1$s (opened last)", chats.get(i).name) : chats.get(i).name;
+                pinned[i] = !offer;
+            }
+            builder.setMultiChoiceItems(names, pinned, (dialog, which, checked) -> {
+                if (!allowMutation.getAsBoolean()) {
+                    setChecked((AlertDialog) dialog, which, !checked);
+                    return;
+                }
+                ChatLocks.Chat chat = chats.get(which);
+                if (checked) {
+                    if (!PinnedChats.add(account, chat.id, chat.name)) {
+                        notSaved((AlertDialog) dialog, which, false);
+                        return;
+                    }
+                    Utils.showToastShort(L10n.f("%1$s is pinned", L10n.isolate(chat.name)));
+                } else {
+                    if (!PinnedChats.remove(account, chat.id)) {
+                        notSaved((AlertDialog) dialog, which, true);
+                        return;
+                    }
+                    Utils.showToastShort(L10n.f("%1$s is unpinned", L10n.isolate(chat.name)));
                 }
             });
         }
