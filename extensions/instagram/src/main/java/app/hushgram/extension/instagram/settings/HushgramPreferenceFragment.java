@@ -1912,6 +1912,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             }
         }
         if (galleryFolders != null) galleryFolders.setEnabled(!busy && SaveTree.picked());
+        Preference folder = findPreference(Settings.SAVE_FOLDER.key);
+        if (folder instanceof FolderRow) ((FolderRow) folder).showWhere();
     }
 
     private static boolean isFontRequest(int request) {
@@ -6056,7 +6058,14 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         @Override
         public void setText(String text) {
             super.setText(text);
-            setSummary(folderSummary(SaveFolder.sanitize(text)));
+            showWhere();
+        }
+
+        /** Where saves go: a folder that's picked and still there takes them all, and this name isn't used. */
+        void showWhere() {
+            setSummary(SaveTree.reachable(getContext())
+                    ? L10n.t("Not used while you've picked a folder. Saves go there.")
+                    : folderSummary(SaveFolder.sanitize(getText())));
         }
 
         @Override

@@ -1497,3 +1497,4 @@ Instagram's reminder to review whether it can process your data for ads stops op
 Stop videos looping	동영상 반복 재생 중지
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	피드 동영상과 릴스가 다시 재생되지 않고 마지막 장면에서 멈춥니다. 자동 스크롤이 켜져 있으면 다음 릴스로 넘어갈 수 있도록 릴스는 계속 반복됩니다.
+Not used while you've picked a folder. Saves go there.	폴더를 골라 둔 동안에는 사용되지 않아요. 고른 폴더에 저장돼요.

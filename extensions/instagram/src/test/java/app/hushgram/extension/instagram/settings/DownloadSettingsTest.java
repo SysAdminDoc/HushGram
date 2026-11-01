@@ -784,6 +784,9 @@ public class DownloadSettingsTest {
                     String.valueOf(chooseRow.getSummary()));
             assertTrue(chooseRow.isEnabled());
             assertTrue(galleryRow.isEnabled());
+            Preference nameRow = page.findPreference(Settings.SAVE_FOLDER.key);
+            assertEquals("the name row still says saves go to Movies and Pictures",
+                    "Not used while you've picked a folder. Saves go there.", String.valueOf(nameRow.getSummary()));
 
             assertFalse(ConfigurationBackup.eligible().containsKey(Settings.SAVE_TREE.key));
             String exported = new String(ConfigurationBackup.export(), StandardCharsets.UTF_8);
@@ -803,6 +806,7 @@ public class DownloadSettingsTest {
             assertEquals("Saves go to Movies and Pictures again.", ShadowToast.getTextOfLatestToast());
             assertFalse(galleryRow.isEnabled());
             assertTrue(String.valueOf(chooseRow.getSummary()).startsWith("Saves go to Movies and Pictures."));
+            assertEquals(HushgramPreferenceFragment.folderSummary("Instagram"), String.valueOf(nameRow.getSummary()));
         } finally {
             SaveTree.forget(RuntimeEnvironment.getApplication());
         }
@@ -818,9 +822,12 @@ public class DownloadSettingsTest {
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.VIDEO_DOWNLOAD);
         try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
-            Preference row = pageIn(controller).findPreference(Settings.SAVE_TREE.key);
+            HushgramPreferenceFragment page = pageIn(controller);
+            Preference row = page.findPreference(Settings.SAVE_TREE.key);
             assertEquals(L10n.f("HushGram can't reach %1$s anymore, so saves go to Movies and Pictures. Pick the folder again.",
                     L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
+            assertEquals("the name is what saves use now", HushgramPreferenceFragment.folderSummary("Instagram"),
+                    String.valueOf(page.findPreference(Settings.SAVE_FOLDER.key).getSummary()));
         } finally {
             SaveTree.forget(context);
         }
@@ -841,6 +848,8 @@ public class DownloadSettingsTest {
                     L10n.isolate("Download/.Insta")), String.valueOf(row.getSummary()));
             assertTrue("Use Movies and Pictures can't be tapped for a deleted folder",
                     page.findPreference(HushgramPreferenceFragment.GALLERY_FOLDERS).isEnabled());
+            assertEquals("the name is what saves use now", HushgramPreferenceFragment.folderSummary("Instagram"),
+                    String.valueOf(page.findPreference(Settings.SAVE_FOLDER.key).getSummary()));
         } finally {
             SaveTree.forget(context);
         }
