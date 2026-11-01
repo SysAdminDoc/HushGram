@@ -32,7 +32,8 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Hide the caught up card (#307): the binder's hook folds the card's row to no height with the switch
- * on, keeps a top of feed card, and puts back the row's own height when the switch goes off.
+ * on, takes only the line off a top of feed card, and puts back the row's own height when the switch
+ * goes off.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -61,6 +62,9 @@ public class CaughtUpCardTest {
         }
     }
 
+    /** Stands in for the id Instagram's resources give the card's check mark and text. */
+    private static final int BAR_ID = 0x7f0b0001;
+
     private Function<Object, Object> savedDetails;
     private View row;
 
@@ -68,6 +72,7 @@ public class CaughtUpCardTest {
     public void prepare() {
         savedDetails = CaughtUpCard.detailsOf;
         CaughtUpCard.detailsOf = card -> ((Card) card).details;
+        CaughtUpCard.barId = -1;
         reset();
         row = new FrameLayout(RuntimeEnvironment.getApplication());
         row.setLayoutParams(new ViewGroup.MarginLayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -76,6 +81,7 @@ public class CaughtUpCardTest {
     @After
     public void restore() {
         CaughtUpCard.detailsOf = savedDetails;
+        CaughtUpCard.barId = -1;
         reset();
     }
 
@@ -131,6 +137,68 @@ public class CaughtUpCardTest {
         CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
         assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, row.getLayoutParams().height);
         assertEquals(View.VISIBLE, row.getVisibility());
+    }
+
+    @Test
+    public void aTopOfFeedCardLosesItsLineAndKeepsItsLink() {
+        View bar = withBar();
+        View header = new FrameLayout(RuntimeEnvironment.getApplication());
+        ((ViewGroup) row).addView(header);
+
+        Settings.HIDE_CAUGHT_UP_CARD.save(true);
+        CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
+        assertEquals("the line goes", View.GONE, bar.getVisibility());
+        assertEquals("the row stays", View.VISIBLE, row.getVisibility());
+        assertEquals("the link stays", View.VISIBLE, header.getVisibility());
+        assertTrue(report(), report().contains(CaughtUpCard.COUNT_TOP_TEXT + " 1"));
+
+        CaughtUpCard.bind(row, new Card(Kind.TOF_HOMECOMING_ALL));
+        assertEquals(View.GONE, bar.getVisibility());
+
+        Settings.HIDE_CAUGHT_UP_CARD.save(false);
+        CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
+        assertEquals("back with the switch off", View.VISIBLE, bar.getVisibility());
+    }
+
+    @Test
+    public void aRowUsedAgainGetsTheLineBack() {
+        View bar = withBar();
+        Settings.HIDE_CAUGHT_UP_CARD.save(true);
+        CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
+        assertEquals(View.GONE, bar.getVisibility());
+
+        // Folded, the whole row is gone, so its line can come back for the next card it holds.
+        CaughtUpCard.bind(row, new Card(Kind.V2));
+        assertEquals(View.GONE, row.getVisibility());
+        assertEquals(View.VISIBLE, bar.getVisibility());
+    }
+
+    @Test
+    public void aLineThisDidntHideIsLeftAlone() {
+        View bar = withBar();
+        bar.setVisibility(View.INVISIBLE);
+        Settings.HIDE_CAUGHT_UP_CARD.save(false);
+        CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
+        assertEquals(View.INVISIBLE, bar.getVisibility());
+    }
+
+    @Test
+    public void aRowWithoutTheLineStaysWhole() {
+        CaughtUpCard.barId = BAR_ID;
+        Settings.HIDE_CAUGHT_UP_CARD.save(true);
+        CaughtUpCard.bind(row, new Card(Kind.TOP_OF_FEED));
+        assertEquals(View.VISIBLE, row.getVisibility());
+        assertTrue(report(), report().contains(CaughtUpCard.COUNT_KEPT_TOP + " 1"));
+        assertFalse(report(), report().contains(CaughtUpCard.COUNT_TOP_TEXT));
+    }
+
+    /** Gives the row the view holding a card's check mark and text. */
+    private View withBar() {
+        CaughtUpCard.barId = BAR_ID;
+        View bar = new FrameLayout(RuntimeEnvironment.getApplication());
+        bar.setId(BAR_ID);
+        ((ViewGroup) row).addView(bar);
+        return bar;
     }
 
     @Test

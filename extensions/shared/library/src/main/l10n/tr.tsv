@@ -541,7 +541,7 @@ Group notifications	Bildirimleri grupla
 Hide shopping	Alışverişi gizle
 Hide surveys	Anketleri gizle
 Hide the caught up card	Hepsini gördün kartını gizle
-Hides the card after the posts from accounts you follow that says you've seen the latest ones, and its Older posts link. When Home has no new posts at all, the card stays. Pull down on Home to refresh after changing it.	Takip ettiğin hesapların gönderilerinden sonra gelen, en yenilerini gördüğünü söyleyen kartı ve onun Eski gönderiler bağlantısını gizler. Ana Sayfa'da hiç yeni gönderi yoksa kart kalır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
+Hides the card after the posts from accounts you follow that says you've seen the latest ones, and its Older posts link. When Home has no new posts at all, only that line goes and the link stays. Pull down on Home to refresh after changing it.	Takip ettiğin hesapların gönderilerinden sonra gelen, en yenilerini gördüğünü söyleyen kartı ve onun Eski gönderiler bağlantısını gizler. Ana Sayfa'da hiç yeni gönderi yoksa yalnızca o yazı gider, bağlantı kalır. Değiştirdikten sonra yenilemek için Ana Sayfa'yı aşağı çek.
 Instagram is locked	Instagram kilitli
 Instagram locks as soon as you leave it or the screen turns off.	Instagram'dan çıktığın veya ekran kapandığı anda Instagram kilitlenir.
 Instagram locks once you've been away from it for %1$s.	Instagram'dan %1$s boyunca uzak kaldığında Instagram kilitlenir.

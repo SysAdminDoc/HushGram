@@ -60,7 +60,7 @@ public class CaughtUpCardSettingsTest {
         Preference row = page.getPreferenceScreen().findPreference(Settings.HIDE_CAUGHT_UP_CARD.key);
         assertNotNull(row);
         assertEquals("Hide the caught up card", row.getTitle().toString());
-        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("When Home has no new posts at all, the card stays."));
+        assertTrue(row.getSummary().toString(), row.getSummary().toString().contains("When Home has no new posts at all, only that line goes and the link stays."));
         PreferenceGroup feed = (PreferenceGroup) row.getParent();
         assertEquals("Feed", feed.getTitle().toString());
         int at = -1, interestAt = -1;

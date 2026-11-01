@@ -9,7 +9,9 @@ import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.function.Function;
 
@@ -27,7 +29,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * load more row under it and {@link FeedSuggestions#endCardRule}. Only its row folds. A card of a
  * top of feed kind ({@link #TOP_OF_FEED} or one starting {@link #TOP_OF_FEED_PREFIX}), the one
  * Instagram puts at the top of Home when there are no new posts at all, keeps its row, since Home
- * would show nothing under the stories otherwise. A card whose kind can't be read folds. Main thread.
+ * would show nothing under the stories otherwise and its Older posts link is the way on from there.
+ * It loses its check mark and text ({@link #BAR}), which is the part people asked to hide. A card
+ * whose kind can't be read folds. Main thread.
  */
 public final class CaughtUpCard {
     /** The kind of the card at the top of Home, which also marks the enum the card's kinds are in. */
@@ -38,6 +42,13 @@ public final class CaughtUpCard {
     /** The report's counts of how each card went. */
     static final String COUNT_FOLDED = "caught up cards folded";
     static final String COUNT_KEPT_TOP = "caught up cards kept at the top of Home";
+    static final String COUNT_TOP_TEXT = "caught up texts hidden at the top of Home";
+
+    /** The name of the view holding a card's check mark and text, above its header and link. */
+    static final String BAR = "demarcator_bar_container";
+
+    /** The id of {@link #BAR}, 0 when this build has none, -1 before the first ask. Tests stand in. */
+    static volatile int barId = -1;
 
     /** Reads the details a card's kind is in, as {@link #details} does. Tests stand in. */
     static volatile Function<Object, Object> detailsOf = CaughtUpCard::details;
@@ -45,27 +56,47 @@ public final class CaughtUpCard {
     /** Each folded row's own height, to put back when the switch goes off. */
     private static final Map<View, Integer> heights = new WeakHashMap<>();
 
+    /** The bars this hid, so only those come back on a row used again. */
+    private static final Set<View> hiddenBars = Collections.newSetFromMap(new WeakHashMap<>());
+
     private CaughtUpCard() {
     }
 
     /**
      * Injected first thing in the end of feed card's binder, with the card's row and the card. Folds
      * the row while the switch is on and the card isn't a top of feed one, and unfolds a row it folded
-     * otherwise. Never throws.
+     * otherwise. A top of feed card hides its check mark and text instead. Never throws.
      */
     public static void bind(View row, Object card) {
         if (row == null) return;
         try {
             HookStatus.invoked(FamilyNames.FEED_SUGGESTIONS);
             boolean fold = card != null && Utils.settingsReady() && Settings.HIDE_CAUGHT_UP_CARD.get();
-            if (fold && atTop(card)) {
+            boolean top = fold && atTop(card);
+            if (top) {
                 fold = false;
                 HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, COUNT_KEPT_TOP);
             }
             if (fold) HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, COUNT_FOLDED);
             fold(row, fold);
+            hideBar(row, top);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.FEED_SUGGESTIONS, "caught up card", failure);
+        }
+    }
+
+    /** Hides [row]'s check mark and text, or puts them back when this hid them. */
+    private static void hideBar(View row, boolean hide) {
+        int id = barId;
+        if (id == -1) barId = id = row.getResources().getIdentifier(BAR, "id", row.getContext().getPackageName());
+        View bar = id == 0 ? null : row.findViewById(id);
+        if (bar == null) return;
+        if (hide) {
+            hiddenBars.add(bar);
+            bar.setVisibility(View.GONE);
+            HookStatus.counted(FamilyNames.FEED_SUGGESTIONS, COUNT_TOP_TEXT);
+        } else if (hiddenBars.remove(bar)) {
+            bar.setVisibility(View.VISIBLE);
         }
     }
 
