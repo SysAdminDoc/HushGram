@@ -92,7 +92,9 @@ internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 
 /**
  * The dark theme's styles that set [STORY_BACKGROUND]: Prism's dark palette and its gray
- * overrides. The light theme's stories keep their gray. The patch fails unless both change.
+ * overrides. The light theme's style keeps its gray. On 453 a test account's viewer draws [PRISM_BLACK]
+ * in those bands in both themes, without Pure black, and [PURE_BLACK] with it (#322). The patch fails
+ * unless both change.
  */
 internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
 

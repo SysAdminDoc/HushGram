@@ -154,7 +154,7 @@ class PureBlackTest {
 
     /**
      * The story viewer's gray goes pure black in both dark styles that set it (#279). The light
-     * theme's stories, a story's other grays and the sheets, which blackenSheets owns, stay.
+     * theme's style, a story's other grays and the sheets, which blackenSheets owns, stay.
      */
     @Test
     fun theDarkStoriesGetPureBlack() {
