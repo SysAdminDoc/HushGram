@@ -17,11 +17,13 @@ import app.morphe.patches.instagram.profile.threads.USER_DETAIL
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -73,7 +75,8 @@ class ProfileExtrasHookTest {
                 method.implementation?.instructions?.any { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.definingClass == PROFILE_ACTION_BAR } == true
         }.map { it.definingClass }.toSet()
         val callerClasses = FixtureDex.classes(bundle, callers).values
-        val context = PatchContexts.of((base + callerClasses).distinctBy { it.type } + ExtensionDex.classDef(PROFILE_EXTRAS))
+        val modelReads = accountReadClasses(bundle, base)
+        val context = PatchContexts.of((base + callerClasses + modelReads).distinctBy { it.type } + ExtensionDex.classDef(PROFILE_EXTRAS))
         val site = context.findProfileExtras()
         assertTrue("$label: a caller binds the bar", site.ties.isNotEmpty())
 
@@ -100,6 +103,28 @@ class ProfileExtrasHookTest {
             assertEquals("$where: hands the bar and the screen", listOf(tie.bar, tie.screen), steps[tie.call + 1].arguments())
             tiesBefore.getValue(tie).assertPreserved(where, method, setOf(tie.call + 1))
         }
+
+        // #234: on a build keeping the account in live data, the read goes through that live data and
+        // its holder to the user. The field walk it replaced stopped a level short and found nothing.
+        val read = context.method(PROFILE_EXTRAS, EXTRAS_MODEL_USER, listOf("Ljava/lang/Object;")).code().mapNotNull { it.referenceText() }
+        assertEquals("$label: the account read starts at the view model", USER_DETAIL_MODEL, read.first())
+        val steps = listOfNotNull(site.user.field, site.user.live, site.user.getValue, site.user.holderField).map { it.toString() }
+        assertTrue("$label: the account read's steps: $read", read.containsAll(steps))
+        assertEquals("$label: ends at the account", "Lcom/instagram/user/model/User;", read.last())
+    }
+
+    /** What the model's fields and methods name, with the classes above those and what those classes keep, which the read is found through. */
+    private fun accountReadClasses(bundle: File, base: Collection<ClassDef>): Collection<ClassDef> {
+        val model = base.single { it.type == USER_DETAIL_MODEL }
+        val wanted = model.fields.map { it.type.toString() }.filter { it.startsWith("L") }.toMutableSet()
+        model.methods.flatMap { it.implementation?.instructions?.toList().orEmpty() }.forEach { step ->
+            ((step as? ReferenceInstruction)?.reference as? FieldReference)?.let { wanted += it.definingClass }
+        }
+        wanted += "Lcom/instagram/user/model/User;"
+        val found = FixtureDex.classes(bundle, wanted).values
+        val above = FixtureDex.classes(bundle, found.flatMap { it.interfaces.map(CharSequence::toString) + listOfNotNull(it.superclass) }.toSet()).values
+        val kept = (found + above).flatMap { classDef -> classDef.fields.map { it.type.toString() } }.filter { it.startsWith("L") }.toSet()
+        return found + above + FixtureDex.classes(bundle, kept).values
     }
 
     private fun BytecodePatchContext.method(type: String, name: String, parameters: List<String>): MutableMethod =

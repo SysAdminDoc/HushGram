@@ -175,6 +175,40 @@ private fun BytecodePatchContext.findLiveValue(type: String): MethodReference? {
 
 internal fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
+/** Where [VIEW_MODEL] keeps the profile's user, found from its own setter. */
+internal fun BytecodePatchContext.findProfileUser(refuse: (String) -> Nothing): ProfileUser {
+    val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
+    viewModelClass.instanceFields(USER).singleOrNull()?.let { return ProfileUser(it, null, null, null, null) }
+    val setters = viewModelClass.methods.filter {
+        AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+            it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) && it.implementation != null
+    }
+    val setter = setters.singleOrNull()
+        ?: refuse("expected one static ($VIEW_MODEL, $USER) setter, found ${setters.size}")
+    val setterCode = setter.implementation!!.instructions.toList()
+    val live = setterCode.indices.mapNotNull { at ->
+        val read = setterCode[at]
+        val field = read.fieldReference() ?: return@mapNotNull null
+        if (read.opcode != Opcode.IGET_OBJECT || field.definingClass != VIEW_MODEL || findLiveValue(field.type) == null) {
+            return@mapNotNull null
+        }
+        val setValue = setterCode.getOrNull(at + 1)?.methodReference()
+        field.takeIf {
+            setValue?.parameterTypes?.map(CharSequence::toString) == listOf(OBJECT) && setValue.returnType == "Z"
+        }
+    }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't keep the user in live data")
+    val holderField = setterCode.mapNotNull { instruction ->
+        instruction.fieldReference()?.takeIf { field ->
+            instruction.opcode == Opcode.IGET_OBJECT && field.definingClass != VIEW_MODEL &&
+                classDefByOrNull(field.definingClass)?.let { holder ->
+                    holder.fields.any { it.type == USER || it.type.startsWith("L") && classDefByOrNull(it.type) != null && USER != it.type }
+                } == true
+        }
+    }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't read the user's holder")
+    val getValue = findLiveValue(live.type) ?: refuse("${live.type} has no getValue()Object")
+    return ProfileUser(null, live, getValue, holderField.definingClass, holderField)
+}
+
 /**
  * The profile header's binder and what the patch needs from it: the two calls that show and hide the
  * pronouns slot, each with the register holding the slot, the parameter holding the profile screen's
@@ -305,42 +339,7 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     }
     val (header, headerType, viewModel) = headers.singleOrNull()
         ?: refuse("expected one parameter of $where holding a $VIEW_MODEL, found ${headers.size}")
-    val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
-    val direct = viewModelClass.instanceFields(USER).singleOrNull()
-    val user = if (direct != null) {
-        ProfileUser(direct, null, null, null, null)
-    } else {
-        val setters = viewModelClass.methods.filter {
-            AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
-                it.parameterTypes.map(CharSequence::toString) == listOf(VIEW_MODEL, USER) && it.implementation != null
-        }
-        val setter = setters.singleOrNull()
-            ?: refuse("expected one static ($VIEW_MODEL, $USER) setter, found ${setters.size}")
-        val setterCode = setter.implementation!!.instructions.toList()
-        val live = setterCode.indices.mapNotNull { at ->
-            val read = setterCode[at]
-            val field = read.fieldReference() ?: return@mapNotNull null
-            if (read.opcode != Opcode.IGET_OBJECT || field.definingClass != VIEW_MODEL || findLiveValue(field.type) == null) {
-                return@mapNotNull null
-            }
-            val setValue = setterCode.getOrNull(at + 1)?.methodReference()
-            field.takeIf {
-                setValue?.parameterTypes?.map(CharSequence::toString) == listOf(OBJECT) && setValue.returnType == "Z"
-            }
-        }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't keep the user in live data")
-        val holderField = setterCode.mapNotNull { instruction ->
-            instruction.fieldReference()?.takeIf { field ->
-                instruction.opcode == Opcode.IGET_OBJECT && field.definingClass != VIEW_MODEL &&
-                    classDefByOrNull(field.definingClass)?.let { holder ->
-                        holder.fields.any { it.type == USER || it.type.startsWith("L") && classDefByOrNull(it.type) != null && USER != it.type }
-                    } == true
-            }
-        }.singleOrNull() ?: refuse("$VIEW_MODEL's user setter doesn't read the user's holder")
-        val holder = holderField.definingClass
-        val getValue = findLiveValue(live.type)
-            ?: refuse("${live.type} has no getValue()Object")
-        ProfileUser(null, live, getValue, holder, holderField)
-    }
+    val user = findProfileUser(::refuse)
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val getters = userClass.methods.filter {
         !AccessFlags.STATIC.isSet(it.accessFlags) && it.parameterTypes.isEmpty() && it.returnType == BOOLEAN &&
@@ -385,6 +384,7 @@ internal fun BytecodePatchContext.findProfileName(): ProfileName {
     val headerClass = classDefByOrNull(headerType)!!
     val slotClass = classDefByOrNull(slot) ?: refuse("$slot, the pronouns slot, isn't in this build")
     val relationshipClass = classDefByOrNull(RELATIONSHIP) ?: refuse("$RELATIONSHIP isn't in this build")
+    val viewModelClass = classDefByOrNull(VIEW_MODEL) ?: refuse("$VIEW_MODEL isn't in this build")
     listOf(headerClass, viewModelClass, userClass, slotClass, relationshipClass, sessionClass).forEach { reachable ->
         if (!AccessFlags.PUBLIC.isSet(reachable.accessFlags)) refuse("${reachable.type} isn't public, so the extension can't reach it")
     }

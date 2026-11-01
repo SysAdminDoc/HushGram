@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Profile extras button` shows up on profiles again, and `Keep a viewing history` now records the profiles you open. Both were reading the account in a way 453 no longer answers. Reported in #234.
 * **Instagram:** A long press on a chat's name now opens the menu for `Jump to the first message or a date` and `Export a chat as text`. In 0.0.18 it opened the chat's details instead. A plain tap on the name still opens the details
 * **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none. Each message is now read from its own row, so an export holds only that chat
 * **Instagram:** `Export a chat as text` and `Jump to the first message` now load a long chat all the way back. They used to stop at the newest page, because Instagram only asks for older messages when a scroll moves toward them, and a jump to the top doesn't count as one. Shared reels, voice messages and chat notices read as plain words in the file

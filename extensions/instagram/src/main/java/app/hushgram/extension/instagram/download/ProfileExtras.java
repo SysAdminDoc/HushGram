@@ -108,7 +108,6 @@ public final class ProfileExtras {
     static Account account = ProfileExtras::accountOf;
 
     private static final String SCREEN_MODEL = "com.instagram.profile.fragment.UserDetailViewModel";
-    private static final String USER_TYPE = "com.instagram.user.model.User";
 
     /**
      * Injected right after each call that binds the bar, with the bar and the profile screen that
@@ -130,61 +129,24 @@ public final class ProfileExtras {
         stateOf(bar).user = user;
     }
 
-    /** The screen's one view model field, then that model's one account field, by type; null when either is missing. */
+    /** The screen's one view model field, then the account that model holds; null when either is missing. */
     static Object accountOf(Object screen) {
         try {
             Object model = fieldOfType(screen, SCREEN_MODEL);
-            if (model == null) return null;
-            Object field = fieldOfType(model, USER_TYPE);
-            if (field != null) return field;
-            Object getter = getterOf(model, USER_TYPE);
-            return getter != null ? getter : liveUser(model);
+            return model == null ? null : modelUser(model);
         } catch (Throwable failure) {
             HookStatus.threw(ROUTE, "profile extras account read", failure);
             return null;
         }
     }
 
-
-    /** The account wrapped in the model's live data, by reflecting the value and its fields. */
-    private static Object liveUser(Object model) throws Exception {
-        for (Class<?> type = model.getClass(); type != null && type != Object.class; type = type.getSuperclass()) {
-            for (java.lang.reflect.Field field : type.getDeclaredFields()) {
-                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
-                Object value;
-                try {
-                    field.setAccessible(true);
-                    value = field.get(model);
-                } catch (Throwable ignored) {
-                    continue;
-                }
-                if (value == null || value instanceof String || value instanceof Number || value instanceof Boolean) continue;
-                for (Class<?> valueType = value.getClass(); valueType != null && valueType != Object.class; valueType = valueType.getSuperclass()) {
-                    for (java.lang.reflect.Field held : valueType.getDeclaredFields()) {
-                        if (java.lang.reflect.Modifier.isStatic(held.getModifiers())) continue;
-                        try {
-                            held.setAccessible(true);
-                            Object candidate = held.get(value);
-                            if (candidate != null && candidate.getClass().getName().equals(USER_TYPE)) return candidate;
-                        } catch (Throwable ignored) {
-                            // The live value's other fields aren't the account.
-                        }
-                    }
-                }
-            }
-        }
-        return null;
-    }
-    /** The model's static getter taking itself and answering the account, by type; null when missing. */
-    private static Object getterOf(Object holder, String typeName) throws Exception {
-        Class<?> holderType = holder.getClass();
-        for (java.lang.reflect.Method method : holderType.getDeclaredMethods()) {
-            if (!java.lang.reflect.Modifier.isStatic(method.getModifiers()) || method.getReturnType().getName().equals(typeName) == false) continue;
-            Class<?>[] parameters = method.getParameterTypes();
-            if (parameters.length != 1 || parameters[0] != holderType) continue;
-            method.setAccessible(true);
-            return method.invoke(null, holder);
-        }
+    /**
+     * Filled in by the patch: the account the profile screen's [model] holds, or null. 453 keeps it in
+     * the model's live data, wrapped in a holder, so it's read the way Show if a profile follows you
+     * reads it rather than by walking fields (#234).
+     */
+    @Nullable
+    public static Object modelUser(Object model) {
         return null;
     }
 

@@ -5,11 +5,13 @@
 package app.morphe.patches.instagram.download.profile
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
-import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesCalling
+import app.morphe.patches.instagram.profile.friendship.ProfileUser
+import app.morphe.patches.instagram.profile.friendship.findProfileUser
 import app.morphe.patches.instagram.profile.threads.BAR_GROUP
 import app.morphe.patches.instagram.profile.threads.PROFILE_ACTION_BAR
 import app.morphe.patches.instagram.profile.threads.USER_DETAIL
@@ -29,6 +31,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 internal const val PROFILE_EXTRAS = "$EXTENSION_PACKAGE/download/ProfileExtras;"
 internal const val EXTRAS_BOUND = "$PROFILE_EXTRAS->bound(Landroid/view/View;Landroid/view/View;)V"
 internal const val EXTRAS_SCREEN = "$PROFILE_EXTRAS->screen(Landroid/view/View;Ljava/lang/Object;)V"
+internal const val EXTRAS_MODEL_USER = "modelUser"
 
 /** The profile screen's view model, which keeps its name in Instagram's builds, and holds the account the screen shows. The extension reads the account off the screen by these two types. */
 internal const val USER_DETAIL_MODEL = "Lcom/instagram/profile/fragment/UserDetailViewModel;"
@@ -49,6 +52,8 @@ internal class ProfileExtrasSite(
     val returnType: String,
     val right: String,
     val ties: List<ProfileExtrasTie>,
+    /** Where the screen's view model keeps the account, the same read Show if a profile follows you has. */
+    val user: ProfileUser,
 )
 
 /**
@@ -74,8 +79,8 @@ private fun refuse(why: String): Nothing = throw PatchException("$PROFILE_PICTUR
  * session, two [BAR_GROUP]s, a state, a list and a callback; its fifth argument is the right row, a
  * field of the bar. The bind is called from the profile screen, [USER_DETAIL], which keeps the bar
  * in a field of its own, and each call is found by the bar read off that field right before it. The
- * screen's account is reached through its one [USER_DETAIL_MODEL] field and that model's one
- * [USER] field.
+ * screen's account is reached through its one [USER_DETAIL_MODEL] field, and the model's account is
+ * read the way Show if a profile follows you reads it.
  */
 internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val bar = classDefByOrNull(PROFILE_ACTION_BAR) ?: refuse("this Instagram build has no $PROFILE_ACTION_BAR")
@@ -100,14 +105,7 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
     val models = screen.fields.filter { it.type == USER_DETAIL_MODEL && !AccessFlags.STATIC.isSet(it.accessFlags) }
     val modelField = models.singleOrNull() ?: refuse("expected one $USER_DETAIL_MODEL field on the profile screen, found ${models.size}")
     if (!AccessFlags.PUBLIC.isSet(modelField.accessFlags)) refuse("the profile screen's ${modelField.name} isn't public, so the hook can't read it")
-    val model = classDefByOrNull(USER_DETAIL_MODEL) ?: refuse("this Instagram build has no $USER_DETAIL_MODEL")
-    // 453 keeps the account in the model's live data rather than a field; the extension reads either
-    // a field, a static getter, or the live data's wrapped user, so only a field is checked here.
-    val users = model.fields.filter { it.type == USER && !AccessFlags.STATIC.isSet(it.accessFlags) }
-    if (users.size > 1) refuse("expected at most one $USER field on the profile screen's model, found ${users.size}")
-    users.singleOrNull()?.let { field ->
-        if (!AccessFlags.PUBLIC.isSet(field.accessFlags)) refuse("the model's ${field.name} isn't public, so the hook can't read it")
-    }
+    val user = findProfileUser(::refuse)
 
     val parameters = binder.parameterTypes.map { it.toString() }
     val ties = classesCalling(bar.type, binder.name, parameters, binder.returnType).filter { it.type != bar.type }.flatMap { owner ->
@@ -130,7 +128,10 @@ internal fun BytecodePatchContext.findProfileExtras(): ProfileExtrasSite {
             }
         ) refuse("the extension has no public static $hook")
     }
-    return ProfileExtrasSite(binder.name, parameters, binder.returnType, "${bar.type}->${right.name}:$BAR_GROUP", ties)
+    if (extension.methods.none { it.name == EXTRAS_MODEL_USER && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "Ljava/lang/Object;" }) {
+        refuse("the extension has no $EXTRAS_MODEL_USER to fill in")
+    }
+    return ProfileExtrasSite(binder.name, parameters, binder.returnType, "${bar.type}->${right.name}:$BAR_GROUP", ties, user)
 }
 
 private fun tieAt(method: Method, steps: List<Instruction>, call: Int, barField: String): ProfileExtrasTie {
@@ -214,6 +215,16 @@ internal fun BytecodePatchContext.applyProfileExtras(site: ProfileExtrasSite) {
         }
         method.addInstructions(tie.call + 1, "invoke-static { v${tie.bar}, v${tie.screen} }, $EXTRAS_SCREEN")
     }
+    // Answers an Object, so its ways out may meet at one return.
+    mutableClassDefBy(PROFILE_EXTRAS).methods.single { it.name == EXTRAS_MODEL_USER }.addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, $USER_DETAIL_MODEL
+            ${site.user.load("p0")}
+            :none
+            return-object p0
+        """,
+    )
 }
 
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
