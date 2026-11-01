@@ -199,6 +199,36 @@ class PureBlackTest {
     }
 
     /**
+     * A Likes row's normal fill goes pure black (#248), in the form a decoded file may spell it, and
+     * its pressed fill keeps its own attribute so a press still shows.
+     */
+    @Test
+    fun theLikesRowGetsPureBlackAndKeepsItsPress() {
+        for (spelled in listOf("?$ROW_BACKGROUND", "?attr/$ROW_BACKGROUND")) {
+            val row = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+                """
+                    <selector xmlns:android="http://schemas.android.com/apk/res/android">
+                        <item android:state_pressed="true">
+                            <shape><solid android:color="?${ROW_BACKGROUND}_pressed"/></shape>
+                        </item>
+                        <item>
+                            <shape><solid android:color="$spelled"/></shape>
+                        </item>
+                    </selector>
+                """.trimIndent().byteInputStream(),
+            )
+
+            assertEquals(1, blackenRow(row))
+
+            val solids = row.getElementsByTagName("solid").let { list ->
+                (0 until list.length).map { (list.item(it) as Element).getAttribute("android:color") }
+            }
+            assertEquals(listOf("?${ROW_BACKGROUND}_pressed", PURE_BLACK_COLOR), solids)
+            assertEquals("a second pass finds nothing", 0, blackenRow(row))
+        }
+    }
+
+    /**
      * The dark launch theme's gray goes pure black wherever it names the splash color (#410), its
      * icon and branding stay, and another style naming the same color is left alone.
      */
@@ -314,6 +344,10 @@ class PureBlackTest {
                         storiesAfter.filterKeys { it in darkStories },
                     )
                     assertEquals("$code: every other story style", storiesBefore - darkStories, storiesAfter - darkStories)
+                    val row = File(res, "drawable/$ROW_DRAWABLE.xml").readText()
+                    assertTrue("$code: the Likes row goes black (#248)\n$row", PURE_BLACK_COLOR in row)
+                    assertTrue("$code: its press keeps its gray\n$row", "${ROW_BACKGROUND}_pressed" in row)
+                    assertTrue("$code: its normal fill is gone\n$row", !Regex("""$ROW_BACKGROUND\b""").containsMatchIn(row))
                 }
             } finally {
                 work.deleteRecursively()

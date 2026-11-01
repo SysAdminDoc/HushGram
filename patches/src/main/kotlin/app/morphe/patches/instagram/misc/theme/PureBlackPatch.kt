@@ -99,6 +99,19 @@ internal const val STORY_BACKGROUND = "igds_color_stories_loading_background"
 internal val DARK_STORIES = listOf("IgdsPrismSemanticColorsExperimentDark", "IgdsPrismGrayOverridesDark")
 
 /**
+ * The selector a row of the Likes list paints itself with, over a sheet that's black already (#248).
+ * Its normal item fills with [ROW_BACKGROUND], #ff191c1f on 453, and its pressed item with another
+ * attribute, #ff25292e.
+ */
+internal const val ROW_DRAWABLE = "elevated_bg_simple_row_dark"
+
+/**
+ * The theme attribute [ROW_DRAWABLE] fills with. Only that file changes, since other drawables and
+ * Instagram's code read this attribute for pills and buttons that would vanish on a black screen.
+ */
+internal const val ROW_BACKGROUND = "igds_color_elevated_background_dark"
+
+/**
  * The color [INSTAGRAM_LAUNCH_THEME] gives Android 12's launch screen, the backdrop of its icon and
  * the bars, #ff1a1a1a in the dark theme on 453 (#410). The splash Instagram draws itself after it
  * already takes bds_black in the dark theme.
@@ -176,6 +189,19 @@ private fun blackenAttribute(styles: Document, attribute: String, names: List<St
 }
 
 /**
+ * Points whatever in one decoded [ROW_DRAWABLE] fills with [ROW_BACKGROUND] at [PURE_BLACK_COLOR],
+ * and answers how many it changed. A pressed row keeps its gray, so a press still shows.
+ */
+internal fun blackenRow(row: Document): Int {
+    val solids = row.getElementsByTagName("solid")
+    val gray = (0 until solids.length).map { solids.item(it) as Element }.filter { solid ->
+        solid.getAttribute("android:color").trim().removePrefix("?").removePrefix("attr/") == ROW_BACKGROUND
+    }
+    gray.forEach { it.setAttribute("android:color", PURE_BLACK_COLOR) }
+    return gray.size
+}
+
+/**
  * Whether [instruction] loads [PRISM_BLACK]: as an int (a View color) or as a long (a Compose
  * Color's argument). Neither fits a shorter form of either opcode.
  */
@@ -223,14 +249,20 @@ internal fun BytecodePatchContext.blackenLiterals(): List<String> {
 /**
  * Writes pure black into the decoded styles: the backgrounds [blackenStyles] owns, the sheets
  * [blackenSheets] owns, the story viewer [blackenStories] owns and the dark launch screen
- * [blackenLaunchScreen] owns. Only the styles files that name [PRISM_BLACK_COLOR], and the night
- * ones naming [SPLASH_BACKGROUND_COLOR], are opened: document() writes its file back, and the
+ * [blackenLaunchScreen] owns, then into the row [blackenRow] owns. Only that row's file, the styles
+ * files that name [PRISM_BLACK_COLOR] and the night ones naming [SPLASH_BACKGROUND_COLOR] are
+ * opened: document() writes its file back, and the
  * patcher re-encodes every file written. The sheets' and stories' styles sit in the file the
  * palettes are in.
  */
 internal fun ResourcePatchContext.blackenThemes() {
     // Patcher 2.0 decodes only the files a patch asks for.
-    decode("res/values*/colors.xml", "res/values*/styles.xml")
+    decode("res/values*/colors.xml", "res/values*/styles.xml", "res/drawable*/$ROW_DRAWABLE.xml")
+    var rows = 0
+    get("res").listFiles { file -> file.isDirectory && File(file, "$ROW_DRAWABLE.xml").isFile }.orEmpty().forEach { directory ->
+        document("res/${directory.name}/$ROW_DRAWABLE.xml").use { rows += blackenRow(it) }
+    }
+    if (rows == 0) throw PatchException("$PATCH: $ROW_DRAWABLE no longer fills with $ROW_BACKGROUND")
     val values = get("res").listFiles { file -> file.isDirectory && file.name.startsWith("values") }.orEmpty()
     val colors = File(get("res"), "values/colors.xml")
     // 449 stores it as an RGB color, which decodes without the alpha.
@@ -274,7 +306,7 @@ internal fun ResourcePatchContext.blackenThemes() {
 
 /**
  * A resource patch, for the themes the View screens, the sheets, the story viewer, the status bar
- * and the launch screen read. Only the colors and styles files are decoded.
+ * and the launch screen read. Only the colors and styles files and one row's drawable are decoded.
  */
 private val pureBlackStylesPatch = resourcePatch {
     execute {
