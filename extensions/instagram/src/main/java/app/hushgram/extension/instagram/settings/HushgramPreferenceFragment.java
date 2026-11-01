@@ -5424,7 +5424,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setTitle(L10n.t("Save folder"));
         row.setDialogTitle(L10n.t("Save folder"));
         row.setDialogMessage(L10n.f("Choose a folder name under Movies and Pictures. Invalid characters become "
-                + "underscores. Leave it blank to use the default folder, %1$s.", L10n.isolate(SaveFolder.DEFAULT)));
+                + "underscores. Leave it blank to use the default folder, %1$s. For an SD card or anywhere else, "
+                + "use Choose a folder.", L10n.isolate(SaveFolder.DEFAULT)));
         row.setPositiveButtonText(L10n.t("Save"));
         // Unset, Android fills in its own Cancel in the activity's language, which can differ
         // from Instagram's, and the dialog read "Speichern" next to "Cancel".
@@ -5435,6 +5436,12 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setText(Settings.SAVE_FOLDER.savedValue());
         row.setOnPreferenceChangeListener((preference, typed) -> {
             String raw = typed == null ? "" : typed.toString();
+            if (raw.indexOf('/') >= 0 || raw.indexOf('\\') >= 0) {
+                // This row only takes a name. Cleaned, a card's path would become a folder named
+                // after it on internal storage, so the folder stays as it was.
+                Utils.showToastShort(L10n.t("Use Choose a folder for a path or an SD card."));
+                return false;
+            }
             String clean = SaveFolder.sanitize(raw);
             if (clean.equals(raw)) return true;
             // Keeps the clean name in place of what was typed. The store changes, and the shared

@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Ask before a call`, `Ask before a like` and `Ask before a refresh` now ask over the screen that's showing when Instagram builds the button with no screen behind it. Those presses used to go through unasked. A long press on a tab or on your profile's menu button got the same fix, so it still opens when the bar was built that way
 * **Instagram:** Scrolling the feed past carousel posts no longer stutters with `Carousel arrows` or `Page dots on a pill` on
 * **Instagram:** The time above a reel's seek bar no longer loses its top half with `Run Reels behind the tab bar` on. The pill lifts the bar by scrolling the views around it, and the label was being placed in the part scrolled out of sight
+* **Instagram:** `Save folder` no longer turns a typed path into a folder on internal storage. It only takes a name, so a path like `/storage/F929-FA97/Movies` now leaves the folder as it was and points you to `Choose a folder`, which is the way to reach an SD card
 
 ## 0.0.18 (2026-10-31)
 

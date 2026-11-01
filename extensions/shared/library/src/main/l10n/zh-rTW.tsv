@@ -202,7 +202,8 @@ Each video saves at the best quality Instagram offers for it.	每部影片皆以
 Each video saves at its lowest quality, for the smallest file.	每部影片皆以最低畫質儲存，讓檔案最小。
 Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	每部影片會以 %1$s 或最接近且較低的畫質儲存。若沒有這麼低的畫質，則使用最接近且較高的畫質。
 Save folder	儲存資料夾
-Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	選擇 Movies 與 Pictures 底下的資料夾名稱。無效字元會替換為底線。留空則使用預設資料夾 %1$s。
+Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s. For an SD card or anywhere else, use Choose a folder.	選擇 Movies 與 Pictures 底下的資料夾名稱。無效字元會替換為底線。留空則使用預設資料夾 %1$s。 若要存到 SD 卡或其他位置，請使用「選擇資料夾」。
+Use Choose a folder for a path or an SD card.	路徑或 SD 卡請使用「選擇資料夾」。
 Save	儲存
 Folder name	資料夾名稱
 Folder set to %1$s.	資料夾已設為 %1$s。

@@ -198,7 +198,8 @@ Each video saves at the best quality Instagram offers for it.	각 동영상은 I
 Each video saves at its lowest quality, for the smallest file.	각 동영상은 가장 작은 파일 크기를 위해 최저 품질로 저장됩니다
 Each video saves at %1$s or the closest quality below it. A video with nothing that low saves at the closest quality above.	각 동영상은 %1$s 또는 그보다 낮은 화질 중 가장 가까운 화질로 저장됩니다. 그 정도로 낮은 품질이 없는 동영상은 그보다 높은 화질 중 가장 가까운 화질로 저장됩니다
 Save folder	폴더 저장
-Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s.	Movies 및 Pictures 폴더 아래에 사용할 폴더 이름을 입력하세요. 사용할 수 없는 문자는 밑줄로 변경됩니다. 비워 두면 기본 폴더인 %1$s를 사용합니다
+Choose a folder name under Movies and Pictures. Invalid characters become underscores. Leave it blank to use the default folder, %1$s. For an SD card or anywhere else, use Choose a folder.	Movies 및 Pictures 폴더 아래에 사용할 폴더 이름을 입력하세요. 사용할 수 없는 문자는 밑줄로 변경됩니다. 비워 두면 기본 폴더인 %1$s를 사용합니다 SD 카드나 다른 위치에는 폴더 선택을(를) 사용하세요.
+Use Choose a folder for a path or an SD card.	경로나 SD 카드는 폴더 선택을(를) 사용하세요.
 Save	저장
 Folder name	폴더 이름
 Folder set to %1$s.	폴더가 %1$s로 설정되었습니다

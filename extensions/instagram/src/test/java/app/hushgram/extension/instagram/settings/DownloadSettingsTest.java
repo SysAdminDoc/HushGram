@@ -958,7 +958,7 @@ public class DownloadSettingsTest {
 
             // What's typed reaches the row's check the way the dialog's OK sends it.
             Preference.OnPreferenceChangeListener ok = folder.getOnPreferenceChangeListener();
-            assertFalse("a path was kept as typed", ok.onPreferenceChange(folder, "../My/Clips"));
+            assertFalse("a bad character was kept as typed", ok.onPreferenceChange(folder, "My:Clips"));
             ShadowLooper.idleMainLooper();
             assertEquals("My_Clips", folder.getText());
             assertEquals("My_Clips", Settings.SAVE_FOLDER.savedValue());
@@ -974,6 +974,31 @@ public class DownloadSettingsTest {
             ShadowLooper.idleMainLooper();
             assertEquals("Instagram", folder.getText());
             assertEquals("Instagram", Settings.SAVE_FOLDER.savedValue());
+        }
+    }
+
+    @Test
+    public void aPathInTheFolderRowIsSentToChooseAFolder() {
+        PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.REEL_DOWNLOAD);
+        try (ActivityController<Activity> controller = Robolectric.buildActivity(Activity.class).setup()) {
+            HushgramPreferenceFragment.FolderRow folder = (HushgramPreferenceFragment.FolderRow)
+                    pageIn(controller).findPreference(Settings.SAVE_FOLDER.key);
+            Preference.OnPreferenceChangeListener ok = folder.getOnPreferenceChangeListener();
+            assertTrue(ok.onPreferenceChange(folder, "Clips"));
+            folder.setText("Clips");
+            ShadowLooper.idleMainLooper();
+
+            // Cleaned, this card path was a folder named after it under Movies on internal storage.
+            for (String path : new String[] {"/storage/F929-FA97/Movies/Instagram", "../My/Clips", "My\\Clips"}) {
+                assertFalse(path + " was kept", ok.onPreferenceChange(folder, path));
+                ShadowLooper.idleMainLooper();
+                assertEquals(path + " changed the row", "Clips", folder.getText());
+                assertEquals(path + " changed the folder", "Clips", Settings.SAVE_FOLDER.savedValue());
+                assertEquals("Use Choose a folder for a path or an SD card.", ShadowToast.getTextOfLatestToast());
+            }
+
+            assertTrue("the dialog doesn't say where a card goes",
+                    String.valueOf(folder.getDialogMessage()).endsWith("use Choose a folder."));
         }
     }
 
