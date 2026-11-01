@@ -16,8 +16,8 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** A long press on a chat's name now opens the menu for `Jump to the first message or a date` and `Export a chat as text`. In 0.0.18 it opened the chat's details instead. A plain tap on the name still opens the details
-* **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none, because Instagram 453 keeps them somewhere the reader didn't look. Each message is read from its own row, so an export holds only that chat
-* **Instagram:** `Export a chat as text` and `Jump to the first message` now load a long chat all the way back. They used to stop at the newest page, because Instagram's Loading row can sit at the top until that end scrolls away and comes back. Shared reels, voice messages and chat notices read as plain words in the file
+* **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none. Each message is now read from its own row, so an export holds only that chat
+* **Instagram:** `Export a chat as text` and `Jump to the first message` now load a long chat all the way back. They used to stop at the newest page, because Instagram only asks for older messages when a scroll moves toward them, and a jump to the top doesn't count as one. Shared reels, voice messages and chat notices read as plain words in the file
 * **Instagram:** `Ask before a call`, `Ask before a like` and `Ask before a refresh` now ask over the screen that's showing when Instagram builds the button with no screen behind it. Those presses used to go through unasked. A long press on a tab or on your profile's menu button got the same fix, so it still opens when the bar was built that way
 * **Instagram:** Scrolling the feed past carousel posts no longer stutters with `Carousel arrows` or `Page dots on a pill` on
 * **Instagram:** The time above a reel's seek bar no longer loses its top half with `Run Reels behind the tab bar` on. The pill lifts the bar by scrolling the views around it, and the label was being placed in the part scrolled out of sight
