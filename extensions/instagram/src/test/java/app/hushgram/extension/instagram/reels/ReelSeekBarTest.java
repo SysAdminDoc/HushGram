@@ -461,6 +461,95 @@ public class ReelSeekBarTest {
     }
 
     /**
+     * With Run Reels behind the tab bar on, the tab bar raises a reel's seek bar by scrolling the view
+     * holding it, as far as the highest thing in it allows, and translating it the rest of the way. The
+     * label stayed on that view's overlay, where only its layout had room, and came out with its top half
+     * cut off at the view's top (#426). It goes to the view above, over the track where the track shows
+     * now, with no tick or layout of the bar to prompt it, and goes back when the bar's lowered.
+     */
+    @Test
+    public void aViewScrolledUpHasOnlyTheRoomStillShowing() {
+        FrameLayout outer = new FrameLayout(context());
+        FrameLayout band = new FrameLayout(context());
+        outer.addView(band, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 200, Gravity.BOTTOM));
+        FrameLayout container = scrubber(band, 55_000, false);
+        show(outer, HEIGHT);
+        SeekBar bar = barIn(container);
+        ReelSeekBar.progress(bar, 10_000);
+        TextView label = ReelTimeLabel.labelOf(bar);
+        int overTrack = container.getTop() + bar.getTop() + bar.getPaddingTop() - gap(context());
+        assertEquals("in the band, over the track", overTrack, label.getBottom());
+
+        int scroll = container.getTop();
+        band.scrollTo(0, scroll);
+        frame();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals(View.VISIBLE, label.getVisibility());
+        assertEquals("in the view above, over the track", band.getTop() + overTrack - scroll, label.getBottom());
+        assertTrue("whole", label.getTop() >= 0);
+        assertFits(label);
+
+        band.setTranslationY(-50);
+        frame();
+        ShadowLooper.idleMainLooper();
+        assertEquals("over the track, translated too", band.getTop() - 50 + overTrack - scroll, label.getBottom());
+
+        band.setTranslationY(0);
+        band.scrollTo(0, 0);
+        frame();
+        ShadowLooper.idleMainLooper();
+        assertEquals("back in the band", overTrack, label.getBottom());
+        assertNothingFailed();
+    }
+
+    /** A view scrolled up by less than the room over the bar keeps the label, which scrolls along with the bar. */
+    @Test
+    public void aViewScrolledALittleKeepsTheLabel() {
+        FrameLayout outer = new FrameLayout(context());
+        FrameLayout band = new FrameLayout(context());
+        outer.addView(band, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 200, Gravity.BOTTOM));
+        FrameLayout container = scrubber(band, 55_000, false);
+        show(outer, HEIGHT);
+        SeekBar bar = barIn(container);
+        ReelSeekBar.progress(bar, 10_000);
+        TextView label = ReelTimeLabel.labelOf(bar);
+        int overTrack = container.getTop() + bar.getTop() + bar.getPaddingTop() - gap(context());
+
+        band.scrollTo(0, 20);
+        frame();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("the band's own place for it", overTrack, label.getBottom());
+        assertTrue("whole", label.getTop() >= band.getScrollY());
+    }
+
+    /** The bar's own FrameLayout scrolled up gives the room away too: the label comes out of its children. */
+    @Test
+    public void aScrolledFrameLayoutGivesUpTheLabelItHeld() {
+        FrameLayout container = container();
+        SeekBar bar = new SeekBar(context());
+        bar.setPadding(30, 0, 40, 0);
+        bar.setMax(55_000);
+        container.addView(bar, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, BAR_PX, Gravity.BOTTOM));
+        FrameLayout outer = new FrameLayout(context());
+        outer.addView(container, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 200, Gravity.BOTTOM));
+        show(outer, HEIGHT);
+        ReelSeekBar.progress(bar, 10_000);
+        layout(outer);
+        TextView label = ReelTimeLabel.labelOf(bar);
+        assertSame(container, label.getParent());
+
+        container.scrollTo(0, bar.getTop());
+        frame();
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("the bar is all it holds now", 1, container.getChildCount());
+        assertEquals(View.VISIBLE, label.getVisibility());
+        assertEquals("over the track", container.getTop() - gap(context()), label.getBottom());
+    }
+
+    /**
      * Instagram can give a bar its length and position before laying it out, and with autoplay held
      * nothing moves it again. The label comes with the bar's first layout all the same, and with
      * the switch off it doesn't.

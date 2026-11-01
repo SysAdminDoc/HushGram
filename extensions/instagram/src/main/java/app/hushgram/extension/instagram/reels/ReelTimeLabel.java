@@ -156,6 +156,8 @@ final class ReelTimeLabel {
         boolean described;
         /** Whether the last update placed the label to be shown, subject to the bar showing. */
         boolean wanted;
+        /** What {@link #movedBy} last said for the bar. */
+        int moved;
         /** Only restore a snapshot while the bar still carries our own drawable. */
         Drawable originalThumb;
         GradientDrawable thumb;
@@ -263,9 +265,16 @@ final class ReelTimeLabel {
             try {
                 SeekBar bar = barOf(label);
                 if (bar != null) {
-                    updateThumb(bar, (State) label.getTag(), ReelSeekBar.thumbOn()
+                    State state = (State) label.getTag();
+                    updateThumb(bar, state, ReelSeekBar.thumbOn()
                             && ordinaryReel(bar) && bar.getMax() > 0 && bar.isAttachedToWindow());
                     follow(bar, label);
+                    // The bar was raised or lowered with no layout, so the label may need another place.
+                    int moved = movedBy(bar);
+                    if (moved != state.moved) {
+                        state.moved = moved;
+                        queue(bar);
+                    }
                 }
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.REEL_SEEK_BAR, "seek bar frame", failure);
@@ -971,7 +980,10 @@ final class ReelTimeLabel {
 
     /**
      * The nearest view, the bar's parent first, with room above the bar's track for the whole label
-     * and the gap under it, or null when none within {@link #HOST_REACH} has it.
+     * and the gap under it, or null when none within {@link #HOST_REACH} has it. A view scrolled up
+     * shows less above the bar than its layout has: the tab bar's pill raises a reel's seek bar by
+     * scrolling and translating the views holding it, and a label in the part scrolled away came out
+     * cut off at the view's top (#426).
      */
     private static Host hostFor(SeekBar bar, ViewGroup parent, TextView label, int width) {
         label.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
@@ -981,7 +993,7 @@ final class ReelTimeLabel {
         int top = bar.getTop();
         ViewGroup view = parent;
         for (int i = 0; i < HOST_REACH; i++) {
-            int room = top + bar.getPaddingTop();
+            int room = top + bar.getPaddingTop() - view.getScrollY();
             // A child is laid out inside the FrameLayout's padding; an overlay draws over all of the view.
             if (i == 0 && view instanceof FrameLayout && room - view.getPaddingTop() >= needed) {
                 return new Host(view, left, top, true);
@@ -989,11 +1001,26 @@ final class ReelTimeLabel {
             if (room >= needed) return new Host(view, left, top, false);
             ViewParent up = view.getParent();
             if (!(up instanceof ViewGroup)) return null;
-            left += view.getLeft();
-            top += view.getTop();
+            left += view.getLeft() + Math.round(view.getTranslationX()) - view.getScrollX();
+            top += view.getTop() + Math.round(view.getTranslationY()) - view.getScrollY();
             view = (ViewGroup) up;
         }
         return null;
+    }
+
+    /**
+     * How far the views around [bar] have it moved up and down by scrolling and translating, which
+     * its layout listener never hears of. Only a change matters, so these are simply added up.
+     */
+    private static int movedBy(SeekBar bar) {
+        int moved = 0;
+        ViewParent parent = bar.getParent();
+        for (int i = 0; i < HOST_REACH && parent instanceof View; i++) {
+            View view = (View) parent;
+            moved += Math.round(view.getTranslationY()) - view.getScrollY();
+            parent = view.getParent();
+        }
+        return moved;
     }
 
     /**
