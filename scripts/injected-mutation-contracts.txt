@@ -78,6 +78,9 @@ once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->sections([Ljava/la
 # your notes into the row's items tests that. Left out, the bubble stays with the switch on; twice or
 # elsewhere, it isn't the hook the patch wrote. NativeNotesMapTest checks where it lands.
 once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in static (LX/*;LX/*;IZZZ)LX/*; pooled holding instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState\s(NotesTrayComposeItem.kt:319)
+# The row built from views asks the same thing, and so does the first-run tip pointing at the bubble.
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (LX/*;LX/*;)V pooled holding FriendMapEntryPoint
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in instance (Ljava/lang/Object;LX/*;)Ljava/lang/Object; pooled holding musicRowView
 # Hide the search bar in Messages asks at the same place, right after or right before NotesRow
 # (whichever patch went in first asks first), and InboxSearchBar drops SEARCH_BAR by name. Same
 # one method, called once there and nowhere else. HideNotesRowHookTest checks both orders.
