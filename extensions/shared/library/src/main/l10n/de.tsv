@@ -46,8 +46,8 @@ Loading older messages.	Ältere Nachrichten werden geladen.
 Loading older messages. %1$d message so far.	Ältere Nachrichten werden geladen. Bisher %1$d Nachricht.
 Loading older messages. %1$d messages so far.	Ältere Nachrichten werden geladen. Bisher %1$d Nachrichten.
 Lock these settings	Diese Einstellungen sperren
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Halte den Namen eines Chats gedrückt und wähle Chat exportieren. Der ganze Chat wird als Textdatei im Ordner HushGram unter Downloads gespeichert, eine Zeile pro Nachricht.
-Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Halte den Namen eines Chats gedrückt und wähle Zur ersten Nachricht springen oder Zu einem Datum springen. Der Chat lädt seine älteren Nachrichten von selbst, mit Zähler und Abbrechen-Taste.
+Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Öffne einen Chat, halte oben seinen Namen gedrückt und wähle Chat exportieren. Der ganze Chat wird als Textdatei im Ordner HushGram unter Downloads gespeichert, eine Zeile pro Nachricht.
+Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Öffne einen Chat, halte oben seinen Namen gedrückt und wähle Zur ersten Nachricht springen oder Zu einem Datum springen. Der Chat lädt seine älteren Nachrichten von selbst, mit Zähler und Abbrechen-Taste.
 Mark a chat seen when you reply	Chat als gesehen markieren, wenn du antwortest
 No messages found to save.	Keine Nachrichten zum Speichern.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Wähle eine Wartezeit von 1 bis 72 Stunden. Gesperrt ändert sich hier nichts, bis du das Entsperren anforderst und die Wartezeit vorbei ist.

@@ -46,8 +46,8 @@ Loading older messages.	Cargando mensajes anteriores.
 Loading older messages. %1$d message so far.	Cargando mensajes anteriores. %1$d mensaje por ahora.
 Loading older messages. %1$d messages so far.	Cargando mensajes anteriores. %1$d mensajes por ahora.
 Lock these settings	Bloquear estos ajustes
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Mantén pulsado el nombre de un chat y elige Exportar chat. El chat entero se guarda como archivo de texto en Descargas, carpeta HushGram, con una línea por mensaje.
-Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mantén pulsado el nombre de un chat y elige Ir al primer mensaje o Ir a una fecha. El chat carga solo sus mensajes anteriores, con un contador y un botón Cancelar.
+Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Abre un chat, mantén pulsado su nombre arriba y elige Exportar chat. El chat entero se guarda como archivo de texto en Descargas, carpeta HushGram, con una línea por mensaje.
+Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Abre un chat, mantén pulsado su nombre arriba y elige Ir al primer mensaje o Ir a una fecha. El chat carga solo sus mensajes anteriores, con un contador y un botón Cancelar.
 Mark a chat seen when you reply	Marcar un chat como visto al responder
 No messages found to save.	No hay mensajes que guardar.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.

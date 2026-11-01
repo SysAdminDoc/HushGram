@@ -49,8 +49,10 @@ public final class ChatPager {
     private static final int ACTION_EXPORT = 2;
     /** How often the list is scrolled to its old end and looked at again. */
     static final long TICK_MS = 450;
-    /** Looks with nothing new in a row before the chat counts as fully loaded. */
-    static final int STALL_LOOKS = 6;
+    /** Looks with nothing new in a row before the chat counts as fully loaded. A page can take seconds to come. */
+    static final int STALL_LOOKS = 24;
+    /** One stalled look in this many leaves the old end, so the next can bring it back into view. */
+    static final int NUDGE_LOOKS = 4;
     /** The area around a chat's name and subtitle in Instagram's chat header. */
     static final String NAME_AREA = "header_title_subtitle_container";
     private static final int ATTACH_TRIES = 24;
@@ -93,6 +95,12 @@ public final class ChatPager {
 
         /** Scrolls the list to its old end, which makes Instagram load older messages. */
         void toOldest();
+
+        /**
+         * Scrolls the list off its old end. Instagram's Loading row can sit at that end for good, and
+         * the next page only comes when the end has left the screen and come back.
+         */
+        void awayFromOldest();
 
         /** Scrolls the list to a row. */
         void scrollTo(int position);
@@ -141,7 +149,8 @@ public final class ChatPager {
             else stalls = 0;
             lastCount = count;
             if (stalls >= stallLimit) return finish(entries);
-            source.toOldest();
+            if (stalls % NUDGE_LOOKS == NUDGE_LOOKS - 1) source.awayFromOldest();
+            else source.toOldest();
             return true;
         }
 
@@ -599,6 +608,15 @@ public final class ChatPager {
                 int count = count();
                 if (count <= 0) return;
                 scrollTo(oldestEnd(count));
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+            }
+        }
+
+        /** A screen toward the new end. A chat's old end is at the top whichever way its layout runs. */
+        @Override public void awayFromOldest() {
+            try {
+                list.scrollBy(0, list.getHeight());
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             }

@@ -46,8 +46,8 @@ Loading older messages.	Caricamento dei messaggi più vecchi.
 Loading older messages. %1$d message so far.	Caricamento dei messaggi più vecchi. Finora %1$d messaggio.
 Loading older messages. %1$d messages so far.	Caricamento dei messaggi più vecchi. Finora %1$d messaggi.
 Lock these settings	Blocca queste impostazioni
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Tieni premuto il nome di una chat e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio.
-Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Tieni premuto il nome di una chat e scegli Vai al primo messaggio o Vai a una data. La chat carica da sola i messaggi più vecchi, con un conteggio e un pulsante Annulla.
+Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Apri una chat, tieni premuto il suo nome in alto e scegli Esporta chat. L'intera chat viene salvata come file di testo in Download, cartella HushGram, con una riga per messaggio.
+Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Apri una chat, tieni premuto il suo nome in alto e scegli Vai al primo messaggio o Vai a una data. La chat carica da sola i messaggi più vecchi, con un conteggio e un pulsante Annulla.
 Mark a chat seen when you reply	Segna una chat come vista quando rispondi
 No messages found to save.	Nessun messaggio da salvare.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Scegli un'attesa da 1 a 72 ore. Con il blocco, qui non cambia niente finché non chiedi di sbloccare e l'attesa non è finita.

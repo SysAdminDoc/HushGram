@@ -453,6 +453,13 @@ public class ChatPagerTest {
         int shown;
         int scrolledToOldest;
         int scrolledTo = -2;
+        int scrolledAway;
+        boolean lastMoveWasAway;
+        /** A page only comes when the old end has left the screen and come back, as on a phone. */
+        boolean onlyWhenBack;
+        /** Looks a page takes to arrive once it's asked for. */
+        int looksPerPage;
+        private int looksSincePage;
 
         FakeChat(int total, int shown, int page) {
             this.total = total;
@@ -479,17 +486,30 @@ public class ChatPagerTest {
 
         @Override public void toOldest() {
             scrolledToOldest++;
+            boolean cameBack = lastMoveWasAway;
+            lastMoveWasAway = false;
+            if (onlyWhenBack && !cameBack) return;
+            if (++looksSincePage <= looksPerPage) return;
+            looksSincePage = 0;
             shown = Math.min(total, shown + page);
+        }
+
+        @Override public void awayFromOldest() {
+            scrolledAway++;
+            looksSincePage++;
+            lastMoveWasAway = true;
         }
 
         @Override public void scrollTo(int position) {
             scrolledTo = position;
+            lastMoveWasAway = false;
         }
 
         int scrolledToNewest;
 
         @Override public void toNewest() {
             scrolledToNewest++;
+            lastMoveWasAway = false;
         }
 
         long timeOfMessage(int index) {
@@ -576,6 +596,57 @@ public class ChatPagerTest {
         assertEquals(60, chat.entries().size());
         assertEquals("no jump to the first message", -2, chat.scrolledTo);
         assertEquals(1, chat.scrolledToNewest);
+    }
+
+    /**
+     * Instagram's Loading row sat at a chat's old end for minutes with nothing coming, and only scrolling
+     * away and back brought the next page. The loader stopped at the first page, so an export held 12 of
+     * a chat's 22 messages (#246).
+     */
+    @Test public void anOldEndThatSitsOnLoadingIsScrolledAwayAndBack() {
+        FakeChat chat = new FakeChat(60, 20, 20);
+        chat.onlyWhenBack = true;
+        run(new ChatPager.Loader(chat, 0, ChatPager.STALL_LOOKS, false));
+        assertEquals(60, chat.shown);
+        assertEquals(60, chat.entries().size());
+        assertTrue(chat.scrolledAway > 0);
+    }
+
+    /** A page that takes ten seconds to come on a slow network isn't the end of the chat. */
+    @Test public void aSlowPageIsWaitedFor() {
+        FakeChat chat = new FakeChat(60, 20, 20);
+        chat.looksPerPage = 20;
+        run(new ChatPager.Loader(chat, 0, ChatPager.STALL_LOOKS, false));
+        assertEquals(60, chat.shown);
+    }
+
+    /** Whatever look it stops on, a jump never leaves the list where a nudge put it. */
+    @Test public void aFinishedJumpIsntLeftOffTheOldEnd() {
+        for (int limit = 1; limit <= ChatPager.NUDGE_LOOKS * 2; limit++) {
+            FakeChat chat = new FakeChat(10, 10, 10);
+            run(new ChatPager.Loader(chat, 0, limit));
+            assertFalse("limit " + limit, chat.lastMoveWasAway);
+            assertEquals("limit " + limit, 9, chat.scrolledTo);
+            FakeChat export = new FakeChat(10, 10, 10);
+            run(new ChatPager.Loader(export, 0, limit, false));
+            assertFalse("export, limit " + limit, export.lastMoveWasAway);
+            assertEquals("export, limit " + limit, 1, export.scrolledToNewest);
+        }
+    }
+
+    /** The away scroll goes a whole screen, so the old end's row really leaves it, and toward the new end. */
+    @Test public void leavingTheOldEndScrollsAScreenDown() {
+        final int[] scrolled = new int[2];
+        View list = new View(RuntimeEnvironment.getApplication()) {
+            @Override public void scrollBy(int x, int y) {
+                scrolled[0] += x;
+                scrolled[1] += y;
+            }
+        };
+        list.layout(0, 0, 1080, 1968);
+        new ChatPager.ListSource(list).awayFromOldest();
+        assertEquals(0, scrolled[0]);
+        assertEquals(1968, scrolled[1]);
     }
 
     @Test public void aFinishedLoaderStaysFinished() {

@@ -46,8 +46,8 @@ Loading older messages.	Eski mesajlar yükleniyor.
 Loading older messages. %1$d message so far.	Eski mesajlar yükleniyor. Şimdilik %1$d mesaj.
 Loading older messages. %1$d messages so far.	Eski mesajlar yükleniyor. Şimdilik %1$d mesaj.
 Lock these settings	Bu ayarları kilitle
-Long press a chat's name and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Bir sohbetin adına uzun bas ve Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır.
-Long press a chat's name and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Bir sohbetin adına uzun bas ve İlk mesaja atla veya Bir tarihe atla seçeneğini seç. Sohbet eski mesajlarını kendisi yükler, bir sayaç ve İptal düğmesi gösterir.
+Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Bir sohbet aç, üstteki adına uzun bas ve Sohbeti dışa aktar seçeneğini seç. Sohbetin tamamı İndirilenler içindeki HushGram klasörüne metin dosyası olarak kaydedilir, her mesaj bir satırdır.
+Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Bir sohbet aç, üstteki adına uzun bas ve İlk mesaja atla veya Bir tarihe atla seçeneğini seç. Sohbet eski mesajlarını kendisi yükler, bir sayaç ve İptal düğmesi gösterir.
 Mark a chat seen when you reply	Yanıt verdiğinde sohbeti görüldü olarak işaretle
 No messages found to save.	Kaydedilecek mesaj yok.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	1 ile 72 saat arasında bir bekleme seç. Kilitliyken, kilidi açmayı isteyip bekleme bitene kadar burada hiçbir şey değişmez.

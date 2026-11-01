@@ -466,11 +466,22 @@ public final class ChatHistory {
             return upper.equals("MEDIA") ? "[photo or video]" : "[photo or video, view once]";
         }
         if (upper.contains("VOICE")) return "[voice message]";
+        if (upper.contains("ACTION_LOG") || upper.contains("NOTICE")) return "[chat notice]";
+        if (upper.contains("VIDEO_CALL")) return "[call]";
         if (upper.contains("VIDEO")) return "[video]";
         if (upper.equals("LIKE")) return "[like]";
+        if (upper.contains("REACTION")) return "[reaction]";
         if (upper.contains("STICKER")) return "[sticker]";
         if (upper.contains("ANIMATED")) return "[GIF]";
-        return "[" + upper.toLowerCase(Locale.US).replace('_', ' ') + "]";
+        if (upper.contains("AUDIO")) return "[shared audio]";
+        if (upper.contains("CLIPS") || upper.contains("REEL") || upper.contains("FELIX")) return "[shared reel]";
+        if (upper.contains("STORY")) return "[shared story]";
+        if (upper.contains("MEDIA_SHARE")) return "[shared post]";
+        if (upper.contains("PROFILE")) return "[shared profile]";
+        if (upper.contains("LOCATION")) return "[shared location]";
+        if (upper.contains("LINK")) return "[link]";
+        String plain = upper.replace("XMA_", "").replace("_XMA", "");
+        return "[" + plain.toLowerCase(Locale.US).replace('_', ' ') + "]";
     }
 
     /**

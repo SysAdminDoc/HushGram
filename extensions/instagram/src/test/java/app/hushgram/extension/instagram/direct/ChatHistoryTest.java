@@ -419,8 +419,28 @@ public class ChatHistoryTest {
         assertEquals("2026-01-02 03:04 Sam: [photo or video, view once]", lineOf("", "EXPIRING_MEDIA", "Sam"));
         assertEquals("2026-01-02 03:04 Sam: [voice message]", lineOf(null, "VOICE_MEDIA", "Sam"));
         assertEquals("2026-01-02 03:04 Sam: [like]", lineOf(null, "LIKE", "Sam"));
-        assertEquals("2026-01-02 03:04 Sam: [reel share]", lineOf(null, "REEL_SHARE", "Sam"));
+        assertEquals("2026-01-02 03:04 Sam: [shared reel]", lineOf(null, "REEL_SHARE", "Sam"));
         assertEquals("2026-01-02 03:04 Sam: [message]", lineOf(null, null, "Sam"));
+    }
+
+    /** Instagram's names for what a chat holds aren't for reading: a saved chat said [xma clips share] (#246). */
+    @Test public void aKindInstagramNamesInItsOwnWordsReadsPlainly() {
+        assertEquals("[shared reel]", ChatHistory.placeholder("XMA_CLIPS_SHARE"));
+        assertEquals("[shared reel]", ChatHistory.placeholder("XMA_REEL_SHARE"));
+        assertEquals("[shared reel]", ChatHistory.placeholder("XMA_FELIX_SHARE"));
+        assertEquals("[shared audio]", ChatHistory.placeholder("REELS_AUDIO_SHARE"));
+        assertEquals("[shared story]", ChatHistory.placeholder("XMA_STORY_SHARE"));
+        assertEquals("[shared post]", ChatHistory.placeholder("XMA_MEDIA_SHARE"));
+        assertEquals("[shared profile]", ChatHistory.placeholder("XMA_PROFILE"));
+        assertEquals("[shared location]", ChatHistory.placeholder("XMA_LOCATION_SHARE"));
+        assertEquals("[link]", ChatHistory.placeholder("XMA_LINK"));
+        assertEquals("[chat notice]", ChatHistory.placeholder("ACTION_LOG"));
+        assertEquals("[chat notice]", ChatHistory.placeholder("INSTAMADILLO_ACTION_LOG"));
+        assertEquals("[chat notice]", ChatHistory.placeholder("E2EE_NOTICE"));
+        assertEquals("[reaction]", ChatHistory.placeholder("PROFILE_PICTURE_REACTION"));
+        assertEquals("[call]", ChatHistory.placeholder("VIDEO_CALL_EVENT"));
+        assertEquals("[sticker]", ChatHistory.placeholder("ANIMATED_AVATAR_STICKER"));
+        assertEquals("a kind with no plain name still loses the prefix", "[collage]", ChatHistory.placeholder("XMA_COLLAGE"));
     }
 
     @Test public void aLinkKeepsItsAddress() {
