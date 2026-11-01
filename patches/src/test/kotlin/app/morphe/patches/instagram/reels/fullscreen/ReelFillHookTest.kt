@@ -9,6 +9,7 @@ import app.morphe.Fixtures
 import app.morphe.PatchContexts
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.NeutralNativePath
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -26,8 +27,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * #288: Instagram's reel crop decision asks ReelFill.fill with the crop percentage right after
- * working it out, and returns true on a yes. On no it goes on to Instagram's own checks unchanged.
+ * #288: Instagram's reel crop decision asks ReelFill.fill with the viewer's source and the crop
+ * percentage right after working it out, and returns true on a yes. On no it goes on to Instagram's
+ * own checks unchanged.
  */
 class ReelFillHookTest {
     @Test
@@ -76,7 +78,7 @@ class ReelFillHookTest {
             context.fitReelScreen()
 
             val code = decision.code()
-            assertEquals("$what: nine instructions added", before.size + 9, code.size)
+            assertEquals("$what: ten instructions added", before.size + 10, code.size)
             assertEquals("$what: one fit ask", 1, code.count { it.referenceText() == FIT_HOOK })
             assertEquals("$what: asked first", FIT_HOOK, code[0].referenceText())
             assertEquals("$what: an invoke-static", Opcode.INVOKE_STATIC, code[0].opcode)
@@ -93,8 +95,8 @@ class ReelFillHookTest {
             assertEquals("$what: and returns it", Opcode.RETURN, code[4].opcode)
             assertEquals("$what: returning the answer", answer, (code[4] as OneRegisterInstruction).registerA)
             assertEquals("$what: then Instagram's first instruction", before[0].opcode, code[5].opcode)
-            assertEquals("$what: Fill still right after the multiply", FILL_HOOK, code[multiply + 6].referenceText())
-            native.assertPreserved(what, decision, (0 until 5).toSet() + (multiply + 6 until multiply + 10).toSet())
+            assertEquals("$what: Fill still right after the multiply", FILL_HOOK, code[multiply + 7].referenceText())
+            native.assertPreserved(what, decision, (0 until 5).toSet() + (multiply + 6 until multiply + 11).toSet())
         }
     }
 
@@ -109,18 +111,24 @@ class ReelFillHookTest {
                 before[at].opcode == Opcode.MUL_FLOAT_2ADDR && before.take(at).any { it.string() == CROP_PERCENTAGE }
             }
             val percent = (before[multiply] as TwoRegisterInstruction).registerA
+            val source = decision.parameterRegisterNumber(decision.parameterTypes.indexOfFirst { it.toString() == REEL_VIEWER_SOURCE })
             val native = NeutralNativePath(decision)
 
             context.fillReelScreen()
 
             val code = decision.code()
-            val ask = multiply + 1
-            assertEquals("$what: four instructions added", before.size + 4, code.size)
+            val fetch = multiply + 1
+            val ask = fetch + 1
+            assertEquals("$what: five instructions added", before.size + 5, code.size)
+            assertEquals("$what: the source first", Opcode.MOVE_OBJECT_FROM16, code[fetch].opcode)
+            assertEquals("$what: out of its parameter", source, (code[fetch] as TwoRegisterInstruction).registerB)
+            val holder = (code[fetch] as TwoRegisterInstruction).registerA
+            assertTrue("$what: into a local", holder < decision.implementation!!.registerCount - decision.parameters.size - 1)
             assertEquals("$what: one ask", 1, code.count { it.referenceText() == FILL_HOOK })
             assertEquals("$what: right after the multiply", FILL_HOOK, code[ask].referenceText())
             assertEquals("$what: an invoke-static", Opcode.INVOKE_STATIC, code[ask].opcode)
-            assertEquals("$what: on the percentage", listOf(percent), (code[ask] as FiveRegisterInstruction).let {
-                listOf(it.registerC).take(it.registerCount)
+            assertEquals("$what: on the source and the percentage", listOf(holder, percent), (code[ask] as FiveRegisterInstruction).let {
+                listOf(it.registerC, it.registerD).take(it.registerCount)
             })
             assertEquals("$what: the answer", Opcode.MOVE_RESULT, code[ask + 1].opcode)
             val answer = (code[ask + 1] as OneRegisterInstruction).registerA
@@ -131,7 +139,7 @@ class ReelFillHookTest {
             assertEquals("$what: past the return", 2 + 1, (code[ask + 2] as OffsetInstruction).codeOffset)
             assertEquals("$what: a yes fills", Opcode.RETURN, code[ask + 3].opcode)
             assertEquals("$what: returning the answer", answer, (code[ask + 3] as OneRegisterInstruction).registerA)
-            native.assertPreserved(what, decision, (ask until ask + 4).toSet())
+            native.assertPreserved(what, decision, (fetch until ask + 4).toSet())
         }
     }
 

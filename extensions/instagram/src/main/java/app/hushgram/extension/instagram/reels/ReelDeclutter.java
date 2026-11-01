@@ -167,11 +167,16 @@ public final class ReelDeclutter {
         if (hide(Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE, "comment bar")) return true;
         if (!hide(Settings.HIDE_REEL_COMMENT_BAR, "comment bar")) return false;
         try {
-            return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
+            return opensRepost(source);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_DECLUTTER, "comment bar source", failure);
             return false;
         }
+    }
+
+    /** Whether [source], the viewer's ClipsViewerSource, is one of {@link #REPOSTS}. */
+    static boolean opensRepost(Object source) {
+        return source instanceof Enum && REPOSTS.contains(((Enum<?>) source).name());
     }
 
     /**

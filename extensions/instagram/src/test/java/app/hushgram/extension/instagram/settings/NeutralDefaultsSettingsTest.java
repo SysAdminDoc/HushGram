@@ -340,6 +340,6 @@ public class NeutralDefaultsSettingsTest {
         assertTrue(app.hushgram.extension.instagram.media.TapToPlay.autoplayAllowed(true));
         assertFalse("a save still opens Instagram's collections tray", app.hushgram.extension.instagram.feed.SaveTray.skip());
         assertFalse("a reel keeps Instagram's crop", app.hushgram.extension.instagram.reels.ReelFill.fit());
-        assertFalse("a reel keeps Instagram's crop", app.hushgram.extension.instagram.reels.ReelFill.fill(10f));
+        assertFalse("a reel keeps Instagram's crop", app.hushgram.extension.instagram.reels.ReelFill.fill(null, 10f));
     }
 }

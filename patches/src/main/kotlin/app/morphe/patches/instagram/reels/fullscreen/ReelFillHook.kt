@@ -15,14 +15,16 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.freeLocalsAt
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.loadsConstString
+import app.morphe.patches.instagram.misc.extension.parameterRegisterNumber
 import app.morphe.patches.instagram.misc.extension.requireLocals
+import app.morphe.patches.instagram.misc.extension.requireParameterIntact
 import app.morphe.patches.instagram.misc.extension.uniqueMethod
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 
-internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(F)Z"
+internal const val FILL_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fill(Ljava/lang/Object;F)Z"
 internal const val FIT_HOOK = "$EXTENSION_PACKAGE/reels/ReelFill;->fit()Z"
 
 /** The purge flag Instagram's reel crop decision names first thing. */
@@ -30,6 +32,9 @@ internal const val SHOULD_CROP = "android_purge_26_q2_ClipsMediaResizingUtils_sh
 
 /** The one it names where it works out how far the viewer's shape is from the reel's. */
 internal const val CROP_PERCENTAGE = "android_purge_26_q2_ClipsMediaResizingUtils_getCropPercentage"
+
+/** Where the viewer was opened from, which the decision takes as a parameter. */
+internal const val REEL_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
 /**
  * The method that decides whether a reel's video fills the viewer (true) or fits inside it with bars
@@ -45,9 +50,10 @@ internal object ReelCropDecisionFingerprint : Fingerprint(
  * Fill the screen (#288). After the crop percentage name, the decision divides the difference
  * between the viewer's aspect ratio and the reel's by the reel's and multiplies it by 100, then
  * crops only below thresholds Instagram's server sends. With Full screen Reels on the viewer is
- * taller, so a 9:16 reel often lands past them and shows bars, and hiding the comment bar on all
- * reels does the same (#371). Right after that multiply the decision asks [FILL_HOOK] with the
- * percentage, and returns true (fill) when it says so. Otherwise Instagram's own checks run as before.
+ * taller, so a 9:16 reel often lands past them and shows bars, and hiding the comment bar does the
+ * same (#371). Right after that multiply the decision asks [FILL_HOOK] with the viewer's source, since
+ * one comment bar switch only covers reposts, and the percentage, and returns true (fill) when it
+ * says so. Otherwise Instagram's own checks run as before.
  */
 internal fun BytecodePatchContext.fillReelScreen() {
     val decision = uniqueMethod(FULL_SCREEN_BARS_PATCH, "reel crop decision", ReelCropDecisionFingerprint)
@@ -61,12 +67,18 @@ internal fun BytecodePatchContext.fillReelScreen() {
     if (percent > 15) {
         throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel crop decision keeps its percentage in v$percent, past what an invoke names")
     }
+    val source = decision.parameterTypes.indexOfFirst { it.toString() == REEL_VIEWER_SOURCE }
+    if (source < 0) {
+        throw PatchException("$FULL_SCREEN_BARS_PATCH: the reel crop decision takes no $REEL_VIEWER_SOURCE")
+    }
     val at = multiply + 1
+    decision.requireParameterIntact(FULL_SCREEN_BARS_PATCH, source, listOf(at))
     val answer = decision.freeLocalsAt(FULL_SCREEN_BARS_PATCH, at, 1, except = listOf(percent)).first()
     decision.addInstructionsWithLabels(
         at,
         """
-            invoke-static { v$percent }, $FILL_HOOK
+            move-object/from16 v$answer, v${decision.parameterRegisterNumber(source)}
+            invoke-static { v$answer, v$percent }, $FILL_HOOK
             move-result v$answer
             if-eqz v$answer, :instagram
             return v$answer

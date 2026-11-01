@@ -20,9 +20,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * others. The patch asks here right after Instagram works the percentage out, and true makes the
  * reel fill the screen.
  *
- * <p>Hiding the comment bar on all reels makes the viewer taller the same way, with neither of those
- * switches on: its height goes to the viewer, so on a 1080x2400 screen a 9:16 reel is about 13 percent
- * off and gets a black band above and below (#371). So that switch fills reels too.
+ * <p>Hiding the comment bar makes the viewer taller the same way, with neither of those switches on:
+ * its height goes to the viewer, so on a 1080x2400 screen a 9:16 reel is about 13 percent off and gets
+ * a black band above and below (#371). So a reel whose bar is hidden fills too: every reel with the
+ * switch for all reels, only reposted ones with the switch for those.
  *
  * <p>Show the whole reel (piko #2183) goes the other way and asks first, before Instagram's early
  * crop for media it lets crop: true makes every reel fit inside the viewer with bars where its shape
@@ -62,15 +63,15 @@ public final class ReelFill {
     }
 
     /**
-     * Asked as Instagram decides whether a reel fills the viewer, with how far the viewer's shape is
-     * from the reel's in percent. True when Full screen Reels and Fill the screen are both on, or the
-     * comment bar is hidden on all reels, and the reel would lose no more than {@link #MOST_CROP},
-     * which crops it to fill the screen. False hands the decision back to Instagram, and so does
-     * anything that throws.
+     * Asked as Instagram decides whether a reel fills the viewer, with the viewer's ClipsViewerSource
+     * and how far the viewer's shape is from the reel's in percent. True when Full screen Reels and
+     * Fill the screen are both on, or this reel's comment bar is hidden, and the reel would lose no
+     * more than {@link #MOST_CROP}, which crops it to fill the screen. False hands the decision back
+     * to Instagram, and so does anything that throws.
      */
-    public static boolean fill(float cropPercent) {
+    public static boolean fill(Object source, float cropPercent) {
         try {
-            if (!Utils.settingsReady() || !wanted()) return false;
+            if (!Utils.settingsReady() || !wanted(source)) return false;
             if (!(cropPercent >= 0f && cropPercent <= MOST_CROP)) return false;
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_FILLED);
             return true;
@@ -80,8 +81,9 @@ public final class ReelFill {
         }
     }
 
-    private static boolean wanted() {
+    private static boolean wanted(Object source) {
         return Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
+                || (Settings.HIDE_REEL_COMMENT_BAR.get() && ReelDeclutter.opensRepost(source))
                 || (Settings.FILL_REEL_SCREEN.get() && Settings.FULL_SCREEN_REELS.get());
     }
 }
