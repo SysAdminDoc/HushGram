@@ -6,7 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
-* **Instagram:** `Skip the ad data reminder` is a new patch. With its switch on under Ads and privacy, Instagram's reminder to review whether it can process your data for ads stops opening by itself. Your ad choice doesn't change and nothing is answered for you. It starts off. Asked for in #331.
+* **Instagram:** `Skip the ad data reminder` is a new patch under Ads and privacy. Instagram's reminder to review how it uses your data for ads stops opening by itself. Your ad choice doesn't change. It starts off. Asked for in #331.
 
 ### Improvements
 
@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** The `Install next to Instagram` copy no longer crashes on the language pack screen, and it carries on to Instagram once the pack has downloaded. Sent in by snowyegret23 in #392.
 * **Instagram:** Material You in `Accent color` could crash Instagram at launch when a wallpaper's color happened to match one of Instagram's blues. Reported in #435.
 * **Instagram:** `Profile extras button` shows up on profiles again, and `Keep a viewing history` now records the profiles you open. Both were reading the account in a way 453 no longer answers. Reported in #234.
 * **Instagram:** A long press on a chat's name now opens the menu for `Jump to the first message or a date` and `Export a chat as text`. In 0.0.18 it opened the chat's details instead. A plain tap on the name still opens the details

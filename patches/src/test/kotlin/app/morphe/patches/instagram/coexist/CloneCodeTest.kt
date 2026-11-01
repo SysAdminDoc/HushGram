@@ -6,9 +6,18 @@ package app.morphe.patches.instagram.coexist
 
 import app.morphe.ExtensionDex
 import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
 import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -121,5 +130,51 @@ class CloneCodeTest {
         val method = ownPackage().methods.single { it.name == "name" }
         val strings = method.implementation!!.instructions.mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
         assertEquals(listOf(INSTAGRAM), strings)
+    }
+
+    @Test fun languagePackReturnUsesTheActivityAndKeepsTheScopedLauncher() {
+        for (registers in listOf(4, 20)) {
+            val context = PatchContexts.of(listOf(waitingForStrings(registers)))
+            context.keepLanguagePackReturnInTask()
+            val code = context.classDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList()
+            val move = code.single { it.opcode == Opcode.MOVE_OBJECT_FROM16 } as TwoRegisterInstruction
+            assertEquals(1, move.registerA)
+            assertEquals(registers - 1, move.registerB)
+            val calls = code.mapNotNull { ((it as? ReferenceInstruction)?.reference as? MethodReference)?.name }
+            assertEquals(listOf("setPackage", "openPublic", "finish"), calls)
+            assertEquals(registers, context.classDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.registerCount)
+        }
+    }
+
+    @Test fun ambiguousLanguagePackReturnIsRefusedWithoutChangingCode() {
+        val original = waitingForStrings(4, 2)
+        val context = PatchContexts.of(listOf(original))
+        val before = context.mutableClassDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList()
+        assertThrows(PatchException::class.java) { context.keepLanguagePackReturnInTask() }
+        assertEquals(before,
+            context.classDefBy(WAITING_FOR_STRINGS).methods.single().implementation!!.instructions.toList())
+    }
+
+    private fun waitingForStrings(registers: Int, copies: Int = 1): ImmutableClassDef {
+        val method = MutableMethod(ImmutableMethod(
+            WAITING_FOR_STRINGS, "resume", listOf(ImmutableMethodParameter(WAITING_FOR_STRINGS, null, null)), "V",
+            AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+            ImmutableMethodImplementation(registers, emptyList(), null, null),
+        ))
+        val launch = """
+            invoke-static/range {p0 .. p0}, Lx/Contexts;->application(Landroid/content/Context;)Landroid/content/Context;
+            move-result-object v1
+            invoke-static {v1, v2}, Lx/Launchers;->openPublic(Landroid/content/Context;Landroid/content/Intent;)Z
+        """.trimIndent()
+        method.addInstructionsWithLabels(0, """
+            const/4 v2, 0x0
+            const-string v0, "com.instagram.android"
+            invoke-virtual {v2, v0}, Landroid/content/Intent;->setPackage(Ljava/lang/String;)Landroid/content/Intent;
+            ${List(copies) { launch }.joinToString("\n")}
+            invoke-virtual/range {p0 .. p0}, Landroid/app/Activity;->finish()V
+            return-void
+        """.trimIndent())
+        return ImmutableClassDef(WAITING_FOR_STRINGS, AccessFlags.PUBLIC.value, "Landroid/app/Activity;",
+            null, null, null, emptyList(), listOf(method))
     }
 }

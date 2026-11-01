@@ -7,6 +7,8 @@ package app.morphe.patches.instagram.coexist
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 
+internal const val CLONE_LABEL_RESOURCE = "hushgram_clone_label"
+
 private const val NAME = "android:name"
 private const val LABEL = "android:label"
 private const val AUTHORITIES = "android:authorities"
@@ -90,6 +92,16 @@ internal fun readCloneManifest(manifest: Document): CloneManifestFacts {
     return CloneManifestFacts(authorities, permissions.toSet(), label)
 }
 
+/** Adds the clone's name to the default strings; quotes preserve spaces when resources compile. */
+internal fun addCloneLabel(strings: Document, label: String) {
+    cloneLabelProblem(label)?.let(::refuse)
+    val resource = strings.createElement("string")
+    resource.setAttribute("name", CLONE_LABEL_RESOURCE)
+    resource.setAttribute("translatable", "false")
+    resource.textContent = "\"$label\""
+    strings.documentElement.appendChild(resource)
+}
+
 /**
  * Moves Instagram's manifest to [clone] and names it [label] on the home screen. Everything is
  * checked first, so a refusal leaves the manifest as it was.
@@ -101,7 +113,8 @@ internal fun readCloneManifest(manifest: Document): CloneManifestFacts {
  * affinities move the same way as authorities, so the copy's screens never join a task of the
  * installed Instagram's. The push category and the custom tab return host name the package too.
  * Labels equal to the application's are the launcher entries and share targets, and they take
- * [label]. A class name starting with a dot is written out in full first, since it would
+ * [label] through a string resource, since WaitingForStringsActivity reads ApplicationInfo.labelRes.
+ * A class name starting with a dot is written out in full first, since it would
  * otherwise name a class under the copy's package. Actions, meta-data names and the provider
  * Instagram asks the Pages app for stay as they are.
  */
@@ -126,7 +139,7 @@ internal fun renameManifest(manifest: Document, clone: String, label: String): M
     var labels = 0
     for (element in everything) {
         if (element.getAttribute(LABEL) == facts.label) {
-            element.setAttribute(LABEL, label)
+            element.setAttribute(LABEL, "@string/$CLONE_LABEL_RESOURCE")
             labels++
         }
     }

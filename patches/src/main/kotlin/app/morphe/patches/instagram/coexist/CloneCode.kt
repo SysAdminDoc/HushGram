@@ -11,7 +11,9 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.settings.EXTENSION_ROOT
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction10x
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction21c
+import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction22x
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
@@ -421,7 +423,40 @@ internal fun BytecodePatchContext.applyClone(plan: ClonePlan) {
             method to site
         }
     }
+    keepLanguagePackReturnInTask()
     for ((method, site) in targets) {
         method.replaceInstruction(site.index, BuilderInstruction21c(Opcode.CONST_STRING, site.register, ImmutableStringReference(site.to!!)))
     }
+}
+
+internal const val WAITING_FOR_STRINGS = "Lcom/instagram/common/resources/downloadable/impl/WaitingForStringsActivity;"
+
+/** Keep the return launch in the waiting activity's task instead of adding NEW_TASK via an application context. */
+internal fun BytecodePatchContext.keepLanguagePackReturnInTask() {
+    val context = "Landroid/content/Context;"
+    val intent = "Landroid/content/Intent;"
+    val method = mutableClassDefBy(WAITING_FOR_STRINGS).methods.singleOrNull { candidate ->
+        AccessFlags.STATIC.isSet(candidate.accessFlags) && candidate.parameterTypes == listOf(WAITING_FOR_STRINGS) &&
+            candidate.returnType == "V" && candidate.implementation?.instructions?.any {
+                val called = (it as? ReferenceInstruction)?.reference as? MethodReference
+                called?.definingClass == intent && called.name == "setPackage"
+            } == true
+    } ?: refuse("could not find the language-pack return method")
+    val implementation = method.implementation!!
+    val code = implementation.instructions.toList()
+    val activity = implementation.registerCount - 1
+    val at = code.indices.singleOrNull { index ->
+        val called = (code[index] as? ReferenceInstruction)?.reference as? MethodReference
+        val launch = (code.getOrNull(index + 2) as? ReferenceInstruction)?.reference as? MethodReference
+        val result = code.getOrNull(index + 1) as? OneRegisterInstruction
+        code[index].opcode in setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE) &&
+            called?.parameterTypes == listOf(context) && called.returnType == context && arguments(code[index]) == listOf(activity) &&
+            code.getOrNull(index + 1)?.opcode == Opcode.MOVE_RESULT_OBJECT &&
+            launch?.parameterTypes == listOf(context, intent) && launch.returnType == "Z" &&
+            arguments(code[index + 2]).firstOrNull() == result?.registerA
+    } ?: refuse("could not find the language-pack return's application context")
+    val result = (code[at + 1] as OneRegisterInstruction).registerA
+    // Preserve the existing scoped launcher, caller checks, and URI-grant filtering.
+    method.replaceInstruction(at, BuilderInstruction22x(Opcode.MOVE_OBJECT_FROM16, result, activity))
+    method.replaceInstruction(at + 1, BuilderInstruction10x(Opcode.NOP))
 }

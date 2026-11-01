@@ -69,7 +69,7 @@ class CloneManifestTest {
             assertEquals("[$build]", ManifestRename(labels = 20, authorities = 25, permissions = 3, permissionUses = 3,
                 affinities = 19, categories = 2, hosts = 1, processes = 0, classNames = 0), renamed)
             assertEquals(clone, manifest.documentElement.getAttribute("package"))
-            assertEquals("Second", manifest.elements("application").single().getAttribute("android:label"))
+            assertEquals("@string/$CLONE_LABEL_RESOURCE", manifest.elements("application").single().getAttribute("android:label"))
             assertTrue("[$build] the old label is gone", label !in manifest.values("android:label"))
             assertEquals("[$build] each authority moves in place", before.map { cloneAuthority(it, clone) }, applicationAuthorities(manifest))
             assertTrue("[$build] every authority is under the copy's package", applicationAuthorities(manifest).all { it.startsWith("$clone.") })
@@ -125,6 +125,23 @@ class CloneManifestTest {
         assertEquals("@string/other", manifest.elements("activity")[1].getAttribute("android:label"))
         assertEquals(":mqtt", manifest.elements("activity")[1].getAttribute("android:process"))
         assertEquals("$clone.p;$clone.com.instagram.fileprovider", manifest.elements("provider").single().getAttribute("android:authorities"))
+    }
+
+    @Test fun theAppAndLauncherLabelsResolveToAStringResource() {
+        for (label in listOf(DEFAULT_LABEL, "Second  Instagram", "사진 & Instagram")) {
+            val manifest = small()
+            renameManifest(manifest, clone, label)
+            val strings = parse("""<resources><string name="other">Unchanged</string></resources>""")
+            addCloneLabel(strings, label)
+            val resource = strings.elements("string").last()
+            val reference = "@string/${resource.getAttribute("name")}"
+            assertEquals(reference, manifest.elements("application").single().getAttribute("android:label"))
+            assertEquals(reference, manifest.elements("activity").first().getAttribute("android:label"))
+            assertEquals("false", resource.getAttribute("translatable"))
+            assertEquals("\"$label\"", resource.textContent)
+            assertEquals("Unchanged", strings.elements("string").first().textContent)
+            assertEquals("@string/other", manifest.elements("activity")[1].getAttribute("android:label"))
+        }
     }
 
     @Test fun aManifestThisCantMoveWholeIsRefusedUntouched() {
