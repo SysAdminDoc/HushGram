@@ -66,6 +66,13 @@ final class ReadHere {
         return message.equals(chats.get(key(account, thread)));
     }
 
+    /** The message [thread] on [account] was opened up to, or null when it wasn't opened here. */
+    @Nullable
+    synchronized String messageOf(String account, String thread) {
+        load();
+        return chats.get(key(account, thread));
+    }
+
     /** True when no chat is kept. */
     synchronized boolean isEmpty() {
         load();

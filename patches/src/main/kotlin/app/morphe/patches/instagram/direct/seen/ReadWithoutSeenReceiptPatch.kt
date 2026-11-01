@@ -53,10 +53,12 @@ internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     val unread = findKeepUnread(seen)
     val read = findReadHere(marks.chat)
     val reply = findReplySeen(seen)
+    val cursor = findLocalCursor(marks.messageClass)
     holdBackThreadSeen(seen)
     markReadByHand(marks)
     keepChatsUnread(unread)
     keepChatsRead(read)
+    if (cursor != null) keepCursorLocal(cursor)
     if (reply != null) writeReplySeen(reply)
 }
 

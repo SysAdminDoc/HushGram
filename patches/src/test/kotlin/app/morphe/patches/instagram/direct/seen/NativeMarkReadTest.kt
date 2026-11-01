@@ -139,7 +139,7 @@ class NativeMarkReadTest {
 
     companion object {
         private val cached = FixtureCache<Map<String, ClassDef>>()
-        private val REPLY_BRIDGES = setOf("composerThread", "receiptSender")
+        private val REPLY_BRIDGES = setOf("composerThread", "receiptSender") + NativeLocalCursorTest.CURSOR_BRIDGES
 
         /**
          * The chat receipt's classes, plus the chat menu's enum, the classes whose methods take it or
@@ -150,7 +150,7 @@ class NativeMarkReadTest {
          * inbox draws its rows from with the classes its unread answer reads, and the extension's hooks
          * and bridges.
          */
-        private fun markReadClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
+        internal fun markReadClasses(bundle: File): Map<String, ClassDef> = cached.get(bundle) {
             val classes = threadClasses(bundle).toMutableMap()
             val menu = FixtureDex.classesHolding(bundle, MARK_AS_UNREAD).single { candidate ->
                 candidate.superclass == "Ljava/lang/Enum;" && candidate.methods.any { method ->

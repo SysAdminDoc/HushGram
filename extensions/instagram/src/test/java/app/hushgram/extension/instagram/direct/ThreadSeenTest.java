@@ -785,6 +785,100 @@ public class ThreadSeenTest {
         assertEquals(ReadHere.MAX_CHATS, openedOnFile().size());
     }
 
+    @Test
+    public void aChatViewedHereMovesTheDividersCursorToWhatWasViewed() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m3")));
+        Reader reader = new Reader(SESSION, "m1", "m1", "m2", "m3", "m4");
+        move(reader, "t1");
+        assertEquals("the newest message viewed here", "m3", reader.cursor.at());
+        assertNothingReported();
+    }
+
+    @Test
+    public void aCursorAlreadyAtOrPastWhatWasViewedStaysPut() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m2")));
+        Reader same = new Reader(SESSION, "m2", "m1", "m2", "m3");
+        move(same, "t1");
+        assertEquals("m2", same.cursor.at());
+        Reader past = new Reader(SESSION, "m3", "m1", "m2", "m3");
+        move(past, "t1");
+        assertEquals("the cursor never moves back", "m3", past.cursor.at());
+    }
+
+    @Test
+    public void aCursorMissingFromTheLoadedItemsMovesToWhatWasViewed() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m2")));
+        Reader reader = new Reader(SESSION, "m0", "m1", "m2", "m3");
+        move(reader, "t1");
+        assertEquals("m2", reader.cursor.at());
+    }
+
+    @Test
+    public void aChatNotViewedHereOrNotLoadedKeepsTheServersCursor() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m3")));
+        Reader other = new Reader(SESSION, "m1", "m1", "m2", "m3");
+        move(other, "t2");
+        assertEquals("a chat nothing was viewed in", "m1", other.cursor.at());
+        Reader account = new Reader(OTHER, "m1", "m1", "m2", "m3");
+        move(account, "t1");
+        assertEquals("another account's chat", "m1", account.cursor.at());
+        Reader unloaded = new Reader(SESSION, "m1", "m1", "m2");
+        move(unloaded, "t1");
+        assertEquals("the viewed message isn't among the loaded items", "m1", unloaded.cursor.at());
+        Reader none = new Reader(SESSION, "m1", "m1", "m2", "m3");
+        none.items = null;
+        move(none, "t1");
+        assertEquals("m1", none.cursor.at());
+    }
+
+    @Test
+    public void theCursorStaysWithTheSwitchOffKeepUnreadOnPausedAndUnready() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m3")));
+        Reader reader = new Reader(SESSION, "m1", "m1", "m2", "m3");
+
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(false);
+        move(reader, "t1");
+        Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
+
+        Settings.KEEP_CHATS_UNREAD.save(true);
+        move(reader, "t1");
+        Settings.KEEP_CHATS_UNREAD.save(false);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        move(reader, "t1");
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> move(reader, "t1"));
+        assertFalse("none of those moved it", reader.cursor.moved);
+        move(reader, "t1");
+        assertEquals("m3", reader.cursor.at());
+    }
+
+    @Test
+    public void aReaderThatCantBeReadNeverThrowsAndLeavesTheCursor() {
+        Settings.KEEP_CHATS_UNREAD.save(false);
+        assertTrue(hold(receipt("t1", "m3")));
+        Reader reader = new Reader(SESSION, "m1", "m1", "m2", "m3");
+        chats.cursorThrows = true;
+        move(reader, "t1");
+        assertEquals("m1", reader.cursor.at());
+        ThreadSeen.localCursor(reader, null, new Key("t1"));
+        assertEquals("as built, Instagram's cursor can't be moved", "m1", reader.cursor.at());
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
+
+    private void move(Reader reader, String thread) {
+        ThreadSeen.localCursor(reader, new Key(thread), ThreadSeen::readsHere, chats);
+    }
+
     private boolean read(Object summary) {
         return ThreadSeen.readHere(summary, SESSION, ThreadSeen::readsHere, chats);
     }
@@ -954,6 +1048,41 @@ public class ThreadSeenTest {
         }
     }
 
+    /** The account's cursor in a chat, where its New Messages divider is worked out from. */
+    private static final class Cursor {
+        String id;
+        boolean moved;
+
+        Cursor(String id) {
+            this.id = id;
+        }
+
+        String at() {
+            return id;
+        }
+    }
+
+    private static final class Item {
+        final String id;
+
+        Item(String id) {
+            this.id = id;
+        }
+    }
+
+    /** Instagram's reader of the cursor: a session, the cursor and the chat's items, oldest first. */
+    private static final class Reader {
+        final Session session;
+        final Cursor cursor;
+        List<Item> items = new ArrayList<>();
+
+        Reader(Session session, String at, String... ids) {
+            this.session = session;
+            this.cursor = new Cursor(at);
+            for (String id : ids) items.add(new Item(id));
+        }
+    }
+
     private static final class Key {
         final String thread;
 
@@ -1030,6 +1159,35 @@ public class ThreadSeenTest {
         boolean accountThrows;
         boolean storeThrows;
         boolean summaryThrows;
+        boolean cursorThrows;
+
+        @Override
+        public Object cursorOf(Object reader) {
+            if (cursorThrows) throw new IllegalStateException("the reader went away");
+            return ((Reader) reader).cursor;
+        }
+
+        @Override
+        public Object cursorSession(Object reader) {
+            return ((Reader) reader).session;
+        }
+
+        @Override
+        public List<?> cursorItems(Object reader, Object key) {
+            return ((Reader) reader).items;
+        }
+
+        @Override
+        public String cursorItem(Object cursor) {
+            return ((Cursor) cursor).id;
+        }
+
+        @Override
+        public void moveCursor(Object cursor, String item) {
+            Cursor moved = (Cursor) cursor;
+            moved.id = item;
+            moved.moved = true;
+        }
 
         @Override
         public Object chatKey(Object thread) {
@@ -1088,7 +1246,7 @@ public class ThreadSeenTest {
 
         @Override
         public String messageId(Object message) {
-            return ((Message) message).id;
+            return message instanceof Item ? ((Item) message).id : ((Message) message).id;
         }
 
         @Override

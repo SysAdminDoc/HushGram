@@ -97,6 +97,16 @@ public final class ThreadSeen {
         Object chatKey(Object thread);
 
         String newestMessage(Object thread);
+
+        Object cursorOf(Object reader);
+
+        Object cursorSession(Object reader);
+
+        List<?> cursorItems(Object reader, Object key);
+
+        String cursorItem(Object cursor);
+
+        void moveCursor(Object cursor, String item);
     }
 
     private static final Chats INSTAGRAM = new Chats() {
@@ -168,6 +178,32 @@ public final class ThreadSeen {
         @Override
         public String newestMessage(Object thread) {
             return InstagramChats.newestMessage(thread);
+        }
+
+        @Override
+        public Object cursorOf(Object reader) {
+            return InstagramChats.cursorOf(reader);
+        }
+
+        @Override
+        public Object cursorSession(Object reader) {
+            return InstagramChats.cursorSession(reader);
+        }
+
+        @Override
+        public List<?> cursorItems(Object reader, Object key) {
+            Object items = InstagramChats.cursorItems(reader, key);
+            return items instanceof List ? (List<?>) items : null;
+        }
+
+        @Override
+        public String cursorItem(Object cursor) {
+            return InstagramChats.cursorItem(cursor);
+        }
+
+        @Override
+        public void moveCursor(Object cursor, String item) {
+            InstagramChats.moveCursor(cursor, item);
         }
     };
 
@@ -508,6 +544,50 @@ public final class ThreadSeen {
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
             return false;
+        }
+    }
+
+    /**
+     * Asked in Instagram's read of the account's own cursor in a chat, right after it fetched the
+     * cursor, with the reader, the thread source it was handed and the chat's key. The cursor is where the server thinks the account
+     * has seen up to, and with the receipt held it never moves, so a chat that reads as read in the
+     * inbox still opened with the New Messages divider and jumped up to it (#186). When this phone
+     * kept the chat read up to a message that is past the cursor, the cursor is moved to that message
+     * here, in memory only, so the divider and the jump follow what was viewed. Nothing is sent. Does
+     * nothing while the switch is off or Keep chats unread here is on, when the chat wasn't opened
+     * here, when the message isn't among the chat's loaded items or isn't past the cursor. Never throws.
+     */
+    public static void localCursor(Object reader, Object source, Object key) {
+        localCursor(reader, key, ThreadSeen::readsHere, INSTAGRAM);
+    }
+
+    static void localCursor(Object reader, Object key, BooleanSupplier on, Chats chats) {
+        try {
+            if (!on.getAsBoolean()) return;
+            ReadHere kept = opened();
+            if (kept == null || kept.isEmpty()) return;
+            String account = chats.accountId(chats.cursorSession(reader));
+            String thread = chats.threadId(key);
+            if (isEmpty(account) || isEmpty(thread)) return;
+            String message = kept.messageOf(account, thread);
+            if (isEmpty(message)) return;
+            Object cursor = chats.cursorOf(reader);
+            List<?> items = chats.cursorItems(reader, key);
+            if (cursor == null || items == null) return;
+            String at = chats.cursorItem(cursor);
+            int seen = -1;
+            int viewed = -1;
+            for (int index = 0; index < items.size(); index++) {
+                String id = chats.messageId(items.get(index));
+                if (id == null) continue;
+                if (id.equals(message)) viewed = index;
+                if (id.equals(at)) seen = index;
+            }
+            // Items run oldest first. Only a viewed message past the cursor moves it, never back.
+            if (viewed < 0 || viewed <= seen) return;
+            chats.moveCursor(cursor, message);
+        } catch (Throwable t) {
+            HookStatus.threw(FamilyNames.THREAD_SEEN, READ, t);
         }
     }
 

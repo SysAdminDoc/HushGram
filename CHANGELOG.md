@@ -20,6 +20,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** `Back leaves Home as it is` now also skips "Tap again to exit" and the feed reload at the top of Home, so one Back leaves from anywhere in the feed. Reported in #54.
+* **Instagram:** With `Keep chats unread here` off, a chat you've already read here no longer opens with the New Messages line and jumps up to it. Nothing new is sent. Reported in #186.
 * **Instagram:** The `Install next to Instagram` copy no longer crashes on the language pack screen, and it carries on to Instagram once the pack has downloaded. Sent in by snowyegret23 in #392.
 * **Instagram:** Material You in `Accent color` could crash Instagram at launch when a wallpaper's color happened to match one of Instagram's blues. Reported in #435.
 * **Instagram:** `Keep a viewing history` now records posts on Home and in the post viewer, and the list has its own page: a tab for each kind, a search box, and a tap opens the post or person again. Reported in #228.

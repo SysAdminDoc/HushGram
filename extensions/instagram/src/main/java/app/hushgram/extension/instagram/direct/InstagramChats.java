@@ -106,4 +106,28 @@ public final class InstagramChats {
     public static String newestMessage(Object thread) {
         return null;
     }
+
+    /** The account's own cursor in a chat, as Instagram's reader of it keeps it while it works out the New Messages divider. */
+    public static Object cursorOf(Object reader) {
+        return null;
+    }
+
+    /** The session of the account that reader is for. */
+    public static Object cursorSession(Object reader) {
+        return null;
+    }
+
+    /** The items of the chat [key] names that the reader walks, a List, or null when the chat isn't loaded. */
+    public static Object cursorItems(Object reader, Object key) {
+        return null;
+    }
+
+    /** The id of the item a cursor points at. */
+    public static String cursorItem(Object cursor) {
+        return null;
+    }
+
+    /** Moves a cursor to an item, by its id. */
+    public static void moveCursor(Object cursor, String item) {
+    }
 }
