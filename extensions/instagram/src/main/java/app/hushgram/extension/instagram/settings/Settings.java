@@ -323,6 +323,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_seek_bar", FALSE);
 
     /**
+     * A small button on the bottom start of a feed video that shows or hides its seek bar with one tap
+     * (#437, {@link app.hushgram.extension.instagram.feed.FeedSeekBar}). A tap flips {@link #FEED_SEEK_BAR}.
+     * Off to start.
+     */
+    public static final BooleanSetting FEED_SEEK_BUTTON =
+            new BooleanSetting("hushgram_feed_seek_button", FALSE);
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.
@@ -2262,6 +2270,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting SETTINGS_BUTTON_ON_HOME =
             new BooleanSetting("hushgram_settings_button_on_home", FALSE, true);
+
+    /**
+     * A menu button at the end of Home's header with the viewing history, Ghost mode and HushGram settings
+     * (#437, {@link app.hushgram.extension.instagram.settings.HomeMenuButton}). The header builds it as it
+     * draws, so a change takes a restart. Off to start.
+     */
+    public static final BooleanSetting MENU_BUTTON_ON_HOME =
+            new BooleanSetting("hushgram_menu_button_on_home", FALSE, true);
 
     /**
      * Instagram's own Messages button is off Home's header, for accounts that still have it there and

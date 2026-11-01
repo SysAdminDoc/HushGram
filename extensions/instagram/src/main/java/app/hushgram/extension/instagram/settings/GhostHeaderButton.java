@@ -79,6 +79,7 @@ public final class GhostHeaderButton {
                 MessagesHeaderButton.place(header);
                 place(header);
                 SettingsHeaderButton.place(header);
+                HomeMenuButton.place(header);
                 HomeLogo.center(header);
             });
         } catch (Throwable failure) {

@@ -4,16 +4,21 @@
  */
 package app.hushgram.extension.instagram.feed;
 
+import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.SeekBar;
+import android.widget.Switch;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
@@ -22,6 +27,7 @@ import java.lang.ref.WeakReference;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
+import app.hushgram.extension.shared.L10n;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -54,6 +60,10 @@ public final class FeedSeekBar {
 
     static final String HOOK = "feed seek bar";
     static final String COUNT_SEEKS = "feed seeks";
+    static final String COUNT_TOGGLES = "feed seek bar toggles";
+
+    /** The toggle button's size, a small circle at the bottom start of the video (#437). */
+    static final int BUTTON_DP = 28;
 
     /** The feed's video player, through the patch's stubs; tests stand in. */
     interface Player {
@@ -78,6 +88,16 @@ public final class FeedSeekBar {
         return Utils.settingsReady() && Settings.FEED_SEEK_BAR.get();
     }
 
+    /** Whether the toggle button shows: its switch on, HushGram not paused, the settings read (#437). */
+    static boolean buttonWanted() {
+        return Utils.settingsReady() && Settings.FEED_SEEK_BUTTON.get();
+    }
+
+    /** Whether a video gets an overlay at all: the bar or its toggle button is wanted. */
+    static boolean active() {
+        return wanted() || buttonWanted();
+    }
+
     /**
      * Called first thing in the feed video player's progress callback, with the player and where its
      * video is and how long it is, in milliseconds. Never throws.
@@ -90,7 +110,7 @@ public final class FeedSeekBar {
             }
             Overlay overlay = current;
             if (overlay == null || overlay.removed || overlay.player.get() != player) {
-                if (player == null || !wanted()) return;
+                if (player == null || !active()) return;
                 if (overlay != null) overlay.remove();
                 overlay = new Overlay(player);
                 current = overlay;
@@ -130,6 +150,7 @@ public final class FeedSeekBar {
     private static final class Overlay implements SeekBar.OnSeekBarChangeListener, View.OnTouchListener, Runnable {
         final WeakReference<Object> player;
         @Nullable SeekBar bar;
+        @Nullable Toggle button;
         int position;
         int duration;
         long hiddenSince = -1;
@@ -167,7 +188,7 @@ public final class FeedSeekBar {
 
         void update(Object owner) {
             if (removed) return;
-            View view = wanted() && duration > 0 ? feed.view(owner) : null;
+            View view = active() && duration > 0 ? feed.view(owner) : null;
             // The view is the video's cover, which Instagram hides while the video plays, so it's the
             // frame holding the cover and the video that has to be on screen.
             FrameLayout frame = view != null && view.getParent() instanceof FrameLayout ? (FrameLayout) view.getParent() : null;
@@ -181,11 +202,63 @@ public final class FeedSeekBar {
                 if (seek.getMax() != duration) seek.setMax(duration);
                 seek.setProgress(Math.max(0, Math.min(duration, position)));
             }
-            if (seek.getVisibility() != View.VISIBLE) seek.setVisibility(View.VISIBLE);
+            int barState = wanted() ? View.VISIBLE : View.GONE;
+            if (seek.getVisibility() != barState) seek.setVisibility(barState);
+            if (barState == View.GONE) dragging = false;
+            showButton(frame, view);
+        }
+
+        /** Puts the toggle button in [frame] just after [view], or takes it out when its switch is off. */
+        private void showButton(FrameLayout frame, View view) {
+            if (!buttonWanted()) {
+                removeButton();
+                return;
+            }
+            Toggle shown = button;
+            if (shown != null && shown.getParent() == frame) {
+                shown.invalidate();
+                return;
+            }
+            if (shown == null) {
+                shown = new Toggle(view.getContext());
+                shown.setOnClickListener(tapped -> toggle());
+                button = shown;
+            } else if (shown.getParent() != null) {
+                ((ViewGroup) shown.getParent()).removeView(shown);
+            }
+            int size = dp(view, BUTTON_DP);
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(size, size, Gravity.BOTTOM | Gravity.START);
+            params.setMarginStart(dp(view, 8));
+            params.bottomMargin = dp(view, HEIGHT_DP + 4);
+            frame.addView(shown, frame.indexOfChild(view) + 1, params);
+        }
+
+        private void removeButton() {
+            Toggle shown = button;
+            button = null;
+            if (shown == null) return;
+            shown.setOnClickListener(null);
+            ViewGroup parent = (ViewGroup) shown.getParent();
+            if (parent != null) parent.removeView(shown);
+        }
+
+        /** The button's tap: the bar's own switch flips, so the settings and the button always agree. */
+        private void toggle() {
+            try {
+                if (removed || !buttonWanted()) return;
+                Settings.FEED_SEEK_BAR.save(!Settings.FEED_SEEK_BAR.get());
+                HookStatus.counted(FamilyNames.FEED_SEEK_BAR, COUNT_TOGGLES);
+                Object owner = player.get();
+                if (owner != null) update(owner);
+                if (button != null) button.invalidate();
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
+            }
         }
 
         /** Hides the bar, ending a drag under it, and takes it away once it's been hidden for {@link #GONE_MS}. */
         private void hide() {
+            if (!buttonWanted()) removeButton();
             if (bar != null && bar.getVisibility() != View.GONE) bar.setVisibility(View.GONE);
             dragging = false;
             long now = SystemClock.uptimeMillis();
@@ -247,6 +320,7 @@ public final class FeedSeekBar {
         void remove() {
             removed = true;
             dragging = false;
+            removeButton();
             SeekBar seek = bar;
             bar = null;
             if (seek != null) {
@@ -282,6 +356,60 @@ public final class FeedSeekBar {
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
             }
+        }
+    }
+
+    /**
+     * The small button that shows or hides the seek bar: a dark circle holding a line with a dot on it,
+     * bright while the bar shows and dimmed with a slash while it's hidden.
+     */
+    static final class Toggle extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+        Toggle(Context context) {
+            super(context);
+            setClickable(true);
+            setFocusable(true);
+            setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
+            setContentDescription(L10n.t(context, "Seek bar"));
+        }
+
+        boolean barShown() {
+            return Settings.FEED_SEEK_BAR.get();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            float width = getWidth();
+            float height = getHeight();
+            boolean on = barShown();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0x99000000);
+            canvas.drawCircle(width / 2, height / 2, Math.min(width, height) / 2, paint);
+            int ink = on ? Color.WHITE : 0x99FFFFFF;
+            float unit = getResources().getDisplayMetrics().density;
+            paint.setColor(ink);
+            paint.setStrokeWidth(2 * unit);
+            paint.setStrokeCap(Paint.Cap.ROUND);
+            paint.setStyle(Paint.Style.STROKE);
+            float left = width * 0.24f;
+            float right = width * 0.76f;
+            float y = height / 2;
+            canvas.drawLine(left, y, right, y, paint);
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawCircle(left + (right - left) * 0.4f, y, 3 * unit, paint);
+            if (!on) {
+                paint.setStyle(Paint.Style.STROKE);
+                canvas.drawLine(width * 0.28f, height * 0.72f, width * 0.72f, height * 0.28f, paint);
+            }
+        }
+
+        @Override
+        public void onInitializeAccessibilityNodeInfo(AccessibilityNodeInfo info) {
+            super.onInitializeAccessibilityNodeInfo(info);
+            info.setClassName(Switch.class.getName());
+            info.setCheckable(true);
+            info.setChecked(barShown());
         }
     }
 

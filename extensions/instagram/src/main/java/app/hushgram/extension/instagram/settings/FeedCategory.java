@@ -194,6 +194,9 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BAR, L10n.t("Seek bar on feed videos"),
                     L10n.t("Shows a bar along the bottom of the video playing in a feed. Drag it and let go to jump "
                             + "to that point in the video.")));
+            feed.addPreference(toggle(context, Settings.FEED_SEEK_BUTTON, L10n.t("Seek bar button on feed videos"),
+                    L10n.t("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. "
+                            + "It works with Seek bar on feed videos on or off.")));
         }
         if (longPressZoom) {
             feed.addPreference(toggle(context, Settings.LONG_PRESS_TO_ZOOM, L10n.t("Long press a photo to zoom"),

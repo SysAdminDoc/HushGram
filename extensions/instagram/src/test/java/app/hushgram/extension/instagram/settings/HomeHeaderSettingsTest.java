@@ -160,6 +160,21 @@ public class HomeHeaderSettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SETTINGS_BUTTON_ON_HOME.key));
     }
 
+    /** Menu button on Home's header (#437) sits under Tab bar, starts off and asks for a restart. */
+    @Test public void theMenuButtonSwitchStartsOff() throws Exception {
+        open(PatchFamily.REELS_TAB);
+        SwitchPreference toggle = (SwitchPreference) row(Settings.MENU_BUTTON_ON_HOME.key);
+        assertNotNull(toggle);
+        assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), toggle).getTitle()));
+        assertEquals("Menu button on Home's header", String.valueOf(toggle.getTitle()));
+        assertTrue(String.valueOf(toggle.getSummary()).endsWith("Restart Instagram to see the change."));
+        assertFalse(toggle.isChecked());
+        assertEquals(Boolean.FALSE, Settings.MENU_BUTTON_ON_HOME.defaultValue);
+        assertTrue(Settings.MENU_BUTTON_ON_HOME.rebootApp);
+        assertTrue(PatchFamily.REELS_TAB.switches.contains(Settings.MENU_BUTTON_ON_HOME));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MENU_BUTTON_ON_HOME.key));
+    }
+
     /** Hide Messages on Home's header (#210) follows Messages button on Home's header, starts off and asks for a restart. */
     @Test public void theHideMessagesSwitchFollowsTheMessagesButtonOneAndStartsOff() throws Exception {
         open();

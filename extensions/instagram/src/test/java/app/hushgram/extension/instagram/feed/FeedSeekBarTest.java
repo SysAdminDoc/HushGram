@@ -136,6 +136,7 @@ public class FeedSeekBarTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.FEED_SEEK_BAR.resetToDefault();
+        Settings.FEED_SEEK_BUTTON.resetToDefault();
         HookStatus.clear();
     }
 
@@ -144,6 +145,7 @@ public class FeedSeekBarTest {
         FeedSeekBar.resetForTests();
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
+        Settings.FEED_SEEK_BUTTON.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -170,6 +172,41 @@ public class FeedSeekBarTest {
         tick();
         assertNull(FeedSeekBar.barForTests());
         assertEquals("only the video and its icons", 2, first.getChildCount());
+    }
+
+    /** The toggle button (#437) is a small view after the video, and its tap shows or hides the bar. */
+    @Test
+    public void theToggleButtonShowsAndHidesTheBar() {
+        assertEquals(Boolean.FALSE, Settings.FEED_SEEK_BUTTON.defaultValue);
+        Settings.FEED_SEEK_BUTTON.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        SeekBar bar = bar();
+        assertEquals("the bar stays hidden while its own switch is off", View.GONE, bar.getVisibility());
+        FeedSeekBar.Toggle button = null;
+        for (int at = 0; at < first.getChildCount(); at++) if (first.getChildAt(at) instanceof FeedSeekBar.Toggle) button = (FeedSeekBar.Toggle) first.getChildAt(at);
+        assertNotNull("the video has a button", button);
+        assertTrue("Instagram's icons stay drawn over it", first.indexOfChild(button) < first.indexOfChild(firstIcons));
+        assertFalse(button.barShown());
+
+        assertTrue(button.performClick());
+        assertTrue(Settings.FEED_SEEK_BAR.savedValue());
+        assertEquals(View.VISIBLE, bar.getVisibility());
+        assertTrue(button.barShown());
+
+        assertTrue(button.performClick());
+        assertFalse(Settings.FEED_SEEK_BAR.savedValue());
+        assertEquals(View.GONE, bar.getVisibility());
+
+        Settings.FEED_SEEK_BUTTON.save(false);
+        tick();
+        assertNull("the button goes with its switch", button.getParent());
+    }
+
+    @Test
+    public void withTheButtonOffTheBarKeepsToItself() {
+        Settings.FEED_SEEK_BAR.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        for (int at = 0; at < first.getChildCount(); at++) assertFalse(first.getChildAt(at) instanceof FeedSeekBar.Toggle);
     }
 
     @Test
