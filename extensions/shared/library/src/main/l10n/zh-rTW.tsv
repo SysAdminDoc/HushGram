@@ -1519,3 +1519,8 @@ Refraction intensity	折射強度
 Preview of the tab bar	分頁列預覽
 Keep stories playing while zooming	縮放時繼續播放限時動態
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	用兩指縮放限時動態時會繼續播放。若先按住不放，縮放時會維持暫停。
+Follower history	追蹤者紀錄
+Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	尚未記錄任何內容。每次你把自己的追蹤者清單捲到底，自上次以來的變動就會加到這裡。
+%1$s unfollowed you, %2$s	%1$s 已取消追蹤你，%2$s
+%1$s followed you again, %2$s	%1$s 再次追蹤你，%2$s
+%1$s started following you, %2$s	%1$s 開始追蹤你，%2$s

@@ -1516,3 +1516,8 @@ Refraction intensity	Kırılma yoğunluğu
 Preview of the tab bar	Sekme çubuğu önizlemesi
 Keep stories playing while zooming	Yakınlaştırırken hikâyeler oynamaya devam etsin
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Bir hikâye, iki parmakla yakınlaştırırken oynamaya devam eder. Önce basılı tutarsan yakınlaştırırken duraklatılmış kalır.
+Follower history	Takipçi geçmişi
+Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Henüz bir şey kaydedilmedi. Kendi takipçi listeni sonuna kadar her kaydırışında, son seferden beri olan değişiklikler buraya eklenir.
+%1$s unfollowed you, %2$s	%1$s seni takibi bıraktı, %2$s
+%1$s followed you again, %2$s	%1$s seni yeniden takip etti, %2$s
+%1$s started following you, %2$s	%1$s seni takip etmeye başladı, %2$s

@@ -193,6 +193,16 @@ public final class Unfollowers {
         void keep(String viewer, Map<String, String> followers, long when, long generation);
     }
 
+    /** How long a whole list must stand unchanged before it is kept. A list that keeps changing is still loading. */
+    static final long SETTLE_MS = 2500;
+
+    /** Runs a task on the main thread after a delay. Tests hand in their own clock. */
+    interface Later {
+        void after(Runnable task, long delayMillis);
+    }
+
+    static volatile Later later = Utils::runOnMainThreadDelayed;
+
     static final Keeper STORED = (viewer, followers, when, generation) -> {
         Context context = Utils.getContext();
         if (context == null) {
@@ -200,9 +210,13 @@ public final class Unfollowers {
             return;
         }
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
-        if (!Utils.runOnBackgroundThread(() -> take(application, viewer, followers, when, generation))) {
-            forgetTaken(viewer, generation);
-        }
+        later.after(() -> {
+            // A newer list for the account took over the generation while this one waited.
+            if (!current(viewer, generation)) return;
+            if (!Utils.runOnBackgroundThread(() -> take(application, viewer, followers, when, generation))) {
+                forgetTaken(viewer, generation);
+            }
+        }, SETTLE_MS);
     };
 
     /**
@@ -358,6 +372,11 @@ public final class Unfollowers {
                 Record after = compare(before, followers, when);
                 write(file(application, hash(viewer)), after);
                 writeLast(application, hash(viewer));
+                try {
+                    FollowerHistory.add(historyFile(application, hash(viewer)), FollowerHistory.changes(before, followers, when));
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, SAVE, failure);
+                }
                 int listed = after.left.size();
                 Logger.printDebug(() -> "Recent unfollowers: took " + followers.size() + " followers, " + listed + " listed as gone");
             } catch (Throwable failure) {
@@ -384,6 +403,23 @@ public final class Unfollowers {
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, READ, failure);
                 return Record.NONE;
+            }
+        }
+    }
+
+    /** The follower and unfollower changes logged for the account to show, newest first. Never throws. */
+    public static List<FollowerHistory.Change> history(Context context) {
+        if (context == null) return Collections.emptyList();
+        Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
+        synchronized (LOCK) {
+            try {
+                String signedIn = HiddenAccounts.signedInAccount();
+                String hash = signedIn != null && !signedIn.isEmpty() ? hash(signedIn) : readLast(application);
+                if (hash == null || hash.isEmpty()) return Collections.emptyList();
+                return FollowerHistory.read(historyFile(application, hash));
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FRIENDSHIP_STATUS, READ, failure);
+                return Collections.emptyList();
             }
         }
     }
@@ -422,6 +458,10 @@ public final class Unfollowers {
 
     static File file(Context application, String hash) {
         return new File(new File(application.getFilesDir(), DIRECTORY), hash + ".tsv");
+    }
+
+    static File historyFile(Context application, String hash) {
+        return new File(new File(application.getFilesDir(), DIRECTORY), hash + ".history.tsv");
     }
 
     /**

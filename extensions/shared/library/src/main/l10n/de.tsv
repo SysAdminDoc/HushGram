@@ -1516,3 +1516,8 @@ Refraction intensity	Stärke der Lichtbrechung
 Preview of the tab bar	Vorschau der Tab-Leiste
 Keep stories playing while zooming	Stories beim Zoomen weiterspielen
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Eine Story läuft weiter, während du sie mit zwei Fingern zoomst. Halte sie vorher gedrückt, bleibt sie beim Zoomen pausiert.
+Follower history	Follower-Verlauf
+Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Noch nichts erfasst. Jedes Mal, wenn du deine eigene Followerliste bis zum Ende scrollst, werden die Änderungen seit dem letzten Mal hier ergänzt.
+%1$s unfollowed you, %2$s	%1$s folgt dir nicht mehr, %2$s
+%1$s followed you again, %2$s	%1$s folgt dir wieder, %2$s
+%1$s started following you, %2$s	%1$s folgt dir jetzt, %2$s

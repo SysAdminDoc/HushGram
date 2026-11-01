@@ -92,6 +92,7 @@ public class UnfollowersTest {
     @Before
     public void prepare() {
         context = RuntimeEnvironment.getApplication();
+        Unfollowers.later = (task, delay) -> task.run();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -102,6 +103,7 @@ public class UnfollowersTest {
     @After
     public void restore() throws Exception {
         Utils.awaitBackgroundTasksForTests();
+        Unfollowers.later = Utils::runOnMainThreadDelayed;
         Unfollowers.clear(context);
         Settings.TRACK_UNFOLLOWERS.resetToDefault();
         BaseSettings.PAUSED.save(false);
@@ -519,5 +521,69 @@ public class UnfollowersTest {
         assertFalse(report, report.contains(Unfollowers.SEEN));
         assertFalse(Unfollowers.file(context, "x").getParentFile().exists());
         Settings.FOLLOWING_NOT_BACK_FIRST.resetToDefault();
+    }
+
+    /** A whole list is kept only after it has stood unchanged for the settle time; a newer one replaces it. */
+    @Test
+    public void aListIsKeptOnlyOnceItHasSettled() throws Exception {
+        Settings.TRACK_UNFOLLOWERS.save(true);
+        Unfollowers.take(context, ME, followers("2000", "ana", "2001", "bo", "2002", "cy"), 1);
+        List<Runnable> waiting = new ArrayList<>();
+        List<Long> delays = new ArrayList<>();
+        Unfollowers.later = (task, delay) -> {
+            waiting.add(task);
+            delays.add(delay);
+        };
+        FakeList list = new FakeList();
+        list.count = 2;
+        assertTrue(Unfollowers.seen(users("ana", "bo"), list, list, ON, Unfollowers.STORED, 100));
+        Utils.awaitBackgroundTasksForTests();
+        assertEquals(Unfollowers.SETTLE_MS, (long) delays.get(0));
+        assertEquals("nothing is kept before the wait is over", 1, Unfollowers.shown(context).checked);
+        // The list changes while waiting, so the first one never counts as a departure.
+        list.count = 3;
+        assertTrue(Unfollowers.seen(users("ana", "bo", "cy"), list, list, ON, Unfollowers.STORED, 200));
+        for (Runnable task : waiting) task.run();
+        Utils.awaitBackgroundTasksForTests();
+        Unfollowers.Record record = Unfollowers.shown(context);
+        assertEquals(200, record.checked);
+        assertTrue(record.left.isEmpty());
+        assertTrue(FollowerHistory.read(Unfollowers.historyFile(context, Unfollowers.hash(ME))).isEmpty());
+    }
+
+    /** Who left, came back and is new is logged when a list is kept, and Clear deletes the log. */
+    @Test
+    public void theHistoryLogsWhatChangedBetweenWholeLists() throws Exception {
+        Settings.TRACK_UNFOLLOWERS.save(true);
+        Unfollowers.take(context, ME, followers("1", "ana", "2", "bo", "3", "cy"), 10);
+        File log = Unfollowers.historyFile(context, Unfollowers.hash(ME));
+        assertFalse("the first list has nothing to compare with", log.exists());
+        Unfollowers.take(context, ME, followers("1", "ana", "3", "cy", "4", "di"), 20);
+        Unfollowers.take(context, ME, followers("1", "ana", "2", "bo", "3", "cy", "4", "di"), 30);
+        List<FollowerHistory.Change> changes = Unfollowers.history(context);
+        assertEquals(3, changes.size());
+        assertEquals(FollowerHistory.FOLLOWED_AGAIN, changes.get(0).kind);
+        assertEquals("2", changes.get(0).id);
+        assertEquals(30, changes.get(0).when);
+        assertEquals(FollowerHistory.UNFOLLOWED, changes.get(1).kind);
+        assertEquals("bo", changes.get(1).username);
+        assertEquals(FollowerHistory.NEW_FOLLOWER, changes.get(2).kind);
+        assertEquals("4", changes.get(2).id);
+        assertTrue(Unfollowers.clear(context));
+        assertFalse(log.exists());
+        assertTrue(Unfollowers.history(context).isEmpty());
+    }
+
+    @Test
+    public void theHistoryKeepsTheNewestTwoThousand() throws Exception {
+        File log = Unfollowers.historyFile(context, "cap");
+        List<FollowerHistory.Change> batch = new ArrayList<>();
+        for (int i = 0; i < FollowerHistory.MAX + 5; i++) batch.add(new FollowerHistory.Change(FollowerHistory.UNFOLLOWED, "i" + i, "u	" + i, i));
+        FollowerHistory.add(log, batch);
+        FollowerHistory.add(log, java.util.Collections.singletonList(new FollowerHistory.Change(FollowerHistory.NEW_FOLLOWER, "z", "z", 9_999)));
+        List<FollowerHistory.Change> read = FollowerHistory.read(log);
+        assertEquals(FollowerHistory.MAX, read.size());
+        assertEquals("z", read.get(0).id);
+        assertEquals("i0", read.get(1).id);
     }
 }

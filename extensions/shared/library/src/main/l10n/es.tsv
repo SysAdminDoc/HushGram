@@ -1516,3 +1516,8 @@ Refraction intensity	Intensidad de la refracción
 Preview of the tab bar	Vista previa de la barra de pestañas
 Keep stories playing while zooming	Mantener las historias en reproducción al hacer zoom
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	Una historia sigue reproduciéndose mientras la amplías con dos dedos. Si la mantienes pulsada antes, se queda en pausa mientras haces zoom.
+Follower history	Historial de seguidores
+Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	Aún no hay nada registrado. Cada vez que desplazas tu propia lista de seguidores hasta el final, los cambios desde la última vez se añaden aquí.
+%1$s unfollowed you, %2$s	%1$s dejó de seguirte, %2$s
+%1$s followed you again, %2$s	%1$s volvió a seguirte, %2$s
+%1$s started following you, %2$s	%1$s empezó a seguirte, %2$s

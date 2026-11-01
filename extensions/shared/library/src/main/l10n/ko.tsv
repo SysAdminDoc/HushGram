@@ -1515,3 +1515,8 @@ Refraction intensity	굴절 강도
 Preview of the tab bar	탭 바 미리보기
 Keep stories playing while zooming	확대하는 동안 스토리 계속 재생
 A story keeps playing while you pinch to zoom it. Hold it still first and it stays paused while you zoom.	두 손가락으로 스토리를 확대하는 동안에도 계속 재생됩니다. 먼저 길게 눌러 두면 확대하는 동안 일시정지 상태로 유지됩니다.
+Follower history	팔로워 기록
+Nothing logged yet. Each time you scroll your own Followers list to the end, changes since the last time are added here.	아직 기록된 내용이 없습니다. 내 팔로워 목록을 끝까지 스크롤할 때마다 지난번 이후의 변경 사항이 여기에 추가됩니다.
+%1$s unfollowed you, %2$s	%1$s 님이 팔로우를 취소했습니다, %2$s
+%1$s followed you again, %2$s	%1$s 님이 다시 팔로우했습니다, %2$s
+%1$s started following you, %2$s	%1$s 님이 팔로우하기 시작했습니다, %2$s

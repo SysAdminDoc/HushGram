@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** `Back leaves Home as it is` now also skips "Tap again to exit" and the feed reload at the top of Home, so one Back leaves from anywhere in the feed. Reported in #54.
+* **Instagram:** `Recent unfollowers` keeps your Followers list once it stays unchanged for a few seconds, so a half-loaded list can't pass for people leaving. A Follower history row logs who left or came back. Sent in by argus2968 in #309.
 * **Instagram:** With `Keep chats unread here` off, a chat you've already read here no longer opens with the New Messages line and jumps up to it. Nothing new is sent. Reported in #186.
 * **Instagram:** The `Install next to Instagram` copy no longer crashes on the language pack screen, and it carries on to Instagram once the pack has downloaded. Sent in by snowyegret23 in #392.
 * **Instagram:** Material You in `Accent color` could crash Instagram at launch when a wallpaper's color happened to match one of Instagram's blues. Reported in #435.
