@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -44,11 +43,16 @@ public final class ExploreShopping {
     /** The kind of a shop's tile in Explore, by the name Instagram 450 gives it. */
     static final String SHOP_TILE = "SHOPPING";
 
-    private static final Set<String> SHOP_KINDS = Collections.singleton(SHOP_TILE);
+    /** A constant of the enum a section keeps its layout in, by the name Instagram 453 gives it. */
+    static final String LAYOUT_MARKER = "MEDIA_GRID";
+
+    /** How the report counts a tile whose kind isn't set yet. */
+    static final String NO_KIND = "no kind";
 
     /**
      * The diagnostic counter route: each top-level section seen as a list of its tiles (those of the
-     * sections inside it included), the ones holding a shop tile as that kind, and the ones taken out.
+     * sections inside it included), each section's layout and each tile's kind by name, and the
+     * sections taken out.
      */
     static final String ROUTE = "Explore shopping";
 
@@ -100,10 +104,12 @@ public final class ExploreShopping {
         Tiles tiles = new Tiles();
         tiles.read(section, 0);
         // Every section counts as a list of its tiles, so a report with nothing removed still shows
-        // the hook ran.
+        // the hook ran. Its layout and its tiles' kinds are what a blank slot in someone else's grid
+        // can be told from: no test account is served every layout (#433).
         FeedFilterCounters.sawList(ROUTE, tiles.count);
+        String layout = FeedItemKinds.kindOf(section, LAYOUT_MARKER, FamilyNames.FEED_SUGGESTIONS);
+        if (layout != null) FeedFilterCounters.sawKind(ROUTE, layout);
         if (!tiles.shop) return false;
-        FeedFilterCounters.sawKind(ROUTE, SHOP_TILE);
         if (!Utils.settingsReady() || !Settings.HIDE_FEED_SHOPPING.get()) return false;
         FeedFilterCounters.removed(ROUTE, 1, SHOP_TILE);
         return true;
@@ -136,7 +142,9 @@ public final class ExploreShopping {
             if (value == null) return;
             if (tile.test(value)) {
                 count++;
-                if (!shop) shop = FeedItemKinds.kindIn(value, SHOP_KINDS, FamilyNames.FEED_SUGGESTIONS) != null;
+                String kind = FeedItemKinds.kindOf(value, SHOP_TILE, FamilyNames.FEED_SUGGESTIONS);
+                FeedFilterCounters.sawKind(ROUTE, kind == null ? NO_KIND : kind);
+                shop |= SHOP_TILE.equals(kind);
             } else if (section.test(value)) {
                 read(value, depth + 1);
             }

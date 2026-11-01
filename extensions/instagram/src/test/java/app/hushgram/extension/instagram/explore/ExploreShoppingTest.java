@@ -37,6 +37,9 @@ public class ExploreShoppingTest {
     /** Shaped like Instagram 450's Explore tile kinds, a few of them. */
     enum Kind { MEDIA, CLIPS, SHOPPING, IGTV }
 
+    /** Shaped like Instagram 453's Explore section layouts, a few of them. */
+    enum Layout { MEDIA_GRID, CARRERA_ALTERNATING_AUTOPLAY }
+
     /** Another enum a tile keeps, ahead of its kind. */
     enum Size { ONE_BY_ONE, TWO_BY_TWO }
 
@@ -68,6 +71,7 @@ public class ExploreShoppingTest {
     }
 
     static final class Section {
+        Layout layout = Layout.MEDIA_GRID;
         final Content content;
 
         Section(Content content) {
@@ -120,7 +124,7 @@ public class ExploreShoppingTest {
         Section shop = section(new Tile(Kind.SHOPPING), new Tile(Kind.MEDIA), new Tile(Kind.CLIPS));
         assertEquals(Collections.singletonList(posts), ExploreShopping.page(page(shop, posts)));
         assertEquals(ExploreShopping.ROUTE + ": 2 lists, 5 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
-                + "Kinds: SHOPPING 1", report());
+                + "Kinds: CLIPS 2, MEDIA 2, MEDIA_GRID 2, SHOPPING 1", report());
     }
 
     @Test
@@ -133,7 +137,7 @@ public class ExploreShoppingTest {
         assertEquals(Collections.singletonList(posts), kept);
         String report = report();
         assertTrue(report, report.startsWith(ExploreShopping.ROUTE + ": 3 lists, 5 items, 2 removed."));
-        assertTrue(report, report.endsWith("Removed: SHOPPING 2. Kinds: SHOPPING 2"));
+        assertTrue(report, report.endsWith("Removed: SHOPPING 2. Kinds: MEDIA_GRID 3, MEDIA 2, SHOPPING 2, IGTV 1"));
     }
 
     /**
@@ -148,7 +152,7 @@ public class ExploreShoppingTest {
         Section posts = section(new Tile(Kind.MEDIA));
         assertEquals(Collections.singletonList(posts), ExploreShopping.page(page(outer, posts)));
         assertEquals(ExploreShopping.ROUTE + ": 2 lists, 6 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
-                + "Kinds: SHOPPING 1", report());
+                + "Kinds: MEDIA 4, MEDIA_GRID 2, CLIPS 1, SHOPPING 1", report());
     }
 
     /** A shop tile in the section kept to fall back on takes its outer section out too. */
@@ -158,7 +162,7 @@ public class ExploreShoppingTest {
         outer.content.fallback = section(new Tile(Kind.SHOPPING));
         assertEquals(Collections.emptyList(), ExploreShopping.page(page(outer)));
         assertEquals(ExploreShopping.ROUTE + ": 1 lists, 2 items, 1 removed. Last reason: SHOPPING. Removed: SHOPPING 1. "
-                + "Kinds: SHOPPING 1", report());
+                + "Kinds: MEDIA 1, MEDIA_GRID 1, SHOPPING 1", report());
     }
 
     /** With no section going, the page keeps the very list it parsed. */
@@ -168,7 +172,7 @@ public class ExploreShoppingTest {
         List<Object> sections = page(posts, new Section(new Content()), new Section(null), null);
         assertSame(sections, ExploreShopping.page(sections));
         assertEquals(4, sections.size());
-        assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed", report());
+        assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed. Kinds: MEDIA_GRID 3, CLIPS 1, IGTV 1, MEDIA 1", report());
     }
 
     /** Only tiles are read for a kind: a post with the same kind's name stays, and so does anything not a section. */
@@ -178,7 +182,7 @@ public class ExploreShoppingTest {
         Object stranger = new Post();
         List<Object> sections = page(outer, stranger);
         assertSame(sections, ExploreShopping.page(sections));
-        assertEquals(ExploreShopping.ROUTE + ": 1 lists, 1 items, 0 removed", report());
+        assertEquals(ExploreShopping.ROUTE + ": 1 lists, 1 items, 0 removed. Kinds: MEDIA 1, MEDIA_GRID 1", report());
     }
 
     /** Sections nested deeper than Instagram nests them are left unread, so a loop can't run away. */
@@ -197,7 +201,7 @@ public class ExploreShoppingTest {
         looped.content.nested.add(looped);
         List<Object> loop = page(looped);
         assertSame(loop, ExploreShopping.page(loop));
-        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 4 items, 0 removed", report());
+        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 4 items, 0 removed. Kinds: MEDIA 4, MEDIA_GRID 2", report());
     }
 
     @Test
@@ -210,8 +214,19 @@ public class ExploreShoppingTest {
         assertSame("paused", shop, ExploreShopping.page(shop));
         PauseForTests.resume();
         SettingsContextRule.withoutContext(() -> assertSame("settings not ready", shop, ExploreShopping.page(shop)));
-        assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed. Kinds: SHOPPING 3", report());
+        assertEquals(ExploreShopping.ROUTE + ": 3 lists, 3 items, 0 removed. Kinds: MEDIA_GRID 3, SHOPPING 3", report());
         assertEquals("the control: on, the same section goes", Collections.emptyList(), ExploreShopping.page(shop));
+    }
+
+    /** #433: a report names each section's layout and each tile's kind, set or not. */
+    @Test
+    public void aReportNamesEachLayoutAndEachKind() {
+        Section wide = section(new Tile(Kind.CLIPS), new Tile(null));
+        wide.layout = Layout.CARRERA_ALTERNATING_AUTOPLAY;
+        List<Object> sections = page(wide, section(new Tile(Kind.MEDIA)));
+        assertSame(sections, ExploreShopping.page(sections));
+        assertEquals(ExploreShopping.ROUTE + ": 2 lists, 3 items, 0 removed. "
+                + "Kinds: CARRERA_ALTERNATING_AUTOPLAY 1, CLIPS 1, MEDIA 1, MEDIA_GRID 1, no kind 1", report());
     }
 
     @Test
