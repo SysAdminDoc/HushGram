@@ -15,6 +15,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** Material You in `Accent color` could crash Instagram at launch when a wallpaper's color happened to match one of Instagram's blues. Reported in #435.
 * **Instagram:** `Profile extras button` shows up on profiles again, and `Keep a viewing history` now records the profiles you open. Both were reading the account in a way 453 no longer answers. Reported in #234.
 * **Instagram:** A long press on a chat's name now opens the menu for `Jump to the first message or a date` and `Export a chat as text`. In 0.0.18 it opened the chat's details instead. A plain tap on the name still opens the details
 * **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none. Each message is now read from its own row, so an export holds only that chat

@@ -12,7 +12,9 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.res.ColorStateList;
+import android.content.res.Resources;
 import android.util.TypedValue;
 
 import org.junit.After;
@@ -29,6 +31,7 @@ import java.util.List;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -269,6 +272,42 @@ public class AccentColorTest {
     }
 
     /**
+     * #435: the shades are read through Instagram's Resources, whose color reads come back through
+     * {@link AccentColor#color}. A wallpaper tone that's one of Instagram's blues asked for the shades
+     * again, until the stack ran out. On a phone that can end inside native code, as a crash at launch.
+     */
+    @Test
+    public void aWallpaperToneThatIsAnAccentBlueDoesNotAskForTheShadesAgain() {
+        if (!MaterialYou.available()) return;
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.WALLPAPER);
+        HookedResources resources = hookedResources(INDIGO);
+        Utils.setContext(contextWith(resources));
+
+        assertEquals(INDIGO, AccentColor.color(BLUE));
+
+        assertEquals("a tone is read without reading the tones again", 1, resources.deepest);
+        assertEquals("the six tones are read once", 6, resources.reads);
+        assertEquals(List.of(), HookStatus.missing(FamilyNames.ACCENT_COLOR));
+    }
+
+    /** A later read takes the palette as it is now, and not through the shades the last read kept. */
+    @Test
+    public void aNewWallpapersTonesAreReadAsTheyAre() {
+        if (!MaterialYou.available()) return;
+        Settings.ACCENT_COLOR.save(true);
+        Settings.ACCENT_HUE.save(AccentHue.WALLPAPER);
+        HookedResources resources = hookedResources(INDIGO);
+        Context context = contextWith(resources);
+        MaterialYou.read(context);
+
+        resources.tone = LINK_DARK;
+        int[] shades = MaterialYou.read(context);
+
+        for (int shade : shades) assertEquals(LINK_DARK & 0xffffff, shade);
+    }
+
+    /**
      * White text on each fill reads at least as well as on Instagram's own blue, and each link
      * shade reads well on its screen, white for a light one and Prism's black for a dark one.
      */
@@ -359,6 +398,43 @@ public class AccentColorTest {
         Settings.ACCENT_HUE.save(AccentHue.PINK);
         assertEquals(0xffd6005a, AccentColor.color(BLUE));
         assertFalse(button == AccentColor.list(button));
+    }
+
+    /** Instagram's Resources as the patch leaves them: each color read passes through the hook. */
+    private static final class HookedResources extends Resources {
+        int tone;
+        int reads;
+        int depth;
+        int deepest;
+
+        HookedResources(Resources base, int tone) {
+            super(base.getAssets(), base.getDisplayMetrics(), base.getConfiguration());
+            this.tone = tone;
+        }
+
+        @Override
+        public int getColor(int id, Resources.Theme theme) {
+            reads++;
+            deepest = Math.max(deepest, ++depth);
+            try {
+                return AccentColor.color(tone);
+            } finally {
+                depth--;
+            }
+        }
+    }
+
+    private static HookedResources hookedResources(int tone) {
+        return new HookedResources(RuntimeEnvironment.getApplication().getResources(), tone);
+    }
+
+    private static Context contextWith(Resources resources) {
+        return new ContextWrapper(RuntimeEnvironment.getApplication()) {
+            @Override
+            public Resources getResources() {
+                return resources;
+            }
+        };
     }
 
     /** A TypedValue as Theme.resolveAttribute fills it: its type and its data. */

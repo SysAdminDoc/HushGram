@@ -153,11 +153,11 @@ public final class AccentColor {
     }
 
     /**
-     * The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready, or
-     * Material You with no wallpaper palette to read.
+     * The color picked, or null for Instagram's own: switch off, blue picked, paused or not ready,
+     * Material You with no wallpaper palette to read, or this read being one of that palette's tones.
      */
     static AccentHue picked() {
-        if (!Utils.settingsReady() || !Settings.ACCENT_COLOR.get()) return null;
+        if (!Utils.settingsReady() || !Settings.ACCENT_COLOR.get() || MaterialYou.reading()) return null;
         AccentHue hue = Settings.ACCENT_HUE.get();
         if (hue == AccentHue.WALLPAPER && MaterialYou.shades() == null) return null;
         return hue == null || hue == AccentHue.BLUE ? null : hue;

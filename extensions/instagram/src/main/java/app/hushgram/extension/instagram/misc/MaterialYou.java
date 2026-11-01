@@ -44,6 +44,9 @@ public final class MaterialYou {
     @Nullable
     private static volatile int[] shades;
 
+    /** Set while this thread is in {@link #read}. */
+    private static final ThreadLocal<Boolean> READING = new ThreadLocal<>();
+
     private MaterialYou() {
     }
 
@@ -67,10 +70,23 @@ public final class MaterialYou {
     @Nullable
     static int[] read(@Nullable Context context) {
         if (context == null || !available()) return null;
-        int[] read = new int[Tones.COLORS.length];
-        for (int i = 0; i < read.length; i++) read[i] = context.getColor(Tones.COLORS[i]) & 0xffffff;
-        shades = read;
-        return read;
+        READING.set(Boolean.TRUE);
+        try {
+            int[] read = new int[Tones.COLORS.length];
+            for (int i = 0; i < read.length; i++) read[i] = context.getColor(Tones.COLORS[i]) & 0xffffff;
+            shades = read;
+            return read;
+        } finally {
+            READING.remove();
+        }
+    }
+
+    /**
+     * Whether this thread is asking for a tone. Instagram's Resources hand it to {@link AccentColor#color}
+     * like any other color, and a wallpaper can give a tone that's one of Instagram's blues (#435).
+     */
+    static boolean reading() {
+        return READING.get() != null;
     }
 
     /** Forgets the shades read, for tests. */
