@@ -13,6 +13,8 @@ import android.os.Build;
 
 import androidx.annotation.Nullable;
 
+import app.hushgram.extension.instagram.settings.Settings;
+
 /**
  * The lens in the glass tab bar's raised bubble (#289), on Android 13 and newer: the blurred backdrop under
  * the selected tab's bubble drawn a little larger, bending more toward the bubble's rim, as glass would.
@@ -81,6 +83,19 @@ final class GlassLens {
         return depth < band ? 2f * band - depth : depth;
     }
 
+    /** The deepest the rim's band may reach, as a share of the pill's half height, whatever the strength. */
+    static final float MAX_RIM_BAND = 0.95f;
+
+    /** [percent] as the multiplier the bend is scaled by, kept inside the slider's range. */
+    static float scale(int percent) {
+        return Math.max(0, Math.min(200, percent)) / 100f;
+    }
+
+    /** The rim's band at [percent] of its standard depth, as a share of the pill's half height. */
+    static float bandShare(int percent) {
+        return Math.min(MAX_RIM_BAND, RIM_BAND * scale(percent));
+    }
+
     /** Whether this Android can run the lens at all. */
     static boolean supported() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
@@ -88,6 +103,8 @@ final class GlassLens {
 
     /** Whether this is the pill's rim (#369) rather than the bubble's lens (#289). */
     private final boolean rim;
+    /** A strength to draw at instead of the saved one, in percent, while a slider is being dragged. -1 for none. */
+    int strengthNow = -1;
     @Nullable private RenderNode node;
     @Nullable private RuntimeShader shader;
     private boolean broken;
@@ -100,6 +117,12 @@ final class GlassLens {
     /** The bubble's lens, or with [rim] the pill's rim. */
     GlassLens(boolean rim) {
         this.rim = rim;
+    }
+
+    /** The bend's strength in percent: the one being dragged, else the slider's, else the standard for a bar with no bend switch on. */
+    int percent() {
+        if (strengthNow >= 0) return strengthNow;
+        return Settings.GLASS_TAB_BAR_REFRACT.get() ? Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.get() : 100;
     }
 
     /** How many times the lens was asked to paint, and how many it painted. Read by tests. */
@@ -131,10 +154,11 @@ final class GlassLens {
             lens.setFloatUniform("box", box.left, box.top, box.right, box.bottom);
             lens.setFloatUniform("radius", Math.max(0f, radius));
             if (rim) {
-                lens.setFloatUniform("band", RIM_BAND * Math.min(box.width(), box.height()) / 2f);
+                lens.setFloatUniform("band", bandShare(percent()) * Math.min(box.width(), box.height()) / 2f);
             } else {
-                lens.setFloatUniform("centre", CENTRE_MAGNIFY);
-                lens.setFloatUniform("rim", RIM_BEND);
+                float bend = scale(percent());
+                lens.setFloatUniform("centre", CENTRE_MAGNIFY * bend);
+                lens.setFloatUniform("rim", RIM_BEND * bend);
             }
             layer.setPosition(0, 0, width, height);
             layer.setRenderEffect(RenderEffect.createRuntimeShaderEffect(lens, "content"));

@@ -83,6 +83,7 @@ public class GlassTabBarTest {
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
         Settings.GLASS_TAB_BAR_BLUR_RADIUS.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTICS.resetToDefault();
         Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL.resetToDefault();
         Settings.GLASS_TAB_BAR_SLIDE.resetToDefault();

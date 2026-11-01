@@ -13,6 +13,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassLiftRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassOpacityRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassReelsHideRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.glassRefractRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.hapticStyleRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.startTabRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.tabBarLayoutRow;
@@ -24,6 +25,8 @@ import android.preference.PreferenceScreen;
 
 import java.util.Set;
 
+import app.hushgram.extension.instagram.misc.GlassPreview;
+import app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.SliderRow;
 import app.hushgram.extension.shared.L10n;
 
 /** Builds the Tab bar category of HushGram settings. */
@@ -118,9 +121,13 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR, L10n.t("Glass tab bar"),
                         L10n.t("Draws Instagram's tab bar as a floating, rounded glass pill with a highlight on the tab "
                                 + "you're on. Restart Instagram after changing it.")));
+                GlassPreviewRow preview = new GlassPreviewRow(context);
+                glass.addPreference(preview);
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_BLUR, L10n.t("Blur behind the tab bar"),
                         L10n.t("Blurs what's behind the pill on Android 12 and newer. Off, the pill is a frosted tint.")));
-                glass.addPreference(glassBlurRow(context));
+                SliderRow blurRow = glassBlurRow(context);
+                preview.follow(blurRow, GlassPreview.BLUR);
+                glass.addPreference(blurRow);
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_LIQUID, L10n.t("Liquid glass look"),
                         L10n.t("Rounds the pill and its highlight and puts Search in a glass circle of its own. Scrolling "
                                 + "a list down shrinks the bar to the tab you're on and Search, unless Hide the tab bar as "
@@ -131,11 +138,16 @@ final class TabBarCategory {
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_REFRACT, L10n.t("Bend light at the edges"),
                         L10n.t("The liquid pill's rim bends what's behind it like real glass, so what passes under the "
                                 + "edge shows upside down. Android 13 and newer. Restart Instagram after changing it.")));
+                SliderRow refractRow = glassRefractRow(context);
+                preview.follow(refractRow, GlassPreview.BEND);
+                glass.addPreference(refractRow);
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HAPTICS, L10n.t("Haptics on the tab bar"),
                         L10n.t("A light tick each time the highlight slides past a tab, so it follows the bar as you tap "
                                 + "or swipe between screens.")));
                 glass.addPreference(hapticStyleRow(context));
-                glass.addPreference(glassOpacityRow(context));
+                SliderRow tintRow = glassOpacityRow(context);
+                preview.follow(tintRow, GlassPreview.TINT);
+                glass.addPreference(tintRow);
                 glass.addPreference(glassHeightRow(context));
                 glass.addPreference(glassCornersRow(context));
                 glass.addPreference(toggle(context, Settings.GLASS_TAB_BAR_HIDE_ON_SCROLL, L10n.t("Hide the tab bar as you scroll"),

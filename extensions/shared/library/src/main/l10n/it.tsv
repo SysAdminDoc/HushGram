@@ -968,7 +968,6 @@ Queued. It starts once the post before it is saved.	In coda. Parte quando il pos
 Not saved: %1$d posts are already waiting	Non salvato: %1$d post sono già in attesa
 Show all settings as a list	Mostra tutte le impostazioni come elenco
 Show settings by category	Mostra le impostazioni per categoria
-Tab bar opacity	Opacità della barra delle schede
 Tab bar height	Altezza della barra delle schede
 Standard	Standard
 Blur strength	Intensità della sfocatura
@@ -1512,3 +1511,6 @@ HushGram menu	Menu di HushGram
 Seek bar button on feed videos	Pulsante della barra di scorrimento nei video del feed
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Aggiunge un piccolo pulsante in basso a sinistra in un video del feed che mostra o nasconde la sua barra di scorrimento. Funziona con la barra nei video del feed attiva o disattivata.
 Seek bar	Barra di scorrimento
+Tint intensity	Intensità della tinta
+Refraction intensity	Intensità della rifrazione
+Preview of the tab bar	Anteprima della barra delle schede

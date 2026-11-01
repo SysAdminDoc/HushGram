@@ -87,6 +87,7 @@ public class TabBarAndBatterySettingsTest {
         Settings.GLASS_TAB_BAR_REFRACT.resetToDefault();
         Settings.GLASS_TAB_BAR_HAPTIC_STYLE.resetToDefault();
         Settings.GLASS_TAB_BAR_OPACITY.resetToDefault();
+        Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.resetToDefault();
         Settings.GLASS_TAB_BAR_HEIGHT.resetToDefault();
         Settings.GLASS_TAB_BAR_CORNERS.resetToDefault();
         Settings.GLASS_TAB_BAR_LIFT.resetToDefault();
@@ -155,13 +156,13 @@ public class TabBarAndBatterySettingsTest {
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key));
     }
 
-    /** Tab bar opacity (#391) is a slider in steps of 5%, from see-through to past solid, starting on today's tint. */
+    /** Tint intensity (#391) is a slider in steps of 5%, from see-through to past solid, starting on today's tint. */
     @Test public void opacityIsASliderAndHeightAListBothStartingOnTodaysLookAndBackedUp() throws Exception {
         open(PatchFamily.GLASS_TAB_BAR);
         Preference opacityFound = row(Settings.GLASS_TAB_BAR_OPACITY.key);
         assertTrue(opacityFound instanceof HushgramPreferenceFragment.SliderRow);
         HushgramPreferenceFragment.SliderRow opacity = (HushgramPreferenceFragment.SliderRow) opacityFound;
-        assertEquals("Tab bar opacity", String.valueOf(opacity.getTitle()));
+        assertEquals("Tint intensity", String.valueOf(opacity.getTitle()));
         assertEquals("100% (standard)", String.valueOf(opacity.getSummary()));
         assertEquals("Tab bar", String.valueOf(sectionOf(page.getPreferenceScreen(), opacity).getTitle()));
         assertFalse("a change shows on the bar at once", Settings.GLASS_TAB_BAR_OPACITY.rebootApp);

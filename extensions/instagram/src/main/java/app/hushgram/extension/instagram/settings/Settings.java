@@ -1336,6 +1336,15 @@ public class Settings extends BaseSettings {
             new IntegerSetting("hushgram_glass_tab_bar_opacity_percent", 100, false, parent(GLASS_TAB_BAR))
                     .withRange(0, 150);
 
+    /**
+     * Under {@link #GLASS_TAB_BAR_REFRACT}: how far the liquid pill bends what's behind it, in percent of the
+     * bend it has always had, from a slider (#391). Zero leaves the backdrop straight, higher bends it harder.
+     * Read as the pill draws, so a change shows on the bar without a restart.
+     */
+    public static final IntegerSetting GLASS_TAB_BAR_REFRACT_STRENGTH =
+            new IntegerSetting("hushgram_glass_tab_bar_refract_strength_percent", 100, false, parent(GLASS_TAB_BAR_REFRACT))
+                    .withRange(0, 200);
+
     /** Where the steps the blur and opacity had before their sliders were saved (#391). */
     static final String OLD_GLASS_BLUR_KEY = "hushgram_glass_tab_bar_blur_strength";
     static final String OLD_GLASS_OPACITY_KEY = "hushgram_glass_tab_bar_opacity";

@@ -968,7 +968,6 @@ Queued. It starts once the post before it is saved.	Dalam antrean. Dimulai setel
 Not saved: %1$d posts are already waiting	Tidak disimpan: sudah ada %1$d postingan yang menunggu
 Show all settings as a list	Tampilkan semua pengaturan sebagai daftar
 Show settings by category	Tampilkan pengaturan menurut kategori
-Tab bar opacity	Opasitas bilah tab
 Tab bar height	Tinggi bilah tab
 Standard	Standar
 Blur strength	Kekuatan blur
@@ -1512,3 +1511,6 @@ HushGram menu	Menu HushGram
 Seek bar button on feed videos	Tombol bilah geser di video feed
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Menambahkan tombol kecil di kiri bawah video feed yang menampilkan atau menyembunyikan bilah gesernya. Berfungsi saat Bilah geser di video feed aktif maupun mati.
 Seek bar	Bilah geser
+Tint intensity	Intensitas warna
+Refraction intensity	Intensitas pembiasan
+Preview of the tab bar	Pratinjau bilah tab

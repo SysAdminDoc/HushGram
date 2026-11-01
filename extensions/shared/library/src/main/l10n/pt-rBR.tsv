@@ -968,7 +968,6 @@ Queued. It starts once the post before it is saved.	Na fila. Começa assim que o
 Not saved: %1$d posts are already waiting	Não salvo: já há %1$d posts esperando
 Show all settings as a list	Mostrar todas as configurações como lista
 Show settings by category	Mostrar configurações por categoria
-Tab bar opacity	Opacidade da barra de abas
 Tab bar height	Altura da barra de abas
 Standard	Padrão
 Blur strength	Intensidade do desfoque
@@ -1512,3 +1511,6 @@ HushGram menu	Menu do HushGram
 Seek bar button on feed videos	Botão da barra de busca nos vídeos do feed
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Adiciona um botão pequeno no canto inferior esquerdo de um vídeo do feed que mostra ou oculta a barra de busca. Funciona com a barra de busca nos vídeos do feed ligada ou desligada.
 Seek bar	Barra de busca
+Tint intensity	Intensidade do tom
+Refraction intensity	Intensidade da refração
+Preview of the tab bar	Prévia da barra de abas

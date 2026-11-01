@@ -967,7 +967,6 @@ Queued. It starts once the post before it is saved.	대기 중입니다. 앞의 
 Not saved: %1$d posts are already waiting	저장 안 됨: 이미 게시물 %1$d개가 대기 중입니다
 Show all settings as a list	모든 설정을 목록으로 보기
 Show settings by category	카테고리별로 설정 보기
-Tab bar opacity	탭 바 불투명도
 Tab bar height	탭 바 높이
 Standard	기본
 Blur strength	흐림 강도
@@ -1511,3 +1510,6 @@ HushGram menu	HushGram 메뉴
 Seek bar button on feed videos	피드 동영상 탐색 막대 버튼
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	피드 동영상 왼쪽 아래에 탐색 막대를 보이거나 숨기는 작은 버튼을 추가합니다. 피드 동영상 탐색 막대가 켜져 있어도 꺼져 있어도 작동합니다.
 Seek bar	탐색 막대
+Tint intensity	색조 강도
+Refraction intensity	굴절 강도
+Preview of the tab bar	탭 바 미리보기

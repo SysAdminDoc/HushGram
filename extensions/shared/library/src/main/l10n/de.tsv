@@ -968,7 +968,6 @@ Queued. It starts once the post before it is saved.	In der Warteschlange. Starte
 Not saved: %1$d posts are already waiting	Nicht gespeichert: Es warten schon %1$d Beiträge
 Show all settings as a list	Alle Einstellungen als Liste anzeigen
 Show settings by category	Einstellungen nach Kategorie anzeigen
-Tab bar opacity	Deckkraft der Tab-Leiste
 Tab bar height	Höhe der Tab-Leiste
 Standard	Standard
 Blur strength	Stärke der Unschärfe
@@ -1512,3 +1511,6 @@ HushGram menu	HushGram-Menü
 Seek bar button on feed videos	Suchleisten-Taste in Feed-Videos
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	Fügt unten links an einem Feed-Video eine kleine Taste hinzu, die seine Suchleiste ein- oder ausblendet. Sie funktioniert mit Suchleiste in Feed-Videos an oder aus.
 Seek bar	Suchleiste
+Tint intensity	Tönungsstärke
+Refraction intensity	Stärke der Lichtbrechung
+Preview of the tab bar	Vorschau der Tab-Leiste

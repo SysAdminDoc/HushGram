@@ -966,7 +966,6 @@ Queued. It starts once the post before it is saved.	已加入佇列，前一則�
 Not saved: %1$d posts are already waiting	未儲存：已有 %1$d 則貼文正在等待
 Show all settings as a list	以清單顯示所有設定
 Show settings by category	依分類顯示設定
-Tab bar opacity	分頁列不透明度
 Tab bar height	分頁列高度
 Standard	標準
 Blur strength	模糊強度
@@ -1515,3 +1514,6 @@ HushGram menu	HushGram 選單
 Seek bar button on feed videos	動態影片拖曳列按鈕
 Adds a small button at the bottom left of a feed video that shows or hides its seek bar. It works with Seek bar on feed videos on or off.	在動態影片左下角加入小按鈕，可顯示或隱藏拖曳列。無論動態影片拖曳列開或關都能使用。
 Seek bar	拖曳列
+Tint intensity	染色強度
+Refraction intensity	折射強度
+Preview of the tab bar	分頁列預覽

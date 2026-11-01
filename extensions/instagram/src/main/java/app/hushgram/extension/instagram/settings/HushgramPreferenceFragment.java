@@ -668,7 +668,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
                     belongs |= family == PatchFamily.FULL_SCREEN_BARS && Settings.FULL_SCREEN_HIDES.key.equals(key);
                     belongs |= family == PatchFamily.GLASS_TAB_BAR && Settings.GLASS_TAB_BAR_HAPTIC_STYLE.key.equals(key);
-                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)
+                    belongs |= family == PatchFamily.GLASS_TAB_BAR && (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key) || Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key.equals(key)
                             || Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)
                             || Settings.GLASS_TAB_BAR_HEIGHT.key.equals(key) || Settings.GLASS_TAB_BAR_LIFT.key.equals(key)
                             || Settings.GLASS_TAB_BAR_CORNERS.key.equals(key) || Settings.GLASS_TAB_BAR_REELS_HIDE.key.equals(key));
@@ -4107,8 +4107,16 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** How strong the glass tab bar's tint is, from a slider in percent of the bar's own look (#391). */
     static SliderRow glassOpacityRow(Context context) {
         SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_OPACITY, 5, L10n.t("%1$d%%"));
-        row.setTitle(L10n.t("Tab bar opacity"));
+        row.setTitle(L10n.t("Tint intensity"));
         row.setText(String.valueOf(Settings.GLASS_TAB_BAR_OPACITY.savedValue()));
+        return row;
+    }
+
+    /** How hard the liquid pill bends what's behind its edge, from a slider in percent of the standard bend (#391). */
+    static SliderRow glassRefractRow(Context context) {
+        SliderRow row = new SliderRow(context, Settings.GLASS_TAB_BAR_REFRACT_STRENGTH, 10, L10n.t("%1$d%%"));
+        row.setTitle(L10n.t("Refraction intensity"));
+        row.setText(String.valueOf(Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.savedValue()));
         return row;
     }
 
@@ -6963,6 +6971,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         /** How far one notch of the slider moves the value. */
         final int step;
         private final String format;
+        /** Told the value as the thumb moves, and -1 once it's let go, by a row that shows the change (#391). */
+        @Nullable java.util.function.IntConsumer live;
 
         SliderRow(Context context, IntegerSetting setting, int step, String format) {
             super(context);
@@ -7042,6 +7052,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     String shown = label(valueAt(progress));
                     if (summary != null) summary.setText(shown);
                     describe(bar, shown);
+                    if (live != null) live.accept(valueAt(progress));
                     // A key or a screen reader moves it a notch at a time without a drag, so each notch saves.
                     if (!dragging) choose(valueAt(progress));
                 }
@@ -7055,6 +7066,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 public void onStopTrackingTouch(SeekBar bar) {
                     dragging = false;
                     choose(valueAt(bar.getProgress()));
+                    if (live != null) live.accept(-1);
                 }
             });
         }
