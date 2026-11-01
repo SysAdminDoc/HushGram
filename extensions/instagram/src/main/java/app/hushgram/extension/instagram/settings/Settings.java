@@ -1123,6 +1123,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_notes_row", FALSE);
 
     /**
+     * Only the Map bubble in the row of notes
+     * ({@link app.hushgram.extension.instagram.direct.NotesRow#mapShown}). Read each time Instagram
+     * works out the row's items again. Off to start.
+     */
+    public static final BooleanSetting HIDE_NOTES_MAP =
+            new BooleanSetting("hushgram_hide_notes_map", FALSE);
+
+    /**
      * The search bar at the top of your messages, the Meta AI one included
      * ({@link app.hushgram.extension.instagram.direct.InboxSearchBar}). Read each time Instagram
      * works out your messages again, so a change shows the next time they update. Off to start.

@@ -1521,3 +1521,5 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s unfollowed you, %2$s	%1$s ha smesso di seguirti, %2$s
 %1$s followed you again, %2$s	%1$s ha ripreso a seguirti, %2$s
 %1$s started following you, %2$s	%1$s ha iniziato a seguirti, %2$s
+Hide the Map bubble	Nascondi la bolla della mappa
+Takes only the Map bubble out of the row of notes. Your notes stay.	Toglie solo la bolla della mappa dalla riga delle note. Le tue note restano.

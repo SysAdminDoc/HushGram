@@ -1520,3 +1520,5 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s unfollowed you, %2$s	%1$s 님이 팔로우를 취소했습니다, %2$s
 %1$s followed you again, %2$s	%1$s 님이 다시 팔로우했습니다, %2$s
 %1$s started following you, %2$s	%1$s 님이 팔로우하기 시작했습니다, %2$s
+Hide the Map bubble	지도 버블 숨기기
+Takes only the Map bubble out of the row of notes. Your notes stay.	메모 목록에서 지도 버블만 숨깁니다. 메모는 그대로 유지됩니다.

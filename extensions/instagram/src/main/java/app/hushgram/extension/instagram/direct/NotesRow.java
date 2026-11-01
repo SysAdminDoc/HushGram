@@ -25,8 +25,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * search, requests and your chats stay, and so do notes elsewhere, like the bubble over a profile
  * picture.
  *
- * <p>The hook fails open: with the switch off, HushGram paused, the settings not read yet or
- * anything thrown, Instagram's own list goes through untouched.
+ * <p>A second hook answers the row's own question of whether it has a Map bubble to add, for
+ * {@link #mapShown}, so the bubble can go while the notes stay.
+ *
+ * <p>The hooks fail open: with the switch off, HushGram paused, the settings not read yet or
+ * anything thrown, Instagram's own answer goes through untouched.
  */
 public final class NotesRow {
     /** The constant name Instagram 449 gives the notes row's section. */
@@ -37,7 +40,10 @@ public final class NotesRow {
 
     static final String ROW = "notes row";
 
+    static final String MAP = "Map bubble";
+
     private static volatile boolean logged;
+    private static volatile boolean loggedMap;
 
     private NotesRow() {
     }
@@ -72,6 +78,32 @@ public final class NotesRow {
         }
     }
 
+    /**
+     * Injected where the notes row reads whether it has a Map bubble to add. Answers 0 while the
+     * switch is on, and [shown] otherwise, or when anything goes wrong. Never throws.
+     */
+    public static int mapShown(int shown) {
+        return mapShown(shown, NotesRow::mapSwitchedOn);
+    }
+
+    static int mapShown(int shown, BooleanSupplier hide) {
+        if (shown == 0) return 0;
+        try {
+            HookStatus.invoked(FamilyNames.NOTES_ROW);
+            FeedFilterCounters.sawKind(ROUTE, MAP);
+            if (!hide.getAsBoolean()) return shown;
+            FeedFilterCounters.removed(ROUTE, 1, MAP);
+            if (!loggedMap) {
+                loggedMap = true;
+                Logger.printDebug(() -> "Notes row: left the Map bubble out of the notes row");
+            }
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.NOTES_ROW, MAP, failure);
+            return shown;
+        }
+    }
+
     /** Where the section Instagram calls [name] is in [sections], or -1 when it didn't name it this time. */
     static int indexOf(Object[] sections, String name) {
         for (int at = 0; at < sections.length; at++) {
@@ -91,5 +123,9 @@ public final class NotesRow {
 
     private static boolean switchedOn() {
         return Utils.settingsReady() && Settings.HIDE_NOTES_ROW.get();
+    }
+
+    private static boolean mapSwitchedOn() {
+        return Utils.settingsReady() && Settings.HIDE_NOTES_MAP.get();
     }
 }

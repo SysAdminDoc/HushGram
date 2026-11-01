@@ -81,7 +81,7 @@ public class InstantsSettingsTest {
         assertEquals("Messages", messages.getTitle().toString());
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_INSTANTS.key), Arrays.asList(keys));
+        assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_NOTES_MAP.key, Settings.HIDE_INSTANTS.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.HIDE_INSTANTS.get());
         assertTrue("Instagram settles Instants when it starts", Settings.HIDE_INSTANTS.rebootApp);

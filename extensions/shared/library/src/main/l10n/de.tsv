@@ -1521,3 +1521,5 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s unfollowed you, %2$s	%1$s folgt dir nicht mehr, %2$s
 %1$s followed you again, %2$s	%1$s folgt dir wieder, %2$s
 %1$s started following you, %2$s	%1$s folgt dir jetzt, %2$s
+Hide the Map bubble	Karte ausblenden
+Takes only the Map bubble out of the row of notes. Your notes stay.	Entfernt nur die Karte aus der Reihe mit Notizen. Deine Notizen bleiben.

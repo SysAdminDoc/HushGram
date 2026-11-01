@@ -74,6 +74,10 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->inboxRow(Ljava/lang/
 # there and nowhere else. Left out, the notes row comes back; twice or elsewhere, it isn't the hook
 # the patch wrote. HideNotesRowHookTest checks where it lands.
 once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->sections([Ljava/lang/Object;)[Ljava/lang/Object; in static (LX/*;)V holding InboxViewModelGenerator.calculateAndApplyDiffUpdate
+# The same patch asks NotesRow whether the row keeps its Map bubble, right before the method turning
+# your notes into the row's items tests that. Left out, the bubble stays with the switch on; twice or
+# elsewhere, it isn't the hook the patch wrote. NativeNotesMapTest checks where it lands.
+once-call Lapp/hushgram/extension/instagram/direct/NotesRow;->mapShown(I)I in static (LX/*;LX/*;IZZZ)LX/*; pooled holding instagram.features.direct.inbox.notes.tray.compose.ui.toNotesTrayUiState\s(NotesTrayComposeItem.kt:319)
 # Hide the search bar in Messages asks at the same place, right after or right before NotesRow
 # (whichever patch went in first asks first), and InboxSearchBar drops SEARCH_BAR by name. Same
 # one method, called once there and nowhere else. HideNotesRowHookTest checks both orders.

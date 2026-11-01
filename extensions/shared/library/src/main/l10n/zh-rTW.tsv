@@ -1524,3 +1524,5 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s unfollowed you, %2$s	%1$s 已取消追蹤你，%2$s
 %1$s followed you again, %2$s	%1$s 再次追蹤你，%2$s
 %1$s started following you, %2$s	%1$s 開始追蹤你，%2$s
+Hide the Map bubble	隱藏地圖泡泡
+Takes only the Map bubble out of the row of notes. Your notes stay.	只移除筆記橫列中的地圖泡泡。筆記仍會保留。

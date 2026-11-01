@@ -94,6 +94,6 @@ public class InboxSearchSettingsTest {
         PreferenceGroup messages = search.getParent();
         List<String> keys = new ArrayList<>();
         for (int at = 0; at < messages.getPreferenceCount(); at++) keys.add(messages.getPreference(at).getKey());
-        assertEquals(java.util.Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_INBOX_SEARCH.key), keys);
+        assertEquals(java.util.Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_NOTES_MAP.key, Settings.HIDE_INBOX_SEARCH.key), keys);
     }
 }

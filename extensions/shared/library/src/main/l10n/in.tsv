@@ -1521,3 +1521,5 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s unfollowed you, %2$s	%1$s berhenti mengikuti Anda, %2$s
 %1$s followed you again, %2$s	%1$s mengikuti Anda lagi, %2$s
 %1$s started following you, %2$s	%1$s mulai mengikuti Anda, %2$s
+Hide the Map bubble	Sembunyikan gelembung Peta
+Takes only the Map bubble out of the row of notes. Your notes stay.	Hanya menghapus gelembung Peta dari baris catatan. Catatanmu tetap ada.
