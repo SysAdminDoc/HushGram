@@ -2395,6 +2395,14 @@ start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(L
 shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V holding reel_comments_sheet
 start-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V lacking instance Landroid/view/View;->findViewById(I)Landroid/view/View; holding const:0x8110da000d5bec Lcom/instagram/quickpromotion/intf/Trigger;->A1L:Lcom/instagram/quickpromotion/intf/Trigger;
 shared-call Lapp/hushgram/extension/instagram/misc/CommentsSheet;->contentShown(Ljava/lang/Object;Ljava/lang/Object;)V in instance (Landroid/view/View;Landroid/os/Bundle;)V lacking instance Landroid/view/View;->findViewById(I)Landroid/view/View; holding const:0x8110da000d5bec Lcom/instagram/quickpromotion/intf/Trigger;->A1L:Lcom/instagram/quickpromotion/intf/Trigger;
+# Pure black dark mode blackens a new notification's row (#374). Each read of the Compose theme's
+# new row tint on the Notifications page goes through NewRowTint.color right after the read: the
+# row, which holds the row's trace label, its swipe background, which reads it twice, and its
+# avatar's ring. Each build merges these lambdas differently, so the trace labels pick them. Left
+# out, new rows stay gray; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in static (*)Ljava/lang/Object; pooled holding com.instagram.newsfeed.ui.buildAnnotatedString\s(NewsfeedStoryMessageState.kt:59)
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; sites 2 pooled holding com.instagram.newsfeed.fragment.NewsfeedRow.<anonymous>\s(NewsfeedYouComposeFragment.kt:3634)
+once-call Lapp/hushgram/extension/instagram/misc/NewRowTint;->color(J)J in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous>.<anonymous>\s(NewsfeedStoryRow.kt:359)
 # Hide Notes on profile pictures answers the two reads of Instagram's is_consumption_disabled flag
 # for profiles through ProfileNotes.consumptionDisabled, right after each read's move-result. One
 # read is in the profile header builder, the static void method taking a Context and a View first

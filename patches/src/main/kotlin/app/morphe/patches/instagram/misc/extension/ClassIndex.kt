@@ -180,6 +180,13 @@ internal fun BytecodePatchContext.classesTouching(definingClass: String, name: S
     classesMatching(Fingerprint(filters = listOf(fieldAccess(definingClass = definingClass, name = name, opcodes = null))))
 
 /**
+ * The classes outside the extension whose code reads a long field of [definingClass], in the app's
+ * order, by the same index.
+ */
+internal fun BytecodePatchContext.classesReadingWide(definingClass: String): List<ClassDef> =
+    classesMatching(Fingerprint(filters = listOf(fieldAccess(definingClass = definingClass, opcode = Opcode.IGET_WIDE))))
+
+/**
  * The types of the classes outside the extension holding a purge marker (see [markers]) named one
  * of [names]. A marker named X is an android_purge_ string ending in `_X`, so a class this leaves
  * out holds none. Filter a class walk by it to keep the app's order.

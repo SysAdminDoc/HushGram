@@ -23,11 +23,18 @@ import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.formats.Instruction3rc
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
+import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
@@ -38,6 +45,8 @@ import javax.xml.parsers.DocumentBuilderFactory
 import java.io.File
 import java.nio.file.Files
 import java.util.zip.ZipFile
+
+private const val FAKE_THEME = "Lfixture/Theme;"
 
 class PureBlackTest {
     private val bottomTabTint = "Lfixture/BottomTabTint;"
@@ -458,6 +467,246 @@ class PureBlackTest {
     }
 
     /**
+     * Each read of the theme's new row tint in a method with a Notifications label goes through the
+     * hook (#374). Another color in the same method and the same tint in a comment row stay.
+     */
+    @Test
+    fun aNewRowTintReadGoesThroughTheHook() {
+        val avatar = "Lfixture/Avatar;"
+        val row = "Lfixture/Row;"
+        val comment = "Lfixture/CommentRow;"
+        val patch = newRowContext(
+            classDef(avatar, """
+                const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+            classDef(row, """
+                const-string v0, "com.instagram.newsfeed.fragment.NewsfeedRow.<anonymous> (NewsfeedYouComposeFragment.kt:3634)"
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                iget-wide v3, v5, $FAKE_THEME->f0:J
+                iget-wide v0, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+            classDef(comment, """
+                const-string v0, "com.instagram.comments.CommentRow (CommentRow.kt:292)"
+                iget-wide v1, v5, $FAKE_THEME->tint:J
+                return-void
+            """),
+        )
+
+        val found = patch.findNewRowTintReads()
+        assertEquals(listOf(avatar to 1, row to 1, row to 3), found.map { it.type to it.index })
+        patch.blackenNewRowTints(found)
+
+        patch.code(avatar).let { code ->
+            assertEquals(5, code.size)
+            assertHooked(code, 1, 1)
+        }
+        patch.code(row).let { code ->
+            assertEquals(9, code.size)
+            assertHooked(code, 1, 1)
+            assertEquals("another color stays", Opcode.IGET_WIDE, code[4].opcode)
+            assertEquals("another color stays", Opcode.IGET_WIDE, code[5].opcode)
+            assertHooked(code, 5, 0)
+        }
+        assertEquals("a comment row keeps its tint", 3, patch.code(comment).size)
+    }
+
+    /** A pooled Notifications label counts, since which strings Redex pools differs per build (#77). */
+    @Test
+    fun aPooledNotificationsLabelCounts() {
+        val pool = "Lfixture/Pool;"
+        val avatar = "Lfixture/Avatar;"
+        val poolClass = classDef(pool, """
+            packed-switch v0, :cases
+            const/4 v0, 0x0
+            return-object v0
+            :name
+            const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+            return-object v0
+            :cases
+            .packed-switch 0x7
+                :name
+            .end packed-switch
+        """, parameters = listOf("I"), returns = "Ljava/lang/String;", name = "A00")
+        val patch = newRowContext(poolClass, classDef(avatar, """
+            const/4 v0, 0x7
+            invoke-static { v0 }, $pool->A00(I)Ljava/lang/String;
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            return-void
+        """))
+
+        assertEquals(listOf(avatar to 2), patch.findNewRowTintReads().map { it.type to it.index })
+    }
+
+    /** No avatar means no way to tell which of the theme's colors is the tint, so it fails. */
+    @Test
+    fun notificationsWithoutTheAvatarFail() {
+        val patch = newRowContext(classDef("Lfixture/Row;", """
+            const-string v0, "com.instagram.newsfeed.fragment.NewsfeedRow.<anonymous> (NewsfeedYouComposeFragment.kt:3634)"
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            return-void
+        """))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findNewRowTintReads() }
+        assertTrue(failure.message!!, "Notifications avatar" in failure.message!!)
+    }
+
+    /** An avatar reading two of the theme's colors doesn't say which is the tint, so it fails too. */
+    @Test
+    fun anAvatarReadingTwoColorsFails() {
+        val patch = newRowContext(classDef("Lfixture/Avatar;", """
+            const-string v0, "com.instagram.newsfeed.compose.ui.StartAvatar.<anonymous> (NewsfeedStoryRow.kt:359)"
+            iget-wide v1, v5, $FAKE_THEME->tint:J
+            iget-wide v3, v5, $FAKE_THEME->f0:J
+            return-void
+        """))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findNewRowTintReads() }
+        assertTrue(failure.message!!, "color" in failure.message!!)
+    }
+
+    /** No class making a theme from Prism's tint means an update the patch hasn't seen. */
+    @Test
+    fun noThemeFails() {
+        val patch = PatchContexts.of(listOf(classDef("Lfixture/Palette;", """
+            sget-wide v0, $NEW_ROW_PALETTE->$NEW_ROW_PRISM_TINT:J
+            return-void
+        """)))
+
+        val failure = assertThrows(PatchException::class.java) { patch.findNewRowTintReads() }
+        assertTrue(failure.message!!, "theme" in failure.message!!)
+    }
+
+    /** The theme class of these fake pages, its palette and [classes], in one patch context. */
+    private fun newRowContext(vararg classes: ClassDef): app.morphe.patcher.patch.BytecodePatchContext {
+        val fields = (listOf("tint") + (0 until NEW_ROW_THEME_COLORS).map { "f$it" }).map { name ->
+            ImmutableField(FAKE_THEME, name, "J", AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)
+        }
+        val theme = ImmutableClassDef(FAKE_THEME, AccessFlags.PUBLIC.value, "Ljava/lang/Object;", null, null, null, fields, emptyList())
+        val palette = classDef("Lfixture/DarkTheme;", """
+            sget-wide v0, $NEW_ROW_PALETTE->$NEW_ROW_PRISM_TINT:J
+            new-instance v0, $FAKE_THEME
+            return-void
+        """)
+        return PatchContexts.of(listOf(theme, palette) + classes)
+    }
+
+    private fun assertHooked(code: List<Instruction>, read: Int, register: Int) {
+        assertEquals(Opcode.IGET_WIDE, code[read].opcode)
+        val call = code[read + 1] as Instruction3rc
+        assertEquals(Opcode.INVOKE_STATIC_RANGE, call.opcode)
+        assertEquals(NEW_ROW_TINT, call.reference.toString())
+        assertEquals(register, call.startRegister)
+        assertEquals(2, call.registerCount)
+        assertEquals(Opcode.MOVE_RESULT_WIDE, code[read + 2].opcode)
+        assertEquals(register, (code[read + 2] as OneRegisterInstruction).registerA)
+    }
+
+    /**
+     * In each build the Notifications page reads Prism's tint in its avatar, its row and the row's
+     * two swipe backgrounds, all four go through the hook, and nothing else that reads the tint does
+     * (#374). Prism's dark theme fills the field with BasePrismColors' white at 15 percent, the value
+     * the extension looks for, so a build where that moved fails here instead of staying gray.
+     */
+    private fun newRowTintsGoBlack(bundle: File, label: String, tinters: List<ClassDef>) {
+        val created = tinters.flatMap { classDef ->
+            classDef.methods.flatMap { method ->
+                method.implementation?.instructions?.filter { it.opcode == Opcode.NEW_INSTANCE }.orEmpty()
+                    .map { ((it as ReferenceInstruction).reference as TypeReference).type }
+            }
+        }.toSet()
+        val theme = FixtureDex.classes(bundle, created).values.single { classDef ->
+            classDef.instanceFields.count { it.type == "J" } >= NEW_ROW_THEME_COLORS
+        }
+        val readers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.typeSection.none { it == theme.type }) return@forEach
+            for (classDef in dex.classes) {
+                val reads = classDef.methods.any { method ->
+                    method.implementation?.instructions?.any { it.opcode == Opcode.IGET_WIDE && it.fieldOf() == theme.type } == true
+                }
+                if (reads) readers += ImmutableClassDef.of(classDef)
+            }
+        }
+        val patch = PatchContexts.of(FixtureDex.withStringPools(bundle, readers.filter { it.type != theme.type }) + tinters + theme)
+
+        val found = patch.findNewRowTintReads()
+
+        assertEquals("${label}: the tint's reads on Notifications", 4, found.size)
+        assertEquals("${label}: the methods reading it", 3, found.map { it.type to it.method.name }.toSet().size)
+        val tint = ((found.first().method.implementation!!.instructions.toList()[found.first().index] as ReferenceInstruction).reference as FieldReference).name
+        val before = found.associate { read ->
+            (read.type to read.method.name) to read.method.implementation!!.instructions.count { it.opcode != Opcode.NOP }
+        }
+        assertEquals("${label}: the theme's field Prism fills with white at 15 percent",
+            true, tint in prismTintFields(theme, tinters))
+
+        patch.blackenNewRowTints(found)
+
+        for ((key, size) in before) {
+            val method = patch.classDefBy(key.first).methods.single { it.name == key.second && it.parameterTypes.size == found.first { read -> read.type == key.first && read.method.name == key.second }.method.parameterTypes.size }
+            val code = method.implementation!!.instructions.filter { it.opcode != Opcode.NOP }
+            val hooks = code.indices.filter { (code[it] as? ReferenceInstruction)?.reference?.toString() == NEW_ROW_TINT }
+            assertEquals("${label}: ${key.first} grew by its hooks", size + hooks.size * 2, code.size)
+            hooks.forEach { at ->
+                val read = code[at - 1]
+                assertEquals("${label}: the hook follows the read", Opcode.IGET_WIDE, read.opcode)
+                assertEquals(tint, (((read as ReferenceInstruction).reference) as FieldReference).name)
+                assertEquals((read as TwoRegisterInstruction).registerA, (code[at] as Instruction3rc).startRegister)
+                assertEquals(Opcode.MOVE_RESULT_WIDE, code[at + 1].opcode)
+                assertEquals(read.registerA, (code[at + 1] as OneRegisterInstruction).registerA)
+            }
+        }
+        val hookSites = readers.sumOf { reader ->
+            patch.classDefBy(reader.type).methods.sumOf { method ->
+                method.implementation?.instructions?.count { (it as? ReferenceInstruction)?.reference?.toString() == NEW_ROW_TINT } ?: 0
+            }
+        }
+        assertEquals("${label}: every hook in the app", 4, hookSites)
+    }
+
+    private fun Instruction.fieldOf() = ((this as? ReferenceInstruction)?.reference as? FieldReference)?.definingClass
+
+    /**
+     * The fields of [theme] Prism's dark theme fills with BasePrismColors' white at 15 percent, read
+     * from the constructor call: each field's argument, and what the caller last loaded for it.
+     */
+    private fun prismTintFields(theme: ClassDef, tinters: List<ClassDef>): Set<String> {
+        val prism = tinters.single { it.type == NEW_ROW_PALETTE }
+        val constant = prism.methods.single { it.name == "<clinit>" }.implementation!!.instructions.toList()
+        val store = constant.indexOfFirst { it.opcode == Opcode.SPUT_WIDE && (it as ReferenceInstruction).reference.let { field -> field is FieldReference && field.name == NEW_ROW_PRISM_TINT } }
+        assertEquals("white at 15 percent", 0x26ffffffL,
+            constant.subList(0, store).last { it.opcode == Opcode.CONST_WIDE_32 && (it as OneRegisterInstruction).registerA == (constant[store] as OneRegisterInstruction).registerA }
+                .let { (it as WideLiteralInstruction).wideLiteral })
+
+        val constructor = theme.methods.single { it.name == "<init>" && it.parameterTypes.size >= NEW_ROW_THEME_COLORS }
+        val longs = constructor.parameterTypes.count { it.toString() == "J" }
+        val firstLong = constructor.implementation!!.registerCount - longs * 2
+        val body = constructor.implementation!!.instructions.toList()
+        val argumentOf = body.indices.filter { body[it].opcode == Opcode.IPUT_WIDE }.associate { at ->
+            val put = body[at] as TwoRegisterInstruction
+            val moved = body.getOrNull(at - 1)?.takeIf { it.opcode == Opcode.MOVE_WIDE_FROM16 && (it as TwoRegisterInstruction).registerA == put.registerA }
+            val source = (moved as? TwoRegisterInstruction)?.registerB ?: put.registerA
+            ((body[at] as ReferenceInstruction).reference as FieldReference).name to (source - firstLong) / 2
+        }
+
+        val dark = tinters.first { classDef -> classDef.type != NEW_ROW_PALETTE && classDef.methods.any { method ->
+            method.name == "<clinit>" && method.implementation!!.instructions.any { it.opcode == Opcode.NEW_INSTANCE && ((it as ReferenceInstruction).reference as TypeReference).type == theme.type }
+        } }
+        val made = dark.methods.single { it.name == "<clinit>" }.implementation!!.instructions.toList()
+        val call = made.indexOfFirst { it.opcode == Opcode.INVOKE_DIRECT_RANGE && ((it as ReferenceInstruction).reference as MethodReference).definingClass == theme.type }
+        val start = (made[call] as Instruction3rc).startRegister
+        return argumentOf.filter { (_, argument) ->
+            val register = start + 2 + argument * 2
+            val load = made.subList(0, call).last { (it as? OneRegisterInstruction)?.registerA == register }
+            val field = (load as? ReferenceInstruction)?.reference as? FieldReference
+            load.opcode == Opcode.SGET_WIDE && field?.definingClass == NEW_ROW_PALETTE && field.name == NEW_ROW_PRISM_TINT
+        }.keys
+    }
+
+    /**
      * In each declared build, both Compose palettes lose Prism's black without touching unrelated
      * owners. 449's second palette (GRAY_1600) colors the Direct inbox and Activity (#51, #58).
      */
@@ -482,6 +731,7 @@ class PureBlackTest {
     private fun builds(bundle: File, label: String) {
         val classes = mutableListOf<ClassDef>()
         val animators = mutableListOf<ClassDef>()
+        val tinters = mutableListOf<ClassDef>()
         FixtureDex.forEach(bundle) { dex ->
             for (classDef in dex.classes) {
                 if (classDef.methods.any { it.implementation?.instructions?.any(::isPrismBlack) == true }) {
@@ -490,9 +740,13 @@ class PureBlackTest {
                 if (classDef.methods.any { it.implementation?.instructions?.any(::logsStoryAnimatorTag) == true }) {
                     animators += ImmutableClassDef.of(classDef)
                 }
+                if (classDef.methods.any { it.implementation?.instructions?.any(::touchesPrismTint) == true }) {
+                    tinters += ImmutableClassDef.of(classDef)
+                }
             }
         }
         storyBackdropsGoBlack(animators, label)
+        newRowTintsGoBlack(bundle, label, tinters)
         val patch = PatchContexts.of(classes)
 
         val changed = patch.blackenLiterals()
@@ -515,6 +769,11 @@ class PureBlackTest {
 
     private fun logsStoryAnimatorTag(instruction: Instruction) =
         ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string == STORY_ANIMATOR_TAG
+
+    private fun touchesPrismTint(instruction: Instruction) =
+        ((instruction as? ReferenceInstruction)?.reference as? FieldReference)?.let {
+            it.definingClass == NEW_ROW_PALETTE && it.name == NEW_ROW_PRISM_TINT
+        } == true
 
     /**
      * The build's story animator stores two getColor results in its black backdrop field (the
@@ -582,10 +841,17 @@ class PureBlackTest {
     private fun app.morphe.patcher.patch.BytecodePatchContext.code(type: String): List<Instruction> =
         classDefBy(type).methods.single().implementation!!.instructions.toList()
 
-    private fun classDef(type: String, body: String): ClassDef {
+    private fun classDef(
+        type: String,
+        body: String,
+        parameters: List<String> = emptyList(),
+        returns: String = "V",
+        name: String = "colors",
+    ): ClassDef {
         val mutable = MutableMethod(
             ImmutableMethod(
-                type, "colors", emptyList(), "V", AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
+                type, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns,
+                AccessFlags.PUBLIC.value or AccessFlags.STATIC.value, null, null,
                 ImmutableMethodImplementation(6, emptyList(), null, null),
             ),
         )

@@ -342,6 +342,8 @@ val pureBlackPatch = bytecodePatch(
         blackenCommentsSheet(findBottomSheetHooks())
         // A story opened on Prism's black for a moment before the black (#360).
         blackenStoryBackdrops(findStoryBackdrops())
+        // A new notification's row is the theme's own tint, not a palette's black (#374).
+        blackenNewRowTints(findNewRowTintReads())
         enableStatus("pureBlack")
     }
 }
