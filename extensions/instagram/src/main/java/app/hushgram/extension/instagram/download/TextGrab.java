@@ -211,10 +211,10 @@ public final class TextGrab {
      * all are gone.
      *
      * <p>A story's views carry no activity of their own: Instagram makes them with a plain context, in
-     * an activity over its main one, so the parents are asked too.
+     * an activity over its main one, so the parents are asked too. A chat's header is made the same way.
      */
     @Nullable
-    static Activity ownerOf(@Nullable View view, @Nullable Activity given) {
+    public static Activity ownerOf(@Nullable View view, @Nullable Activity given) {
         View root = view == null || !view.isAttachedToWindow() ? null : view.getRootView();
         Activity[] candidates = {given, madeFor(view), Utils.getActivity()};
         for (Activity candidate : candidates) {

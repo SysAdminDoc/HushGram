@@ -12,6 +12,7 @@ import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
@@ -22,10 +23,13 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import app.hushgram.extension.instagram.download.TextGrab;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.diagnostics.DiagnosticCategory;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
@@ -47,12 +51,33 @@ public final class ChatPager {
     static final long TICK_MS = 450;
     /** Looks with nothing new in a row before the chat counts as fully loaded. */
     static final int STALL_LOOKS = 6;
+    /** The area around a chat's name and subtitle in Instagram's chat header. */
+    static final String NAME_AREA = "header_title_subtitle_container";
     private static final int ATTACH_TRIES = 24;
     private static final long ATTACH_MS = 600;
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final View.OnLongClickListener PRESS = new View.OnLongClickListener() {
+        @Override public boolean onLongClick(View v) {
+            return menu(v);
+        }
+    };
+    /**
+     * Puts the long press back as a touch starts, before the view times the press. Instagram clears it
+     * on the name's area seconds after the chat comes up, and can again after {@link HeaderWatch} stops
+     * looking. Never takes the touch, so a tap stays Instagram's.
+     */
+    private static final View.OnTouchListener REARM = new View.OnTouchListener() {
+        @Override public boolean onTouch(View v, MotionEvent event) {
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN && wanted() && (!v.isLongClickable() || !hasLongPress(v))) {
+                v.setOnLongClickListener(PRESS);
+            }
+            return false;
+        }
+    };
     private static volatile WeakReference<Object> screen = new WeakReference<>(null);
     private static volatile WeakReference<View> attached = new WeakReference<>(null);
+    private static volatile HeaderWatch watch;
     private static volatile Run running;
 
     private ChatPager() {
@@ -148,9 +173,14 @@ public final class ChatPager {
         try {
             HookStatus.invoked(FamilyNames.CHAT_HISTORY);
             screen = new WeakReference<>(fragment);
-            attached = new WeakReference<>(null);
-            if (!wanted()) return;
-            tryAttach(fragment, 0);
+            stopWatching();
+            if (!wanted()) {
+                log("chat opened with both switches off or settings not ready");
+                return;
+            }
+            log("chat opened");
+            watch = new HeaderWatch(fragment);
+            watch.run();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
         }
@@ -162,6 +192,7 @@ public final class ChatPager {
             Object shown = screen.get();
             if (shown != null && shown != fragment) return;
             screen = new WeakReference<>(null);
+            stopWatching();
             Run run = running;
             if (run != null) run.stop();
         } catch (Throwable t) {
@@ -181,37 +212,67 @@ public final class ChatPager {
         return Utils.settingsReady() && Settings.EXPORT_CHAT.get();
     }
 
-    private static void tryAttach(final Object fragment, final int tries) {
-        if (screen.get() != fragment || tries >= ATTACH_TRIES) return;
-        try {
-            View root = viewOf(fragment);
-            View title = root == null ? null : titleIn(root);
-            if (title != null) {
-                HookStatus.recoveredViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
-                if (attached.get() != title && !hasLongPress(title)) {
-                    title.setOnLongClickListener(new View.OnLongClickListener() {
-                        @Override public boolean onLongClick(View v) {
-                            return menu(fragment, v);
-                        }
-                    });
+    private static void stopWatching() {
+        HeaderWatch old = watch;
+        if (old != null) MAIN.removeCallbacks(old);
+        watch = null;
+    }
+
+    private static void log(final String line) {
+        Logger.diagnosticDebug(DiagnosticCategory.OTHER, PAGER, () -> line);
+    }
+
+    /**
+     * Looks at the chat's header through its first seconds. Instagram builds the header after the
+     * chat comes up and can build it again, so finding it once isn't the end of the looking.
+     */
+    private static final class HeaderWatch implements Runnable {
+        private final Object fragment;
+        private int tries;
+        private boolean found;
+
+        HeaderWatch(Object fragment) {
+            this.fragment = fragment;
+        }
+
+        @Override public void run() {
+            if (watch != this || screen.get() != fragment) return;
+            try {
+                View root = viewOf(fragment);
+                View target = root == null ? null : pressTarget(root);
+                if (target != null) {
+                    found = true;
+                    HookStatus.recoveredViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
+                    arm(target);
                 }
-                attached = new WeakReference<>(title);
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
                 return;
             }
-        } catch (Throwable t) {
-            HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
-            return;
-        }
-        if (tries + 1 >= ATTACH_TRIES) {
-            // The diagnostics report then says the name was never found, instead of a silent long press.
-            HookStatus.missingViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
-            return;
-        }
-        MAIN.postDelayed(new Runnable() {
-            @Override public void run() {
-                tryAttach(fragment, tries + 1);
+            if (++tries < ATTACH_TRIES) {
+                MAIN.postDelayed(this, ATTACH_MS);
+                return;
             }
-        }, ATTACH_MS);
+            if (!found) {
+                // The diagnostics report then says the name was never found, instead of a silent long press.
+                HookStatus.missingViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
+                log("the chat's name was never found");
+            }
+        }
+
+        private void arm(View target) {
+            View ours = attached.get();
+            if (ours == target && target.isLongClickable()) return;
+            if (ours != target && hasLongPress(target)) {
+                if (tries == 0) log("Instagram answers the long press on the chat's name");
+                return;
+            }
+            target.setOnLongClickListener(PRESS);
+            target.setOnTouchListener(REARM);
+            attached = new WeakReference<>(target);
+            final String how = ours == target ? "again, it was cleared" : ours == null ? "first time" : "header was rebuilt";
+            log("long press set on the chat's name, try " + tries + ", " + how);
+        }
     }
 
     /** The view a fragment shows, or null. */
@@ -232,12 +293,34 @@ public final class ChatPager {
      */
     static View titleIn(View root) {
         for (String name : ChatLocks.TITLES) {
-            int id = MessagesLock.id(root.getContext(), name);
-            if (id == 0) continue;
-            for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
-                View title = at.findViewById(id);
-                if (title != null) return title;
-            }
+            View title = nearest(root, name);
+            if (title != null) return title;
+        }
+        return null;
+    }
+
+    /**
+     * Where the long press goes: the area around the chat's name and subtitle. A tap on the name
+     * lands there and opens the chat's details, while the name itself takes no touches, so a
+     * listener on the name would swallow that tap (#246). The name is the fallback.
+     */
+    static View pressTarget(View root) {
+        View area = nearest(root, NAME_AREA);
+        return area != null ? area : titleIn(root);
+    }
+
+    /** The chat's name as the header shows it, empty when it isn't there. */
+    static String nameIn(View root) {
+        View title = titleIn(root);
+        return title instanceof TextView ? String.valueOf(((TextView) title).getText()) : "";
+    }
+
+    private static View nearest(View root, String name) {
+        int id = MessagesLock.id(root.getContext(), name);
+        if (id == 0) return null;
+        for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {
+            View found = at.findViewById(id);
+            if (found != null) return found;
         }
         return null;
     }
@@ -251,13 +334,24 @@ public final class ChatPager {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R ? view.hasOnLongClickListeners() : view.isLongClickable();
     }
 
-    private static boolean menu(Object fragment, View title) {
-        if (!wanted() || screen.get() != fragment) return false;
+    private static boolean menu(View pressed) {
+        Object fragment = screen.get();
+        if (fragment == null || !wanted()) {
+            log("no menu: chat " + (fragment != null) + ", switches " + wanted());
+            return false;
+        }
         try {
-            final Activity activity = activityOf(title.getContext());
-            if (activity == null) return false;
+            // The header's views carry a context that doesn't lead to an activity, so the parents are asked too.
+            final Activity activity = TextGrab.ownerOf(pressed, null);
+            if (activity == null) {
+                log("no menu: no activity from " + pressed.getContext().getClass().getName());
+                return false;
+            }
             final View root = viewOf(fragment);
-            if (root == null) return false;
+            if (root == null) {
+                log("no menu: the chat has no view");
+                return false;
+            }
             final List<String> labels = new ArrayList<>();
             final List<Integer> actions = new ArrayList<>();
             if (jumpWanted()) {
@@ -271,7 +365,7 @@ public final class ChatPager {
                 actions.add(ACTION_EXPORT);
             }
             if (labels.isEmpty()) return false;
-            final String name = title instanceof TextView ? String.valueOf(((TextView) title).getText()) : "";
+            final String name = nameIn(root);
             new AlertDialog.Builder(activity)
                     .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
                         @Override public void onClick(DialogInterface dialog, int which) {
@@ -283,6 +377,7 @@ public final class ChatPager {
                     }).show();
             return true;
         } catch (Throwable t) {
+            log("no menu: " + t);
             HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             return false;
         }
@@ -300,14 +395,6 @@ public final class ChatPager {
         }, now.get(Calendar.YEAR), now.get(Calendar.MONTH), now.get(Calendar.DAY_OF_MONTH));
         dialog.getDatePicker().setMaxDate(now.getTimeInMillis());
         dialog.show();
-    }
-
-    private static Activity activityOf(Context context) {
-        while (context instanceof android.content.ContextWrapper) {
-            if (context instanceof Activity) return (Activity) context;
-            context = ((android.content.ContextWrapper) context).getBaseContext();
-        }
-        return null;
     }
 
     /** [exportName] is the chat's name when the whole chat is to be saved as text, null for a jump. */
