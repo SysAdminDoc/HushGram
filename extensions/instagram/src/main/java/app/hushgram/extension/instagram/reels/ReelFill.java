@@ -20,6 +20,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * others. The patch asks here right after Instagram works the percentage out, and true makes the
  * reel fill the screen.
  *
+ * <p>Hiding the comment bar on all reels makes the viewer taller the same way, with neither of those
+ * switches on: its height goes to the viewer, so on a 1080x2400 screen a 9:16 reel is about 13 percent
+ * off and gets a black band above and below (#371). So that switch fills reels too.
+ *
  * <p>Show the whole reel (piko #2183) goes the other way and asks first, before Instagram's early
  * crop for media it lets crop: true makes every reel fit inside the viewer with bars where its shape
  * differs, so nothing is cut at the sides. It doesn't need Full screen Reels and wins over Fill.
@@ -59,15 +63,14 @@ public final class ReelFill {
 
     /**
      * Asked as Instagram decides whether a reel fills the viewer, with how far the viewer's shape is
-     * from the reel's in percent. True when Full screen Reels and Fill the screen are both on and the
-     * reel would lose no more than {@link #MOST_CROP}, which crops it to fill the screen. False hands
-     * the decision back to Instagram, and so does anything that throws.
+     * from the reel's in percent. True when Full screen Reels and Fill the screen are both on, or the
+     * comment bar is hidden on all reels, and the reel would lose no more than {@link #MOST_CROP},
+     * which crops it to fill the screen. False hands the decision back to Instagram, and so does
+     * anything that throws.
      */
     public static boolean fill(float cropPercent) {
         try {
-            if (!Utils.settingsReady() || !Settings.FILL_REEL_SCREEN.get() || !Settings.FULL_SCREEN_REELS.get()) {
-                return false;
-            }
+            if (!Utils.settingsReady() || !wanted()) return false;
             if (!(cropPercent >= 0f && cropPercent <= MOST_CROP)) return false;
             HookStatus.counted(FamilyNames.FULL_SCREEN_BARS, COUNT_FILLED);
             return true;
@@ -75,5 +78,10 @@ public final class ReelFill {
             HookStatus.threw(FamilyNames.FULL_SCREEN_BARS, "reel fill", failure);
             return false;
         }
+    }
+
+    private static boolean wanted() {
+        return Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.get()
+                || (Settings.FILL_REEL_SCREEN.get() && Settings.FULL_SCREEN_REELS.get());
     }
 }

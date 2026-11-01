@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 * **Instagram:** Scrolling the feed past carousel posts no longer stutters with `Carousel arrows` or `Page dots on a pill` on
 * **Instagram:** The time above a reel's seek bar no longer loses its top half with `Run Reels behind the tab bar` on. The pill lifts the bar by scrolling the views around it, and the label was being placed in the part scrolled out of sight
 * **Instagram:** `Save folder` no longer turns a typed path into a folder on internal storage. It only takes a name, so a path like `/storage/F929-FA97/Movies` now leaves the folder as it was and points you to `Choose a folder`, which is the way to reach an SD card. Once you've picked a folder, `Save folder` says it isn't being used, where it used to go on naming Movies and Pictures
+* **Instagram:** A reel opened from the feed or a profile no longer sits between black bands with `Hide the comment bar on all reels` on. The bar's height goes to the video's frame, and a tall reel then got fitted inside it instead of filling it. Square and 4:5 reels still fit, and `Show the whole reel` still keeps every reel whole
 
 ## 0.0.18 (2026-10-31)
 

@@ -45,9 +45,9 @@ internal object ReelCropDecisionFingerprint : Fingerprint(
  * Fill the screen (#288). After the crop percentage name, the decision divides the difference
  * between the viewer's aspect ratio and the reel's by the reel's and multiplies it by 100, then
  * crops only below thresholds Instagram's server sends. With Full screen Reels on the viewer is
- * taller, so a 9:16 reel often lands past them and shows bars. Right after that multiply the
- * decision asks [FILL_HOOK] with the percentage, and returns true (fill) when it says so. Otherwise
- * Instagram's own checks run as before.
+ * taller, so a 9:16 reel often lands past them and shows bars, and hiding the comment bar on all
+ * reels does the same (#371). Right after that multiply the decision asks [FILL_HOOK] with the
+ * percentage, and returns true (fill) when it says so. Otherwise Instagram's own checks run as before.
  */
 internal fun BytecodePatchContext.fillReelScreen() {
     val decision = uniqueMethod(FULL_SCREEN_BARS_PATCH, "reel crop decision", ReelCropDecisionFingerprint)

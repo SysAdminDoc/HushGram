@@ -25,6 +25,9 @@ public class ReelFillTest {
     /** A 9:16 reel on a 20:9 screen with both bars hidden: (1080/2400 - 0.5625) / 0.5625 is 20% off. */
     private static final float TALL_SCREEN = 20f;
 
+    /** The same reel in a 1080x2201 viewer, with the comment bar gone and the status bar still up. */
+    private static final float BAR_GONE = 12.8f;
+
     @Before
     public void switchOn() {
         Settings.FULL_SCREEN_REELS.save(true);
@@ -36,6 +39,8 @@ public class ReelFillTest {
         Settings.FULL_SCREEN_REELS.resetToDefault();
         Settings.FILL_REEL_SCREEN.resetToDefault();
         Settings.FIT_REEL_SCREEN.resetToDefault();
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.resetToDefault();
+        Settings.HIDE_REEL_COMMENT_BAR.resetToDefault();
     }
 
     @Test
@@ -62,6 +67,40 @@ public class ReelFillTest {
         Settings.FILL_REEL_SCREEN.save(true);
         Settings.FULL_SCREEN_REELS.save(false);
         assertFalse(ReelFill.fill(TALL_SCREEN));
+    }
+
+    /**
+     * #371: the comment bar's height goes to the viewer, and on a 1080x2400 screen a 9:16 reel then
+     * came up with black bands above and below it, with neither Full screen switch on.
+     */
+    @Test
+    public void hidingTheCommentBarOnAllReelsFillsTheRoomItLeaves() {
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        assertFalse("the bar's still there", ReelFill.fill(BAR_GONE));
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        assertTrue(ReelFill.fill(BAR_GONE));
+        assertTrue(ReelFill.fill(ReelFill.MOST_CROP));
+        assertFalse("a 4:5 reel still fits", ReelFill.fill(43.75f));
+        assertFalse(ReelFill.fill(ReelFill.MOST_CROP + 0.01f));
+        assertFalse(ReelFill.fill(Float.NaN));
+    }
+
+    /** Show the whole reel is asked first, so it keeps its bars with the comment bar gone. */
+    @Test
+    public void showTheWholeReelStillWinsWithTheCommentBarGone() {
+        Settings.HIDE_REEL_COMMENT_BAR_EVERYWHERE.save(true);
+        Settings.FIT_REEL_SCREEN.save(true);
+        assertTrue(ReelFill.fit());
+    }
+
+    /** The reposted reels switch hides the bar for one source, and this decision doesn't get told which. */
+    @Test
+    public void hidingTheBarOnRepostedReelsAloneLeavesItToInstagram() {
+        Settings.FULL_SCREEN_REELS.save(false);
+        Settings.FILL_REEL_SCREEN.save(false);
+        Settings.HIDE_REEL_COMMENT_BAR.save(true);
+        assertFalse(ReelFill.fill(BAR_GONE));
     }
 
     /** piko #2183: Show the whole reel answers on its own switch, with or without Full screen Reels. */
