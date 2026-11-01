@@ -453,10 +453,6 @@ public class ChatPagerTest {
         int shown;
         int scrolledToOldest;
         int scrolledTo = -2;
-        int scrolledAway;
-        boolean lastMoveWasAway;
-        /** A page only comes when the old end has left the screen and come back, as on a phone. */
-        boolean onlyWhenBack;
         /** Looks a page takes to arrive once it's asked for. */
         int looksPerPage;
         private int looksSincePage;
@@ -486,30 +482,19 @@ public class ChatPagerTest {
 
         @Override public void toOldest() {
             scrolledToOldest++;
-            boolean cameBack = lastMoveWasAway;
-            lastMoveWasAway = false;
-            if (onlyWhenBack && !cameBack) return;
             if (++looksSincePage <= looksPerPage) return;
             looksSincePage = 0;
             shown = Math.min(total, shown + page);
         }
 
-        @Override public void awayFromOldest() {
-            scrolledAway++;
-            looksSincePage++;
-            lastMoveWasAway = true;
-        }
-
         @Override public void scrollTo(int position) {
             scrolledTo = position;
-            lastMoveWasAway = false;
         }
 
         int scrolledToNewest;
 
         @Override public void toNewest() {
             scrolledToNewest++;
-            lastMoveWasAway = false;
         }
 
         long timeOfMessage(int index) {
@@ -598,20 +583,6 @@ public class ChatPagerTest {
         assertEquals(1, chat.scrolledToNewest);
     }
 
-    /**
-     * Instagram's Loading row sat at a chat's old end for minutes with nothing coming, and only scrolling
-     * away and back brought the next page. The loader stopped at the first page, so an export held 12 of
-     * a chat's 22 messages (#246).
-     */
-    @Test public void anOldEndThatSitsOnLoadingIsScrolledAwayAndBack() {
-        FakeChat chat = new FakeChat(60, 20, 20);
-        chat.onlyWhenBack = true;
-        run(new ChatPager.Loader(chat, 0, ChatPager.STALL_LOOKS, false));
-        assertEquals(60, chat.shown);
-        assertEquals(60, chat.entries().size());
-        assertTrue(chat.scrolledAway > 0);
-    }
-
     /** A page that takes ten seconds to come on a slow network isn't the end of the chat. */
     @Test public void aSlowPageIsWaitedFor() {
         FakeChat chat = new FakeChat(60, 20, 20);
@@ -620,33 +591,95 @@ public class ChatPagerTest {
         assertEquals(60, chat.shown);
     }
 
-    /** Whatever look it stops on, a jump never leaves the list where a nudge put it. */
-    @Test public void aFinishedJumpIsntLeftOffTheOldEnd() {
-        for (int limit = 1; limit <= ChatPager.NUDGE_LOOKS * 2; limit++) {
-            FakeChat chat = new FakeChat(10, 10, 10);
-            run(new ChatPager.Loader(chat, 0, limit));
-            assertFalse("limit " + limit, chat.lastMoveWasAway);
-            assertEquals("limit " + limit, 9, chat.scrolledTo);
-            FakeChat export = new FakeChat(10, 10, 10);
-            run(new ChatPager.Loader(export, 0, limit, false));
-            assertFalse("export, limit " + limit, export.lastMoveWasAway);
-            assertEquals("export, limit " + limit, 1, export.scrolledToNewest);
+    /**
+     * The chat's list by the rules of Instagram 453's own scroll listener, which pages only when a scroll
+     * reports movement toward the old end (dy below 0) with the last row on screen. A jump to a row reports
+     * none, and the list can't move past its old end. Rows and pixels are kept apart: {@link #off} is how
+     * far the top of the screen sits below the old end, in pixels.
+     */
+    public static final class ChatList extends View {
+        private static final int ROW = 100;
+        private final int total;
+        private final int page;
+        int rows;
+        int off;
+        int asked;
+
+        ChatList(int total, int rows, int page) {
+            super(RuntimeEnvironment.getApplication());
+            this.total = total;
+            this.rows = rows;
+            this.page = page;
+        }
+
+        @Override public void scrollBy(int x, int y) {
+            int to = Math.max(0, off + y);
+            int moved = to - off;
+            off = to;
+            if (moved >= 0 || off >= ROW) return;
+            asked++;
+            int more = Math.min(total, rows + page) - rows;
+            rows += more;
+            off += more * ROW;
+        }
+
+        public Rows getAdapter() {
+            return new Rows();
+        }
+
+        public Manager getLayoutManager() {
+            return new Manager();
+        }
+
+        public final class Rows {
+            public int getItemCount() {
+                return rows;
+            }
+        }
+
+        public final class Manager {
+            public boolean isLayoutReversed() {
+                return true;
+            }
+
+            public void scrollToPosition(int position) {
+                off = (rows - 1 - position) * ROW;
+            }
         }
     }
 
-    /** The away scroll goes a whole screen, so the old end's row really leaves it, and toward the new end. */
-    @Test public void leavingTheOldEndScrollsAScreenDown() {
-        final int[] scrolled = new int[2];
-        View list = new View(RuntimeEnvironment.getApplication()) {
-            @Override public void scrollBy(int x, int y) {
-                scrolled[0] += x;
-                scrolled[1] += y;
-            }
-        };
-        list.layout(0, 0, 1080, 1968);
-        new ChatPager.ListSource(list).awayFromOldest();
-        assertEquals(0, scrolled[0]);
-        assertEquals(1968, scrolled[1]);
+    /**
+     * The Loading row sat at a chat's old end for minutes with nothing coming, because the pager only ever
+     * jumped there, so an export held 12 of a chat's 22 messages (#246).
+     */
+    @Test public void aChatIsLoadedByTheScrollInstagramPagesOn() {
+        ChatList list = new ChatList(60, 20, 20);
+        run(new ChatPager.Loader(new ChatPager.ListSource(list), 0, ChatPager.STALL_LOOKS, false));
+        assertEquals(60, list.rows);
+    }
+
+    /** Asking moves the list by nothing a reader could see, so a look at the old end ends up back at it. */
+    @Test public void askingForAPageLeavesTheListAtTheOldEnd() {
+        ChatList list = new ChatList(20, 20, 20);
+        ChatPager.ListSource source = new ChatPager.ListSource(list);
+        source.toOldest();
+        source.toOldest();
+        assertEquals(2, list.asked);
+        assertEquals(0, list.off);
+    }
+
+    /** Off the old end a scroll asks for nothing, so the first look only gets the list there. */
+    @Test public void aListAwayFromItsOldEndIsTakenThereFirst() {
+        ChatList list = new ChatList(60, 20, 20);
+        list.off = 1500;
+        ChatPager.ListSource source = new ChatPager.ListSource(list);
+        source.toOldest();
+        assertEquals(0, list.asked);
+        assertEquals(0, list.off);
+        source.toOldest();
+        assertEquals(1, list.asked);
+        assertEquals(40, list.rows);
+        assertEquals(0, list.off);
     }
 
     @Test public void aFinishedLoaderStaysFinished() {

@@ -51,8 +51,8 @@ public final class ChatPager {
     static final long TICK_MS = 450;
     /** Looks with nothing new in a row before the chat counts as fully loaded. A page can take seconds to come. */
     static final int STALL_LOOKS = 24;
-    /** One stalled look in this many leaves the old end, so the next can bring it back into view. */
-    static final int NUDGE_LOOKS = 4;
+    /** Pixels the list steps off its old end and back to ask for an older page. Nothing draws between the two. */
+    static final int ASK_STEP = 1;
     /** The area around a chat's name and subtitle in Instagram's chat header. */
     static final String NAME_AREA = "header_title_subtitle_container";
     private static final int ATTACH_TRIES = 24;
@@ -93,14 +93,8 @@ public final class ChatPager {
         /** The messages the list holds now, oldest first. */
         List<ChatHistory.Entry> entries();
 
-        /** Scrolls the list to its old end, which makes Instagram load older messages. */
+        /** Asks Instagram for older messages if the list is at its old end, then scrolls it there. */
         void toOldest();
-
-        /**
-         * Scrolls the list off its old end. Instagram's Loading row can sit at that end for good, and
-         * the next page only comes when the end has left the screen and come back.
-         */
-        void awayFromOldest();
 
         /** Scrolls the list to a row. */
         void scrollTo(int position);
@@ -149,8 +143,7 @@ public final class ChatPager {
             else stalls = 0;
             lastCount = count;
             if (stalls >= stallLimit) return finish(entries);
-            if (stalls % NUDGE_LOOKS == NUDGE_LOOKS - 1) source.awayFromOldest();
-            else source.toOldest();
+            source.toOldest();
             return true;
         }
 
@@ -603,20 +596,18 @@ public final class ChatPager {
             return list.getClass().getMethod("getLayoutManager").invoke(list);
         }
 
+        /**
+         * Instagram asks for an older page only from a scroll that moves toward the old end with that
+         * end's row on screen. A jump to a row reports no movement, and sitting at the end leaves no room
+         * to move that way, so the list steps off the end and straight back. The old end is at the top
+         * whichever way the layout runs.
+         */
         @Override public void toOldest() {
             try {
+                list.scrollBy(0, ASK_STEP);
+                list.scrollBy(0, -ASK_STEP);
                 int count = count();
-                if (count <= 0) return;
-                scrollTo(oldestEnd(count));
-            } catch (Throwable t) {
-                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
-            }
-        }
-
-        /** A screen toward the new end. A chat's old end is at the top whichever way its layout runs. */
-        @Override public void awayFromOldest() {
-            try {
-                list.scrollBy(0, list.getHeight());
+                if (count > 0) scrollTo(oldestEnd(count));
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             }
