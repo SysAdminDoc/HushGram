@@ -5,8 +5,6 @@
 package app.hushgram.extension.instagram.settings;
 
 import android.app.Activity;
-import android.content.Context;
-import android.content.ContextWrapper;
 import android.os.Build;
 import android.view.View;
 import android.view.ViewParent;
@@ -17,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.download.TextGrab;
 import app.hushgram.extension.shared.Logger;
 import app.hushgram.extension.shared.Utils;
 
@@ -260,15 +259,9 @@ public final class NavigationSettings {
      */
     static Activity ownerOf(View view) {
         if (view == null || !view.isAttachedToWindow() || !view.isShown()) return null;
-        Context context = view.getContext();
-        for (int depth = 0; depth < 16 && context instanceof ContextWrapper && !(context instanceof Activity); depth++) {
-            Context next = ((ContextWrapper) context).getBaseContext();
-            if (next == context) break;
-            context = next;
-        }
-        if (!(context instanceof Activity)) return null;
-        Activity activity = (Activity) context;
-        if (activity.isFinishing() || activity.isDestroyed() || !activity.hasWindowFocus()) return null;
+        // A profile opened from a link hands its bar a context with no activity under it.
+        Activity activity = TextGrab.ownerOf(view, null);
+        if (activity == null || !activity.hasWindowFocus()) return null;
         View decor = activity.getWindow().getDecorView();
         View current = view;
         for (int depth = 0; depth < 64; depth++) {

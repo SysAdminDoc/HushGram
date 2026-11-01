@@ -109,7 +109,7 @@ public final class CallConfirm {
         try {
             HookStatus.invoked(FamilyNames.ASK_BEFORE_CALL);
             if (starter == null || !on.getAsBoolean() || starting) return false;
-            Activity activity = activityOf(access.context(starter));
+            Activity activity = asksOver(access.context(starter));
             if (activity == null || activity.isFinishing() || activity.isDestroyed()) return false;
             AlertDialog showing = question();
             if (up(showing)) {
@@ -170,6 +170,15 @@ public final class CallConfirm {
         if (question == null || !question.isShowing()) return false;
         Activity activity = activityOf(question.getContext());
         return activity != null && !activity.isFinishing() && !activity.isDestroyed();
+    }
+
+    /**
+     * The activity a call's question goes over: the one behind [context], or the one showing when
+     * [context] leads to none, since a call with nothing to ask over starts unasked.
+     */
+    private static Activity asksOver(Object context) {
+        Activity activity = activityOf(context);
+        return activity != null ? activity : Utils.getActivity();
     }
 
     /** The activity behind [context], or null when there's none. */

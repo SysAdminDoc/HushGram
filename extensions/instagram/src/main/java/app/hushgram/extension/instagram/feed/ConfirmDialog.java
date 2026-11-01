@@ -16,6 +16,7 @@ import java.util.function.Consumer;
 
 import app.hushgram.extension.instagram.settings.ScreenColors;
 import app.hushgram.extension.shared.L10n;
+import app.hushgram.extension.shared.Utils;
 
 /** The question Ask before a like and Ask before a refresh put up, over the screen they act on. */
 final class ConfirmDialog {
@@ -27,7 +28,7 @@ final class ConfirmDialog {
      * yes is tapped, and [onNo], when there is one, when the question goes away any other way:
      * Cancel, Back or a tap outside. [onGone] is handed the question once it's gone, whichever way it
      * went, so a caller holding on to it can let go. Answers null, showing nothing, when there's no
-     * activity behind [context] or it's going away.
+     * activity to show it over ({@link #activityOf}) or it's going away.
      */
     @Nullable
     static AlertDialog ask(@Nullable Context context, String question, String yes, Runnable onYes, @Nullable Runnable onNo,
@@ -80,15 +81,19 @@ final class ConfirmDialog {
         }
     }
 
-    /** The activity behind [context], or null when there's none. */
+    /**
+     * The activity behind [context], or the one showing when [context] leads to none, as some of
+     * Instagram's views do, or null. Without one the tap goes through unasked.
+     */
     @Nullable
     static Activity activityOf(@Nullable Context context) {
+        if (context == null) return null;
         Context at = context;
         for (int depth = 0; depth < 10 && at != null; depth++) {
             if (at instanceof Activity) return (Activity) at;
-            if (!(at instanceof ContextWrapper)) return null;
+            if (!(at instanceof ContextWrapper)) break;
             at = ((ContextWrapper) at).getBaseContext();
         }
-        return null;
+        return Utils.getActivity();
     }
 }

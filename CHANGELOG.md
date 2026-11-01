@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** A long press on a chat's name now opens the menu for `Jump to the first message or a date` and `Export a chat as text`. In 0.0.18 it opened the chat's details instead. A plain tap on the name still opens the details
+* **Instagram:** `Ask before a call`, `Ask before a like` and `Ask before a refresh` now ask over the screen that's showing when Instagram builds the button with no screen behind it. Those presses used to go through unasked. A long press on a tab or on your profile's menu button got the same fix, so it still opens when the bar was built that way
 
 ## 0.0.18 (2026-10-31)
 

@@ -9,6 +9,7 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ContextWrapper;
 import android.os.Looper;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -283,6 +284,19 @@ public class ProfileMenuPressTest {
         right.addView(rebuilt);
         ProfileMenuPress.look(activity);
         assertTrue(rebuilt.performLongClick());
+        assertEquals(1, shown());
+    }
+
+    /** A profile opened from a link hands its bar a context with no activity under it. The press still opens HushGram. */
+    @Test public void aMenuMadeOnAPlainContextStillOpensHushGram() {
+        Settings.PROFILE_MENU_LONG_PRESS.save(true);
+        right.removeAllViews();
+        ImageView plain = new ImageView(new ContextWrapper(RuntimeEnvironment.getApplication()));
+        plain.setOnClickListener(view -> taps.incrementAndGet());
+        right.addView(button());
+        right.addView(plain);
+        ProfileMenuPress.look(activity);
+        assertTrue(plain.performLongClick());
         assertEquals(1, shown());
     }
 

@@ -28,6 +28,7 @@ import org.robolectric.shadows.ShadowDialog;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -172,10 +173,34 @@ public class LikeConfirmTest {
 
     @Test public void theQuestionNeedsAnActivityBehindTheScreensContext() {
         Settings.ASK_BEFORE_LIKE.save(true);
-        assertFalse("nothing to show it over", like(new ContextWrapper(RuntimeEnvironment.getApplication())));
-        assertNull(ShadowDialog.getLatestDialog());
+        Activity showing = Utils.getActivity();
+        try {
+            Utils.setActivity(null);
+            assertFalse("nothing to show it over", like(new ContextWrapper(RuntimeEnvironment.getApplication())));
+            assertNull(ShadowDialog.getLatestDialog());
+        } finally {
+            Utils.setActivity(showing);
+        }
         assertTrue("a wrapped activity is found", like(new ContextWrapper(activity)));
         assertNotNull(shown());
+    }
+
+    /** A like button made on a context with no activity under it is asked about over the activity showing, and a second tap is held. */
+    @Test public void aContextWithNoActivityIsAskedOverTheActivityShowing() {
+        Settings.ASK_BEFORE_LIKE.save(true);
+        Activity original = Utils.getActivity();
+        try {
+            Utils.setActivity(activity);
+            Context plain = new ContextWrapper(RuntimeEnvironment.getApplication());
+            assertTrue("the like went through unasked", like(plain));
+            AlertDialog question = shown();
+            assertTrue(like(plain));
+            assertSame(question, ShadowDialog.getLatestDialog());
+            tap(question, AlertDialog.BUTTON_NEGATIVE);
+            assertEquals(0, likes);
+        } finally {
+            Utils.setActivity(original);
+        }
     }
 
     @Test public void cancelLeavesThePostAsItWas() {
@@ -200,7 +225,13 @@ public class LikeConfirmTest {
         SettingsContextRule.withoutContext(() -> assertFalse(like(activity)));
         SettingsContextRule.beforeThePauseIsDecided(() -> assertFalse(like(activity)));
         assertFalse("no screen", like(null));
-        assertFalse("no activity behind it", like(RuntimeEnvironment.getApplication()));
+        Activity showing = Utils.getActivity();
+        try {
+            Utils.setActivity(null);
+            assertFalse("no activity behind it", like(RuntimeEnvironment.getApplication()));
+        } finally {
+            Utils.setActivity(showing);
+        }
         activity.finish();
         assertFalse("an activity going away", like(activity));
         assertFalse("unpatched, the stub has none", LikeConfirm.hold(new Object(), null, null, null, null, 0));

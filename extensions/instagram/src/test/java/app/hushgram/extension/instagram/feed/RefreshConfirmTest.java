@@ -31,6 +31,7 @@ import org.robolectric.shadows.ShadowDialog;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
@@ -150,7 +151,13 @@ public class RefreshConfirmTest {
         SettingsContextRule.withoutContext(() -> end.onAnimationEnd(null));
         SettingsContextRule.beforeThePauseIsDecided(() -> end.onAnimationEnd(null));
         PullEnd noActivity = new PullEnd(new Spinner(RuntimeEnvironment.getApplication()));
-        noActivity.onAnimationEnd(null);
+        Activity showing = Utils.getActivity();
+        try {
+            Utils.setActivity(null);
+            noActivity.onAnimationEnd(null);
+        } finally {
+            Utils.setActivity(showing);
+        }
         assertEquals(List.of(end.listener, end.listener, end.listener), end.handed);
         assertEquals(List.of(noActivity.listener), noActivity.handed);
 

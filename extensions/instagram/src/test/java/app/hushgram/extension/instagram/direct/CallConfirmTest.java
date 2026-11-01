@@ -38,6 +38,7 @@ import java.util.List;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /** Ask before a call: off, nothing changes; on, the call waits for the question, and only Call starts it, with nothing let through after. */
@@ -277,13 +278,39 @@ public class CallConfirmTest {
         };
     }
 
+    /**
+     * Instagram makes some views on a context with no activity under it (#246 found the chat's header
+     * doing it). The question then goes over the activity showing, since without one the call starts unasked.
+     */
+    @Test
+    public void aContextWithNoActivityStillGetsItsQuestion() {
+        Activity original = Utils.getActivity();
+        try {
+            Utils.setActivity(controller.get());
+            screen = new ContextWrapper(RuntimeEnvironment.getApplication());
+
+            assertTrue("the call started unasked", hold(false, true));
+
+            asked().dismiss();
+            assertTrue(started.isEmpty());
+        } finally {
+            Utils.setActivity(original);
+        }
+    }
+
     /** With no screen to ask on, or a failure, the call starts as it always did. */
     @Test
     public void withoutAScreenItFailsOpen() {
-        screen = null;
-        assertFalse(hold(false, true));
-        screen = new Object();
-        assertFalse(hold(false, true));
+        Activity showing = Utils.getActivity();
+        try {
+            Utils.setActivity(null);
+            screen = null;
+            assertFalse(hold(false, true));
+            screen = new Object();
+            assertFalse(hold(false, true));
+        } finally {
+            Utils.setActivity(showing);
+        }
         ActivityController<Activity> gone = Robolectric.buildActivity(Activity.class).setup();
         gone.pause().stop().destroy();
         screen = gone.get();
