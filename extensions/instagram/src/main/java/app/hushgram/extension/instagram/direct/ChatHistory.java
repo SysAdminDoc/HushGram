@@ -4,12 +4,16 @@
  */
 package app.hushgram.extension.instagram.direct;
 
+import android.content.Context;
+import android.view.View;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -21,6 +25,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+
+import app.hushgram.extension.instagram.settings.FamilyNames;
+import app.hushgram.extension.shared.diagnostics.HookStatus;
 
 /**
  * What the chat on screen holds: its messages, found in the objects the chat's list is drawn from,
@@ -79,12 +86,18 @@ public final class ChatHistory {
         }
     };
 
-    /** The most objects one walk looks at, so a wrong turn into a big graph ends. */
+    /** The most objects one read looks at, so a wrong turn into a big graph ends. */
     static final int WALK_BUDGET = 400_000;
+    /** The most objects the look below one row takes. A row holds its message a few steps down. */
+    static final int ROW_BUDGET = 2_000;
     /** How deep below a row, or below the adapter when its rows can't be told apart, a walk goes. */
     static final int ROW_DEPTH = 6;
     static final int ADAPTER_DEPTH = 8;
     private static final int MAX_ELEMENTS = 50_000;
+    /** How far below the adapter its item list is looked for, and how many objects that may take. */
+    private static final int LIST_DEPTH = 3;
+    private static final int LIST_LOOKS = 2_000;
+    private static final String READ = "chat history read";
 
     /** One message: where its row is (-1 when unknown), who sent it and what it says. */
     public static final class Entry {
@@ -118,26 +131,52 @@ public final class ChatHistory {
     static List<Entry> read(Object adapter, int count, Reader reader) {
         List<Entry> found = new ArrayList<>();
         try {
-            List<?> rows = rowsOf(adapter, count);
-            if (rows != null) {
-                Map<Object, Boolean> seen = new IdentityHashMap<>();
-                int[] budget = {WALK_BUDGET};
-                for (int row = 0; row < rows.size(); row++) {
-                    for (Object message : walk(rows.get(row), ROW_DEPTH, reader, seen, budget)) {
-                        found.add(entry(row, message, reader));
-                    }
-                }
+            // A short chat has other lists of its size, so the rows are the first that hold messages.
+            for (List<?> rows : rowLists(adapter, count)) {
+                found = fromRows(rows, reader);
+                if (!found.isEmpty()) break;
             }
             if (found.isEmpty()) {
                 int[] budget = {WALK_BUDGET};
-                for (Object message : walk(adapter, ADAPTER_DEPTH, reader, new IdentityHashMap<>(), budget)) {
+                for (Object message : walk(adapter, ADAPTER_DEPTH, reader, budget, null)) {
                     found.add(entry(-1, message, reader));
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable failure) {
             // What was found so far stands.
+            HookStatus.threw(FamilyNames.CHAT_HISTORY, READ, failure);
         }
         return ordered(found);
+    }
+
+    /**
+     * The messages in [rows], each on the row that holds it most directly. A row can lead to its
+     * neighbour's message a few steps down, and it mustn't take that message's place.
+     */
+    private static List<Entry> fromRows(List<?> rows, Reader reader) {
+        Map<Object, int[]> held = new IdentityHashMap<>();
+        List<Object> order = new ArrayList<>();
+        int left = WALK_BUDGET;
+        for (int row = 0; row < rows.size() && left > 0; row++) {
+            int[] budget = {ROW_BUDGET};
+            int[] level = new int[1];
+            List<Object> messages;
+            try {
+                messages = walk(rows.get(row), ROW_DEPTH, reader, budget, level);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, READ, failure);
+                continue;
+            }
+            left -= ROW_BUDGET - budget[0];
+            for (Object message : messages) {
+                int[] before = held.get(message);
+                if (before == null) order.add(message);
+                if (before == null || level[0] < before[1]) held.put(message, new int[]{row, level[0]});
+            }
+        }
+        List<Entry> entries = new ArrayList<>();
+        for (Object message : order) entries.add(entry(held.get(message)[0], message, reader));
+        return entries;
     }
 
     /** Oldest first, one entry per message id, the one with a known row kept. */
@@ -189,46 +228,76 @@ public final class ChatHistory {
         }
     }
 
-    /** The adapter's item list: the one Instagram's list adapter keeps with as many items as it counts. */
-    private static List<?> rowsOf(Object adapter, int count) {
-        if (adapter == null || count <= 0) return null;
+    /**
+     * The lists that could be the adapter's items, nearest first: those it keeps with as many items
+     * as it counts. Instagram's chat keeps its rows in a plain array with room to spare (#246).
+     */
+    private static List<List<?>> rowLists(Object adapter, int count) {
+        List<List<?>> lists = new ArrayList<>();
+        if (adapter == null || count <= 0) return lists;
         try {
             Method current = adapter.getClass().getMethod("getCurrentList");
             Object list = current.invoke(adapter);
-            if (list instanceof List && ((List<?>) list).size() == count) return (List<?>) list;
+            if (list instanceof List && ((List<?>) list).size() == count) lists.add((List<?>) list);
         } catch (Throwable ignored) {
             // Not a ListAdapter.
         }
         Map<Object, Boolean> seen = new IdentityHashMap<>();
+        // The current list counts as met, so the search below doesn't add it twice.
+        if (!lists.isEmpty()) seen.put(lists.get(0), Boolean.TRUE);
         ArrayDeque<Object[]> queue = new ArrayDeque<>();
         queue.add(new Object[]{adapter, 0});
         int looked = 0;
-        while (!queue.isEmpty() && looked++ < 2000) {
+        while (!queue.isEmpty() && looked++ < LIST_LOOKS) {
             Object[] next = queue.poll();
             Object object = next[0];
             int depth = (Integer) next[1];
             if (object == null || seen.put(object, Boolean.TRUE) != null) continue;
-            if (object instanceof List) {
-                if (((List<?>) object).size() == count) return (List<?>) object;
+            try {
+                if (object instanceof List) {
+                    if (((List<?>) object).size() == count) lists.add((List<?>) object);
+                    continue;
+                }
+                if (object instanceof Object[]) {
+                    if (filledTo((Object[]) object, count)) lists.add(Arrays.asList((Object[]) object).subList(0, count));
+                    continue;
+                }
+            } catch (Throwable ignored) {
+                // A list that can't say its size isn't the one.
                 continue;
             }
-            if (depth >= 3 || skipped(object.getClass())) continue;
+            if (depth >= LIST_DEPTH || skipped(object.getClass()) || fenced(object)) continue;
             for (Object value : fieldValues(object)) {
                 if (value != null) queue.add(new Object[]{value, depth + 1});
             }
         }
-        return null;
+        return lists;
     }
 
-    /** The messages at or below [root], in the order the walk meets them. */
-    static List<Object> walk(Object root, int depth, Reader reader, Map<Object, Boolean> seen, int[] budget) {
+    /** Whether [array] holds items in exactly its first [count] slots. */
+    private static boolean filledTo(Object[] array, int count) {
+        if (array.length < count) return false;
+        for (int i = 0; i < array.length; i++) {
+            if ((array[i] != null) != (i < count)) return false;
+        }
+        return true;
+    }
+
+    /**
+     * The messages at or below [root], nearest first. Given [nearest], the walk ends at the first
+     * level holding a message and puts that level's number there: what a row shows sits above
+     * whatever else its objects lead to.
+     */
+    static List<Object> walk(Object root, int depth, Reader reader, int[] budget, int[] nearest) {
         List<Object> messages = new ArrayList<>();
-        ArrayDeque<Object[]> stack = new ArrayDeque<>();
-        stack.push(new Object[]{root, 0});
-        while (!stack.isEmpty() && budget[0] > 0) {
-            Object[] next = stack.pop();
+        Map<Object, Boolean> seen = new IdentityHashMap<>();
+        ArrayDeque<Object[]> queue = new ArrayDeque<>();
+        queue.add(new Object[]{root, 0});
+        while (!queue.isEmpty() && budget[0] > 0) {
+            Object[] next = queue.poll();
             Object object = next[0];
             int level = (Integer) next[1];
+            if (nearest != null && !messages.isEmpty() && level > nearest[0]) break;
             if (object == null || seen.put(object, Boolean.TRUE) != null) continue;
             budget[0]--;
             boolean message;
@@ -239,10 +308,21 @@ public final class ChatHistory {
             }
             if (message) {
                 messages.add(object);
+                if (nearest != null) nearest[0] = level;
                 continue;
             }
-            if (level >= depth) continue;
-            List<Object> below = new ArrayList<>();
+            if (level >= depth || fenced(object)) continue;
+            for (Object element : below(object)) {
+                if (element != null) queue.add(new Object[]{element, level + 1});
+            }
+        }
+        return messages;
+    }
+
+    /** What sits one step below [object]. A collection that fails partway gives what it gave so far. */
+    private static List<Object> below(Object object) {
+        List<Object> below = new ArrayList<>();
+        try {
             if (object instanceof Iterable) {
                 int taken = 0;
                 for (Object element : (Iterable<?>) object) {
@@ -263,13 +343,19 @@ public final class ChatHistory {
             } else if (!skipped(object.getClass())) {
                 below.addAll(fieldValues(object));
             }
-            // Pushed backwards so the first element is looked at first.
-            for (int i = below.size() - 1; i >= 0; i--) {
-                Object element = below.get(i);
-                if (element != null) stack.push(new Object[]{element, level + 1});
-            }
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_HISTORY, READ, failure);
         }
-        return messages;
+        return below;
+    }
+
+    /**
+     * Objects a walk stops at. An activity, a view or the signed-in session lead to the whole app,
+     * other chats' messages included, and a chat's rows are never behind them.
+     */
+    private static boolean fenced(Object object) {
+        return object instanceof Context || object instanceof View
+                || object.getClass().getName().endsWith("UserSession");
     }
 
     private static final Map<Class<?>, Field[]> FIELDS = new HashMap<>();

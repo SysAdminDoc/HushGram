@@ -578,7 +578,16 @@ public final class ChatPager {
         }
 
         @Override public List<ChatHistory.Entry> entries() {
-            return ChatHistory.read(adapter(), count(), ChatHistory.LIVE);
+            Object adapter = adapter();
+            int count = count();
+            List<ChatHistory.Entry> entries = ChatHistory.read(adapter, count, ChatHistory.LIVE);
+            int placed = 0;
+            for (ChatHistory.Entry entry : entries) {
+                if (entry.position >= 0) placed++;
+            }
+            log("read " + entries.size() + " messages, " + placed + " on known rows, from " + count + " rows of "
+                    + list.getClass().getName() + " with adapter " + (adapter == null ? null : adapter.getClass().getName()));
+            return entries;
         }
 
         private Object manager() throws Exception {

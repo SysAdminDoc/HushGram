@@ -46,6 +46,34 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 public class ChatPagerTest {
     @Rule public final SettingsContextRule settings = new SettingsContextRule();
 
+    /** An activity and a view that keep a message, as any of Instagram's might. */
+    public static final class HoldingActivity extends Activity {
+        Object held;
+    }
+
+    public static final class HoldingView extends View {
+        Object held;
+
+        HoldingView(android.content.Context context) {
+            super(context);
+        }
+    }
+
+    @Test public void aChatsReadStopsAtAnActivityOrAView() {
+        HoldingActivity activity = Robolectric.buildActivity(HoldingActivity.class).setup().get();
+        activity.held = new ChatHistoryTest.Msg("8", "stranger", "x", "1730000000000000", "TEXT", false);
+        HoldingView view = new HoldingView(activity);
+        view.held = new ChatHistoryTest.Msg("9", "stranger", "y", "1730000000000000", "TEXT", false);
+        List<Object> rows = new ArrayList<>();
+        rows.add(new ChatHistoryTest.Plain(activity));
+        rows.add(new ChatHistoryTest.Plain(view));
+        rows.add(new ChatHistoryTest.Row(new ChatHistoryTest.Msg("1", "them", "z", "1730000000000000", "TEXT", false)));
+        List<ChatHistory.Entry> entries = ChatHistory.read(new ChatHistoryTest.Adapter(rows), 3, ChatHistoryTest.READER);
+        assertEquals(1, entries.size());
+        assertEquals("1", entries.get(0).id);
+        assertEquals(2, entries.get(0).position);
+    }
+
     /** The chat screen the patch hands over: only its view is read, by name. */
     public static final class FakeChatScreen {
         private final View view;
