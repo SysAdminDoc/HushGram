@@ -53,8 +53,10 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 public class GhostTabLongPressTest {
     enum Tab { FEED, SEARCH, CLIPS, DIRECT, PROFILE }
 
-    private static final EnumSet<PatchFamily> GHOST_BUILD = EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.THREAD_SEEN,
-            PatchFamily.TYPING);
+    /** A method, since a static field would load the settings before the rule gives them a context. */
+    private static EnumSet<PatchFamily> ghostBuild() {
+        return EnumSet.of(PatchFamily.HIDE_ADS, PatchFamily.THREAD_SEEN, PatchFamily.TYPING);
+    }
 
     @Rule public final SettingsContextRule settingsContext = new SettingsContextRule();
     private ActivityController<Activity> controller;
@@ -66,7 +68,7 @@ public class GhostTabLongPressTest {
     @Before public void setUp() {
         PauseForTests.resume();
         BaseSettings.PAUSED.save(false);
-        PatchFamily.inBuildForTests = GHOST_BUILD;
+        PatchFamily.inBuildForTests = ghostBuild();
         SettingsEntry.onClosedByUser();
         ShadowAlertDialog.reset();
         ShadowToast.reset();
@@ -202,7 +204,7 @@ public class GhostTabLongPressTest {
         assertEquals(0, asked.get());
         PatchFamily.inBuildForTests = EnumSet.of(PatchFamily.HIDE_ADS);
         assertFalse("without a ghost patch", press.onLongClickUseDefaultHapticFeedback(feed));
-        PatchFamily.inBuildForTests = GHOST_BUILD;
+        PatchFamily.inBuildForTests = ghostBuild();
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse("paused", press.onLongClickUseDefaultHapticFeedback(feed));
         assertEquals(2, asked.get());
