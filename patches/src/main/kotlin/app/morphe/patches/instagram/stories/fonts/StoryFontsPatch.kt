@@ -44,8 +44,7 @@ import com.android.tools.smali.dexlib2.immutable.reference.ImmutableMethodRefere
 private const val PATCH = "Story text fonts"
 internal const val STORY_FONTS = "$EXTENSION_PACKAGE/stories/StoryFonts;"
 internal const val FORMATS = "$STORY_FONTS->formats(Ljava/util/List;)V"
-internal const val NAMED = "$STORY_FONTS->named(Ljava/lang/String;)Ljava/lang/Object;"
-internal const val APPLIED = "$STORY_FONTS->applied(Ljava/lang/Object;)V"
+internal const val ROW = "$STORY_FONTS->row(Ljava/lang/Object;Ljava/util/List;)I"
 internal const val STORY_EMOJI = "$EXTENSION_PACKAGE/stories/StoryEmoji;"
 internal const val EMOJI_APPLIED = "$STORY_EMOJI->applied(Landroid/widget/EditText;)V"
 internal const val EMOJI_DRAWING = "$STORY_EMOJI->drawing(Ljava/lang/CharSequence;)Ljava/lang/CharSequence;"
@@ -103,8 +102,8 @@ internal class StoryFontTargets(
     val mask: Int,
     /** The editor's private `()ArrayList` of the formats it offers, rebuilt on every ask. */
     val list: MethodReference,
-    /** `(String)` making a format from its name alone. */
-    val byName: MethodReference,
+    /** The static `(format, controller)I` that finds a format's row in [list] by name. */
+    val row: MethodReference,
     /** `(EditText, format)V` that applies a format to the text being edited. */
     val apply: MethodReference,
     /** The story text sticker's private `(CharSequence, Z)StaticLayout` that lays out the text it draws. */
@@ -138,9 +137,9 @@ internal fun BytecodePatchContext.addStoryFonts() {
             it.returnType == "I"
     } ?: refuse("the extension has no $NATIVE_PREMIUM(Object)int")
     val list = method(found.list)
-    val byName = method(found.byName)
+    val row = method(found.row)
     val apply = method(found.apply)
-    byName.requireLocals(PATCH, 1)
+    row.requireLocals(PATCH, 2)
 
     // The stub writes the label fields from another package, so they lose private and final.
     val owner = mutableClassDefBy(found.format)
@@ -207,29 +206,28 @@ internal fun BytecodePatchContext.addStoryFonts() {
         list.addInstructionsAtControlFlowLabel(index, "invoke-static/range { v$register .. v$register }, $FORMATS")
     }
 
-    val name = byName.parameterRegister(0)
-    byName.addInstructionsWithLabels(
+    // A lookup by name lands every picked font on the first of them, so the row is asked for first.
+    // Nothing has written these locals yet.
+    val rowFormat = row.parameterRegister(0)
+    val rowController = row.parameterRegister(1)
+    row.addInstructionsWithLabels(
         0,
         """
-            invoke-static/range { $name .. $name }, $NAMED
+            move-object/from16 v1, $rowFormat
+            move-object/from16 v0, $rowController
+            invoke-direct { v0 }, ${found.list}
             move-result-object v0
-            if-eqz v0, :instagram
-            check-cast v0, ${found.format}
-            return-object v0
+            invoke-static { v1, v0 }, $ROW
+            move-result v0
+            if-ltz v0, :instagram
+            return v0
         """,
-        ExternalLabel("instagram", byName.getInstruction(0)),
+        ExternalLabel("instagram", row.getInstruction(0)),
     )
 
-    // The emoji font goes over the text box's emoji whatever the format, so it's told the text box too.
-    val format = apply.parameterRegister(1)
+    // The emoji font goes over the text box's emoji whatever the format, so it's told the text box.
     val edit = apply.parameterRegister(0)
-    apply.addInstructions(
-        0,
-        """
-            invoke-static/range { $format .. $format }, $APPLIED
-            invoke-static/range { $edit .. $edit }, $EMOJI_APPLIED
-        """,
-    )
+    apply.addInstructions(0, "invoke-static/range { $edit .. $edit }, $EMOJI_APPLIED")
 
     // A finished sticker keeps its own copy of the text without those spans, so the text it lays out
     // to draw, and each line it measures, goes through the emoji font first.
@@ -261,7 +259,7 @@ internal fun BytecodePatchContext.addStoryFonts() {
  * [IMPORT_FONT], makes a format by that name for the file's path, then copies it with a file font's
  * kind, and that site has to be the only one. The editor's controller is the class whose current
  * format read logs [TEXT_FORMAT_CONTROLLER]: it reads its list of formats, a private `()ArrayList`,
- * and its re-edit of a sticker names that format and makes it again from its name. The controller
+ * and it finds a format's row in that list through one static `(format, controller)I`. The controller
  * applies a format through one static `(EditText, format)V`, and [findStickerLayouts] finds the
  * finished sticker. Anything else is an update this patch hasn't seen, and it fails before anything
  * is written.
@@ -292,25 +290,12 @@ internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
         refuse("$list is not the editor's own private list of formats")
     }
 
-    val byName = controller.methods.flatMap { method ->
-        val code = method.code()
-        code.indices.mapNotNull { at ->
-            val saved = code[at].call() ?: return@mapNotNull null
-            if (code[at].opcode != Opcode.INVOKE_STATIC || saved.returnType != STRING ||
-                saved.parameterTypes.map(CharSequence::toString) != listOf(format, "Z")
-            ) {
-                return@mapNotNull null
-            }
-            val result = code.getOrNull(at + 1) as? OneRegisterInstruction ?: return@mapNotNull null
-            code.subList(at + 2, minOf(code.size, at + 6)).firstOrNull { next ->
-                val made = next.call()
-                next.opcode == Opcode.INVOKE_STATIC && made != null && made.returnType == format &&
-                    made.parameterTypes.map(CharSequence::toString) == listOf(STRING) &&
-                    (next as FiveRegisterInstruction).registerC == result.registerA
-            }?.call()
-        }
-    }.distinctBy { it.toString() }
-    if (byName.size != 1) refuse("expected the editor to make a format from its saved name in one place, found ${byName.size}")
+    val rows = controller.methods.filter { method ->
+        AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "I" &&
+            method.parameterTypes.map(CharSequence::toString) == listOf(format, controller.type) &&
+            method.code().any { it.call()?.toString() == list.toString() }
+    }
+    if (rows.size != 1) refuse("expected the editor to find a format's row in one place, found ${rows.size}")
 
     val applies = controller.methods.flatMap { it.code() }.mapNotNull { instruction ->
         instruction.call()?.takeIf {
@@ -322,9 +307,9 @@ internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
 
     val (layout, lines) = findStickerLayouts()
 
-    // The extension calls the import's two and reads its kind from another package, and the hooks
-    // go in the other two, so all of them have to be there and reachable.
-    for (called in listOf(named, copy, byName.single(), applies.single())) {
+    // The extension calls the import's two and reads its kind from another package, and the hook
+    // goes in the other one, so all of them have to be there and reachable.
+    for (called in listOf(named, copy, applies.single())) {
         val target = declared(called)
         if (!AccessFlags.PUBLIC.isSet(target.accessFlags) || !AccessFlags.STATIC.isSet(target.accessFlags)) {
             refuse("$called is not public and static")
@@ -338,7 +323,7 @@ internal fun BytecodePatchContext.findStoryFontTargets(): StoryFontTargets {
         val owner = classDefByOrNull(type) ?: refuse("$type is not in this build")
         if (!AccessFlags.PUBLIC.isSet(owner.accessFlags)) refuse("$type is not public")
     }
-    return StoryFontTargets(named, copy, kind, mask, list, byName.single(), applies.single(), layout, lines,
+    return StoryFontTargets(named, copy, kind, mask, list, rows.single(), applies.single(), layout, lines,
         labelFields(controller, format), findFontPremium(controller, format, list))
 }
 

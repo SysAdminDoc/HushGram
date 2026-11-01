@@ -324,7 +324,7 @@ public class NeutralDefaultsSettingsTest {
         java.util.List<Object> storyFormats = new java.util.ArrayList<>(units);
         app.hushgram.extension.instagram.stories.StoryFonts.formats(storyFormats);
         assertEquals("the story text editor keeps Instagram's fonts", units, storyFormats);
-        assertNull(app.hushgram.extension.instagram.stories.StoryFonts.named("IMPORT_FONT"));
+        assertEquals(-1, app.hushgram.extension.instagram.stories.StoryFonts.row("IMPORT_FONT", storyFormats));
         assertFalse(app.hushgram.extension.instagram.stories.StoryUploadQuality.fullQuality(StockShareType.STORY));
         Object batch = new Object();
         assertSame(batch, app.hushgram.extension.instagram.stories.StorySeen.toSend(null, batch));

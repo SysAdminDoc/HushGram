@@ -23,6 +23,7 @@ Every HushGram release, newest first.
 * **Instagram:** The time above a reel's seek bar no longer loses its top half with `Run Reels behind the tab bar` on. The pill lifts the bar by scrolling the views around it, and the label was being placed in the part scrolled out of sight
 * **Instagram:** `Save folder` no longer turns a typed path into a folder on internal storage. It only takes a name, so a path like `/storage/F929-FA97/Movies` now leaves the folder as it was and points you to `Choose a folder`, which is the way to reach an SD card. Once you've picked a folder, `Save folder` says it isn't being used, where it used to go on naming Movies and Pictures
 * **Instagram:** A reel opened from the feed or a profile no longer sits between black bands with `Hide the comment bar on all reels` on, and a reposted reel no longer does with `Hide the comment bar on reposted reels` on. The bar's height goes to the video's frame, and a tall reel then got fitted inside it instead of filling it. Square and 4:5 reels still fit, and `Show the whole reel` still keeps every reel whole
+* **Instagram:** Tapping a story sticker to edit it again now keeps the font you picked from your phone. With two or more of them it used to switch to the first one, and Done saved that. A sticker whose font file you've since removed opens on the editor's first font
 
 ## 0.0.18 (2026-10-31)
 

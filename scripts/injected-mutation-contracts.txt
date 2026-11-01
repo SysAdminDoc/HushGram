@@ -2508,21 +2508,17 @@ once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z 
 # out, the editor shows Instagram's fonts alone with the switch on; twice or elsewhere, a font shows
 # twice or not at all. StoryFontsHookTest finds the list in the four 452 builds.
 once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->formats(Ljava/util/List;)V in instance ()Ljava/util/ArrayList; pooled class-holding TextFormatController
-# The format made from a saved name (0EO0.A0E on 452), the one static (String) method that builds a
-# format through the ten argument builder, asks StoryFonts.named first and returns its answer when it
-# has one, so a sticker rebuilt from its IMPORT_FONT name keeps the picked font. Left out, a re-edited
-# sticker falls back to Instagram's font; later or twice, it isn't the guard the patch wrote.
-start-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->named(Ljava/lang/String;)Ljava/lang/Object; in static (Ljava/lang/String;)L*; holding LX/*;->*(Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Z)LX/*;
-once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->named(Ljava/lang/String;)Ljava/lang/Object; in static (Ljava/lang/String;)L*; holding LX/*;->*(Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/Float;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/util/List;Ljava/util/List;Z)LX/*;
+# A sticker opened to edit it again finds its row in the editor's list by name (0GTL.A00 on 453), the
+# static (format, controller) int method in the class that logs TextFormatController, and every picked
+# font has one name, so StoryFonts.row answers first with the row of the font the sticker holds. Left
+# out, a reopened sticker draws in the first picked font and Done keeps it; twice or elsewhere, it
+# isn't the guard the patch wrote.
+once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->row(Ljava/lang/Object;Ljava/util/List;)I in static (L*;L*;)I pooled class-holding TextFormatController
 # The editor's apply (0GIp.A03 on 452), the static (EditText, format) void method that styles the text
-# itself (its sibling 0GIp.A04 styles the hint), tells StoryFonts.applied first which format it puts
-# on, so the rebuild above knows the last picked font. Left out, a rebuilt sticker never gets the
-# picked font back; twice or elsewhere, it isn't the call the patch wrote.
-start-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->applied(Ljava/lang/Object;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
-once-call Lapp/hushgram/extension/instagram/stories/StoryFonts;->applied(Ljava/lang/Object;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
-# Right after it the same apply hands its text box to StoryEmoji.applied, which lays the picked emoji
-# font over each emoji and watches the text for more (#275). Left out, story emoji never change;
-# twice or elsewhere, it isn't the call the patch wrote.
+# itself (its sibling 0GIp.A04 styles the hint), hands its text box to StoryEmoji.applied first, which
+# lays the picked emoji font over each emoji and watches the text for more (#275). Left out, story
+# emoji never change; twice or elsewhere, it isn't the call the patch wrote.
+start-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->applied(Landroid/widget/EditText;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
 once-call Lapp/hushgram/extension/instagram/stories/StoryEmoji;->applied(Landroid/widget/EditText;)V in static (Landroid/widget/EditText;L*;)V holding Landroid/widget/EditText;->getText()Landroid/text/Editable; LX/*;->*(Landroid/content/Context;Landroid/graphics/Paint;Landroid/text/Editable;LX/*;)V
 # The story text sticker (092h on 452), the drawable every story text editor makes, hands the text
 # its private (CharSequence, boolean) layout builder is given to StoryEmoji.drawing first and lays out

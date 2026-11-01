@@ -39,12 +39,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the text and the finished sticker in that file, the way Instagram's own import does. The editor
  * labels it with the file's name, since the import's own label is Instagram's default font's.
  *
- * <p>Instagram sometimes rebuilds a format from its name alone (opening a sticker to edit it again,
- * a draft), and a name doesn't carry the path, so IMPORT_FONT would come back with no file and draw
- * in Instagram's default. {@link #applied} keeps the last of these formats the editor applied and
- * {@link #named} answers it for that name, so the text keeps its font. Two stickers in two different
- * picked fonts both come back in the last one picked, and after a restart the name rebuild draws in
- * Instagram's default again, never anything broken.
+ * <p>A sticker keeps its own format, and a saved draft keeps it too, so its text stays in its font.
+ * Opening one to edit it again finds that format's row in the editor by name, though, and every
+ * picked font is named IMPORT_FONT, so it would land on the first of them and Done would keep that
+ * font. {@link #row} answers the picked font's own row first. A sticker whose file was taken out has
+ * no row, and the editor opens it on its first row, the way it does for Instagram's own import.
  *
  * <p>Every hook fails open: with the switch off, HushGram paused, the settings not read yet, no
  * fonts picked or anything thrown, Instagram's own list and formats go through.
@@ -56,14 +55,13 @@ public final class StoryFonts {
     /** Instagram's name for a format that draws its text in a font file. */
     static final String IMPORT_FONT = "IMPORT_FONT";
 
-    /** What's counted for each editor list that got the picked fonts, and each rebuilt format kept. */
+    /** What's counted for each editor list that got the picked fonts, and each row found for one. */
     static final String ADDED = "picked fonts added to the story text editor";
-    static final String KEPT = "picked font kept for a format rebuilt by name";
+    static final String FOUND = "picked font's own row found";
 
     /** Where the hooks are counted when one throws. */
     static final String LIST = "story font list";
-    static final String NAME = "story font by name";
-    static final String APPLY = "story font applied";
+    static final String ROW = "story font row";
 
     /** The longest name a kept file gets, before any " (2)". */
     static final int LONGEST_NAME = 80;
@@ -80,10 +78,6 @@ public final class StoryFonts {
     /** The kept files' paths, sorted by name, or null until listed again. */
     @Nullable
     private static volatile List<String> paths;
-
-    /** The last of this class's formats the editor applied, for {@link #named}. */
-    @Nullable
-    private static volatile Object lastApplied;
 
     private StoryFonts() {
     }
@@ -124,36 +118,25 @@ public final class StoryFonts {
     }
 
     /**
-     * Injected first where Instagram makes a format from its name alone. Answers the last picked
-     * font's format the editor applied for IMPORT_FONT while its file is still kept, or null, and
-     * Instagram makes the format as before. Never throws.
+     * Injected first where the story text editor finds a format's row, which it does by name. Answers
+     * the row of the picked font equal to [format] in the editor's [list], or -1, and Instagram looks
+     * it up as before. Never throws.
      */
-    @Nullable
-    public static Object named(String name) {
+    public static int row(Object format, List<?> list) {
         try {
             HookStatus.invoked(FamilyNames.STORY_FONTS);
-            if (!IMPORT_FONT.equals(name) || !on()) return null;
-            Object last = lastApplied;
-            if (last == null || !ours(last)) return null;
-            HookStatus.counted(FamilyNames.STORY_FONTS, KEPT);
-            return last;
+            if (format == null || list == null || !on()) return -1;
+            for (int index = 0; index < list.size(); index++) {
+                Object entry = list.get(index);
+                if (ours(entry) && entry.equals(format)) {
+                    HookStatus.counted(FamilyNames.STORY_FONTS, FOUND);
+                    return index;
+                }
+            }
         } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.STORY_FONTS, NAME, failure);
-            return null;
+            HookStatus.threw(FamilyNames.STORY_FONTS, ROW, failure);
         }
-    }
-
-    /**
-     * Injected first where the story text editor applies a format to the text. Remembers [format]
-     * when it's one of this class's, for {@link #named}. Never throws.
-     */
-    public static void applied(Object format) {
-        try {
-            if (format == null || !ours(format)) return;
-            lastApplied = format;
-        } catch (Throwable failure) {
-            HookStatus.threw(FamilyNames.STORY_FONTS, APPLY, failure);
-        }
+        return -1;
     }
 
     /**
@@ -276,8 +259,7 @@ public final class StoryFonts {
         String path = file.getAbsolutePath();
         boolean gone = !file.exists() || file.delete();
         if (gone) {
-            Object format = FORMATS.remove(path);
-            if (format != null && format == lastApplied) lastApplied = null;
+            FORMATS.remove(path);
         } else {
             Logger.printInfo(() -> "Story fonts: couldn't remove " + name);
         }
@@ -321,7 +303,6 @@ public final class StoryFonts {
     static void resetForTests() {
         FORMATS.clear();
         paths = null;
-        lastApplied = null;
         formatFor = path -> importedFont(path, label(path));
         premiumOf = StoryFonts::nativePremium;
     }

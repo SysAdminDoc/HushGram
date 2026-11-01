@@ -48,7 +48,7 @@ class StoryFontsHookTest {
     private val named = "$formats->named($string$string)$format"
     private val copy = "$format->copy(Lfixture/Look;Lfixture/Kind;$format$string$string$string$string${string}I)$format"
     private val kind = "$kindType->A00:$kindType"
-    private val byName = "$formats->byName($string)$format"
+    private val rowOf = "$controller->rowOf($format$controller)I"
     private val apply = "$applier->apply(Landroid/widget/EditText;$format)V"
     private val textDrawable = "Lfixture/TextDrawable;"
     private val lineDrawable = "Lfixture/LineDrawable;"
@@ -70,7 +70,7 @@ class StoryFontsHookTest {
         val declared = ExtensionDex.classDef(STORY_FONTS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(FORMATS, NAMED, APPLIED, "$STORY_FONTS->$IMPORTED_FONT(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
+        for (hook in listOf(FORMATS, ROW, "$STORY_FONTS->$IMPORTED_FONT(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;",
             "$STORY_FONTS->$NATIVE_PREMIUM(Ljava/lang/Object;)I")) {
             assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
         }
@@ -84,9 +84,9 @@ class StoryFontsHookTest {
 
     /**
      * The stub makes a format the way the import does and names it after the file, every return of
-     * the editor's list hands it over first, the rebuild by name asks first, the apply says what
-     * it applied and to which text box, and the sticker's layout and its line measure hand over
-     * their text first and lay out what comes back.
+     * the editor's list hands it over first, the editor's row lookup asks first, the apply says
+     * which text box, and the sticker's layout and its line measure hand over their text first and
+     * lay out what comes back.
      */
     @Test
     fun theStubAndTheHooksGoIn() {
@@ -118,20 +118,19 @@ class StoryFontsHookTest {
         }
         assertEquals("the branch to the second return goes through the hook", returns[1] - 1, listed.targetOf(2))
 
-        val rebuilt = context.method(byName).code()
-        assertEquals(NAMED, rebuilt[0].referenceText())
-        assertEquals("the name it's handed", 1, (rebuilt[0] as RegisterRangeInstruction).startRegister)
-        assertEquals(Opcode.IF_EQZ, rebuilt[2].opcode)
-        assertEquals(format, rebuilt[3].referenceText())
-        assertEquals(Opcode.RETURN_OBJECT, rebuilt[4].opcode)
-        assertEquals("Instagram's own body follows", Opcode.CONST_4, rebuilt[5].opcode)
+        val lookup = context.method(rowOf).code()
+        assertEquals("the format it's handed", 3, (lookup[0] as TwoRegisterInstruction).registerB)
+        assertEquals("the controller it's handed", 4, (lookup[1] as TwoRegisterInstruction).registerB)
+        assertEquals(list, lookup[2].referenceText())
+        assertEquals(ROW, lookup[4].referenceText())
+        assertEquals(Opcode.IF_LTZ, lookup[6].opcode)
+        assertEquals(Opcode.RETURN, lookup[7].opcode)
+        assertEquals("Instagram's own body follows", Opcode.INVOKE_DIRECT, lookup[8].opcode)
 
         val applied = context.method(apply).code()
-        assertEquals(APPLIED, applied[0].referenceText())
-        assertEquals("the format it's handed", 2, (applied[0] as RegisterRangeInstruction).startRegister)
-        assertEquals(EMOJI_APPLIED, applied[1].referenceText())
-        assertEquals("the text box it's handed", 1, (applied[1] as RegisterRangeInstruction).startRegister)
-        assertEquals(4, applied.size)
+        assertEquals(EMOJI_APPLIED, applied[0].referenceText())
+        assertEquals("the text box it's handed", 1, (applied[0] as RegisterRangeInstruction).startRegister)
+        assertEquals(3, applied.size)
 
         val laidOut = context.method(layout).code()
         assertEquals(EMOJI_DRAWING, laidOut[0].referenceText())
@@ -156,8 +155,8 @@ class StoryFontsHookTest {
             classes(imports = 2) to "expected Instagram's one font import making an $IMPORT_FONT format, found 2",
             classes(logs = "TextController") to "expected one story text editor reading its formats and logging \"$TEXT_FORMAT_CONTROLLER\", found 0",
             classes(listPrivate = false) to "$list is not the editor's own private list of formats",
-            classes(rebuilds = 0) to "expected the editor to make a format from its saved name in one place, found 0",
-            classes(rebuilds = 2) to "expected the editor to make a format from its saved name in one place, found 2",
+            classes(rows = 0) to "expected the editor to find a format's row in one place, found 0",
+            classes(rows = 2) to "expected the editor to find a format's row in one place, found 2",
             classes(applies = 0) to "expected the editor to apply a format to its text through one call, found 0",
             classes(applies = 2) to "expected the editor to apply a format to its text through one call, found 2",
             classes(stickers = 0) to "expected one story text sticker laying out its text with StaticLayout.Builder, found 0",
@@ -179,7 +178,7 @@ class StoryFontsHookTest {
             val failure = assertThrows(expected, PatchException::class.java) { context.addStoryFonts() }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
             val written = classes.map { it.type }.distinct().filter { it != STORY_FONTS }.flatMap { type -> context.mutableClassDefBy(type).methods }
-                .filter { method -> method.code().any { it.referenceText() in setOf(FORMATS, NAMED, APPLIED, EMOJI_APPLIED, EMOJI_DRAWING) } }
+                .filter { method -> method.code().any { it.referenceText() in setOf(FORMATS, ROW, EMOJI_APPLIED, EMOJI_DRAWING) } }
             assertTrue("$expected: something was written to $written", written.isEmpty())
             val stub = context.mutableClassDefBy(STORY_FONTS).methods.single { it.name == IMPORTED_FONT }.code()
             assertEquals("$expected: the stub was filled", listOf(Opcode.CONST_4, Opcode.RETURN_OBJECT), stub.map { it.opcode })
@@ -187,8 +186,8 @@ class StoryFontsHookTest {
     }
 
     /**
-     * In each declared build Instagram's one font import, the editor's list, its rebuild by name and
-     * its apply are found, and the mask the import copies with changes the kind and nothing else.
+     * In each declared build Instagram's one font import, the editor's list, its row lookup and its
+     * apply are found, and the mask the import copies with changes the kind and nothing else.
      */
     @Test
     fun eachDeclaredBuildTakesTheFonts() {
@@ -250,12 +249,16 @@ class StoryFontsHookTest {
         val returns = listed.indices.filter { listed[it].opcode == Opcode.RETURN_OBJECT }
         assertTrue("$label: the list returns", returns.isNotEmpty())
         for (at in returns) assertEquals("$label: before the list's return", FORMATS, listed[at - 1].referenceText())
-        assertEquals("$label: the rebuild by name", NAMED, context.method(found.byName.toString()).code()[0].referenceText())
+        val lookup = context.method(found.row.toString())
+        val looked = lookup.code()
+        assertEquals("$label: the row's format", lookup.parameterRegisterNumber(0), (looked[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$label: the row's controller", lookup.parameterRegisterNumber(1), (looked[1] as TwoRegisterInstruction).registerB)
+        assertEquals("$label: the row's list", found.list.toString(), looked[2].referenceText())
+        assertEquals("$label: the row hook", ROW, looked[4].referenceText())
         val applied = context.method(found.apply.toString()).code()
-        assertEquals("$label: the apply", APPLIED, applied[0].referenceText())
-        assertEquals("$label: the apply's text box", EMOJI_APPLIED, applied[1].referenceText())
+        assertEquals("$label: the apply's text box", EMOJI_APPLIED, applied[0].referenceText())
         assertEquals("$label: the text box is the first parameter", context.method(found.apply.toString()).parameterRegisterNumber(0),
-            (applied[1] as RegisterRangeInstruction).startRegister)
+            (applied[0] as RegisterRangeInstruction).startRegister)
         val layoutMethod = context.method(found.layout.toString())
         val laidOut = layoutMethod.code()
         assertEquals("$label: the sticker's layout", EMOJI_DRAWING, laidOut[0].referenceText())
@@ -305,8 +308,8 @@ class StoryFontsHookTest {
     /**
      * Instagram 452's shape in small: an import that loads [IMPORT_FONT], names a format for a path
      * and copies it with a file font's kind; an editor whose current format read logs
-     * "TextFormatController", reads a private list of formats, rebuilds a sticker's format from its
-     * saved name, applies one to its text, labels the current font from a string id or a text, and
+     * "TextFormatController", reads a private list of formats, finds a format's row in that list,
+     * applies one to its text, labels the current font from a string id or a text, and
      * reads one more of each for a screen reader in its row of fonts; and a text drawable that lays
      * out its text with StaticLayout.Builder, changes its text in one method, and has a subclass that
      * measures a line by laying out that change's result.
@@ -316,7 +319,7 @@ class StoryFontsHookTest {
         imports: Int = 1,
         logs: String = TEXT_FORMAT_CONTROLLER,
         listPrivate: Boolean = true,
-        rebuilds: Int = 1,
+        rows: Int = 1,
         applies: Int = 1,
         copyPublic: Boolean = true,
         kindPublic: Boolean = true,
@@ -365,27 +368,11 @@ class StoryFontsHookTest {
             ))
         val formatsClass = classDef(formats, listOf(
             method(formats, "named", listOf(string, string), format, 1, static, "const/4 v0, 0x0\nreturn-object v0"),
-            method(formats, "byName", listOf(string), format, 1, static, "const/4 v0, 0x0\nreturn-object v0"),
-            method(formats, "byName2", listOf(string), format, 1, static, "const/4 v0, 0x0\nreturn-object v0"),
-            method(formats, "saved", listOf(format, "Z"), string, 1, static, "const/4 v0, 0x0\nreturn-object v0"),
             method(formats, "premium", listOf(string), "Z", 1, if (premiumPublic) static else AccessFlags.STATIC.value,
                 "const/4 v0, 0x0\nreturn v0"),
         ))
         val kindClass = ImmutableClassDef(kindType, public, "Ljava/lang/Object;", listOf("Lfixture/Kind;"), null, null,
             listOf(ImmutableField(kindType, "A00", kindType, if (kindPublic) static else AccessFlags.STATIC.value, null, null, null)), emptyList())
-        val rebuild = { target: String ->
-            """
-                const/4 v0, 0x0
-                const/4 v1, 0x0
-                invoke-static {v0, v1}, $formats->saved(${format}Z)$string
-                move-result-object v0
-                if-eqz v0, :done
-                invoke-static {v0}, $target
-                move-result-object v0
-                :done
-                return-void
-            """
-        }
         val listFlags = if (listPrivate) AccessFlags.PRIVATE.value or AccessFlags.FINAL.value else AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
         val controllerMethods = listOf(
             method(controller, "rows", emptyList(), "V", 4, public, if (paidChecks) """
@@ -436,9 +423,16 @@ class StoryFontsHookTest {
                 :other
                 return-object v0
             """),
-        ) + List(rebuilds) { n ->
-            method(controller, "edit$n", listOf("Lfixture/Sticker;"), "V", 2, public, rebuild(if (n == 0) byName else "$formats->byName2($string)$format"))
-        } + listOfNotNull(
+        ) + List(rows) { n ->
+            method(controller, if (n == 0) "rowOf" else "rowOf$n", listOf(format, controller), "I", 3, static, """
+                invoke-direct {p1}, $list
+                move-result-object v0
+                const/4 v1, 0x0
+                invoke-virtual {v0, v1}, Ljava/util/ArrayList;->indexOf(Ljava/lang/Object;)I
+                move-result v0
+                return v0
+            """)
+        } + method(controller, "notARow", listOf(format, controller), "I", 1, static, "const/4 v0, 0x0\nreturn v0") + listOfNotNull(
             method(controller, "showFont", listOf(format, "Landroid/widget/TextView;"), "V", 1, public, """
                 iget-object v0, p1, $labelId
                 if-eqz v0, :text

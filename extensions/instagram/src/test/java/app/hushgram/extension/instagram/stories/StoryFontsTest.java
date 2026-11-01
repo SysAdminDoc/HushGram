@@ -41,7 +41,7 @@ import app.hushgram.extension.shared.settings.PauseForTests;
 
 /**
  * Picked files go after free native formats and before paid ones only with the switch on. Native
- * paid entries keep their gates, a name rebuild keeps the last local pick, and unknowns stay native.
+ * paid entries keep their gates, a reopened sticker finds its own font's row, and unknowns stay native.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
@@ -180,8 +180,7 @@ public class StoryFontsTest {
         assertFalse("the second local font applies without a Plus offer", nativePaidClick(list, 3));
         assertTrue("Arcade still requires its native entitlement", nativePaidClick(list, 4));
         assertTrue("Gothic still requires its native entitlement", nativePaidClick(list, 5));
-        StoryFonts.applied(nativeImport);
-        assertNull("native imports do not acquire local ownership", StoryFonts.named(StoryFonts.IMPORT_FONT));
+        assertEquals("native imports do not acquire local ownership", -1, StoryFonts.row(nativeImport, list));
 
         StoryFonts.formats(list);
         assertEquals("the same list is not duplicated", 6, list.size());
@@ -276,7 +275,8 @@ public class StoryFontsTest {
         List<Object> list = instagrams();
         SettingsContextRule.withoutContext(() -> StoryFonts.formats(list));
         assertEquals(instagrams(), list);
-        SettingsContextRule.withoutContext(() -> assertNull(StoryFonts.named(StoryFonts.IMPORT_FONT)));
+        StoryFonts.formats(list);
+        SettingsContextRule.withoutContext(() -> assertEquals(-1, StoryFonts.row(list.get(2), list)));
     }
 
     /** A stub that throws leaves the list as it was and says the hook threw. */
@@ -296,33 +296,78 @@ public class StoryFontsTest {
     }
 
     /**
-     * A rebuild by IMPORT_FONT gets back the last picked font the editor applied, and nothing for
-     * any other name, for one of Instagram's, for an equal format that isn't ours, or once its file
-     * is taken out.
+     * Every picked font has Instagram's one name for a font file, so a lookup by name lands all of
+     * them on the first. Each answers its own row here, and so does a copy of it, which is what a
+     * sticker can hold.
      */
     @Test
-    public void aRebuildByNameGetsTheLastAppliedFontBack() {
+    public void eachPickedFontFindsItsOwnRow() {
         Settings.STORY_FONTS.save(true);
         add("Lobster.ttf");
         add("comic.otf");
         List<Object> list = instagrams();
         StoryFonts.formats(list);
-        assertNull("nothing applied yet", StoryFonts.named(StoryFonts.IMPORT_FONT));
+        assertEquals(2, StoryFonts.row(list.get(2), list));
+        assertEquals(3, StoryFonts.row(list.get(3), list));
+        assertEquals("a sticker's copy", 3, StoryFonts.row(new Format(((Format) list.get(3)).path), list));
+        assertTrue(report(), report().contains(StoryFonts.FOUND + " 3"));
+    }
 
-        StoryFonts.applied(list.get(3));
-        StoryFonts.applied("classic");
-        StoryFonts.applied(new Format(((Format) list.get(2)).path));
-        StoryFonts.applied(null);
-        assertSame(list.get(3), StoryFonts.named(StoryFonts.IMPORT_FONT));
-        assertNull(StoryFonts.named("classic"));
-        assertNull(StoryFonts.named(null));
-        assertTrue(report(), report().contains(StoryFonts.KEPT + " 1"));
+    /** Anything that isn't a picked font in this list is left to Instagram's own lookup. */
+    @Test
+    public void anythingElseGoesToInstagramsLookup() {
+        Settings.STORY_FONTS.save(true);
+        add("Lobster.ttf");
+        List<Object> list = instagrams();
+        StoryFonts.formats(list);
+        assertEquals(-1, StoryFonts.row("classic", list));
+        assertEquals(-1, StoryFonts.row(new Format("/native/imported.ttf"), list));
+        assertEquals(-1, StoryFonts.row(null, list));
+        assertEquals(-1, StoryFonts.row(list.get(2), null));
+        assertEquals("the same font, not in this list", -1, StoryFonts.row(list.get(2), instagrams()));
 
         Settings.STORY_FONTS.save(false);
-        assertNull("off, Instagram makes it", StoryFonts.named(StoryFonts.IMPORT_FONT));
+        assertEquals("off", -1, StoryFonts.row(list.get(2), list));
         Settings.STORY_FONTS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals("paused", -1, StoryFonts.row(list.get(2), list));
+    }
+
+    /** A sticker whose file was taken out never lands on the font of another sticker. */
+    @Test
+    public void aRemovedFontNeverAnswersAnotherFontsRow() {
+        Settings.STORY_FONTS.save(true);
+        add("Lobster.ttf");
+        add("comic.otf");
+        List<Object> list = instagrams();
+        StoryFonts.formats(list);
+        Object comic = list.get(2);
+        Object lobster = list.get(3);
         assertTrue(StoryFonts.remove(context, "Lobster.ttf"));
-        assertNull("its file is gone", StoryFonts.named(StoryFonts.IMPORT_FONT));
+        List<Object> after = instagrams();
+        StoryFonts.formats(after);
+        assertEquals(3, after.size());
+        assertEquals(-1, StoryFonts.row(lobster, after));
+        assertEquals("the one left keeps its row", 2, StoryFonts.row(comic, after));
+    }
+
+    /** A list that throws goes to Instagram's lookup and says the hook threw. */
+    @Test
+    public void aThrowingListGoesToInstagramsLookupAndIsReported() {
+        Settings.STORY_FONTS.save(true);
+        add("Lobster.ttf");
+        List<Object> list = instagrams();
+        StoryFonts.formats(list);
+        List<Object> unreadable = new ArrayList<>(list) {
+            @Override
+            public Object get(int index) {
+                throw new IllegalStateException("no row");
+            }
+        };
+        assertEquals(-1, StoryFonts.row(list.get(2), unreadable));
+        String missing = HookStatus.missing(FamilyNames.STORY_FONTS).toString();
+        assertTrue(missing, missing.contains("'" + StoryFonts.ROW + "'"));
     }
 
     /** A file that isn't a font keeps nothing; a taken name gets a number; a removed one leaves the list. */
