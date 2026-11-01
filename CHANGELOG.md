@@ -22,6 +22,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** Some videos showed sharp through the glass bars because Instagram played them on a second kind of video view. Glass, reel blur, ambient light and `Turn off HDR brightness boosts` now keep every video on the view they can read. Reported in #430.
 * **Instagram:** `Hide suggested searches on reels` and `Hide shopping buttons on reels` missed a few pills. Searches like "Purple dog booties" and the shop lens buttons now go too. Reported in #332.
 * **Instagram:** `Back leaves Home as it is` now also skips "Tap again to exit" and the feed reload at the top of Home, so one Back leaves from anywhere in the feed. Reported in #54.
 * **Instagram:** `Recent unfollowers` keeps your Followers list once it stays unchanged for a few seconds, so a half-loaded list can't pass for people leaving. A Follower history row logs who left or came back. Sent in by argus2968 in #309.

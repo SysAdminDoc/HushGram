@@ -8,6 +8,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.media.surface.videoSurfacePatch
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -58,7 +59,7 @@ val blurReelBarsPatch = bytecodePatch(
         "black bars. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, videoSurfacePatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

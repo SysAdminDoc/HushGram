@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.feed.ambient
 
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.media.surface.videoSurfacePatch
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -32,7 +33,7 @@ val ambientLightPatch = bytecodePatch(
         "doesn't fill the screen. Both start off. Turn them on in HushGram settings > Feed and Stories.",
 ) {
     category("Feed")
-    dependsOn(settingsPatch, instagramExtensionPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, videoSurfacePatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {

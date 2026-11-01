@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.misc.glass
 
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patches.instagram.media.surface.videoSurfacePatch
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
@@ -31,7 +32,7 @@ val glassTabBarPatch = bytecodePatch(
         "Starts off. Turn it on in HushGram settings > Tab bar, then restart Instagram.",
 ) {
     category("Interface")
-    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch)
+    dependsOn(settingsPatch, instagramExtensionPatch, barHeightsPatch, videoSurfacePatch)
     compatibleWith(*AppCompatibilities.instagram())
 
     execute {
