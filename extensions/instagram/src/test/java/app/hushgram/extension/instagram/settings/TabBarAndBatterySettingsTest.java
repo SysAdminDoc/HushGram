@@ -467,14 +467,16 @@ public class TabBarAndBatterySettingsTest {
         PreferenceGroup section = sectionOf(page.getPreferenceScreen(), liquid);
         assertEquals("Tab bar", String.valueOf(section.getTitle()));
         int blurAt = -1;
+        int tintAt = -1;
         int liquidAt = -1;
         for (int i = 0; i < section.getPreferenceCount(); i++) {
             String key = section.getPreference(i).getKey();
             if (Settings.GLASS_TAB_BAR_BLUR_RADIUS.key.equals(key)) blurAt = i;
+            if (Settings.GLASS_TAB_BAR_OPACITY.key.equals(key)) tintAt = i;
             if (Settings.GLASS_TAB_BAR_LIQUID.key.equals(key)) liquidAt = i;
         }
-        assertTrue(blurAt >= 0);
-        assertEquals("right after Blur strength, which follows Blur behind the tab bar", blurAt + 1, liquidAt);
+        assertEquals("Tint right after Blur strength, so both share a screen with the preview", blurAt + 1, tintAt);
+        assertEquals("right after Tint", tintAt + 1, liquidAt);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_LIQUID.key));
 
         Settings.GLASS_TAB_BAR.save(false);
@@ -491,8 +493,8 @@ public class TabBarAndBatterySettingsTest {
     }
 
     /**
-     * Keep the pill full size (#256) is a switch right after the liquid look, off to start, offered while the
-     * liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
+     * Keep the pill full size (#256) is a switch right after the liquid look's rim and its slider, off to start,
+     * offered while the liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
      */
     @Test public void keepThePillFullSizeSitsUnderTheLiquidLookAndStartsOff() throws Exception {
         open(PatchFamily.GLASS_TAB_BAR);
@@ -505,15 +507,15 @@ public class TabBarAndBatterySettingsTest {
         assertFalse(Settings.GLASS_TAB_BAR_KEEP_SIZE.defaultValue);
         assertTrue(Settings.GLASS_TAB_BAR_KEEP_SIZE.rebootApp);
         PreferenceGroup section = sectionOf(page.getPreferenceScreen(), keep);
-        int liquidAt = -1;
+        int strengthAt = -1;
         int keepAt = -1;
         for (int i = 0; i < section.getPreferenceCount(); i++) {
             String key = section.getPreference(i).getKey();
-            if (Settings.GLASS_TAB_BAR_LIQUID.key.equals(key)) liquidAt = i;
+            if (Settings.GLASS_TAB_BAR_REFRACT_STRENGTH.key.equals(key)) strengthAt = i;
             if (Settings.GLASS_TAB_BAR_KEEP_SIZE.key.equals(key)) keepAt = i;
         }
-        assertTrue(liquidAt >= 0);
-        assertEquals("right after Liquid glass look", liquidAt + 1, keepAt);
+        assertTrue(strengthAt >= 0);
+        assertEquals("right after the refraction slider", strengthAt + 1, keepAt);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_KEEP_SIZE.key));
 
         assertFalse("no liquid look, nothing to keep", Settings.GLASS_TAB_BAR_KEEP_SIZE.isAvailable());
@@ -525,7 +527,7 @@ public class TabBarAndBatterySettingsTest {
     }
 
     /**
-     * Bend light at the edges (#369) is a switch right after Keep the pill full size, off to start, offered
+     * Bend light at the edges (#369) is a switch right after the liquid look, off to start, offered
      * while the liquid look is on, backed up, and read as the bar is built, so it asks for a restart.
      */
     @Test public void bendLightAtTheEdgesSitsUnderTheLiquidLookAndStartsOff() throws Exception {
@@ -540,15 +542,15 @@ public class TabBarAndBatterySettingsTest {
         assertFalse(Settings.GLASS_TAB_BAR_REFRACT.defaultValue);
         assertTrue(Settings.GLASS_TAB_BAR_REFRACT.rebootApp);
         PreferenceGroup section = sectionOf(page.getPreferenceScreen(), refract);
-        int keepAt = -1;
+        int liquidAt = -1;
         int refractAt = -1;
         for (int i = 0; i < section.getPreferenceCount(); i++) {
             String key = section.getPreference(i).getKey();
-            if (Settings.GLASS_TAB_BAR_KEEP_SIZE.key.equals(key)) keepAt = i;
+            if (Settings.GLASS_TAB_BAR_LIQUID.key.equals(key)) liquidAt = i;
             if (Settings.GLASS_TAB_BAR_REFRACT.key.equals(key)) refractAt = i;
         }
-        assertTrue(keepAt >= 0);
-        assertEquals("right after Keep the pill full size", keepAt + 1, refractAt);
+        assertTrue(liquidAt >= 0);
+        assertEquals("right after Liquid glass look", liquidAt + 1, refractAt);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GLASS_TAB_BAR_REFRACT.key));
 
         assertFalse("no liquid look, no rim", Settings.GLASS_TAB_BAR_REFRACT.isAvailable());
