@@ -102,6 +102,8 @@ public final class FeedDownloadButton {
     private static volatile boolean logged;
     private static volatile boolean lithoLogged;
     private static volatile int lithoId;
+    /** What notes a post that came up on screen. Tests stand in. */
+    static java.util.function.Consumer<Object> seen = ViewingHistory::post;
     /**
      * Instagram's download glyph, found once since its id can't change while the app runs: 0 until
      * it's looked up, -1 when this build has none. A row composes on every scroll, and the lookup by
@@ -312,6 +314,8 @@ public final class FeedDownloadButton {
     public static void litho(@Nullable List<Object> row, @Nullable Object save, @Nullable Object state) {
         try {
             if (row == null || save == null || state == null) return;
+            // Home and the post viewer draw their rows here, so bind() never sees those posts (#228).
+            seen.accept(litho.post(state));
             if (!enabled()) return;
             HookStatus.invoked(FamilyNames.VIDEO_DOWNLOAD);
             if (!actions.saves(litho.post(state))) {
@@ -484,7 +488,7 @@ public final class FeedDownloadButton {
      * [activity] the row belongs to. Never throws.
      */
     public static void bind(@Nullable View save, @Nullable Object post, @Nullable Object itemState, @Nullable Activity activity) {
-        ViewingHistory.post(post);
+        seen.accept(post);
         try {
             if (save == null) return;
             ViewParent parent = save.getParent();

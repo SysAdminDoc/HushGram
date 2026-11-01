@@ -200,9 +200,19 @@ public final class SettingsDialog extends DialogFragment {
         root.addView(container, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         root.addView(restartBar(palette), restartBarSpace());
 
-        // Instagram targets a recent API, so its windows are edge to edge: keep the bars off the
-        // content. The keyboard too, since nothing resizes an edge-to-edge window for it: the
-        // search field, the matches under it and Restart now sat behind the keys (S25, 2026-10-13).
+        keepOffTheBars(root);
+        // A newly opened screen must not steal focus and raise the keyboard.
+        FocusRest.on(root);
+        root.requestFocus();
+        return root;
+    }
+
+    /**
+     * Instagram targets a recent API, so its windows are edge to edge: keeps the bars off [root]'s
+     * content. The keyboard too, since nothing resizes an edge-to-edge window for it: the search
+     * field, the matches under it and Restart now sat behind the keys (S25, 2026-10-13).
+     */
+    static void keepOffTheBars(View root) {
         root.setOnApplyWindowInsetsListener((view, insets) -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 android.graphics.Insets bars = insets.getInsets(
@@ -215,10 +225,6 @@ public final class SettingsDialog extends DialogFragment {
             }
             return insets;
         });
-        // A newly opened screen must not steal focus and raise the keyboard.
-        FocusRest.on(root);
-        root.requestFocus();
-        return root;
     }
 
     /**

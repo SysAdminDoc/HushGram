@@ -17,6 +17,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** The `Install next to Instagram` copy no longer crashes on the language pack screen, and it carries on to Instagram once the pack has downloaded. Sent in by snowyegret23 in #392.
 * **Instagram:** Material You in `Accent color` could crash Instagram at launch when a wallpaper's color happened to match one of Instagram's blues. Reported in #435.
+* **Instagram:** `Keep a viewing history` now records posts on Home and in the post viewer, and the list has its own page: a tab for each kind, a search box, and a tap opens the post or person again. Reported in #228.
 * **Instagram:** `Profile extras button` shows up on profiles again, and `Keep a viewing history` now records the profiles you open. Both were reading the account in a way 453 no longer answers. Reported in #234.
 * **Instagram:** `Hide the caught up card` now also takes the "You've seen the latest posts" line off the top of Home. `Older posts` stays, so Home never ends up empty. Reported in #307.
 * **Instagram:** A long press on a chat's name opens the menu for `Jump to the first message or a date` and `Export a chat as text` again. A plain tap still opens the details

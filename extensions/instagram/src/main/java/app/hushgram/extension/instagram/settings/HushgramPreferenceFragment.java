@@ -3747,20 +3747,23 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
-    /** How many of the newest viewing history rows the list row shows. */
-    static final int VIEWING_HISTORY_SHOWN = 50;
+    /** How many of the newest viewing history rows the settings row shows. Its page has them all. */
+    static final int VIEWING_HISTORY_SHOWN = 3;
 
     /**
-     * The row listing what the viewing history kept, newest first. Read off the main thread, so it
-     * says so until it's read. It isn't tappable: the summary is the list.
+     * The row with the newest of what the viewing history kept. Read off the main thread, so it
+     * says so until it's read. Tapping it opens the whole list on a page of its own.
      */
     static Preference viewingHistoryRow(Context context) {
         Row row = new Row(context);
         row.setKey(VIEWING_HISTORY_ROW);
         row.setPersistent(false);
-        row.setSelectable(false);
         row.setTitle(L10n.t("Viewing history"));
         row.setSummary(L10n.t("Reading the list…"));
+        row.setOnPreferenceClickListener(tapped -> {
+            ViewingHistoryPage.open(tapped.getContext(), tapped);
+            return true;
+        });
         Context application = context.getApplicationContext() != null ? context.getApplicationContext() : context;
         if (!Utils.runOnBackgroundThread(() -> {
             String summary = viewingHistorySummary(ViewingHistory.entries(application), System.currentTimeMillis());
@@ -3786,7 +3789,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             text.append(who).append(viewingKindLabel(seen.kind)).append(", ").append(ago).append('\n');
             shown++;
         }
-        if (rows.size() > VIEWING_HISTORY_SHOWN) text.append(L10n.t("Only the newest 50 are shown."));
+        text.append(L10n.f("Tap to see all %1$d, by kind or by search.", rows.size()));
         return text.toString().trim();
     }
 
@@ -3802,6 +3805,11 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
 
     /** Forgets the viewing history off the main thread, says so, and empties [list]. */
     static void clearViewingHistory(Preference row, Preference list) {
+        clearViewingHistory(row, list, null);
+    }
+
+    /** {@link #clearViewingHistory(Preference, Preference)}, running [after] once it's gone. */
+    static void clearViewingHistory(Preference row, Preference list, @Nullable Runnable after) {
         if (!allowMutation(row, true)) return;
         Context context = row.getContext();
         if (!Utils.runOnBackgroundThread(() -> {
@@ -3814,6 +3822,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                 if (cleared) {
                     Utils.showToastShort(L10n.t("Viewing history cleared."));
                     list.setSummary(viewingHistorySummary(java.util.Collections.emptyList(), System.currentTimeMillis()));
+                    if (after != null) after.run();
                 } else {
                     Utils.showToastLong(L10n.t("Couldn't clear the viewing history. Try again."));
                 }

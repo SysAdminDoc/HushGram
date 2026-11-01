@@ -1499,3 +1499,8 @@ Stop videos looping	No repetir los videos
 # context: summary under that switch; auto scroll is Instagram's own Reels setting, worded as in Keep auto scroll on
 Feed videos and reels stop at their last frame instead of playing again. Reels still loop while auto scroll is on, so it can move on.	Los videos del feed y los reels se detienen en su último fotograma en vez de volver a reproducirse. Los reels se siguen repitiendo mientras el desplazamiento automático está activado, para que pueda pasar al siguiente.
 Not used while you've picked a folder. Saves go there.	No se usa mientras tengas una carpeta elegida. Todo se guarda ahí.
+All	Todo
+Posts	Publicaciones
+Nothing matches.	No hay coincidencias.
+Couldn't open that one.	No se pudo abrir.
+Tap to see all %1$d, by kind or by search.	Toca para ver los %1$d, por tipo o buscando.

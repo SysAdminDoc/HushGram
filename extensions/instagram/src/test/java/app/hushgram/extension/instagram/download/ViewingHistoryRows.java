@@ -13,4 +13,8 @@ public final class ViewingHistoryRows {
     public static void add(Context context, ViewingHistory.Kind kind, String id, String owner, long time) {
         ViewingHistory.add(context, kind, id, owner, time);
     }
+
+    public static ViewingHistory.Row row(ViewingHistory.Kind kind, String id, String owner) {
+        return new ViewingHistory.Row(0L, kind, id, owner);
+    }
 }

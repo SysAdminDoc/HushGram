@@ -81,7 +81,12 @@ public final class ExternalDownload {
 
     /** The link of [media], a post, or a reel when [reel], or null when its id doesn't say. */
     static String postLink(Object media, boolean reel) {
-        String code = shortcode(InstagramMedia.mediaId(media));
+        return linkOfId(InstagramMedia.mediaId(media), reel);
+    }
+
+    /** The link of the post with [mediaId], or the reel when [reel], or null when the id doesn't say. */
+    public static String linkOfId(String mediaId, boolean reel) {
+        String code = shortcode(mediaId);
         return code == null ? null : SITE + (reel ? "reel/" : "p/") + code + "/";
     }
 

@@ -407,7 +407,7 @@ public final class SettingsEntry {
      * Closes the settings shown on [activity] as if the person had, so a link that came in shows.
      * A request that hasn't shown yet is dropped with its cover, or it would open over the link.
      */
-    private static void closeForLink(Activity activity) {
+    static void closeForLink(Activity activity) {
         if (openPending) {
             openPending = false;
             onClosedByUser();

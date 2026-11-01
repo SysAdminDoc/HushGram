@@ -595,6 +595,31 @@ public class FeedDownloadButtonTest {
     }
 
     /**
+     * Home and the post viewer draw their rows here and never reach bind(), so a post seen on one of
+     * those has to be noted here too, with the Download button's switch on or off (#228).
+     */
+    @Test
+    public void aComponentRowNotesThePostItsDrawnFor() {
+        FakeLitho fake = new FakeLitho();
+        List<Object> noted = new ArrayList<>();
+        java.util.function.Consumer<Object> originalSeen = FeedDownloadButton.seen;
+        FeedDownloadButton.litho = fake;
+        FeedDownloadButton.seen = noted::add;
+        try {
+            FeedDownloadButton.litho(new ArrayList<>(), "save spec", "state");
+            assertEquals(Collections.singletonList(fake.post("state")), noted);
+            noted.clear();
+            Settings.DOWNLOAD_VIDEOS.save(false);
+            Settings.DOWNLOAD_PHOTOS.save(false);
+            FeedDownloadButton.litho(new ArrayList<>(), "save spec", "state");
+            assertEquals(Collections.singletonList(fake.post("state")), noted);
+        } finally {
+            FeedDownloadButton.litho = originalLitho;
+            FeedDownloadButton.seen = originalSeen;
+        }
+    }
+
+    /**
      * Save's binders (the view-interaction tracker's Save element, the selected state) and its
      * common props never reach the Download icon: its modifier is made of Save's other parts, in
      * their order.
