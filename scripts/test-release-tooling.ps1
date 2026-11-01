@@ -235,7 +235,7 @@ $removalEntries = @(
     'permission-removed com.google.android.gms.permission.AD_ID')
 $removedPermissions = @($removalEntries | ForEach-Object { $_ -replace '^permission-removed ', '' })
 $raisedVersionCode = '2147483647'
-$iconAliasEntries = @('hushgram', 'dark', 'light', 'plum', 'sketch' | ForEach-Object {
+$iconAliasEntries = @('hushgram', 'dark', 'light', 'plum', 'sketch', 'gradient', 'retro' | ForEach-Object {
     "exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_$_" })
 $approvedEntries = @($removalEntries) + "version-code $raisedVersionCode" + $iconAliasEntries + 'min-sdk 28'
 Assert-True ((@($checkedInAllowlist | Sort-Object -CaseSensitive) -join "`n") -ceq

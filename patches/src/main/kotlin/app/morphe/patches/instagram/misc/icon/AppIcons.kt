@@ -34,7 +34,7 @@ private val OWN_RESOURCE = Regex("^@([a-z]+)/([A-Za-z0-9_.$]+)$")
  * extension has the same keys), with its background drawn by [background]. [instagramGlyph] puts
  * Instagram's own white glyph, the monochrome layer of its icon, in front, and otherwise HushGram's H
  * and ribbon go there. A [glyphTint] draws that glyph in its color instead, from a copy of it. [art]
- * names a picture the patch carries, black strokes on clear, that goes in front and in the themed layer
+ * names a picture the patch carries, drawn on clear, that goes in front and in the themed layer
  * in place of either.
  */
 internal class HushgramIcon(
@@ -61,6 +61,14 @@ private fun solid(color: String) = """
 </shape>
 """.trimStart()
 
+/** Dark gray to black, top to bottom, behind the gradient glyph. */
+private val DARK_GRADIENT = """
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:type="linear" android:angle="270" android:startColor="#FF2F2F2F" android:endColor="#FF010101" />
+</shape>
+""".trimStart()
+
 /** The pink to plum of the launch screen's tile, corner to corner. */
 private val GRADIENT = """
 <?xml version="1.0" encoding="utf-8"?>
@@ -76,6 +84,9 @@ internal val HUSHGRAM_ICONS = listOf(
     HushgramIcon("light", solid("#FFFFFFFF"), instagramGlyph = true, glyphTint = "#FF000000"),
     // A user's pencil drawing of Instagram's glyph, 48dp across in the 108dp layer (#406).
     HushgramIcon("sketch", solid("#FFFFFFFF"), instagramGlyph = false, art = "sketch.png"),
+    // Instagram's gradient glyph on a dark tile (#327, #437) and its old camera icon on white (#437), each 52dp across.
+    HushgramIcon("gradient", DARK_GRADIENT, instagramGlyph = false, art = "gradient.png"),
+    HushgramIcon("retro", solid("#FFFFFFFF"), instagramGlyph = false, art = "retro.png"),
 )
 
 /** HushGram's H and ribbon in front of an icon. */

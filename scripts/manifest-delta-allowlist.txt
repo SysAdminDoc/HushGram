@@ -37,7 +37,7 @@ version-code 2147483647
 # Assert-HushgramRuntimeFloor checks every output, including builds already at API 28 or higher.
 min-sdk 28
 #
-# Pick the app icon adds five launcher icons, each an alias that opens Instagram the way its own
+# Pick the app icon adds seven launcher icons, each an alias that opens Instagram the way its own
 # launcher alias does and is exported as that one is. They start off, and the extension turns on the
 # one picked in settings.
 exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_hushgram
@@ -45,3 +45,5 @@ exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hus
 exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_light
 exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_plum
 exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_sketch
+exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_gradient
+exported-added activity-alias:com.instagram.android.activity.MainTabActivity.hushgram_retro

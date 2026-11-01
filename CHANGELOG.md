@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `App icon` adds two more choices, Instagram's gradient glyph on dark and the old brown and cream camera icon. Themed icons show the glyph or camera shape. Asked for in #327 and #437.
 * **Instagram:** `Skip the ad data reminder` is a new patch under Ads and privacy. Instagram's reminder to review how it uses your data for ads stops opening by itself. Your ad choice doesn't change. It starts off. Asked for in #331.
 
 ### Improvements

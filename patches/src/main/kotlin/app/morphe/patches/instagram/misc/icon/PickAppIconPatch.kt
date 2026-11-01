@@ -102,7 +102,8 @@ private val appIconResourcesPatch = resourcePatch {
 val pickAppIconPatch = bytecodePatch(
     name = "Pick the app icon",
     description = "Lets you pick the icon Instagram shows on your home screen: Instagram's own, HushGram's, " +
-        "Instagram's glyph on black, on plum, or in black on white, or a hand-drawn Instagram glyph on white. " +
+        "Instagram's glyph on black, on plum, or in black on white, a hand-drawn Instagram glyph on white, " +
+        "Instagram's gradient glyph on dark, or the old retro camera icon. " +
         "The new icon shows once you leave Instagram, and you may need to add it to " +
         "your home screen again from the app drawer. Starts on Instagram's own. Pick one in HushGram settings > Layout.",
     default = true,
