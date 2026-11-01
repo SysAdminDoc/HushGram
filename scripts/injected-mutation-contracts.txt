@@ -2119,6 +2119,13 @@ once-call Lapp/hushgram/extension/instagram/feed/HiddenLikeCounts;->sawCount(Lja
 # Back scrolls Home up and reloads it first; twice or elsewhere, it isn't the hook the patch wrote.
 # NativeBackLeavesHomeTest checks where it lands on all seven 450 builds.
 once-call Lapp/hushgram/extension/instagram/feed/BackLeavesHome;->leave()I in instance ()Z calling static Ljava/lang/System;->currentTimeMillis()J class-holding MainFeedFragment.scrollToTopWithReason.
+# Back leaves Home also asks BackLeavesHome.skipTapAgain first thing in the same class's handler for Back
+# at the top of the feed (04rY.FAg on 453, its one instance (Z)Z), which says "Tap again to exit" and can
+# reload with BACK_BUTTON_PRESS_AT_TOP (#54). Left out or not first, the top of the feed takes a second Back
+# and fetches a new page; twice or elsewhere, it isn't the hook the patch wrote.
+# NativeBackLeavesHomeTest checks where it lands on all eight 453 builds.
+start-call Lapp/hushgram/extension/instagram/feed/BackLeavesHome;->skipTapAgain()I in instance (Z)Z class-holding MainFeedFragment.scrollToTopWithReason.
+once-call Lapp/hushgram/extension/instagram/feed/BackLeavesHome;->skipTapAgain()I in instance (Z)Z class-holding MainFeedFragment.scrollToTopWithReason.
 # Keep your place in Home hands HomePlace.timeAway the time away right before Home's warm-start check
 # (02xG.A0F on 452, the instance (Integer)Z loading "MainFeedFragment.onHotStart") asks whether that time is
 # under the minimum for a reload, and reads the answer back into the same pair (#354). Left out, Home

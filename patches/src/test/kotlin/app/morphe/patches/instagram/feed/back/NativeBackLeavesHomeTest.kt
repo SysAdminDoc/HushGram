@@ -56,7 +56,19 @@ class NativeBackLeavesHomeTest {
                 enumConstantName(classes.single { it.type == field.definingClass }, field))
             assertTrue("$name: a local the hook can name, v${site.free}", site.free in 0..15)
 
+            // The handler for Back at the top of the feed, in the same class, gives the other reason.
+            assertEquals(name, holders.single().type, site.root.definingClass)
+            val rootCode = site.root.code()
+            val rootScroll = rootCode.single { (it as? ReferenceInstruction)?.reference.toString() == scroll.toString() }
+            val atTop = rootCode.take(rootCode.indexOf(rootScroll)).last { it.opcode == Opcode.SGET_OBJECT }
+            val atTopField = (atTop as ReferenceInstruction).reference as FieldReference
+            assertEquals("$name: the constant at the top is built as $BACK_PRESS_AT_TOP", BACK_PRESS_AT_TOP,
+                enumConstantName(classes.single { it.type == atTopField.definingClass }, atTopField))
+            assertTrue("$name: a local the hook can name, v${site.rootFree}", site.rootFree in 0..15)
+            val rootBefore = rootCode.map { it.opcode }
+
             val original = NeutralNativePath(context.mutableClassDefBy(handler.definingClass).methods.single { it.name == "onBackPressed" })
+            val originalRoot = NeutralNativePath(context.mutableClassDefBy(handler.definingClass).methods.single { it.name == site.root.name && it.parameterTypes.map(Any::toString) == listOf("Z") })
             val others = classes.filter { it.type != handler.definingClass }
                 .associate { it.type to it.methods.map { method -> method.name + method.parameterTypes to method.code().map { i -> i.opcode } } }
             context.backLeavesHome(site)
@@ -69,6 +81,17 @@ class NativeBackLeavesHomeTest {
             assertEquals("$name: false is returned from it", Opcode.RETURN, after[site.scroll + 4].opcode)
             assertEquals("$name: the scroll follows", scroll.toString(), (after[site.scroll + 5] as ReferenceInstruction).reference.toString())
             original.assertPreserved(name, hooked, (site.scroll until site.scroll + 5).toSet())
+
+            val hookedRoot = context.mutableClassDefBy(handler.definingClass).methods.single { it.name == site.root.name && it.parameterTypes.map(Any::toString) == listOf("Z") }
+            val rootAfter = hookedRoot.code()
+            assertEquals("$name: one hook at the top", 1, rootAfter.count { (it as? ReferenceInstruction)?.reference.toString() == SKIP_TAP_AGAIN })
+            assertEquals("$name: it comes first", SKIP_TAP_AGAIN, (rootAfter[0] as ReferenceInstruction).reference.toString())
+            assertEquals("$name: the answer is read into the free local", site.rootFree, (rootAfter[1] as OneRegisterInstruction).registerA)
+            assertEquals("$name: false is returned from it", Opcode.RETURN, rootAfter[4].opcode)
+            assertEquals("$name: Instagram's own code follows, unpadded", rootBefore.filter { it != Opcode.NOP },
+                rootAfter.drop(5).map { it.opcode }.filter { it != Opcode.NOP })
+            originalRoot.assertPreserved(name, hookedRoot, (0 until 5).toSet())
+
             for ((type, methods) in others) {
                 val now = context.mutableClassDefBy(type).methods.map { method -> method.name + method.parameterTypes to method.code().map { i -> i.opcode } }
                 assertEquals("$name: $type is left alone", methods, now)
@@ -90,9 +113,13 @@ class NativeBackLeavesHomeTest {
             val site = context.findBackOnHome()
             assertEquals(copied.scroll, site.scroll)
             assertEquals(copied.free, site.free)
+            assertEquals(copied.root.name, site.root.name)
+            assertEquals(copied.rootFree, site.rootFree)
             context.backLeavesHome(site)
             val hooked = context.mutableClassDefBy(site.handler.definingClass).methods.single { it.name == "onBackPressed" }
             assertEquals(LEAVE, (hooked.code()[site.scroll] as ReferenceInstruction).reference.toString())
+            val hookedRoot = context.mutableClassDefBy(site.handler.definingClass).methods.single { it.name == site.root.name && it.parameterTypes.map(Any::toString) == listOf("Z") }
+            assertEquals(SKIP_TAP_AGAIN, (hookedRoot.code()[0] as ReferenceInstruction).reference.toString())
         }
     }
 

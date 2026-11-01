@@ -91,6 +91,37 @@ public class BackLeavesHomeTest {
         assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
     }
 
+    /** On, Back at the top of the feed goes on without "Tap again to exit", and Diagnostics counts it apart. */
+    @Test
+    public void withTheSwitchOnTheTopOfTheFeedSkipsTapAgain() {
+        assertEquals(1, BackLeavesHome.skipTapAgain());
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(BackLeavesHome.TAP_AGAIN));
+        assertTrue(report, !report.contains(BackLeavesHome.LEFT));
+    }
+
+    /** Off, paused, unready or throwing, the top of the feed is Instagram's too. */
+    @Test
+    public void tapAgainStaysWhenTheHookCantDecide() {
+        assertEquals(0, BackLeavesHome.skipTapAgain(THROWS));
+        String missing = HookStatus.missing(FamilyNames.BACK_LEAVES_HOME).toString();
+        assertTrue(missing, missing.contains("'" + BackLeavesHome.BACK + "'"));
+
+        Settings.BACK_LEAVES_HOME.save(false);
+        assertEquals(0, BackLeavesHome.skipTapAgain());
+        Settings.BACK_LEAVES_HOME.save(true);
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(0, BackLeavesHome.skipTapAgain());
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+
+        SettingsContextRule.withoutContext(() -> assertEquals(0, BackLeavesHome.skipTapAgain()));
+        SettingsContextRule.beforeThePauseIsDecided(() -> assertEquals(0, BackLeavesHome.skipTapAgain()));
+        assertEquals(1, BackLeavesHome.skipTapAgain());
+    }
+
     /** Changing the switch applies at the next Back, with nothing to restart. */
     @Test
     public void aChangeAppliesAtTheNextBack() {

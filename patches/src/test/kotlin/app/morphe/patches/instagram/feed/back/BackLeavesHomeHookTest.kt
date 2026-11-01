@@ -39,10 +39,12 @@ class BackLeavesHomeHookTest {
         val declared = ExtensionDex.classDef(LEAVE.substringBefore("->")).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$LEAVE is not in the extension: $declared", LEAVE.substringAfter("->") in declared)
+        for (hook in listOf(LEAVE, SKIP_TAP_AGAIN)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        }
     }
 
-    /** The finder names Home's handler, the call that scrolls, and a free local up to v15. */
+    /** The finder names Home's handler, the call that scrolls, and a free local up to v15, then the handler for the top. */
     @Test
     fun theFinderFindsTheScrollBackGives() {
         val site = PatchContexts.of(classes()).findBackOnHome()
@@ -50,6 +52,38 @@ class BackLeavesHomeHookTest {
         val call = site.handler.code()[site.scroll]
         assertEquals("scroll", (call as ReferenceInstruction).reference.toString().substringAfter("->").substringBefore("("))
         assertTrue("a local the hook can name: v${site.free}", site.free in 0..15)
+        assertEquals("atTheTop", site.root.name)
+        assertTrue("a local the hook can name: v${site.rootFree}", site.rootFree in 0..15)
+    }
+
+    /**
+     * First thing in the handler for Back at the top, the hook is asked: a 0 goes on to Instagram's
+     * first instruction, and a 1 returns false, so there's no "Tap again to exit" and no reload.
+     */
+    @Test
+    fun theHookComesFirstAtTheTopAndAOneReturnsFalse() {
+        val context = PatchContexts.of(classes())
+        val before = context.root().code().map { it.opcode }
+        val original = NeutralNativePath(context.root())
+        val site = context.findBackOnHome()
+
+        context.backLeavesHome(site)
+
+        val root = context.root()
+        val code = root.code()
+        assertEquals(Opcode.INVOKE_STATIC, code[0].opcode)
+        assertEquals(SKIP_TAP_AGAIN, (code[0] as ReferenceInstruction).reference.toString())
+        assertEquals(Opcode.MOVE_RESULT, code[1].opcode)
+        assertEquals(site.rootFree, (code[1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_EQZ, code[2].opcode)
+        assertEquals(site.rootFree, (code[2] as OneRegisterInstruction).registerA)
+        assertEquals("the branch lands on Instagram's first instruction", 5, root.targetOf(2))
+        assertEquals(Opcode.CONST_4, code[3].opcode)
+        assertEquals(Opcode.RETURN, code[4].opcode)
+        assertEquals(site.rootFree, (code[4] as OneRegisterInstruction).registerA)
+        assertEquals("one hook", 1, code.count { (it as? ReferenceInstruction)?.reference.toString() == SKIP_TAP_AGAIN })
+        assertEquals("every other opcode in order", before, code.drop(5).map { it.opcode })
+        original.assertPreserved("Home's handler for Back at the top", root, (0 until 5).toSet())
     }
 
     /**
@@ -103,6 +137,12 @@ class BackLeavesHomeHookTest {
             classes(jumpToCall = true) to "jumps to the scroll call",
             classes(thisReplaced = true) to "writes over this",
             classes(busyLocals = true) to "needs 1",
+            classes(topHandlers = 0) to "expected one (Z)Z in $home that scrolls to the top, found 0",
+            classes(topHandlers = 2) to "expected one (Z)Z in $home that scrolls to the top, found 2",
+            classes(topScrolls = 2) to "expected $home->atTheTop to scroll to the top once, found 2",
+            classes(topReason = "A02") to "Back at the top scrolls with the reason $BACK_PRESS, not $BACK_PRESS_AT_TOP",
+            classes(topReadsAConstant = false) to "$home->atTheTop doesn't scroll with a $reason constant",
+            classes(topLocals = 0) to "needs 1",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -123,12 +163,17 @@ class BackLeavesHomeHookTest {
     private fun BytecodePatchContext.handler(): MutableMethod =
         mutableClassDefBy(home).methods.single { it.name == "onBackPressed" }
 
+    private fun BytecodePatchContext.root(): MutableMethod =
+        mutableClassDefBy(home).methods.single { it.name == "atTheTop" }
+
     // ---- stand-ins shaped like Instagram 450's -------------------------------------------------
 
     /**
-     * Home's feed fragment: a scroll(reason) that loads the title Instagram traces it by, and a Back
-     * handler that scrolls with a reason enum's static constant when the feed is ready. The reason
-     * enum builds each constant as Instagram's does: its name in a register, the constructor, the store.
+     * Home's feed fragment: a scroll(reason) that loads the title Instagram traces it by, a Back
+     * handler that scrolls with a reason enum's static constant when the feed is ready, and a handler
+     * for Back at the top that says it handled the press unless the last Back was moments ago, and
+     * scrolls with a null check between the read and the call. The reason enum builds each constant
+     * as Instagram's does: its name in a register, the constructor, the store.
      */
     private fun classes(
         title: Boolean = true,
@@ -144,6 +189,11 @@ class BackLeavesHomeHookTest {
         jumpToCall: Boolean = false,
         thisReplaced: Boolean = false,
         busyLocals: Boolean = false,
+        topHandlers: Int = 1,
+        topScrolls: Int = 1,
+        topReason: String = "A03",
+        topReadsAConstant: Boolean = true,
+        topLocals: Int = 2,
     ): List<ClassDef> {
         val scrollBody = if (title && titleInScroll) "const-string v0, \"$SCROLL_TITLE\"\nreturn-void" else "return-void"
         val calls = (1..scrolls).joinToString("\n") { "invoke-virtual { p0, v1 }, $home->scroll($reason)V" }
@@ -171,7 +221,36 @@ class BackLeavesHomeHookTest {
             method(home, "scroll", listOf(if (reasonIsEnum) reason else "Lfixture/Other;"), "V", 1, body = scrollBody),
             method(home, "ready", emptyList(), "Z", 1, body = "const/4 v0, 0x1\nreturn v0"),
             method(home, "other", emptyList(), "V", 1, body = if (title && !titleInScroll) "const-string v0, \"$SCROLL_TITLE\"\nreturn-void" else "return-void"),
-        )
+        ) + (1..topHandlers).map { number ->
+            val read = if (topReadsAConstant) "sget-object p1, $reason->$topReason:$reason" else "move-object p1, p0"
+            val scrollCalls = (1..topScrolls).joinToString("\n") { "invoke-virtual { p0, p1 }, $home->scroll($reason)V" }
+            if (topLocals == 0) {
+                method(
+                    home, if (number == 1) "atTheTop" else "atTheTop$number", listOf("Z"), "Z", 0,
+                    body = """
+                        $read
+                        invoke-static { p1 }, Lfixture/Nulls;->check(Ljava/lang/Object;)V
+                        $scrollCalls
+                        return p1
+                    """,
+                )
+            } else {
+                method(
+                    home, if (number == 1) "atTheTop" else "atTheTop$number", listOf("Z"), "Z", topLocals,
+                    body = """
+                        if-nez p1, :leave
+                        $read
+                        invoke-static { p1 }, Lfixture/Nulls;->check(Ljava/lang/Object;)V
+                        $scrollCalls
+                        const/4 v0, 0x1
+                        return v0
+                        :leave
+                        const/4 v0, 0x0
+                        return v0
+                    """,
+                )
+            }
+        }
         val name = if (nameless) "" else """
             const-string v1, "$reasonName"
             const/4 v0, 0x0

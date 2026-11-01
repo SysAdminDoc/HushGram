@@ -37,6 +37,7 @@ import com.android.tools.smali.dexlib2.iface.reference.StringReference
 private const val PATCH = "Back leaves Home"
 internal const val BACK_LEAVES_HOME = "$EXTENSION_PACKAGE/feed/BackLeavesHome;"
 internal const val LEAVE = "$BACK_LEAVES_HOME->leave()I"
+internal const val SKIP_TAP_AGAIN = "$BACK_LEAVES_HOME->skipTapAgain()I"
 
 /**
  * The title Instagram's own tracing gives Home's scroll-to-the-top method (MainFeedFragment is a
@@ -47,18 +48,21 @@ internal const val SCROLL_TITLE = "MainFeedFragment.scrollToTopWithReason."
 /** The name of the reason Home's Back handler gives that scroll, as the reason enum spells it. */
 internal const val BACK_PRESS = "BACK_BUTTON_PRESS"
 
+/** The name of the reason Home's handler for Back at the top of the feed gives that scroll. */
+internal const val BACK_PRESS_AT_TOP = "BACK_BUTTON_PRESS_AT_TOP"
+
 private const val ENUM = "Ljava/lang/Enum;"
 
 /**
  * Lets Back on Home leave as it is. Instagram's Home answers Back by scrolling the feed to the top
- * and reloading it, and only a second Back leaves. Included in the default selection with its
- * switch off.
+ * and reloading it, or at the top by saying "Tap again to exit", and only a second Back leaves.
+ * Included in the default selection with its switch off.
  */
 @Suppress("unused")
 val backLeavesHomePatch = bytecodePatch(
     name = "Back leaves Home",
     description = "Makes Back on Home leave Instagram at once, instead of first scrolling the feed to the top and " +
-        "reloading it. Starts off. Turn it on in HushGram settings > Feed.",
+        "reloading it or saying \"Tap again to exit\". Starts off. Turn it on in HushGram settings > Feed.",
 ) {
     category("Feed")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -74,21 +78,25 @@ val backLeavesHomePatch = bytecodePatch(
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
 /**
- * Where the hook goes in Home's Back handler: the handler itself, the index of the call that
- * scrolls to the top, and a free local to hold the hook's answer.
+ * Where the hooks go: Home's Back handler, the index of its call that scrolls to the top and a free
+ * local to hold the hook's answer, then the handler for Back at the top of the feed and a free local
+ * at its start.
  */
-internal class BackOnHomeSite(val handler: Method, val scroll: Int, val free: Int)
+internal class BackOnHomeSite(val handler: Method, val scroll: Int, val free: Int, val root: Method, val rootFree: Int)
 
 /**
- * Finds the one place Home's Back handler scrolls the feed to the top, and checks it before
- * anything changes:
+ * Finds the one place Home's Back handler scrolls the feed to the top and the handler the navigation
+ * controller asks next, and checks them before anything changes:
  * - One class loads [SCROLL_TITLE]: Home's feed fragment.
  * - It has one instance `scroll(reason)V` taking a reason enum and loading that title.
  * - It has one `onBackPressed()Z`, which calls that scroll once, right after reading a static
  *   field of the reason enum into the register it hands over, and the enum's field is the one built
- *   as [BACK_PRESS]. Back at the top of the feed gives another reason and another call.
+ *   as [BACK_PRESS].
  * - Nothing jumps to the call, so the hook goes in front of it and every path still passes through
  *   it, `this` is intact at the call, and a local up to v15 is free there.
+ * - It has one instance `(Z)Z` calling that scroll, which is the handler for Back at the top of the
+ *   feed: it says "Tap again to exit" and scrolls once with the constant built as
+ *   [BACK_PRESS_AT_TOP], and a local up to v15 is free at its start.
  */
 internal fun BytecodePatchContext.findBackOnHome(): BackOnHomeSite {
     val holders = classesLoadingString(SCROLL_TITLE)
@@ -126,23 +134,65 @@ internal fun BytecodePatchContext.findBackOnHome(): BackOnHomeSite {
     ) {
         refuse("${home.type}->onBackPressed doesn't read a $reasonType constant right before scrolling")
     }
-    val named = enumConstantName(classDefByOrNull(reasonType) ?: refuse("$reasonType isn't in this build"), field)
+    val reasonClass = classDefByOrNull(reasonType) ?: refuse("$reasonType isn't in this build")
+    val named = enumConstantName(reasonClass, field)
     if (named != BACK_PRESS) refuse("Back scrolls with the reason ${named ?: "of no name"}, not $BACK_PRESS")
 
     val targets = handler.jumpTargets()
     if (call in targets) refuse("something in ${home.type}->onBackPressed jumps to the scroll call")
     handler.requireThisIntact(PATCH, listOf(call))
     val free = handler.freeLocalsAt(PATCH, call, 1).single()
-    return BackOnHomeSite(handler, call, free)
+
+    val roots = home.methods.filter { root ->
+        !AccessFlags.STATIC.isSet(root.accessFlags) && root.isBackAtTheTop() &&
+            root.instructions().any { it.methodReference()?.sameMethodAs(scroll) == true }
+    }
+    val root = roots.singleOrNull() ?: refuse("expected one (Z)Z in ${home.type} that scrolls to the top, found ${roots.size}")
+    val rootCode = root.instructions()
+    val rootCalls = rootCode.indices.filter { rootCode[it].methodReference()?.sameMethodAs(scroll) == true }
+    val rootCall = rootCalls.singleOrNull()
+        ?: refuse("expected ${home.type}->${root.name} to scroll to the top once, found ${rootCalls.size}")
+    val handedOver = rootCode[rootCall].argumentRegisters().getOrNull(1)
+    val rootRead = (rootCall - 1 downTo 0).firstOrNull { index ->
+        rootCode[index].opcode.setsRegister() && (rootCode[index] as? OneRegisterInstruction)?.registerA == handedOver
+    }?.let(rootCode::get)
+    val rootField = rootRead?.fieldReference()
+    if (rootRead?.opcode != Opcode.SGET_OBJECT || rootField?.definingClass != reasonType) {
+        refuse("${home.type}->${root.name} doesn't scroll with a $reasonType constant")
+    }
+    val rootNamed = enumConstantName(reasonClass, rootField)
+    if (rootNamed != BACK_PRESS_AT_TOP) {
+        refuse("Back at the top scrolls with the reason ${rootNamed ?: "of no name"}, not $BACK_PRESS_AT_TOP")
+    }
+    val rootFree = root.freeLocalsAt(PATCH, 0, 1).single()
+    return BackOnHomeSite(handler, call, free, root, rootFree)
 }
+
+private fun Method.isBackAtTheTop(): Boolean =
+    returnType == "Z" && parameterTypes.map(CharSequence::toString) == listOf("Z")
 
 /**
  * In front of Home's scroll to the top, the hook is asked whether to leave Back alone. On a 1 the
- * handler answers false, "not handled", the answer it already gives at the top of the feed, and
- * the activity does the rest. On a 0 the scroll goes ahead as before.
+ * handler answers false, "not handled", and the navigation controller goes on. On a 0 the scroll goes
+ * ahead as before. The handler the controller asks next gets the same at its start, so on a 1 there's
+ * no "Tap again to exit" and no reload, and the activity does the rest.
  */
 internal fun BytecodePatchContext.backLeavesHome(site: BackOnHomeSite) {
-    val handler = mutableClassDefBy(site.handler.definingClass).methods.single {
+    val methods = mutableClassDefBy(site.handler.definingClass).methods
+    val root = methods.single { it.name == site.root.name && it.isBackAtTheTop() }
+    root.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static { }, $SKIP_TAP_AGAIN
+            move-result v${site.rootFree}
+            if-eqz v${site.rootFree}, :root
+            const/4 v${site.rootFree}, 0x0
+            return v${site.rootFree}
+        """,
+        ExternalLabel("root", root.getInstruction(0)),
+    )
+
+    val handler = methods.single {
         it.name == site.handler.name && it.parameterTypes.isEmpty() && it.returnType == "Z"
     }
     val scroll = handler.getInstruction(site.scroll)
