@@ -81,6 +81,11 @@ final class StoriesCategory {
                     L10n.t("A story you tap in the stories row opens with a slower zoom that doesn't bounce, "
                             + "and closes the same way.")));
         }
+        if (build.contains(PatchFamily.STORY_ZOOM_PLAY)) {
+            stories.add(toggle(context, Settings.KEEP_STORIES_PLAYING_ON_ZOOM, L10n.t("Keep stories playing while zooming"),
+                    L10n.t("A story keeps playing while you pinch to zoom it. Hold it still first and it stays "
+                            + "paused while you zoom.")));
+        }
         if (build.contains(PatchFamily.STORY_PROGRESS_BAR)) {
             stories.add(onFlip(toggle(context, Settings.THICKER_STORY_BAR, L10n.t("Thicker story progress bar"),
                     L10n.t("Draws the bar along the top of a story as thick as the choice below. Its segments "

@@ -9,6 +9,7 @@ Every HushGram release, newest first.
 * **Instagram:** `App icon` adds two more choices, Instagram's gradient glyph on dark and the old brown and cream camera icon. Themed icons show the glyph or camera shape. Asked for in #327 and #437.
 * **Instagram:** `Menu button on Home's header` adds a button at the top of Home that opens your viewing history, Ghost mode and HushGram settings. It starts off. Asked for in #437.
 * **Instagram:** `Seek bar button on feed videos` adds a small button on a feed video that shows or hides its seek bar. It starts off. Asked for in #437.
+* **Instagram:** `Keep stories playing while zooming` is a new patch. With its switch on under Stories, a story keeps playing while you pinch to zoom it. Hold it still first and it stays paused. It starts off. Asked for in #382.
 * **Instagram:** `Skip the ad data reminder` is a new patch under Ads and privacy. Instagram's reminder to review how it uses your data for ads stops opening by itself. Your ad choice doesn't change. It starts off. Asked for in #331.
 
 ### Improvements

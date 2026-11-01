@@ -33,6 +33,7 @@ public final class FamilyNames {
     public static final String HOME_PLACE = "Keep your place in Home";
     public static final String STORY_LOOP = "Loop a story";
     public static final String SMOOTH_STORY_OPEN = "Smooth story opening";
+    public static final String STORY_ZOOM_PLAY = "Keep stories playing while zooming";
     public static final String STORY_SOUND = "Start stories with sound";
     public static final String STORY_SWIPE_REPLY = "Stop swipe up to reply";
     public static final String STORY_FONTS = "Story text fonts";

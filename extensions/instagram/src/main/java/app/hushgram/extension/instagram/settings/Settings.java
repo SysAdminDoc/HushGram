@@ -258,6 +258,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_smooth_story_open", FALSE, true);
 
     /**
+     * A story keeps playing while two fingers pinch it, instead of pausing for the zoom
+     * ({@link app.hushgram.extension.instagram.stories.StoryZoomPlay}). A story held still first
+     * stays paused. Off to start.
+     */
+    public static final BooleanSetting KEEP_STORIES_PLAYING_ON_ZOOM =
+            new BooleanSetting("hushgram_keep_stories_playing_on_zoom", FALSE);
+
+    /**
      * Stories open with their sound on, through Instagram's own audio state, when the phone's ringer
      * is on and its volume is up ({@link app.hushgram.extension.instagram.stories.StorySound}). Off
      * to start.

@@ -671,6 +671,14 @@ once-call Lapp/hushgram/extension/instagram/stories/StoryLoop;->loop(I)Z in inst
 # on; twice or elsewhere, it isn't the spring the patch eased.
 once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->stiffness(F)F in instance (Landroid/app/Activity;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)V pooled class-holding ReelViewerAnimator.animateReveal
 once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->damping(F)F in instance (Landroid/app/Activity;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;Ljava/lang/String;Z)V pooled class-holding ReelViewerAnimator.animateReveal
+# Keep stories playing while zooming asks keepPlaying() first in the runnable that pauses the story
+# viewer for a pinch (0CnX on 453), which is the one run() holding the pinch's pause reason, and
+# reports every pause and resume of the viewer (A18 and A19 on 453), found by the marks they log
+# (#382). Left out, a pinch pauses the story as Instagram does; twice or elsewhere, it isn't the
+# pause the patch means.
+once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->keepPlaying()Z in instance ()V holding paused_for_pinch_to_zoom
+once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->paused(Ljava/lang/String;)V in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;)V holding pause_story
+once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->resumed()V in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;Z)V holding resume_story_request_skipped
 # Swipe through a chat's reels answers the read of Instagram's own chat reels flag through chain(),
 # right after it in the test taking the session that the opener of a reel shared in a chat asks
 # (01Oo.A00 on 453's 385914285, 01PZ.A00 on 385914282, #350). Its sibling tests share the shape,
