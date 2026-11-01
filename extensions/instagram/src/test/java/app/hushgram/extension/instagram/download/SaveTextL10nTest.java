@@ -131,6 +131,15 @@ public class SaveTextL10nTest {
         assertEquals("下載失敗，請檢查連線後再試一次。", L10n.t("Download failed. Check your connection and try again."));
     }
 
+    @Test
+    @Config(qualifiers = "vi")
+    public void vietnameseFormatsSaveResults() {
+        assertEquals(L10nTablesForTests.of("vi").get("Saved to the gallery"),
+                MediaSave.message(context, Downloader.Status.OK, null, false));
+        assertEquals(String.format(L10nTablesForTests.of("vi").get("Saved to %1$s"), L10n.isolate("Movies/Instagram")),
+                MediaSave.message(context, Downloader.Status.OK, "Movies/Instagram", false));
+    }
+
     /** A channel named in one language is renamed in the next, keeping what the person set. */
     @Test
     @Config(qualifiers = "de")

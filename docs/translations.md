@@ -19,7 +19,7 @@ Every worksheet starts with `pending` in `review_status`. A native reader record
 * Quantity forms agree with the listed plural category. The `english_key` is a lookup key and can include a category suffix. Translate `english_text`.
 * The translated screens fit at large text sizes. Check line wrapping and the controls beside long labels. For a language that reads right to left, check its real locale too.
 
-Spreadsheet review records don't approve translations on Crowdin or write into HushGram. A maintainer applies the reviewed wording to the TSV table and keeps the review record with its evidence. Don't change the identifiers or English keys. The existing German, Spanish, Indonesian, Italian, Brazilian Portuguese and Turkish seeds are drafts for this review. Korean came from a volunteer translator and goes through the same review.
+Spreadsheet review records don't approve translations on Crowdin or write into HushGram. A maintainer applies the reviewed wording to the TSV table and keeps the review record with its evidence. Don't change the identifiers or English keys. The existing German, Spanish, Indonesian, Italian, Brazilian Portuguese and Turkish seeds are drafts for this review. Korean came from a volunteer translator and goes through the same review. The Vietnamese table hasn't been read by a native speaker yet and goes through it too.
 
 ## Set up Crowdin
 
@@ -31,7 +31,7 @@ Set `CROWDIN_PERSONAL_TOKEN` in the process environment through a trusted local 
 py -3.13 scripts/crowdin-l10n.py setup --package build/translation-review
 ```
 
-Setup uses the current [Crowdin API](https://support.crowdin.com/developer/api/v2/). It creates a public, file-based project named HushGram with identifier `hushgram`. English is the source. German, Spanish, Indonesian, Italian, Brazilian Portuguese, Turkish and Korean are targets. Use `--identifier` with another available identifier if the intended one is already owned by someone else.
+Setup uses the current [Crowdin API](https://support.crowdin.com/developer/api/v2/). It creates a public, file-based project named HushGram with identifier `hushgram`. English is the source. German, Spanish, Indonesian, Italian, Brazilian Portuguese, Turkish, Korean and Vietnamese are targets. Use `--identifier` with another available identifier if the intended one is already owned by someone else.
 
 The tool uploads `en.json` as a flat JSON source, then the existing language files as unapproved suggestions. Suggestions equal to English are preserved. Imports use the asynchronous translation-import API and check each completed report for missing or skipped rows. Tokens are sent only to `api.crowdin.com`. Redirects are refused, and the tool doesn't print server response bodies or credentials.
 

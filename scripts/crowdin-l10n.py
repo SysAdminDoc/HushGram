@@ -23,7 +23,7 @@ spec.loader.exec_module(bridge)
 API_URL = "https://api.crowdin.com/api/v2/"
 TOKEN_ENV = "CROWDIN_PERSONAL_TOKEN"
 STATE_NAME = "crowdin-state.json"
-LANGUAGES = {"de": "de", "es": "es", "in": "id", "it": "it", "pt-rBR": "pt-BR", "tr": "tr", "ko": "ko", "zh-rTW": "zh-TW"}
+LANGUAGES = {"de": "de", "es": "es", "in": "id", "it": "it", "pt-rBR": "pt-BR", "tr": "tr", "ko": "ko", "zh-rTW": "zh-TW", "vi": "vi"}
 
 
 class SetupError(ValueError):
