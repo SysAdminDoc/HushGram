@@ -127,11 +127,13 @@ internal fun BytecodePatchContext.hideReelParts() {
 
     val methods = REEL_PARTS.associateWith { holding(it.marker) }
     val saves = SAVE_PARTS.associateWith { holding(it.marker) }
+    val productCta = holding(PRODUCT_CTA.marker)
     val bubbles = holding(FLOATING_BUBBLES)
     val socialContext = holding(SOCIAL_CONTEXT_CHECK)
     methods.forEach { (part, method) -> requireShape(part, method) }
     saves.forEach { (part, method) -> requireSaveShape(part, method) }
-    val everyMethod = (methods.values + saves.values + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
+    requireProductCtaShape(productCta)
+    val everyMethod = (methods.values + saves.values + productCta + bubbles + socialContext).map { "${it.definingClass}->${it.name}" }
     if (everyMethod.toSet().size != everyMethod.size) throw PatchException("$PATCH: two parts are held by one method: $everyMethod")
     val renders = methods.filterKeys { !it.check }.values
     val shapes = renders.map { it.parameterTypes.single().toString() to it.returnType }.toSet()
@@ -142,14 +144,14 @@ internal fun BytecodePatchContext.hideReelParts() {
     val replyBar = directReplyBar(holding(DIRECT_REPLY_BAR_SHOW), holding(DIRECT_REPLY_BAR_HIDE), holding(DIRECT_REPLY_BAR_CREATED))
     // The reply bar's hooks go in further down their methods, at places worked out before anything
     // changes, so neither method may be one another part writes into.
-    val written = (methods.values + saves.values + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
+    val written = (methods.values + saves.values + productCta + bubbles + socialContext + bar.show + bar.created + bar.unVanish.method)
         .map { it.signature() }
     val replyBarMethods = listOf(replyBar.show, replyBar.created).map { it.signature() }
     if (replyBarMethods.toSet().size != replyBarMethods.size || replyBarMethods.any { it in written }) {
         throw PatchException("$PATCH: the direct reply bar's show or onViewCreated is a method another part changes: $replyBarMethods")
     }
 
-    (methods + saves).forEach { (part, found) ->
+    (methods + saves + (PRODUCT_CTA to productCta)).forEach { (part, found) ->
         val method = mutable(found)
         method.requireLocals(PATCH, 1)
         val answer = if (part.check) "return v0" else "return-object v0"
@@ -615,6 +617,18 @@ private fun requireSaveShape(part: ReelPart, method: Method) {
         else -> null
     } ?: return
     throw PatchException("$PATCH: ${method.definingClass}->${method.name}, holding the ${part.marker} marker, $problem")
+}
+
+/** The reel CTA's product button is built from the component scope and its label, and answers the component. */
+private fun requireProductCtaShape(method: Method) {
+    val types = method.parameterTypes.map { it.toString() }
+    val problem = when {
+        method.implementation == null -> "has no body"
+        AccessFlags.STATIC.isSet(method.accessFlags) || types.size != 2 || types[1] != "Ljava/lang/String;" ||
+            !method.returnType.startsWith("L") -> "is not a builder taking a scope and a label and answering a component"
+        else -> null
+    } ?: return
+    throw PatchException("$PATCH: ${method.definingClass}->${method.name}, holding the ${PRODUCT_CTA.marker} marker, $problem")
 }
 
 /** A render takes one component scope and answers an object; the check is static and answers a boolean. */

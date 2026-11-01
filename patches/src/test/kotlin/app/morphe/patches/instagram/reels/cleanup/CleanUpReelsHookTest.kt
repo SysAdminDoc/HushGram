@@ -75,6 +75,7 @@ class CleanUpReelsHookTest {
         val ufi = context.mutableClassDefBy(UFI).methods
         assertEquals(setOf("A0D", "A06"), ufi.map { it.name }.toSet())
         SAVE_PARTS.zip(listOf("A0D", "A06")).forEach { (part, name) -> assertGuardFirst(part.marker, part, ufi.single { it.name == name }) }
+        assertGuardFirst(PRODUCT_CTA.marker, PRODUCT_CTA, context.mutableClassDefBy(owner(PRODUCT_CTA.marker)).methods.single())
         val legacy = context.mutableClassDefBy(owner("ClipsFollowButtonComponentLegacy_render")).methods.single()
         assertEquals("the Legacy Follow button was touched", 3, legacy.instructions().size)
         assertBubblesGuarded("stand-in", context.mutableClassDefBy(BUBBLES).methods.single(), "$NO_BUBBLES->A00:$NO_BUBBLES")
@@ -230,6 +231,23 @@ class CleanUpReelsHookTest {
         assertThrows(PatchException::class.java) { context.hideReelParts() }
     }
 
+    /** Both kinds of suggestion pill answer to the one switch, the shopping routes to the other (#332). */
+    @Test
+    fun theRelatedAdsPivotAndTheShopRoutesAnswerToTheirSwitches() {
+        assertEquals(
+            setOf("ClipsContentDeepDiveComponent_render", "ClipsRelatedAdsPivotComponent_render"),
+            REEL_PARTS.filter { it.hook == HIDE_SEARCH_PILL }.map { it.marker }.toSet(),
+        )
+        assertEquals(HIDE_PRODUCT_PILLS, PRODUCT_CTA.hook)
+        assertEquals(HIDE_PRODUCT_PILLS, REEL_PARTS.single { it.marker == "ShopLensCtaComponent_render" }.hook)
+    }
+
+    @Test
+    fun aProductButtonOfAnotherShapeFailsThePatch() {
+        val context = PatchContexts.of(classes(productCtaLabel = "I"))
+        assertThrows(PatchException::class.java) { context.hideReelParts() }
+    }
+
     @Test
     fun aCheckThatIsNotABooleanFailsThePatch() {
         val context = PatchContexts.of(classes(checkReturns = "I"))
@@ -313,6 +331,11 @@ class CleanUpReelsHookTest {
             assertEquals("$label: who asks ${part.hook}", listOf("${before.definingClass}->${before.name}"),
                 askers.map { (type, method) -> "$type->${method.name}" })
         }
+        // The reel CTA's product button: the one builder, guarded first and growing by the guard alone.
+        val productBefore = classes.flatMap { it.methods }.single { PRODUCT_CTA.marker in it.markers() }
+        val productAfter = after(productBefore)
+        assertEquals("$label: ${PRODUCT_CTA.marker} size", productBefore.instructions().size + 5, productAfter.instructions().size)
+        assertGuardFirst("$label: ${PRODUCT_CTA.marker}", PRODUCT_CTA, productAfter)
         // The in-viewer comment bar's render is guarded by the switch for all reels, nothing else.
         val inViewer = after(classes.flatMap { it.methods }.single { COMMENT_BAR_PARTS.single().marker in it.markers() })
         assertEquals("$label: the in-viewer bar's hook", HIDE_EVERY_COMMENT_BAR, (inViewer.instructions()[0] as ReferenceInstruction).reference.toString())
@@ -574,6 +597,7 @@ class CleanUpReelsHookTest {
         barThisReused: Boolean = false,
         unVanish: String = "ok",
         replyBar: String = "ok",
+        productCtaLabel: String = "Ljava/lang/String;",
     ): List<ClassDef> {
         val renders = (REEL_PARTS.filter { !it.check }.map { it.marker } + "ClipsFollowButtonComponentLegacy_render")
             .filter { it != leaveOut }
@@ -630,7 +654,19 @@ class CleanUpReelsHookTest {
             listOf(ImmutableField(LINE, "type", LINE_TYPE, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, null, null, null)),
             null,
         )
-        return renders + saves + checks + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
+        val productCta = classOf(
+            owner(PRODUCT_CTA.marker), "Lfixture/KComponent;",
+            method(
+                owner(PRODUCT_CTA.marker), "A01", listOf(scope, productCtaLabel), component, 4,
+                """
+                    const-string v0, "android_purge_26_q3_${PRODUCT_CTA.marker}"
+                    const/4 v0, 0x0
+                    return-object v0
+                """,
+                static = false,
+            ),
+        )
+        return renders + saves + checks + productCta + bubbles + lineCheck + lineType + line + commentBar(barSource, barStores, barThisReused) +
             unVanish(unVanish) + replyBar(replyBar)
     }
 

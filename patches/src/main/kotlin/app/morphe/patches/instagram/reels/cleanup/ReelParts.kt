@@ -90,12 +90,28 @@ internal val SAVE_PARTS = listOf(
 
 /**
  * The overlays near the username that aren't a creation pill (#332): the suggested search terms
- * ("Deep dive"), the product tag and shopping buttons, and the poll or vote prompt. Each is a render
+ * ("Deep dive", and the related ads pivot that the same branch of the media info draws in the same
+ * pill style), the product tag and shopping buttons, and the poll or vote prompt. Each is a render
  * of the same shape as the pills above, so an empty answer leaves the row without it.
  */
-internal val SEARCH_PARTS = listOf(ReelPart("ClipsContentDeepDiveComponent_render", HIDE_SEARCH_PILL))
-internal val SHOP_PARTS = listOf("ProductTagCTAComponent_render", "ShoppingCtaComponent_render").map { ReelPart(it, HIDE_PRODUCT_PILLS) }
+internal val SEARCH_PARTS = listOf("ClipsContentDeepDiveComponent_render", "ClipsRelatedAdsPivotComponent_render").map { ReelPart(it, HIDE_SEARCH_PILL) }
+internal val SHOP_PARTS = listOf(
+    "ProductTagCTAComponent_render",
+    "ShoppingCtaComponent_render",
+    "RelatedAdsPivotCTAComponent_render",
+    "ShopLensCtaComponent_render",
+    "ShopLensBarCtaComponent_render",
+    "ShopLensPausePillComponent_render",
+    "ShopLensMidSceneComponent_render",
+).map { ReelPart(it, HIDE_PRODUCT_PILLS) }
 internal val POLL_PARTS = listOf(ReelPart("PollCTAComponent_render", HIDE_POLL_PILLS))
+
+/**
+ * The reel CTA's own product button. The CTA's render hands a tagged product to this builder and
+ * returns what it answers, so it's a builder of a scope and the label rather than a render. The
+ * render answers nothing itself when it has nothing to draw, so an empty answer is one it expects.
+ */
+internal val PRODUCT_CTA = ReelPart("ClipsCTAComponent_renderNonSponsoredProductCta", HIDE_PRODUCT_PILLS)
 
 internal val REEL_PARTS = FOLLOW_PARTS + CHIP_PARTS + SEARCH_PARTS + SHOP_PARTS + POLL_PARTS + SOCIAL_PARTS + COMMENT_BAR_PARTS
 
@@ -151,6 +167,6 @@ internal const val CHAT_SOURCE = "DIRECT"
 /** Where the viewer was opened from, an enum that keeps its name, which the controller holds. */
 internal const val CLIPS_VIEWER_SOURCE = "Lcom/instagram/clips/intf/ClipsViewerSource;"
 
-internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
+internal val CLEANUP_MARKERS = REEL_PARTS.map { it.marker } + SAVE_PARTS.map { it.marker } + PRODUCT_CTA.marker + FLOATING_BUBBLES + SOCIAL_CONTEXT_CHECK +
     COMMENT_BAR_SHOW + COMMENT_BAR_HIDE + COMMENT_BAR_CREATED + COMMENT_BAR_UNVANISH +
     DIRECT_REPLY_BAR_SHOW + DIRECT_REPLY_BAR_HIDE + DIRECT_REPLY_BAR_CREATED
