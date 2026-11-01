@@ -8,6 +8,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
@@ -22,6 +23,7 @@ import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -184,8 +186,9 @@ public class CarouselArrowsTest {
         controller.pause().stop().destroy();
     }
 
+    /** Runs a frame's pre-draw through the window's observer, which a row out of the window has no part in. True when the frame is held back. */
     private boolean frame() {
-        return root.getViewTreeObserver().dispatchOnPreDraw();
+        return activity.getWindow().getDecorView().getViewTreeObserver().dispatchOnPreDraw();
     }
 
     /** Lays the screen out and draws a frame, as after a swipe. */
@@ -213,7 +216,7 @@ public class CarouselArrowsTest {
     private void on() {
         Settings.CAROUSEL_ARROWS.save(true);
         CarouselArrows.watch(activity);
-        assertTrue("arrows were added, so the frame is drawn again", frame());
+        assertFalse("no frame is held back for the arrows", frame());
     }
 
     @Test
@@ -254,7 +257,7 @@ public class CarouselArrowsTest {
         assertTrue(report, report.contains("Counted: " + CarouselArrows.COUNT_SHOWN + " 1"));
         assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
 
-        assertFalse("nothing left to change on the next frame", frame());
+        assertFalse("nor on the next frame", frame());
         settle();
         assertEquals("a carousel gets its arrows once", 3, root.getChildCount());
     }
@@ -264,15 +267,15 @@ public class CarouselArrowsTest {
         on();
 
         pager.at = 1;
-        assertTrue(frame());
+        assertFalse(frame());
         assertTrue("a middle page shows both", shows(back()) && shows(next()));
 
         pager.at = 2;
-        assertTrue(frame());
+        assertFalse(frame());
         assertTrue("the last page shows back only", shows(back()) && !shows(next()));
 
         pager.at = 0;
-        assertTrue(frame());
+        assertFalse(frame());
         assertTrue(!shows(back()) && shows(next()));
     }
 
@@ -346,6 +349,107 @@ public class CarouselArrowsTest {
 
         assertEquals(0, CarouselArrows.withArrowsForTests());
         assertEquals(0, root.getChildCount());
+    }
+
+    /**
+     * #425: the feed reuses a row it scrolled away, so a carousel keeps its arrows and pill for the row's
+     * return. Adding them again would lay the whole feed out each time, and no frame is held back either
+     * way. Instagram's dots are its own while the row is gone.
+     */
+    @Test
+    public void aRowScrolledOutAndBackAddsNothingAndLaysNothingOut() {
+        Settings.CAROUSEL_ARROWS.save(true);
+        pillOn();
+        settle();
+        View arrow = next();
+        CarouselArrows.Pill held = pill();
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+        ViewGroup feed = (ViewGroup) root.getParent();
+
+        feed.removeView(root);
+        assertFalse(frame());
+        settle();
+
+        assertEquals("the row keeps both arrows and the pill", 4, root.getChildCount());
+        assertEquals(1, CarouselArrows.withArrowsForTests());
+        assertEquals(1f, instagramDots.getAlpha(), 0f);
+
+        feed.addView(root, 0, new LinearLayout.LayoutParams(WIDTH, HEADER + HEIGHT));
+        settle();
+        assertFalse(frame());
+
+        assertSame(arrow, next());
+        assertSame(held, pill());
+        assertEquals(4, root.getChildCount());
+        assertFalse("nothing asked for another layout", root.isLayoutRequested());
+        assertTrue(shows(next()) && shows(pill()));
+        assertEquals(0f, instagramDots.getAlpha(), 0f);
+        String report = HookStatus.report().toString();
+        assertTrue(report, report.contains("Counted: " + CarouselArrows.COUNT_SHOWN + " 1"));
+    }
+
+    /** A row the feed isn't holding at the moment still loses its arrows when the switch goes off. */
+    @Test
+    public void offTakesTheArrowsOffARowOutOfTheWindow() {
+        on();
+        settle();
+        ((ViewGroup) root.getParent()).removeView(root);
+        settle();
+        assertEquals(3, root.getChildCount());
+
+        Settings.CAROUSEL_ARROWS.save(false);
+        frame();
+
+        assertEquals(0, CarouselArrows.withArrowsForTests());
+        assertEquals(1, root.getChildCount());
+    }
+
+    /** The arrows lead back through their host to the carousel, so what remembers them must not keep every row scrolled past. */
+    @Test
+    public void aRowNothingElseHoldsCanBeCollected() throws InterruptedException {
+        on();
+        settle();
+        ((ViewGroup) root.getParent()).removeView(root);
+        settle();
+        WeakReference<View> row = new WeakReference<>(pager);
+        pager = null;
+        root = null;
+        column = null;
+
+        for (int i = 0; i < 40 && row.get() != null; i++) {
+            System.gc();
+            Thread.sleep(25);
+            frame();
+        }
+
+        assertNull("the arrows kept a row nothing else holds", row.get());
+    }
+
+    /** The arrows stay as long as their host holds them, however often memory is reclaimed in between. */
+    @Test
+    public void arrowsOnAKeptRowSurviveACollection() throws InterruptedException {
+        on();
+        settle();
+        View arrow = next();
+        for (int i = 0; i < 5; i++) {
+            System.gc();
+            Thread.sleep(10);
+            settle();
+        }
+
+        assertSame(arrow, next());
+        assertEquals(3, root.getChildCount());
+    }
+
+    /** Each class is asked about once and remembered, so the answers must stay each class's own. */
+    @Test
+    public void dotsAreKnownByClassEveryTimeAndOnlyThoseAre() {
+        View dots = new CirclePageIndicator(activity);
+        View other = new View(activity);
+        for (int i = 0; i < 2; i++) {
+            assertTrue(CarouselArrows.isDots(dots, 0));
+            assertFalse(CarouselArrows.isDots(other, 0));
+        }
     }
 
     @Test
@@ -445,7 +549,7 @@ public class CarouselArrowsTest {
     private void pillOn() {
         Settings.CAROUSEL_DOTS_PILL.save(true);
         CarouselArrows.watch(activity);
-        assertTrue("the pill was added, so the frame is drawn again", frame());
+        assertFalse("no frame is held back for the pill", frame());
     }
 
     /** #419: the page dots move onto a round pill over the bottom middle of the carousel, and Instagram's own fade out. */
@@ -477,7 +581,7 @@ public class CarouselArrowsTest {
         assertFalse(report, report.contains(CarouselArrows.COUNT_SHOWN));
         assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
 
-        assertFalse("nothing left to change on the next frame", frame());
+        assertFalse("nor on the next frame", frame());
     }
 
     @Test
@@ -485,11 +589,11 @@ public class CarouselArrowsTest {
         pillOn();
 
         pager.at = 2;
-        assertTrue(frame());
+        assertFalse(frame());
         assertEquals(2, pill().at);
 
         pager.at = 1;
-        assertTrue(frame());
+        assertFalse(frame());
         assertEquals(1, pill().at);
         assertFalse(frame());
     }
@@ -514,7 +618,7 @@ public class CarouselArrowsTest {
 
         instagramDots.setAlpha(1f);
 
-        assertTrue(frame());
+        assertFalse(frame());
         assertEquals(0f, instagramDots.getAlpha(), 0f);
     }
 

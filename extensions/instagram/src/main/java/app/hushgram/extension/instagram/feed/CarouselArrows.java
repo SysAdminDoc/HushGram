@@ -26,6 +26,7 @@ import androidx.annotation.Nullable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -58,10 +59,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>Like {@link CarouselPeek}, a resumed activity joins the shared view watcher while either switch
  * is on: each layout looks through the window once for carousels, and each frame only checks the
- * carousels already holding arrows or a pill, so they follow a swipe. A carousel scrolled out of the
- * window loses them, and its dots come back. A flipped switch rebuilds what each carousel holds. With
- * both off, HushGram paused or the settings not read, every arrow and pill is taken away. Anything
- * thrown leaves the screen as Instagram drew it.
+ * carousels already holding arrows or a pill, so they follow a swipe. No frame is ever held back for
+ * them, since that stuttered the feed's scroll (#425). A carousel scrolled out of the window gives its
+ * dots back but keeps what it holds, because the feed reuses that row and adding them again lays the
+ * whole feed out each time. A flipped switch rebuilds what each carousel holds. With both off, HushGram
+ * paused or the settings not read, every arrow and pill is taken away. Anything thrown leaves the
+ * screen as Instagram drew it.
  */
 public final class CarouselArrows {
     static final String PAGE = CarouselPeek.PAGE;
@@ -108,10 +111,15 @@ public final class CarouselArrows {
 
     private static final ResourceIdCache ids = new ResourceIdCache();
     private static final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
-    /** Each pager given arrows, with them. Main thread only. */
-    private static final Map<View, Arrows> pagers = new WeakHashMap<>();
+    /**
+     * Each pager given arrows, with them. Main thread only. Held weakly, since they lead through their
+     * host back to the pager and would keep every row scrolled past; the added views hold them instead.
+     */
+    private static final Map<View, WeakReference<Arrows>> pagers = new WeakHashMap<>();
     /** The page getters of each view class asked about, or null for a class that isn't a pager. */
     private static final Map<Class<?>, Pager> kinds = new WeakHashMap<>();
+    /** Whether each view class asked about is Instagram's page dots. A look asks every view in the window, and a class's name is slow to read. */
+    private static final Map<Class<?>, Boolean> dotKinds = new WeakHashMap<>();
     /** Instagram's page dots seen in the window's last look, while the pill is on. Main thread only. */
     private static final ArrayList<WeakReference<View>> dots = new ArrayList<>();
     private static final int[] spot = new int[2];
@@ -279,42 +287,50 @@ public final class CarouselArrows {
 
     /** Gives [pager] what the switches ask for in its host, if it doesn't hold that there yet. True when any were added. */
     static boolean give(ViewGroup pager) {
-        Arrows arrows = pagers.get(pager);
+        Arrows arrows = arrowsOf(pager);
         FrameLayout host = hostOf(pager);
         if (host == null) return false;
         if (arrows != null) {
             if (arrows.host.get() == host && arrows.matches()) return false;
             arrows.remove();
         }
-        pagers.put(pager, new Arrows(pager, host));
+        pagers.put(pager, new WeakReference<>(new Arrows(pager, host)));
         return true;
     }
 
+    @Nullable
+    private static Arrows arrowsOf(View pager) {
+        WeakReference<Arrows> held = pagers.get(pager);
+        return held == null ? null : held.get();
+    }
+
     /**
-     * Shows, hides and places the arrows and pill of every carousel holding some, and takes them off a
-     * carousel that left the window or its host, or holds what a switch no longer asks for. True when
-     * anything changed.
+     * Shows, hides and places the arrows and pill of every carousel in the window. One whose row is out
+     * of the window only gives its dots back. One that left its host, or holds what a switch no longer
+     * asks for, loses what it holds.
      */
-    static boolean follow() throws ReflectiveOperationException {
-        boolean changed = false;
-        for (Map.Entry<View, Arrows> entry : new ArrayList<>(pagers.entrySet())) {
+    static void follow() throws ReflectiveOperationException {
+        Iterator<Map.Entry<View, WeakReference<Arrows>>> entries = pagers.entrySet().iterator();
+        while (entries.hasNext()) {
+            Map.Entry<View, WeakReference<Arrows>> entry = entries.next();
             View pager = entry.getKey();
-            Arrows arrows = entry.getValue();
+            Arrows arrows = entry.getValue().get();
             if (pager == null) continue;
-            if (!arrows.holds(pager) || !arrows.matches()) {
-                arrows.remove();
-                pagers.remove(pager);
-                changed = true;
-                continue;
+            if (arrows == null || !arrows.holds(pager) || !arrows.matches()) {
+                if (arrows != null) arrows.remove();
+                entries.remove();
+            } else if (pager.isAttachedToWindow()) {
+                arrows.follow(pager, kind(pager));
+            } else {
+                arrows.fade(null);
             }
-            changed |= arrows.follow(pager, kind(pager));
         }
-        return changed;
     }
 
     /** Takes every arrow and pill away, brings Instagram's dots back, and forgets the carousels. */
     static void putBack() {
-        for (Arrows arrows : new ArrayList<>(pagers.values())) {
+        for (WeakReference<Arrows> held : new ArrayList<>(pagers.values())) {
+            Arrows arrows = held.get();
             if (arrows != null) arrows.remove();
         }
         pagers.clear();
@@ -350,7 +366,13 @@ public final class CarouselArrows {
     /** True when [view] is a set of Instagram's page dots: [dotsId] when known, else {@link #DOTS_CLASS}. */
     static boolean isDots(View view, int dotsId) {
         if (dotsId != 0 && view.getId() == dotsId) return true;
-        return DOTS_CLASS.equals(view.getClass().getSimpleName());
+        Class<?> kind = view.getClass();
+        Boolean known = dotKinds.get(kind);
+        if (known == null) {
+            known = DOTS_CLASS.equals(kind.getSimpleName());
+            dotKinds.put(kind, known);
+        }
+        return known;
     }
 
     /** Tests give the page frame an id of their own, since a test app has none of Instagram's. */
@@ -368,7 +390,7 @@ public final class CarouselArrows {
 
     @Nullable
     static Pill pillForTests(View pager) {
-        Arrows arrows = pagers.get(pager);
+        Arrows arrows = arrowsOf(pager);
         return arrows == null ? null : arrows.pill;
     }
 
@@ -382,13 +404,13 @@ public final class CarouselArrows {
 
     @Nullable
     static View backForTests(View pager) {
-        Arrows arrows = pagers.get(pager);
+        Arrows arrows = arrowsOf(pager);
         return arrows == null ? null : arrows.back;
     }
 
     @Nullable
     static View nextForTests(View pager) {
-        Arrows arrows = pagers.get(pager);
+        Arrows arrows = arrowsOf(pager);
         return arrows == null ? null : arrows.next;
     }
 
@@ -407,6 +429,7 @@ public final class CarouselArrows {
         }
         putBack();
         kinds.clear();
+        dotKinds.clear();
         turn = PATCHED;
         logged = false;
     }
@@ -442,6 +465,7 @@ public final class CarouselArrows {
                 int size = Math.round(TOUCH * density);
                 for (Arrow arrow : new Arrow[] {back, next}) {
                     arrow.setVisibility(View.INVISIBLE);
+                    arrow.setTag(this);
                     host.addView(arrow, new FrameLayout.LayoutParams(size, size, Gravity.TOP | Gravity.START));
                 }
             } else {
@@ -450,6 +474,7 @@ public final class CarouselArrows {
             if (Settings.CAROUSEL_DOTS_PILL.get()) {
                 pill = new Pill(context);
                 pill.setVisibility(View.INVISIBLE);
+                pill.setTag(this);
                 host.addView(pill, new FrameLayout.LayoutParams(Pill.widest(density), Math.round(PILL_HEIGHT * density),
                         Gravity.TOP | Gravity.START));
             } else {
@@ -462,11 +487,11 @@ public final class CarouselArrows {
             return (back != null) == Settings.CAROUSEL_ARROWS.get() && (pill != null) == Settings.CAROUSEL_DOTS_PILL.get();
         }
 
-        /** Whether [pager] is still in the window, under the host its arrows or pill are in. */
+        /** Whether [pager] is still under the host its arrows or pill are in, its row in the window or not. */
         boolean holds(View pager) {
             FrameLayout frame = host.get();
             View added = back != null ? back : pill;
-            if (frame == null || added == null || !pager.isAttachedToWindow() || added.getParent() != frame) return false;
+            if (frame == null || added == null || added.getParent() != frame) return false;
             for (ViewParent parent = pager.getParent(); parent != null; parent = parent.getParent()) {
                 if (parent == frame) return true;
             }
@@ -475,73 +500,59 @@ public final class CarouselArrows {
 
         /**
          * Shows the arrows that lead to a page of [pager]'s and places them over its edges, and shows the pill
-         * over its bottom with the page it's on, Instagram's dots faded under it. True when anything changed.
+         * over its bottom with the page it's on, Instagram's dots faded under it.
          */
-        boolean follow(View pager, @Nullable Pager methods) throws ReflectiveOperationException {
+        void follow(View pager, @Nullable Pager methods) throws ReflectiveOperationException {
             FrameLayout frame = host.get();
             boolean shown = methods != null && frame != null && pager.isShown() && pager.getWidth() > 0;
             int at = shown ? methods.index(pager) : -1;
             int count = shown ? methods.count(pager) : 0;
-            boolean changed = false;
             if (back != null && next != null) {
-                changed |= show(back, at > 0 && at < count);
-                changed |= show(next, at >= 0 && at < count - 1);
+                show(back, at > 0 && at < count);
+                show(next, at >= 0 && at < count - 1);
             }
             boolean dotted = pill != null && at >= 0 && at < count && count > 1;
             if (pill != null) {
-                changed |= show(pill, dotted);
-                changed |= pill.showing(at, count);
+                show(pill, dotted);
+                pill.showing(at, count);
             }
-            changed |= fade(dotted ? dotsUnder(pager) : null);
-            if (!shown) return changed;
+            fade(dotted ? dotsUnder(pager) : null);
+            if (!shown) return;
             bounds.set(0, 0, pager.getWidth(), pager.getHeight());
             frame.offsetDescendantRectToMyCoords(pager, bounds);
             float density = pager.getResources().getDisplayMetrics().density;
             if (back != null && next != null) {
                 float inset = (MARGIN - (TOUCH - BUTTON) / 2) * density;
                 float top = bounds.centerY() - TOUCH * density / 2;
-                changed |= place(back, bounds.left + inset, top);
-                changed |= place(next, bounds.right - inset - TOUCH * density, top);
+                place(back, bounds.left + inset, top);
+                place(next, bounds.right - inset - TOUCH * density, top);
             }
             if (pill != null) {
-                changed |= place(pill, bounds.centerX() - pill.getLayoutParams().width / 2f,
+                place(pill, bounds.centerX() - pill.getLayoutParams().width / 2f,
                         bounds.bottom - (PILL_MARGIN + PILL_HEIGHT) * density);
             }
-            return changed;
         }
 
         /** Fades out [dots], Instagram's own under this carousel, and brings back the ones faded before if they're others. */
-        private boolean fade(@Nullable View dots) {
+        void fade(@Nullable View dots) {
             View before = faded.get();
-            boolean changed = false;
-            if (before != null && before != dots) {
-                before.setAlpha(fadedAlpha);
-                changed = true;
+            if (before != dots) {
+                if (before != null) before.setAlpha(fadedAlpha);
+                if (dots != null) fadedAlpha = dots.getAlpha();
+                faded = new WeakReference<>(dots);
             }
-            if (dots != null && dots != before) fadedAlpha = dots.getAlpha();
-            faded = new WeakReference<>(dots);
             // Set again each frame, in case Instagram set the dots' alpha back itself.
-            if (dots != null && dots.getAlpha() != 0f) {
-                dots.setAlpha(0f);
-                changed = true;
-            }
-            return changed;
+            if (dots != null && dots.getAlpha() != 0f) dots.setAlpha(0f);
         }
 
-        private static boolean show(View arrow, boolean shown) {
-            int visibility = shown ? View.VISIBLE : View.INVISIBLE;
-            if (arrow.getVisibility() == visibility) return false;
+        private static void show(View arrow, boolean shown) {
             // Invisible, not gone, so the host isn't laid out again each time a carousel reaches its end.
-            arrow.setVisibility(visibility);
-            return true;
+            arrow.setVisibility(shown ? View.VISIBLE : View.INVISIBLE);
         }
 
-        private static boolean place(View arrow, float left, float top) {
-            float x = Math.round(left) - arrow.getLeft(), y = Math.round(top) - arrow.getTop();
-            if (arrow.getTranslationX() == x && arrow.getTranslationY() == y) return false;
-            arrow.setTranslationX(x);
-            arrow.setTranslationY(y);
-            return true;
+        private static void place(View arrow, float left, float top) {
+            arrow.setTranslationX(Math.round(left) - arrow.getLeft());
+            arrow.setTranslationY(Math.round(top) - arrow.getTop());
         }
 
         void remove() {
@@ -585,13 +596,12 @@ public final class CarouselArrows {
             return Math.max(0, Math.min(count - MAX_DOTS, at - MAX_DOTS / 2));
         }
 
-        /** Shows page [at] of [count]. True when that's a change. */
-        boolean showing(int at, int count) {
-            if (this.at == at && this.count == count) return false;
+        /** Shows page [at] of [count]. */
+        void showing(int at, int count) {
+            if (this.at == at && this.count == count) return;
             this.at = at;
             this.count = count;
             invalidate();
-            return true;
         }
 
         @Override
@@ -691,7 +701,6 @@ public final class CarouselArrows {
 
         @Override
         public boolean preDraw(Activity owner, boolean laidOut) {
-            boolean changed = false;
             try {
                 if (!wanted()) {
                     putBack();
@@ -715,41 +724,39 @@ public final class CarouselArrows {
                         if (dotsId == 0) HookStatus.missingViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                         else HookStatus.recoveredViewId(FamilyNames.CAROUSEL_ARROWS, DOTS);
                     }
-                    changed = walk(owner.getWindow().getDecorView(), id, video, dotted, dotsId, new int[] {ReelCorners.MAX_VIEWS});
+                    walk(owner.getWindow().getDecorView(), id, video, dotted, dotsId, new int[] {ReelCorners.MAX_VIEWS});
                 }
-                changed |= follow();
+                follow();
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.CAROUSEL_ARROWS, HOOK, failure);
             }
-            // Arrows and pills shown, hidden or moved now are drawn on the next frame.
-            return changed;
+            // Whatever moved or changed here is in this frame's draw, and an added view shows nothing until its layout.
+            return false;
         }
 
         /**
          * Gives arrows or a pill to the carousel of each photo page frame with [id], or video page frame with
          * [video], under [view], and while [dotted] keeps Instagram's page dots ({@link #isDots}) for
-         * {@link #dotsUnder}. True when any were added.
+         * {@link #dotsUnder}.
          */
-        private boolean walk(View view, int id, int video, boolean dotted, int dotsId, int[] budget) {
-            if (budget[0]-- <= 0) return false;
+        private void walk(View view, int id, int video, boolean dotted, int dotsId, int[] budget) {
+            if (budget[0]-- <= 0) return;
             if (dotted && isDots(view, dotsId)) dots.add(new WeakReference<>(view));
             if (view.getId() == id || (video != 0 && view.getId() == video)) {
                 ViewGroup pager = pagerOf(view);
-                if (pager == null || !give(pager)) return false;
+                if (pager == null || !give(pager)) return;
                 if (Settings.CAROUSEL_ARROWS.get()) HookStatus.counted(FamilyNames.CAROUSEL_ARROWS, COUNT_SHOWN);
                 if (Settings.CAROUSEL_DOTS_PILL.get()) HookStatus.counted(FamilyNames.CAROUSEL_ARROWS, COUNT_PILLS);
                 if (!logged) {
                     logged = true;
                     Logger.printDebug(() -> "Carousel arrows: gave a carousel its arrows or pill");
                 }
-                return true;
+                return;
             }
-            boolean changed = false;
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
-                for (int i = 0; i < group.getChildCount(); i++) changed |= walk(group.getChildAt(i), id, video, dotted, dotsId, budget);
+                for (int i = 0; i < group.getChildCount(); i++) walk(group.getChildAt(i), id, video, dotted, dotsId, budget);
             }
-            return changed;
         }
     }
 }
