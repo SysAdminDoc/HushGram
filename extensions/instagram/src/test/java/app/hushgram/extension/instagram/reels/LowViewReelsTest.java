@@ -124,6 +124,9 @@ public class LowViewReelsTest {
         Clip followed = clip(3, true);
         Clip low = clip(3, false);
         assertEquals(Arrays.asList(none, followed), page(Arrays.asList(none, followed, low), REELS_TAB));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(LowViewReels.NO_VIEWS));
+        assertTrue(report, report.contains(LowViewReels.FOLLOWED));
     }
 
     @Test
@@ -133,6 +136,7 @@ public class LowViewReelsTest {
         Object other = "not a reels item";
         Clip empty = new Clip(null);
         assertEquals(Arrays.asList(null, other, empty, high), page(Arrays.asList(null, other, low, empty, high), REELS_TAB));
+        assertTrue(FeedFilterCounters.report().toString().contains(LowViewReels.NOT_A_REEL));
     }
 
     @Test

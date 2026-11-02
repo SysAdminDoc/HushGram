@@ -35,6 +35,11 @@ public final class LowViewReels {
     /** The reason, and kind, of an item whose view count is under the minimum. */
     static final String BELOW = "below the minimum";
 
+    /** The kinds counted for an item that stays: not a reel with a post, a post with no count, a followed author under the minimum. */
+    static final String NOT_A_REEL = "no post read";
+    static final String NO_VIEWS = "no view count";
+    static final String FOLLOWED = "followed author kept";
+
     /** The kind counted for a page left whole because every reel in it matched. */
     static final String PAGE_KEPT = "page kept whole";
 
@@ -107,11 +112,18 @@ public final class LowViewReels {
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
-                if (media != null) reels++;
                 boolean hit = false;
-                if (media != null) {
+                if (media == null) {
+                    FeedFilterCounters.sawKind(ROUTE, NOT_A_REEL);
+                } else {
+                    reels++;
                     long views = reader.views(media);
-                    hit = views != NO_COUNT && views < least && !reader.followed(media);
+                    if (views == NO_COUNT) {
+                        FeedFilterCounters.sawKind(ROUTE, NO_VIEWS);
+                    } else if (views < least) {
+                        if (reader.followed(media)) FeedFilterCounters.sawKind(ROUTE, FOLLOWED);
+                        else hit = true;
+                    }
                 }
                 if (hit) {
                     matched++;
