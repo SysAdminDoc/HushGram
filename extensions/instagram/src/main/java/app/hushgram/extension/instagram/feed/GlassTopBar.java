@@ -56,6 +56,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>A background Instagram puts on the header or on a view in it as wide as the header would cover the
  * glass, so each frame takes it off and keeps it. Everything goes back when the switch is off, HushGram
  * is paused or the header leaves the window. It fails open: anything thrown puts Instagram's header back.
+ *
+ * <p>On Home the feed is also taken behind the status bar and the glass reaches up over it (#462), see
+ * {@link GlassReach}.
  */
 public final class GlassTopBar {
     static final String HOOK = "top bar glass";
@@ -118,6 +121,14 @@ public final class GlassTopBar {
     /** Whether [header] has the glass showing now. */
     public static boolean showing(View header) {
         return header.getBackground() instanceof Frost;
+    }
+
+    /** How far [header]'s glass reaches above its top edge and below its bottom one, behind the status bar. */
+    static int[] reach(View header) {
+        Drawable background = header.getBackground();
+        if (!(background instanceof Frost)) return new int[] {0, 0};
+        Glass glass = ((Frost) background).glass;
+        return new int[] {glass.above, glass.below};
     }
 
     /** Whether [header]'s glass has its backdrop recorded. */
@@ -185,10 +196,17 @@ public final class GlassTopBar {
         private boolean on;
         private boolean broken;
         int base = Color.BLACK;
+        /** Takes Home's feed behind the status bar (#462). Null for a chat's header. */
+        @Nullable private final GlassReach reach;
+        /** How far the glass reaches past the header's top and bottom edges, to cover the status bar. */
+        int above;
+        int below;
 
         @Nullable private RenderNode node;
         private int nodeBlurDp = -1;
         float nodePad;
+        private int nodeAbove;
+        private int nodeBelow;
         boolean recorded;
         private long recordedAt;
         private float lastX = Float.NaN;
@@ -201,6 +219,7 @@ public final class GlassTopBar {
             this.enabled = enabled;
             this.family = family;
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
+            this.reach = FamilyNames.HOME_TOP_BAR.equals(family) ? new GlassReach() : null;
         }
 
         @Override
@@ -265,6 +284,22 @@ public final class GlassTopBar {
             boolean night = (header.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK)
                     == Configuration.UI_MODE_NIGHT_YES;
             base = base(original, cleared.values(), night);
+            reachUnder(host);
+        }
+
+        /** Takes the feed behind the status bar, then works out how far the glass reaches over it. */
+        private void reachUnder(@Nullable View host) {
+            above = 0;
+            below = 0;
+            if (reach == null || host == null || !(host.getParent() instanceof ViewGroup)) return;
+            ViewGroup source = (ViewGroup) host.getParent();
+            int gap = reach.reach(source, source.indexOfChild(host));
+            if (gap <= 0) return;
+            int top = reach.headerTop(header);
+            if (top == Integer.MIN_VALUE) return;
+            // From the window's top edge down, even with the header slid partly away.
+            above = Math.max(0, top);
+            below = Math.max(0, gap - top - header.getHeight());
         }
 
         private void clearIn(ViewGroup group, int wide, int depth) {
@@ -291,6 +326,9 @@ public final class GlassTopBar {
             }
             cleared.clear();
             original = null;
+            if (reach != null) reach.retreat();
+            above = 0;
+            below = 0;
         }
 
         private void forgetBackdrop() {
@@ -332,8 +370,10 @@ public final class GlassTopBar {
                 }
             }
             int blurDp = Settings.GLASS_TAB_BAR_BLUR_RADIUS.get();
+            int up = above;
+            int down = below;
             boolean same = recorded && x == lastX && y == lastY && width == lastWidth && height == lastHeight
-                    && blurDp == nodeBlurDp;
+                    && blurDp == nodeBlurDp && up == nodeAbove && down == nodeBelow;
             if (same && now - recordedAt < GlassTabBar.RECORD_EVERY_MS) return;
             if (tries.resting(now)) return;
             try {
@@ -341,7 +381,7 @@ public final class GlassTopBar {
                 float scale = 1f / DOWNSAMPLE;
                 float pad = GlassBlur.radiusPx(blurDp, density);
                 float wide = width + 2 * pad;
-                float tall = height + 2 * pad;
+                float tall = height + up + down + 2 * pad;
                 int nodeWidth = Math.max(1, (int) Math.ceil(wide * scale));
                 int nodeHeight = Math.max(1, (int) Math.ceil(tall * scale));
                 RenderNode backdrop = node;
@@ -362,7 +402,7 @@ public final class GlassTopBar {
                 }
                 backdrop.setPosition(0, 0, nodeWidth, nodeHeight);
                 float left = x - pad;
-                float top = y - pad;
+                float top = y - up - pad;
                 Canvas recording = backdrop.beginRecording(nodeWidth, nodeHeight);
                 try {
                     recording.scale(scale, scale);
@@ -380,6 +420,8 @@ public final class GlassTopBar {
                     backdrop.endRecording();
                 }
                 nodePad = pad;
+                nodeAbove = up;
+                nodeBelow = down;
                 recorded = true;
                 recordedAt = now;
                 lastX = x;
@@ -394,14 +436,14 @@ public final class GlassTopBar {
             }
         }
 
-        /** Draws the blurred backdrop over [bounds] and says whether it did. */
+        /** Draws the blurred backdrop over [bounds], the header's plus the reach past it, and says whether it did. */
         boolean drawBackdrop(Canvas canvas, Rect bounds) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !recorded || node == null
                     || !canvas.isHardwareAccelerated()) return false;
             int saved = canvas.save();
             try {
                 canvas.clipRect(bounds);
-                canvas.translate(-nodePad, -nodePad);
+                canvas.translate(-nodePad, -nodePad - nodeAbove);
                 canvas.scale(DOWNSAMPLE, DOWNSAMPLE);
                 canvas.drawRenderNode(node);
             } finally {
@@ -415,6 +457,7 @@ public final class GlassTopBar {
     static final class Frost extends Drawable {
         final Glass glass;
         private final Paint paint = new Paint();
+        private final Rect area = new Rect();
         private final int hairline;
 
         Frost(Glass glass, float density) {
@@ -427,11 +470,13 @@ public final class GlassTopBar {
             Rect bounds = getBounds();
             if (bounds.isEmpty()) return;
             int base = glass.base;
-            boolean blurred = glass.drawBackdrop(canvas, bounds);
+            // Past the header's edges over the status bar: nothing clips a background's own node there.
+            area.set(bounds.left, bounds.top - glass.above, bounds.right, bounds.bottom + glass.below);
+            boolean blurred = glass.drawBackdrop(canvas, area);
             paint.setColor(GlassTabBar.tint(base, blurred, GlassTabBar.opacityScale()));
-            canvas.drawRect(bounds, paint);
+            canvas.drawRect(area, paint);
             paint.setColor(hairline(base));
-            canvas.drawRect(bounds.left, bounds.bottom - hairline, bounds.right, bounds.bottom, paint);
+            canvas.drawRect(area.left, area.bottom - hairline, area.right, area.bottom, paint);
         }
 
         @Override public void setAlpha(int alpha) { }
