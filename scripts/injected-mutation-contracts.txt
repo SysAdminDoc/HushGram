@@ -2115,6 +2115,15 @@ shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z 
 shared-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->answer(I)Z in instance (Landroid/os/Bundle;)V holding android_purge_26_q2_ClipsPiPFragment_onCreate
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->stored(I)V in instance (Landroidx/fragment/app/FragmentActivity;Lcom/instagram/common/session/UserSession;L*;Lkotlin/jvm/functions/Function0;IJZ)V sites 2 holding android_purge_26_q3_ClipsOptInAutoscrollPluginImpl_handleAutoscrollModeClick
 once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->timerSet(J)V in instance ()Ljava/lang/Object; calling static Ljava/lang/System;->currentTimeMillis()J sites 3 holding Landroidx/compose/foundation/lazy/LazyListState;->A02()LX/*; const:0x36ee80 const:0x5265c00
+# The auto scroller's constructor (048m.<init> on 453.0.0.57.79's 385914557, the one method holding
+# the scroll buffer marker below, loaded straight on all eight 453 builds) keeps the server switch
+# that lets its progress ticks move on before a reel loops, then the lead time clamped to 10..400 ms.
+# Each write is handed through its hook first, ReelAutoScroll.lead for the switch and leadTime for
+# the time, at the write's control flow label so the clamp's branches to the time's write land on
+# it (#473). Left out, the reel starts over before the next one slides in; twice or elsewhere, it
+# isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->lead(I)Z in instance (*)V holding android_purge_26_q2_ClipsViewerExperimentUtil_getAutoscrollScrollBufferMs
+once-call Lapp/hushgram/extension/instagram/reels/ReelAutoScroll;->leadTime(I)I in instance (*)V holding android_purge_26_q2_ClipsViewerExperimentUtil_getAutoscrollScrollBufferMs
 # Move on when a reel ends (#175) is for accounts Instagram offers no auto scroll to. There the Reels
 # viewer builds no scroller, so its one read of whether auto scroll is offered passes through
 # ReelAutoScroll.install right after it, in front of the branch that skips building the scroller. The
