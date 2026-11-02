@@ -1539,3 +1539,9 @@ Couldn't read that picture.	Das Bild ließ sich nicht lesen.
 This launcher can't add it.	Dieser Launcher kann es nicht hinzufügen.
 Glass in chats	Glas in Chats
 Gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Gibt der oberen Leiste eines Chats Milchglas und setzt die Buttons für Zurück, Anruf und Video auf runde Glaskreise. Sichtbar beim nächsten Öffnen eines Chats. Der Weichzeichner braucht Android 12 oder neuer.
+# context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary; %1$s is a number with thousands separators (#444)
+Hide reels with few views	Reels mit wenigen Aufrufen ausblenden
+Leaves out reels in the Reels tab that fewer people have watched than the number below. Reels from accounts you follow, reels sent to you and reels with no view count still play.	Lässt im Reels-Tab Reels weg, die weniger Leute gesehen haben als die Zahl unten. Reels von Konten, denen du folgst, Reels, die man dir schickt, und Reels ohne Aufrufzahl laufen weiter.
+Minimum views	Mindestaufrufe
+Reels with fewer views than this are left out. Type a whole number.	Reels mit weniger Aufrufen werden weggelassen. Gib eine ganze Zahl ein.
+Fewer than %1$s views	Weniger als %1$s Aufrufe

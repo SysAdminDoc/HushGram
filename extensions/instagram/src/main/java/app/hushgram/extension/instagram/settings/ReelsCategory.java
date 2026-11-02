@@ -7,6 +7,7 @@
 package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.blockedWordsRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.minViewsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.burnInGuardRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.burnInWaitRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
@@ -64,6 +65,12 @@ final class ReelsCategory {
                         L10n.t("Leaves out posts on Home whose caption holds a word or phrase from the list too. "
                                 + "Pull down on Home to refresh after changing it.")));
             }
+        }
+        if (build.contains(PatchFamily.LOW_VIEW_REELS)) {
+            reels.add(toggle(context, Settings.HIDE_LOW_VIEW_REELS, L10n.t("Hide reels with few views"),
+                    L10n.t("Leaves out reels in the Reels tab that fewer people have watched than the number below. "
+                            + "Reels from accounts you follow, reels sent to you and reels with no view count still play.")));
+            reels.add(minViewsRow(context));
         }
         if (build.contains(PatchFamily.REEL_DECLUTTER)) {
             reels.add(toggle(context, Settings.HIDE_REEL_FOLLOW_BUTTON, L10n.t("Hide the Follow button"),

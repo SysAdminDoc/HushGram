@@ -1953,6 +1953,12 @@ once-call Lapp/hushgram/extension/instagram/reels/CaptionWordReels;->page(Ljava/
 # DownloadReelHookTest checks on every build.
 once-call Lapp/hushgram/extension/instagram/reels/HiddenSounds;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
 
+# Hide reels with few views hands the same pages, at the same join, to LowViewReels.page, once
+# (#444). Its stubs read the post's play counts and whether the author is followed through
+# getters HideLowViewReelsHookTest finds on every retained build; the join itself is checked by
+# HidePaidPartnershipReelsHookTest.
+once-call Lapp/hushgram/extension/instagram/reels/LowViewReels;->page(Ljava/util/List;Ljava/lang/String;)Ljava/util/List; in instance (L*;)V holding android_purge_26_q2_ClipsItemsNetworkCallback_onSuccess
+
 # Show a reel's exact time hands the Reels title and the list of its column's parts to
 # ReelPostTime.line just before the title makes that column (the one method loading the title's
 # render marker below), once, so the line with the time goes in after the name row and Instagram's

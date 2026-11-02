@@ -346,6 +346,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean lowViewReels() {
+        return false;
+    }
+
     public static boolean commentCopy() {
         return false;
     }

@@ -1872,6 +1872,22 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_CAPTION_WORD_HOME =
             new BooleanSetting("hushgram_hide_caption_word_home", FALSE, parent(HIDE_CAPTION_WORD_REELS));
 
+    /**
+     * Reels in the Reels tab with fewer views than {@link #MIN_REEL_VIEWS}, unless their author is
+     * followed ({@link app.hushgram.extension.instagram.reels.LowViewReels}). Read as each page of
+     * reels arrives, so a change shows from the next page. Off to start (#444).
+     */
+    public static final BooleanSetting HIDE_LOW_VIEW_REELS =
+            new BooleanSetting("hushgram_hide_low_view_reels", FALSE);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the view count a reel needs to stay, typed as a number.
+     * Starts at 1,000. A value control, not a switch.
+     */
+    public static final IntegerSetting MIN_REEL_VIEWS =
+            new IntegerSetting("hushgram_min_reel_views", 1000, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(1, 100_000_000);
+
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =
             new BooleanSetting("hushgram_copy_comments", FALSE);

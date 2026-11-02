@@ -703,6 +703,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.LIKE_ANIMATION && Settings.LIKE_ANIMATION.key.equals(key);
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
+                    belongs |= family == PatchFamily.LOW_VIEW_REELS && Settings.MIN_REEL_VIEWS.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
@@ -6138,6 +6139,84 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         /** Its edit dialog takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The view count Hide reels with few views keeps a reel at, typed as a number (#444). */
+    static MinViewsRow minViewsRow(Context context) {
+        MinViewsRow row = new MinViewsRow(context);
+        row.setKey(Settings.MIN_REEL_VIEWS.key);
+        row.setTitle(L10n.t("Minimum views"));
+        row.setDialogTitle(L10n.t("Minimum views"));
+        row.setDialogMessage(L10n.t("Reels with fewer views than this are left out. Type a whole number."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_NUMBER);
+        field.setSingleLine(true);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(9)});
+        row.setText(String.valueOf(Settings.MIN_REEL_VIEWS.savedValue()));
+        return row;
+    }
+
+    /** What the minimum views row says under its title. */
+    static String minViewsSummary(String stored) {
+        return String.format(L10n.t("Fewer than %1$s views"),
+                java.text.NumberFormat.getIntegerInstance().format(MinViewsRow.valueOf(stored)));
+    }
+
+    /**
+     * The minimum views row, a number typed in a dialog. Its text is always a whole number inside the
+     * setting's range, and its summary follows it, whoever sets it.
+     */
+    static final class MinViewsRow extends EditTextPreference {
+        MinViewsRow(Context context) {
+            super(context);
+        }
+
+        /** [text] as a count inside the setting's range, or its default when it isn't a number. */
+        static int valueOf(@Nullable String text) {
+            try {
+                long value = Long.parseLong(text == null ? "" : text.trim());
+                return (int) Math.max(Settings.MIN_REEL_VIEWS.minimum(), Math.min(Settings.MIN_REEL_VIEWS.maximum(), value));
+            } catch (NumberFormatException notANumber) {
+                return Settings.MIN_REEL_VIEWS.defaultValue;
+            }
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override
+        protected void onDialogClosed(boolean positiveResult) {
+            // What was typed is brought inside the range first, so the setting never takes an empty or huge count.
+            if (positiveResult) getEditText().setText(String.valueOf(valueOf(getEditText().getText().toString())));
+            super.onDialogClosed(positiveResult);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(minViewsSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours and shrinks to fit above the keyboard, as the other rows' dialogs do. */
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);

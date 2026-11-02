@@ -398,7 +398,7 @@ private fun virtual(getter: Method) = "invoke-virtual {p0}, ${getter.definingCla
  * The call to the getter for [field] through [type], an interface, by the name [pando], the
  * tree-backed class implementing it, gives the getter. The interface must declare it.
  */
-private fun BytecodePatchContext.throughInterface(patch: String, type: String, pando: String, field: String, returns: String): String {
+internal fun BytecodePatchContext.throughInterface(patch: String, type: String, pando: String, field: String, returns: String): String {
     val getter = pandoGetter(patch, pando, field, returns)
     if (anInterface(patch, type).methods.none { it.name == getter.name && it.parameterTypes.isEmpty() && it.returnType == returns }) {
         throw PatchException("$patch: $type doesn't declare ${getter.name}, the getter for $field")
