@@ -25,8 +25,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>The heart that pops up over a post on a double tap is one drawable Instagram plays each time.
  * The patch tells this class when any drawable of that kind starts playing ({@link #played}), and
  * wraps the heart's own draw call in {@link #begin} and {@link #end}. Each double tap on the same
- * heart within {@link #WINDOW_MS} of the last one is a step bigger ({@link #STEPS}), with a small
+ * post within {@link #WINDOW_MS} of the last one is a step bigger ({@link #STEPS}), with a small
  * spring overshoot on the way, and the first tap after the window starts at the normal size again.
+ * A reel keeps one heart, but a feed post builds a new one for every double tap, so a run follows
+ * the view the heart draws into ({@link Drawable#getCallback}) and not the drawable. A heart that
+ * isn't in a view yet when it starts playing, as the feed's isn't, counts as the same post when
+ * it plays inside the window: nobody scrolls to another post and double taps it that fast.
  * Nothing Instagram stores is written: with the switch off or HushGram paused the heart is drawn
  * as it was.
  */
@@ -49,6 +53,8 @@ public final class LikeHeartGrowth {
 
     private static LongSupplier clock = SystemClock::uptimeMillis;
     private static WeakReference<Object> last = new WeakReference<>(null);
+    /** The view the run's heart draws into, once it's known. */
+    private static WeakReference<Object> lastHost = new WeakReference<>(null);
     private static long lastAt = Long.MIN_VALUE / 2;
     private static int step;
     private static float from = 1f;
@@ -84,22 +90,46 @@ public final class LikeHeartGrowth {
         }
     }
 
-    /** One double tap on [heart] at [now]: the next step of the run, or the first step of a new one. */
+    /**
+     * One double tap on [heart] at [now]: the next step of the run, or the first step of a new one. A
+     * second heart playing within {@link #SAME_TAP_MS} belongs to the same double tap: a fresh heart
+     * for the same post takes the run's size over, and any other is left out of the run.
+     */
     static void tap(Object heart, long now) {
-        boolean sameHeart = last.get() == heart;
-        if (sameHeart && now - lastAt < SAME_TAP_MS) return;
-        boolean run = sameHeart && now - lastAt <= WINDOW_MS;
-        from = run ? scaleAt(heart, now) : 1f;
+        Object host = heart instanceof Drawable ? ((Drawable) heart).getCallback() : null;
+        boolean samePost = samePost(heart, host);
+        if (now - lastAt < SAME_TAP_MS) {
+            if (samePost) {
+                last = new WeakReference<>(heart);
+                if (host != null) lastHost = new WeakReference<>(host);
+            }
+            return;
+        }
+        boolean run = samePost && now - lastAt <= WINDOW_MS;
+        from = run ? runScale(now) : 1f;
         step = run ? Math.min(step + 1, STEPS.length - 1) : 0;
         last = new WeakReference<>(heart);
+        if (host != null || !run) lastHost = new WeakReference<>(host);
         lastAt = now;
         startedAt = now;
         if (step > 0) HookStatus.counted(FamilyNames.LIKE_ANIMATION, COUNT_GREW);
     }
 
+    /** Whether [heart], drawn into [host], is on the run's post: the same heart, the same view, or a view not known yet. */
+    private static boolean samePost(Object heart, @Nullable Object host) {
+        if (last.get() == heart) return true;
+        Object runHost = lastHost.get();
+        return host == null || runHost == null || host == runHost;
+    }
+
     /** The size [heart] is drawn at at [now]: 1 unless it is the one the run is on. */
     static float scaleAt(@Nullable Object heart, long now) {
         if (heart == null || last.get() != heart) return 1f;
+        return runScale(now);
+    }
+
+    /** The run's size at [now], on its spring from the size it was at toward its step. */
+    private static float runScale(long now) {
         float target = STEPS[step];
         long age = now - startedAt;
         if (age >= SETTLED_MS || from == target) return target;
@@ -119,6 +149,7 @@ public final class LikeHeartGrowth {
         scaled = null;
         try {
             if (canvas == null || !(heart instanceof Drawable) || !enabled()) return;
+            if (heart == last.get() && lastHost.get() == null) lastHost = new WeakReference<>(((Drawable) heart).getCallback());
             float scale = scaleAt(heart, clock.getAsLong());
             if (scale == 1f) return;
             Rect bounds = ((Drawable) heart).getBounds();
@@ -152,6 +183,7 @@ public final class LikeHeartGrowth {
     static void resetForTests() {
         clock = SystemClock::uptimeMillis;
         last = new WeakReference<>(null);
+        lastHost = new WeakReference<>(null);
         lastAt = Long.MIN_VALUE / 2;
         step = 0;
         from = 1f;

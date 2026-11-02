@@ -42,6 +42,8 @@ public class LikeHeartGrowthTest {
     private final AtomicLong now = new AtomicLong(10_000L);
     private final Drawable heart = new ColorDrawable(0xffff0000);
     private final Drawable other = new ColorDrawable(0xff00ff00);
+    private final Drawable.Callback post = new Host();
+    private final Drawable.Callback otherPost = new Host();
 
     @Before
     public void prepare() {
@@ -121,7 +123,9 @@ public class LikeHeartGrowthTest {
     }
 
     @Test
-    public void aTapOnAnotherHeartIsAnotherRun() {
+    public void aTapOnAHeartInAnotherViewIsAnotherRun() {
+        heart.setCallback(post);
+        other.setCallback(otherPost);
         tapAfter(0, heart);
         tapAfter(600, heart);
         assertEquals(1.25f, settled(heart), 0f);
@@ -129,6 +133,71 @@ public class LikeHeartGrowthTest {
         tapAfter(600, other);
         assertEquals(1.0f, settled(other), 0f);
         assertEquals("the first one isn't drawn big any more", 1.0f, settled(heart), 0f);
+    }
+
+    /** A feed post builds a new heart for every double tap, in the same view. */
+    @Test
+    public void aNewHeartInTheSameViewKeepsGrowing() {
+        Drawable second = new ColorDrawable(0xff0000ff);
+        heart.setCallback(post);
+        second.setCallback(post);
+        tapAfter(0, heart);
+        tapAfter(1_250, second);
+        assertEquals(1.25f, settled(second), 0f);
+        assertEquals("the old heart isn't the one drawn big", 1.0f, settled(heart), 0f);
+    }
+
+    /** The feed's heart isn't in a view yet when it starts playing. */
+    @Test
+    public void aNewHeartNotInAViewYetKeepsGrowingInsideTheWindow() {
+        Drawable second = new ColorDrawable(0xff0000ff);
+        Drawable third = new ColorDrawable(0xff00ffff);
+        tapAfter(0, heart);
+        tapAfter(1_250, second);
+        tapAfter(1_250, third);
+        assertEquals(1.5f, settled(third), 0f);
+
+        tapAfter(LikeHeartGrowth.WINDOW_MS + 1, heart);
+        assertEquals("after the window it starts over", 1.0f, settled(heart), 0f);
+    }
+
+    /** The view a heart was drawn into is kept, so a heart in another view later starts its own run. */
+    @Test
+    public void theViewIsLearnedWhenTheHeartIsDrawn() {
+        Settings.CHANGE_LIKE_ANIMATION.save(true);
+        Settings.GROW_LIKE_HEART.save(true);
+        tapAfter(0, heart);
+        heart.setCallback(post);
+        LikeHeartGrowth.begin(heart, canvas());
+        LikeHeartGrowth.end();
+        other.setCallback(otherPost);
+        tapAfter(600, other);
+        assertEquals(1.0f, settled(other), 0f);
+    }
+
+    /** Two hearts start with one double tap, like the like button's own: the one in another view stays out of the run. */
+    @Test
+    public void aHeartPlayingWithTheTapInAnotherViewIsLeftOut() {
+        heart.setCallback(post);
+        other.setCallback(otherPost);
+        tapAfter(0, heart);
+        tapAfter(100, other);
+        assertEquals(1.0f, settled(other), 0f);
+        tapAfter(600, heart);
+        assertEquals(1.25f, settled(heart), 0f);
+    }
+
+    /** A new heart for the same post inside one double tap takes the size over without a step. */
+    @Test
+    public void aNewHeartInsideTheSameTapTakesTheSizeOver() {
+        Drawable fresh = new ColorDrawable(0xff0000ff);
+        tapAfter(0, heart);
+        tapAfter(600, heart);
+        tapAfter(100, fresh);
+        assertEquals(1.25f, settled(fresh), 0f);
+        assertEquals(1.0f, settled(heart), 0f);
+        tapAfter(600, fresh);
+        assertEquals(1.5f, settled(fresh), 0f);
     }
 
     @Test
@@ -268,6 +337,18 @@ public class LikeHeartGrowthTest {
 
         @Override public void restore() {
             calls.add("restore");
+        }
+    }
+
+    /** The view a heart draws into. */
+    private static final class Host implements Drawable.Callback {
+        @Override public void invalidateDrawable(Drawable who) {
+        }
+
+        @Override public void scheduleDrawable(Drawable who, Runnable what, long when) {
+        }
+
+        @Override public void unscheduleDrawable(Drawable who, Runnable what) {
         }
     }
 }
