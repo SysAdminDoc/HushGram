@@ -26,7 +26,9 @@ public enum AppIconChoice {
     /** Instagram's gradient glyph on a dark tile (#327, #437). */
     GRADIENT("gradient"),
     /** The old brown and cream camera icon (#437). */
-    RETRO("retro");
+    RETRO("retro"),
+    /** Instagram's glyph in deep pink on pale pink (#470). */
+    PINK("pink");
 
     /** The end of this icon's alias, as the patch names it, or null for Instagram's own. */
     @Nullable public final String key;

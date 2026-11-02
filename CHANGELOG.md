@@ -21,6 +21,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Pick the app icon` gets a `Custom app icon` row under Layout. Pick a picture from your phone, drag and zoom it into the frame, and it's added to your home screen as an icon that opens Instagram. Asked for in #442.
 * **Instagram:** HushGram's settings now come in Vietnamese. Asked for in #439.
 * **Instagram:** `App icon` adds two more choices, Instagram's gradient glyph on dark and the old brown and cream camera icon. Themed icons show Instagram's glyph for both, since the camera's solid square would come out as a blank tile. Asked for in #327 and #437.
+* **Instagram:** `App icon` adds `Instagram in pink`, Instagram's glyph in a deep pink on pale pink. Themed icons show the usual glyph. Asked for in #470.
 * **Instagram:** `Menu button on Home's header` adds a button at the top of Home that opens your viewing history, Ghost mode and HushGram settings. It starts off. Asked for in #437.
 * **Instagram:** `Seek bar button on feed videos` adds a small button on a feed video that shows or hides its seek bar. It starts off. Asked for in #437.
 * **Instagram:** `Keep stories playing while zooming` is a new patch. With its switch on under Stories, a story keeps playing while you pinch to zoom it. Hold it still first and it stays paused. It starts off. Asked for in #382.

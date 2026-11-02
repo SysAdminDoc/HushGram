@@ -136,7 +136,8 @@ class AppIconsTest {
      * HushGram's icon is its mark on the gradient, the next two are Instagram's glyph on a color, and the
      * light one a black copy of that glyph on white (#353), its themed layer still Instagram's glyph. The
      * hand-drawn one (#406) is the picture the patch carries on white, which is its themed layer too. The
-     * retro camera fills its square, so its themed layer is Instagram's glyph (#437).
+     * retro camera fills its square, so its themed layer is Instagram's glyph (#437). The pink one (#470)
+     * is a deep pink copy of the glyph on pale pink.
      */
     @Test
     fun eachIconHasItsBackgroundAndItsFront() {
@@ -150,6 +151,7 @@ class AppIconsTest {
                 "mipmap-anydpi/hushgram_icon_hushgram.xml", "mipmap-anydpi/hushgram_icon_dark.xml", "mipmap-anydpi/hushgram_icon_plum.xml",
                 "mipmap-anydpi/hushgram_icon_light.xml", "mipmap-anydpi/hushgram_icon_sketch.xml",
                 "mipmap-anydpi/hushgram_icon_gradient.xml", "mipmap-anydpi/hushgram_icon_retro.xml",
+                "drawable/hushgram_icon_pink_background.xml", "drawable/hushgram_icon_pink_glyph.xml", "mipmap-anydpi/hushgram_icon_pink.xml",
             ),
             files.keys,
         )
@@ -164,6 +166,13 @@ class AppIconsTest {
         assertEquals(listOf("@drawable/hushgram_icon_gradient_background", "@drawable/hushgram_icon_gradient_art", "@drawable/hushgram_icon_gradient_art"), layers("gradient"))
         assertEquals("the retro camera is solid, so themed icons take Instagram's glyph",
             listOf("@drawable/hushgram_icon_retro_background", "@drawable/hushgram_icon_retro_art", "@drawable/ig_launcher_monochrome"), layers("retro"))
+        assertEquals("the pink one is Instagram's glyph tinted deep pink, its themed layer still Instagram's glyph",
+            listOf("@drawable/hushgram_icon_pink_background", "@drawable/hushgram_icon_pink_glyph", "@drawable/ig_launcher_monochrome"), layers("pink"))
+        assertEquals("#FFF4DDE5", parse(files.getValue("drawable/hushgram_icon_pink_background.xml")).elements("solid").single().getAttribute("android:color"))
+        val pink = parse(files.getValue("drawable/hushgram_icon_pink_glyph.xml"))
+        assertEquals("#FFCD4B6F", pink.documentElement.getAttribute("android:tint"))
+        assertEquals("the glyph's own shape", parse(GLYPH).elements("path").map { it.getAttribute("android:pathData") },
+            pink.elements("path").map { it.getAttribute("android:pathData") })
         assertEquals("#FF2F2F2F", parse(files.getValue("drawable/hushgram_icon_gradient_background.xml")).elements("gradient").single().getAttribute("android:startColor"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_light_background.xml")).elements("solid").single().getAttribute("android:color"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_sketch_background.xml")).elements("solid").single().getAttribute("android:color"))

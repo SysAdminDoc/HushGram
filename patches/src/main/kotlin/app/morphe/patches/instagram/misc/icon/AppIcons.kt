@@ -90,6 +90,8 @@ internal val HUSHGRAM_ICONS = listOf(
     HushgramIcon("gradient", DARK_GRADIENT, instagramGlyph = false, art = "gradient.png"),
     // The camera fills its square, so themed icons show Instagram's glyph for it instead of a blank tile.
     HushgramIcon("retro", solid("#FFFFFFFF"), instagramGlyph = false, art = "retro.png", artThemed = false),
+    // Instagram's glyph in a deep pink on pale pink, the colors of the picture asked for in #470.
+    HushgramIcon("pink", solid("#FFF4DDE5"), instagramGlyph = true, glyphTint = "#FFCD4B6F"),
 )
 
 /** HushGram's H and ribbon in front of an icon. */
