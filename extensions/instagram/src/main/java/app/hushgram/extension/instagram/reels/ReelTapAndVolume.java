@@ -57,6 +57,8 @@ public final class ReelTapAndVolume {
                 return true;
             }
             if (choice == ReelTapChoice.PAUSE) HookStatus.counted(FamilyNames.REEL_TAP_AND_VOLUME, TAP_PAUSED);
+            // The reel is about to pause: Burn-in guard's Light when paused (#457) brings the controls back.
+            BurnInGuard.reelPaused();
             return false;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_TAP_AND_VOLUME, TAP, failure);

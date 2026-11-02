@@ -2252,6 +2252,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_burn_in_stay_dim", FALSE);
 
     /**
+     * Burn-in guard's Light when paused (#457): pausing a reel brings the controls to full brightness and keeps
+     * them there while it's paused. Playing it again, or swiping on, starts the wait from zero. Read at each
+     * pause, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting BURN_IN_LIGHT_WHEN_PAUSED =
+            new BooleanSetting("hushgram_burn_in_light_when_paused", FALSE);
+
+    /**
      * Download in every reel's more menu, saving the reel through the save pipeline below instead
      * of Instagram's own save, which only some reels offer and which stamps a watermark on.
      */

@@ -120,6 +120,11 @@ final class ReelsCategory {
             reels.add(toggle(context, Settings.BURN_IN_STAY_DIM, L10n.t("Stay dim when I tap"),
                     L10n.t("Once Burn-in guard fades the buttons, they stay faded on Reels whatever you tap or swipe, "
                             + "the next reel too. They still work. Leaving Reels brings them back.")));
+            if (build.contains(PatchFamily.REEL_TAP_AND_VOLUME)) {
+                reels.add(toggle(context, Settings.BURN_IN_LIGHT_WHEN_PAUSED, L10n.t("Light when paused"),
+                        L10n.t("Pause a reel and Burn-in guard brings the buttons back to full brightness until you play "
+                                + "it again or swipe on. The wait then starts over.")));
+            }
             reels.add(toggle(context, Settings.KEEP_REEL_CLEAR_MODE, L10n.t("Keep clear mode on"),
                     L10n.t("Turn on Instagram's clear mode on a reel and the next reels open in it too. Leave clear "
                             + "mode yourself and the next reels show their buttons again.")));

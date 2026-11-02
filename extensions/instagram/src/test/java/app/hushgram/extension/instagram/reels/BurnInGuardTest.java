@@ -74,6 +74,7 @@ public class BurnInGuardTest {
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
         Settings.BURN_IN_STAY_DIM.resetToDefault();
+        Settings.BURN_IN_LIGHT_WHEN_PAUSED.resetToDefault();
         PauseForTests.resume();
         BurnInGuard.resetForTests();
         FullScreenBars.idForTests(FullScreenBars.VIEWER, VIEWER);
@@ -126,6 +127,7 @@ public class BurnInGuardTest {
         Settings.BURN_IN_GUARD.resetToDefault();
         Settings.BURN_IN_WAIT.resetToDefault();
         Settings.BURN_IN_STAY_DIM.resetToDefault();
+        Settings.BURN_IN_LIGHT_WHEN_PAUSED.resetToDefault();
         PauseForTests.resume();
     }
 
@@ -582,6 +584,70 @@ public class BurnInGuardTest {
         homeTab.setSelected(true);
         relayout();
         assertEquals("leaving Reels brings the tab bar back", 1f, bar.getAlpha(), 0f);
+    }
+
+    /**
+     * Light when paused (#457): the Reels tap pausing a dimmed reel brings the controls to full brightness and
+     * they stay there however long it's paused. A tap on the reel plays it again and the wait starts from zero.
+     */
+    @Test public void pausingAReelLightsTheControlsUntilItPlaysAgain() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        Settings.BURN_IN_LIGHT_WHEN_PAUSED.save(true);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        assertDimmed("idle");
+
+        tap();
+        assertDimmed("the tap itself leaves them as they were");
+        BurnInGuard.reelPaused();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertUp("paused");
+        after(IDLE * 5);
+        assertUp("still paused long after the wait");
+
+        tap();
+        assertUp("playing again starts the wait from zero");
+        after(IDLE - 1_000);
+        assertUp("still inside the new wait");
+        after(1_100);
+        assertDimmed("dim again once the new wait ran out");
+    }
+
+    @Test public void lightWhenPausedOffLeavesThePausedReelDimmed() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        BurnInGuard.reelPaused();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertDimmed("switch off");
+    }
+
+    /** Swiping to the next reel ends the pause, and the controls dim after the wait as they always do. */
+    @Test public void aSwipeEndsThePauseAndTheGuardWorksAgain() {
+        layOutTheReelsButtons();
+        Settings.BURN_IN_GUARD.save(BurnInMode.DIM);
+        Settings.BURN_IN_LIGHT_WHEN_PAUSED.save(true);
+        BurnInGuard.resumed(activity);
+        after(IDLE + 100);
+        BurnInGuard.reelPaused();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertUp("paused");
+
+        float[] at = middleOf(root);
+        sendAt(MotionEvent.ACTION_DOWN, at[0], at[1]);
+        sendAt(MotionEvent.ACTION_MOVE, at[0], at[1] - 150);
+        sendAt(MotionEvent.ACTION_UP, at[0], at[1] - 150);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        after(IDLE + 100);
+        assertDimmed("the next reel, idle");
+    }
+
+    @Test public void aPauseOffTheReelsScreenDoesNothing() {
+        Settings.BURN_IN_LIGHT_WHEN_PAUSED.save(true);
+        BurnInGuard.reelPaused();
+        assertFalse(BurnInGuard.pausedForTests());
     }
 
     /** While dimmed, the next reel's controls are dimmed as the layout that brings them in ends, before they're drawn (#162). */

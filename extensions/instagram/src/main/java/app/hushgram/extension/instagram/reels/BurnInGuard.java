@@ -141,6 +141,7 @@ public final class BurnInGuard {
     static final String COUNT_DIMMED = "Reels controls dimmed while idle";
     static final String COUNT_SHIFTED = "Reels screen moved a step";
     static final String COUNT_QUIET = "Reels tap on the video, Save or Download left the controls dimmed";
+    static final String COUNT_PAUSED = "Reels controls kept bright while the reel is paused";
     static final String COUNT_STAY_DIM = "Reels touch left the controls dimmed (Stay dim when I tap)";
 
     private static final HashMap<String, Integer> IDS = new HashMap<>();
@@ -171,6 +172,8 @@ public final class BurnInGuard {
     private static boolean dimming;
     /** The finger now down went down on the reel itself or on Save or Download, and hasn't swiped. */
     private static boolean quiet;
+    /** The reel on screen was paused by a tap (#457): with Light when paused on, the controls stay bright until it plays. */
+    private static boolean paused;
     /** Where on the screen that finger went down. */
     private static float quietX, quietY;
     /** When the next timed pass is due, or -1 when none is. */
@@ -206,6 +209,27 @@ public final class BurnInGuard {
     /** Stay dim when I tap (#162): no finger on the Reels screen brings the controls back. Off while paused. */
     static boolean stayDim() {
         return Settings.BURN_IN_STAY_DIM.get();
+    }
+
+    /** Light when paused (#457): a reel you pause brings the controls to full brightness until it plays again. */
+    static boolean lightWhenPaused() {
+        return Settings.BURN_IN_LIGHT_WHEN_PAUSED.get();
+    }
+
+    /**
+     * The Reels tap just paused the reel on screen (#457). With Light when paused on and the guard
+     * watching Reels, the controls come back now and stay until a tap on the reel plays it again or a
+     * swipe moves on. Never throws.
+     */
+    public static void reelPaused() {
+        try {
+            if (!guarding || !lightWhenPaused() || front.get() == null) return;
+            paused = true;
+            HookStatus.counted(FamilyNames.REEL_DECLUTTER, COUNT_PAUSED);
+            passSoon();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_DECLUTTER, "burn-in guard paused", failure);
+        }
     }
 
     /** The place the content is in at [now], in steps of {@link #STEP_DP}. */
@@ -273,6 +297,7 @@ public final class BurnInGuard {
         guarding = false;
         fingerDown = false;
         quiet = false;
+        paused = false;
         schedule(Long.MAX_VALUE);
     }
 
@@ -299,7 +324,8 @@ public final class BurnInGuard {
             }
             guarding = on;
             long wait = idleAfter();
-            boolean dim = on && !fingerDown && now - touchedAt >= wait;
+            boolean holding = on && paused && lightWhenPaused();
+            boolean dim = on && !fingerDown && !holding && now - touchedAt >= wait;
             if (dim) {
                 dimAll(decor);
                 dimming = true;
@@ -308,7 +334,7 @@ public final class BurnInGuard {
             }
             boolean shifting = on && mode == BurnInMode.DIM_AND_SHIFT;
             place(activity, shifting, now);
-            long next = !on || fingerDown ? Long.MAX_VALUE : dim ? now + KEEP_MS : touchedAt + wait;
+            long next = !on || fingerDown || holding ? Long.MAX_VALUE : dim ? now + KEEP_MS : touchedAt + wait;
             schedule(Math.min(next,
                     shifting ? (now / SHIFT_EVERY_MS + 1) * SHIFT_EVERY_MS : Long.MAX_VALUE));
         } catch (Throwable failure) {
@@ -483,6 +509,16 @@ public final class BurnInGuard {
      */
     static void seen(MotionEvent event) {
         int action = event.getActionMasked();
+        if (paused && guarding && action == MotionEvent.ACTION_DOWN && landing(event.getRawX(), event.getRawY()) == 1) {
+            // A tap on the reel plays it again: the wait starts over from here.
+            paused = false;
+            touchedAt = SystemClock.uptimeMillis();
+            quiet = true;
+            quietX = event.getRawX();
+            quietY = event.getRawY();
+            passSoon();
+            return;
+        }
         if (guarding && stayDim()) {
             quiet = false;
             fingerDown = false;
@@ -504,6 +540,7 @@ public final class BurnInGuard {
             }
             if (action == MotionEvent.ACTION_MOVE && !swiped(event)) return;
             quiet = false;
+            paused = false;
             touched(MotionEvent.ACTION_DOWN);
             return;
         }
@@ -528,13 +565,18 @@ public final class BurnInGuard {
      * from it decides. Anywhere else, or with no pager to know the reel by, it's a touch.
      */
     static boolean quietAt(float x, float y) {
+        return landing(x, y) != 0;
+    }
+
+    /** What {@link #quietAt} found: 1 for the reel itself, 2 for Save or Download, 0 for anything else. */
+    private static int landing(float x, float y) {
         Activity activity = front.get();
         Window window = activity == null ? null : activity.getWindow();
         View decor = window == null ? null : window.peekDecorView();
-        if (decor == null) return false;
+        if (decor == null) return 0;
         Context context = decor.getContext();
         int reel = id(context, REEL_ID);
-        if (reel == 0) return false;
+        if (reel == 0) return 0;
         View[] topmost = new View[1];
         View hit = landsOn(decor, x, y, new int[1], new int[2], topmost);
         View from = hit != null ? hit : topmost[0];
@@ -544,16 +586,16 @@ public final class BurnInGuard {
         String download = null;
         for (View view = from; view != null; view = view.getParent() instanceof View ? (View) view.getParent() : null) {
             int id = view.getId();
-            if (dims(view, quietIds)) return true;
+            if (dims(view, quietIds)) return 2;
             CharSequence description = view.getContentDescription();
             if (description != null) {
                 if (download == null) download = FeedDownloadButton.description(context);
-                if (download.contentEquals(description)) return true;
+                if (download.contentEquals(description)) return 2;
             }
-            if (dims(view, waking) || besideColumn(view, column)) return false;
-            if (id == reel) return true;
+            if (dims(view, waking) || besideColumn(view, column)) return 0;
+            if (id == reel) return 1;
         }
-        return false;
+        return 0;
     }
 
     /**
@@ -750,11 +792,16 @@ public final class BurnInGuard {
         return layoutWatched;
     }
 
+    static boolean pausedForTests() {
+        return paused;
+    }
+
     static void resetForTests() {
         leave();
         if (handler != null) handler.removeCallbacks(TICK);
         tickAt = -1L;
         touchedAt = 0L;
+        paused = false;
         LAYOUT.lastLook = Long.MIN_VALUE / 2;
         DIMMED.clear();
         MOVED.clear();

@@ -1592,3 +1592,5 @@ Only received reels	Yalnızca alınan reels
 Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Bir sohbetin reels'lerinde gezinirken orada gönderdiklerin atlanır, yalnızca karşı tarafın paylaştıkları gösterilir. Sohbetin reels'lerinde kaydır açıkken çalışır.
 Hide the audio icon on posts	Gönderilerdeki ses simgesini gizle
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Akışındaki videolardan hoparlör simgesini kaldırır. Videoya dokunmak sesi yine açıp kapatır. Ekranda zaten olan gönderiler yeniden yüklendiğinde değişir.
+Light when paused	Duraklatınca aydınlık
+Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	Bir reel'i duraklatın, Ekran yanığı koruması tuşları siz tekrar oynatana veya kaydırana kadar tam parlaklığa getirsin. Sonra bekleme baştan başlar.
