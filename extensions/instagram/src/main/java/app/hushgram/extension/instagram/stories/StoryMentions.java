@@ -6,6 +6,7 @@ package app.hushgram.extension.instagram.stories;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Application;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -18,6 +19,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.Layout;
 import android.text.TextUtils;
@@ -145,15 +147,19 @@ public final class StoryMentions {
 
     /**
      * The list a tap on an account left for that profile. When the story's pill shows again after
-     * the pill went away, the same list opens again, until Close, Back or a different story ends it.
+     * the pill went away, or the story's activity comes back to the front after it went behind the
+     * profile, the same list opens again, until Close, Back or a different story ends it.
      */
     private static final class BackToList {
         final List<String> usernames = new ArrayList<>();
         final long at = SystemClock.uptimeMillis();
+        /** The activity the story and its list show in. */
+        final WeakReference<Activity> story;
         boolean away;
 
-        BackToList(List<Mention> people) {
+        BackToList(List<Mention> people, Activity story) {
             for (Mention person : people) usernames.add(person.username);
+            this.story = new WeakReference<>(story);
         }
 
         boolean matches(List<Mention> people) {
@@ -168,6 +174,66 @@ public final class StoryMentions {
     }
 
     @Nullable private static BackToList backToList;
+
+    /**
+     * Watches the activity a list was left from for a profile (#403). Instagram 453 opens a profile
+     * link in an activity you can see through, so the story stays laid out under it and its pill
+     * never leaves the screen. The story's activity going behind the profile and coming back to
+     * the front is then the only sign the profile came and went.
+     */
+    private static final Application.ActivityLifecycleCallbacks COMEBACK = new Application.ActivityLifecycleCallbacks() {
+        @Override
+        public void onActivityPaused(Activity activity) {
+            BackToList waiting = backToList;
+            if (waiting != null && waiting.story.get() == activity) waiting.away = true;
+        }
+
+        @Override
+        public void onActivityResumed(Activity activity) {
+            BackToList waiting = backToList;
+            if (waiting == null || !waiting.away || waiting.story.get() != activity) return;
+            Window window = activity.getWindow();
+            View decor = window == null ? null : window.peekDecorView();
+            if (decor == null) return;
+            decor.post(() -> {
+                try {
+                    for (Pill pill : new ArrayList<>(PILLS)) if (pill.getRootView() == decor) settleShown(pill);
+                } catch (Throwable failure) {
+                    HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+                }
+            });
+        }
+
+        @Override
+        public void onActivityCreated(Activity activity, @Nullable Bundle state) {
+        }
+
+        @Override
+        public void onActivityStarted(Activity activity) {
+        }
+
+        @Override
+        public void onActivityStopped(Activity activity) {
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(Activity activity, Bundle state) {
+        }
+
+        @Override
+        public void onActivityDestroyed(Activity activity) {
+        }
+    };
+
+    /** The app {@link #COMEBACK} is registered with, so it's registered once. */
+    private static WeakReference<Application> watching = new WeakReference<>(null);
+
+    private static void watch(Activity activity) {
+        Application app = activity.getApplication();
+        if (app == null || watching.get() == app) return;
+        app.registerActivityLifecycleCallbacks(COMEBACK);
+        watching = new WeakReference<>(app);
+    }
 
     /** [pill] went off screen: if a profile is open over its story, the list waits for it to return. */
     private static void pillLeft(Pill pill) {
@@ -683,7 +749,8 @@ public final class StoryMentions {
         for (Mention person : people) {
             rows.addView(row(themed, person, () -> {
                 leaving[0] = true;
-                backToList = new BackToList(people);
+                backToList = new BackToList(people, activity);
+                watch(activity);
                 dialog.dismiss();
                 openProfile(activity, person.username);
             }));
@@ -955,6 +1022,9 @@ public final class StoryMentions {
         touched = new WeakReference<>(null);
         anyPill = false;
         backToList = null;
+        Application app = watching.get();
+        if (app != null) app.unregisterActivityLifecycleCallbacks(COMEBACK);
+        watching = new WeakReference<>(null);
     }
 
     // ------------------------------------------------------------------ what the patch fills in

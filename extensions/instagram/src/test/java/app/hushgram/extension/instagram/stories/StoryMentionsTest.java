@@ -682,6 +682,61 @@ public class StoryMentionsTest {
         assertTrue("the list is open again", again.isShowing());
     }
 
+    /**
+     * #403 on 453: the profile opens in an activity you can see through, so the story's activity
+     * only goes behind it and its pill never leaves the screen.
+     */
+    @Test
+    public void theListComesBackWhenTheStoryComesBackToTheFront() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        controller.pause();
+        idle();
+        assertSame("nothing opens while the profile has the screen", first, ShadowDialog.getLatestDialog());
+        assertTrue("the pill never left", StoryMentions.onScreen(pill()));
+        controller.resume();
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+        assertNotNull(find(again.getWindow().getDecorView(), view -> "@bo.k".equals(textOf(view))));
+    }
+
+    @Test
+    public void thePillAndTheActivityBothComingBackOpenTheListOnce() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        StoryMentions.Pill pill = pill();
+        controller.pause();
+        pill.setVisibility(View.GONE);
+        idle();
+        controller.resume();
+        pill.setVisibility(View.VISIBLE);
+        idle();
+        assertEquals("the first list and one more", 2, ShadowDialog.getShownDialogs().size());
+        assertTrue(ShadowDialog.getLatestDialog().isShowing());
+    }
+
+    @Test
+    public void theActivityComingBackAfterCloseOpensNothing() {
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        controller.pause();
+        controller.resume();
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        again.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        idle();
+        controller.pause();
+        controller.resume();
+        idle();
+        assertSame("Close ends it", again, ShadowDialog.getLatestDialog());
+        assertFalse(again.isShowing());
+    }
+
     @Test
     public void theListStaysClosedWhileTheProfileIsStillUp() {
         bind(ANA, BO);
