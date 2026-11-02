@@ -18,7 +18,9 @@ import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.NarrowLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -35,8 +37,9 @@ import java.io.File
 
 /**
  * The story viewer's pause and resume report to the extension, the pinch's pause asks it first and
- * resumes the story and returns early when it says to keep playing, and a build where any of the
- * three can't be placed fails the patch unchanged.
+ * resumes the story and returns early when it says to keep playing, the resume's drag check goes
+ * through the extension, and a build where any of the three can't be placed fails the patch
+ * unchanged.
  */
 class KeepStoriesPlayingOnZoomHookTest {
     @Test
@@ -44,7 +47,7 @@ class KeepStoriesPlayingOnZoomHookTest {
         val declared = ExtensionDex.classDef(STORY_ZOOM_PLAY).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "$STORY_ZOOM_PLAY->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(KEEP_PLAYING, ZOOM_PAUSED, ZOOM_RESUMED)) {
+        for (hook in listOf(KEEP_PLAYING, ZOOM_PAUSED, ZOOM_RESUMED, PINCH_RESUMED, DRAGGING)) {
             assertTrue("StoryZoomPlay declares no $hook: $declared", hook in declared)
         }
     }
@@ -89,6 +92,15 @@ class KeepStoriesPlayingOnZoomHookTest {
         assertEquals("$label: pause", Opcode.INVOKE_STATIC_RANGE, pause[0].opcode)
         val resume = code(context, found.resume)
         assertEquals("$label: resume starts by reporting", ZOOM_RESUMED, reference(resume[0]))
+        assertEquals("$label: the resume's drag check is answered once", 1, resume.count { reference(it) == DRAGGING })
+        val drag = resume.indexOfFirst { reference(it) == DRAGGING }
+        val asked = (resume[drag - 2] as ReferenceInstruction).reference as MethodReference
+        assertEquals("$label: right after Instagram's own ()Z check", "Z", asked.returnType)
+        assertEquals("$label: and its answer", Opcode.MOVE_RESULT, resume[drag - 1].opcode)
+        val answer = (resume[drag - 1] as OneRegisterInstruction).registerA
+        assertEquals("$label: is what the hook is handed", answer, (resume[drag] as RegisterRangeInstruction).startRegister)
+        assertEquals("$label: and the hook's answer replaces it", Opcode.MOVE_RESULT, resume[drag + 1].opcode)
+        assertEquals("$label: in the same register", answer, (resume[drag + 1] as OneRegisterInstruction).registerA)
         val pinch = code(context, found.pinch)
         assertEquals("$label: the pinch pause asks first", KEEP_PLAYING, reference(pinch[0]))
         assertEquals("$label: the answer", Opcode.MOVE_RESULT, pinch[1].opcode)
@@ -97,8 +109,9 @@ class KeepStoriesPlayingOnZoomHookTest {
         assertEquals("$label: and resumes it as lifting a finger does", "\"resume\"", text(pinch[4]))
         assertEquals("$label: with true", 1, (pinch[5] as NarrowLiteralInstruction).narrowLiteral)
         assertEquals("$label: through the viewer's resume", found.resume.descriptor, reference(pinch[6]))
-        assertEquals("$label: and returns", Opcode.RETURN_VOID, pinch[7].opcode)
-        assertTrue("$label: Instagram's own pause follows", pinch.size > 8)
+        assertEquals("$label: then says the pinch's resume is done", PINCH_RESUMED, reference(pinch[7]))
+        assertEquals("$label: and returns", Opcode.RETURN_VOID, pinch[8].opcode)
+        assertTrue("$label: Instagram's own pause follows", pinch.size > 9)
 
         for ((type, original) in before) {
             val now = context.mutableClassDefBy(type).methods

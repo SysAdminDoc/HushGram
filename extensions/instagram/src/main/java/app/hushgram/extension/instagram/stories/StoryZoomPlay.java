@@ -17,7 +17,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * it again when the fingers lift. The patch asks {@link #keepPlaying()} first thing in the
  * viewer's pause for a pinch. When it says yes, that pause is skipped and the viewer's resume runs
  * instead: the first finger down has already paused the story ("tapped"), and that pause would
- * otherwise hold until the fingers lift.
+ * otherwise hold until the fingers lift. The pinch's moving fingers count as a drag to that resume,
+ * which won't play a story being dragged, so {@link #dragging(int)} answers "not dragging" for that
+ * one call.
  *
  * <p>A story the user holds still pauses through the same pause method, with {@link #HOLD} as its
  * reason, and plays again through the viewer's resume when the finger lifts. The patch reports
@@ -39,6 +41,9 @@ public final class StoryZoomPlay {
     static final String LEFT_HELD = "pinches left paused, story held";
 
     private static volatile boolean held;
+
+    /** True while the resume a kept pinch asks for runs. */
+    private static volatile boolean pinchResume;
 
     private StoryZoomPlay() {
     }
@@ -73,6 +78,7 @@ public final class StoryZoomPlay {
             HookStatus.invoked(FamilyNames.STORY_ZOOM_PLAY);
             if (!Utils.settingsReady() || !Settings.KEEP_STORIES_PLAYING_ON_ZOOM.get()) return false;
             boolean keep = !held;
+            pinchResume = keep;
             HookStatus.counted(FamilyNames.STORY_ZOOM_PLAY, keep ? KEPT : LEFT_HELD);
             Logger.printDebug(() -> keep ? "Pinch on a story: kept playing" : "Pinch on a story: held, left paused");
             return keep;
@@ -82,8 +88,30 @@ public final class StoryZoomPlay {
         }
     }
 
+    /** Injected right after the resume a kept pinch asks for returns. */
+    public static void pinchResumed() {
+        pinchResume = false;
+    }
+
+    /**
+     * Injected where the viewer's resume reads whether the story is being dragged, with that answer
+     * (non-zero for yes). Answers 0 during the resume a kept pinch asks for and passes every other
+     * answer through. Never throws.
+     */
+    public static int dragging(int dragging) {
+        try {
+            if (!pinchResume || dragging == 0) return dragging;
+            Logger.printDebug(() -> "Pinch on a story: resumed past the drag check");
+            return 0;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_ZOOM_PLAY, "drag check", failure);
+            return dragging;
+        }
+    }
+
     /** For tests. */
     static void reset() {
         held = false;
+        pinchResume = false;
     }
 }

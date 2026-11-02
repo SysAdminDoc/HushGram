@@ -706,9 +706,13 @@ once-call Lapp/hushgram/extension/instagram/stories/SmoothStoryOpen;->damping(F)
 # Keep stories playing while zooming asks keepPlaying() first in the runnable that pauses the story
 # viewer for a pinch (0CnX on 453), which is the one run() holding the pinch's pause reason, and
 # reports every pause and resume of the viewer (A18 and A19 on 453), found by the marks they log
-# (#382). Left out, a pinch pauses the story as Instagram does; twice or elsewhere, it isn't the
-# pause the patch means.
+# (#382). The runnable also says when the resume it asks for is done, and the resume hands its drag
+# check's answer to dragging(), since a pinch's fingers read as a drag there. Left out, a pinch
+# pauses the story as Instagram does, or the kept pinch's resume is refused; twice or elsewhere, it
+# isn't the pause the patch means.
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->keepPlaying()Z in instance ()V holding paused_for_pinch_to_zoom
+once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->pinchResumed()V in instance ()V holding paused_for_pinch_to_zoom
+once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->dragging(I)I in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;Z)V holding resume_story_request_skipped
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->paused(Ljava/lang/String;)V in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;)V holding pause_story
 once-call Lapp/hushgram/extension/instagram/stories/StoryZoomPlay;->resumed()V in static (Linstagram/features/stories/fragment/ReelViewerFragment;Ljava/lang/String;Z)V holding resume_story_request_skipped
 # Swipe through a chat's reels answers the read of Instagram's own chat reels flag through chain(),

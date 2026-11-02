@@ -4,6 +4,7 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -96,6 +97,29 @@ public class StoryZoomPlayTest {
         Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
         StoryZoomPlay.paused(StoryZoomPlay.PINCH);
         assertTrue(StoryZoomPlay.keepPlaying());
+    }
+
+    /**
+     * A pinch's moving fingers read as a drag to the viewer's resume, which won't play a story being
+     * dragged. Only the resume the kept pinch asks for hears "not dragging".
+     */
+    @Test
+    public void theKeptPinchsResumeGetsPastTheDragCheck() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        assertEquals(1, StoryZoomPlay.dragging(1));
+        assertTrue(StoryZoomPlay.keepPlaying());
+        assertEquals(0, StoryZoomPlay.dragging(1));
+        assertEquals(0, StoryZoomPlay.dragging(0));
+        StoryZoomPlay.pinchResumed();
+        assertEquals(1, StoryZoomPlay.dragging(1));
+    }
+
+    @Test
+    public void aHeldStorysPinchLeavesTheDragCheckAlone() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.paused(StoryZoomPlay.HOLD);
+        assertFalse(StoryZoomPlay.keepPlaying());
+        assertEquals(1, StoryZoomPlay.dragging(1));
     }
 
     @Test
