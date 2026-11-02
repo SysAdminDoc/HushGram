@@ -112,10 +112,29 @@ public class StoryMentionsTest {
         }
     }
 
+    /** What the list asked of the story viewer, in order, and of which viewer. */
+    static final class PlaybackRecorder implements StoryMentions.Playback {
+        final List<String> asked = new ArrayList<>();
+        final List<Object> viewers = new ArrayList<>();
+        boolean throwing;
+
+        @Override public void hold(Object viewer) {
+            asked.add("hold");
+            viewers.add(viewer);
+            if (throwing) throw new IllegalStateException("the viewer went away");
+        }
+
+        @Override public void play(Object viewer) {
+            asked.add("play");
+            viewers.add(viewer);
+        }
+    }
+
     private static final Account ANA = new Account("ana", "Ana Lima", "https://scontent.cdninstagram.com/ana.jpg");
     private static final Account BO = new Account("bo.k", null, null);
 
     private final Reads reads = new Reads();
+    private final PlaybackRecorder playback = new PlaybackRecorder();
     private ActivityController<Activity> controller;
     private Activity activity;
     private FrameLayout root;
@@ -129,6 +148,7 @@ public class StoryMentionsTest {
         Settings.SHOW_STORY_MENTIONS.save(true);
         StoryMentions.resetForTests();
         StoryMentions.readsForTests = reads;
+        StoryMentions.playbackForTests = playback;
         HookStatus.clear();
         controller = Robolectric.buildActivity(Activity.class).setup();
         activity = controller.get();
@@ -151,6 +171,7 @@ public class StoryMentionsTest {
         Utils.awaitBackgroundTasksForTests();
         controller.close();
         StoryMentions.readsForTests = null;
+        StoryMentions.playbackForTests = null;
         StoryMentions.picturesForTests = null;
         StoryMentions.headerIdForTests = 0;
         StoryMentions.titleIdForTests = 0;
@@ -737,6 +758,101 @@ public class StoryMentionsTest {
         idle();
         assertSame("Close ends it", again, ShadowDialog.getLatestDialog());
         assertFalse(again.isShowing());
+    }
+
+    /** #403: the story waits under the list, past a photo's time, and plays on when Close ends it. */
+    @Test
+    public void theListHoldsTheStoryUntilCloseEndsIt() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        AlertDialog list = openedList();
+        assertEquals(Collections.singletonList("hold"), playback.asked);
+        assertSame(viewer, playback.viewers.get(0));
+        assertTrue("Instagram's resume waits", StoryMentions.holdsStory(viewer));
+        assertFalse("another viewer's doesn't", StoryMentions.holdsStory(new Object()));
+        assertFalse(StoryMentions.holdsStory(null));
+
+        list.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        idle();
+        assertEquals(Arrays.asList("hold", "play"), playback.asked);
+        assertSame(viewer, playback.viewers.get(1));
+        assertFalse("nothing holds it now", StoryMentions.holdsStory(viewer));
+    }
+
+    @Test
+    public void backPlaysTheStoryOnAsCloseDoes() {
+        StoryMentions.viewerShown(new Object());
+        bind(ANA);
+        openedList().cancel();
+        idle();
+        assertEquals(Arrays.asList("hold", "play"), playback.asked);
+    }
+
+    /**
+     * #403: a profile opened from the list doesn't play the story. Instagram plays it as the story
+     * comes back, and the list opening again holds it again.
+     */
+    @Test
+    public void aProfileFromTheListHoldsTheStoryAgainAsItComesBack() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        idle();
+        assertEquals("the profile doesn't play it", Collections.singletonList("hold"), playback.asked);
+        assertFalse("and nothing holds Instagram's resume back with the list gone", StoryMentions.holdsStory(viewer));
+        controller.pause();
+        idle();
+        controller.resume();
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue(again.isShowing());
+        assertEquals(Arrays.asList("hold", "hold"), playback.asked);
+        assertSame(viewer, playback.viewers.get(1));
+        assertTrue(StoryMentions.holdsStory(viewer));
+    }
+
+    /** #403: Home and back leaves the list up, and the resume Instagram makes as the story returns waits for it. */
+    @Test
+    public void homeAndBackKeepsTheStoryHeld() {
+        Object viewer = new Object();
+        StoryMentions.viewerShown(viewer);
+        bind(ANA, BO);
+        AlertDialog list = openedList();
+        controller.pause().stop();
+        idle();
+        controller.restart().start().resume();
+        StoryMentions.viewerShown(viewer);
+        idle();
+        assertSame("no second list", list, ShadowDialog.getLatestDialog());
+        assertTrue("the list is still up", list.isShowing());
+        assertTrue("so the story's resume waits", StoryMentions.holdsStory(viewer));
+        assertEquals("held once and never played", Collections.singletonList("hold"), playback.asked);
+    }
+
+    /** With no viewer seen, the list holds nothing and Instagram's resume runs as it always did. */
+    @Test
+    public void noViewerSeenHoldsNothing() {
+        bind(ANA);
+        AlertDialog list = openedList();
+        assertTrue(list.isShowing());
+        assertFalse(StoryMentions.holdsStory(new Object()));
+        list.cancel();
+        idle();
+        assertTrue(playback.asked.toString(), playback.asked.isEmpty());
+    }
+
+    @Test
+    public void aHoldThatThrowsStillOpensTheList() {
+        playback.throwing = true;
+        StoryMentions.viewerShown(new Object());
+        bind(ANA);
+        assertTrue(openedList().isShowing());
+        String missing = HookStatus.missing(FamilyNames.STORY_MENTIONS).toString();
+        assertTrue(missing, missing.contains("story mentions list") && missing.contains("IllegalStateException"));
     }
 
     @Test

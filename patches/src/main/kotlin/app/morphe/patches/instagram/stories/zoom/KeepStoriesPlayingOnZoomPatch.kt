@@ -95,14 +95,39 @@ internal class Located(val type: String, val name: String, val parameters: List<
 private fun Method.located() =
     Located(definingClass, name, parameterTypes.map(CharSequence::toString), returnType)
 
+/** The story viewer's own pause and resume, which See who a story mentions holds a story with too. */
+internal class ViewerPlayback(val pause: Method, val resume: Method)
+
+/**
+ * The story viewer's pause, its one static `(viewer, String)V` loading [PAUSE_MARK], and its
+ * resume, the one static `(viewer, String, boolean)V` loading [RESUME_MARK]. Fails naming [patch]
+ * before anything changes when either is missing or found more than once.
+ */
+internal fun BytecodePatchContext.findViewerPlayback(patch: String): ViewerPlayback {
+    fun stop(detail: String): Nothing = throw PatchException("$patch: $detail")
+    fun inViewer(mark: String, parameters: List<String>, what: String): Method {
+        val found = classesLoadingString(mark).filter { it.type == STORY_VIEWER }.flatMap { classDef ->
+            classDef.methods.filter { method ->
+                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
+                    method.parameterTypes.map(CharSequence::toString) == parameters && loadsString(method, mark)
+            }
+        }
+        return found.singleOrNull() ?: stop("expected one $what in $STORY_VIEWER loading \"$mark\", found ${found.size}")
+    }
+    if (classesLoadingString(PAUSE_MARK).none { it.type == STORY_VIEWER }) stop("no $STORY_VIEWER loads \"$PAUSE_MARK\"")
+    return ViewerPlayback(
+        inViewer(PAUSE_MARK, listOf(STORY_VIEWER, STRING), "pause"),
+        inViewer(RESUME_MARK, listOf(STORY_VIEWER, STRING, "Z"), "resume"),
+    )
+}
+
 /**
  * Finds the three methods the hooks go in. The pinch's pause is the one `run()V` loading
  * [PINCH_REASON] (the reason enum's own initializer loads it too, but isn't a `run`). The viewer's
- * pause is its one static `(viewer, String)V` loading [PAUSE_MARK], and its resume the one static
- * `(viewer, String, boolean)V` loading [RESUME_MARK]. The resume's drag check is the first `()Z`
- * call within a few instructions of its one read of [GESTURES]. Fails before anything changes when
- * any of the three is missing or found more than once, when the pinch's pause doesn't read the
- * viewer from one field, or when the drag check isn't where it's looked for.
+ * pause and resume are [findViewerPlayback]'s. The resume's drag check is the first `()Z` call
+ * within a few instructions of its one read of [GESTURES]. Fails before anything changes when any
+ * of the three is missing or found more than once, when the pinch's pause doesn't read the viewer
+ * from one field, or when the drag check isn't where it's looked for.
  */
 internal fun BytecodePatchContext.findStoryZoomPause(): StoryZoomPause {
     val runs = classesLoadingString(PINCH_REASON).flatMap { classDef ->
@@ -112,19 +137,9 @@ internal fun BytecodePatchContext.findStoryZoomPause(): StoryZoomPause {
         }
     }
     val pinch = runs.singleOrNull() ?: refuse("expected one run() loading \"$PINCH_REASON\", found ${runs.size}")
-    val viewer = classesLoadingString(PAUSE_MARK).filter { it.type == STORY_VIEWER }
-    fun inViewer(mark: String, parameters: List<String>, what: String): Method {
-        val found = classesLoadingString(mark).filter { it.type == STORY_VIEWER }.flatMap { classDef ->
-            classDef.methods.filter { method ->
-                AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" &&
-                    method.parameterTypes.map(CharSequence::toString) == parameters && loadsString(method, mark)
-            }
-        }
-        return found.singleOrNull() ?: refuse("expected one $what in $STORY_VIEWER loading \"$mark\", found ${found.size}")
-    }
-    if (viewer.isEmpty()) refuse("no $STORY_VIEWER loads \"$PAUSE_MARK\"")
-    val pause = inViewer(PAUSE_MARK, listOf(STORY_VIEWER, STRING), "pause")
-    val resume = inViewer(RESUME_MARK, listOf(STORY_VIEWER, STRING, "Z"), "resume")
+    val playback = findViewerPlayback(PATCH)
+    val pause = playback.pause
+    val resume = playback.resume
     val fields = pinch.implementation?.instructions?.toList().orEmpty()
         .filter { it.opcode == Opcode.IGET_OBJECT }
         .mapNotNull { (it as? ReferenceInstruction)?.reference as? FieldReference }
@@ -163,15 +178,17 @@ private fun BytecodePatchContext.mutable(at: Located) = mutableClassDefBy(at.typ
  * `p0` takes the flag since nothing reads it after; the method returns right away. The pinch's
  * moving fingers count as a drag to that resume, which won't play a story being dragged, so the
  * extension also answers the resume's drag check, and hears when the pinch's call is done. The drag
- * hook goes in before the resume's first hook so [StoryZoomPause.dragAnswer] still counts from the
- * top.
+ * check is counted again on the resume as it is now, since See who a story mentions may have put
+ * its hold in front of it after [StoryZoomPause.dragAnswer] was counted, and its hook goes in
+ * before the resume's first hook so that count still holds.
  */
 internal fun BytecodePatchContext.keepPlayingOnZoom(found: StoryZoomPause) {
     mutable(found.pause).addInstructions(0, "invoke-static/range { p1 .. p1 }, $ZOOM_PAUSED")
     val resume = mutable(found.resume)
-    val answer = (resume.getInstruction(found.dragAnswer) as OneRegisterInstruction).registerA
+    val dragAnswer = dragAnswer(resume)
+    val answer = (resume.getInstruction(dragAnswer) as OneRegisterInstruction).registerA
     resume.addInstructions(
-        found.dragAnswer + 1,
+        dragAnswer + 1,
         """
             invoke-static/range { v$answer .. v$answer }, $DRAGGING
             move-result v$answer

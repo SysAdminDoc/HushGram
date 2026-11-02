@@ -20,13 +20,17 @@ import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
+import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.localRegisterCount
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
 import app.morphe.patches.instagram.misc.settings.settingsPatch
+import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.instagram.stories.time.STORY_ITEM
+import app.morphe.patches.instagram.stories.zoom.ViewerPlayback
+import app.morphe.patches.instagram.stories.zoom.findViewerPlayback
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -59,7 +63,20 @@ internal const val FULL_NAME = "full_name"
 /** The stubs in StoryMentions the patch writes. */
 internal val STUBS = listOf("itemView", "media", "mentions", "mentionUser", "fullName")
 
+/** Told first thing in the story viewer's onResume which viewer is on the screen. */
+internal const val VIEWER_SHOWN = "$STORY_MENTIONS->viewerShown(Ljava/lang/Object;)V"
+
+/** Asked first thing in the story viewer's resume whether a list holds the viewer's story. */
+internal const val HOLDS_STORY = "$STORY_MENTIONS->holdsStory(Ljava/lang/Object;)Z"
+
+/** The reason the viewer's pause is given when a list holds its story. */
+internal const val HOLD_REASON = "hushgram_story_mentions_list"
+
+/** The stubs that hold and play the story under a list, with how many Objects each takes. */
+internal val HOLD_STUBS = mapOf("holdStory" to 2, "playStory" to 3)
+
 private const val LIST = "Ljava/util/List;"
+private const val OBJECT = "Ljava/lang/Object;"
 private const val MOTION_EVENT = "Landroid/view/MotionEvent;"
 private const val STRING = "Ljava/lang/String;"
 
@@ -83,11 +100,14 @@ val storyMentionsPatch = bytecodePatch(
         val found = findStoryMentions()
         val touch = findPillTouch()
         val stubs = storyMentionStubs()
+        val hold = findStoryHold()
+        val holdStubs = storyHoldStubs()
         val pictures = accountBridges(PATCH)
         stubs.fill(found)
         pictures()
         hookStoryBinds(found)
         hookPillTouch(touch)
+        hookStoryHold(hold, holdStubs)
         enableStatus("storyMentions")
     }
 }
@@ -311,6 +331,97 @@ internal fun hookPillTouch(touch: MutableMethod) {
         ExternalLabel("instagram", touch.getInstruction(at)),
     )
 }
+
+/** The story viewer's pause and resume, which a list holds and plays its story with, and its own onResume. */
+internal class StoryHold(val playback: ViewerPlayback, val shown: Method)
+
+/**
+ * What holds the story under a list (#403): the viewer's pause and resume ([findViewerPlayback])
+ * and its own onResume. The resume's guard and the onResume's hook go in first thing, so nothing
+ * may jump back to either's first instruction, and the guard's answer takes one of the resume's
+ * locals. The stubs call the pause and resume from the extension's package, so the viewer and
+ * both must be public. Fails before anything changes when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findStoryHold(): StoryHold {
+    val playback = findViewerPlayback(PATCH)
+    val resume = playback.resume
+    if (0 in resume.jumpTargets()) refuse("something in $STORY_VIEWER->${resume.name} jumps back to its first instruction")
+    if (resume.localRegisterCount() < 1) refuse("$STORY_VIEWER->${resume.name} has no local register for the hold's answer")
+    val viewer = classDefBy(STORY_VIEWER)
+    val shown = viewer.methods.singleOrNull {
+        it.name == "onResume" && it.returnType == "V" && it.parameterTypes.isEmpty() &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: refuse("$STORY_VIEWER has no onResume() of its own")
+    if (0 in shown.jumpTargets()) refuse("something in $STORY_VIEWER->onResume jumps back to its first instruction")
+    val closed = listOfNotNull(
+        STORY_VIEWER.takeUnless { AccessFlags.PUBLIC.isSet(viewer.accessFlags) },
+        "$STORY_VIEWER->${playback.pause.name}".takeUnless { AccessFlags.PUBLIC.isSet(playback.pause.accessFlags) },
+        "$STORY_VIEWER->${resume.name}".takeUnless { AccessFlags.PUBLIC.isSet(resume.accessFlags) },
+    )
+    if (closed.isNotEmpty()) refuse("${closed.joinToString()} isn't public, so the extension can't reach it")
+    return StoryHold(playback, shown)
+}
+
+/** Finds each of [HOLD_STUBS] in StoryMentions: static, void, taking its count of Objects. */
+internal fun BytecodePatchContext.storyHoldStubs(): Map<String, MutableMethod> {
+    val methods = mutableClassDefBy(STORY_MENTIONS).methods
+    return HOLD_STUBS.mapValues { (name, count) ->
+        methods.singleOrNull {
+            it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" &&
+                it.parameterTypes.map(CharSequence::toString) == List(count) { OBJECT }
+        } ?: refuse("$STORY_MENTIONS has no static void $name taking $count Objects")
+    }
+}
+
+/**
+ * Fills the stubs that hold and play the story: the hold pauses it through the viewer's own pause
+ * with [HOLD_REASON], and the play plays it through the viewer's resume the way lifting a finger
+ * does ("resume", true). Each stub's spare parameters are its registers. Then the viewer's
+ * onResume tells [VIEWER_SHOWN] which viewer is on the screen, and its resume first asks
+ * [HOLDS_STORY] and returns without playing while a list holds that viewer's story. Instagram's
+ * own resumes all pass through it, the one onResume makes included.
+ */
+internal fun BytecodePatchContext.hookStoryHold(hold: StoryHold, stubs: Map<String, MutableMethod>) {
+    stubs.getValue("holdStory").addInstructions(
+        0,
+        """
+            check-cast p0, $STORY_VIEWER
+            const-string p1, "$HOLD_REASON"
+            invoke-static { p0, p1 }, ${hold.playback.pause.call()}
+            return-void
+        """,
+    )
+    stubs.getValue("playStory").addInstructions(
+        0,
+        """
+            check-cast p0, $STORY_VIEWER
+            const-string p1, "resume"
+            const/4 p2, 0x1
+            invoke-static { p0, p1, p2 }, ${hold.playback.resume.call()}
+            return-void
+        """,
+    )
+    val viewer = mutableClassDefBy(STORY_VIEWER)
+    viewer.methods.single {
+        it.name == hold.shown.name && it.parameterTypes.isEmpty() && it.returnType == "V" && !AccessFlags.STATIC.isSet(it.accessFlags)
+    }.addInstructions(0, "invoke-static/range { p0 .. p0 }, $VIEWER_SHOWN")
+    val resume = viewer.methods.single {
+        it.name == hold.playback.resume.name && AccessFlags.STATIC.isSet(it.accessFlags) &&
+            it.parameterTypes.map(CharSequence::toString) == hold.playback.resume.parameterTypes.map(CharSequence::toString)
+    }
+    resume.addInstructionsWithLabels(
+        0,
+        """
+            invoke-static/range { p0 .. p0 }, $HOLDS_STORY
+            move-result v0
+            if-eqz v0, :play
+            return-void
+        """,
+        ExternalLabel("play", resume.getInstruction(0)),
+    )
+}
+
+private fun Method.call() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
 private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 

@@ -11,6 +11,11 @@ import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.misc.extension.loadsString
+import app.morphe.patches.instagram.stories.mentions.HOLDS_STORY
+import app.morphe.patches.instagram.stories.mentions.STORY_MENTIONS
+import app.morphe.patches.instagram.stories.mentions.findStoryHold
+import app.morphe.patches.instagram.stories.mentions.hookStoryHold
+import app.morphe.patches.instagram.stories.mentions.storyHoldStubs
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -76,6 +81,41 @@ class KeepStoriesPlayingOnZoomHookTest {
     @Test
     fun eachOtherBuildHooksThePinchPauseToo() {
         for (base in Fixtures.otherBuilds()) builds(base, base.parentFile.name)
+    }
+
+    /**
+     * See who a story mentions puts its hold first thing in the same resume (#403). Whichever patch
+     * goes in first, the drag hook still lands right after the drag check's answer, even with the
+     * places counted before the hold went in.
+     */
+    @Test
+    fun theMentionsHoldInTheResumeLeavesTheDragHookOnItsCheck() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val bundles = versions.flatMap { version -> Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") } }
+        assertTrue("no declared build has a fixture", bundles.isNotEmpty())
+        for (bundle in bundles) for (holdFirst in listOf(true, false)) {
+            val label = "${bundle.name}, ${if (holdFirst) "the hold" else "the zoom"} first"
+            val classes = listOf(PINCH_REASON, PAUSE_MARK, RESUME_MARK)
+                .flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type }
+            val context = PatchContexts.of(FixtureDex.withStringPools(bundle, classes) + ExtensionDex.classDef(STORY_MENTIONS))
+            val found = context.findStoryZoomPause()
+            val hold = context.findStoryHold()
+            if (holdFirst) context.hookStoryHold(hold, context.storyHoldStubs())
+            context.keepPlayingOnZoom(found)
+            if (!holdFirst) context.hookStoryHold(hold, context.storyHoldStubs())
+
+            val resume = code(context, found.resume)
+            assertEquals("$label: one guard", 1, resume.count { reference(it) == HOLDS_STORY })
+            assertEquals("$label: one report", 1, resume.count { reference(it) == ZOOM_RESUMED })
+            assertEquals("$label: one drag hook", 1, resume.count { reference(it) == DRAGGING })
+            val drag = resume.indexOfFirst { reference(it) == DRAGGING }
+            val asked = (resume[drag - 2] as ReferenceInstruction).reference as MethodReference
+            assertEquals("$label: right after Instagram's own ()Z check", "Z", asked.returnType)
+            assertTrue("$label: which takes nothing", asked.parameterTypes.isEmpty())
+            assertEquals("$label: and its answer", Opcode.MOVE_RESULT, resume[drag - 1].opcode)
+            val answer = (resume[drag - 1] as OneRegisterInstruction).registerA
+            assertEquals("$label: is what the hook is handed", answer, (resume[drag] as RegisterRangeInstruction).startRegister)
+        }
     }
 
     private fun builds(bundle: File, label: String) {

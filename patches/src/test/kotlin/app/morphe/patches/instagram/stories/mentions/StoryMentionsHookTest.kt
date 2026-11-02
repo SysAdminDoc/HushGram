@@ -17,7 +17,10 @@ import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.accountBridges
 import app.morphe.patches.instagram.media.taptoplay.FRAGMENT_ACTIVITY
 import app.morphe.patches.instagram.media.taptoplay.TOUCH as TAP_CLOCK
+import app.morphe.patches.instagram.stories.autoadvance.STORY_VIEWER
 import app.morphe.patches.instagram.stories.time.STORY_ITEM
+import app.morphe.patches.instagram.stories.zoom.PAUSE_MARK
+import app.morphe.patches.instagram.stories.zoom.RESUME_MARK
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
@@ -33,6 +36,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstructio
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
@@ -43,6 +47,7 @@ import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstructio
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11n
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction11x
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21c
+import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction21t
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction22c
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction31i
 import com.android.tools.smali.dexlib2.immutable.instruction.ImmutableInstruction3rc
@@ -68,6 +73,7 @@ class StoryMentionsHookTest {
     private val otherShared = "Lfixture/MentionHolderToo;"
     private val mainBinder = "Lfixture/ReelBinder;"
     private val catchUpBinder = "Lfixture/CatchUpBinder;"
+    private val string = "Ljava/lang/String;"
     private val public = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 
     private fun method(owner: String, name: String, parameters: List<String>, returns: String, flags: Int, registers: Int, vararg code: Instruction) =
@@ -160,6 +166,117 @@ class StoryMentionsHookTest {
         assertTrue("bind is not in the extension: $declared", BIND.substringAfter("->").substringBefore(")") + ")" in declared)
         assertTrue("touch is not in the extension: $declared", PILL_TOUCH.substringAfter("->").substringBefore(")") + ")" in declared)
         for (stub in STUBS) assertTrue("$stub is not in the extension: $declared", "$stub(Ljava/lang/Object;)" in declared)
+        for (hook in listOf(VIEWER_SHOWN, HOLDS_STORY)) {
+            assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->").substringBefore(")") + ")" in declared)
+        }
+        for ((stub, count) in HOLD_STUBS) {
+            assertTrue("$stub is not in the extension: $declared", "$stub(${"Ljava/lang/Object;".repeat(count)})" in declared)
+        }
+    }
+
+    /**
+     * The story viewer: its static pause and resume loading their marks, and its own onResume. The
+     * resume has [resumeLocals] locals, [jumpsBack] branches back onto its first instruction, and
+     * [closed] names what's made package-private: viewer, pause or resume.
+     */
+    private fun viewer(resumeLocals: Int = 5, onResume: Boolean = true, jumpsBack: Boolean = false, closed: Set<String> = emptySet()): ClassDef {
+        fun flags(part: String, open: Int) = if (part in closed) open and AccessFlags.PUBLIC.value.inv() else open
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        // With no local the mark goes in the reason's register.
+        val mark = if (resumeLocals > 0) 0 else 1
+        val resume = listOfNotNull(
+            ImmutableInstruction21c(Opcode.CONST_STRING, mark, ImmutableStringReference(RESUME_MARK)),
+            ImmutableInstruction21t(Opcode.IF_EQZ, resumeLocals + 2, -2).takeIf { jumpsBack },
+            ImmutableInstruction10x(Opcode.RETURN_VOID),
+        )
+        return type(
+            STORY_VIEWER,
+            methods = listOfNotNull(
+                method(
+                    STORY_VIEWER, "A18", listOf(STORY_VIEWER, string), "V", flags("pause", static), 3,
+                    ImmutableInstruction21c(Opcode.CONST_STRING, 0, ImmutableStringReference(PAUSE_MARK)),
+                    ImmutableInstruction10x(Opcode.RETURN_VOID),
+                ),
+                method(STORY_VIEWER, "A19", listOf(STORY_VIEWER, string, "Z"), "V", flags("resume", static), resumeLocals + 3, *resume.toTypedArray()),
+                method(STORY_VIEWER, "onResume", emptyList(), "V", AccessFlags.PUBLIC.value, 1, ImmutableInstruction10x(Opcode.RETURN_VOID))
+                    .takeIf { onResume },
+            ),
+            flags = flags("viewer", public),
+        )
+    }
+
+    /**
+     * #403: the viewer's onResume says which viewer shows, its resume asks first whether a list
+     * holds that viewer's story and returns when one does, and the stubs pause through the viewer's
+     * pause and play through its resume the way lifting a finger does.
+     */
+    @Test
+    fun theListHoldsTheStoryThroughTheViewersOwnPauseAndResume() {
+        val context = PatchContexts.of(standIns() + viewer())
+        context.hookStoryHold(context.findStoryHold(), context.storyHoldStubs())
+
+        val methods = context.mutableClassDefBy(STORY_VIEWER).methods
+        val shown = methods.single { it.name == "onResume" }.instructions()
+        assertEquals(VIEWER_SHOWN, shown[0].referenceText())
+        assertEquals("the viewer itself", listOf(0, 1), (shown[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals(Opcode.RETURN_VOID, shown[1].opcode)
+
+        val resume = methods.single { it.name == "A19" }.instructions()
+        assertEquals(HOLDS_STORY, resume[0].referenceText())
+        assertEquals("the viewer", listOf(5, 1), (resume[0] as RegisterRangeInstruction).let { listOf(it.startRegister, it.registerCount) })
+        assertEquals(Opcode.MOVE_RESULT, resume[1].opcode)
+        assertEquals("into a local", 0, (resume[1] as OneRegisterInstruction).registerA)
+        assertEquals(Opcode.IF_EQZ, resume[2].opcode)
+        assertEquals("a no plays the story as Instagram asked", 4, (resume[2] as BuilderOffsetInstruction).target.location.index)
+        assertEquals("a yes keeps it held", Opcode.RETURN_VOID, resume[3].opcode)
+        assertEquals(Opcode.CONST_STRING, resume[4].opcode)
+
+        val held = context.stub("holdStory")
+        assertEquals(listOf(Opcode.CHECK_CAST, Opcode.CONST_STRING, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID), held.take(4).map { it.opcode })
+        assertEquals(STORY_VIEWER, ((held[0] as ReferenceInstruction).reference as TypeReference).type)
+        assertEquals(HOLD_REASON, ((held[1] as ReferenceInstruction).reference as StringReference).string)
+        assertEquals("$STORY_VIEWER->A18($STORY_VIEWER$string)V", held[2].referenceText())
+        val played = context.stub("playStory")
+        assertEquals(
+            listOf(Opcode.CHECK_CAST, Opcode.CONST_STRING, Opcode.CONST_4, Opcode.INVOKE_STATIC, Opcode.RETURN_VOID),
+            played.take(5).map { it.opcode },
+        )
+        assertEquals("resume", ((played[1] as ReferenceInstruction).reference as StringReference).string)
+        assertEquals("with true", 1, (played[2] as NarrowLiteralInstruction).narrowLiteral)
+        assertEquals("$STORY_VIEWER->A19($STORY_VIEWER${string}Z)V", played[3].referenceText())
+    }
+
+    @Test
+    fun noViewerFailsTheHold() = refuses("no $STORY_VIEWER loads") { PatchContexts.of(standIns()).findStoryHold() }
+
+    @Test
+    fun aResumeWithNoLocalFailsTheHold() =
+        refuses("no local register for the hold's answer") { PatchContexts.of(standIns() + viewer(resumeLocals = 0)).findStoryHold() }
+
+    @Test
+    fun aResumeJumpingBackToItsStartFailsTheHold() =
+        refuses("jumps back to its first instruction") { PatchContexts.of(standIns() + viewer(jumpsBack = true)).findStoryHold() }
+
+    @Test
+    fun aViewerWithoutItsOwnOnResumeFailsTheHold() =
+        refuses("has no onResume() of its own") { PatchContexts.of(standIns() + viewer(onResume = false)).findStoryHold() }
+
+    /** The stubs cast to the viewer and call its pause and resume from the extension's package. */
+    @Test
+    fun whatTheHoldsStubsCantReachFailsTheHold() {
+        for ((part, named) in mapOf("viewer" to STORY_VIEWER, "pause" to "$STORY_VIEWER->A18", "resume" to "$STORY_VIEWER->A19")) {
+            refuses("$named isn't public") { PatchContexts.of(standIns() + viewer(closed = setOf(part))).findStoryHold() }
+        }
+    }
+
+    @Test
+    fun aHoldRefusalChangesNothing() {
+        val built = standIns() + viewer(onResume = false)
+        val context = PatchContexts.of(built)
+        val before = built.associate { it.type to it.methods.sumOf { m -> m.instructions().size } }
+        assertThrows(PatchException::class.java) { context.findStoryHold() }
+        val after = built.associate { c -> c.type to context.classDefBy(c.type).methods.sumOf { it.instructions().size } }
+        assertEquals(before, after)
     }
 
     /** Both binders call bind right after the put, with the page and the story, and each stub reads its part. */
@@ -340,13 +457,19 @@ class StoryMentionsHookTest {
                     .toSet()
                 val mentionClasses = FixtureDex.classes(bundle, mentionTypes)
                 val holders = FixtureDex.classes(bundle, mentionClasses.values.flatMap { it.interfaces }.toSet())
-                val classes = (binders + models.values + mentionClasses.values + holders.values +
+                // The story viewer, whose pause and resume hold the story under the list, and the pools they ask.
+                val viewers = FixtureDex.withStringPools(
+                    bundle, listOf(PAUSE_MARK, RESUME_MARK).flatMap { FixtureDex.classesLoading(bundle, it) }.distinctBy { it.type },
+                )
+                val classes = (binders + models.values + mentionClasses.values + holders.values + viewers +
                     ExtensionDex.classDef(STORY_MENTIONS) + ExtensionDex.classDef(INSTAGRAM_MEDIA)).distinctBy { it.type }
                 val context = PatchContexts.of(classes)
 
                 val found = context.findStoryMentions()
                 val touch = context.findPillTouch()
                 val stubs = context.storyMentionStubs()
+                val hold = context.findStoryHold()
+                val holdStubs = context.storyHoldStubs()
                 val pictures = context.accountBridges(PATCH)
                 val cast = { context.mutableClassDefBy(INSTAGRAM_MEDIA).methods
                     .filter { it.instructions().firstOrNull()?.opcode == Opcode.CHECK_CAST }.map { it.name }.toSet() }
@@ -355,6 +478,21 @@ class StoryMentionsHookTest {
                 pictures()
                 context.hookStoryBinds(found)
                 hookPillTouch(touch)
+                context.hookStoryHold(hold, holdStubs)
+
+                val viewerMethods = context.mutableClassDefBy(STORY_VIEWER).methods
+                val shown = viewerMethods.single { it.name == "onResume" && it.parameterTypes.isEmpty() }.instructions()
+                assertEquals("${buildOf(bundle)}: onResume says which viewer shows, first thing", VIEWER_SHOWN, shown[0].referenceText())
+                val resume = viewerMethods.single {
+                    it.name == hold.playback.resume.name && it.parameterTypes.map(Any::toString) == hold.playback.resume.parameterTypes.map(Any::toString)
+                }.instructions()
+                assertEquals("${buildOf(bundle)}: the resume asks first", HOLDS_STORY, resume[0].referenceText())
+                assertEquals("${buildOf(bundle)}: Instagram's own resume after the guard", 4, (resume[2] as BuilderOffsetInstruction).target.location.index)
+                assertEquals("${buildOf(bundle)}: a held story returns", Opcode.RETURN_VOID, resume[3].opcode)
+                assertEquals("${buildOf(bundle)}: the hold pauses through the viewer", hold.playback.pause.name,
+                    ((context.stub("holdStory")[2] as ReferenceInstruction).reference as MethodReference).name)
+                assertEquals("${buildOf(bundle)}: the play resumes through it", hold.playback.resume.name,
+                    ((context.stub("playStory")[3] as ReferenceInstruction).reference as MethodReference).name)
 
                 assertEquals("${buildOf(bundle)}: the binders", 2, found.binds.size)
                 val touched = touch.implementation!!.instructions.toList()

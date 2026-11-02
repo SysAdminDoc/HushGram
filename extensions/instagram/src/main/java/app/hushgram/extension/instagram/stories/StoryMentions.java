@@ -7,8 +7,10 @@ package app.hushgram.extension.instagram.stories;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Application;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
@@ -248,6 +250,65 @@ public final class StoryMentions {
         watching = new WeakReference<>(app);
     }
 
+    /** The story viewer that last came to the front, so a list opened over its story can hold it. */
+    private static WeakReference<Object> viewer = new WeakReference<>(null);
+    /** The viewer whose story a showing list holds, and that list. */
+    private static WeakReference<Object> heldViewer = new WeakReference<>(null);
+    private static WeakReference<Dialog> heldList = new WeakReference<>(null);
+
+    /** Called first thing in the story viewer's onResume: [shown] is the viewer on the screen now. */
+    public static void viewerShown(Object shown) {
+        viewer = new WeakReference<>(shown);
+    }
+
+    /**
+     * Called first thing in the story viewer's resume, which plays its story again. True while a
+     * list opened over [resuming]'s story shows, so the story waits under it the way Instagram's
+     * own resume waits for its sheets and keyboard, a trip to Home and back included. Before, a
+     * photo ran out its time under the list and the story moved on, so the list named the story
+     * before, and a visit to a profile and back then ended it (#403).
+     */
+    public static boolean holdsStory(Object resuming) {
+        try {
+            Dialog list = heldList.get();
+            return resuming != null && heldViewer.get() == resuming && list != null && list.isShowing();
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+            return false;
+        }
+    }
+
+    /** [list] shows over the story of the viewer last shown, and holds it until it closes. */
+    private static void hold(Dialog list) {
+        Object shown = viewer.get();
+        if (shown == null) return;
+        heldViewer = new WeakReference<>(shown);
+        heldList = new WeakReference<>(list);
+        try {
+            playback().hold(shown);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+        }
+    }
+
+    /**
+     * [list] closed, so the story it held may play again. It plays now when Close or Back ended
+     * the list. When a tap opened a profile, Instagram plays it as the story comes back, and the
+     * list opening again holds it again.
+     */
+    private static void release(DialogInterface list, boolean play) {
+        if (heldList.get() != list) return;
+        Object held = heldViewer.get();
+        heldList = new WeakReference<>(null);
+        heldViewer = new WeakReference<>(null);
+        if (!play || held == null) return;
+        try {
+            playback().play(held);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+        }
+    }
+
     /** [pill] went off screen: if a profile is open over its story, the list waits for it to return. */
     private static void pillLeft(Pill pill) {
         BackToList waiting = backToList;
@@ -366,6 +427,31 @@ public final class StoryMentions {
     private static Reads reads() {
         Reads forTests = readsForTests;
         return forTests != null ? forTests : PATCHED;
+    }
+
+    /** How a list holds the story under it and plays it again: the stubs the patch fills, or a test's stand-in. */
+    interface Playback {
+        void hold(Object viewer);
+
+        void play(Object viewer);
+    }
+
+    static final Playback PATCHED_PLAYBACK = new Playback() {
+        @Override public void hold(Object viewer) {
+            holdStory(viewer, null);
+        }
+
+        @Override public void play(Object viewer) {
+            playStory(viewer, null, null);
+        }
+    };
+
+    /** Set by tests: what holds and plays the story in place of the patched stubs. */
+    @Nullable static Playback playbackForTests;
+
+    private static Playback playback() {
+        Playback forTests = playbackForTests;
+        return forTests != null ? forTests : PATCHED_PLAYBACK;
     }
 
     /** The pill under the name, a view of HushGram's own so a later bind finds it again. */
@@ -838,6 +924,7 @@ public final class StoryMentions {
         }
         dialog.setOnDismissListener(shown -> {
             if (!leaving[0]) backToList = null;
+            release(shown, !leaving[0]);
         });
         if (sheet) {
             dialog.setView(sheet(themed, rows, dialog), 0, 0, 0, 0);
@@ -850,6 +937,7 @@ public final class StoryMentions {
             dialog.show();
             ScreenColors.dialog(dialog);
         }
+        hold(dialog);
         HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_SHOWN);
         return dialog;
     }
@@ -1188,6 +1276,9 @@ public final class StoryMentions {
         touched = new WeakReference<>(null);
         anyPill = false;
         backToList = null;
+        viewer = new WeakReference<>(null);
+        heldViewer = new WeakReference<>(null);
+        heldList = new WeakReference<>(null);
         Application app = watching.get();
         if (app != null) app.unregisterActivityLifecycleCallbacks(COMEBACK);
         watching = new WeakReference<>(null);
@@ -1223,5 +1314,16 @@ public final class StoryMentions {
     @Nullable
     public static String fullName(Object user) {
         return null;
+    }
+
+    /** Filled in by the patch: pauses [viewer]'s story the way its own pause does. The spare is the patch's register. */
+    public static void holdStory(Object viewer, @Nullable Object spare) {
+    }
+
+    /**
+     * Filled in by the patch: plays [viewer]'s story again the way lifting a finger off it does.
+     * The spares are the patch's registers.
+     */
+    public static void playStory(Object viewer, @Nullable Object spare1, @Nullable Object spare2) {
     }
 }
