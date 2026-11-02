@@ -160,6 +160,26 @@ public class ChatReelsTest {
         assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
     }
 
+    /** A pull down refreshes everywhere but a chat's viewer with the stop on, where it would bring suggestions (#390). */
+    @Test
+    public void aPullDownRefreshesEverywhereButAChatsViewer() {
+        assertTrue("off to start, Instagram refreshes", ChatReels.refresh(Source.DIRECT));
+        Settings.STOP_AFTER_CHAT_REELS.save(true);
+        assertFalse("a chat's viewer", ChatReels.refresh(Source.DIRECT));
+        assertTrue("the Reels tab", ChatReels.refresh(Source.CLIPS_TAB));
+        assertTrue("search in chats", ChatReels.refresh(Source.DIRECT_SEARCH));
+        assertTrue("no source", ChatReels.refresh(null));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", ChatReels.refresh(Source.DIRECT));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.refresh(Source.DIRECT)));
+        assertFalse("back on", ChatReels.refresh(Source.DIRECT));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
     /** The loading placeholder is left out only after a chat's reels with the stop on, never added (#390). */
     @Test
     public void thePlaceholderIsLeftOutOnlyAfterAChatsReels() {

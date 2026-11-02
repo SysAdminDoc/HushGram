@@ -11,12 +11,15 @@ import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLa
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.reels.scrolling.PAGER_SETUP
+import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Field
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
@@ -24,6 +27,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import com.android.tools.smali.dexlib2.immutable.ImmutableField
 import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
@@ -44,7 +48,12 @@ class SwipeChatReelsHookTest {
     private val source = "Lfixture/Source;"
     private val chatSource = "Lfixture/ChatSource;"
     private val fetcher = "Lfixture/Fetcher;"
+    private val items = "Lfixture/Items;"
     private val viewer = "Lfixture/Viewer;"
+    private val refresher = "Lfixture/Refresher;"
+    private val puller = "Lfixture/Puller;"
+    private val setupOwner = "Lfixture/Setup;"
+    private val holder = "Lfixture/Holder;"
     private val controller = "Lfixture/FlashController;"
     private val item = "Lfixture/Item;"
     private val adapter = "Lfixture/Adapter;"
@@ -57,7 +66,11 @@ class SwipeChatReelsHookTest {
         val declared = ExtensionDex.classDef(CHAT_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        for (hook in listOf(CHAIN, STOP, STOP_CACHED, PLACEHOLDER, OPEN)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        for (hook in listOf(CHAIN, STOP, STOP_CACHED, PLACEHOLDER, OPEN, REFRESH)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
+        val exit = ExtensionDex.classDef(CHAT_REELS_EXIT).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$VIEWER is not in the extension: $exit", VIEWER.substringAfter("->") in exit)
     }
 
     /** The dual paging request asks the extension first, for the stock side of a chat's source only (#390). */
@@ -172,7 +185,9 @@ class SwipeChatReelsHookTest {
     /**
      * A fetcher shaped like Instagram 453's 0Dyx: its dual paging request loads [DUAL_PAGING], and an
      * `if-eqz` on its last flag jumps to the source's page of the chat's own reels, else asks for the
-     * stock side. A source shaped like 0Mfh asks for [CHAT_REELS_PATH] in that page.
+     * stock side. A source shaped like 0Mfh asks for [CHAT_REELS_PATH] in that page. The fetcher holds
+     * the source it pages as the items interface the source extends, as 0Dyz holds a 0Nwk, next to a
+     * field of another type and a static one.
      */
     private fun pagingClasses(
         pagings: Int = 1,
@@ -185,6 +200,7 @@ class SwipeChatReelsHookTest {
         flag: String = if (static) "p${takes.size - 1}" else "p${takes.size}",
         test: String = "if-eqz",
         chatOnTheJump: Boolean = true,
+        sourceFields: Int = 1,
     ): List<ClassDef> {
         val (jump, fall) = if (chatOnTheJump) "chat" to "stock" else "stock" to "chat"
         val held = if (static) "p0" else "p1"
@@ -206,7 +222,11 @@ class SwipeChatReelsHookTest {
             val load = if (pages == 0) "" else "const-string v0, \"$CHAT_REELS_PATH\"\n"
             method(chatSource, if (it == 0) "chat" else "chat$it", emptyList(), "V", 1, AccessFlags.PUBLIC.value or AccessFlags.FINAL.value, "${load}return-void")
         }
-        return listOf(classDef(fetcher, requests), classDef(chatSource, asks, chatIs))
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val fields = List(sourceFields) { ImmutableField(fetcher, if (it == 0) "items" else "items$it", items, final, null, null, null) } +
+            ImmutableField(fetcher, "NONE", items, final or AccessFlags.STATIC.value, null, null, null) +
+            ImmutableField(fetcher, "name", "Ljava/lang/String;", final, null, null, null)
+        return listOf(classDef(fetcher, requests, fields = fields), classDef(chatSource, asks, chatIs), classDef(source, emptyList(), listOf(items)))
     }
 
     /** A viewer opened from a chat asks the extension first when it asks for more reels (#390). */
@@ -220,9 +240,25 @@ class SwipeChatReelsHookTest {
 
         assertEquals("$viewer->config:$VIEWER_CONFIG", found.config)
         assertEquals("$VIEWER_CONFIG->chat:$DIRECT_DATA", found.direct)
+        assertEquals("$viewer->fetcher:$fetcher", found.fetcher)
+        assertEquals("$fetcher->items:$items", found.source)
+        assertEquals(chatSource, found.chat)
         val methods = context.mutableClassDefBy(viewer).methods
         assertAsksForMore("stand-in", methods.single { it.name == "more" }, found, before)
         assertTrue("the viewer's opening was touched", methods.single { it.name == "open" }.code().none { it.referenceText() == STOP })
+    }
+
+    /** A request handing its fetcher over in a range asks first too. */
+    @Test
+    fun aRangeCallOfTheFetcherAsksFirstToo() {
+        val context = PatchContexts.of(viewerClasses(range = true))
+        val found = context.findMoreReels()
+        val before = found.request.implementation!!.instructions.count()
+
+        context.stopMoreReels(found)
+
+        assertEquals("$viewer->fetcher:$fetcher", found.fetcher)
+        assertAsksForMore("range", context.mutableClassDefBy(viewer).methods.single { it.name == "more" }, found, before)
     }
 
     /** A build the more finder can't read fails at patch time, saying what it found, before anything is written. */
@@ -231,6 +267,11 @@ class SwipeChatReelsHookTest {
         val more = "$viewer->more"
         val shape = "isn't an instance request returning nothing"
         val cases = listOf(
+            viewerClasses(fetchers = emptyList()) to "$more asks $fetcher through 0 fields of its viewer, not one",
+            viewerClasses(fetchers = listOf("fetcher", "fetcher2")) to "$more asks $fetcher through 2 fields of its viewer, not one",
+            viewerClasses(fetcherRead = false) to "$more asks $fetcher through 0 fields of its viewer, not one",
+            viewerClasses(held = 0) to "$fetcher holds 0 fields for the source it pages, not one",
+            viewerClasses(held = 2) to "$fetcher holds 2 fields for the source it pages, not one",
             viewerClasses(requests = 0) to "expected one method loading \"$MORE_REELS\", found 0",
             viewerClasses(requests = 2) to "expected one method loading \"$MORE_REELS\", found 2",
             viewerClasses(static = true) to "$more(Ljava/util/List;ZZZ)V $shape",
@@ -272,9 +313,13 @@ class SwipeChatReelsHookTest {
     }
 
     private fun asksForMore(bundle: File, label: String) {
-        val loading = FixtureDex.classesLoading(bundle, MORE_REELS)
-        val config = FixtureDex.classes(bundle, setOf(VIEWER_CONFIG)).values
-        val context = PatchContexts.of((FixtureDex.withStringPools(bundle, loading) + config).distinctBy { it.type })
+        val loading = (FixtureDex.classesLoading(bundle, MORE_REELS) + FixtureDex.classesLoading(bundle, DUAL_PAGING) +
+            FixtureDex.classesLoading(bundle, CHAT_REELS_PATH)).distinctBy { it.type }
+        val pooled = FixtureDex.withStringPools(bundle, loading)
+        // The source the dual paging request takes, whose interfaces the fetcher's source field may be typed as.
+        val paged = PatchContexts.of(pooled).findChatReelsEnd().paging.parameterTypes.first().toString()
+        val config = FixtureDex.classes(bundle, setOf(VIEWER_CONFIG, paged)).values
+        val context = PatchContexts.of((pooled + config).distinctBy { it.type })
 
         val found = context.findMoreReels()
         val before = found.request.implementation!!.instructions.count()
@@ -290,37 +335,53 @@ class SwipeChatReelsHookTest {
     }
 
     /**
-     * First thing: the viewer's config read, then the chat it holds, the hook asked, and a yes
-     * returning. A config or chat that isn't there, or a no, lands on Instagram's own first instruction.
+     * First thing: the viewer's fetcher read, and a fetcher paging the source of a chat's reels goes
+     * on to Instagram, since the chat's own reels come through here too. Then the viewer's config
+     * read, the chat it holds, the hook asked, and a yes returning. No fetcher goes on to the config;
+     * a config or chat that isn't there, or a no, lands on Instagram's own first instruction.
      */
     private fun assertAsksForMore(what: String, method: Method, found: MoreReels, before: Int) {
         val code = method.code()
         val words = method.parameterTypes.size + method.parameterTypes.count { it.toString() == "J" || it.toString() == "D" }
         val self = method.implementation!!.registerCount - words - 1
         assertEquals("$what: hooks", 1, code.count { it.referenceText() == STOP })
-        assertEquals("$what: added", before + 9, code.size)
-        assertEquals("$what: the viewer's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
-        assertEquals("$what: the viewer", self, (code[0] as TwoRegisterInstruction).registerB)
-        assertEquals("$what: the config read", Opcode.IGET_OBJECT, code[1].opcode)
-        assertEquals("$what: the config", found.config, code[1].referenceText())
-        assertEquals("$what: the chat read", Opcode.IGET_OBJECT, code[3].opcode)
-        assertEquals("$what: the chat", found.direct, code[3].referenceText())
-        assertEquals("$what: the hook", STOP, code[5].referenceText())
-        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[6].opcode)
-        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[8].opcode)
+        assertEquals("$what: added", before + 15, code.size)
+        for (at in listOf(0, 6)) {
+            assertEquals("$what: the viewer's copy at $at", Opcode.MOVE_OBJECT_FROM16, code[at].opcode)
+            assertEquals("$what: the viewer at $at", self, (code[at] as TwoRegisterInstruction).registerB)
+        }
+        assertEquals("$what: the fetcher read", Opcode.IGET_OBJECT, code[1].opcode)
+        assertEquals("$what: the fetcher", found.fetcher, code[1].referenceText())
+        assertEquals("$what: the fetcher's source", found.source, code[3].referenceText())
+        assertEquals("$what: the chat's source check", Opcode.INSTANCE_OF, code[4].opcode)
+        assertEquals("$what: the chat's source", found.chat, code[4].referenceText())
+        assertEquals("$what: the config read", Opcode.IGET_OBJECT, code[7].opcode)
+        assertEquals("$what: the config", found.config, code[7].referenceText())
+        assertEquals("$what: the chat read", Opcode.IGET_OBJECT, code[9].opcode)
+        assertEquals("$what: the chat", found.direct, code[9].referenceText())
+        assertEquals("$what: the hook", STOP, code[11].referenceText())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[12].opcode)
+        assertEquals("$what: the stop", Opcode.RETURN_VOID, code[14].opcode)
         val address = IntArray(code.size + 1)
         code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
-        for (at in listOf(2, 4, 7)) {
+        fun target(at: Int) = address.indexOf(address[at] + (code[at] as OffsetInstruction).codeOffset)
+        assertEquals("$what: no fetcher", Opcode.IF_EQZ, code[2].opcode)
+        assertEquals("$what: no fetcher goes on to the config", 6, target(2))
+        assertEquals("$what: the chat's source", Opcode.IF_NEZ, code[5].opcode)
+        assertEquals("$what: the chat's source goes to Instagram", 15, target(5))
+        for (at in listOf(8, 10, 13)) {
             assertEquals("$what: branch $at", Opcode.IF_EQZ, code[at].opcode)
-            val target = address.indexOf(address[at] + (code[at] as OffsetInstruction).codeOffset)
-            assertEquals("$what: branch $at goes to Instagram", 9, target)
+            assertEquals("$what: branch $at goes to Instagram", 15, target(at))
         }
     }
 
     /**
      * A viewer shaped like Instagram 453's 02HP: its request for more reels loads [MORE_REELS] and
      * reads the [VIEWER_CONFIG] it was opened with (twice, as 02HP does), next to a list of its own
-     * and another class's config. A config holding the chat as [DIRECT_DATA], next to a static one.
+     * and another class's config, and asks its fetcher, a field of its own, for the reels (as 02HQ
+     * asks 029b through 0Dyz's request), after asking a list of its own something. A config holding
+     * the chat as [DIRECT_DATA], next to a static one, and the fetcher and the chat's source of
+     * [pagingClasses].
      */
     private fun viewerClasses(
         requests: Int = 1,
@@ -330,14 +391,25 @@ class SwipeChatReelsHookTest {
         entered: Boolean = false,
         reads: List<String> = listOf("config", "config"),
         chats: Int = 1,
+        fetchers: List<String> = listOf("fetcher"),
+        fetcherRead: Boolean = true,
+        range: Boolean = false,
+        held: Int = 1,
     ): List<ClassDef> {
         val scratch = if (locals == 0) "p2" else "v${locals - 1}"
         val name = if (requests == 0) "active_section_on_end" else MORE_REELS
+        val call = if (range) "invoke-virtual/range {$scratch .. $scratch}" else "invoke-virtual {$scratch}"
+        val asksFetchers = fetchers.joinToString("\n") { field ->
+            val receiver = if (fetcherRead) "iget-object $scratch, p0, $viewer->$field:$fetcher" else "move-object $scratch, p0"
+            "$receiver\n$call, $fetcher->fetch()V"
+        }
         val body = """
             ${if (entered) ":top" else ""}
             const-string $scratch, "$name"
             ${reads.joinToString("\n") { "iget-object $scratch, p0, $viewer->$it:$VIEWER_CONFIG" }}
             iget-object $scratch, p0, $viewer->items:Ljava/util/List;
+            invoke-interface {$scratch}, Ljava/util/List;->size()I
+            $asksFetchers
             iget-object $scratch, p0, Lfixture/Other;->config:$VIEWER_CONFIG
             ${if (entered) "goto :top" else "return-void"}
         """
@@ -349,7 +421,326 @@ class SwipeChatReelsHookTest {
         val fields = List(chats) { ImmutableField(VIEWER_CONFIG, if (it == 0) "chat" else "chat$it", DIRECT_DATA, final, null, null, null) } +
             ImmutableField(VIEWER_CONFIG, "NONE", DIRECT_DATA, final or AccessFlags.STATIC.value, null, null, null) +
             ImmutableField(VIEWER_CONFIG, "thread", "Ljava/lang/String;", final, null, null, null)
-        return listOf(classDef(viewer, asks + open), classDef(VIEWER_CONFIG, emptyList(), fields = fields))
+        return listOf(classDef(viewer, asks + open), classDef(VIEWER_CONFIG, emptyList(), fields = fields)) + pagingClasses(sourceFields = held)
+    }
+
+    /** Every read of the viewer's permission to refresh outside the config asks the extension, handed the source (#390). */
+    @Test
+    fun eachReadOfThePermissionToRefreshAsks() {
+        val context = PatchContexts.of(refreshClasses())
+        val found = context.findRefreshReads()
+
+        context.refreshFromChats(found)
+
+        assertEquals("$VIEWER_CONFIG->refresh:Z", found.flag)
+        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
+        assertEquals(setOf("$refresher->handle", "$puller->enable"), found.readers.map { "${it.definingClass}->${it.name}" }.toSet())
+        assertAsksBeforeRefreshing("the refresh", context.mutableClassDefBy(refresher).methods.single { it.name == "handle" }, found, 1)
+        assertAsksBeforeRefreshing("the pull", context.mutableClassDefBy(puller).methods.single { it.name == "enable" }, found, 2)
+        val own = context.mutableClassDefBy(VIEWER_CONFIG).methods.flatMap { it.code() }
+        assertTrue("the config's own read was touched", own.none { it.referenceText() == REFRESH })
+    }
+
+    /** A build the refresh finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildTheRefreshFinderCantReadFailsBeforeAnythingChanges() {
+        val refresh = "$refresher->handle"
+        val cases = listOf(
+            refreshClasses(refreshes = 0) to "expected one method loading \"$REFRESH_NOT_ALLOWED\", found 0",
+            refreshClasses(refreshes = 2) to "expected one method loading \"$REFRESH_NOT_ALLOWED\", found 2",
+            refreshClasses(test = "if-nez") to "$refresh doesn't test a $VIEWER_CONFIG boolean first, its permission to refresh",
+            refreshClasses(own = true) to "$refresh reads $VIEWER_CONFIG->refresh:Z into the config's own register",
+            refreshClasses(sources = 0) to "$VIEWER_CONFIG holds 0 $VIEWER_SOURCE fields, not one",
+            refreshClasses(sources = 2) to "$VIEWER_CONFIG holds 2 $VIEWER_SOURCE fields, not one",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.refreshFromChats() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == REFRESH } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build every read of the permission to refresh asks, the refresh's own among them. */
+    @Test
+    fun eachDeclaredBuildAsksBeforeRefreshing() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                asksBeforeRefreshing(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildAsksBeforeRefreshingToo() {
+        for (base in Fixtures.otherBuilds()) asksBeforeRefreshing(base, base.parentFile.name)
+    }
+
+    private fun asksBeforeRefreshing(bundle: File, label: String) {
+        val refreshing = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, REFRESH_NOT_ALLOWED))
+        val config = FixtureDex.classes(bundle, setOf(VIEWER_CONFIG)).values
+        val flag = PatchContexts.of((refreshing + config).distinctBy { it.type }).findRefreshReads().flag
+        fun reads(method: Method) = method.code().count { it.opcode == Opcode.IGET_BOOLEAN && it.referenceText() == flag }
+        val readers = mutableListOf<ClassDef>()
+        FixtureDex.forEach(bundle) { dex ->
+            if (dex.fieldSection.none { it.toString() == flag }) return@forEach
+            for (classDef in dex.classes) {
+                if (classDef.type != VIEWER_CONFIG && classDef.methods.any { reads(it) > 0 }) readers += ImmutableClassDef.of(classDef)
+            }
+        }
+        val context = PatchContexts.of((refreshing + config + readers).distinctBy { it.type })
+        val found = context.findRefreshReads()
+        val counts = readers.flatMap { it.methods }.filter { reads(it) > 0 }
+            .associate { "${it.definingClass}->${it.name}${it.parameterTypes.joinToString("", "(", ")")}" to reads(it) }
+
+        context.refreshFromChats(found)
+
+        assertTrue("${label}: only ${counts.size} methods read $flag", counts.size >= 2)
+        val hooked = readers.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            .filter { method -> method.code().any { it.referenceText() == REFRESH } }
+        assertEquals("${label}: methods asking", counts.keys, hooked.map { "${it.definingClass}->${it.name}${it.parameterTypes.joinToString("", "(", ")")}" }.toSet())
+        for (method in hooked) {
+            assertAsksBeforeRefreshing("$label ${method.definingClass}->${method.name}", method, found, counts.getValue("${method.definingClass}->${method.name}${method.parameterTypes.joinToString("", "(", ")")}"))
+        }
+        val refresh = refreshing.flatMap { it.methods }.filter { reads(it) > 0 }.map { "${it.definingClass}->${it.name}" }
+        assertTrue("${label}: the refresh itself asks", hooked.any { "${it.definingClass}->${it.name}" in refresh })
+    }
+
+    /**
+     * Right after each of the [reads] reads of the permission: a no goes on to Instagram as it was, a
+     * yes reads the source from the same config into the answer's register, hands it to the hook, and
+     * the hook's answer takes the read's place.
+     */
+    private fun assertAsksBeforeRefreshing(what: String, method: Method, found: RefreshReads, reads: Int) {
+        val code = method.code()
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        val asks = code.indices.filter { code[it].referenceText() == REFRESH }
+        assertEquals("$what: asks", reads, asks.size)
+        assertEquals("$what: reads", reads, code.count { it.opcode == Opcode.IGET_BOOLEAN && it.referenceText() == found.flag })
+        for (ask in asks) {
+            val read = code[ask - 3]
+            assertEquals("$what: the read before $ask", Opcode.IGET_BOOLEAN, read.opcode)
+            assertEquals("$what: the permission before $ask", found.flag, read.referenceText())
+            val answer = (read as TwoRegisterInstruction).registerA
+            val test = code[ask - 2]
+            assertEquals("$what: the test before $ask", Opcode.IF_EQZ, test.opcode)
+            assertEquals("$what: the test's register before $ask", answer, (test as OneRegisterInstruction).registerA)
+            assertEquals("$what: a no goes on to Instagram before $ask", ask + 2, address.indexOf(address[ask - 2] + (test as OffsetInstruction).codeOffset))
+            val source = code[ask - 1] as TwoRegisterInstruction
+            assertEquals("$what: the source before $ask", found.source, code[ask - 1].referenceText())
+            assertEquals("$what: the source's register before $ask", answer, source.registerA)
+            assertEquals("$what: from the same config before $ask", read.registerB, source.registerB)
+            assertEquals("$what: the hook's argument at $ask", answer, (code[ask] as FiveRegisterInstruction).registerC)
+            assertEquals("$what: the answer at $ask", Opcode.MOVE_RESULT, code[ask + 1].opcode)
+            assertEquals("$what: the answer's register at $ask", answer, (code[ask + 1] as OneRegisterInstruction).registerA)
+        }
+    }
+
+    /**
+     * A refresh shaped like Instagram 453's 02HQ.A1T: it reads the config's permission first and
+     * tests it, loading [REFRESH_NOT_ALLOWED] when it's no. A pull shaped like 01WS.A0j, reading the
+     * permission twice and another flag between. A config with a source of [VIEWER_SOURCE] next to a
+     * static one, whose own method reads the permission too.
+     */
+    private fun refreshClasses(
+        refreshes: Int = 1,
+        test: String = "if-eqz",
+        own: Boolean = false,
+        sources: Int = 1,
+    ): List<ClassDef> {
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val answer = if (own) "v1" else "v0"
+        val name = if (refreshes == 0) "refresh_allowed" else REFRESH_NOT_ALLOWED
+        val body = """
+            iget-object v1, p0, $refresher->config:$VIEWER_CONFIG
+            iget-boolean $answer, v1, $VIEWER_CONFIG->refresh:Z
+            $test $answer, :refused
+            iget-boolean v0, v1, $VIEWER_CONFIG->other:Z
+            return-void
+            :refused
+            const-string v0, "$name"
+            return-void
+        """
+        val handles = List(maxOf(refreshes, 1)) { method(refresher, if (it == 0) "handle" else "handle$it", listOf("Z"), "V", 2, final, body) }
+        val enable = method(puller, "enable", emptyList(), "V", 3, final, """
+            iget-object v1, p0, $puller->config:$VIEWER_CONFIG
+            iget-boolean v0, v1, $VIEWER_CONFIG->refresh:Z
+            iget-boolean v2, v1, $VIEWER_CONFIG->other:Z
+            and-int/2addr v0, v2
+            iget-boolean v2, v1, $VIEWER_CONFIG->refresh:Z
+            or-int/2addr v0, v2
+            return-void
+        """)
+        val same = method(VIEWER_CONFIG, "same", emptyList(), "Z", 1, final, "iget-boolean v0, p0, $VIEWER_CONFIG->refresh:Z\nreturn v0")
+        val fields = List(sources) { ImmutableField(VIEWER_CONFIG, if (it == 0) "source" else "source$it", VIEWER_SOURCE, final, null, null, null) } +
+            ImmutableField(VIEWER_CONFIG, "NONE", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null) +
+            ImmutableField(VIEWER_CONFIG, "refresh", "Z", final, null, null, null) +
+            ImmutableField(VIEWER_CONFIG, "other", "Z", final, null, null, null)
+        return listOf(classDef(refresher, handles), classDef(puller, listOf(enable)), classDef(VIEWER_CONFIG, listOf(same), fields = fields))
+    }
+
+    /** The Reels pager setup hands the extension a viewer's pager and its source right before storing the pager (#390). */
+    @Test
+    fun theSetupHandsOverEachViewersPager() {
+        val context = PatchContexts.of(pagerClasses())
+        val found = context.findChatViewers()
+
+        context.watchChatViewers(found)
+
+        assertEquals("$holder->pager:$VIEW_PAGER", found.field)
+        assertEquals("$holder->config:$VIEWER_CONFIG", found.config)
+        assertEquals("$VIEWER_CONFIG->source:$VIEWER_SOURCE", found.source)
+        assertEquals(1, found.pager)
+        assertEquals(3, found.holder)
+        assertEquals(0, found.free)
+        assertWatches("stand-in", context.mutableClassDefBy(setupOwner).methods.single { it.name == "setup" }, found)
+    }
+
+    /** Code another patch puts ahead of the store after it was found doesn't move the hook off the store. */
+    @Test
+    fun codePutAheadOfThePagersStoreSinceDoesntMoveTheHook() {
+        val context = PatchContexts.of(pagerClasses())
+        val found = context.findChatViewers()
+        found.setup.addInstructionsWithLabels(0, "const/4 v0, 0x0\nconst/4 v0, 0x1")
+
+        context.watchChatViewers(found)
+
+        assertWatches("moved", found.setup, found)
+    }
+
+    /** A build the pager finder can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aBuildThePagerFinderCantReadFailsBeforeAnythingChanges() {
+        val setup = "$setupOwner->setup"
+        val cases = listOf(
+            pagerClasses(setups = 0) to "expected one method loading \"$PAGER_SETUP\", found 0",
+            pagerClasses(setups = 2) to "expected one method loading \"$PAGER_SETUP\", found 2",
+            pagerClasses(stores = 0) to "expected $setup to store one $VIEW_PAGER, found 0",
+            pagerClasses(stores = 2) to "expected $setup to store one $VIEW_PAGER, found 2",
+            pagerClasses(entered = true) to "something in $setup jumps to its store of the pager",
+            pagerClasses(configs = 0) to "$holder holds 0 $VIEWER_CONFIG fields, not one",
+            pagerClasses(configs = 2) to "$holder holds 2 $VIEWER_CONFIG fields, not one",
+            pagerClasses(locals = 1) to "$setup has 0 local register(s) up to v15",
+        )
+        for ((classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val failure = assertThrows(expected, PatchException::class.java) { context.watchChatViewers() }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+            val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method.code().any { it.referenceText() == VIEWER } }
+            assertTrue("$expected: something was written to $written", written.isEmpty())
+        }
+    }
+
+    /** In each declared build the Reels pager setup hands over each viewer's pager right before storing it. */
+    @Test
+    fun eachDeclaredBuildHandsOverItsReelsPagers() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                watches(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildHandsOverItsReelsPagersToo() {
+        for (base in Fixtures.otherBuilds()) watches(base, base.parentFile.name)
+    }
+
+    private fun watches(bundle: File, label: String) {
+        val loading = FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, PAGER_SETUP))
+        val holders = loading.flatMap { it.methods }.flatMap { it.code() }.mapNotNull { instruction ->
+            val field = (instruction as? ReferenceInstruction)?.reference as? FieldReference
+            field?.definingClass?.takeIf { instruction.opcode == Opcode.IPUT_OBJECT && field.type == VIEW_PAGER }
+        }.toSet()
+        val context = PatchContexts.of((loading + FixtureDex.classes(bundle, holders + VIEWER_CONFIG).values).distinctBy { it.type })
+        val found = context.findChatViewers()
+
+        context.watchChatViewers(found)
+
+        assertWatches(label, found.setup, found)
+        val hooked = loading.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+            .count { method -> method.code().any { it.referenceText() == VIEWER } }
+        assertEquals("${label}: methods hooked", 1, hooked)
+    }
+
+    /**
+     * Right before the pager's store: the holder's config read into the free local, no config going
+     * on to the store, the config's source, and the hook handed the pager and the source.
+     */
+    private fun assertWatches(what: String, setup: Method, found: ChatViewers) {
+        val code = setup.code()
+        val asks = code.indices.filter { code[it].referenceText() == VIEWER }
+        assertEquals("$what: hands over the pager", 1, asks.size)
+        val ask = asks.single()
+        assertEquals("$what: the store after", found.field, code[ask + 1].referenceText())
+        assertEquals("$what: the store after", Opcode.IPUT_OBJECT, code[ask + 1].opcode)
+        val config = code[ask - 3] as TwoRegisterInstruction
+        assertEquals("$what: the config", found.config, code[ask - 3].referenceText())
+        assertEquals("$what: into the free local", found.free, config.registerA)
+        assertEquals("$what: from the holder", found.holder, config.registerB)
+        assertEquals("$what: the config test", Opcode.IF_EQZ, code[ask - 2].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: no config goes on to the store", ask + 1, address.indexOf(address[ask - 2] + (code[ask - 2] as OffsetInstruction).codeOffset))
+        assertEquals("$what: the source", found.source, code[ask - 1].referenceText())
+        assertEquals("$what: the source's register", found.free, (code[ask - 1] as TwoRegisterInstruction).registerA)
+        val call = code[ask] as FiveRegisterInstruction
+        assertEquals("$what: handed the pager and the source", listOf(found.pager, found.free), listOf(call.registerC, call.registerD))
+        assertEquals("$what: two arguments", 2, call.registerCount)
+        assertTrue("$what: the free local isn't the pager or its holder", found.free != found.pager && found.free != found.holder)
+        assertTrue("$what: the free local fits", found.free <= 15)
+    }
+
+    /**
+     * A pager setup shaped like Instagram 453's static 01WS.A0j: it loads [PAGER_SETUP], casts the
+     * pager it's handed to a [VIEW_PAGER] and stores it in the holder it's handed (048e), next to a
+     * store of something else. A holder with the viewer's [VIEWER_CONFIG] next to a static one, and a
+     * config with its source.
+     */
+    private fun pagerClasses(
+        setups: Int = 1,
+        stores: Int = 1,
+        entered: Boolean = false,
+        configs: Int = 1,
+        locals: Int = 2,
+    ): List<ClassDef> {
+        val pager = "v${locals - 1}"
+        val name = if (setups == 0) "ClipsViewerFragment.setUpViewPager" else PAGER_SETUP
+        val body = """
+            const-string $pager, "$name"
+            move-object $pager, p0
+            check-cast $pager, $VIEW_PAGER
+            ${if (entered) "if-eqz $pager, :store\n:store" else ""}
+            ${List(stores) { "iput-object $pager, p1, $holder->pager:$VIEW_PAGER" }.joinToString("\n")}
+            iput-object p0, p1, $holder->kept:Ljava/lang/Object;
+            return-void
+        """
+        val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
+        val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+        val setUps = List(maxOf(setups, 1)) {
+            method(setupOwner, if (it == 0) "setup" else "setup$it", listOf("Ljava/lang/Object;", holder), "V", locals, static, body)
+        }
+        val held = List(configs) { ImmutableField(holder, if (it == 0) "config" else "config$it", VIEWER_CONFIG, final, null, null, null) } +
+            ImmutableField(holder, "DEFAULT", VIEWER_CONFIG, final or AccessFlags.STATIC.value, null, null, null) +
+            ImmutableField(holder, "pager", VIEW_PAGER, final, null, null, null) +
+            ImmutableField(holder, "kept", "Ljava/lang/Object;", final, null, null, null)
+        val configFields = listOf(
+            ImmutableField(VIEWER_CONFIG, "source", VIEWER_SOURCE, final, null, null, null),
+            ImmutableField(VIEWER_CONFIG, "NONE", VIEWER_SOURCE, final or AccessFlags.STATIC.value, null, null, null),
+        )
+        return listOf(classDef(setupOwner, setUps), classDef(holder, emptyList(), fields = held), classDef(VIEWER_CONFIG, emptyList(), fields = configFields))
     }
 
     /** The insert of a cached reel asks the extension first, handing it the viewer's source (#390). */

@@ -51,6 +51,11 @@ public class RecyclerView extends LinearLayout {
      * below the last loaded row (#225).
      */
     public boolean loading;
+    /**
+     * What getScrollState answers, set by the test: 1 (SCROLL_STATE_DRAGGING) while a finger holds
+     * a ViewPager2's list, as a Reels viewer's pager does.
+     */
+    public int scrollState;
     /** Makes the view of a tile for a reel. */
     public Function<String, View> tiles;
     private int offset;
@@ -111,6 +116,11 @@ public class RecyclerView extends LinearLayout {
 
     @Override public int computeVerticalScrollOffset() {
         return offset;
+    }
+
+    /** The scroll state the test set, as AndroidX's getScrollState answers it. */
+    public int getScrollState() {
+        return scrollState;
     }
 
     @Override public void scrollBy(int x, int y) {

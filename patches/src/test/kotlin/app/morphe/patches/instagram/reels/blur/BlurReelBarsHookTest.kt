@@ -74,6 +74,21 @@ class BlurReelBarsHookTest {
         assertEquals("only the one invoke is new", original, now.filterIndexed { at, _ -> at != ask })
     }
 
+    /**
+     * Code another patch puts into onViewCreated ahead of the store, between the find and the apply,
+     * as #390's pager hook does in 453, still leaves the hand-over right after the store.
+     */
+    @Test
+    fun codePutAheadOfTheStoreSinceDoesntMoveTheHook() {
+        val context = PatchContexts.of(classes())
+        val found = context.findReelPagerStore()
+        context.viewer(viewerType).addInstructionsWithLabels(0, "const/4 v3, 0x0\nconst/4 v3, 0x1")
+
+        context.applyBlurReelBars(found)
+
+        assertHandedOver("the stand-in", context.viewer(viewerType), pager = 2)
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, and nothing is changed. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {

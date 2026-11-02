@@ -69,8 +69,11 @@ val blurReelBarsPatch = bytecodePatch(
     }
 }
 
-/** The method that stores the pager (onViewCreated on 451, the pager's setupView on 452), the index of its one store of the pager, and the register that holds it. */
-internal class ReelPagerStore(val viewer: String, val name: String, val parameters: List<String>, val store: Int, val pager: Int)
+/**
+ * The method that stores the pager (onViewCreated on 451, the pager's setupView on 452), the index of
+ * its one store of the pager, the register that holds it, and the pager field it stores.
+ */
+internal class ReelPagerStore(val viewer: String, val name: String, val parameters: List<String>, val store: Int, val pager: Int, val field: String)
 
 /**
  * The Reels pager is the [VIEW_PAGER] field its own [ENABLE_SCROLLING] switch reads, and the viewer
@@ -100,14 +103,20 @@ internal fun BytecodePatchContext.findReelPagerStore(): ReelPagerStore {
     if (store + 1 !in code.indices) refuse("$where ends at its store of $field")
     if (store + 1 in viewer.jumpTargets()) refuse("something in $where jumps to the instruction after its store of $field")
     // An iput names v15 at most, so the pager's register fits the hook's invoke as it is.
-    return ReelPagerStore(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, (code[store] as TwoRegisterInstruction).registerA)
+    return ReelPagerStore(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, (code[store] as TwoRegisterInstruction).registerA, field)
 }
 
-/** Hands the pager to [BLUR_PAGER_HOOK] right after the viewer stores it. */
+/**
+ * Hands the pager to [BLUR_PAGER_HOOK] right after the viewer stores it. The store is found again
+ * here, since another patch may have put code ahead of it in the same method since.
+ */
 internal fun BytecodePatchContext.applyBlurReelBars(site: ReelPagerStore) {
-    mutableClassDefBy(site.viewer).methods.single {
+    val viewer = mutableClassDefBy(site.viewer).methods.single {
         it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
-    }.addInstructions(site.store + 1, "invoke-static { v${site.pager} }, $BLUR_PAGER_HOOK")
+    }
+    val store = viewer.instructions().indexOfFirst { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == site.field }
+    if (store < 0) refuse("${site.viewer}->${site.name} no longer stores ${site.field}")
+    viewer.addInstructions(store + 1, "invoke-static { v${site.pager} }, $BLUR_PAGER_HOOK")
 }
 
 private fun Method.instructions(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

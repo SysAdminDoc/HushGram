@@ -120,6 +120,7 @@ internal class ReelsScrollingSite(
     val answer: Int,
     val setterSelf: Int,
     val touches: Map<String, Int>,
+    val field: String,
 )
 
 /**
@@ -172,7 +173,7 @@ internal fun BytecodePatchContext.findReelsScrolling(): ReelsScrollingSite {
         }
         handler.freeLocalsAt(PATCH, 0, 1).single()
     }
-    return ReelsScrollingSite(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, answer, setterSelf, touches)
+    return ReelsScrollingSite(viewer.definingClass, viewer.name, viewer.parameterTypes.map(CharSequence::toString), store, pager, answer, setterSelf, touches, field)
 }
 
 /**
@@ -217,8 +218,11 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
     }
     val answer = site.answer
     val pager = site.pager
+    // Found again, since another patch may have put code ahead of the store in this method since.
+    val store = viewer.instructions().indexOfFirst { it.opcode == Opcode.IPUT_OBJECT && it.fieldReference()?.toString() == site.field }
+    if (store < 0) refuse("${site.viewer}->${site.name} no longer stores ${site.field}")
     viewer.addInstructionsWithLabels(
-        site.store + 1,
+        store + 1,
         """
             invoke-static { v$pager }, $PAGER_HOOK
             move-result v$answer
@@ -226,7 +230,7 @@ internal fun BytecodePatchContext.stopReelsScrolling(site: ReelsScrollingSite) {
             const/4 v$answer, 0x0
             invoke-virtual { v$pager, v$answer }, $VIEW_PAGER->$SET_USER_INPUT(Z)V
         """,
-        ExternalLabel("keep", viewer.getInstruction(site.store + 1)),
+        ExternalLabel("keep", viewer.getInstruction(store + 1)),
     )
 
     val setter = mutableClassDefBy(VIEW_PAGER).methods.single {

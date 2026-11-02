@@ -83,6 +83,21 @@ class StopReelsScrollingHookTest {
         assertEquals("one call for each place", 4, calls)
     }
 
+    /**
+     * Code another patch puts into onViewCreated ahead of the store, between the find and the apply,
+     * as #390's pager hook does in 453, still leaves the question right after the store.
+     */
+    @Test
+    fun codePutAheadOfTheStoreSinceDoesntMoveTheHook() {
+        val context = PatchContexts.of(classes())
+        val found = context.findReelsScrolling()
+        context.viewer(viewerType).addInstructionsWithLabels(0, "const/4 v0, 0x0\nconst/4 v0, 0x1")
+
+        context.stopReelsScrolling(found)
+
+        assertPagerHeld("the stand-in", context.viewer(viewerType), pager = 2, answer = 0, after = Opcode.GOTO)
+    }
+
     /** A build the patch can't read fails at patch time, saying what it found, and nothing is changed. */
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {

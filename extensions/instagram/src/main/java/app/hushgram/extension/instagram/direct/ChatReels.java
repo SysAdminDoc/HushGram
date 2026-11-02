@@ -38,6 +38,11 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * switch on it ends after the chat's reels (#390). The viewer also puts a loading placeholder
  * after the reels it adds, for the next ones to replace, which {@link #placeholder(Object, int)}
  * leaves out there, so the last page is the chat's last reel and not a gray one that never loads.
+ * Paging the two-sided source, the viewer asks for more of the chat's own reels the same way it asks
+ * for suggested ones, so the patch lets that request through for that source and leaves the stop to
+ * the second side's. Pulling down at the top loads fresh reels, suggested ones, wherever the viewer's
+ * config allows it, so the patch asks {@link #refresh(Object)} at every read of that permission, and
+ * past the chat's last reel {@link ChatReelsExit} takes a swipe up back to the chat.
  *
  * <p>The patch also asks {@link #open(Object, View)} first on every tap on media in a chat. On a slow
  * phone a shared post or reel takes a while to open, and each tap while it loads starts another
@@ -96,7 +101,22 @@ public final class ChatReels {
      * the switch is off, HushGram is paused or the settings aren't ready. Never throws.
      */
     public static boolean stopCached(Object source) {
-        return source instanceof Enum && CHAT_SOURCE.equals(((Enum<?>) source).name()) && stop();
+        return fromChat(source) && stop();
+    }
+
+    /** Whether [source], a viewer's ClipsViewerSource, is a chat's. */
+    static boolean fromChat(@Nullable Object source) {
+        return source instanceof Enum && CHAT_SOURCE.equals(((Enum<?>) source).name());
+    }
+
+    /**
+     * Whether a Reels viewer Instagram lets load fresh reels at a pull down still may: no while
+     * {@link #stopCached(Object)} is yes for [source], the viewer's ClipsViewerSource, since the fresh
+     * reels are suggested ones and they'd take the chat's place (#390). Yes for any other viewer, and
+     * while the switch is off, HushGram is paused or the settings aren't ready. Never throws.
+     */
+    public static boolean refresh(Object source) {
+        return !stopCached(source);
     }
 
     /**
