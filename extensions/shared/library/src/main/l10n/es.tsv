@@ -1597,3 +1597,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	Hacer crecer el corazón
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	Toca dos veces la misma publicación otra vez en menos de un segundo y medio y el corazón aparece más grande, hasta casi el doble de su tamaño. Si haces una pausa, vuelve a empezar pequeño.
 Instagram in pink	Instagram en rosa
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	Botón de velocidad en historias
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Pone un botón de velocidad en la parte superior de una historia de vídeo, junto a los tres puntos. Tócalo para 1,5x, otra vez para 2x y una vez más para 1x. Las siguientes historias de vídeo mantienen la velocidad hasta que la cambies o reinicies Instagram. Los anuncios se reproducen a velocidad normal.
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	Velocidad de reproducción, %1$s

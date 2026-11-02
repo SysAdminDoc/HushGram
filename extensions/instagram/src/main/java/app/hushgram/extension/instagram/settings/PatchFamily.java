@@ -115,6 +115,7 @@ public enum PatchFamily {
     STORY_RING(FamilyNames.STORY_RING, "storyRingSize", null, Settings.STORY_RING),
     STORY_PROGRESS_BAR(FamilyNames.STORY_PROGRESS_BAR, "storyProgressBar", null, Settings.THICKER_STORY_BAR),
     STORY_SEEK_BAR(FamilyNames.STORY_SEEK_BAR, "storySeekBar", null, Settings.STORY_SEEK_BAR),
+    STORY_SPEED(FamilyNames.STORY_SPEED, "storySpeed", null, Settings.STORY_SPEED_BUTTON),
     FEED_REELS(FamilyNames.FEED_REELS, "feedReels", null, Settings.HIDE_FEED_REELS),
     FEED_SUGGESTIONS(FamilyNames.FEED_SUGGESTIONS, "feedSuggestions", null, Settings.HIDE_SUGGESTED_ACCOUNTS,
             Settings.HIDE_SUGGESTED_POSTS, Settings.HIDE_THREADS_POSTS, Settings.HIDE_FEED_SURVEYS,

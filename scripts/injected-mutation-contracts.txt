@@ -660,6 +660,16 @@ shared-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->bind(Ljava
 # caught in IgFragmentActivity.dispatchTouchEvent, first or right after Tap to play's TapClock. Left
 # out, the pill shows but tapping it does nothing (#125).
 once-call Lapp/hushgram/extension/instagram/stories/StoryMentions;->touch(Landroid/app/Activity;Landroid/view/MotionEvent;)Z in instance (Landroid/view/MotionEvent;)Z holding dispatchTouchEvent
+# Speed button on stories (#469) hands each story page and its story to StorySpeed.bound() right
+# after the same item binder puts the story into the page, in both binders, so a page showing a new
+# story drops the old story's button. Left out, a photo can keep the last video's button.
+shared-call Lapp/hushgram/extension/instagram/stories/StorySpeed;->bound(Ljava/lang/Object;Ljava/lang/Object;)V in static (*)V holding ReelViewerItemBinder.bindMedia
+shared-call Lapp/hushgram/extension/instagram/stories/StorySpeed;->bound(Ljava/lang/Object;Ljava/lang/Object;)V in instance (L*;L*;)V pooled holding ReelViewerItemBinder.bindMedia
+# It also calls StorySpeed.playing() with the viewer, the story and its video holder before the
+# return of the viewer's video start callback, the one method calling the mVideoPlayer field's
+# (float) setter. On 453.0.0.57.79 that's ReelViewerFragment.GZ0, with a single return-void that
+# branches land on, so the call takes the branch label. Left out, no story gets the button.
+once-call Lapp/hushgram/extension/instagram/stories/StorySpeed;->playing(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V in instance (Lcom/instagram/model/reels/ReelItem;L*;ZZ)V pooled holding STORY_SOUND_ON audio\sstate\sdid\snot\smatch
 # Show a post's exact time puts PostTime.time() in place of Instagram's relative formatter call,
 # on the same registers, wherever a post's or a comment's time is written. On 453.0.0.57.79's arm64
 # build: twice in the feed post footer's builder (08lL.A03), which took in the label below the

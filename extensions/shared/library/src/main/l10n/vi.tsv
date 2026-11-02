@@ -1514,3 +1514,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	Phóng to trái tim
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	Chạm đúp lại vào cùng một bài viết trong vòng một giây rưỡi và trái tim hiện lên to hơn, tối đa gần gấp đôi kích thước. Nghỉ một lúc thì nó lại bắt đầu nhỏ.
 Instagram in pink	Instagram màu hồng
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	Nút tốc độ trên tin
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Đặt nút tốc độ ở đầu tin video, cạnh ba chấm. Nhấn để chuyển sang 1,5x, nhấn lần nữa để 2x và thêm lần nữa để về 1x. Các tin video tiếp theo giữ tốc độ đó cho đến khi bạn đổi hoặc khởi động lại Instagram. Quảng cáo phát ở tốc độ bình thường.
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	Tốc độ phát, %1$s

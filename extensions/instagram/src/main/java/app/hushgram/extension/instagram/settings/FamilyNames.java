@@ -61,6 +61,7 @@ public final class FamilyNames {
     public static final String STORY_RING = "Story ring size";
     public static final String STORY_PROGRESS_BAR = "Thicker story progress bar";
     public static final String STORY_SEEK_BAR = "Seek bar on stories";
+    public static final String STORY_SPEED = "Speed button on stories";
     public static final String FEED_REELS = "Hide Reels in the feed";
     public static final String FEED_SUGGESTIONS = "Hide suggested posts";
     public static final String HOME_FEED = "Hide the home feed";

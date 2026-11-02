@@ -107,6 +107,12 @@ final class StoriesCategory {
                     L10n.t("Shows a bar near the bottom of a video story. Drag it to jump to any point in the "
                             + "video. Photos don't get one.")));
         }
+        if (build.contains(PatchFamily.STORY_SPEED)) {
+            stories.add(toggle(context, Settings.STORY_SPEED_BUTTON, L10n.t("Speed button on stories"),
+                    L10n.t("Puts a speed button at the top of a video story, beside the three dots. Tap it for "
+                            + "1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you "
+                            + "change it or restart Instagram. Ads play at normal speed.")));
+        }
         if (build.contains(PatchFamily.AMBIENT_LIGHT)) {
             stories.add(onFlip(toggle(context, Settings.AMBIENT_LIGHT_STORIES, L10n.t("Ambient light in stories"),
                     L10n.t("Fills the bands above and below a story that doesn't fill the screen with a soft glow in "

@@ -1062,6 +1062,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_story_seek_bar", FALSE);
 
     /**
+     * A speed button in a video story's header that plays it at 1x, 1.5x or 2x, kept for the next
+     * video stories until Instagram restarts
+     * ({@link app.hushgram.extension.instagram.stories.StorySpeed}, #469). The speed lives in memory
+     * only, so off or paused, it's forgotten and the next story plays at normal speed. Off to start.
+     */
+    public static final BooleanSetting STORY_SPEED_BUTTON =
+            new BooleanSetting("hushgram_story_speed_button", FALSE);
+
+    /**
      * Home opening on the Following feed, with Instagram's For you and Following picker at its top,
      * while you haven't picked a feed there. Instagram remembers a pick from then on. Off to start.
      */

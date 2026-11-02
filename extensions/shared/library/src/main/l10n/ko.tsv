@@ -1596,3 +1596,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	하트 키우기
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	같은 게시물을 1.5초 안에 다시 두 번 탭하면 하트가 더 크게 나타나며, 최대 두 배에 가깝게 커집니다. 잠시 쉬면 다시 작게 시작합니다.
 Instagram in pink	분홍색 Instagram
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	스토리 속도 버튼
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	동영상 스토리 상단의 점 세 개 옆에 속도 버튼을 추가합니다. 탭하면 1.5x, 다시 탭하면 2x, 한 번 더 탭하면 1x가 됩니다. 이후 동영상 스토리도 속도를 바꾸거나 Instagram을 다시 시작할 때까지 그 속도를 유지합니다. 광고는 보통 속도로 재생됩니다.
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	재생 속도, %1$s

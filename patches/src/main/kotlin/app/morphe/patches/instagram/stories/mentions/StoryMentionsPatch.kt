@@ -125,19 +125,30 @@ internal class StoryMentionSites(
 )
 
 /**
+ * The story viewer's binders and its page, which Speed button on stories hooks too: each binder's
+ * put of the story into the page, the page's type, the name of its public [REEL_VIEW_GROUP] field,
+ * and the name of the story item's public field holding the Media the binders read.
+ */
+internal class StoryPages(
+    val binds: List<StoryBind>,
+    val page: String,
+    val view: String,
+    val media: String,
+)
+
+/**
  * Finds every method that loads [BIND_MEDIA] and, after it, puts a story item into a field of
  * exactly one type, the viewer's page. The page keeps its media view in one public field, and the
- * binders read the story's Media out of one public field of the story item. Media's getter of
- * [REEL_MENTIONS] names the type of each mention with a const-class, and that type implements one public
- * interface with one abstract getter answering the account. Fails before anything changes when any of it isn't there exactly once,
- * since that's an Instagram this patch hasn't seen.
+ * binders read the story's Media out of one public field of the story item. Fails naming [patch]
+ * before anything changes when any of it isn't there exactly once.
  */
-internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
+internal fun BytecodePatchContext.findStoryPages(patch: String = PATCH): StoryPages {
+    fun stop(detail: String): Nothing = throw PatchException("$patch: $detail")
     // 452's 385810270 catch-up binder asks Redex's string pool for the name, and the pool holds it.
     val binders = classesLoadingString(BIND_MEDIA).flatMap { classDef ->
         classDef.methods.filter { method -> !method.isStringPool() && bindMediaAt(method) >= 0 }.map { classDef.type to it }
     }
-    if (binders.isEmpty()) refuse("no method loads $BIND_MEDIA")
+    if (binders.isEmpty()) stop("no method loads $BIND_MEDIA")
 
     val binds = binders.map { (type, method) ->
         val code = method.code()
@@ -146,30 +157,40 @@ internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
             code[index].opcode == Opcode.IPUT_OBJECT && code[index].fieldReference()?.type == STORY_ITEM
         }
         val put = puts.singleOrNull()
-            ?: refuse("expected $type->${method.name} to put one story item into its page after $BIND_MEDIA, found ${puts.size}")
+            ?: stop("expected $type->${method.name} to put one story item into its page after $BIND_MEDIA, found ${puts.size}")
         val registers = code[put] as TwoRegisterInstruction
         StoryBind(type, method.name, method.parameterTypes.map(CharSequence::toString), put, registers.registerB, registers.registerA) to
             code[put].fieldReference()!!.definingClass
     }
     val pages = binds.map { it.second }.distinct()
-    val page = pages.singleOrNull() ?: refuse("the binders put the story into more than one type of page: ${pages.joinToString()}")
+    val page = pages.singleOrNull() ?: stop("the binders put the story into more than one type of page: ${pages.joinToString()}")
 
     val pageClass = classDefBy(page)
     val views = pageClass.fields.filter { it.type == REEL_VIEW_GROUP && !AccessFlags.STATIC.isSet(it.accessFlags) }
-    val view = views.singleOrNull() ?: refuse("expected one $REEL_VIEW_GROUP field on $page, found ${views.size}")
+    val view = views.singleOrNull() ?: stop("expected one $REEL_VIEW_GROUP field on $page, found ${views.size}")
     if (!AccessFlags.PUBLIC.isSet(pageClass.accessFlags) || !AccessFlags.PUBLIC.isSet(view.accessFlags)) {
-        refuse("$page or its field ${view.name} isn't public")
+        stop("$page or its field ${view.name} isn't public")
     }
 
     val reads = binders.flatMap { (_, method) ->
         method.code().filter { it.opcode == Opcode.IGET_OBJECT }.mapNotNull { it.fieldReference() }
             .filter { it.definingClass == STORY_ITEM && it.type == MEDIA }.map { it.name }
     }.distinct()
-    val media = reads.singleOrNull() ?: refuse("expected the binders to read one Media field of $STORY_ITEM, found ${reads.size}")
+    val media = reads.singleOrNull() ?: stop("expected the binders to read one Media field of $STORY_ITEM, found ${reads.size}")
     if (classDefBy(STORY_ITEM).fields.none { it.name == media && it.type == MEDIA && AccessFlags.PUBLIC.isSet(it.accessFlags) }) {
-        refuse("$STORY_ITEM->$media isn't a public field")
+        stop("$STORY_ITEM->$media isn't a public field")
     }
+    return StoryPages(binds.map { it.first }, page, view.name, media)
+}
 
+/**
+ * Finds the viewer's binders and page with [findStoryPages]. Media's getter of [REEL_MENTIONS] names
+ * the type of each mention with a const-class, and that type implements one public interface with
+ * one abstract getter answering the account. Fails before anything changes when any of it isn't
+ * there exactly once, since that's an Instagram this patch hasn't seen.
+ */
+internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
+    val pages = findStoryPages()
     val mentions = pandoGetter(PATCH, MEDIA, REEL_MENTIONS, LIST)
     val types = mentions.code().filter { it.opcode == Opcode.CONST_CLASS }
         .map { ((it as ReferenceInstruction).reference as TypeReference).type }.distinct()
@@ -207,7 +228,7 @@ internal fun BytecodePatchContext.findStoryMentions(): StoryMentionSites {
     if (closed.isNotEmpty()) refuse("${closed.joinToString()} isn't public, so the extension can't reach it")
 
     return StoryMentionSites(
-        binds.map { it.first }, page, view.name, media, mentions.name, mentionInterface, mentionUser.name, fullName.name,
+        pages.binds, pages.page, pages.view, pages.media, mentions.name, mentionInterface, mentionUser.name, fullName.name,
     )
 }
 

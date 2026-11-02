@@ -1600,3 +1600,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	放大愛心
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	在一秒半內再次連點兩下同一則貼文，愛心會彈出得更大，最多接近兩倍大。停一下就會從小的重新開始。
 Instagram in pink	粉紅色 Instagram
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	限時動態速度按鈕
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	在影片限時動態頂端的三個點旁加入速度按鈕。點一下切換為 1.5x，再點一下為 2x，再點一次回到 1x。之後的影片限時動態會沿用這個速度，直到你更改或重新啟動 Instagram。廣告以正常速度播放。
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	播放速度，%1$s

@@ -198,8 +198,11 @@ public final class StoryDownloadButton {
         return null;
     }
 
-    /** Puts [button] before the three-dot menu, or its stub, or at the end when the row has neither. */
-    static void insert(LinearLayout row, ImageView button) {
+    /**
+     * Puts [button] before the three-dot menu, or its stub, or at the end when the row has neither.
+     * The Copy text and Speed buttons go in the same way.
+     */
+    static void insert(LinearLayout row, View button) {
         int at = row.getChildCount();
         int menu = id(row, MENU);
         int stub = id(row, MENU_STUB);

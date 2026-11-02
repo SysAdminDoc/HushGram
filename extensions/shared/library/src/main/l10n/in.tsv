@@ -1597,3 +1597,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	Perbesar hati
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	Ketuk dua kali postingan yang sama lagi dalam satu setengah detik dan hati muncul lebih besar, hingga hampir dua kali ukurannya. Setelah jeda, ukurannya mulai kecil lagi.
 Instagram in pink	Instagram merah muda
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	Tombol kecepatan di cerita
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Menaruh tombol kecepatan di bagian atas cerita video, di samping tiga titik. Ketuk untuk 1,5x, ketuk lagi untuk 2x, dan sekali lagi untuk 1x. Cerita video berikutnya tetap memakai kecepatan itu sampai kamu mengubahnya atau memulai ulang Instagram. Iklan diputar dengan kecepatan normal.
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	Kecepatan pemutaran, %1$s

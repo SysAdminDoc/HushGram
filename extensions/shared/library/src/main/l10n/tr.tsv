@@ -1597,3 +1597,8 @@ Pause a reel and Burn-in guard brings the buttons back to full brightness until 
 Grow the heart	Kalbi büyüt
 Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	Aynı gönderiye bir buçuk saniye içinde tekrar çift dokunursanız kalp daha büyük çıkar, boyutunun neredeyse iki katına kadar. Ara verirseniz yine küçük başlar.
 Instagram in pink	Pembe Instagram
+# context: Stories settings: a speed button in a video story's header, cycling 1x, 1.5x and 2x (#469)
+Speed button on stories	Hikayelerde hız düğmesi
+Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Bir video hikayesinin üstüne, üç noktanın yanına bir hız düğmesi koyar. 1,5x için dokun, 2x için tekrar dokun, 1x için bir kez daha dokun. Sonraki video hikayeleri, sen değiştirene veya Instagram'ı yeniden başlatana kadar bu hızı korur. Reklamlar normal hızda oynatılır.
+# context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
+Playback speed, %1$s	Oynatma hızı, %1$s

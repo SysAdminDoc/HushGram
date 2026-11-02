@@ -218,6 +218,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Speed button on stories patch. */
+    public static boolean storySpeed() {
+        return false;
+    }
+
     public static boolean repostButton() {
         return false;
     }
