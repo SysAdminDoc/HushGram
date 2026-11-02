@@ -218,6 +218,12 @@ Download on stories	Hikayelerde indir
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	Herkesin hikayesinin menüsüne İndir ekler, fotoğraf ya da video, indirme kalitende kaydedilir. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.
 Upload stories at full quality	Hikayeleri tam kalitede yükle
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	Paylaştığın video hikayeler 1080p ve daha yüksek bit hızıyla gönderilir, Instagram'ın kendi En yüksek kalitede yükle ayarı açıkken olduğu gibi. Instagram hikaye videolarını sunucularında yine de 720p'ye küçültür, bu yüzden görünen fark küçüktür. Fotoğraf hikayeler zaten Instagram'ın sakladığından daha büyük yüklenir.
+# context: Stories settings under Upload stories at full quality: which uploads it covers (Stories only, or Stories, posts and reels), and the video bitrate; %1$s is a number of megabits a second (#37)
+Upload quality applies to	Yükleme kalitesinin geçerli olduğu yerler
+Stories only	Yalnızca hikayeler
+Stories, posts and reels	Hikayeler, gönderiler ve Reels
+Video bitrate	Video bit hızı
+%1$s Mbps	%1$s Mbps
 Download feed videos	Akıştaki videoları indir
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Akışındaki videolu bir gönderinin menüsüne İndir ekler. Aşağıdaki kaliteyi kullanır. Kapalıyken veya duraklatıldığında Instagram'ın kendi menüsü geri gelir.
 Playback	Oynatma

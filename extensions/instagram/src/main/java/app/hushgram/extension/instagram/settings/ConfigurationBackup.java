@@ -115,6 +115,10 @@ public final class ConfigurationBackup {
             settings.put(Settings.STORY_RING_SCALE.key, Settings.STORY_RING_SCALE);
             settings.put(Settings.STORY_RING_COLOR.key, Settings.STORY_RING_COLOR);
         }
+        if (PatchFamily.STORY_UPLOAD_QUALITY.inBuild()) {
+            settings.put(Settings.UPLOAD_QUALITY_APPLIES_TO.key, Settings.UPLOAD_QUALITY_APPLIES_TO);
+            settings.put(Settings.UPLOAD_VIDEO_BITRATE.key, Settings.UPLOAD_VIDEO_BITRATE);
+        }
         if (PatchFamily.ROUNDED_POST_CORNERS.inBuild()) settings.put(Settings.ROUNDED_CORNER_SIZE.key, Settings.ROUNDED_CORNER_SIZE);
         if (PatchFamily.AMBIENT_LIGHT.inBuild()) {
             settings.put(Settings.AMBIENT_LIGHT_SPREAD.key, Settings.AMBIENT_LIGHT_SPREAD);

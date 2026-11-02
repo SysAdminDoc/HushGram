@@ -218,6 +218,12 @@ Download on stories	Descargar en las historias
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	Añade Descargar al menú de la historia de cualquier persona, sea foto o video, con tu calidad de descarga. Desactivado o en pausa, vuelve el menú propio de Instagram.
 Upload stories at full quality	Subir historias en calidad completa
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	Las historias en video que publicas se envían en 1080p y con más bitrate, como con la opción Subir con la máxima calidad de Instagram activada. Instagram igual reduce los videos de historias a 720p en sus servidores, así que la diferencia que se ve es pequeña. Las historias con foto ya se suben más grandes de lo que Instagram guarda.
+# context: Stories settings under Upload stories at full quality: which uploads it covers (Stories only, or Stories, posts and reels), and the video bitrate; %1$s is a number of megabits a second (#37)
+Upload quality applies to	La calidad de subida se aplica a
+Stories only	Solo historias
+Stories, posts and reels	Historias, publicaciones y reels
+Video bitrate	Tasa de bits del video
+%1$s Mbps	%1$s Mbps
 Download feed videos	Descargar videos del feed
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Añade Descargar al menú de una publicación con video en tu feed. Usa la calidad de abajo. Desactivado o en pausa, vuelve el menú de Instagram.
 Playback	Reproducción

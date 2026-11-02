@@ -219,6 +219,12 @@ Download on stories	스토리 다운로드 메뉴 추가
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	다른 사람의 스토리, 사진 또는 동영상 메뉴에 다운로드를 추가하며, 설정한 다운로드 화질로 저장할 수 있습니다. 이 기능을 비활성화하거나 HushGram을 일시 정지하면 Instagram의 원래 메뉴가 다시 표시됩니다
 Upload stories at full quality	스토리를 최대 화질로 업로드
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	올린 동영상 스토리가 1080p와 더 높은 비트레이트로 전송됩니다. Instagram의 최고 화질로 업로드 설정을 켰을 때와 같습니다. Instagram은 서버에서 스토리 동영상을 여전히 720p로 줄이므로 보는 사람이 느끼는 차이는 작습니다. 사진 스토리는 이미 Instagram이 보관하는 것보다 크게 업로드됩니다.
+# context: Stories settings under Upload stories at full quality: which uploads it covers (Stories only, or Stories, posts and reels), and the video bitrate; %1$s is a number of megabits a second (#37)
+Upload quality applies to	업로드 화질 적용 대상
+Stories only	스토리만
+Stories, posts and reels	스토리, 게시물, 릴스
+Video bitrate	동영상 비트레이트
+%1$s Mbps	%1$s Mbps
 Download feed videos	피드 동영상 다운로드 메뉴 추가
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	피드에서 동영상이 포함된 게시물의 메뉴에 다운로드를 추가하며, 설정한 다운로드 화질로 저장할 수 있습니다. 이 기능을 비활성화하거나 HushGram을 일시 정지하면 Instagram의 원래 메뉴가 다시 표시됩니다
 Playback	재생

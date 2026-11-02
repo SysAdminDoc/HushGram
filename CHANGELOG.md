@@ -8,6 +8,7 @@ Every HushGram release, newest first.
 
 * **Instagram:** `HushGram settings` adds `Black settings page` under Settings entry. Cards and dialogs go black, HushGram's name and version sit at the top, and each category is one line with its icon. It starts off. Asked for in #455.
 * **Instagram:** `Home header text` is a new patch. Under Layout, type a few words or pick a picture and it shows at the top of Home where Instagram's logo was. Leave both empty to keep the logo. Asked for in #454.
+* **Instagram:** `Upload stories at full quality` adds `Upload quality applies to`, so posts and reels can go up at 1080p too, and `Video bitrate`, which asks for 12 to 50 Mbps. Instagram still re-encodes everything on its servers. Asked for in #37.
 * **Instagram:** `Start Home on Following` adds `Mix in Following` under Feed. For you shows a page of posts from accounts you follow after each page of its own, until you've seen them all. It starts off. Asked for in #438.
 * **Instagram:** `Glass in chats` is a new patch. Under Messages, one switch gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It starts off. Asked for in #449.
 * **Instagram:** `Chat plus menu` is a new patch. Under Messages you can take Saved, AI images and Draw off the plus menu in a chat's message bar, each with its own switch, and move the gallery and microphone buttons into that menu. All four start off. Asked for in #448.

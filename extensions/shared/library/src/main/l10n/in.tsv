@@ -218,6 +218,12 @@ Download on stories	Unduh di cerita
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	Menambahkan Unduh ke menu cerita siapa pun, foto atau video, disimpan dengan kualitas unduhan Anda. Saat nonaktif atau dijeda, menu asli Instagram kembali.
 Upload stories at full quality	Unggah cerita dengan kualitas penuh
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	Cerita video yang Anda posting dikirim dalam 1080p dengan bitrate lebih tinggi, seperti saat setelan Unggah dengan kualitas tertinggi milik Instagram aktif. Instagram tetap mengecilkan video cerita menjadi 720p di servernya, jadi perbedaan yang terlihat kecil. Cerita foto sudah diunggah lebih besar daripada yang disimpan Instagram.
+# context: Stories settings under Upload stories at full quality: which uploads it covers (Stories only, or Stories, posts and reels), and the video bitrate; %1$s is a number of megabits a second (#37)
+Upload quality applies to	Kualitas unggahan berlaku untuk
+Stories only	Hanya cerita
+Stories, posts and reels	Cerita, postingan, dan Reels
+Video bitrate	Bitrate video
+%1$s Mbps	%1$s Mbps
 Download feed videos	Unduh video feed
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	Menambahkan Unduh ke menu postingan berisi video di feed kamu. Memakai kualitas di bawah. Saat nonaktif atau dijeda, menu Instagram sendiri kembali.
 Playback	Pemutaran

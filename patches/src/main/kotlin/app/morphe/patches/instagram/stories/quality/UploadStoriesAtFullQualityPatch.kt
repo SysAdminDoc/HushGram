@@ -21,6 +21,7 @@ import app.morphe.patches.instagram.misc.extension.requireLocals
 import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
@@ -33,6 +34,7 @@ import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 private const val PATCH = "Upload stories at full quality"
 internal const val STORY_UPLOAD_QUALITY = "$EXTENSION_PACKAGE/stories/StoryUploadQuality;"
 internal const val FULL_QUALITY = "$STORY_UPLOAD_QUALITY->fullQuality(Ljava/lang/Object;)Z"
+internal const val BITRATE_HOOK = "$STORY_UPLOAD_QUALITY->bitrate(Ljava/lang/Object;I)I"
 
 /** The key of Instagram's own "Upload at highest quality" setting in its per-user preferences. */
 internal const val HIGH_QUALITY_PREF = "high_quality_media_upload"
@@ -67,7 +69,8 @@ private const val GET_INT = "getInt"
 val uploadStoriesAtFullQualityPatch = bytecodePatch(
     name = "Upload stories at full quality",
     description = "Sends the video stories you post at 1080p and a higher bitrate, as Instagram does with its own " +
-        "Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so " +
+        "Upload at highest quality setting on. Two choices under it can cover posts and reels too and ask for a " +
+        "bitrate up to 50 Mbps. Instagram still shrinks story videos to 720p on its servers, so " +
         "viewers see a small difference. Starts off. Turn it on in HushGram settings > Stories.",
     default = true,
 ) {
@@ -77,7 +80,10 @@ val uploadStoriesAtFullQualityPatch = bytecodePatch(
 
     execute {
         requireStatusMethod("storyUploadQuality")
-        raiseStoryUploadQuality(findStoryUploadQuality())
+        val check = findStoryUploadQuality()
+        val bitrate = findBitrateSetter(check)
+        raiseStoryUploadQuality(check)
+        raiseBitrate(check, bitrate)
         enableStatus("storyUploadQuality")
     }
 }
@@ -153,11 +159,89 @@ private fun ClassDef.ordinalReaders(field: FieldReference): List<Method> = metho
 private fun MethodReference.isOrdinal() = definingClass == "Ljava/lang/Enum;" && name == "ordinal"
 
 /** Whether a method of this class asks [check] and loads [HIGH_QUALITY_BITRATE]: Instagram's bitrate setter. */
-private fun ClassDef.bitrateAsks(check: Method): Boolean = methods.any { method ->
+private fun ClassDef.bitrateAsks(check: Method): Boolean = bitrateSetters(check).isNotEmpty()
+
+/** The methods of this class that ask [check] and load [HIGH_QUALITY_BITRATE]. */
+private fun ClassDef.bitrateSetters(check: Method): List<Method> = methods.filter { method ->
     method.calls { it.definingClass == type && it.name == check.name && it.returnType == "Z" && it.parameterTypes.isEmpty() } &&
         method.implementation?.instructions?.any {
-            it is NarrowLiteralInstruction && it.opcode.name.startsWith("const") && it.narrowLiteral == HIGH_QUALITY_BITRATE
+            it is NarrowLiteralInstruction && it.opcode.name.startsWith("const") && it.narrowLiteral == HIGH_QUALITY_BITRATE // opcode-name-ok
         } == true
+}
+
+/**
+ * Instagram's bitrate setter: the method that asks the check and loads [HIGH_QUALITY_BITRATE], and so
+ * writes the bitrate into the transcode params its one argument holds. [holder] is that argument's field
+ * of the params' class, and [bitrate] the int fields of the params it writes (on 453's 385914557
+ * `0mB3.A02` and `0CCQ.A01`, `0CCQ.A04`, always the same value), the first of them read for the value.
+ */
+internal class BitrateSetter(val name: String, val parameter: String, val holder: FieldReference, val bitrate: List<FieldReference>)
+
+/**
+ * Proves the setter before anything changes: one method of the check's class asking the check and
+ * loading [HIGH_QUALITY_BITRATE], an instance `(P)V`, whose P holds one field of the params class it
+ * writes exactly two int fields of, and which returns void somewhere.
+ */
+internal fun BytecodePatchContext.findBitrateSetter(check: QualityCheck): BitrateSetter {
+    val classDef = classDefBy(check.type)
+    val checkMethod = classDef.methods.single {
+        it.name == check.name && it.returnType == "Z" && it.parameterTypes.isEmpty() && !AccessFlags.STATIC.isSet(it.accessFlags)
+    }
+    val setters = classDef.bitrateSetters(checkMethod).filter {
+        !AccessFlags.STATIC.isSet(it.accessFlags) && it.returnType == "V" && it.parameterTypes.size == 1
+    }
+    val setter = setters.singleOrNull() ?: refuse("expected one bitrate setter in ${check.type}, found ${setters.size}")
+    val where = "${check.type}->${setter.name}"
+    val parameter = setter.parameterTypes.single().toString()
+    val code = setter.implementation!!.instructions.toList()
+    val written = code.filter { it.opcode == Opcode.IPUT && ((it as ReferenceInstruction).reference as FieldReference).type == "I" }
+        .map { (it as ReferenceInstruction).reference as FieldReference }
+        .distinctBy { "${it.definingClass}->${it.name}" }
+    if (written.size != 2 || written.map { it.definingClass }.distinct().size != 1) {
+        refuse("$where writes ${written.size} int fields of the transcode params, expected two of one class")
+    }
+    val holders = code.filter { it.opcode == Opcode.IGET_OBJECT }.map { (it as ReferenceInstruction).reference as FieldReference }
+        .filter { it.definingClass == parameter && it.type == written.first().definingClass }
+        .distinctBy { it.name }
+    val holder = holders.singleOrNull() ?: refuse("$where reads ${holders.size} transcode params fields of its argument, expected one")
+    if (code.none { it.opcode == Opcode.RETURN_VOID }) refuse("$where never returns")
+    return BitrateSetter(setter.name, parameter, holder, written)
+}
+
+/**
+ * Before every return of the setter, hands [BITRATE_HOOK] the upload's share type and the bitrate the
+ * setter wrote, and writes both fields again when the answer is different. A null params object is left
+ * alone. Nothing else of the setter changes.
+ */
+internal fun BytecodePatchContext.raiseBitrate(check: QualityCheck, setter: BitrateSetter) {
+    val method = mutableClassDefBy(check.type).methods.single {
+        it.name == setter.name && it.returnType == "V" && it.parameterTypes.size == 1 && !AccessFlags.STATIC.isSet(it.accessFlags)
+    }
+    val where = "${check.type}->${setter.name}"
+    method.requireLocals(PATCH, 3)
+    val registers = method.implementation!!.registerCount
+    if (registers > 16) refuse("$where has $registers registers, so this isn't in one an instance field read can name")
+    val first = setter.bitrate[0]
+    val second = setter.bitrate[1]
+    val returns = method.implementation!!.instructions.withIndex().filter { it.value.opcode == Opcode.RETURN_VOID }.map { it.index }
+    for (at in returns.reversed()) {
+        method.addInstructionsAtControlFlowLabel(
+            at,
+            """
+                iget-object v0, p1, ${setter.holder.definingClass}->${setter.holder.name}:${setter.holder.type}
+                if-eqz v0, :done
+                iget v1, v0, ${first.definingClass}->${first.name}:I
+                iget-object v2, p0, ${check.shareType.definingClass}->${check.shareType.name}:$SHARE_TYPE
+                invoke-static { v2, v1 }, $BITRATE_HOOK
+                move-result v2
+                if-eq v2, v1, :done
+                iput v2, v0, ${first.definingClass}->${first.name}:I
+                iput v2, v0, ${second.definingClass}->${second.name}:I
+                :done
+                return-void
+            """,
+        )
+    }
 }
 
 private fun Method.calls(matches: (MethodReference) -> Boolean): Boolean = implementation?.instructions?.any {

@@ -13,6 +13,8 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadBitrateRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.uploadScopeRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.trayBadgeRow;
 
@@ -180,6 +182,8 @@ final class StoriesCategory {
                     L10n.t("Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at "
                             + "highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the "
                             + "difference viewers see is small. Photo stories already go up larger than Instagram keeps.")));
+            stories.add(uploadScopeRow(context));
+            stories.add(uploadBitrateRow(context));
         }
         if (build.contains(PatchFamily.STORY_FONTS)) {
             stories.add(toggle(context, Settings.STORY_FONTS, L10n.t("Your fonts in story text"),

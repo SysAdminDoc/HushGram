@@ -41,6 +41,8 @@ class UploadStoriesAtFullQualityHookTest {
     private val strategy = "Lfixture/TranscodeStrategy;"
     private val logger = "Lfixture/UploadLogger;"
     private val store = "Lfixture/Store;"
+    private val wrapper = "Lfixture/TranscodeJob;"
+    private val params = "Lfixture/TranscodeParams;"
     private val reader = "$prefs->A00($store)Z"
 
     /** The hook the patch writes is in the StoryUploadQuality the bundle ships, public and static. */
@@ -50,6 +52,7 @@ class UploadStoriesAtFullQualityHookTest {
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
         assertTrue("$FULL_QUALITY is not in the extension: $declared", FULL_QUALITY.substringAfter("->") in declared)
+        assertTrue("$BITRATE_HOOK is not in the extension: $declared", BITRATE_HOOK.substringAfter("->") in declared)
     }
 
     /** The check asks the extension first and returns its yes, and nothing else changes. */
@@ -60,14 +63,22 @@ class UploadStoriesAtFullQualityHookTest {
         val before = classes.associate { c -> c.type to c.methods.associate { it.name to it.code().size } }
 
         val check = context.findStoryUploadQuality()
+        val setter = context.findBitrateSetter(check)
         context.raiseStoryUploadQuality(check)
+        context.raiseBitrate(check, setter)
 
         assertEquals("the check", strategy to "A08", check.type to check.name)
         assertEquals("the share type field", "A03", check.shareType.name)
+        assertEquals("the setter", listOf("A07", wrapper, "A02", "A01", "A04"), listOf(setter.name, setter.parameter, setter.holder.name) + setter.bitrate.map { it.name })
         assertHooked("stand-in", context.mutableClassDefBy(strategy).methods.single { it.name == "A08" }, check)
+        assertBitrateHooked("stand-in", context.mutableClassDefBy(strategy).methods.single { it.name == "A07" }, check, setter)
         for (c in classes) {
             for (method in context.mutableClassDefBy(c.type).methods) {
-                val added = if (c.type == strategy && method.name == "A08") HOOK_SIZE else 0
+                val added = when {
+                    c.type == strategy && method.name == "A08" -> HOOK_SIZE
+                    c.type == strategy && method.name == "A07" -> BITRATE_HOOK_SIZE
+                    else -> 0
+                }
                 assertEquals("${c.type}->${method.name}", before.getValue(c.type).getValue(method.name) + added, method.code().size)
             }
         }
@@ -121,7 +132,9 @@ class UploadStoriesAtFullQualityHookTest {
 
             val pref = context.findHighQualityPref()
             val check = context.findStoryUploadQuality()
+            val setter = context.findBitrateSetter(check)
             context.raiseStoryUploadQuality(check)
+            context.raiseBitrate(check, setter)
 
             assertTrue("${bundle.name}: the reader $pref", pref.parameterTypes.size == 1 && pref.returnType == "Z")
             val patched = context.mutableClassDefBy(check.type).methods.single { it.name == check.name && it.parameterTypes.isEmpty() && it.returnType == "Z" }
@@ -132,7 +145,24 @@ class UploadStoriesAtFullQualityHookTest {
                         method.code().any { it.referenceText() == FULL_QUALITY }
                 }
             assertTrue("${bundle.name}: hooked elsewhere too: $elsewhere", elsewhere.isEmpty())
+
+            val bitrateSetter = context.mutableClassDefBy(check.type).methods.single { it.name == setter.name && it.parameterTypes.size == 1 }
+            assertBitrateHooked(bundle.name, bitrateSetter, check, setter)
+            val bitrateElsewhere = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
+                .filter { method -> method !== bitrateSetter && method.code().any { it.referenceText() == BITRATE_HOOK } }
+            assertTrue("${bundle.name}: bitrate hooked elsewhere too: $bitrateElsewhere", bitrateElsewhere.isEmpty())
         }
+    }
+
+    /** A setter the patch can't read fails at patch time, saying what it found, before anything is written. */
+    @Test
+    fun aSetterThePatchCantReadFailsBeforeAnythingChanges() {
+        val classes = classes(twoBitrateFields = false)
+        val context = PatchContexts.of(classes)
+        val check = context.findStoryUploadQuality()
+        val failure = assertThrows(PatchException::class.java) { context.findBitrateSetter(check) }
+        assertTrue(failure.message, failure.message!!.contains("writes 1 int fields of the transcode params, expected two of one class"))
+        assertTrue("nothing written", classes.flatMap { c -> context.mutableClassDefBy(c.type).methods }.none { m -> m.code().any { it.referenceText() == BITRATE_HOOK } })
     }
 
     /**
@@ -161,6 +191,34 @@ class UploadStoriesAtFullQualityHookTest {
         assertEquals("$what: returned", Opcode.RETURN, code[5].opcode)
     }
 
+    /**
+     * The setter hands the extension the share type and the bitrate it wrote, before every return, and a
+     * branch that went straight to the return now lands on the hook. Nothing before it moved.
+     */
+    private fun assertBitrateHooked(what: String, method: Method, check: QualityCheck, setter: BitrateSetter) {
+        val code = method.code()
+        val returns = code.indices.filter { code[it].opcode == Opcode.RETURN_VOID }
+        val hooks = code.indices.filter { code[it].referenceText() == BITRATE_HOOK }
+        assertTrue("$what: hooked", hooks.isNotEmpty())
+        assertEquals("$what: each return of Instagram's gets a hook and its own return", hooks.size * 2, returns.size)
+        for (at in hooks) {
+            val start = at - 4
+            assertEquals("$what: params read", Opcode.IGET_OBJECT, code[start].opcode)
+            assertEquals("$what: params field", setter.holder.name, ((code[start] as ReferenceInstruction).reference as FieldReference).name)
+            assertEquals("$what: share type read", Opcode.IGET_OBJECT, code[at - 1].opcode)
+            assertEquals("$what: share type field", check.shareType.name, ((code[at - 1] as ReferenceInstruction).reference as FieldReference).name)
+            assertEquals("$what: both fields written", 2, code.subList(at, at + 6).count { it.opcode == Opcode.IPUT })
+        }
+        if (hooks.size == 1) {
+            val start = hooks[0] - 4
+            val address = code.runningFold(0) { here, instruction -> here + instruction.codeUnits }
+            val branch = code.indexOfFirst { it.opcode == Opcode.IF_EQZ }
+            assertTrue("$what: Instagram's own branch comes before the hook", branch in 0 until start)
+            val landing = address.indexOf(address[branch] + (code[branch] as OffsetInstruction).codeOffset)
+            assertEquals("$what: Instagram's branch lands on the hook", start, landing)
+        }
+    }
+
     private fun assertNothingWritten(what: String, context: BytecodePatchContext, classes: List<ClassDef>) {
         val written = classes.map { it.type }.distinct().flatMap { type -> context.mutableClassDefBy(type).methods }
             .filter { method -> method.code().any { it.referenceText() == FULL_QUALITY } }
@@ -182,6 +240,7 @@ class UploadStoriesAtFullQualityHookTest {
         bitrate: Int = HIGH_QUALITY_BITRATE,
         loopsToStart: Boolean = false,
         locals: Int = 4,
+        twoBitrateFields: Boolean = true,
     ): List<ClassDef> {
         val static = AccessFlags.PUBLIC.value or AccessFlags.STATIC.value
         val instance = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
@@ -224,13 +283,15 @@ class UploadStoriesAtFullQualityHookTest {
         val checks = listOf(method(strategy, "A08", emptyList(), "Z", locals, instance, checkBody)) +
             if (secondCheck) listOf(method(strategy, "A0A", emptyList(), "Z", locals, instance, checkBody)) else emptyList()
         val setter = method(
-            strategy, "A07", emptyList(), "V", 2, instance,
+            strategy, "A07", listOf(wrapper), "V", 3, instance,
             """
                 invoke-virtual {p0}, $strategy->A08()Z
                 move-result v0
                 if-eqz v0, :done
                 const v1, $bitrate
-                iput v1, p0, $strategy->A05:I
+                iget-object v2, p1, $wrapper->A02:$params
+                iput v1, v2, $params->A01:I
+                ${if (twoBitrateFields) "iput v1, v2, $params->A04:I" else ""}
                 :done
                 return-void
             """,
@@ -285,5 +346,8 @@ class UploadStoriesAtFullQualityHookTest {
     private companion object {
         /** The instructions the hook adds: the field read, the call, its answer, the branch, the yes and its return. */
         const val HOOK_SIZE = 6
+
+        /** What the bitrate hook adds before one return: its ten instructions, Instagram's return staying after them. */
+        const val BITRATE_HOOK_SIZE = 10
     }
 }

@@ -122,6 +122,8 @@ import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
+import app.hushgram.extension.instagram.stories.UploadBitrate;
+import app.hushgram.extension.instagram.stories.UploadScope;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
@@ -717,6 +719,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
                     belongs |= family == PatchFamily.LOW_VIEW_REELS
                             && (Settings.MIN_REEL_VIEWS.key.equals(key) || Settings.MIN_REEL_LIKES.key.equals(key));
+                    belongs |= family == PatchFamily.STORY_UPLOAD_QUALITY && (Settings.UPLOAD_QUALITY_APPLIES_TO.key.equals(key)
+                            || Settings.UPLOAD_VIDEO_BITRATE.key.equals(key));
                     belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
@@ -4144,6 +4148,71 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         row.setEntryValues(values);
         row.setValue(Settings.TAP_TO_PLAY_SCOPE.savedValue().name());
         return row;
+    }
+
+    /** Which uploads Upload stories at full quality covers (#37). The list shows the chosen entry as its summary. */
+    static UploadChoiceRow uploadScopeRow(Context context) {
+        UploadChoiceRow row = new UploadChoiceRow(context);
+        row.setKey(Settings.UPLOAD_QUALITY_APPLIES_TO.key);
+        row.setTitle(L10n.t("Upload quality applies to"));
+        row.setDialogTitle(L10n.t("Upload quality applies to"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        UploadScope[] scopes = UploadScope.values();
+        CharSequence[] entries = new CharSequence[scopes.length];
+        CharSequence[] values = new CharSequence[scopes.length];
+        for (int i = 0; i < scopes.length; i++) {
+            entries[i] = scopes[i] == UploadScope.ALL ? L10n.t("Stories, posts and reels") : L10n.t("Stories only");
+            values[i] = scopes[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.UPLOAD_QUALITY_APPLIES_TO.savedValue().name());
+        row.setSummary(row.getEntry());
+        return row;
+    }
+
+    /** The least video bitrate an upload is prepared at (#37). */
+    static UploadChoiceRow uploadBitrateRow(Context context) {
+        UploadChoiceRow row = new UploadChoiceRow(context);
+        row.setKey(Settings.UPLOAD_VIDEO_BITRATE.key);
+        row.setTitle(L10n.t("Video bitrate"));
+        row.setDialogTitle(L10n.t("Video bitrate"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        UploadBitrate[] rates = UploadBitrate.values();
+        CharSequence[] entries = new CharSequence[rates.length];
+        CharSequence[] values = new CharSequence[rates.length];
+        for (int i = 0; i < rates.length; i++) {
+            entries[i] = rates[i] == UploadBitrate.INSTAGRAM ? L10n.t("Instagram's own")
+                    : String.format(L10n.t("%1$s Mbps"), rates[i].megabits);
+            values[i] = rates[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.UPLOAD_VIDEO_BITRATE.savedValue().name());
+        row.setSummary(row.getEntry());
+        return row;
+    }
+
+    /** A plain choice row for the upload quality settings. Its summary is the chosen entry, set by the base class. */
+    static final class UploadChoiceRow extends ListPreference {
+        UploadChoiceRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
     }
 
     /** What the list calls [scope]. */

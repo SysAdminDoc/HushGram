@@ -72,7 +72,9 @@ public class StoryUploadQualitySettingsTest {
         assertEquals(Arrays.toString(keys), Settings.TEXT_BUTTON_ON_STORIES.key, keys[at - 1]);
         assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_BUTTON_ON_STORIES.key, keys[at - 2]);
         assertEquals(Arrays.toString(keys), Settings.DOWNLOAD_STORIES.key, keys[at - 3]);
-        assertEquals(Arrays.toString(keys), keys.length - 1, at);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_QUALITY_APPLIES_TO.key, keys[at + 1]);
+        assertEquals(Arrays.toString(keys), Settings.UPLOAD_VIDEO_BITRATE.key, keys[at + 2]);
+        assertEquals(Arrays.toString(keys), keys.length - 3, at);
         assertEquals("Upload stories at full quality", PatchFamily.STORY_UPLOAD_QUALITY.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.UPLOAD_STORIES_AT_FULL_QUALITY.key));
     }

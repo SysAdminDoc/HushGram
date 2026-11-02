@@ -223,6 +223,12 @@ Download on stories	限時動態下載選項
 Adds Download to the menu of anyone's story, photo or video, saved at your download quality. Off or paused, Instagram's own menu returns.	在任何人的限時動態選單中新增「下載」，照片與影片皆適用，並依下載畫質設定儲存。關閉或暫停後會還原 Instagram 原本的選單。
 Upload stories at full quality	以完整畫質上傳限時動態
 Video stories you post are sent at 1080p and a higher bitrate, as with Instagram's own Upload at highest quality setting on. Instagram still shrinks story videos to 720p on its servers, so the difference viewers see is small. Photo stories already go up larger than Instagram keeps.	影片限時動態會以 1080p 與較高位元率上傳，等同啟用 Instagram 的「以最高畫質上傳」。Instagram 伺服器仍會將影片縮小為 720p，因此觀眾看到的差異不大。照片限時動態的上傳尺寸原本就大於 Instagram 保留的尺寸。
+# context: Stories settings under Upload stories at full quality: which uploads it covers (Stories only, or Stories, posts and reels), and the video bitrate; %1$s is a number of megabits a second (#37)
+Upload quality applies to	上傳畫質套用範圍
+Stories only	僅限時動態
+Stories, posts and reels	限時動態、貼文和 Reels
+Video bitrate	影片位元率
+%1$s Mbps	%1$s Mbps
 Download feed videos	下載動態首頁影片
 Adds Download to the menu of a post in your feed with a video. Uses the quality below. Off or paused, Instagram's own menu returns.	在動態首頁的影片貼文選單中新增「下載」，使用下方的畫質設定。關閉或暫停後會還原 Instagram 原本的選單。
 Playback	播放
