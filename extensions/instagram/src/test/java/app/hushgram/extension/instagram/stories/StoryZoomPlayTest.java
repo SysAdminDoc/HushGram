@@ -8,6 +8,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.os.SystemClock;
+import android.view.ViewConfiguration;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -64,6 +67,39 @@ public class StoryZoomPlayTest {
         StoryZoomPlay.paused(StoryZoomPlay.HOLD);
         assertFalse(StoryZoomPlay.keepPlaying());
         StoryZoomPlay.resumed();
+        assertTrue(StoryZoomPlay.keepPlaying());
+    }
+
+    /**
+     * On 453 a story held still keeps the pause its first finger made until the finger lifts, so a
+     * pinch starting past the touch and hold delay after that pause is a pinch on a held story.
+     */
+    @Test
+    public void aStoryHeldPastTheTouchAndHoldDelayStaysPaused() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.paused(StoryZoomPlay.TAP);
+        SystemClock.sleep(ViewConfiguration.getLongPressTimeout());
+        assertFalse(StoryZoomPlay.keepPlaying());
+        StoryZoomPlay.resumed();
+        assertTrue(StoryZoomPlay.keepPlaying());
+    }
+
+    @Test
+    public void aPinchRightAfterItsFirstFingerKeepsPlaying() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.paused(StoryZoomPlay.TAP);
+        SystemClock.sleep(40);
+        assertTrue(StoryZoomPlay.keepPlaying());
+    }
+
+    /** A tap that moved to the next story gets no resume; the pinch's own first finger replaces it. */
+    @Test
+    public void thePinchsOwnTapReplacesAnOldOne() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.paused(StoryZoomPlay.TAP);
+        SystemClock.sleep(60_000);
+        StoryZoomPlay.paused(StoryZoomPlay.TAP);
+        SystemClock.sleep(40);
         assertTrue(StoryZoomPlay.keepPlaying());
     }
 

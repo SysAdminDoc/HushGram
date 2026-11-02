@@ -4,6 +4,9 @@
  */
 package app.hushgram.extension.instagram.stories;
 
+import android.os.SystemClock;
+import android.view.ViewConfiguration;
+
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -21,26 +24,34 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * which won't play a story being dragged, so {@link #dragging(int)} answers "not dragging" for that
  * one call.
  *
- * <p>A story the user holds still pauses through the same pause method, with {@link #HOLD} as its
- * reason, and plays again through the viewer's resume when the finger lifts. The patch reports
- * every pause here ({@link #paused(String)}) and every resume ({@link #resumed()}), so a pinch that
- * starts on a story already held leaves it paused, which is what holding and then adding a finger
- * to zoom asks for. Only the hold counts: leaving the viewer pauses it too ("fragment_paused"), and
- * the next story starts playing without a resume, so counting that pause kept every later pinch
- * paused.
+ * <p>A pinch that starts on a story the user is already holding still leaves it paused, which is
+ * what holding and then adding a finger to zoom asks for. The patch reports every pause here
+ * ({@link #paused(String)}) and every resume ({@link #resumed()}). On 453 a story held still keeps
+ * the pause its first finger made ({@link #TAP}) until the finger lifts, so a pinch starting longer
+ * than the system's touch and hold delay after that pause counts as held; a plain pinch starts
+ * about 40 ms after its first finger lands, and that finger's own pause replaces any older one. A
+ * pause for {@link #HOLD} counts as held too, until the next resume. Nothing else does: leaving the
+ * viewer pauses it too ("fragment_paused"), and the next story starts playing without a resume, so
+ * counting that pause kept every later pinch paused.
  */
 public final class StoryZoomPlay {
     /** The reason Instagram gives the viewer when a pinch pauses a story. */
     static final String PINCH = "paused_for_pinch_to_zoom";
 
-    /** The reason Instagram gives the viewer when a story is held still. */
+    /** The reason Instagram gives the viewer when a long press pauses a story. */
     static final String HOLD = "long_pressed";
+
+    /** The reason Instagram gives the viewer when a finger lands on a story. */
+    static final String TAP = "tapped";
 
     /** What the diagnostic report counts for a pinch with the switch on. */
     static final String KEPT = "pinches kept playing";
     static final String LEFT_HELD = "pinches left paused, story held";
 
     private static volatile boolean held;
+
+    /** When the last {@link #TAP} pause came, in uptime ms, or -1 after a resume. */
+    private static volatile long tappedAt = -1;
 
     /** True while the resume a kept pinch asks for runs. */
     private static volatile boolean pinchResume;
@@ -53,6 +64,7 @@ public final class StoryZoomPlay {
         try {
             Logger.printDebug(() -> "Story paused: " + reason);
             if (HOLD.equals(reason)) held = true;
+            else if (TAP.equals(reason)) tappedAt = SystemClock.uptimeMillis();
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_ZOOM_PLAY, "story paused", failure);
         }
@@ -63,6 +75,7 @@ public final class StoryZoomPlay {
         try {
             if (held) Logger.printDebug(() -> "Story resumed after a hold");
             held = false;
+            tappedAt = -1;
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.STORY_ZOOM_PLAY, "story resumed", failure);
         }
@@ -77,7 +90,10 @@ public final class StoryZoomPlay {
         try {
             HookStatus.invoked(FamilyNames.STORY_ZOOM_PLAY);
             if (!Utils.settingsReady() || !Settings.KEEP_STORIES_PLAYING_ON_ZOOM.get()) return false;
-            boolean keep = !held;
+            long tapped = tappedAt;
+            boolean heldStill = tapped >= 0
+                    && SystemClock.uptimeMillis() - tapped >= ViewConfiguration.getLongPressTimeout();
+            boolean keep = !held && !heldStill;
             pinchResume = keep;
             HookStatus.counted(FamilyNames.STORY_ZOOM_PLAY, keep ? KEPT : LEFT_HELD);
             Logger.printDebug(() -> keep ? "Pinch on a story: kept playing" : "Pinch on a story: held, left paused");
@@ -112,6 +128,7 @@ public final class StoryZoomPlay {
     /** For tests. */
     static void reset() {
         held = false;
+        tappedAt = -1;
         pinchResume = false;
     }
 }
