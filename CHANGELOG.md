@@ -16,6 +16,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Keep stories playing while zooming` is a new patch. With its switch on under Stories, a story keeps playing while you pinch to zoom it. Hold it still first and it stays paused. It starts off. Asked for in #382.
 * **Instagram:** `Skip the ad data reminder` is a new patch under Ads and privacy. Instagram's reminder to review how it uses your data for ads stops opening by itself. Your ad choice doesn't change. It starts off. Asked for in #331.
 * **Instagram:** `Hide reels with few views` is a new patch. Switch it on under Reels and the Reels tab leaves out reels watched fewer times than a number you type (1,000 to start). Followed accounts and reels with no count stay. Asked for in #444.
+* **Instagram:** `Hide Suggested for you on follow lists` now also takes the suggested people off the Follow requests screen. Your real requests stay. Asked for in #441.
 
 ### Improvements
 

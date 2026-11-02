@@ -429,6 +429,36 @@ public class ProfileSuggestionsTest {
         assertEquals("off", 1, ProfileSuggestions.followList(1));
     }
 
+    /**
+     * The follow requests screen's suggested people go only with the follow list switch: on, the request
+     * asks the server to leave them out and the hook counts it; off, paused or unready, the screen's own
+     * flag stands, and a flag already set stays set (#441).
+     */
+    @Test
+    public void theFollowRequestsSuggestionsGoOnlyWithTheFollowListSwitch() {
+        assertFalse("off to start", ProfileSuggestions.excludeRequestSuggestions(0));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(true);
+        assertTrue(ProfileSuggestions.excludeRequestSuggestions(0));
+        assertTrue("a flag already set stays set", ProfileSuggestions.excludeRequestSuggestions(1));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(ProfileSuggestions.FOLLOW_REQUESTS));
+        assertTrue(report, report.contains("1 removed"));
+
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse("paused", ProfileSuggestions.excludeRequestSuggestions(0));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertFalse("unready", ProfileSuggestions.excludeRequestSuggestions(0)));
+
+        Settings.HIDE_FOLLOW_LIST_SUGGESTIONS.save(false);
+        assertFalse("off", ProfileSuggestions.excludeRequestSuggestions(0));
+        assertFalse("a throwing switch keeps the flag", ProfileSuggestions.excludeRequestSuggestions(0, THROWS));
+        String missing = HookStatus.missing(FamilyNames.PROFILE_SUGGESTIONS).toString();
+        assertTrue(missing, missing.contains("'" + ProfileSuggestions.FOLLOW_REQUESTS + "'"));
+    }
+
     /** A follow list switch that throws leaves the list's answer and says which hook threw. */
     @Test
     public void aThrowingFollowListSwitchFailsOpenAndIsReported() {

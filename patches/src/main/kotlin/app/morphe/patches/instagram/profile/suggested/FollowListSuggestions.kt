@@ -11,17 +11,27 @@ import app.morphe.patches.instagram.misc.extension.classesLoadingString
 import app.morphe.patches.instagram.misc.extension.jumpTargets
 import app.morphe.patches.instagram.misc.extension.patchLog
 import app.morphe.patches.instagram.misc.extension.stringLoadedAt
+import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Hide suggested people on profiles"
 
 internal const val FOLLOW_LIST = "$PROFILE_SUGGESTIONS->followList(I)I"
 internal const val SUGGESTED_TAB = "$PROFILE_SUGGESTIONS->suggestedTab(I)I"
+internal const val EXCLUDE_REQUEST_SUGGESTIONS = "$PROFILE_SUGGESTIONS->excludeRequestSuggestions(I)Z"
+
+/**
+ * The variables of the request that loads the Follow requests screen (#441). Instagram keeps them:
+ * they're the names the server's query takes. Only that request's builder loads either one.
+ */
+internal const val EXCLUDE_SUGGESTED_USERS = "exclude_suggested_users"
+internal const val DEFER_SUGGESTED_USERS = "defer_suggested_users"
 
 /**
  * The argument the followers and following list reads to know whether to fetch the accounts it
@@ -128,3 +138,78 @@ private fun keyRegister(code: List<Instruction>, at: Int): Int? = when (code[at]
 }
 
 private fun Instruction.methodReference(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
+
+/** The request builder's boolean parameter that becomes [EXCLUDE_SUGGESTED_USERS]: its method and the register holding the parameter. */
+internal class RequestSuggestionsSite(val type: String, val name: String, val parameters: List<String>, val register: Int)
+
+/**
+ * Finds the one method that builds the Follow requests screen's request: it loads both
+ * [EXCLUDE_SUGGESTED_USERS] and [DEFER_SUGGESTED_USERS], and after the first key it hands a boolean to
+ * the variable builder, a boolean that was copied there straight from one of the method's own boolean
+ * parameters. That parameter's register is the site. Fails before anything changes when there isn't
+ * exactly one such method, the copy isn't a plain move of a parameter, or something jumps to the
+ * method's first instruction, where the hook goes.
+ */
+internal fun BytecodePatchContext.findRequestSuggestions(): RequestSuggestionsSite {
+    val builders = classesLoadingString(EXCLUDE_SUGGESTED_USERS).flatMap { classDef ->
+        classDef.methods.filter { method ->
+            val code = method.implementation?.instructions?.toList() ?: return@filter false
+            code.indices.any { stringLoadedAt(code, it) == EXCLUDE_SUGGESTED_USERS } &&
+                code.indices.any { stringLoadedAt(code, it) == DEFER_SUGGESTED_USERS }
+        }
+    }
+    val method = builders.singleOrNull()
+        ?: refuse("expected one request builder loading \"$EXCLUDE_SUGGESTED_USERS\" and \"$DEFER_SUGGESTED_USERS\", found ${builders.size}")
+    val where = "${method.definingClass}->${method.name}"
+    val types = method.parameterTypes.map(CharSequence::toString)
+    if (AccessFlags.STATIC.isSet(method.accessFlags) || types.size < 3 || types[types.size - 1] != "Z" || types[types.size - 2] != "Z") {
+        refuse("$where doesn't take two boolean parameters after its first")
+    }
+    val code = method.implementation!!.instructions.toList()
+    val keys = code.indices.filter { stringLoadedAt(code, it) == EXCLUDE_SUGGESTED_USERS }
+    val key = keys.singleOrNull() ?: refuse("$where doesn't load \"$EXCLUDE_SUGGESTED_USERS\" once")
+    val keyRegister = keyRegister(code, key) ?: refuse("$where doesn't keep \"$EXCLUDE_SUGGESTED_USERS\" in a register")
+    val call = (key + 1 until code.size).firstOrNull {
+        val instruction = code[it] as? FiveRegisterInstruction
+        instruction != null && instruction.opcode == Opcode.INVOKE_STATIC && instruction.registerCount == 3 && instruction.registerD == keyRegister
+    } ?: refuse("$where doesn't hand \"$EXCLUDE_SUGGESTED_USERS\" to a builder")
+    val flag = (code[call] as FiveRegisterInstruction).registerE
+    val copy = (call - 1 downTo key).firstOrNull { (code[it] as? OneRegisterInstruction)?.registerA == flag }
+        ?: refuse("$where doesn't set the flag it hands over")
+    val move = code[copy]
+    if (move.opcode != Opcode.MOVE && move.opcode != Opcode.MOVE_FROM16 && move.opcode != Opcode.MOVE_16) {
+        refuse("$where sets the \"$EXCLUDE_SUGGESTED_USERS\" flag by something other than a copy of a parameter")
+    }
+    val source = (move as TwoRegisterInstruction).registerB
+    // The first of the two boolean parameters sits two registers from the end of the method's registers.
+    val parameter = method.implementation!!.registerCount - 2
+    if (source != parameter) refuse("$where copies \"$EXCLUDE_SUGGESTED_USERS\" from v$source, not its first boolean parameter v$parameter")
+    if (0 in method.jumpTargets()) refuse("something in $where jumps to its first instruction")
+    return RequestSuggestionsSite(method.definingClass, method.name, types, parameter)
+}
+
+/** [findRequestSuggestions], or null with a warning, so the patch's other parts still go in. */
+internal fun BytecodePatchContext.findRequestSuggestionsOrWarn(): RequestSuggestionsSite? = try {
+    findRequestSuggestions()
+} catch (refusal: PatchException) {
+    patchLog.warning("${refusal.message}. $PATCH goes in without hiding the suggested people on the Follow requests screen.")
+    null
+}
+
+/**
+ * Hands the request's first boolean parameter to [EXCLUDE_REQUEST_SUGGESTIONS] before anything reads
+ * it, and puts the answer back in the same register: true asks the server to leave out the suggested
+ * people, so the screen gets only the real requests and draws no Suggested for you section.
+ */
+internal fun BytecodePatchContext.hideRequestSuggestions(site: RequestSuggestionsSite) {
+    val method = mutableClassDefBy(site.type).methods.single {
+        it.name == site.name && it.parameterTypes.map(CharSequence::toString) == site.parameters
+    }
+    method.addInstructions(
+        0,
+        """
+            invoke-static/range { v${site.register} .. v${site.register} }, $EXCLUDE_REQUEST_SUGGESTIONS
+            move-result v${site.register}
+        """,
+    )
+}

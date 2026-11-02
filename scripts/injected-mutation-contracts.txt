@@ -1793,6 +1793,16 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->followL
 # checks on every 452 build that the read is that one and where the hook lands.
 once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->suggestedTab(I)I in instance (Landroid/os/Bundle;)V pooled holding UnifiedFollowFragment.HAS_SIMILAR_ACCOUNTS
 #
+# The same switch takes the suggested people off the Follow requests screen (#441). The method that
+# builds that screen's request (FollowRequestsGraphQLDataSource.BJ2 on 453) copies its first boolean
+# parameter into the exclude_suggested_users variable, and its first instruction hands that parameter to
+# ProfileSuggestions.excludeRequestSuggestions and takes the answer back, so the server leaves the
+# suggested people out and the screen gets the real requests alone. Left out, the Suggested for you
+# section and its Follow rows come back; twice or elsewhere, it isn't the hook the patch wrote.
+# RequestSuggestionsHookTest checks on every 453 build that this is the one method loading both
+# variable names and where the hook lands.
+once-call Lapp/hushgram/extension/instagram/profile/ProfileSuggestions;->excludeRequestSuggestions(I)Z in instance (LX/*;ZZ)Ljava/lang/Object; pooled holding exclude_suggested_users defer_suggested_users
+#
 # It also takes Suggested for you off the bottom of the mutual followers list (#302). The list
 # adapter's rows (LX/0N6E;->A0C()V on 452.1) hand the suggested accounts to
 # ProfileSuggestions.mutualSuggestions right after reading them and before their isEmpty(). The rows

@@ -89,6 +89,7 @@ public final class ProfileSuggestions {
     static final String CHAINING_BUTTON = "discover people button";
     static final String FOLLOW_LIST = "follow list section";
     static final String SUGGESTED_TAB = "suggested tab on follow lists";
+    static final String FOLLOW_REQUESTS = "suggested people on follow requests";
     static final String MUTUAL_SUGGESTIONS = "suggested section under mutual followers";
     static final String COMPLETION_CARDS = "complete your profile cards";
     static final String FOLLOW_BACKS = "people you don't follow back";
@@ -250,6 +251,23 @@ public final class ProfileSuggestions {
     static int suggestedTab(int add, BooleanSupplier on) {
         if (add == 0) return 0;
         return hides(SUGGESTED_TAB, on) ? 0 : add;
+    }
+
+    /**
+     * Injected at the top of the call that asks the server for the follow requests screen's rows, on its
+     * exclude suggested users flag (#441). Answers true while Hide Suggested for you on follow lists is
+     * on, so the reply carries the real requests and no suggested people, and [exclude] as it came
+     * otherwise, or when anything goes wrong. A flag already set stays set. It takes an int and answers
+     * a boolean: the flag's register is a boolean, which an int parameter accepts, and the answer goes
+     * back into a boolean parameter. Never throws.
+     */
+    public static boolean excludeRequestSuggestions(int exclude) {
+        return excludeRequestSuggestions(exclude, ProfileSuggestions::followListOn);
+    }
+
+    static boolean excludeRequestSuggestions(int exclude, BooleanSupplier on) {
+        if (exclude != 0) return true;
+        return hides(FOLLOW_REQUESTS, on);
     }
 
     /**
