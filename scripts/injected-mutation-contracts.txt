@@ -2532,6 +2532,11 @@ once-call Lapp/hushgram/extension/instagram/profile/ProfileNotes;->creationDisab
 # on; twice or elsewhere, it isn't the guard the patch wrote. UploadStoriesAtFullQualityHookTest finds the check in all seven 450 builds.
 start-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810b8800013fb1 LX/*;->*(LX/*;)Z
 once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->fullQuality(Ljava/lang/Object;)Z in instance ()Z holding const:0x810b8800013fb1 LX/*;->*(LX/*;)Z
+# Its Video bitrate choice (#37) hands each of the four returns of Instagram's bitrate setter (0me7.A08
+# on 453), the instance (transcode request) method of the check's class that writes 9000000 into the
+# transcode params when the check says yes, to StoryUploadQuality.bitrate with the bitrate written.
+# Fewer calls leave a path where the upload keeps Instagram's bitrate with a higher one chosen.
+once-call Lapp/hushgram/extension/instagram/stories/StoryUploadQuality;->bitrate(Ljava/lang/Object;I)I in instance (LX/*;)V calling instance LX/*;->*()Z sites 4 holding const:0x895440 ig_media_transcode_param null\stranscode\sparam
 
 # Full screen Reels and Home (#147) and Glass tab bar (#144) share one routing of both bar heights
 # Instagram's window insets listener keeps (00oX.F1L on 450, the decor's insets listener of
