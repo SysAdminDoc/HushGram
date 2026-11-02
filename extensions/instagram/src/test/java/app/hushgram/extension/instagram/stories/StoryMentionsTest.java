@@ -640,6 +640,48 @@ public class StoryMentionsTest {
         assertNotNull(find(again.getWindow().getDecorView(), view -> "@bo.k".equals(textOf(view))));
     }
 
+    /** #403 again: the viewer brings back the pages beside the story first, and one of them mentions others. */
+    @Test
+    public void aStoryBesideItComingBackFirstDoesntEndTheComeBack() {
+        FrameLayout beside = new FrameLayout(activity);
+        FrameLayout besideItem = new FrameLayout(activity);
+        LinearLayout besideHeader = new LinearLayout(activity);
+        besideHeader.setOrientation(LinearLayout.VERTICAL);
+        besideHeader.setId(header.getId());
+        TextView besideName = new TextView(activity);
+        besideName.setText("someone else");
+        besideHeader.addView(besideName);
+        beside.addView(besideItem);
+        beside.addView(besideHeader);
+        beside.setTranslationX(5000f);
+        FrameLayout page = new FrameLayout(activity);
+        root.removeAllViews();
+        page.addView(itemView);
+        page.addView(header);
+        root.addView(beside);
+        root.addView(page);
+        idle();
+        bind(ANA, BO);
+        StoryMentions.bind(besideItem, Collections.singletonList(BO));
+        idle();
+        StoryMentions.Pill besidePill = StoryMentions.pillIn(besideHeader);
+        assertNotNull(besidePill);
+        assertTrue("laid out beside the story", besidePill.isShown());
+        assertFalse("but not on the screen", StoryMentions.onScreen(besidePill));
+        assertTrue(StoryMentions.onScreen(pill()));
+
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        root.setVisibility(View.GONE);
+        idle();
+        root.setVisibility(View.VISIBLE);
+        idle();
+
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue("the list is open again", again.isShowing());
+    }
+
     @Test
     public void theListStaysClosedWhileTheProfileIsStillUp() {
         bind(ANA, BO);

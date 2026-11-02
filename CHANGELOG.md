@@ -36,6 +36,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `See who a story mentions` opens its list again after a profile even when the story next to it mentions other people. That other story counted as you moving on, so the list stayed closed. Reported in #403.
 * **Instagram:** `See-through top bar` now reaches behind the status bar. Home's posts scroll on under the clock and the glass covers that strip too, so the blur runs to the top of the screen. Reported in #462.
 * **Instagram:** `Turn off HDR brightness boosts` now also turns off the fake HDR Instagram's own AV1 video decoder can add to ordinary reels. Where Instagram plays a reel through that decoder, the reel could still come out brighter than the rest of the screen. The diagnostic report counts each time. Reported in #85.
 * **Instagram:** `Logo and titles at the start` now moves the Messages title and the Reels tabs too. Messages keeps the gap its new message button has on the right, and the Reels tabs sit right after Create, or off the edge when Create is hidden. Reported in #407.

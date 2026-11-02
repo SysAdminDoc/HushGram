@@ -13,6 +13,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
@@ -174,24 +175,42 @@ public final class StoryMentions {
         if (waiting != null && waiting.matches(pill.people)) waiting.away = true;
     }
 
-    /** [pill] shows: the list opens again if it went away for a profile and the pill left and came back. */
+    /**
+     * [pill] shows: once Instagram has laid it out, the list opens again if it went away for a
+     * profile and the pill left and came back. The story viewer keeps the pages either side of the
+     * story built, and their pills come back with it, so only a pill on the screen counts. Before,
+     * a page beside the story mentioning other accounts ended the wait as the viewer came back.
+     */
     private static void pillShown(Pill pill) {
+        if (backToList == null || pill.people.isEmpty()) return;
+        pill.post(() -> {
+            try {
+                settleShown(pill);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
+            }
+        });
+    }
+
+    private static void settleShown(Pill pill) {
         BackToList waiting = backToList;
         if (waiting == null || pill.people.isEmpty()) return;
         if (waiting.stale()) {
             backToList = null;
+        } else if (!onScreen(pill)) {
+            return;
         } else if (!waiting.matches(pill.people)) {
             if (waiting.away) backToList = null;
-        } else if (waiting.away && pill.isShown()) {
+        } else if (waiting.away) {
             backToList = null;
-            pill.post(() -> {
-                try {
-                    if (pill.isShown()) list(activityOf(pill) != null ? activityOf(pill) : pill.getContext(), pill.people);
-                } catch (Throwable failure) {
-                    HookStatus.threw(FamilyNames.STORY_MENTIONS, "story mentions list", failure);
-                }
-            });
+            Activity activity = activityOf(pill);
+            list(activity != null ? activity : pill.getContext(), pill.people);
         }
+    }
+
+    /** Whether [view] shows on the screen, not only in a page laid out beside the story. */
+    static boolean onScreen(View view) {
+        return view.isShown() && view.getGlobalVisibleRect(new Rect());
     }
 
     /** One account a story mentions, as the list shows it. */
