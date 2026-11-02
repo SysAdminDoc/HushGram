@@ -129,6 +129,14 @@ public final class FeedSeekBar {
         }
     }
 
+    /** The bar showing on a feed video now, or null. A carousel's dots pill goes above it (#471). */
+    @Nullable
+    static View shownBar() {
+        Overlay overlay = current;
+        GlassSeekBar seek = overlay == null || overlay.removed ? null : overlay.bar;
+        return seek != null && seek.getVisibility() == View.VISIBLE && seek.getParent() != null ? seek : null;
+    }
+
     @VisibleForTesting
     static void playerForTests(Player stand) {
         feed = stand;

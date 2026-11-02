@@ -179,6 +179,8 @@ public class CarouselArrowsTest {
     @After
     public void restore() {
         CarouselArrows.resetForTests();
+        FeedSeekBar.resetForTests();
+        Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
         Settings.CAROUSEL_PILL_LOOK.resetToDefault();
@@ -584,6 +586,41 @@ public class CarouselArrowsTest {
         assertTrue(HookStatus.missing(FAMILY).toString(), HookStatus.missing(FAMILY).isEmpty());
 
         assertFalse("nor on the next frame", frame());
+    }
+
+    /** #471: a feed seek bar along the bottom of a carousel's video goes where the pill sat, so the pill moves above it. */
+    @Test
+    public void thePillGoesAboveTheFeedSeekBarOnTheCarouselsVideo() {
+        FrameLayout photo = (FrameLayout) ((ViewGroup) ((ViewGroup) pager.getChildAt(0)).getChildAt(0)).getChildAt(0);
+        View cover = new View(activity);
+        photo.addView(cover, new FrameLayout.LayoutParams(WIDTH, HEIGHT));
+        Object player = new Object();
+        FeedSeekBar.playerForTests(new FeedSeekBar.Player() {
+            @Override public View view(Object of) { return of == player ? cover : null; }
+            @Override public boolean seekTo(Object of, int positionMs) { return true; }
+            @Override public boolean pause(Object of) { return true; }
+            @Override public boolean play(Object of) { return true; }
+        });
+        Settings.FEED_SEEK_BAR.save(true);
+        FeedSeekBar.progress(player, 1000, 5000);
+        pillOn();
+        settle();
+
+        View bar = FeedSeekBar.shownBar();
+        assertNotNull(bar);
+        assertTrue("the bar sits in the carousel's photo frame", bar.getParent() == photo);
+        float d = density();
+        float barTop = HEADER + HEIGHT - Math.round(FeedSeekBar.HEIGHT_DP * d);
+        assertEquals(barTop - (CarouselArrows.PILL_OVER_BAR + CarouselArrows.PILL_HEIGHT) * d,
+                pill().getTop() + pill().getTranslationY(), 1f);
+        assertTrue("the pill clears the bar", pill().getTop() + pill().getTranslationY() + pill().getHeight() <= barTop);
+
+        Settings.FEED_SEEK_BAR.save(false);
+        FeedSeekBar.progress(player, 2000, 5000);
+        settle();
+        assertNull("the bar hides with its switch", FeedSeekBar.shownBar());
+        assertEquals(Math.round(HEADER + HEIGHT - (CarouselArrows.PILL_MARGIN + CarouselArrows.PILL_HEIGHT) * d),
+                pill().getTop() + pill().getTranslationY(), 1f);
     }
 
     @Test

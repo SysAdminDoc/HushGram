@@ -92,6 +92,9 @@ public final class CarouselArrows {
     /** The pill's dots, the gap between them, its height, its padding at each end and its gap from the carousel's bottom edge, in dp. */
     static final float DOT = 6, DOT_GAP = 7, PILL_HEIGHT = 18, PILL_PAD = 8, PILL_MARGIN = 12;
 
+    /** The pill's gap above a feed seek bar along the bottom of a carousel's video, in dp (#471). */
+    static final float PILL_OVER_BAR = 4;
+
     /** The most dots a pill shows at once. A longer carousel's dots slide with its page, the end ones smaller. */
     static final int MAX_DOTS = 7;
 
@@ -444,6 +447,7 @@ public final class CarouselArrows {
         private WeakReference<View> faded = new WeakReference<>(null);
         private float fadedAlpha = 1f;
         private final Rect bounds = new Rect();
+        private final Rect barBounds = new Rect();
 
         Arrows(View pager, FrameLayout host) {
             this.host = new WeakReference<>(host);
@@ -530,10 +534,32 @@ public final class CarouselArrows {
                 place(next, bounds.right - inset - TOUCH * density, top);
             }
             if (pill != null) {
-                place(pill, bounds.centerX() - pill.getLayoutParams().width / 2f,
-                        bounds.bottom - (PILL_MARGIN + PILL_HEIGHT) * density);
+                float left = bounds.centerX() - pill.getLayoutParams().width / 2f;
+                float top = bounds.bottom - (PILL_MARGIN + PILL_HEIGHT) * density;
+                place(pill, left, Math.min(top, overBar(frame, pager, left, left + pill.getLayoutParams().width, density)));
                 pill.frost(SystemClock.uptimeMillis());
             }
+        }
+
+        /**
+         * Where the pill's top goes to sit above the feed seek bar on [pager]'s video, when that bar spans
+         * the pill from [left] to [right] (#471). The bar runs along the bottom of the video, where the
+         * pill sits, so it hid the bar's middle and its thumb. With no bar there, no limit.
+         */
+        private float overBar(FrameLayout frame, View pager, float left, float right, float density) {
+            View bar = FeedSeekBar.shownBar();
+            if (bar == null || !bar.isShown() || !within(bar, pager)) return Float.MAX_VALUE;
+            barBounds.set(0, 0, bar.getWidth(), bar.getHeight());
+            frame.offsetDescendantRectToMyCoords(bar, barBounds);
+            if (barBounds.right <= left || barBounds.left >= right) return Float.MAX_VALUE;
+            return barBounds.top - (PILL_OVER_BAR + PILL_HEIGHT) * density;
+        }
+
+        private static boolean within(View view, View ancestor) {
+            for (ViewParent parent = view.getParent(); parent != null; parent = parent.getParent()) {
+                if (parent == ancestor) return true;
+            }
+            return false;
         }
 
         /** Fades out [dots], Instagram's own under this carousel, and brings back the ones faded before if they're others. */
