@@ -26,13 +26,16 @@ import app.morphe.patches.instagram.misc.extension.requireStatusMethod
 import app.morphe.patches.instagram.misc.settings.sendToStandIn
 import app.morphe.patches.instagram.misc.settings.settingsPatch
 import app.morphe.patches.shared.compat.AppCompatibilities
+import app.morphe.util.addInstructionsAtControlFlowLabel
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.formats.ArrayPayload
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 
 private const val PATCH = "Turn off HDR brightness boosts"
@@ -110,6 +113,7 @@ val turnOffHdrBoostsPatch = bytecodePatch(
         requireStatusMethod("hdrBoost")
         holdBackHdrBoosts()
         holdHdrOptionsOff()
+        holdSyntheticHdrOff()
         enableStatus("hdrBoost")
     }
 }
@@ -260,6 +264,56 @@ internal fun BytecodePatchContext.holdHdrOptionsOff(): MutableMethod? {
         ExternalLabel("instagram", method.getInstruction(0)),
     )
     return method
+}
+
+/**
+ * Instagram's AV1 decoder settings, which keep their name for the decoder's native code. Their
+ * enhancement mode can turn an ordinary reel into synthetic HDR (#85).
+ */
+internal const val DAV1D_SETTING = "Lexoplayer2/av1/src/Dav1dMediaCodecAdapterSetting;"
+
+/** The HdrBoost method each write of that enhancement mode goes through first. */
+internal const val ENHANCEMENT_MODE = "$HDR_BOOST->enhancementMode(I)I"
+
+/** Whether this instruction writes [DAV1D_SETTING]'s enhancement mode. */
+internal fun Instruction.writesEnhancementMode(): Boolean {
+    if (opcode != Opcode.IPUT) return false
+    val field = (this as? ReferenceInstruction)?.reference as? FieldReference ?: return false
+    return field.definingClass == DAV1D_SETTING && field.name == "enhancementMode" && field.type == "I"
+}
+
+/**
+ * Hands every write of the AV1 decoder settings' enhancement mode to HdrBoost first, on the register
+ * written, so a synthetic HDR mode (inverse tone mapping on the GPU or the CPU) reads as none while
+ * the switch is on (#85). Phones that decode AV1 in software light ordinary reels that way whatever
+ * the screen reports. The field is final and the constructor writes it once, so the decoder, its
+ * headroom controller and the native side all see the held mode. An iput's value register is always
+ * one of v0 to v15, so the call and its move-result fit it. Answers how many writes it sent, and 0
+ * when the class or the write is missing, which leaves the rest of the patch working and says so in
+ * the log.
+ */
+internal fun BytecodePatchContext.holdSyntheticHdrOff(): Int {
+    if (classDefByOrNull(DAV1D_SETTING) == null) {
+        patchLog.warning("$PATCH: found no $DAV1D_SETTING, so the AV1 decoder keeps its synthetic HDR.")
+        return 0
+    }
+    var sent = 0
+    for (method in mutableClassDefBy(DAV1D_SETTING).methods) {
+        val sites = method.implementation?.instructions?.withIndex()?.filter { it.value.writesEnhancementMode() }?.map { it.index }.orEmpty()
+        for (index in sites.asReversed()) {
+            val register = method.getInstruction<TwoRegisterInstruction>(index).registerA
+            method.addInstructionsAtControlFlowLabel(
+                index,
+                """
+                    invoke-static { v$register }, $ENHANCEMENT_MODE
+                    move-result v$register
+                """,
+            )
+            sent++
+        }
+    }
+    if (sent == 0) patchLog.warning("$PATCH: nothing writes $DAV1D_SETTING's enhancement mode, so the AV1 decoder keeps its synthetic HDR.")
+    return sent
 }
 
 /** The HDR call this instruction makes, or null. */

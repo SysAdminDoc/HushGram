@@ -33,6 +33,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Turn off HDR brightness boosts` now also turns off the fake HDR Instagram's own AV1 video decoder can add to ordinary reels. Where Instagram plays a reel through that decoder, the reel could still come out brighter than the rest of the screen. The diagnostic report counts each time. Reported in #85.
 * **Instagram:** `Logo and titles at the start` now moves the Messages title and the Reels tabs too. Messages keeps the gap its new message button has on the right, and the Reels tabs sit right after Create, or off the edge when Create is hidden. Reported in #407.
 * **Instagram:** With `Stop after the chat's reels` on, the reels a chat shares scroll again, one after another. A swipe up past the last one goes back to the chat, and pulling down at the top no longer reloads the viewer with suggested reels. Reported in #390.
 * **Instagram:** `Explore without personalization` did nothing outside the EU. It waited for the EU's menu button before asking for the grid that isn't personalized, and now it asks on every account. Instagram only promises that grid in the EU, so elsewhere it's up to them what comes back. Reported in #311.

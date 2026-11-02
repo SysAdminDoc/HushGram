@@ -174,6 +174,37 @@ public class HdrBoostTest {
         assertTrue(report, !report.contains(HdrBoost.SCREEN_CHECKS) && !report.contains(HdrBoost.SRGB_LAYERS));
     }
 
+    /**
+     * The AV1 decoder's synthetic HDR modes, inverse tone mapping on the GPU (12), the CPU (13) and
+     * the CPU placebo (14), become none while the switch is on (#85). No enhancement, sharpening (1)
+     * and the highest contrast mode (11) stay, and only a changed mode counts. Off, paused or before
+     * the settings are ready, every mode stays Instagram's.
+     */
+    @Test
+    public void onTheAv1DecodersSyntheticHdrModesBecomeNone() {
+        assertEquals(0, HdrBoost.enhancementMode(12));
+        assertEquals(0, HdrBoost.enhancementMode(13));
+        assertEquals(0, HdrBoost.enhancementMode(14));
+        assertEquals(0, HdrBoost.enhancementMode(0));
+        assertEquals(1, HdrBoost.enhancementMode(1));
+        assertEquals(11, HdrBoost.enhancementMode(11));
+        assertEquals(15, HdrBoost.enhancementMode(15));
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(HdrBoost.SYNTHETIC_HDR_OFF + " 3"));
+
+        HookStatus.clear();
+        Settings.TURN_OFF_HDR_BOOSTS.save(false);
+        assertEquals(12, HdrBoost.enhancementMode(12));
+        Settings.TURN_OFF_HDR_BOOSTS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertEquals(13, HdrBoost.enhancementMode(13));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertEquals(14, HdrBoost.enhancementMode(14)));
+        assertTrue(!String.join("\n", HookStatus.report()).contains(HdrBoost.SYNTHETIC_HDR_OFF));
+    }
+
     /** Packs option indexes the way the patch hands them over, 16 bits each from the low end. */
     private static long held(int... indexes) {
         long held = 0;

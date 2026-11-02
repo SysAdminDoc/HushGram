@@ -55,6 +55,11 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>452 and later give a reel that super white only on a screen that reports an HDR/SDR ratio, so
  * a phone like the Galaxy S25 FE lifts and one that reports none never does. With the switch on,
  * that check answers no as well (#85).
+ *
+ * <p>Phones that decode AV1 reels in software run them through Instagram's own decoder, and its
+ * settings carry an enhancement mode. Three of those modes are inverse tone mapping, on the GPU, on
+ * the CPU and a CPU placebo, which turn an ordinary SDR reel into synthetic HDR whatever the screen
+ * reports. With the switch on, the settings take no enhancement in place of any of the three (#85).
  */
 public final class HdrBoost {
     private HdrBoost() {
@@ -92,6 +97,18 @@ public final class HdrBoost {
 
     /** An empty slot of the held option indexes. Instagram's option table never runs this long. */
     static final int NO_OPTION = 0xffff;
+
+    /** What the diagnostic report counts each time the AV1 decoder's synthetic HDR is turned off. */
+    static final String SYNTHETIC_HDR_OFF = "AV1 synthetic HDR turned off";
+
+    /**
+     * The AV1 decoder's enhancement modes that make SDR video HDR: inverse tone mapping on the GPU,
+     * on the CPU, and the CPU placebo (Instagram's INVERSE_TONE_MAP, CPU_INVERSE_TONE_MAP and
+     * CPU_INVERSE_TONE_MAP_PLACEBO), and the mode that leaves frames as decoded.
+     */
+    static final int INVERSE_TONE_MAP = 12;
+    static final int CPU_INVERSE_TONE_MAP_PLACEBO = 14;
+    static final int NO_ENHANCEMENT = 0;
 
     /** Stands in for {@code view.setDesiredHdrHeadroom(headroom)}. */
     public static void surfaceViewHeadroom(SurfaceView view, float headroom) {
@@ -168,6 +185,17 @@ public final class HdrBoost {
         if (!holds(held, option) || !on()) return false;
         HookStatus.counted(FamilyNames.HDR_BOOST, OPTIONS_OFF);
         return true;
+    }
+
+    /**
+     * The enhancement mode Instagram's AV1 decoder settings keep in place of [asked], the one its
+     * constructor was handed (#85). A synthetic HDR mode becomes none while the switch is on, and
+     * every other mode, sharpening and contrast among them, stays Instagram's.
+     */
+    public static int enhancementMode(int asked) {
+        if (asked < INVERSE_TONE_MAP || asked > CPU_INVERSE_TONE_MAP_PLACEBO || !on()) return asked;
+        HookStatus.counted(FamilyNames.HDR_BOOST, SYNTHETIC_HDR_OFF);
+        return NO_ENHANCEMENT;
     }
 
     /** Whether [held], four 16-bit option indexes, lists [option]. */
