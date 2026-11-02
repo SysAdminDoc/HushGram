@@ -104,7 +104,7 @@ public class ChatReelsSettingsTest {
         assertEquals("Messages", String.valueOf(StoryTimeSettingsTest.sectionOf(page.getPreferenceScreen(), row).getTitle()));
         assertFalse(row.isChecked());
         assertFalse(Settings.SWIPE_CHAT_REELS.get());
-        assertEquals(Arrays.asList(Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
+        assertEquals(Arrays.asList(Settings.SWIPE_CHAT_REELS, Settings.STOP_AFTER_CHAT_REELS, Settings.ONLY_RECEIVED_CHAT_REELS), PatchFamily.CHAT_REELS.switches);
         assertEquals("Swipe through a chat's reels", PatchFamily.CHAT_REELS.patchName);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.SWIPE_CHAT_REELS.key));
 

@@ -1,0 +1,260 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.morphe.patches.instagram.direct.reels
+
+import app.morphe.ExtensionDex
+import app.morphe.PatchContexts
+import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
+import app.morphe.patcher.patch.PatchException
+import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patches.instagram.FixtureDex
+import app.morphe.patches.instagram.direct.history.MessageFields
+import app.morphe.patches.instagram.direct.history.findMessageFields
+import app.morphe.patches.instagram.direct.keep.findMessageParser
+import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.fixtures
+import app.morphe.patches.instagram.direct.seen.NativeVisualSeenTest.Companion.otherBuilds
+import app.morphe.patches.instagram.direct.seen.visualCode
+import app.morphe.patches.instagram.direct.seen.visualReference
+import com.android.tools.smali.dexlib2.AccessFlags
+import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.ClassDef
+import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.Instruction
+import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
+import com.android.tools.smali.dexlib2.immutable.ImmutableField
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethod
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodImplementation
+import com.android.tools.smali.dexlib2.immutable.ImmutableMethodParameter
+import com.android.tools.smali.dexlib2.immutable.reference.ImmutableFieldReference
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/** Only received reels (#460): the method that registers a chat's messages for the chain asks the extension first. */
+class OnlyReceivedReelsTest {
+    private val session = "Lcom/instagram/common/session/UserSession;"
+    private val configs = "Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;"
+    private val gates = "Lfixture/Gates;"
+    private val opener = "Lfixture/Opener;"
+    private val collector = "Lfixture/Collector;"
+    private val wrapper = "Lfixture/Wrapper;"
+    private val base = "Lfixture/BaseMessage;"
+    private val message = "Lfixture/Message;"
+    private val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
+
+    private val fields = MessageFields(
+        base,
+        ImmutableFieldReference(base, "id", "Ljava/lang/String;"),
+        ImmutableFieldReference(base, "time", "Ljava/lang/String;"),
+        ImmutableFieldReference(base, "sender", "Ljava/lang/String;"),
+        ImmutableFieldReference(base, "sent", "Z"),
+        ImmutableFieldReference(base, "text", "Ljava/lang/String;"),
+        null,
+    )
+
+    @Test
+    fun theHookIsInTheExtension() {
+        val declared = ExtensionDex.classDef(CHAT_REELS).methods
+            .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
+        assertTrue("$RECEIVED is not in the extension: $declared", RECEIVED.substringAfter("->") in declared)
+    }
+
+    /** The collector asks first with the wrapper's message and returns on a no; a yes lands on Instagram's first instruction. */
+    @Test
+    fun theCollectorAsksFirstAndTheBridgesAreWritten() {
+        val context = context()
+        val found = context.findReelCollector(context.findChatReels(), fields)
+        val before = found.collect.implementation!!.instructions.count()
+        context.skipSentReels(found)
+        assertHooked("stand-in", found.collect, before)
+
+        val bridges = context.mutableClassDefBy(CHAT_REELS).methods.associateBy { it.name }
+        assertTrue(bridges.getValue("sentByViewer").visualCode().any { it.opcode == Opcode.IGET_BOOLEAN })
+        assertTrue(bridges.getValue("itemId").visualCode().any { it.opcode == Opcode.IGET_OBJECT })
+        assertEquals(1, bridges.getValue("itemId").visualCode().count { it.opcode == Opcode.CHECK_CAST })
+    }
+
+    @Test
+    fun aBuildItCantReadFailsBeforeAnythingChanges() {
+        val where = "$collector->collect"
+        val cases = listOf(
+            context(collectors = 0) to "expected one method registering a chat's messages for the chain, found 0",
+            context(collectors = 2) to "expected one method registering a chat's messages for the chain, found 2",
+            context(locals = 0) to "$where has no local for the hook",
+            context(entered = true) to "a jump or exception handler enters $where at its first instruction",
+            context(held = 0) to "$wrapper holds 0 $base messages, not one",
+            context(held = 2) to "$wrapper holds 2 $base messages, not one",
+        )
+        for ((context, expected) in cases) {
+            val failure = assertThrows(expected, PatchException::class.java) { context.findReelCollector(context.findChatReels(), fields) }
+            assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
+        }
+    }
+
+    private fun assertHooked(what: String, method: Method, before: Int) {
+        val code = method.implementation!!.instructions.toList()
+        assertEquals("$what: added", before + 6, code.size)
+        assertEquals("$what: hooks", 1, code.count { it.text() == RECEIVED })
+        assertEquals("$what: the wrapper copied", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the message read", Opcode.IGET_OBJECT, code[1].opcode)
+        assertEquals("$what: the hook", RECEIVED, code[2].text())
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
+        assertEquals("$what: the test", Opcode.IF_NEZ, code[4].opcode)
+        assertEquals("$what: the drop", Opcode.RETURN_VOID, code[5].opcode)
+    }
+
+    private fun Instruction.text(): String? = (this as? ReferenceInstruction)?.reference?.toString()
+
+    /**
+     * Shaped like 453's 02YM: its constructor, handed the session, asks the chat reels test and keeps the
+     * answer in a flag, and its one method handed the message wrapper reads that flag. The wrapper holds
+     * the message, a subclass of the message class the parser fills.
+     */
+    private fun context(collectors: Int = 1, locals: Int = 2, entered: Boolean = false, held: Int = 1) =
+        PatchContexts.of(classes(collectors, locals, entered, held) + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)))
+
+    private fun classes(collectors: Int, locals: Int, entered: Boolean, held: Int): List<ClassDef> {
+        val test = method(
+            gates, "chain", listOf(session), "Z", 3, final,
+            """
+                invoke-static {v4}, Lfixture/Configs;->of(Ljava/lang/Object;)Ljava/lang/Object;
+                move-result-object v2
+                const-wide v0, 0x${CHAT_REELS_FLAG.toString(16)}L
+                check-cast v2, $configs
+                invoke-interface {v2, v0, v1}, $configs->Bae(J)Z
+                move-result v0
+                return v0
+            """.trimIndent(),
+        )
+        val open = method(
+            opener, "open", listOf(THREAD_KEY, MESSAGE_ID, gates), "V", 1, final,
+            "const/4 v0, 0x0\ninvoke-virtual {p3, v0}, $gates->chain($session)Z\nreturn-void",
+        )
+        val owners = List(collectors) { if (it == 0) collector else "Lfixture/Collector$it;" }
+        val collecting = owners.map { owner ->
+            val ctor = method(
+                owner, "<init>", listOf(session, gates), "V", 1, AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value,
+                "invoke-virtual {p2, p1}, $gates->chain($session)Z\nmove-result v0\niput-boolean v0, p0, $owner->on:Z\nreturn-void",
+            )
+            val body = if (entered) ":top\niget-boolean v0, p0, $owner->on:Z\nif-eqz v0, :top\nreturn-void"
+            else "iget-boolean v0, p0, $owner->on:Z\nif-eqz v0, :out\nconst/4 v1, 0x0\n:out\nreturn-void"
+            val collect = method(owner, "collect", listOf(wrapper), "V", locals, final, body)
+            classDef(owner, listOf(ctor, collect), fields = listOf(ImmutableField(owner, "on", "Z", AccessFlags.PRIVATE.value, null, null, null)))
+        }
+        val wrapperFields = List(held) { ImmutableField(wrapper, "m$it", message, AccessFlags.PUBLIC.value, null, null, null) }
+        return listOf(classDef(gates, listOf(test)), classDef(opener, listOf(open))) + collecting +
+            classDef(wrapper, emptyList(), fields = wrapperFields) +
+            ImmutableClassDef(message, final, base, emptyList(), null, null, emptyList(), emptyList()) +
+            classDef(base, emptyList())
+    }
+
+    private fun method(owner: String, name: String, parameters: List<String>, returns: String, registers: Int, flags: Int, body: String): Method {
+        val words = parameters.size + parameters.count { it == "J" || it == "D" }
+        val total = registers + (if (AccessFlags.STATIC.isSet(flags)) 0 else 1) + words
+        val mutable = MutableMethod(
+            ImmutableMethod(
+                owner, name, parameters.map { ImmutableMethodParameter(it, null, null) }, returns, flags, null, null,
+                ImmutableMethodImplementation(total, emptyList(), null, null),
+            ),
+        )
+        mutable.addInstructionsWithLabels(0, body.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim() })
+        return ImmutableMethod.of(mutable)
+    }
+
+    private fun classDef(type: String, methods: List<Method>, fields: List<ImmutableField> = emptyList()): ClassDef =
+        ImmutableClassDef(type, final, "Ljava/lang/Object;", emptyList(), null, null, fields, methods)
+
+    @Test fun declaredBuildsFindTheCollector() = fixtures { check(it) }
+
+    @Test fun eachOtherBuildFindsTheCollector() = otherBuilds { check(it) }
+
+    /** The real APK's chat reels test, the method registering a chat's messages for its chain, and the message fields. */
+    private fun check(bundle: File) {
+        val name = bundle.parentFile.name
+        val flag = CHAT_REELS_FLAG
+        val classes = mutableMapOf<String, ClassDef>()
+        val callers = mutableListOf<ClassDef>()
+        var gateType: String? = null
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val loads = classDef.methods.any { m -> m.visualCode().any { it.opcode == Opcode.CONST_WIDE && (it as com.android.tools.smali.dexlib2.iface.instruction.WideLiteralInstruction).wideLiteral == flag } }
+                val opens = classDef.methods.any { m ->
+                    val takes = m.parameterTypes.map(CharSequence::toString)
+                    THREAD_KEY in takes && MESSAGE_ID in takes
+                }
+                if (loads) gateType = classDef.type
+                if (loads || opens) classes[classDef.type] = ImmutableClassDef.of(classDef)
+            }
+        }
+        val gate = gateType ?: throw AssertionError("$name: no class loads the chat reels flag")
+        val read = PatchContexts.of(classes.values).findChatReels()
+        FixtureDex.forEach(bundle) { dex ->
+            for (classDef in dex.classes) {
+                val asks = classDef.methods.any { m ->
+                    m.name == "<init>" && m.visualCode().any {
+                        val ref = it.visualReference() as? MethodReference
+                        ref != null && ref.definingClass == read.type && ref.name == read.name
+                    }
+                }
+                if (asks) callers += ImmutableClassDef.of(classDef)
+            }
+        }
+        assertTrue("$name: no constructor asks $gate", callers.isNotEmpty())
+        for (classDef in callers) classes[classDef.type] = classDef
+
+        // The wrappers the collectors take, their message fields' types and their ancestors.
+        val wrappers = callers.flatMap { c -> c.methods.flatMap { m -> m.parameterTypes.map(CharSequence::toString) } }.toSet()
+        var more = FixtureDex.classes(bundle, wrappers - classes.keys)
+        classes += more
+        more = FixtureDex.classes(bundle, more.values.flatMap { c -> c.fields.map { it.type } }.toSet() - classes.keys)
+        classes += more
+        more = FixtureDex.classes(bundle, more.values.mapNotNull { it.superclass }.toSet() - classes.keys)
+        classes += more
+
+        // The message class, as the chat history test reads it.
+        val parserBase = (FixtureDex.classesLoading(bundle, "message_item_dict")).distinctBy { it.type }
+        val parserClasses = FixtureDex.withStringPools(bundle, parserBase).associateBy { it.type }.toMutableMap()
+        for ((type, classDef) in parserClasses) classes.putIfAbsent(type, classDef)
+        val withParser = PatchContexts.of(parserClasses.values)
+        val named = mutableSetOf<String>()
+        for (instruction in withParser.findMessageParser().visualCode()) {
+            val field = instruction.visualReference() as? FieldReference ?: continue
+            if (instruction.opcode == Opcode.IPUT_OBJECT || instruction.opcode == Opcode.IPUT_BOOLEAN) {
+                named += field.definingClass
+                named += field.type
+            }
+        }
+        more = FixtureDex.classes(bundle, named - classes.keys)
+        classes += more
+        more = FixtureDex.classes(bundle, more.values.mapNotNull { it.superclass }.toSet() - classes.keys)
+        classes += more
+        classes[CHAT_REELS] = ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS))
+
+        val context = PatchContexts.of(classes.values)
+        val found = try {
+            context.findReelCollector(context.findChatReels(), context.findMessageFields())
+        } catch (failure: PatchException) {
+            throw AssertionError("$name: ${failure.message}", failure)
+        }
+        assertEquals("$name: the collector takes the wrapper", 1, found.collect.parameterTypes.size)
+        assertEquals("$name: the message is a ${found.fields.owner}", "Z", found.fields.sent.type)
+
+        val before = found.collect.implementation!!.instructions.count { it.opcode != Opcode.NOP }
+        context.skipSentReels(found)
+        val code = found.collect.implementation!!.instructions.toList()
+        assertEquals("$name: added", before + 6, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$name: hooks", 1, code.count { it.text() == RECEIVED })
+        assertEquals("$name: the hook goes first", RECEIVED, code[2].text())
+        val hooked = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
+            .count { m -> m.visualCode().any { it.text() == RECEIVED } }
+        assertEquals("$name: methods hooked", 1, hooked)
+    }
+}

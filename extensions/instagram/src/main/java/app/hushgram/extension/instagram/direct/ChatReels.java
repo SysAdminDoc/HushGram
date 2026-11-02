@@ -96,6 +96,49 @@ public final class ChatReels {
     }
 
     /**
+     * Whether [message], one of the chat's messages the opener is about to add to the chain of reels,
+     * joins it: no for a message the viewer sent while "Only received reels" is on, unless it's the one
+     * just tapped (its id shows in the tapped message's text). Yes for any other message, with the
+     * switch off, while HushGram is paused, before the settings are ready and on any failure. Never throws.
+     */
+    public static boolean received(@Nullable Object message) {
+        try {
+            HookStatus.invoked(FamilyNames.CHAT_REELS);
+            if (message == null || !Utils.settingsReady() || HushgramPause.isPaused()) return true;
+            if (!Settings.ONLY_RECEIVED_CHAT_REELS.get()) return true;
+            boolean sent = sentByViewer(message);
+            return received(sent, sent ? itemId(message) : null);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.CHAT_REELS, "chat reels sender", failure);
+            return true;
+        }
+    }
+
+    /** The test behind {@link #received(Object)}, for a message the viewer sent or not and its item id. */
+    static boolean received(boolean sent, @Nullable String id) {
+        if (!sent || isTapped(id)) return true;
+        HookStatus.counted(FamilyNames.CHAT_REELS, "sent reel left out of the chain");
+        return false;
+    }
+
+    /** Whether the message just tapped is the one with [id]. */
+    static boolean isTapped(@Nullable String id) {
+        Object tapped = opening;
+        return id != null && tapped != null && String.valueOf(tapped).contains(id);
+    }
+
+    /** Stub: the patch writes this, answering whether the viewer sent [message]. */
+    public static boolean sentByViewer(Object message) {
+        return false;
+    }
+
+    /** Stub: the patch writes this, answering [message]'s item id. */
+    @Nullable
+    public static String itemId(Object message) {
+        return null;
+    }
+
+    /**
      * Whether the viewer skips putting in one of Instagram's cached reels: yes while the switch is on
      * and [source], the viewer's ClipsViewerSource, is a chat's. No for any other viewer, and while
      * the switch is off, HushGram is paused or the settings aren't ready. Never throws.

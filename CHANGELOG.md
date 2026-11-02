@@ -7,6 +7,7 @@ Every HushGram release, newest first.
 ### Features
 
 * **Instagram:** `Read messages without the seen receipt` adds `Mark as read button in chats` under Messages. While a chat hasn't told the other person you've seen it, a check mark sits at the top next to the call buttons. Tap it and they see Seen, the same as Mark as read on a long press. It starts on. Asked for in #458.
+* **Instagram:** `Swipe through a chat's reels` gets a child switch, `Only received reels`. With it on, the reels you sent in a chat are left out, so swiping goes through what the other person shared. The reel you tapped still opens. Starts off. Asked for in #460.
 * **Instagram:** `See who a story mentions` gets a child switch, `Red story mentions`. It draws the mention pill's text in Instagram's red instead of white, so it stands out on bright stories. Starts off. Asked for in #459.
 * **Instagram:** `HushGram settings` adds `Black settings page` under Settings entry. Cards and dialogs go black, HushGram's name and version sit at the top, and each category is one line with its icon. It starts off. Asked for in #455.
 * **Instagram:** `Home header text` is a new patch. Under Layout, type a few words or pick a picture and it shows at the top of Home where Instagram's logo was. Leave both empty to keep the logo. Asked for in #454.

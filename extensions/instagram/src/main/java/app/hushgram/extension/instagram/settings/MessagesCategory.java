@@ -138,6 +138,9 @@ final class MessagesCategory {
                 messages.addPreference(toggle(context, Settings.STOP_AFTER_CHAT_REELS, L10n.t("Stop after the chat's reels"),
                         L10n.t("Reels you opened from a chat end after the last one shared in that chat, with no "
                                 + "suggested reels after it. Works with Swipe through a chat's reels on.")));
+                messages.addPreference(toggle(context, Settings.ONLY_RECEIVED_CHAT_REELS, L10n.t("Only received reels"),
+                        L10n.t("Swiping through a chat's reels skips the ones you sent there, so it only goes through "
+                                + "the reels the other person shared. Works with Swipe through a chat's reels on.")));
             }
             if (build.contains(PatchFamily.CHAT_HISTORY)) {
                 messages.addPreference(toggle(context, Settings.JUMP_IN_CHAT, L10n.t("Jump to the first message or a date"),

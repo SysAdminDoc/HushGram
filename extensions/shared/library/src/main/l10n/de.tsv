@@ -1588,3 +1588,5 @@ Mark as read button in chats	Als-gelesen-Taste in Chats
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Oben im Chat erscheint ein Häkchen, solange die andere Person nicht erfahren hat, dass du den Chat gesehen hast. Tippe darauf, dann sieht sie Gesehen.
 Red story mentions	Rote Story-Erwähnungen
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Zeigt den Text der Erwähnungs-Kapsel in Rot statt Weiß, damit er auf hellen Stories auffällt.
+Only received reels	Nur erhaltene Reels
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Beim Durchwischen der Reels eines Chats werden die übersprungen, die du dort gesendet hast, es geht also nur durch die Reels der anderen Person. Funktioniert mit eingeschaltetem Durch die Reels eines Chats wischen.

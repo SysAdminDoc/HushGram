@@ -11,6 +11,8 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patcher.util.smali.ExternalLabel
+import app.morphe.patches.instagram.direct.history.MessageFields
+import app.morphe.patches.instagram.direct.history.findMessageFields
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.classesAccessing
 import app.morphe.patches.instagram.misc.extension.classesLoadingString
@@ -31,6 +33,7 @@ import app.morphe.patches.instagram.reels.scrolling.VIEW_PAGER
 import app.morphe.patches.shared.compat.AppCompatibilities
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
+import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
@@ -45,6 +48,7 @@ private const val PATCH = "Swipe through a chat's reels"
 internal const val CHAT_REELS = "$EXTENSION_PACKAGE/direct/ChatReels;"
 internal const val CHAIN = "$CHAT_REELS->chain(I)Z"
 internal const val STOP = "$CHAT_REELS->stop()Z"
+internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;)Z"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
@@ -141,7 +145,8 @@ internal const val VIEWER = "$CHAT_REELS_EXIT->viewer(Ljava/lang/Object;Ljava/la
 val swipeChatReelsPatch = bytecodePatch(
     name = "Swipe through a chat's reels",
     description = "Swiping up on a reel you opened from a chat goes through the other reels shared in that chat before " +
-        "any suggested reels, and can stop after them. Both start off. Turn them on in HushGram settings > Messages.",
+        "any suggested reels, can stop after them and can leave out the ones you sent. All start off. Turn them on in " +
+        "HushGram settings > Messages.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
@@ -158,7 +163,9 @@ val swipeChatReelsPatch = bytecodePatch(
         val tap = findChatMediaTap(read)
         val refreshes = findRefreshReads()
         val viewers = findChatViewers()
+        val collector = findReelCollector(read)
         chainChatReels(read)
+        skipSentReels(collector)
         stopAfterChatReels(end)
         stopMoreReels(more)
         stopCachedReels(cached)
@@ -200,6 +207,105 @@ internal fun BytecodePatchContext.findChatReels(): FlagLoad {
 private fun BytecodePatchContext.openersOf(read: FlagLoad) = methodsCalling(read.type, read.name).filter { caller ->
     val takes = caller.parameterTypes.map(CharSequence::toString)
     THREAD_KEY in takes && MESSAGE_ID in takes
+}
+
+/**
+ * The method that registers one of a chat's messages for the chain (LX/02YM;->A01 on 453's 385914557,
+ * handed the message wrapper LX/01RZ), the wrapper's field holding the message, and the message
+ * fields the extension's bridges read.
+ */
+internal class ReelCollector(val collect: MutableMethod, val message: FieldReference, val fields: MessageFields)
+
+/** The names of the fields of [owner] that [method] touches with [opcode]. */
+private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<String> =
+    method.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        if (instruction.opcode != opcode) return@mapNotNull null
+        val field = (instruction as ReferenceInstruction).reference as FieldReference
+        if (field.definingClass == owner) field.name else null
+    }.toSet()
+
+/**
+ * Finds the method that registers a chat's messages for the chain before anything changes. The class
+ * holding it has a constructor, handed the session first, that asks the chat reels test [read] and keeps
+ * the answer in a flag; the method is the one instance method of that class taking one object and
+ * returning nothing that reads such a flag. The object holds one field typed as a subclass of the
+ * direct message class [fields] reads (the message itself), with two locals' worth of room for the hook
+ * and nothing jumping to the method's first instruction. Fails when any of it isn't so.
+ */
+internal fun BytecodePatchContext.findReelCollector(
+    read: FlagLoad = findChatReels(),
+    fields: MessageFields = findMessageFields(),
+): ReelCollector {
+    val gates = methodsCalling(read.type, read.name).filter {
+        it.name == "<init>" && it.parameterTypes.firstOrNull()?.toString() == USER_SESSION
+    }
+    val collectors = gates.map { it.definingClass }.distinct().flatMap { owner ->
+        val flags = gates.filter { it.definingClass == owner }.flatMap { fieldsTouched(it, Opcode.IPUT_BOOLEAN, owner) }.toSet()
+        classDefBy(owner).methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.name != "<init>" && method.returnType == "V" &&
+                method.parameterTypes.size == 1 && fieldsTouched(method, Opcode.IGET_BOOLEAN, owner).any { it in flags }
+        }
+    }
+    val collector = collectors.singleOrNull() ?: refuse("expected one method registering a chat's messages for the chain, found ${collectors.size}")
+    val where = "${collector.definingClass}->${collector.name}"
+    if (collector.localRegisterCount() < 1) refuse("$where has no local for the hook")
+    if (0 in collector.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
+
+    val wrapper = collector.parameterTypes.single().toString()
+    val held = (classDefByOrNull(wrapper) ?: refuse("$wrapper isn't in this build")).fields.filter { field ->
+        !AccessFlags.STATIC.isSet(field.accessFlags) &&
+            generateSequence(field.type) { classDefByOrNull(it)?.superclass }.take(4).any { it == fields.owner }
+    }
+    val message = held.singleOrNull() ?: refuse("$wrapper holds ${held.size} ${fields.owner} messages, not one")
+
+    val takes = collector.parameterTypes.map(CharSequence::toString)
+    val mutable = mutableClassDefBy(collector.definingClass).methods.single { method ->
+        method.name == collector.name && method.parameterTypes.map(CharSequence::toString) == takes
+    }
+    return ReelCollector(mutable, message, fields)
+}
+
+/**
+ * Has the collector ask the extension through [RECEIVED] first, handing it the message, and return on a
+ * no, so a message the extension turns away never joins the chain. Also writes the bodies of the
+ * extension's two message bridges, `sentByViewer` and `itemId`, from the fields the chat history reads.
+ */
+internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelCollector()) {
+    val collect = found.collect
+    collect.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p1
+            iget-object v0, v0, ${found.message.definingClass}->${found.message.name}:${found.message.type}
+            invoke-static { v0 }, $RECEIVED
+            move-result v0
+            if-nez v0, :instagram
+            return-void
+        """,
+        ExternalLabel("instagram", collect.getInstruction(0)),
+    )
+    val stubs = mutableClassDefBy(CHAT_REELS).methods
+    fun bridge(name: String, returns: String) = stubs.singleOrNull {
+        it.name == name && it.parameterTypes.map(Any::toString) == listOf("Ljava/lang/Object;") && it.returnType == returns &&
+            AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("the extension has no public static $name bridge")
+    val fields = found.fields
+    bridge("sentByViewer", "Z").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${fields.owner}
+            iget-boolean p0, p0, ${fields.sent.definingClass}->${fields.sent.name}:Z
+            return p0
+        """.trimIndent(),
+    )
+    bridge("itemId", "Ljava/lang/String;").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${fields.owner}
+            iget-object p0, p0, ${fields.id.definingClass}->${fields.id.name}:${fields.id.type}
+            return-object p0
+        """.trimIndent(),
+    )
 }
 
 /** The tap on media in a chat, and the parameter registers its tapped view and message come in. */

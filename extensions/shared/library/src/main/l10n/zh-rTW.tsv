@@ -1591,3 +1591,5 @@ Mark as read button in chats	聊天中的「標示為已讀」按鈕
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	在對方還不知道您已看過聊天時，聊天頂端會顯示勾號。點擊它，對方就會看到「已讀」。
 Red story mentions	紅色限時動態標註
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	將標註標籤的文字改用紅色而非白色，在明亮的限時動態上更醒目。
+Only received reels	僅限收到的 Reels
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	滑動瀏覽聊天室的 Reels 時，會略過你在該處傳送的，只瀏覽對方分享的 Reels。需開啟「滑動瀏覽聊天室的 Reels」才會生效。

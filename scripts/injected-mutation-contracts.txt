@@ -753,6 +753,12 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/
 # and Back has to close each one; twice or elsewhere, some other tap gets dropped.
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
+# Only received reels (#460) also asks ChatReels.received first in the method that registers one of a chat's
+# messages for the chain (02YM.A01 on 453's 385914557, handed the message wrapper 01RZ), which reads the
+# Boolean function fields and hands the message's media on. A message the viewer sent returns before
+# anything of it is registered; twice or elsewhere, some other message goes missing from the chain.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media;
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media;
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh

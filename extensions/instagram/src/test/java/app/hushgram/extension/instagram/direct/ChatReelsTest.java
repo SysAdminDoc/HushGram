@@ -52,6 +52,7 @@ public class ChatReelsTest {
     public void restore() {
         Settings.SWIPE_CHAT_REELS.resetToDefault();
         Settings.STOP_AFTER_CHAT_REELS.resetToDefault();
+        Settings.ONLY_RECEIVED_CHAT_REELS.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -135,6 +136,48 @@ public class ChatReelsTest {
         assertTrue("back on", ChatReels.stop());
         Settings.STOP_AFTER_CHAT_REELS.save(false);
         assertFalse("off", ChatReels.stop());
+    }
+
+    /** Only received reels starts off, and a sent reel leaves the chain only with it on (#460). */
+    @Test
+    public void aSentReelLeavesTheChainOnlyWithOnlyReceivedOn() {
+        assertFalse(Settings.ONLY_RECEIVED_CHAT_REELS.get());
+        assertTrue("off, an unsent message", ChatReels.received(new Object()));
+        Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
+        assertTrue("on, a message the stub says wasn't sent", ChatReels.received(new Object()));
+        assertTrue("null", ChatReels.received(null));
+        assertTrue("a received reel", ChatReels.received(false, "a1"));
+        assertFalse("a sent reel", ChatReels.received(true, "a1"));
+        assertFalse("a sent reel with no id", ChatReels.received(true, null));
+        assertTrue(HookStatus.missing(FamilyNames.CHAT_REELS).toString(), HookStatus.missing(FamilyNames.CHAT_REELS).isEmpty());
+    }
+
+    /** The reel just tapped stays in the chain even when you sent it. */
+    @Test
+    public void theTappedReelStaysEvenWhenSent() {
+        Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
+        Object tapped = new Object() {
+            @Override public String toString() {
+                return "MessageIdentifier{itemId=a1}";
+            }
+        };
+        assertTrue(ChatReels.open(tapped, null));
+        assertTrue("the tapped one", ChatReels.received(true, "a1"));
+        assertFalse("another sent one", ChatReels.received(true, "b2"));
+        ChatReels.covered();
+        assertFalse("after the viewer opened", ChatReels.received(true, "a1"));
+    }
+
+    /** Off, paused or before the settings are read, every message joins the chain. */
+    @Test
+    public void pausedAndUnreadyKeepEveryMessage() {
+        Settings.ONLY_RECEIVED_CHAT_REELS.save(true);
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertTrue("paused", ChatReels.received(new Object()));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        SettingsContextRule.withoutContext(() -> assertTrue("no context", ChatReels.received(new Object())));
     }
 
     /** Stand-ins for Instagram's viewer sources, named as its enum names them. */

@@ -1588,3 +1588,5 @@ Mark as read button in chats	Sohbetlerde Okundu olarak işaretle düğmesi
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Karşı taraf sohbeti gördüğünü bilmediği sürece sohbetin üstünde bir onay işareti görünür. Ona dokunursan Görüldü'yü görür.
 Red story mentions	Kırmızı hikaye bahsetmeleri
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Bahsetme etiketinin yazısını beyaz yerine kırmızı çizer, böylece parlak hikayelerde öne çıkar.
+Only received reels	Yalnızca alınan reels
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Bir sohbetin reels'lerinde gezinirken orada gönderdiklerin atlanır, yalnızca karşı tarafın paylaştıkları gösterilir. Sohbetin reels'lerinde kaydır açıkken çalışır.

@@ -1588,3 +1588,5 @@ Mark as read button in chats	Botón Marcar como leído en los chats
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Aparece una marca de verificación arriba en un chat mientras la otra persona no sabe que lo viste. Tócala y verá Visto.
 Red story mentions	Menciones de historias en rojo
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Dibuja el texto de la etiqueta de menciones en rojo en lugar de blanco, para que destaque en historias claras.
+Only received reels	Solo reels recibidos
+Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Al pasar por los reels de un chat se saltan los que enviaste allí, así que solo recorre los que compartió la otra persona. Funciona con Deslizar por los reels de un chat activado.
