@@ -18,6 +18,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
+import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
 import org.junit.Assert.assertEquals
@@ -113,6 +114,17 @@ class ChatPlusMenuHookTest {
         assertEquals("$label: nothing before the new code moved", own.take(site.at).map { it.opcode }, code.take(site.at).map { it.opcode })
         assertEquals("$label: nothing after it moved", own.drop(site.at).map { it.opcode }, code.drop(hook + 1).map { it.opcode })
         assertTrue("$label: the list and the spare register are low", site.list < 16 && site.scratch < 16)
+        // The register handed on as the map still holds the builder's Map where the loop exits, not a
+        // copy the loop's test has written over since.
+        val writer = (site.at - 1 downTo 0).first { own[it].writes(site.map) }
+        assertEquals("$label: the map register was last set by a call's answer", Opcode.MOVE_RESULT_OBJECT, own[writer].opcode)
+        assertEquals("$label: a call answering a Map", "Ljava/util/Map;",
+            ((own[writer - 1] as ReferenceInstruction).reference as MethodReference).returnType)
+    }
+
+    private fun Instruction.writes(register: Int): Boolean {
+        val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+        return opcode.setsRegister() && written == register || opcode.setsWideRegister() && written + 1 == register
     }
 
     private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()

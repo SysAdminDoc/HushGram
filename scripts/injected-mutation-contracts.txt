@@ -944,9 +944,11 @@ once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->composerCreated(
 # Chat plus menu (#448) hands the plus menu's finished list and the button map to PlusMenu.menu
 # where the composer's button list builder leaves the loop that fills the menu, the one instance
 # (session state) List method that gets each button enum's item from a Map and adds it to a list
-# (02QI.A01 on 453). Left out, the plus menu stays as Instagram builds it with its switches on;
+# (02QI.A01 on 453). It's held by the static call that makes the button map from an array of pairs
+# and the live access helper's lookup, which keeps its name in every 453 build; each picks that one
+# method in all eight. Left out, the plus menu stays as Instagram builds it with its switches on;
 # twice or elsewhere, it isn't the call the patch wrote. ChatPlusMenuHookTest checks the place.
-once-call Lapp/hushgram/extension/instagram/direct/PlusMenu;->menu(Ljava/util/List;Ljava/util/Map;)V in instance (LX/*;)Ljava/util/List; calling Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object; holding Lcom/instagram/live/access/IgLiveAccessHelper;->*(Lcom/instagram/common/session/UserSession;)Lcom/instagram/live/access/IgLiveAccessHelper; Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;->*(J)Z
+once-call Lapp/hushgram/extension/instagram/direct/PlusMenu;->menu(Ljava/util/List;Ljava/util/Map;)V in instance (LX/*;)Ljava/util/List; calling Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object; holding LX/*;->*([LX/*;)Ljava/util/Map; Lcom/instagram/live/access/IgLiveAccessHelper;->A00(Lcom/instagram/common/session/UserSession;)Lcom/instagram/live/access/IgLiveAccessHelper;
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 # The same switch asks MetaAi.dropsPromotion first in the method that turns a quick promotion into

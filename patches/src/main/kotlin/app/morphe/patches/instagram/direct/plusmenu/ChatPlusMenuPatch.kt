@@ -28,6 +28,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.RegisterRangeInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.iface.reference.StringReference
@@ -118,13 +119,18 @@ internal fun BytecodePatchContext.findPlusMenu(): PlusMenuSite {
             code.getOrNull(at + 3)?.let { it.isCall(null, "add") && it.registers().size == 2 } == true
     }
     val lookup = lookups.singleOrNull() ?: refuse("$where has ${lookups.size} loops over a button map, not one")
-    val map = code[lookup].registers().first()
+    val looked = code[lookup].registers().first()
     val list = code[lookup + 3].registers().first()
     val hasNext = (lookup - 1 downTo 0).firstOrNull { code[it].isCall("Ljava/util/Iterator;", "hasNext") }
         ?: refuse("$where has no hasNext before the map lookup")
     if (code.getOrNull(hasNext + 1)?.opcode != Opcode.MOVE_RESULT || code.getOrNull(hasNext + 2)?.opcode != Opcode.IF_EQZ) {
         refuse("$where tests its loop some other way")
     }
+    // On 453 the loop copies the map into a low register for each lookup, and that register holds the
+    // loop test's answer where the loop exits, so the map is handed on from the register it's copied from.
+    val copy = code[lookup - 1].takeIf { it.opcode in OBJECT_MOVES && (it as TwoRegisterInstruction).registerA == looked }
+    val map = (copy as? TwoRegisterInstruction)?.registerB ?: looked
+    if ((hasNext..lookup + 3).any { code[it].writes(map) }) refuse("$where writes its button map inside the loop")
     val exit = ControlFlow.of(builder).normal[hasNext + 2].firstOrNull() ?: refuse("$where has no loop exit")
     if (exit <= lookup) refuse("$where exits its loop backwards")
     if (list > 15) refuse("$where holds its menu list in register $list")
@@ -178,6 +184,14 @@ private fun reads(method: Method, enumType: String, fields: List<String>): Boole
 private fun Instruction.isCall(owner: String?, name: String): Boolean {
     val reference = (this as? ReferenceInstruction)?.reference as? MethodReference ?: return false
     return reference.name == name && (owner == null || reference.definingClass == owner)
+}
+
+private val OBJECT_MOVES = setOf(Opcode.MOVE_OBJECT, Opcode.MOVE_OBJECT_FROM16, Opcode.MOVE_OBJECT_16)
+
+/** Whether this instruction writes [register], as its own or as the high half of a wide value. */
+private fun Instruction.writes(register: Int): Boolean {
+    val written = (this as? OneRegisterInstruction)?.registerA ?: return false
+    return opcode.setsRegister() && written == register || opcode.setsWideRegister() && written + 1 == register
 }
 
 /** The registers an invoke names, receiver first. */
