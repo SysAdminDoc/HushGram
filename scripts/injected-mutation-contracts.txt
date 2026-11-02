@@ -744,6 +744,24 @@ once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->stopCached(Ljava/
 # and Back has to close each one; twice or elsewhere, some other tap gets dropped.
 start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
+# Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
+# 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
+# position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh
+# handler loading refresh_not_allowed (02HQ.A1T), the two pull-down layout lambdas (0S25.invoke and
+# 0SWu.A07, which also read A3I) and the long-press use case's state lambda (0Flw.invoke). Left
+# out, a pull down in a chat's viewer reloads it with suggested reels; twice or elsewhere, some
+# other read of the config changes.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (I)LX/*; sites 2 holding ClipsTabRecyclerAdapter.createFragmentForPosition Lcom/instagram/clips/intf/ClipsViewerConfig;->A3G:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance (Z)V holding refresh_not_allowed
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance ()Ljava/lang/Object; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3G:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in static (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; holding Lcom/instagram/clips/intf/ClipsViewerConfig;->A3G:Z Lcom/instagram/clips/intf/ClipsViewerConfig;->A3I:Z
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->refresh(Ljava/lang/Object;)Z in instance ()Ljava/lang/Object; holding android_purge_26_q3_ClipsLongPressToFeatureUseCase_getUiState Lcom/instagram/clips/intf/ClipsViewerConfig;->A3G:Z
+# The pager setup (01WS.A0j on 453's 385914557, #390) also hands ChatReelsExit.viewer the Reels
+# ViewPager2 and the viewer's config right before it stores the pager, so a long swipe up past a
+# chat's last reel goes back to the chat. Left out, that swipe does nothing; twice or elsewhere,
+# some other pager is watched.
+once-call Lapp/hushgram/extension/instagram/direct/ChatReelsExit;->viewer(Ljava/lang/Object;Ljava/lang/Object;)V in static (Landroid/os/BaseBundle;Landroid/view/View;*)V holding android_purge_26_q3_ClipsViewPagerImpl_setupView
 # Restore trust on re-signed builds puts its call first in the package signer reader, which its
 # fingerprint picks by the SigningInfo and PackageInfo calls it makes. The reader holds no string,
 # so the rule holds the old signatures array it reads, which 28 methods read on 449. Of
