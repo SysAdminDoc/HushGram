@@ -12,6 +12,7 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patches.instagram.FixtureDex
 import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.USER
+import app.morphe.patches.instagram.feed.likes.LIKE_COUNT_FIELD
 import app.morphe.patches.instagram.profile.friendship.RELATIONSHIP
 import app.morphe.patches.instagram.reels.partnership.ReelsPageSites
 import app.morphe.patches.instagram.reels.partnership.fillReelsItemMedia
@@ -29,7 +30,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The patch's own part on every retained build of 453: how a post's view counts and its author's
+ * The patch's own part on every retained build of 453: how a post's view and like counts and its author's
  * following answer are found, and the stubs they fill. The Reels page join is read on every build
  * by the paid partnership tests, which share it.
  */
@@ -42,7 +43,8 @@ class HideLowViewReelsHookTest {
         for (wanted in listOf(
             LOW_VIEW_PAGE_FILTER.substringAfter("->"), "media(Ljava/lang/Object;)Ljava/lang/Object;",
             "playCount(Ljava/lang/Object;)Ljava/lang/Integer;", "igPlayCount(Ljava/lang/Object;)Ljava/lang/Integer;",
-            "viewCount(Ljava/lang/Object;)Ljava/lang/Integer;", "followed(Ljava/lang/Object;)Ljava/lang/Boolean;",
+            "viewCount(Ljava/lang/Object;)Ljava/lang/Integer;", "likeCount(Ljava/lang/Object;)Ljava/lang/Integer;",
+            "followed(Ljava/lang/Object;)Ljava/lang/Boolean;",
         )) {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
@@ -68,6 +70,8 @@ class HideLowViewReelsHookTest {
             assertTrue("${bundle.name}: ig_play_count", igPlays.getterLoading(context, MEDIA, IG_PLAY_COUNT_FIELD.hashCode()))
             val views = context.stub("viewCount")
             assertTrue("${bundle.name}: view_count", views.getterLoading(context, MEDIA, VIEW_COUNT_FIELD.hashCode()))
+            val likes = context.stub("likeCount")
+            assertTrue("${bundle.name}: like_count", likes.getterLoading(context, MEDIA, LIKE_COUNT_FIELD.hashCode()))
             val followed = context.stub("followed").mapNotNull { it.text() }
             assertTrue("${bundle.name}: the author is read: $followed", followed.any { it.startsWith("$MEDIA->") && it.endsWith(")$USER") })
             assertTrue("${bundle.name}: the status is read: $followed", followed.any { it.startsWith("$USER->") && it.endsWith(")$RELATIONSHIP") })
@@ -101,6 +105,7 @@ class HideLowViewReelsHookTest {
         fillStub(LOW_VIEW_REELS, "playCount", "Ljava/lang/Integer;", 1, reads.playCount)
         fillStub(LOW_VIEW_REELS, "igPlayCount", "Ljava/lang/Integer;", 1, reads.igPlayCount)
         fillStub(LOW_VIEW_REELS, "viewCount", "Ljava/lang/Integer;", 1, reads.viewCount)
+        fillStub(LOW_VIEW_REELS, "likeCount", "Ljava/lang/Integer;", 1, reads.likeCount)
         fillStub(LOW_VIEW_REELS, "followed", "Ljava/lang/Boolean;", 2, reads.followed)
     }
 

@@ -1538,12 +1538,16 @@ Couldn't read that picture.	사진을 읽을 수 없습니다.
 This launcher can't add it.	이 런처는 추가할 수 없습니다.
 Glass in chats	채팅 유리 효과
 Gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	채팅 상단 바에 반투명 유리 효과를 주고 뒤로가기, 통화, 영상 버튼을 둥근 유리 원 위에 올립니다. 다음에 채팅을 열 때부터 적용됩니다. 흐림 효과는 Android 12 이상이 필요합니다.
-# context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary; %1$s is a number with thousands separators (#444)
+# context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	조회수가 적은 릴스 숨기기
-Leaves out reels in the Reels tab that fewer people have watched than the number below. Reels from accounts you follow, reels sent to you and reels with no view count still play.	아래 숫자보다 적은 사람이 본 릴스를 릴스 탭에서 숨깁니다. 팔로우하는 계정의 릴스, 받은 릴스, 조회수가 없는 릴스는 그대로 재생됩니다.
+Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	조회수나 좋아요 수가 아래 숫자보다 적은 릴스를 릴스 탭에서 숨깁니다. 팔로우하는 계정의 릴스, 받은 릴스, 숫자가 없는 릴스는 그대로 재생됩니다.
 Minimum views	최소 조회수
 Reels with fewer views than this are left out. Type a whole number.	이보다 조회수가 적은 릴스는 숨겨집니다. 정수를 입력하세요.
 Fewer than %1$s views	조회수 %1$s회 미만
+Minimum likes	최소 좋아요 수
+Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	이보다 좋아요가 적은 릴스는 숨겨집니다. 정수를 입력하거나, 좋아요를 보지 않으려면 0을 입력하세요.
+Fewer than %1$s likes	좋아요 %1$s개 미만
+Likes aren't looked at	좋아요 수를 보지 않음
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	스토리 우선 표시
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	목록에 있는 계정에 아직 보지 않은 스토리가 있으면 홈 상단 스토리 줄 맨 앞에 목록 순서대로 놓습니다. 스토리를 보고 나면 인스타그램의 기본 위치로 돌아갑니다. 내 스토리는 계속 맨 앞에 있습니다.

@@ -22,11 +22,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * callback takes, already turned into clips items, with the viewer's module name. Only the Reels
  * tab's pages are filtered, so a reel opened from search, a profile, Saved or a message still plays.
  *
- * <p>A reel goes when its post carries a view count under the minimum the user typed and its author
- * isn't someone they follow. A reel with no count stays, and so does every reel from an account the
- * user follows. A page where every reel would go keeps every item, so the viewer always has a reel
- * to show, and the report counts it. Off, paused, before the settings are read, or when anything
- * throws, the page comes back as it came, the same list.
+ * <p>A reel goes when its post carries a view count under the minimum views the user typed, or a like
+ * count under the minimum likes, and its author isn't someone they follow. Instagram 453 sends most
+ * Reels tab posts with no view count at all but with their likes, so likes are what judges most
+ * reels there; a minimum of 0 likes leaves likes alone. A reel with neither count stays, and so does
+ * every reel from an account the user follows. A page where every reel would go keeps every item, so
+ * the viewer always has a reel to show, and the report counts it. Off, paused, before the settings
+ * are read, or when anything throws, the page comes back as it came, the same list.
  */
 public final class LowViewReels {
     /** The diagnostic counter route: the pages seen, and the items taken out of them. */
@@ -35,9 +37,16 @@ public final class LowViewReels {
     /** The reason, and kind, of an item whose view count is under the minimum. */
     static final String BELOW = "below the minimum";
 
-    /** The kinds counted for an item that stays: not a reel with a post, a post with no count, a followed author under the minimum. */
+    /** The reason, and kind, of an item whose like count is under the minimum likes. */
+    static final String FEW_LIKES = "below the minimum likes";
+
+    /**
+     * The kinds counted along the way: not a reel with a post, a post with no view count, a post with
+     * no like count while likes are looked at, and a followed author under a minimum.
+     */
     static final String NOT_A_REEL = "no post read";
     static final String NO_VIEWS = "no view count";
+    static final String NO_LIKES = "no like count";
     static final String FOLLOWED = "followed author kept";
 
     /** The kind counted for a page left whole because every reel in it matched. */
@@ -46,7 +55,7 @@ public final class LowViewReels {
     /** The count of reels taken out, in the diagnostics report. */
     static final String REMOVED = "reels hidden for few views";
 
-    /** The view count of a post that has none. */
+    /** The view or like count of a post that has none. */
     static final long NO_COUNT = -1;
 
     /** Reads what decides an item; the patch-filled stubs outside tests. */
@@ -56,6 +65,9 @@ public final class LowViewReels {
 
         /** The post's view count, or {@link #NO_COUNT} when it carries none. */
         long views(Object media);
+
+        /** The post's like count, or {@link #NO_COUNT} when it carries none. */
+        long likes(Object media);
 
         /** Whether the post's author is someone the user follows. */
         boolean followed(Object media);
@@ -76,6 +88,12 @@ public final class LowViewReels {
         }
 
         @Override
+        public long likes(Object media) {
+            Integer likes = likeCount(media);
+            return likes == null ? NO_COUNT : likes.longValue();
+        }
+
+        @Override
         public boolean followed(Object media) {
             return Boolean.TRUE.equals(LowViewReels.followed(media));
         }
@@ -86,16 +104,16 @@ public final class LowViewReels {
 
     /**
      * Injected where the Reels viewer's network callback takes a page, with the viewer's module
-     * name. Answers a new list without the reels under the minimum while the switch is on and the
+     * name. Answers a new list without the reels under either minimum while the switch is on and the
      * page is for the Reels tab, and [items] itself when the viewer is any other, when nothing goes,
      * when every reel would, when the switch is off or paused, or when anything goes wrong. Never
      * throws.
      */
     public static List<?> page(List<?> items, String module) {
-        return page(items, module, PATCHED, LowViewReels::minimumWhenOn);
+        return page(items, module, PATCHED, LowViewReels::minimumWhenOn, LowViewReels::minimumLikesWhenOn);
     }
 
-    static List<?> page(List<?> items, String module, Reader reader, IntSupplier minimum) {
+    static List<?> page(List<?> items, String module, Reader reader, IntSupplier minimum, IntSupplier minimumLikes) {
         if (items == null) return null;
         try {
             HookStatus.invoked(FamilyNames.LOW_VIEW_REELS);
@@ -105,33 +123,42 @@ public final class LowViewReels {
             if (size == 0) return items;
             int least = minimum.getAsInt();
             if (least <= 0) return items;
+            int leastLikes = minimumLikes.getAsInt();
 
             boolean[] goes = new boolean[size];
-            int matched = 0;
+            int fewViews = 0;
+            int fewLikes = 0;
             int reels = 0;
             int at = 0;
             for (Object item : items) {
                 if (at >= size) return items;
                 Object media = item == null ? null : reader.media(item);
-                boolean hit = false;
+                String why = null;
                 if (media == null) {
                     FeedFilterCounters.sawKind(ROUTE, NOT_A_REEL);
                 } else {
                     reels++;
                     long views = reader.views(media);
-                    if (views == NO_COUNT) {
-                        FeedFilterCounters.sawKind(ROUTE, NO_VIEWS);
-                    } else if (views < least) {
-                        if (reader.followed(media)) FeedFilterCounters.sawKind(ROUTE, FOLLOWED);
-                        else hit = true;
+                    if (views == NO_COUNT) FeedFilterCounters.sawKind(ROUTE, NO_VIEWS);
+                    else if (views < least) why = BELOW;
+                    if (why == null && leastLikes > 0) {
+                        long likes = reader.likes(media);
+                        if (likes == NO_COUNT) FeedFilterCounters.sawKind(ROUTE, NO_LIKES);
+                        else if (likes < leastLikes) why = FEW_LIKES;
+                    }
+                    if (why != null && reader.followed(media)) {
+                        FeedFilterCounters.sawKind(ROUTE, FOLLOWED);
+                        why = null;
                     }
                 }
-                if (hit) {
-                    matched++;
-                    FeedFilterCounters.sawKind(ROUTE, BELOW);
+                if (why != null) {
+                    if (BELOW.equals(why)) fewViews++;
+                    else fewLikes++;
+                    FeedFilterCounters.sawKind(ROUTE, why);
                 }
-                goes[at++] = hit;
+                goes[at++] = why != null;
             }
+            int matched = fewViews + fewLikes;
             // A list that changed size while it was read isn't one this can rebuild.
             if (at != size) return items;
             if (matched == 0) return items;
@@ -146,7 +173,8 @@ public final class LowViewReels {
             for (Object item : items) {
                 if (!goes[at++]) kept.add(item);
             }
-            FeedFilterCounters.removed(ROUTE, matched, BELOW);
+            if (fewViews > 0) FeedFilterCounters.removed(ROUTE, fewViews, BELOW);
+            if (fewLikes > 0) FeedFilterCounters.removed(ROUTE, fewLikes, FEW_LIKES);
             for (int count = 0; count < matched; count++) HookStatus.counted(FamilyNames.LOW_VIEW_REELS, REMOVED);
             int left = kept.size();
             int removed = matched;
@@ -162,6 +190,12 @@ public final class LowViewReels {
     static int minimumWhenOn() {
         if (!Utils.settingsReady() || !Settings.HIDE_LOW_VIEW_REELS.get()) return 0;
         return Settings.MIN_REEL_VIEWS.get();
+    }
+
+    /** The minimum like count while the switch is on, and 0 (likes left alone) while off, paused or before the settings are read. */
+    static int minimumLikesWhenOn() {
+        if (!Utils.settingsReady() || !Settings.HIDE_LOW_VIEW_REELS.get()) return 0;
+        return Settings.MIN_REEL_LIKES.get();
     }
 
     /**
@@ -184,6 +218,11 @@ public final class LowViewReels {
 
     /** A post's view count, the last one the patch falls back on. Null as built. */
     public static Integer viewCount(Object media) {
+        return null;
+    }
+
+    /** A post's like count, which the patch fills in. Null as built, and for a post with none. */
+    public static Integer likeCount(Object media) {
         return null;
     }
 

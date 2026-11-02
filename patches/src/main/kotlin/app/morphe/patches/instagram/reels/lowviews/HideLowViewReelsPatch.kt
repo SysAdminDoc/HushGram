@@ -11,6 +11,7 @@ import app.morphe.patches.instagram.download.MEDIA
 import app.morphe.patches.instagram.download.USER
 import app.morphe.patches.instagram.download.pandoGetter
 import app.morphe.patches.instagram.download.throughInterface
+import app.morphe.patches.instagram.feed.likes.LIKE_COUNT_FIELD
 import app.morphe.patches.instagram.misc.extension.EXTENSION_PACKAGE
 import app.morphe.patches.instagram.misc.extension.enableStatus
 import app.morphe.patches.instagram.misc.extension.instagramExtensionPatch
@@ -47,14 +48,15 @@ private const val INTEGER = "Ljava/lang/Integer;"
 private const val BOOLEAN = "Ljava/lang/Boolean;"
 
 /**
- * Leaves reels with fewer views than a number the user typed out of the Reels tab. Reels from
- * accounts the user follows, and reels the user went to see, stay. In the default selection with its
- * switch off, so nothing changes until the user picks a number. Asked for in #444.
+ * Leaves reels with fewer views, or fewer likes, than numbers the user typed out of the Reels tab.
+ * Instagram 453 sends most Reels tab posts without a view count, so likes judge most of them. Reels
+ * from accounts the user follows, and reels the user went to see, stay. In the default selection with
+ * its switch off, so nothing changes until the user picks a number. Asked for in #444.
  */
 @Suppress("unused")
 val hideLowViewReelsPatch = bytecodePatch(
     name = "Hide reels with few views",
-    description = "Leaves out reels in the Reels tab that fewer people have watched than a number you pick. " +
+    description = "Leaves out reels in the Reels tab with fewer views or likes than numbers you pick. " +
         "Accounts you follow stay. Starts off. Turn it on in HushGram settings > Reels.",
 ) {
     category("Reels")
@@ -72,12 +74,18 @@ val hideLowViewReelsPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The bodies of the extension's four post stubs, written once everything they call is found. */
-internal class LowViewReads(val playCount: String, val igPlayCount: String, val viewCount: String, val followed: String)
+/** The bodies of the extension's five post stubs, written once everything they call is found. */
+internal class LowViewReads(
+    val playCount: String,
+    val igPlayCount: String,
+    val viewCount: String,
+    val likeCount: String,
+    val followed: String,
+)
 
 /**
- * Checks the extension has the page filter and the five stubs, then finds how a post's views and
- * author are read: Media's play and view counts, its author, the author's friendship status and the status's
+ * Checks the extension has the page filter and the six stubs, then finds how a post's views, likes and
+ * author are read: Media's play, view and like counts, its author, the author's friendship status and the status's
  * following answer, by the name the tree-backed status gives the interface method. Fails before
  * anything changes when any of it can't be told, since without a count there's nothing to compare.
  */
@@ -86,13 +94,17 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
     if (extension.methods.none { it.isStaticStub("page", listOf("Ljava/util/List;", "Ljava/lang/String;"), "Ljava/util/List;") }) {
         refuse("the extension has no static page(List, String)List")
     }
-    listOf("media" to OBJECT, "playCount" to INTEGER, "igPlayCount" to INTEGER, "viewCount" to INTEGER, "followed" to BOOLEAN)
+    listOf(
+        "media" to OBJECT, "playCount" to INTEGER, "igPlayCount" to INTEGER, "viewCount" to INTEGER,
+        "likeCount" to INTEGER, "followed" to BOOLEAN,
+    )
         .filter { (stub, returns) -> extension.methods.none { it.isStaticStub(stub, listOf(OBJECT), returns) } }
         .forEach { (stub, returns) -> refuse("the extension has no static $stub(Object)$returns to fill") }
 
     val plays = pandoGetter(PATCH, MEDIA, PLAY_COUNT_FIELD, INTEGER)
     val igPlays = pandoGetter(PATCH, MEDIA, IG_PLAY_COUNT_FIELD, INTEGER)
     val views = pandoGetter(PATCH, MEDIA, VIEW_COUNT_FIELD, INTEGER)
+    val likes = pandoGetter(PATCH, MEDIA, LIKE_COUNT_FIELD, INTEGER)
     val owner = pandoGetter(PATCH, MEDIA, OWNER_FIELD, USER)
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val friendships = userClass.methods.filter {
@@ -109,7 +121,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
             refuse("$type isn't public, so the extension can't reach it")
         }
     }
-    listOf(plays, igPlays, views, owner).forEach { getter ->
+    listOf(plays, igPlays, views, likes, owner).forEach { getter ->
         if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$MEDIA->${getter.name} isn't public")
     }
     if (!AccessFlags.PUBLIC.isSet(friendship.accessFlags)) refuse("$USER->${friendship.name} isn't public")
@@ -118,6 +130,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
         playCount = getterBody(plays.name),
         igPlayCount = getterBody(igPlays.name),
         viewCount = getterBody(views.name),
+        likeCount = getterBody(likes.name),
         followed = """
             check-cast p0, $MEDIA
             invoke-virtual { p0 }, $MEDIA->${owner.name}()$USER
@@ -145,7 +158,7 @@ private fun getterBody(name: String) = """
 """
 
 /**
- * Fills the extension's item stub and the four post stubs, then hands each Reels page to
+ * Fills the extension's item stub and the five post stubs, then hands each Reels page to
  * [LOW_VIEW_PAGE_FILTER] where the page and its fallback meet.
  */
 internal fun BytecodePatchContext.hideLowViewReels(page: ReelsPageSites, reads: LowViewReads) {
@@ -153,6 +166,7 @@ internal fun BytecodePatchContext.hideLowViewReels(page: ReelsPageSites, reads: 
     fillStub(LOW_VIEW_REELS, "playCount", INTEGER, 1, reads.playCount)
     fillStub(LOW_VIEW_REELS, "igPlayCount", INTEGER, 1, reads.igPlayCount)
     fillStub(LOW_VIEW_REELS, "viewCount", INTEGER, 1, reads.viewCount)
+    fillStub(LOW_VIEW_REELS, "likeCount", INTEGER, 1, reads.likeCount)
     fillStub(LOW_VIEW_REELS, "followed", BOOLEAN, 2, reads.followed)
     filterReelsPage(page, LOW_VIEW_PAGE_FILTER)
 }

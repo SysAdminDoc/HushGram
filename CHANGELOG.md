@@ -19,7 +19,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Keep stories playing while zooming` is a new patch. With its switch on under Stories, a story keeps playing while you pinch to zoom it. Hold it still first and it stays paused. It starts off. Asked for in #382.
 * **Instagram:** `Skip the ad data reminder` is a new patch under Ads and privacy. Instagram's reminder to review how it uses your data for ads stops opening by itself. Your ad choice doesn't change. It starts off. Asked for in #331.
 * **Instagram:** `Stories priority` is a new patch. Type the accounts you care about under Stories, one to a line, and when one has a story you haven't watched it goes first in Home's stories row, in your order. Asked for in #451.
-* **Instagram:** `Hide reels with few views` is a new patch. Switch it on under Reels and the Reels tab leaves out reels watched fewer times than a number you type (1,000 to start). Followed accounts and reels with no count stay. Asked for in #444.
+* **Instagram:** `Hide reels with few views` is a new patch. Switch it on under Reels and the Reels tab leaves out reels with fewer views than a number you type (1,000 to start) or fewer likes than a second one (10 to start). Instagram leaves the view count off most Reels tab posts now, so likes do most of the work. Set likes to 0 to go by views only. Followed accounts and reels with no count stay. Asked for in #444.
 * **Instagram:** `Hide Suggested for you on follow lists` now also takes the suggested people off the Follow requests screen. Your real requests stay. Asked for in #441.
 
 ### Improvements

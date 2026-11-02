@@ -29,17 +29,19 @@ import app.hushgram.extension.shared.settings.BaseSettings;
 import app.hushgram.extension.shared.settings.HushgramPause;
 import app.hushgram.extension.shared.settings.PauseForTests;
 
-/** Which reels a page keeps by their view counts, and that the page comes back as it came whenever the hook can't decide. */
+/** Which reels a page keeps by their view and like counts, and that the page comes back as it came whenever the hook can't decide. */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = {28, 37})
 public class LowViewReelsTest {
-    /** A reel's post: a view count (or none) and whether its author is followed. */
+    /** A reel's post: a view count and a like count (or none) and whether its author is followed. */
     static final class Post {
         final long views;
+        final long likes;
         final boolean followed;
 
-        Post(long views, boolean followed) {
+        Post(long views, long likes, boolean followed) {
             this.views = views;
+            this.likes = likes;
             this.followed = followed;
         }
     }
@@ -68,6 +70,11 @@ public class LowViewReelsTest {
         }
 
         @Override
+        public long likes(Object media) {
+            return ((Post) media).likes;
+        }
+
+        @Override
         public boolean followed(Object media) {
             return ((Post) media).followed;
         }
@@ -84,6 +91,7 @@ public class LowViewReelsTest {
         PauseForTests.resume();
         Settings.HIDE_LOW_VIEW_REELS.save(true);
         Settings.MIN_REEL_VIEWS.save(1000);
+        Settings.MIN_REEL_LIKES.save(10);
         HookStatus.clear();
         FeedFilterCounters.clear();
     }
@@ -92,6 +100,7 @@ public class LowViewReelsTest {
     public void restore() {
         Settings.HIDE_LOW_VIEW_REELS.resetToDefault();
         Settings.MIN_REEL_VIEWS.resetToDefault();
+        Settings.MIN_REEL_LIKES.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -99,11 +108,16 @@ public class LowViewReelsTest {
     }
 
     private List<?> page(List<?> items, String module) {
-        return LowViewReels.page(items, module, reader, LowViewReels::minimumWhenOn);
+        return LowViewReels.page(items, module, reader, LowViewReels::minimumWhenOn, LowViewReels::minimumLikesWhenOn);
     }
 
+    /** A reel judged by its views alone: its likes are far over any minimum. */
     private static Clip clip(long views, boolean followed) {
-        return new Clip(new Post(views, followed));
+        return clip(views, 1_000_000, followed);
+    }
+
+    private static Clip clip(long views, long likes, boolean followed) {
+        return new Clip(new Post(views, likes, followed));
     }
 
     @Test
@@ -176,7 +190,62 @@ public class LowViewReelsTest {
                 throw new IllegalStateException("boom");
             }
         };
-        assertSame(items, LowViewReels.page(items, REELS_TAB, broken, () -> 1000));
+        assertSame(items, LowViewReels.page(items, REELS_TAB, broken, () -> 1000, () -> 10));
+    }
+
+    @Test
+    public void fewLikesGoWhetherOrNotThereIsAViewCount() {
+        Clip noViewsFewLikes = clip(LowViewReels.NO_COUNT, 9, false);
+        Clip noViewsLikesOnTheLine = clip(LowViewReels.NO_COUNT, 10, false);
+        Clip manyViewsFewLikes = clip(50_000, 2, false);
+        Clip both = clip(50_000, 400, false);
+        List<?> kept = page(Arrays.asList(noViewsFewLikes, noViewsLikesOnTheLine, manyViewsFewLikes, both), REELS_TAB);
+        assertEquals(Arrays.asList(noViewsLikesOnTheLine, both), kept);
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(LowViewReels.FEW_LIKES));
+        assertTrue(report, report.contains(LowViewReels.NO_VIEWS));
+    }
+
+    @Test
+    public void noLikeCountAndAFollowedAuthorKeepAReel() {
+        Clip noCounts = clip(LowViewReels.NO_COUNT, LowViewReels.NO_COUNT, false);
+        Clip followed = clip(LowViewReels.NO_COUNT, 1, true);
+        Clip fewLikes = clip(LowViewReels.NO_COUNT, 1, false);
+        assertEquals(Arrays.asList(noCounts, followed), page(Arrays.asList(noCounts, followed, fewLikes), REELS_TAB));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, report.contains(LowViewReels.NO_LIKES));
+        assertTrue(report, report.contains(LowViewReels.FOLLOWED));
+    }
+
+    @Test
+    public void zeroLikesLeavesLikesAlone() {
+        Settings.MIN_REEL_LIKES.save(0);
+        List<?> items = Arrays.asList(clip(LowViewReels.NO_COUNT, 1, false), clip(50_000, 0, false),
+                clip(LowViewReels.NO_COUNT, LowViewReels.NO_COUNT, false));
+        assertSame(items, page(items, REELS_TAB));
+        String report = FeedFilterCounters.report().toString();
+        assertTrue(report, !report.contains(LowViewReels.NO_LIKES));
+        assertTrue(report, !report.contains(LowViewReels.FEW_LIKES));
+    }
+
+    @Test
+    public void viewsAndLikesBothCountTowardAWholePage() {
+        Clip fewViews = clip(5, false);
+        Clip fewLikes = clip(LowViewReels.NO_COUNT, 3, false);
+        List<?> items = Arrays.asList(fewViews, fewLikes);
+        assertSame(items, page(items, REELS_TAB));
+        assertTrue(FeedFilterCounters.report().toString().contains(LowViewReels.PAGE_KEPT));
+    }
+
+    @Test
+    public void theLikesMinimumDefaultsToTenAndCanBeZero() {
+        Settings.MIN_REEL_LIKES.resetToDefault();
+        assertEquals(10, (int) Settings.MIN_REEL_LIKES.get());
+        Settings.MIN_REEL_LIKES.save(-5);
+        assertEquals(0, (int) Settings.MIN_REEL_LIKES.get());
+        Settings.HIDE_LOW_VIEW_REELS.save(false);
+        Settings.MIN_REEL_LIKES.save(50);
+        assertEquals(0, LowViewReels.minimumLikesWhenOn());
     }
 
     @Test

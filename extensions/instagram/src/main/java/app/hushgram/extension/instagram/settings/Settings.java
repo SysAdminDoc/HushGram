@@ -1922,8 +1922,9 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_caption_word_home", FALSE, parent(HIDE_CAPTION_WORD_REELS));
 
     /**
-     * Reels in the Reels tab with fewer views than {@link #MIN_REEL_VIEWS}, unless their author is
-     * followed ({@link app.hushgram.extension.instagram.reels.LowViewReels}). Read as each page of
+     * Reels in the Reels tab with fewer views than {@link #MIN_REEL_VIEWS} or fewer likes than
+     * {@link #MIN_REEL_LIKES}, unless their author is followed
+     * ({@link app.hushgram.extension.instagram.reels.LowViewReels}). Read as each page of
      * reels arrives, so a change shows from the next page. Off to start (#444).
      */
     public static final BooleanSetting HIDE_LOW_VIEW_REELS =
@@ -1936,6 +1937,15 @@ public class Settings extends BaseSettings {
     public static final IntegerSetting MIN_REEL_VIEWS =
             new IntegerSetting("hushgram_min_reel_views", 1000, false, parent(HIDE_LOW_VIEW_REELS))
                     .withRange(1, 100_000_000);
+
+    /**
+     * Under {@link #HIDE_LOW_VIEW_REELS}: the like count a reel needs to stay, typed as a number, and
+     * 0 to leave likes alone. Starts at 10, since Instagram 453 sends most Reels tab reels with their
+     * likes but no view count (#444). A value control, not a switch.
+     */
+    public static final IntegerSetting MIN_REEL_LIKES =
+            new IntegerSetting("hushgram_min_reel_likes", 10, false, parent(HIDE_LOW_VIEW_REELS))
+                    .withRange(0, 100_000_000);
 
     /** An explicit Copy action for original comment text. Off until enabled. */
     public static final BooleanSetting COPY_COMMENTS =

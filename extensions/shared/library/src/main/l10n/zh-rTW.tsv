@@ -1542,12 +1542,16 @@ Couldn't read that picture.	無法讀取這張圖片。
 This launcher can't add it.	這個啟動器無法加入。
 Glass in chats	聊天室玻璃效果
 Gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	讓聊天室頂端列呈現毛玻璃效果,並把返回、通話和視訊按鈕放在圓形玻璃圈上。下次開啟聊天室時生效。模糊效果需要 Android 12 或更新版本。
-# context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary; %1$s is a number with thousands separators (#444)
+# context: Reels switch Hide reels with few views, its summary, the Minimum views row, its dialog message and the row's summary, then the Minimum likes row, its dialog message, its summary and its summary at 0; %1$s is a number with thousands separators (#444)
 Hide reels with few views	隱藏觀看次數少的 Reels
-Leaves out reels in the Reels tab that fewer people have watched than the number below. Reels from accounts you follow, reels sent to you and reels with no view count still play.	在 Reels 分頁中略過觀看人數低於下方數字的 Reels。你追蹤的帳號、別人傳給你的 Reels，以及沒有觀看次數的 Reels 仍會播放。
+Leaves out reels in the Reels tab with fewer views or likes than the numbers below. Reels from accounts you follow, reels sent to you and reels with no count still play.	在 Reels 分頁中略過觀看次數或按讚數低於下方數字的 Reels。你追蹤的帳號、別人傳給你的 Reels，以及沒有數字的 Reels 仍會播放。
 Minimum views	最低觀看次數
 Reels with fewer views than this are left out. Type a whole number.	觀看次數低於此數字的 Reels 會被略過。請輸入整數。
 Fewer than %1$s views	觀看次數低於 %1$s
+Minimum likes	最低按讚數
+Reels with fewer likes than this are left out. Type a whole number, or 0 to not look at likes.	按讚數低於此數字的 Reels 會被略過。請輸入整數，或輸入 0 不看按讚數。
+Fewer than %1$s likes	按讚數低於 %1$s
+Likes aren't looked at	不看按讚數
 # context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
 Stories priority	限時動態優先順序
 Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	清單中的帳號只要有你還沒看的限時動態，就會依清單順序排在首頁上方限時動態列的最前面。看過之後，會回到 Instagram 原本的排列。你自己的限時動態仍在最前面。
