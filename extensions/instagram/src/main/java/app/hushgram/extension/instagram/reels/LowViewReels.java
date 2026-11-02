@@ -71,6 +71,7 @@ public final class LowViewReels {
         public long views(Object media) {
             Integer plays = playCount(media);
             if (plays == null) plays = igPlayCount(media);
+            if (plays == null) plays = viewCount(media);
             return plays == null ? NO_COUNT : plays.longValue();
         }
 
@@ -178,6 +179,11 @@ public final class LowViewReels {
 
     /** A post's Instagram-side play count, the one the patch falls back on. Null as built. */
     public static Integer igPlayCount(Object media) {
+        return null;
+    }
+
+    /** A post's view count, the last one the patch falls back on. Null as built. */
+    public static Integer viewCount(Object media) {
         return null;
     }
 

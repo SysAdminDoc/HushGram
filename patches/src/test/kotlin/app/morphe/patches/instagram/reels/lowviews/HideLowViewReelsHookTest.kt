@@ -42,7 +42,7 @@ class HideLowViewReelsHookTest {
         for (wanted in listOf(
             LOW_VIEW_PAGE_FILTER.substringAfter("->"), "media(Ljava/lang/Object;)Ljava/lang/Object;",
             "playCount(Ljava/lang/Object;)Ljava/lang/Integer;", "igPlayCount(Ljava/lang/Object;)Ljava/lang/Integer;",
-            "followed(Ljava/lang/Object;)Ljava/lang/Boolean;",
+            "viewCount(Ljava/lang/Object;)Ljava/lang/Integer;", "followed(Ljava/lang/Object;)Ljava/lang/Boolean;",
         )) {
             assertTrue("$wanted is not in the extension: $declared", wanted in declared)
         }
@@ -66,6 +66,8 @@ class HideLowViewReelsHookTest {
             assertTrue("${bundle.name}: play_count", plays.getterLoading(context, MEDIA, PLAY_COUNT_FIELD.hashCode()))
             val igPlays = context.stub("igPlayCount")
             assertTrue("${bundle.name}: ig_play_count", igPlays.getterLoading(context, MEDIA, IG_PLAY_COUNT_FIELD.hashCode()))
+            val views = context.stub("viewCount")
+            assertTrue("${bundle.name}: view_count", views.getterLoading(context, MEDIA, VIEW_COUNT_FIELD.hashCode()))
             val followed = context.stub("followed").mapNotNull { it.text() }
             assertTrue("${bundle.name}: the author is read: $followed", followed.any { it.startsWith("$MEDIA->") && it.endsWith(")$USER") })
             assertTrue("${bundle.name}: the status is read: $followed", followed.any { it.startsWith("$USER->") && it.endsWith(")$RELATIONSHIP") })
@@ -98,6 +100,7 @@ class HideLowViewReelsHookTest {
         fillReelsItemMedia(LOW_VIEW_REELS, page)
         fillStub(LOW_VIEW_REELS, "playCount", "Ljava/lang/Integer;", 1, reads.playCount)
         fillStub(LOW_VIEW_REELS, "igPlayCount", "Ljava/lang/Integer;", 1, reads.igPlayCount)
+        fillStub(LOW_VIEW_REELS, "viewCount", "Ljava/lang/Integer;", 1, reads.viewCount)
         fillStub(LOW_VIEW_REELS, "followed", "Ljava/lang/Boolean;", 2, reads.followed)
     }
 

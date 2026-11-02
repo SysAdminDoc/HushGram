@@ -38,6 +38,7 @@ internal const val PANDO_RELATIONSHIP = "Lcom/instagram/api/schemas/ImmutablePan
 /** The Media fields holding how many times a reel was played and who posted it, and the relationship's following field. */
 internal const val PLAY_COUNT_FIELD = "play_count"
 internal const val IG_PLAY_COUNT_FIELD = "ig_play_count"
+internal const val VIEW_COUNT_FIELD = "view_count"
 internal const val OWNER_FIELD = "user"
 internal const val FOLLOWING_FIELD = "following"
 
@@ -71,12 +72,12 @@ val hideLowViewReelsPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The bodies of the extension's three post stubs, written once everything they call is found. */
-internal class LowViewReads(val playCount: String, val igPlayCount: String, val followed: String)
+/** The bodies of the extension's four post stubs, written once everything they call is found. */
+internal class LowViewReads(val playCount: String, val igPlayCount: String, val viewCount: String, val followed: String)
 
 /**
- * Checks the extension has the page filter and the four stubs, then finds how a post's views and
- * author are read: Media's play counts, its author, the author's friendship status and the status's
+ * Checks the extension has the page filter and the five stubs, then finds how a post's views and
+ * author are read: Media's play and view counts, its author, the author's friendship status and the status's
  * following answer, by the name the tree-backed status gives the interface method. Fails before
  * anything changes when any of it can't be told, since without a count there's nothing to compare.
  */
@@ -85,12 +86,13 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
     if (extension.methods.none { it.isStaticStub("page", listOf("Ljava/util/List;", "Ljava/lang/String;"), "Ljava/util/List;") }) {
         refuse("the extension has no static page(List, String)List")
     }
-    listOf("media" to OBJECT, "playCount" to INTEGER, "igPlayCount" to INTEGER, "followed" to BOOLEAN)
+    listOf("media" to OBJECT, "playCount" to INTEGER, "igPlayCount" to INTEGER, "viewCount" to INTEGER, "followed" to BOOLEAN)
         .filter { (stub, returns) -> extension.methods.none { it.isStaticStub(stub, listOf(OBJECT), returns) } }
         .forEach { (stub, returns) -> refuse("the extension has no static $stub(Object)$returns to fill") }
 
     val plays = pandoGetter(PATCH, MEDIA, PLAY_COUNT_FIELD, INTEGER)
     val igPlays = pandoGetter(PATCH, MEDIA, IG_PLAY_COUNT_FIELD, INTEGER)
+    val views = pandoGetter(PATCH, MEDIA, VIEW_COUNT_FIELD, INTEGER)
     val owner = pandoGetter(PATCH, MEDIA, OWNER_FIELD, USER)
     val userClass = classDefByOrNull(USER) ?: refuse("$USER isn't in this build")
     val friendships = userClass.methods.filter {
@@ -107,7 +109,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
             refuse("$type isn't public, so the extension can't reach it")
         }
     }
-    listOf(plays, igPlays, owner).forEach { getter ->
+    listOf(plays, igPlays, views, owner).forEach { getter ->
         if (!AccessFlags.PUBLIC.isSet(getter.accessFlags)) refuse("$MEDIA->${getter.name} isn't public")
     }
     if (!AccessFlags.PUBLIC.isSet(friendship.accessFlags)) refuse("$USER->${friendship.name} isn't public")
@@ -115,6 +117,7 @@ internal fun BytecodePatchContext.findLowViewReels(): LowViewReads {
     return LowViewReads(
         playCount = getterBody(plays.name),
         igPlayCount = getterBody(igPlays.name),
+        viewCount = getterBody(views.name),
         followed = """
             check-cast p0, $MEDIA
             invoke-virtual { p0 }, $MEDIA->${owner.name}()$USER
@@ -142,13 +145,14 @@ private fun getterBody(name: String) = """
 """
 
 /**
- * Fills the extension's item stub and the three post stubs, then hands each Reels page to
+ * Fills the extension's item stub and the four post stubs, then hands each Reels page to
  * [LOW_VIEW_PAGE_FILTER] where the page and its fallback meet.
  */
 internal fun BytecodePatchContext.hideLowViewReels(page: ReelsPageSites, reads: LowViewReads) {
     fillReelsItemMedia(LOW_VIEW_REELS, page)
     fillStub(LOW_VIEW_REELS, "playCount", INTEGER, 1, reads.playCount)
     fillStub(LOW_VIEW_REELS, "igPlayCount", INTEGER, 1, reads.igPlayCount)
+    fillStub(LOW_VIEW_REELS, "viewCount", INTEGER, 1, reads.viewCount)
     fillStub(LOW_VIEW_REELS, "followed", BOOLEAN, 2, reads.followed)
     filterReelsPage(page, LOW_VIEW_PAGE_FILTER)
 }
