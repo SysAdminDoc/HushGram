@@ -35,7 +35,8 @@ private val OWN_RESOURCE = Regex("^@([a-z]+)/([A-Za-z0-9_.$]+)$")
  * Instagram's own white glyph, the monochrome layer of its icon, in front, and otherwise HushGram's H
  * and ribbon go there. A [glyphTint] draws that glyph in its color instead, from a copy of it. [art]
  * names a picture the patch carries, drawn on clear, that goes in front and in the themed layer
- * in place of either.
+ * in place of either. A picture that's solid all the way across reads as a plain square in the
+ * themed layer, which keeps only its outline, so with [artThemed] off Instagram's glyph goes there.
  */
 internal class HushgramIcon(
     val key: String,
@@ -43,6 +44,7 @@ internal class HushgramIcon(
     val instagramGlyph: Boolean,
     val glyphTint: String? = null,
     val art: String? = null,
+    val artThemed: Boolean = true,
 ) {
     val alias get() = "$HUSHGRAM_ALIAS$key"
     val icon get() = "hushgram_icon_$key"
@@ -86,7 +88,8 @@ internal val HUSHGRAM_ICONS = listOf(
     HushgramIcon("sketch", solid("#FFFFFFFF"), instagramGlyph = false, art = "sketch.png"),
     // Instagram's gradient glyph on a dark tile (#327, #437) and its old camera icon on white (#437), each 52dp across.
     HushgramIcon("gradient", DARK_GRADIENT, instagramGlyph = false, art = "gradient.png"),
-    HushgramIcon("retro", solid("#FFFFFFFF"), instagramGlyph = false, art = "retro.png"),
+    // The camera fills its square, so themed icons show Instagram's glyph for it instead of a blank tile.
+    HushgramIcon("retro", solid("#FFFFFFFF"), instagramGlyph = false, art = "retro.png", artThemed = false),
 )
 
 /** HushGram's H and ribbon in front of an icon. */
@@ -241,8 +244,8 @@ internal fun iconFiles(instagram: InstagramIcon, glyphVector: String): Map<Strin
             else -> instagram.glyph
         }
         val mono = when {
-            icon.art != null -> "@drawable/${icon.artName}"
-            icon.instagramGlyph -> instagram.glyph
+            icon.art != null && icon.artThemed -> "@drawable/${icon.artName}"
+            icon.instagramGlyph || icon.art != null -> instagram.glyph
             else -> "@drawable/$ICON_MARK_MONO"
         }
         files["${instagram.folder}/${icon.icon}.xml"] = adaptiveXml("@drawable/${icon.backgroundName}", front, mono)

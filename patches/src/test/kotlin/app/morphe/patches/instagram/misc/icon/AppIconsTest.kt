@@ -135,7 +135,8 @@ class AppIconsTest {
     /**
      * HushGram's icon is its mark on the gradient, the next two are Instagram's glyph on a color, and the
      * light one a black copy of that glyph on white (#353), its themed layer still Instagram's glyph. The
-     * hand-drawn one (#406) is the picture the patch carries on white, which is its themed layer too.
+     * hand-drawn one (#406) is the picture the patch carries on white, which is its themed layer too. The
+     * retro camera fills its square, so its themed layer is Instagram's glyph (#437).
      */
     @Test
     fun eachIconHasItsBackgroundAndItsFront() {
@@ -161,7 +162,8 @@ class AppIconsTest {
         assertEquals(listOf("@drawable/hushgram_icon_light_background", "@drawable/hushgram_icon_light_glyph", "@drawable/ig_launcher_monochrome"), layers("light"))
         assertEquals(listOf("@drawable/hushgram_icon_sketch_background", "@drawable/hushgram_icon_sketch_art", "@drawable/hushgram_icon_sketch_art"), layers("sketch"))
         assertEquals(listOf("@drawable/hushgram_icon_gradient_background", "@drawable/hushgram_icon_gradient_art", "@drawable/hushgram_icon_gradient_art"), layers("gradient"))
-        assertEquals(listOf("@drawable/hushgram_icon_retro_background", "@drawable/hushgram_icon_retro_art", "@drawable/hushgram_icon_retro_art"), layers("retro"))
+        assertEquals("the retro camera is solid, so themed icons take Instagram's glyph",
+            listOf("@drawable/hushgram_icon_retro_background", "@drawable/hushgram_icon_retro_art", "@drawable/ig_launcher_monochrome"), layers("retro"))
         assertEquals("#FF2F2F2F", parse(files.getValue("drawable/hushgram_icon_gradient_background.xml")).elements("gradient").single().getAttribute("android:startColor"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_light_background.xml")).elements("solid").single().getAttribute("android:color"))
         assertEquals("#FFFFFFFF", parse(files.getValue("drawable/hushgram_icon_sketch_background.xml")).elements("solid").single().getAttribute("android:color"))
