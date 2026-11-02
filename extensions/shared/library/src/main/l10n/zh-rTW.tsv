@@ -1526,3 +1526,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s 開始追蹤你，%2$s
 Hide the Map bubble	隱藏地圖泡泡
 Takes only the Map bubble out of the row of notes. Your notes stay.	只移除筆記橫列中的地圖泡泡。筆記仍會保留。
+Hide Saved in the plus menu	在加號選單中隱藏已儲存
+Takes Saved off the menu the plus button opens in a chat's message bar.	從聊天訊息列的加號按鈕所開啟的選單中移除已儲存。
+Hide AI images in the plus menu	在加號選單中隱藏 AI 圖片
+Takes AI images off the menu the plus button opens in a chat's message bar.	從聊天訊息列的加號按鈕所開啟的選單中移除 AI 圖片。
+Hide Draw in the plus menu	在加號選單中隱藏繪圖
+Takes Draw off the menu the plus button opens in a chat's message bar.	從聊天訊息列的加號按鈕所開啟的選單中移除繪圖。
+Gallery and microphone in the plus menu	相簿與麥克風放進加號選單
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	把相簿和麥克風按鈕從訊息列移到加號選單。它們的功能和以前一樣。關閉後，下次開啟聊天時就會回來。

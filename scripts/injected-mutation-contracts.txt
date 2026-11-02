@@ -941,6 +941,12 @@ once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->composerButton(Ljava
 # MessageBoxHookTest checks both places, alone and with Meta AI's hook in either order.
 once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->button(Ljava/lang/Object;I)Z in instance (LX/*;LX/*;Z)V holding const:0x1ce57a65
 once-call Lapp/hushgram/extension/instagram/direct/MessageBox;->composerCreated(Landroid/view/View;Landroid/view/View;Landroid/view/View;)V in instance (Landroid/app/Activity;Landroid/view/View;Landroid/view/ViewGroup;Lcom/instagram/common/session/UserSession;LX/*;)V holding const:0x7f0b384d const:0x7f0b3857 const:0x7f0b3871
+# Chat plus menu (#448) hands the plus menu's finished list and the button map to PlusMenu.menu
+# where the composer's button list builder leaves the loop that fills the menu, the one instance
+# (session state) List method that gets each button enum's item from a Map and adds it to a list
+# (02QI.A01 on 453). Left out, the plus menu stays as Instagram builds it with its switches on;
+# twice or elsewhere, it isn't the call the patch wrote. ChatPlusMenuHookTest checks the place.
+once-call Lapp/hushgram/extension/instagram/direct/PlusMenu;->menu(Ljava/util/List;Ljava/util/Map;)V in instance (LX/*;)Ljava/util/List; calling Ljava/util/Map;->get(Ljava/lang/Object;)Ljava/lang/Object; holding Lcom/instagram/live/access/IgLiveAccessHelper;->*(Lcom/instagram/common/session/UserSession;)Lcom/instagram/live/access/IgLiveAccessHelper; Lcom/facebook/mobileconfig/factory/MobileConfigUnsafeContext;->*(J)Z
 start-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 once-call Lapp/hushgram/extension/instagram/metaai/MetaAi;->museBanner()Z in static (Landroid/content/Context;L*;)L*; holding impression_muse_banner tap_muse_banner
 # The same switch asks MetaAi.dropsPromotion first in the method that turns a quick promotion into

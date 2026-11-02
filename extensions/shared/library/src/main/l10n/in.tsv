@@ -1523,3 +1523,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s mulai mengikuti Anda, %2$s
 Hide the Map bubble	Sembunyikan gelembung Peta
 Takes only the Map bubble out of the row of notes. Your notes stay.	Hanya menghapus gelembung Peta dari baris catatan. Catatanmu tetap ada.
+Hide Saved in the plus menu	Sembunyikan Tersimpan di menu plus
+Takes Saved off the menu the plus button opens in a chat's message bar.	Menghapus Tersimpan dari menu yang dibuka tombol plus di bilah pesan chat.
+Hide AI images in the plus menu	Sembunyikan gambar AI di menu plus
+Takes AI images off the menu the plus button opens in a chat's message bar.	Menghapus gambar AI dari menu yang dibuka tombol plus di bilah pesan chat.
+Hide Draw in the plus menu	Sembunyikan Gambar di menu plus
+Takes Draw off the menu the plus button opens in a chat's message bar.	Menghapus Gambar dari menu yang dibuka tombol plus di bilah pesan chat.
+Gallery and microphone in the plus menu	Galeri dan mikrofon di menu plus
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	Memindahkan tombol galeri dan mikrofon dari bilah pesan ke menu plus. Fungsinya tetap sama. Matikan, dan tombolnya kembali saat chat dibuka lagi.

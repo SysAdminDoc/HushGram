@@ -1523,3 +1523,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s seni takip etmeye başladı, %2$s
 Hide the Map bubble	Harita balonunu gizle
 Takes only the Map bubble out of the row of notes. Your notes stay.	Notlar satırından yalnızca Harita balonunu kaldırır. Notların kalır.
+Hide Saved in the plus menu	Artı menüsündeki Kaydedilenler'i gizle
+Takes Saved off the menu the plus button opens in a chat's message bar.	Bir sohbetin mesaj çubuğundaki artı düğmesinin açtığı menüden Kaydedilenler'i kaldırır.
+Hide AI images in the plus menu	Artı menüsündeki yapay zeka görsellerini gizle
+Takes AI images off the menu the plus button opens in a chat's message bar.	Bir sohbetin mesaj çubuğundaki artı düğmesinin açtığı menüden yapay zeka görsellerini kaldırır.
+Hide Draw in the plus menu	Artı menüsündeki Çiz'i gizle
+Takes Draw off the menu the plus button opens in a chat's message bar.	Bir sohbetin mesaj çubuğundaki artı düğmesinin açtığı menüden Çiz'i kaldırır.
+Gallery and microphone in the plus menu	Galeri ve mikrofon artı menüsünde
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	Galeri ve mikrofon düğmelerini mesaj çubuğundan artı menüsüne taşır. Eskisi gibi çalışırlar. Kapatırsan bir sohbet bir sonraki açılışında geri gelirler.

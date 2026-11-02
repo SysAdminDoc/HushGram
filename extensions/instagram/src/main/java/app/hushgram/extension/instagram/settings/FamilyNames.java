@@ -154,6 +154,7 @@ public final class FamilyNames {
     public static final String CHAT_HISTORY = "Chat history tools";
     public static final String ASK_BEFORE_CALL = "Ask before a call";
     public static final String MESSAGE_BOX = "Message box buttons";
+    public static final String PLUS_MENU = "Chat plus menu";
     public static final String ASK_BEFORE_LIKE = "Ask before a like";
     public static final String ASK_BEFORE_REFRESH = "Ask before a refresh";
     public static final String SAVE_TRAY = "Skip the collections tray";

@@ -551,6 +551,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Chat plus menu patch. */
+    public static boolean plusMenu() {
+        return false;
+    }
+
     public static boolean askBeforeLike() {
         return false;
     }

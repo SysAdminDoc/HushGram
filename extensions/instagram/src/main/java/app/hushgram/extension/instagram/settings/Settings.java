@@ -701,6 +701,17 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting ASK_BEFORE_CALL = new BooleanSetting("hushgram_ask_before_call", FALSE);
 
     /**
+     * The plus menu of a chat's message bar leaves off its Saved, AI images and Draw rows
+     * ({@link app.hushgram.extension.instagram.direct.PlusMenu}, #448). Each off to start.
+     */
+    public static final BooleanSetting HIDE_PLUS_SAVED = new BooleanSetting("hushgram_hide_plus_saved", FALSE);
+    public static final BooleanSetting HIDE_PLUS_AI_IMAGES = new BooleanSetting("hushgram_hide_plus_ai_images", FALSE);
+    public static final BooleanSetting HIDE_PLUS_DRAW = new BooleanSetting("hushgram_hide_plus_draw", FALSE);
+
+    /** The message bar's gallery and microphone buttons move into the plus menu. Off to start. */
+    public static final BooleanSetting MOVE_TO_PLUS_MENU = new BooleanSetting("hushgram_move_to_plus_menu", FALSE);
+
+    /**
      * The buttons the message box of a chat leaves off, as the names of Instagram's button enum with
      * commas between ({@link app.hushgram.extension.instagram.direct.MessageBox}, #217): any of
      * GALLERY, STICKER and VOICE_MESSAGE. Nothing named is the start, so every button shows. The text

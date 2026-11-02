@@ -8,6 +8,7 @@ import app.morphe.patches.instagram.ads.hideAdsPatch
 import app.morphe.patches.instagram.coexist.installNextToInstagramPatch
 import app.morphe.patches.instagram.direct.calls.askBeforeCallPatch
 import app.morphe.patches.instagram.direct.messagebox.messageBoxPatch
+import app.morphe.patches.instagram.direct.plusmenu.chatPlusMenuPatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeLikePatch
 import app.morphe.patches.instagram.feed.confirm.askBeforeRefreshPatch
 import app.morphe.patches.instagram.direct.instants.hideInstantsPatch
@@ -207,6 +208,7 @@ class DefaultCatalogTest {
         hideProfileNotesPatch,
         hideProfileTabsPatch,
         messageBoxPatch,
+        chatPlusMenuPatch,
         hideProfileSuggestionsPatch,
         hideReelsSuggestionsPatch,
         hidePaidPartnershipReelsPatch,
@@ -315,7 +317,7 @@ class DefaultCatalogTest {
     }
 
     @Test fun initiallyNeutralControlsAreAvailableInSimpleMode() {
-        assertEquals(120, neutral.size)
+        assertEquals(121, neutral.size)
         neutral.forEach { assertEquals(it.name, true, it.default) }
     }
 
@@ -327,7 +329,7 @@ class DefaultCatalogTest {
     @Test fun generatedCatalogMatchesAllReviewedDeclarations() {
         val all = prior + neutral + optIn
         val declarations = all.associate { it.name!! to it.default }
-        assertEquals("every named patch needs one reviewed decision", 141, all.size)
+        assertEquals("every named patch needs one reviewed decision", 142, all.size)
         assertEquals("the review must not name a patch twice", all.size, declarations.size)
         val file = File("patches-list.json").takeIf(File::isFile) ?: File("../patches-list.json")
         val rows = JsonParser.parseString(file.readText()).asJsonObject.getAsJsonArray("patches")

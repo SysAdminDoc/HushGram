@@ -1523,3 +1523,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s folgt dir jetzt, %2$s
 Hide the Map bubble	Karte ausblenden
 Takes only the Map bubble out of the row of notes. Your notes stay.	Entfernt nur die Karte aus der Reihe mit Notizen. Deine Notizen bleiben.
+Hide Saved in the plus menu	Gespeichert im Plus-Menü ausblenden
+Takes Saved off the menu the plus button opens in a chat's message bar.	Entfernt Gespeichert aus dem Menü, das der Plus-Button in der Nachrichtenleiste eines Chats öffnet.
+Hide AI images in the plus menu	KI-Bilder im Plus-Menü ausblenden
+Takes AI images off the menu the plus button opens in a chat's message bar.	Entfernt KI-Bilder aus dem Menü, das der Plus-Button in der Nachrichtenleiste eines Chats öffnet.
+Hide Draw in the plus menu	Zeichnen im Plus-Menü ausblenden
+Takes Draw off the menu the plus button opens in a chat's message bar.	Entfernt Zeichnen aus dem Menü, das der Plus-Button in der Nachrichtenleiste eines Chats öffnet.
+Gallery and microphone in the plus menu	Galerie und Mikrofon im Plus-Menü
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	Verschiebt die Buttons für Galerie und Mikrofon aus der Nachrichtenleiste ins Plus-Menü. Sie funktionieren wie bisher. Schaltest du es aus, sind sie beim nächsten Öffnen eines Chats wieder da.

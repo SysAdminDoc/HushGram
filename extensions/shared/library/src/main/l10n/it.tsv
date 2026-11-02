@@ -1523,3 +1523,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s ha iniziato a seguirti, %2$s
 Hide the Map bubble	Nascondi la bolla della mappa
 Takes only the Map bubble out of the row of notes. Your notes stay.	Toglie solo la bolla della mappa dalla riga delle note. Le tue note restano.
+Hide Saved in the plus menu	Nascondi Salvati nel menu più
+Takes Saved off the menu the plus button opens in a chat's message bar.	Toglie Salvati dal menu che il pulsante più apre nella barra dei messaggi di una chat.
+Hide AI images in the plus menu	Nascondi le immagini IA nel menu più
+Takes AI images off the menu the plus button opens in a chat's message bar.	Toglie le immagini IA dal menu che il pulsante più apre nella barra dei messaggi di una chat.
+Hide Draw in the plus menu	Nascondi Disegna nel menu più
+Takes Draw off the menu the plus button opens in a chat's message bar.	Toglie Disegna dal menu che il pulsante più apre nella barra dei messaggi di una chat.
+Gallery and microphone in the plus menu	Galleria e microfono nel menu più
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	Sposta i pulsanti della galleria e del microfono dalla barra dei messaggi al menu più. Funzionano come prima. Se lo disattivi, tornano alla prossima apertura di una chat.

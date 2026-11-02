@@ -1522,3 +1522,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s 님이 팔로우하기 시작했습니다, %2$s
 Hide the Map bubble	지도 버블 숨기기
 Takes only the Map bubble out of the row of notes. Your notes stay.	메모 목록에서 지도 버블만 숨깁니다. 메모는 그대로 유지됩니다.
+Hide Saved in the plus menu	플러스 메뉴에서 저장됨 숨기기
+Takes Saved off the menu the plus button opens in a chat's message bar.	채팅 메시지 바의 플러스 버튼이 여는 메뉴에서 저장됨을 뺍니다.
+Hide AI images in the plus menu	플러스 메뉴에서 AI 이미지 숨기기
+Takes AI images off the menu the plus button opens in a chat's message bar.	채팅 메시지 바의 플러스 버튼이 여는 메뉴에서 AI 이미지를 뺍니다.
+Hide Draw in the plus menu	플러스 메뉴에서 그리기 숨기기
+Takes Draw off the menu the plus button opens in a chat's message bar.	채팅 메시지 바의 플러스 버튼이 여는 메뉴에서 그리기를 뺍니다.
+Gallery and microphone in the plus menu	플러스 메뉴에 갤러리와 마이크 넣기
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	갤러리와 마이크 버튼을 메시지 바에서 플러스 메뉴로 옮깁니다. 작동은 전과 같습니다. 끄면 다음에 채팅을 열 때 다시 돌아옵니다.

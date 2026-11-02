@@ -1440,3 +1440,11 @@ Nothing logged yet. Each time you scroll your own Followers list to the end, cha
 %1$s started following you, %2$s	%1$s bắt đầu theo dõi bạn, %2$s
 Hide the Map bubble	Ẩn bong bóng Bản đồ
 Takes only the Map bubble out of the row of notes. Your notes stay.	Chỉ gỡ bong bóng Bản đồ khỏi hàng ghi chú. Ghi chú vẫn giữ.
+Hide Saved in the plus menu	Ẩn Đã lưu trong menu dấu cộng
+Takes Saved off the menu the plus button opens in a chat's message bar.	Gỡ Đã lưu khỏi menu mà nút dấu cộng mở ra trong thanh tin nhắn của cuộc trò chuyện.
+Hide AI images in the plus menu	Ẩn ảnh AI trong menu dấu cộng
+Takes AI images off the menu the plus button opens in a chat's message bar.	Gỡ ảnh AI khỏi menu mà nút dấu cộng mở ra trong thanh tin nhắn của cuộc trò chuyện.
+Hide Draw in the plus menu	Ẩn Vẽ trong menu dấu cộng
+Takes Draw off the menu the plus button opens in a chat's message bar.	Gỡ Vẽ khỏi menu mà nút dấu cộng mở ra trong thanh tin nhắn của cuộc trò chuyện.
+Gallery and microphone in the plus menu	Thư viện ảnh và micrô trong menu dấu cộng
+Moves the gallery and microphone buttons off the message bar and into the plus menu. They work as before. Turn it off and they're back the next time a chat opens.	Chuyển nút thư viện ảnh và micrô từ thanh tin nhắn vào menu dấu cộng. Chúng hoạt động như trước. Tắt đi thì chúng quay lại lần sau khi bạn mở cuộc trò chuyện.

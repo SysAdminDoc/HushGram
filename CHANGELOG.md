@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Chat plus menu` is a new patch. Under Messages you can take Saved, AI images and Draw off the plus menu in a chat's message bar, each with its own switch, and move the gallery and microphone buttons into that menu. All four start off. Asked for in #448.
 * **Instagram:** HushGram's settings now come in Vietnamese. Asked for in #439.
 * **Instagram:** `App icon` adds two more choices, Instagram's gradient glyph on dark and the old brown and cream camera icon. Themed icons show the glyph or camera shape. Asked for in #327 and #437.
 * **Instagram:** `Menu button on Home's header` adds a button at the top of Home that opens your viewing history, Ghost mode and HushGram settings. It starts off. Asked for in #437.

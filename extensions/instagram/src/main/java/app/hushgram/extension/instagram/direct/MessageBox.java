@@ -99,7 +99,12 @@ public final class MessageBox {
     /** The buttons the setting names now, or none while HushGram is paused or the settings aren't read. */
     private static Set<String> hidden() {
         if (!Utils.settingsReady() || HushgramPause.isPaused()) return Collections.emptySet();
-        return parse(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.get());
+        Set<String> named = parse(Settings.HIDDEN_MESSAGE_BOX_BUTTONS.get());
+        if (!PlusMenu.moved()) return named;
+        Set<String> all = new LinkedHashSet<>(named);
+        all.add("GALLERY");
+        all.add("VOICE_MESSAGE");
+        return all;
     }
 
     /** The offered names in [saved], without blanks, repeats or anything this doesn't offer. */
