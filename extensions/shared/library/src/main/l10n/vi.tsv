@@ -1507,3 +1507,5 @@ Red story mentions	Lượt nhắc tin màu đỏ
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Vẽ chữ của nhãn lượt nhắc bằng màu đỏ thay vì trắng, để nổi bật trên tin sáng màu.
 Only received reels	Chỉ reel đã nhận
 Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Khi vuốt qua các reel của một cuộc trò chuyện, những reel bạn đã gửi ở đó sẽ bị bỏ qua, chỉ đi qua các reel người kia chia sẻ. Hoạt động khi bật Vuốt qua các reel của cuộc trò chuyện.
+Hide the audio icon on posts	Ẩn biểu tượng âm thanh trên bài viết
+Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Gỡ biểu tượng loa khỏi các video trong bảng tin của bạn. Chạm vào video vẫn bật hoặc tắt âm thanh như cũ. Các bài viết đã có trên màn hình sẽ thay đổi khi được tải lại.

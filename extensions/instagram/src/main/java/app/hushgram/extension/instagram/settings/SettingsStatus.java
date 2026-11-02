@@ -406,6 +406,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean feedAudioIcon() {
+        return false;
+    }
+
     public static boolean homeTopBar() {
         return false;
     }

@@ -1052,6 +1052,13 @@ tasks.register("verifyAndroidBoundaries") {
             "app.hushgram.extension.instagram.settings.HideCaptionsSettingsTest" to listOf(
                 "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAndHonorsPause"
             ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.feed.FeedAudioIconTest" to listOf(
+                "theSwitchStartsOffAndNeedsNoRestart", "offToStartKeepsInstagramsFlag", "onSetsTheFlagAndCountsIt",
+                "anyNonZeroValueReadsAsYes", "pausedAndUnreadyReadAsOff", "flippingItOffStopsSettingTheFlag"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
+            "app.hushgram.extension.instagram.settings.FeedAudioIconSettingsTest" to listOf(
+                "missingPatchHasNoSwitch", "aloneItStillGetsFeed", "switchStartsOffUnderFeedAndHonorsPause"
+            ).flatMap { listOf("$it[28]", "$it[37]") },
             "app.hushgram.extension.instagram.feed.HomeTopBarTest" to listOf(
                 "theSwitchStartsOffAndAsksForARestart", "offToStartHandsOverInstagramsList",
                 "onHandsOverNothingPutsASlidHeaderBackAndCounts", "pausedAndUnreadyReadAsOff",

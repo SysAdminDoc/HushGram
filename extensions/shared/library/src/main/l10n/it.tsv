@@ -1590,3 +1590,5 @@ Red story mentions	Menzioni delle storie in rosso
 Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Scrive il testo dell'etichetta delle menzioni in rosso invece che in bianco, così risalta sulle storie chiare.
 Only received reels	Solo reel ricevuti
 Swiping through a chat's reels skips the ones you sent there, so it only goes through the reels the other person shared. Works with Swipe through a chat's reels on.	Scorrendo i reel di una chat vengono saltati quelli che hai inviato tu, quindi passa solo quelli condivisi dall'altra persona. Funziona con Scorri i reel di una chat attivo.
+Hide the audio icon on posts	Nascondi l'icona audio nei post
+Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	Toglie l'icona dell'altoparlante dai video nel tuo feed. Toccando il video l'audio si attiva o si disattiva come prima. I post già sullo schermo cambiano quando vengono ricaricati.

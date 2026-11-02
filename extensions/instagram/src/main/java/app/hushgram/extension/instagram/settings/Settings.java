@@ -2092,6 +2092,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_hide_captions", FALSE);
 
     /**
+     * The small speaker icon in the corner of a feed video
+     * ({@link app.hushgram.extension.instagram.feed.FeedAudioIcon}). Read as each post's state is
+     * built, so a post already on screen changes when Instagram builds it again. Off to start.
+     */
+    public static final BooleanSetting HIDE_FEED_AUDIO_ICON =
+            new BooleanSetting("hushgram_hide_feed_audio_icon", FALSE);
+
+    /**
      * Home's header staying in place while the feed scrolls
      * ({@link app.hushgram.extension.instagram.feed.HomeTopBar}). Home hands its header to the
      * scroll controller as it opens, so the restart card comes up. Off to start.

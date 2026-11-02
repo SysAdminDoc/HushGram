@@ -2638,6 +2638,12 @@ first-call Lapp/hushgram/extension/instagram/feed/FeedSeekReader;->seekTo(Ljava/
 # patch wrote. HideCommentEmojiRowPatchTest checks the call, its register and the branch on all
 # the three 452 builds.
 once-call Lapp/hushgram/extension/instagram/feed/CommentEmojiRow;->hidesRow(I)Z holding replying_to_bar group_mention_banner
+# Hide the audio icon on posts (#464) hands the value the feed post state's constructor stores in its
+# hide-the-audio-icon flag to FeedAudioIcon.hides, on the line before the store (LX/038z on 453). The
+# constructor loads no string, so the rule names the state's class by the label its toString prints
+# before that flag. Left out, the icon stays with the switch on; twice or elsewhere, it isn't the store
+# the patch wrote. FeedAudioIconPatchTest finds the store and checks the hook on all eight 453 builds.
+once-call Lapp/hushgram/extension/instagram/feed/FeedAudioIcon;->hides(I)Z in instance (*)V pooled class-holding ,\shidesAudioIcon=
 # Story text fonts (#275) hands the story text editor's list of formats to StoryFonts.formats right
 # before the controller's private ()ArrayList returns it (08Z8.A04 on 452), the one such method in
 # the class that logs TextFormatController, so the picked files go after Instagram's own fonts. Left

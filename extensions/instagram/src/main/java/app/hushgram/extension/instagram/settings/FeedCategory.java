@@ -56,11 +56,12 @@ final class FeedCategory {
         boolean fullScreen = build.contains(PatchFamily.FULL_SCREEN_BARS);
         boolean feedFollow = build.contains(PatchFamily.FEED_FOLLOW);
         boolean hideCaptions = build.contains(PatchFamily.HIDE_CAPTIONS);
+        boolean feedAudioIcon = build.contains(PatchFamily.FEED_AUDIO_ICON);
         boolean homeTopBar = build.contains(PatchFamily.HOME_TOP_BAR);
         PreferenceCategory feed = suggestions || following || swipe || fullResolution || homeFeed || tabSwipe
                 || askLike || askRefresh || saveTray || postTime || hiddenLikes || backHome || homePlace || feedSound || feedTapPause || feedSeekBar || longPressZoom
                 || roundedCorners || carouselArrows || ambientLight
-                || fullScreen || feedFollow || hideCaptions || homeTopBar
+                || fullScreen || feedFollow || hideCaptions || feedAudioIcon || homeTopBar
                 ? category(screen, L10n.t("Feed"), SettingsIcons.FEED,
                         L10n.t("Choose what Home shows and how it behaves.")) : null;
         if (following) {
@@ -267,6 +268,11 @@ final class FeedCategory {
                             + "instead of sliding them away.")));
             feed.addPreference(toggle(context, Settings.SEE_THROUGH_HOME_TOP_BAR, L10n.t("See-through top bar"),
                     L10n.t("Shows your feed blurred under Home's top bar, like frosted glass.")));
+        }
+        if (feedAudioIcon) {
+            feed.addPreference(toggle(context, Settings.HIDE_FEED_AUDIO_ICON, L10n.t("Hide the audio icon on posts"),
+                    L10n.t("Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on "
+                            + "or off. Posts already on screen change when they load again.")));
         }
     }
 }
