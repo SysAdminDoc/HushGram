@@ -2028,6 +2028,12 @@ once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->lazy(I)Z in stat
 start-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->progress(Landroid/widget/SeekBar;I)V in instance (Landroid/widget/SeekBar;IZ)V holding Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;->A01:Landroid/widget/SeekBar$OnSeekBarChangeListener;
 once-call Lapp/hushgram/extension/instagram/reels/ReelSeekBar;->bind(Ljava/lang/Object;I)V in instance (Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; pooled holding clips_scrubber_ LX/*;->A0F:Landroid/graphics/drawable/Drawable;
+# The same patch swaps the one setOnTouchListener call in the Reels progress controller's
+# prepareExpandedTouchView, which gives the invisible strip over the bottom of Reels its scrubbing
+# listener, for ReelSeekTouch.listen with the same strip and listener (#452). Left out, the strip
+# keeps taking taps meant for More and the audio square on phones where it reaches over them; twice
+# or elsewhere, it isn't the hook the patch wrote. On 453.0.0.57.79 that's 04FC.A0L.
+once-call Lapp/hushgram/extension/instagram/reels/ReelSeekTouch;->listen(Landroid/view/View;Landroid/view/View$OnTouchListener;)V in static (L*;IZZ)V holding android_purge_26_q2_ClipsProgressController_prepareExpandedTouchView
 
 # Keep Reels auto scroll on hands the choice made with one of Instagram's auto scroll switches to
 # ReelAutoScroll.chosen first thing in the Reels auto scroll plugin's handler for them (0CrH.A00 on

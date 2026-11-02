@@ -42,6 +42,7 @@ Every HushGram release, newest first.
 * **Instagram:** `Keep a viewing history` now records posts on Home and in the post viewer, and the list has its own page: a tab for each kind, a search box, and a tap opens the post or person again. Reported in #228.
 * **Instagram:** `Profile extras button` shows up on profiles again, and `Keep a viewing history` now records the profiles you open. Both were reading the account in a way 453 no longer answers. Reported in #234.
 * **Instagram:** `Hide the caught up card` now also takes the "You've seen the latest posts" line off the top of Home. `Older posts` stays, so Home never ends up empty. Reported in #307.
+* **Instagram:** On some phones a tap on a reel's More button or the audio square jumped the reel instead of opening it. Instagram's strip for dragging the seek bar reaches over them there, and now it lets those taps through. Dragging the bar works as before. Comes with `Keep a seek bar on Reels`, whatever its switch says. Reported in #452.
 * **Instagram:** A long press on a chat's name opens the menu for `Jump to the first message or a date` and `Export a chat as text` again. A plain tap still opens the details
 * **Instagram:** `Export a chat as text` now finds a chat's messages. It used to say there were none. Each message is now read from its own row, so an export holds only that chat
 * **Instagram:** `Export a chat as text` and `Jump to the first message` now load a long chat all the way back instead of stopping at the newest page. Shared reels and voice messages read as plain words

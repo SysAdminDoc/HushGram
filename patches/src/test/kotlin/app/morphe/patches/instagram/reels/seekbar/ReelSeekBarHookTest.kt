@@ -45,10 +45,10 @@ import org.junit.Test
 import java.io.File
 
 class ReelSeekBarHookTest {
-    /** The hooks the patch writes are in the ReelSeekBar the bundle ships, public and static. */
+    /** The hooks the patch writes are in the ReelSeekBar and ReelSeekTouch the bundle ships, public and static. */
     @Test
     fun theHooksAreInTheExtension() {
-        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND)) {
+        for (hook in listOf(MIN_SECONDS, LAZY, PROGRESS, BIND, LISTEN)) {
             val declared = ExtensionDex.classDef(hook.substringBefore("->")).methods
                 .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
                 .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
@@ -69,6 +69,8 @@ class ReelSeekBarHookTest {
         assertEquals(SEEK_BAR, sites.progress.definingClass)
         assertEquals(BINDER, sites.bind.method.definingClass)
         assertEquals("the container", sites.bind.method.parameterRegisterNumber(1), sites.bind.view)
+        assertEquals(STRIP, sites.touch.method.definingClass)
+        assertEquals("the strip and its listener", listOf(2, 0), listOf(sites.touch.view, sites.touch.listener))
     }
 
     /**
@@ -89,6 +91,34 @@ class ReelSeekBarHookTest {
         assertAnsweredOnItsOwn("scrubber row", context.method(ROW, "A00"), ORGANIC_LAZY, AD_LAZY, LAZY)
         assertProgressHookedFirst("stand-in", context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead("stand-in", context.method(BINDER, "invoke"), context.method(ROW, "A00"))
+        assertTouchHandedOver("stand-in", context.method(STRIP, "A0L"), context().findReelSeekBarSites().touch)
+    }
+
+    /**
+     * The strip's listener call is swapped in place only when the marked method makes exactly one, in
+     * the plain two-register form. Anything else stops the patch before anything changes, since the
+     * bar's switch would otherwise come with taps still lost to the strip.
+     */
+    @Test
+    fun aStripTheGateCantGoOnFailsBeforeAnythingChanges() {
+        fun stripWith(strip: ClassDef) = standIns().map { if (it.type == STRIP) strip else it }
+        val cases = listOf(
+            Triple("no strip method", standIns().filter { it.type != STRIP }, "expected one method marked $TOUCH_STRIP, found 0"),
+            Triple("two strip methods", standIns() + strip(type = "Lfixture/OtherController;"), "expected one method marked $TOUCH_STRIP, found 2"),
+            Triple("no listener set", stripWith(strip(set = "nop")), "to set one touch listener, found 0"),
+            Triple("two listeners set", stripWith(strip(set = "$SET_ON_TOUCH_CALL\n$SET_ON_TOUCH_CALL")), "to set one touch listener, found 2"),
+            Triple(
+                "the call is a range",
+                stripWith(strip(set = "invoke-virtual/range {v2 .. v3}, Landroid/view/View;->setOnTouchListener(Landroid/view/View\$OnTouchListener;)V")),
+                "in a form the patch hasn't seen",
+            ),
+        )
+        for ((what, classes, expected) in cases) {
+            val context = PatchContexts.of(classes)
+            val refusal = assertThrows(what, PatchException::class.java) { context.applyReelSeekBar(context.findReelSeekBarSites()) }
+            assertTrue("$what: ${refusal.message}", refusal.message!!.contains(expected))
+            assertNothingWritten(what, context)
+        }
     }
 
     /**
@@ -422,6 +452,7 @@ class ReelSeekBarHookTest {
         )
         assertProgressHookedFirst(label, context.method(SEEK_BAR, PROGRESS_CHANGED))
         assertBindHookedAfterTheAdRead(label, context.method(sites.bind.method), context.method(sites.lazy))
+        assertTouchHandedOver(label, context.method(sites.touch.method), sites.touch)
     }
 
     private fun Method.loadsAny(vararg flags: Long): Boolean = implementation?.instructions?.any {
@@ -431,7 +462,7 @@ class ReelSeekBarHookTest {
     private fun Method.holdsMarker(): Boolean = implementation?.instructions?.any { instruction ->
         val string = ((instruction as? ReferenceInstruction)?.reference as? StringReference)?.string
         string != null && string.startsWith("android_purge_") &&
-            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE).any { string.endsWith("_$it") }
+            listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP).any { string.endsWith("_$it") }
     } == true
 
     private fun Method.holdsString(text: String): Boolean = implementation?.instructions?.any {
@@ -561,12 +592,22 @@ class ReelSeekBarHookTest {
         assertEquals("$what: this and the position", listOf(method.localRegisterCount(), method.parameterRegisterNumber(1)), first.arguments())
     }
 
+    /** The strip's one setOnTouchListener call is now the call to [LISTEN] in its place, with the same strip and listener. */
+    private fun assertTouchHandedOver(what: String, method: Method, site: TouchSite) {
+        val code = method.implementation!!.instructions.toList()
+        assertEquals("$what: Instagram's own listener calls left", 0, code.count { it.calls("Landroid/view/View;->setOnTouchListener") })
+        val hooks = code.indices.filter { code[it].calls(LISTEN) }
+        assertEquals("$what: the hook, in the call's place", listOf(site.at), hooks)
+        assertEquals("$what: the hook", Opcode.INVOKE_STATIC, code[site.at].opcode)
+        assertEquals("$what: the strip and the listener", listOf(site.view, site.listener), code[site.at].arguments())
+    }
+
     private fun assertNothingWritten(what: String, context: BytecodePatchContext) {
         context.classDefForEach { classDef ->
             classDef.methods.forEach { method ->
                 assertFalse(
                     "$what: ${classDef.type}->${method.name} was changed",
-                    method.implementation?.instructions?.any { it.calls(REEL_SEEK_BAR) } == true,
+                    method.implementation?.instructions?.any { it.calls(REEL_SEEK_BAR) || it.calls(LISTEN) } == true,
                 )
             }
         }
@@ -603,6 +644,10 @@ class ReelSeekBarHookTest {
         const val LEGACY_BINDER = "Lfixture/LegacyScrubberBinder;"
         const val LEGACY = "Lfixture/LegacyScrubberComponent;"
         const val POOL = "Lfixture/StringPool;"
+        const val STRIP = "Lfixture/ClipsProgressController;"
+        const val STRIP_LISTENER = "Lfixture/StripListener;"
+
+        const val SET_ON_TOUCH_CALL = "invoke-virtual {v2, v0}, Landroid/view/View;->setOnTouchListener(Landroid/view/View\$OnTouchListener;)V"
 
         /** The reel item's field saying it's an ad, which the row and the binder read. */
         const val AD_FIELD = "$ITEM_TYPE->A17:Z"
@@ -622,7 +667,30 @@ class ReelSeekBarHookTest {
 
         fun standIns(): List<ClassDef> = listOf(
             util(), progressState(), row(), item(), seekBar(), classOf(APPCOMPAT_SEEK_BAR, superclass = "Landroid/widget/SeekBar;"),
-            binder(), primitive(),
+            binder(), primitive(), strip(),
+        )
+
+        /**
+         * Shaped like 453's prepareExpandedTouchView (57.79's LX/04FC->A0L) under its marker: it takes
+         * the strip it keeps and sets a scrubbing lambda as its touch listener.
+         */
+        fun strip(type: String = STRIP, set: String = SET_ON_TOUCH_CALL): ClassDef = classOf(
+            type,
+            method(
+                type, "A0L", emptyList(), "V", 4,
+                """
+                    const-string v0, "android_purge_26_q2_$TOUCH_STRIP"
+                    invoke-static {v0}, $CONFIGS->trace(Ljava/lang/String;)V
+                    iget-object v2, p0, $type->A0A:Landroid/view/View;
+                    if-eqz v2, :done
+                    new-instance v0, $STRIP_LISTENER
+                    invoke-direct {v0, p0}, $STRIP_LISTENER-><init>(Ljava/lang/Object;)V
+                    $set
+                    :done
+                    return-void
+                """,
+                static = false,
+            ),
         )
 
         fun method(

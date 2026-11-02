@@ -5,6 +5,7 @@
 package app.morphe.patches.instagram.reels.seekbar
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
+import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
@@ -45,6 +46,7 @@ internal const val MIN_SECONDS = "$REEL_SEEK_BAR->minSeconds(J)J"
 internal const val LAZY = "$REEL_SEEK_BAR->lazy(I)Z"
 internal const val PROGRESS = "$REEL_SEEK_BAR->progress(Landroid/widget/SeekBar;I)V"
 internal const val BIND = "$REEL_SEEK_BAR->bind(Ljava/lang/Object;I)V"
+internal const val LISTEN = "$EXTENSION_PACKAGE/reels/ReelSeekTouch;->listen(Landroid/view/View;Landroid/view/View\$OnTouchListener;)V"
 
 /**
  * The shortest ordinary reel, in seconds, that gets Instagram's attached seek bar: a parameter of
@@ -69,6 +71,13 @@ internal const val ORGANIC_LAZY_READS = 1
 internal const val SHOULD_SHOW_ATTACHED = "ClipsExperimentUtil_shouldShowAttachedScrubber"
 internal const val CALCULATE_SHOULD_SHOW = "ClipsItemUseCase_calculateShouldShowAttachedScrubber"
 internal const val SCRUBBER_ROW_STATE = "ClipsScrubberRowUseCase_getUiState"
+
+/**
+ * The marker of the Reels progress controller's method that makes the invisible strip a drag above
+ * the seek bar still seeks from, and sets the strip's touch listener (on 453.0.0.57.79 LX/04FC->A0L).
+ */
+internal const val TOUCH_STRIP = "ClipsProgressController_prepareExpandedTouchView"
+private const val SET_ON_TOUCH = "Landroid/view/View;->setOnTouchListener(Landroid/view/View\$OnTouchListener;)V"
 
 /** Instagram's reel seek bar, a kept class, and the listener method the label hook goes in. */
 internal const val SEEK_BAR = "Lcom/instagram/ui/mediaactions/VideoScrubberSeekBar;"
@@ -98,9 +107,13 @@ private const val SET_TAG = "Landroid/view/View;->setTag(Ljava/lang/Object;)V"
  * an ad, the one the seek bar row reads to pick the ads' setting, and only a bar in a container
  * bound to an ordinary reel gets the label.
  *
+ * Instagram's own strip for dragging a little above the bar can reach over the More button and the
+ * audio square on some phones, so a tap there scrubbed the reel (#452). Its touch listener goes to
+ * the extension's ReelSeekTouch, which hands a press on a button under the strip to that button.
+ *
  * Every read is found by its server id and counted, each is checked against Instagram's own markers
- * for the seek bar, and the bar's class and method and the binder are checked, all before anything
- * changes. A build that differs stops the patch naming what it couldn't find, and nothing is half
+ * for the seek bar, and the bar's class and method, the binder and the strip's listener call are
+ * checked, all before anything changes. A build that differs stops the patch naming what it couldn't find, and nothing is half
  * done.
  */
 @Suppress("unused")
@@ -122,12 +135,21 @@ val reelSeekBarPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The three reads of the minimum, the read of the hidden kind, the seek bar's listener method and the binder. */
+/** The three reads of the minimum, the read of the hidden kind, the seek bar's listener method, the binder and the strip. */
 internal class ReelSeekBarSites(
     val lengths: List<FlagLoad>,
     val lazy: FlagLoad,
     val progress: Method,
     val bind: BindSite,
+    val touch: TouchSite,
+)
+
+/** Where [method] calls [SET_ON_TOUCH] on the strip: instruction [at], with the strip in [view] and the listener in [listener]. */
+internal class TouchSite(
+    val method: Method,
+    val at: Int,
+    val view: Int,
+    val listener: Int,
 )
 
 /**
@@ -163,7 +185,7 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     }
     val lazy = lazies.single()
 
-    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE))
+    val marked = markedMethods(listOf(SHOULD_SHOW_ATTACHED, CALCULATE_SHOULD_SHOW, SCRUBBER_ROW_STATE, TOUCH_STRIP))
     val attached = marked.getValue(SHOULD_SHOW_ATTACHED)
     if (lengths.none { it.signature() == attached.signature() }) {
         refuse("${attached.signature()} ($SHOULD_SHOW_ATTACHED) doesn't read the shortest reel with a seek bar")
@@ -179,7 +201,27 @@ internal fun BytecodePatchContext.findReelSeekBarSites(): ReelSeekBarSites {
     if (lengths.none { it.signature() in row.calledSignatures() }) {
         refuse("${row.signature()} ($SCRUBBER_ROW_STATE) asks no method reading the shortest reel with a seek bar")
     }
-    return ReelSeekBarSites(lengths, lazy, findProgressChanged(), findBindSite(row, lazy))
+    return ReelSeekBarSites(
+        lengths, lazy, findProgressChanged(), findBindSite(row, lazy), findTouchSite(marked.getValue(TOUCH_STRIP)),
+    )
+}
+
+/**
+ * The one call in [method], the method marked [TOUCH_STRIP], that sets a view's touch listener: on
+ * 453 the strip's, set to a lambda of the controller's that scrubs. It names the strip and the
+ * listener in two registers a static call can take, so it can be swapped for one in place.
+ */
+internal fun findTouchSite(method: Method): TouchSite {
+    val where = method.signature()
+    val code = method.implementation?.instructions?.toList() ?: refuse("$where ($TOUCH_STRIP) has no body")
+    val calls = code.indices.filter { code[it].methodSignature() == SET_ON_TOUCH }
+    val at = calls.singleOrNull() ?: refuse("expected $where ($TOUCH_STRIP) to set one touch listener, found ${calls.size}")
+    val call = code[at]
+    val registers = call.arguments()
+    if (call.opcode != Opcode.INVOKE_VIRTUAL || registers.size != 2 || registers.any { it > 15 }) {
+        refuse("$where sets the strip's touch listener in a form the patch hasn't seen (${call.opcode}, $registers)")
+    }
+    return TouchSite(method, at, registers[0], registers[1])
 }
 
 /**
@@ -365,7 +407,9 @@ internal fun BytecodePatchContext.findProgressChanged(): Method {
  * Answers each read of the minimum through [MIN_SECONDS] and the read of the hidden kind through
  * [LAZY], then puts the call to [PROGRESS] first in the seek bar's [PROGRESS_CHANGED], handing it
  * the bar (`this`) and the position, and the call to [BIND] right after the binder's read of
- * whether its reel is an ad, handing it the container and that answer.
+ * whether its reel is an ad, handing it the container and that answer. Last, the strip's
+ * [SET_ON_TOUCH] becomes a call to [LISTEN] with the same strip and listener, which sets the
+ * listener itself behind its gate.
  */
 internal fun BytecodePatchContext.applyReelSeekBar(sites: ReelSeekBarSites) {
     answerFlagLoads(sites.lengths.map { it to MIN_SECONDS } + (sites.lazy to LAZY))
@@ -378,6 +422,11 @@ internal fun BytecodePatchContext.applyReelSeekBar(sites: ReelSeekBarSites) {
         it.name == bind.method.name && it.returnType == bind.method.returnType &&
             it.parameterTypes.map(CharSequence::toString) == bind.method.parameterTypes.map(CharSequence::toString)
     }.addInstructions(bind.readAt + 1, "invoke-static { v${bind.view}, v${bind.flag} }, $BIND")
+    val touch = sites.touch
+    mutableClassDefBy(touch.method.definingClass).methods.single {
+        it.name == touch.method.name && it.returnType == touch.method.returnType &&
+            it.parameterTypes.map(CharSequence::toString) == touch.method.parameterTypes.map(CharSequence::toString)
+    }.replaceInstruction(touch.at, "invoke-static { v${touch.view}, v${touch.listener} }, $LISTEN")
 }
 
 /** The one method outside the extension holding each marker; fails when a marker isn't held by exactly one. */
