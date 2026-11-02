@@ -165,8 +165,30 @@ public class StoryMentionsTest {
     public void theSwitchStartsOffAndIsTheFamilysOnly() {
         Settings.SHOW_STORY_MENTIONS.resetToDefault();
         assertFalse(Settings.SHOW_STORY_MENTIONS.get());
-        assertEquals(Collections.singletonList(Settings.SHOW_STORY_MENTIONS), PatchFamily.STORY_MENTIONS.switches);
+        assertEquals(Arrays.asList(Settings.SHOW_STORY_MENTIONS, Settings.RED_STORY_MENTIONS), PatchFamily.STORY_MENTIONS.switches);
         assertEquals(FamilyNames.STORY_MENTIONS, PatchFamily.STORY_MENTIONS.patchName);
+    }
+
+    @Test
+    public void redStoryMentionsStartsOffAndDrawsTheTextWhite() {
+        Settings.RED_STORY_MENTIONS.resetToDefault();
+        assertFalse(Settings.RED_STORY_MENTIONS.get());
+        bind(ANA);
+        assertEquals(android.graphics.Color.WHITE, pill().getCurrentTextColor());
+    }
+
+    @Test
+    public void redStoryMentionsDrawsTheTextInInstagramsRed() {
+        try {
+            Settings.RED_STORY_MENTIONS.save(true);
+            bind(ANA);
+            assertEquals(0xFFFF3040, pill().getCurrentTextColor());
+            Settings.RED_STORY_MENTIONS.save(false);
+            bind(ANA, BO);
+            assertEquals("a later bind puts it back", android.graphics.Color.WHITE, pill().getCurrentTextColor());
+        } finally {
+            Settings.RED_STORY_MENTIONS.resetToDefault();
+        }
     }
 
     @Test

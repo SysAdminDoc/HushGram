@@ -209,6 +209,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_story_mentions", FALSE);
 
     /**
+     * Under {@link #SHOW_STORY_MENTIONS}: the mention pill's text is drawn in Instagram's red
+     * (#FF3040) instead of white, over the same dim backing
+     * ({@link app.hushgram.extension.instagram.stories.StoryMentions}, #459). Read each time a story's
+     * pill is bound, so a change shows on the next story. Off to start.
+     */
+    public static final BooleanSetting RED_STORY_MENTIONS =
+            new BooleanSetting("hushgram_red_story_mentions", FALSE, parent(SHOW_STORY_MENTIONS));
+
+    /**
      * A story's header leaves out the Follow button Instagram shows for an account you don't follow
      * ({@link app.hushgram.extension.instagram.stories.StoryFollowButton}). Read before each frame
      * of a story header. Off to start.

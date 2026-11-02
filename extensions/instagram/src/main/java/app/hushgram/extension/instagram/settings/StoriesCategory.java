@@ -142,6 +142,8 @@ final class StoriesCategory {
             stories.add(toggle(context, Settings.SHOW_STORY_MENTIONS, L10n.t("See who a story mentions"),
                     L10n.t("A story's header says how many accounts it mentions, even when the mention is hidden. "
                             + "Tap that for the list, and tap someone to open their profile.")));
+            stories.add(toggle(context, Settings.RED_STORY_MENTIONS, L10n.t("Red story mentions"),
+                    L10n.t("Draws the mention pill's text in red instead of white, so it stands out on bright stories.")));
         }
         if (build.contains(PatchFamily.STORY_FOLLOW)) {
             stories.add(toggle(context, Settings.HIDE_STORY_FOLLOW, L10n.t("Hide Follow on stories"),

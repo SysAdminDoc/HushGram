@@ -1586,3 +1586,5 @@ Mark as read	Okundu olarak işaretle
 Nothing to mark as read	Okundu yapılacak bir şey yok
 Mark as read button in chats	Sohbetlerde Okundu olarak işaretle düğmesi
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Karşı taraf sohbeti gördüğünü bilmediği sürece sohbetin üstünde bir onay işareti görünür. Ona dokunursan Görüldü'yü görür.
+Red story mentions	Kırmızı hikaye bahsetmeleri
+Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Bahsetme etiketinin yazısını beyaz yerine kırmızı çizer, böylece parlak hikayelerde öne çıkar.

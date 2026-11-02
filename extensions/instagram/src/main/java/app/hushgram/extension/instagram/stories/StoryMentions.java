@@ -424,6 +424,7 @@ public final class StoryMentions {
             String text = label(context, people.size());
             pill.people = people;
             pill.setText(text);
+            pill.setTextColor(textColor());
             pill.setContentDescription(L10n.f(context, "%1$s, see who this story mentions", text));
             pill.setVisibility(View.VISIBLE);
             pillShown(pill);
@@ -600,13 +601,26 @@ public final class StoryMentions {
         return place;
     }
 
+    /** Instagram's red, the pill's text color while Red story mentions is on (#459). */
+    static final int RED = 0xFFFF3040;
+
+    /** The pill's text color: red while Red story mentions is on, otherwise white. Never throws. */
+    static int textColor() {
+        try {
+            return Utils.settingsReady() && Settings.RED_STORY_MENTIONS.get() ? RED : Color.WHITE;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "pill color", failure);
+            return Color.WHITE;
+        }
+    }
+
     /**
-     * A small rounded pill in white on a dim backing, like the rest of a story's header: under the
+     * A small rounded pill in white (red with Red story mentions on) on a dim backing, like the rest of a story's header: under the
      * name in a column, or after it in a row.
      */
     private static Pill newPill(Context context, boolean row) {
         Pill pill = new Pill(context);
-        pill.setTextColor(Color.WHITE);
+        pill.setTextColor(textColor());
         pill.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         pill.setTypeface(Typeface.DEFAULT_BOLD);
         pill.setSingleLine(true);

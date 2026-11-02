@@ -1586,3 +1586,5 @@ Mark as read	Segna come letto
 Nothing to mark as read	Niente da segnare come letto
 Mark as read button in chats	Pulsante Segna come letto nelle chat
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	In cima alla chat compare un segno di spunta finché l'altra persona non sa che l'hai vista. Toccalo e vedrà Visualizzato.
+Red story mentions	Menzioni delle storie in rosso
+Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Scrive il testo dell'etichetta delle menzioni in rosso invece che in bianco, così risalta sulle storie chiare.

@@ -1586,3 +1586,5 @@ Mark as read	Marcar como lida
 Nothing to mark as read	Nada para marcar como lida
 Mark as read button in chats	Botão Marcar como lida nas conversas
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Uma marca de seleção aparece no topo da conversa enquanto a outra pessoa não sabe que você a viu. Toque nela e a pessoa verá Visto.
+Red story mentions	Menções de stories em vermelho
+Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Desenha o texto da etiqueta de menções em vermelho em vez de branco, para se destacar em stories claros.

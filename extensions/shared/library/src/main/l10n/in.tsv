@@ -1586,3 +1586,5 @@ Mark as read	Tandai sudah dibaca
 Nothing to mark as read	Tidak ada yang perlu ditandai
 Mark as read button in chats	Tombol Tandai sudah dibaca di chat
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Tanda centang muncul di bagian atas chat selama orang lain belum diberi tahu bahwa Anda sudah melihatnya. Ketuk tanda itu dan mereka akan melihat Dilihat.
+Red story mentions	Sebutan story warna merah
+Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Menampilkan teks label sebutan dengan warna merah, bukan putih, agar menonjol di story yang terang.

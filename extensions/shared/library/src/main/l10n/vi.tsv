@@ -1503,3 +1503,5 @@ Mark as read	Đánh dấu là đã đọc
 Nothing to mark as read	Không có gì để đánh dấu
 Mark as read button in chats	Nút Đánh dấu là đã đọc trong cuộc trò chuyện
 A check mark shows at the top of a chat while it hasn't told the other person you've seen it. Tap it and they see Seen.	Dấu tích hiện ở đầu cuộc trò chuyện khi người kia chưa biết bạn đã xem. Nhấn vào đó và họ sẽ thấy Đã xem.
+Red story mentions	Lượt nhắc tin màu đỏ
+Draws the mention pill's text in red instead of white, so it stands out on bright stories.	Vẽ chữ của nhãn lượt nhắc bằng màu đỏ thay vì trắng, để nổi bật trên tin sáng màu.
