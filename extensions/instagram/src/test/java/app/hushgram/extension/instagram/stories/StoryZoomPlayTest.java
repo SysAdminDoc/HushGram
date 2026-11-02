@@ -79,6 +79,18 @@ public class StoryZoomPlayTest {
         assertTrue(StoryZoomPlay.keepPlaying());
     }
 
+    /** The diagnostic report says which way each pinch went, so a report shows a hold that stuck. */
+    @Test
+    public void theReportCountsEachPinch() {
+        Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
+        StoryZoomPlay.keepPlaying();
+        StoryZoomPlay.paused(StoryZoomPlay.HOLD);
+        StoryZoomPlay.keepPlaying();
+        String report = String.join("\n", HookStatus.report());
+        assertTrue(report, report.contains(StoryZoomPlay.KEPT + " 1"));
+        assertTrue(report, report.contains(StoryZoomPlay.LEFT_HELD + " 1"));
+    }
+
     @Test
     public void thePinchsOwnPauseIsNotAHold() {
         Settings.KEEP_STORIES_PLAYING_ON_ZOOM.save(true);
