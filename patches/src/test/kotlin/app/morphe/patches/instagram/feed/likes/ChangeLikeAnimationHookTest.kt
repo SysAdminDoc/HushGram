@@ -231,7 +231,7 @@ class ChangeLikeAnimationHookTest {
         }
         val drawable = kept.single { it.type == heart }
         kept += FixtureDex.classes(bundle, setOfNotNull(drawable.superclass)).values
-        val context = PatchContexts.of(kept.distinctBy { it.type } + extension())
+        val context = PatchContexts.of(kept.distinctBy { it.type } + extension() + ExtensionDex.classDef(LIKE_HEART_GROWTH))
 
         val anchors = context.findLikeAnimation()
         assertEquals(label, animation, anchors.animation)
@@ -267,6 +267,23 @@ class ChangeLikeAnimationHookTest {
         assertNotNull("$label: a call the preview can play the heart with", anchors.play)
         assertEquals(label, listOf(Opcode.CHECK_CAST, Opcode.INVOKE_VIRTUAL, Opcode.RETURN_VOID), context.stub(PLAY_STUB).take(3).map { it.opcode })
         assertEquals(label, anchors.play, (context.stub(PLAY_STUB)[1] as ReferenceInstruction).reference.toString())
+
+        // #461: the heart's draw is wrapped and the call that starts it playing tells the extension.
+        val growth = anchors.growth
+        assertNotNull("$label: the heart's draw and the call that plays it", growth)
+        assertEquals(label, heart, growth!!.heart)
+        val drawCode = context.mutated(growth.draw)
+        assertTrue("$label: begin first", drawCode.first().calls(HEART_BEGIN))
+        assertEquals("$label: the canvas and the heart go in as they came", growth.draw.implementation!!.registerCount - 2,
+            (drawCode.first() as RegisterRangeInstruction).startRegister)
+        assertEquals(label, Opcode.RETURN_VOID, drawCode.last().opcode)
+        assertTrue("$label: end right before the one return", drawCode[drawCode.size - 2].calls(HEART_END))
+        assertEquals(label, 1, drawCode.count { it.calls(HEART_BEGIN) })
+        assertEquals(label, 1, drawCode.count { it.calls(HEART_END) })
+        assertTrue("$label: played first", context.mutated(growth.play).first().calls(HEART_PLAYED))
+        val isHeart = context.mutableClassDefBy(LIKE_HEART_GROWTH).methods.single { it.name == IS_HEART_STUB }.implementation!!.instructions.toList()
+        assertEquals(label, listOf(Opcode.INSTANCE_OF, Opcode.RETURN), isHeart.take(2).map { it.opcode })
+        assertEquals(label, heart, (isHeart[0] as ReferenceInstruction).reference.toString())
 
         // #299: 452 draws the feed's and the reels' hearts without the view.
         assertTrue("$label: the feed's heart and the reels' (${anchors.kept.size})", anchors.kept.size >= 2)

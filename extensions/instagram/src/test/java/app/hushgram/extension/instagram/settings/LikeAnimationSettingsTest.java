@@ -55,6 +55,7 @@ public class LikeAnimationSettingsTest {
     @Before public void prepare() {
         RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
         Settings.CHANGE_LIKE_ANIMATION.resetToDefault();
+        Settings.GROW_LIKE_HEART.resetToDefault();
         Settings.LIKE_ANIMATION.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
@@ -66,6 +67,7 @@ public class LikeAnimationSettingsTest {
         Utils.awaitBackgroundTasksForTests();
         PatchFamily.inBuildForTests = null;
         Settings.CHANGE_LIKE_ANIMATION.resetToDefault();
+        Settings.GROW_LIKE_HEART.resetToDefault();
         Settings.LIKE_ANIMATION.resetToDefault();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
     }
@@ -104,6 +106,27 @@ public class LikeAnimationSettingsTest {
         assertTrue(choice.isEnabled());
         assertEquals("Pick an animation. Until you do, the heart stays Instagram's.", choice.getSummary().toString());
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.LIKE_ANIMATION.key));
+    }
+    /** Grow the heart (#461) sits right under the choice, starts off, waits for the switch above and is backed up. */
+    @Test public void growTheHeartSitsUnderTheChoiceStartsOffAndWaitsForTheSwitch() throws Exception {
+        open(true);
+        SwitchPreference change = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.CHANGE_LIKE_ANIMATION.key);
+        ListPreference choice = (ListPreference) page.getPreferenceScreen().findPreference(Settings.LIKE_ANIMATION.key);
+        SwitchPreference grow = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.GROW_LIKE_HEART.key);
+        assertNotNull(grow);
+        assertEquals("Grow the heart", grow.getTitle().toString());
+        assertFalse("off to start", grow.isChecked());
+        assertFalse(Settings.GROW_LIKE_HEART.defaultValue);
+        assertFalse("no restart prompt", Settings.GROW_LIKE_HEART.rebootApp);
+        PreferenceCategory section = categoryHolding(page.getPreferenceScreen(), change);
+        assertSame(section, categoryHolding(page.getPreferenceScreen(), grow));
+        assertEquals("right under the choice", indexIn(section, choice) + 1, indexIn(section, grow));
+        assertFalse("waits for the switch", grow.isEnabled());
+        change.setChecked(true);
+        ShadowLooper.idleMainLooper();
+        assertTrue(grow.isEnabled());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.GROW_LIKE_HEART.key));
+        assertTrue(PatchFamily.LIKE_ANIMATION.switches.contains(Settings.GROW_LIKE_HEART));
     }
     @Test public void theChoiceListsInstagramsAnimationsByName() throws Exception {
         open(true);

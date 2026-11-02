@@ -1597,3 +1597,5 @@ Hide the audio icon on posts	隱藏貼文上的音訊圖示
 Takes the speaker icon off videos in your feed. Tapping the video still turns the sound on or off. Posts already on screen change when they load again.	移除動態中影片上的喇叭圖示。點一下影片仍可開啟或關閉聲音。畫面上已有的貼文會在重新載入後更新。
 Light when paused	暫停時亮起
 Pause a reel and Burn-in guard brings the buttons back to full brightness until you play it again or swipe on. The wait then starts over.	暫停 Reels 後，防烙印保護會讓按鈕恢復全亮，直到你再次播放或滑到下一部。之後等待時間會重新計算。
+Grow the heart	放大愛心
+Double tap the same post again within a second and a half and the heart pops up bigger, up to nearly twice its size. A pause and it starts small again.	在一秒半內再次連點兩下同一則貼文，愛心會彈出得更大，最多接近兩倍大。停一下就會從小的重新開始。

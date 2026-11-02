@@ -67,6 +67,17 @@ internal const val NO_ANIMATION_STUB = "noAnimation"
 internal const val HEART_STUB = "heart"
 internal const val PLAY_STUB = "play"
 
+/**
+ * Grow the heart (#461): the extension's hooks. The call that starts a keyframes drawable playing tells it, the
+ * heart's own draw is wrapped in begin and end, and a stub answers whether a drawable is the heart's kind.
+ */
+internal const val LIKE_HEART_GROWTH = "$EXTENSION_PACKAGE/feed/LikeHeartGrowth;"
+internal const val HEART_PLAYED = "$LIKE_HEART_GROWTH->played(Ljava/lang/Object;)V"
+internal const val HEART_BEGIN = "$LIKE_HEART_GROWTH->begin(Ljava/lang/Object;Landroid/graphics/Canvas;)V"
+internal const val HEART_END = "$LIKE_HEART_GROWTH->end()V"
+internal const val IS_HEART_STUB = "isHeart"
+private const val CANVAS = "Landroid/graphics/Canvas;"
+
 /** How many instructions after the view reads its heart out of a field the call that plays it may come. */
 private const val PLAY_REACH = 3
 
@@ -115,7 +126,11 @@ internal class LikeAnimationAnchors(
     val checks: List<LikeAnimationSite>,
     val factory: String? = null,
     val play: String? = null,
+    val growth: HeartGrowth? = null,
 )
+
+/** Grow the heart (#461): the [heart] drawable's type, its [draw] method, and the [play] method that starts it. */
+internal class HeartGrowth(val heart: String, val draw: Method, val play: Method)
 
 /** One instruction of [method] the patch hooks, at index [at]. */
 internal class LikeAnimationSite(val method: Method, val at: Int)
@@ -205,7 +220,42 @@ internal fun BytecodePatchContext.findLikeAnimation(): LikeAnimationAnchors {
         ?: refuse("$LIKE_ANIMATION has no static Object $HEART_STUB(Context, Object)")
     extension.stub(PLAY_STUB, "V", listOf(OBJECT), locals = 0) ?: refuse("$LIKE_ANIMATION has no static void $PLAY_STUB(Object)")
     val play = hearts.factory?.let { findPlay(view, it.substringAfterLast(')')) }
-    return LikeAnimationAnchors(configure, animation, none, gate, hearts.returned, hearts.kept, hearts.checks, hearts.factory, play)
+    val growth = hearts.factory?.let { findGrowth(it.substringAfterLast(')'), play) }
+    if (growth != null) {
+        val grower = classDefByOrNull(LIKE_HEART_GROWTH) ?: refuse("the extension has no $LIKE_HEART_GROWTH")
+        for (hook in listOf(HEART_PLAYED, HEART_BEGIN, HEART_END)) {
+            grower.methods.singleOrNull {
+                "${it.definingClass}->${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook &&
+                    AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
+            } ?: refuse("the extension has no $hook")
+        }
+        grower.stub(IS_HEART_STUB, "Z", listOf(OBJECT), locals = 0) ?: refuse("$LIKE_HEART_GROWTH has no static boolean $IS_HEART_STUB(Object)")
+    }
+    return LikeAnimationAnchors(configure, animation, none, gate, hearts.returned, hearts.kept, hearts.checks, hearts.factory, play, growth)
+}
+
+/**
+ * #461: what the grown heart hooks. The heart drawable declares one public draw taking a canvas that ends in its one
+ * return, and the method that starts it playing (the call [findPlay] found) is in a class of the app. Nothing may
+ * branch to the first instruction of either or to the draw's return, so both hooks run on every path. Null when any
+ * of it isn't so, which only takes the growing away.
+ */
+private fun BytecodePatchContext.findGrowth(heart: String, play: String?): HeartGrowth? {
+    if (play == null) return null
+    val heartClass = classDefByOrNull(heart) ?: return null
+    val owner = classDefByOrNull(play.substringBefore("->")) ?: return null
+    val name = play.substringAfter("->").substringBefore('(')
+    val player = owner.methods.singleOrNull { it.name == name && it.parameterTypes.isEmpty() && it.returnType == "V" } ?: return null
+    val draw = heartClass.methods.singleOrNull {
+        it.name == "draw" && it.returnType == "V" && it.parameterTypes.map(CharSequence::toString) == listOf(CANVAS) &&
+            !AccessFlags.STATIC.isSet(it.accessFlags) && it.implementation != null
+    } ?: return null
+    val code = draw.code()
+    if (code.lastOrNull()?.opcode != Opcode.RETURN_VOID || code.count { it.opcode == Opcode.RETURN_VOID } != 1) return null
+    val landings = draw.landings()
+    if (landings[0] != null || landings[code.size - 1] != null) return null
+    if (player.implementation == null || player.code().isEmpty() || player.landings()[0] != null) return null
+    return HeartGrowth(heart, draw, player)
 }
 
 /**
@@ -368,6 +418,7 @@ internal fun BytecodePatchContext.applyLikeAnimation(anchors: LikeAnimationAncho
     )
 
     applyHearts(anchors)
+    anchors.growth?.let { applyGrowth(it) }
 
     val extension = mutableClassDefBy(LIKE_ANIMATION)
     fun stub(name: String): MutableMethod = extension.methods.single { it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) }
@@ -378,6 +429,16 @@ internal fun BytecodePatchContext.applyLikeAnimation(anchors: LikeAnimationAncho
             return-object v0
         """,
     )
+    anchors.growth?.let { growth ->
+        mutableClassDefBy(LIKE_HEART_GROWTH).methods.single { it.name == IS_HEART_STUB && AccessFlags.STATIC.isSet(it.accessFlags) }
+            .addInstructions(
+                0,
+                """
+                    instance-of p0, p0, ${growth.heart}
+                    return p0
+                """,
+            )
+    }
     val factory = anchors.factory ?: return
     stub(HEART_STUB).addInstructions(
         0,
@@ -439,6 +500,20 @@ private fun BytecodePatchContext.applyHearts(anchors: LikeAnimationAnchors) {
             )
         }
     }
+}
+
+/**
+ * #461: the call that starts the drawable playing tells the extension first thing, and the heart's draw is wrapped:
+ * the extension scales the canvas first thing and gives it back right before the one return.
+ */
+private fun BytecodePatchContext.applyGrowth(growth: HeartGrowth) {
+    val player = mutable(growth.play)
+    val self = player.implementation!!.registerCount - 1
+    player.addInstructions(0, "invoke-static/range { v$self .. v$self }, $HEART_PLAYED")
+    val draw = mutable(growth.draw)
+    val registers = draw.implementation!!.registerCount
+    draw.addInstructions(0, "invoke-static/range { v${registers - 2} .. v${registers - 1} }, $HEART_BEGIN")
+    draw.addInstructions(draw.implementation!!.instructions.size - 1, "invoke-static { }, $HEART_END")
 }
 
 /** The register of the set-up's animation: the last parameter, after the view and the session. */

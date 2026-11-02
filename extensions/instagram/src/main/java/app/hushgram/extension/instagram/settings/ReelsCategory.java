@@ -171,6 +171,9 @@ final class ReelsCategory {
                     L10n.t("The heart that pops up when you double tap a post plays the animation you pick below. "
                             + "They're animations Instagram made for its Rings creators.")));
             reels.add(likeAnimationRow(context));
+            reels.add(toggle(context, Settings.GROW_LIKE_HEART, L10n.t("Grow the heart"),
+                    L10n.t("Double tap the same post again within a second and a half and the heart pops up bigger, "
+                            + "up to nearly twice its size. A pause and it starts small again.")));
         }
         if (build.contains(PatchFamily.FULL_SCREEN_BARS)) {
             reels.add(toggle(context, Settings.FULL_SCREEN_REELS, L10n.t("Full screen Reels"),

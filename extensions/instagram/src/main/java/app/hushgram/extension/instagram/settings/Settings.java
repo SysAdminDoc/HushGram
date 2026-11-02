@@ -2316,6 +2316,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_change_like_animation", FALSE);
 
     /**
+     * Grow the heart (#461): each double tap on the same post within about a second and a half of the last
+     * draws the heart bigger, up to 1.75 times, and the first tap after that starts small again. Read at each
+     * double tap and each frame of the heart, so a change needs no restart. Off to start.
+     */
+    public static final BooleanSetting GROW_LIKE_HEART =
+            new BooleanSetting("hushgram_grow_like_heart", FALSE, parent(CHANGE_LIKE_ANIMATION));
+
+    /**
      * The name of the animation {@link #CHANGE_LIKE_ANIMATION} plays, one of Instagram's own. Blank
      * to start, which keeps Instagram's heart until one is picked, as a name this Instagram doesn't
      * have does.
