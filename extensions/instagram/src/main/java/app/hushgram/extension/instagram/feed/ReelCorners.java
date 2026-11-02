@@ -18,6 +18,10 @@ import app.hushgram.extension.instagram.settings.Settings;
  * video in a frame of its own, {@link #FRAME}. The seek bar, captions and buttons are drawn in layers
  * beside it, so cutting that frame's corners rounds the video and leaves them whole.
  * {@link FrameCorners} finds and rounds it while the switch is on.
+ *
+ * <p>The frame fills the screen, and the video sits in it at its own size. A reel shorter than the
+ * screen has black bars above and below, so the frame is cut around the video it holds, not at its own
+ * edges, or the corners would round in the bars and the video would stay square (#456).
  */
 public final class ReelCorners {
     /** The frame a reel's video sits in, alone, under the viewer's overlay. */
@@ -30,7 +34,7 @@ public final class ReelCorners {
     static final String COUNT_ROUNDED = "reel frames rounded";
 
     private static final FrameCorners corners = new FrameCorners(FRAME, Settings.ROUNDED_REEL_CORNERS, HOOK,
-            COUNT_ROUNDED, "Rounded corners on Reels: rounded a reel's video frame");
+            COUNT_ROUNDED, "Rounded corners on Reels: rounded a reel's video frame", true);
 
     private ReelCorners() {
     }

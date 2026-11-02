@@ -12,8 +12,11 @@ import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -107,6 +110,62 @@ public class ReelCornersTest {
         Outline outline = new Outline();
         view.getOutlineProvider().getOutline(view, outline);
         return outline.getRadius();
+    }
+
+    private Rect outlineRect(View view) {
+        Outline outline = new Outline();
+        view.getOutlineProvider().getOutline(view, outline);
+        Rect rect = new Rect();
+        assertTrue("a rounded rectangle", outline.getRect(rect));
+        return rect;
+    }
+
+    /** A reel frame that counts each time its outline is asked for again. */
+    private static final class Frame extends FrameLayout {
+        int asked;
+
+        Frame(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void invalidateOutline() {
+            asked++;
+            super.invalidateOutline();
+        }
+    }
+
+    /**
+     * A reel shorter than the screen sits in its full-screen frame between black bars. The corners go
+     * on the video, not in the bars, and move with it when it's laid out again (#456).
+     */
+    @Test
+    public void aLetterboxedReelIsRoundedAtItsVideoAndFollowsIt() {
+        Frame frame = new Frame(activity);
+        frame.setId(first.getId());
+        View video = new View(activity);
+        frame.addView(video, new FrameLayout.LayoutParams(400, 600, Gravity.CENTER));
+        pager.addView(frame, new FrameLayout.LayoutParams(400, 800));
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.ROUNDED_REEL_CORNERS.save(true);
+
+        ReelCorners.watch(activity);
+        frame();
+
+        assertTrue(frame.getClipToOutline());
+        assertEquals(new Rect(0, 100, 400, 700), outlineRect(frame));
+        assertEquals("a frame filled by its video keeps its own edges", new Rect(0, 0, 400, 800), outlineRect(first));
+
+        int asked = frame.asked;
+        frame();
+        assertEquals("nothing moved, nothing asked again", asked, frame.asked);
+
+        video.setLayoutParams(new FrameLayout.LayoutParams(400, 500, Gravity.CENTER));
+        shadowOf(Looper.getMainLooper()).idle();
+        frame();
+
+        assertTrue("the outline is asked for again", frame.asked > asked);
+        assertEquals(new Rect(0, 150, 400, 650), outlineRect(frame));
     }
 
     @Test

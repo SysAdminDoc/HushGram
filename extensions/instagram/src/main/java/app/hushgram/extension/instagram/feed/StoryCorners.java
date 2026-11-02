@@ -28,7 +28,7 @@ public final class StoryCorners {
     static final String COUNT_ROUNDED = "story frames rounded";
 
     private static final FrameCorners corners = new FrameCorners(FRAME, Settings.ROUNDED_STORY_CORNERS, HOOK,
-            COUNT_ROUNDED, "Rounded corners on stories: rounded a story's media frame");
+            COUNT_ROUNDED, "Rounded corners on stories: rounded a story's media frame", false);
 
     private StoryCorners() {
     }

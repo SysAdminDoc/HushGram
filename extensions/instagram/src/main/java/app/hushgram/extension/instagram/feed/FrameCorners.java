@@ -52,7 +52,7 @@ final class FrameCorners {
     private final String hook;
     private final String countRounded;
     private final String roundedLine;
-    private final RoundedFrames rounded = new RoundedFrames();
+    private final RoundedFrames rounded;
     private final ResourceIdCache ids = new ResourceIdCache();
     private final WeakHashMap<Activity, Session> sessions = new WeakHashMap<>();
     private volatile boolean registered;
@@ -64,13 +64,16 @@ final class FrameCorners {
      * @param hook the name the diagnostics report gives it
      * @param countRounded the name of its count of frames rounded
      * @param roundedLine the debug log line written the first time one is rounded
+     * @param aroundChildren round around what the frame's children show rather than the whole frame
      */
-    FrameCorners(String frame, BooleanSetting setting, String hook, String countRounded, String roundedLine) {
+    FrameCorners(String frame, BooleanSetting setting, String hook, String countRounded, String roundedLine,
+                 boolean aroundChildren) {
         this.frame = frame;
         this.setting = setting;
         this.hook = hook;
         this.countRounded = countRounded;
         this.roundedLine = roundedLine;
+        this.rounded = new RoundedFrames(aroundChildren);
     }
 
     /** Called as the application starts. Does nothing in a build without the patch. */

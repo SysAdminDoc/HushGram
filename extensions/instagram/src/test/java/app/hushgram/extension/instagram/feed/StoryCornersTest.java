@@ -13,7 +13,9 @@ import static org.robolectric.Shadows.shadowOf;
 
 import android.app.Activity;
 import android.graphics.Outline;
+import android.graphics.Rect;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
@@ -123,6 +125,23 @@ public class StoryCornersTest {
         Outline outline = new Outline();
         view.getOutlineProvider().getOutline(view, outline);
         return outline.getRadius();
+    }
+
+    /** A story's frame is the story's card, so a smaller picture in it doesn't move the corners (#456). */
+    @Test
+    public void aStoryIsRoundedAtItsFrameWhateverItsPictureCovers() {
+        first.getChildAt(0).setLayoutParams(new FrameLayout.LayoutParams(400, 600, Gravity.CENTER));
+        shadowOf(Looper.getMainLooper()).idle();
+        Settings.ROUNDED_STORY_CORNERS.save(true);
+
+        StoryCorners.watch(activity);
+        frame();
+
+        Outline outline = new Outline();
+        first.getOutlineProvider().getOutline(first, outline);
+        Rect rect = new Rect();
+        assertTrue(outline.getRect(rect));
+        assertEquals(new Rect(0, 0, 400, 800), rect);
     }
 
     @Test
