@@ -46,8 +46,6 @@ Loading older messages.	Cargando mensajes anteriores.
 Loading older messages. %1$d message so far.	Cargando mensajes anteriores. %1$d mensaje por ahora.
 Loading older messages. %1$d messages so far.	Cargando mensajes anteriores. %1$d mensajes por ahora.
 Lock these settings	Bloquear estos ajustes
-Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Abre un chat, mantén pulsado su nombre arriba y elige Exportar chat. El chat entero se guarda como archivo de texto en Descargas, carpeta HushGram, con una línea por mensaje.
-Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Abre un chat, mantén pulsado su nombre arriba y elige Ir al primer mensaje o Ir a una fecha. El chat carga solo sus mensajes anteriores, con un contador y un botón Cancelar.
 Mark a chat seen when you reply	Marcar un chat como visto al responder
 No messages found to save.	No hay mensajes que guardar.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Elige una espera de 1 a 72 horas. Con el bloqueo, aquí no cambia nada hasta que pidas desbloquear y termine la espera.
@@ -1569,3 +1567,6 @@ Header picture removed.	Imagen de Inicio quitada.
 That isn't a picture.	Eso no es una imagen.
 That picture is over %1$d MB.	Esa imagen pasa de %1$d MB.
 Couldn't save the picture.	No se pudo guardar la imagen.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Abre un chat, toca el botón del reloj junto a los botones de llamada arriba, o mantén pulsado el nombre del chat, y elige Ir al primer mensaje o Ir a una fecha. El chat carga solo sus mensajes anteriores, con un contador y un botón Cancelar.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Abre un chat, toca el botón del reloj junto a los botones de llamada arriba, o mantén pulsado el nombre del chat, y elige Exportar chat. El chat entero se guarda como archivo de texto en Descargas, carpeta HushGram, con una línea por mensaje.
+Instagram stopped loading older messages.	Instagram dejó de cargar mensajes anteriores.

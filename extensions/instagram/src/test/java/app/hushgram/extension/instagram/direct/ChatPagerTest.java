@@ -13,11 +13,21 @@ import static org.junit.Assert.assertTrue;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.ViewAnimator;
+
+import com.instagram.ui.widget.loadmore.LoadMoreButton;
 
 import org.junit.After;
 import org.junit.Rule;
@@ -26,8 +36,11 @@ import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.Shadows;
 import org.robolectric.shadows.ShadowAlertDialog;
 import org.robolectric.shadows.ShadowLooper;
+import org.robolectric.shadows.ShadowPopupMenu;
+import org.robolectric.shadows.ShadowToast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -137,6 +150,22 @@ public class ChatPagerTest {
             return area;
         }
 
+        /** The header's row of call buttons on the right, as 453 lays it out: an image button with its own size, margins and padding. */
+        LinearLayout buttonRow() {
+            LinearLayout row = new LinearLayout(activity);
+            row.setId(View.generateViewId());
+            ImageView call = new ImageView(activity);
+            call.setPadding(9, 9, 9, 9);
+            LinearLayout.LayoutParams at = new LinearLayout.LayoutParams(66, 66);
+            at.setMargins(4, 0, 4, 0);
+            row.addView(call, at);
+            actionBar.addView(row);
+            Map<String, Integer> ids = new HashMap<>(MessagesLock.idsForTests);
+            ids.put(ChatPager.BUTTON_ROW, row.getId());
+            MessagesLock.idsForTests = ids;
+            return row;
+        }
+
         /** Instagram building the header again: new views with the same ids. */
         LinearLayout rebuilt(LinearLayout area) {
             actionBar.removeView(area);
@@ -151,10 +180,32 @@ public class ChatPagerTest {
         }
     }
 
+    /** The menu that opened, as a popup (#453); fails when none did. */
+    private static Menu menuOpened() {
+        PopupMenu popup = ShadowPopupMenu.getLatestPopupMenu();
+        assertNotNull("no menu opened", popup);
+        assertNull("the old list opened too", ShadowAlertDialog.getLatestAlertDialog());
+        Menu menu = popup.getMenu();
+        popup.dismiss();
+        return menu;
+    }
+
     private static void assertMenuOpened() {
-        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
-        assertNotNull("no menu opened", dialog);
-        dialog.dismiss();
+        assertTrue(menuOpened().size() > 0);
+    }
+
+    private static void assertNoMenu() {
+        assertNull(ShadowPopupMenu.getLatestPopupMenu());
+        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    /** Stand-ins for Instagram's glyphs, which the test app doesn't have. */
+    private static void glyphs() {
+        Map<String, Drawable> icons = new HashMap<>();
+        for (String[] names : new String[][] {ChatPager.BUTTON_ICONS, ChatPager.DATE_ICONS, ChatPager.EXPORT_ICONS}) {
+            icons.put(names[0], new ColorDrawable(Color.WHITE));
+        }
+        ChatPager.iconsForTests = icons;
     }
 
     private Screen screen;
@@ -163,6 +214,7 @@ public class ChatPagerTest {
     public void restore() {
         if (screen != null) ChatPager.closed(screen.fragment);
         MessagesLock.idsForTests = null;
+        ChatPager.iconsForTests = null;
         Settings.JUMP_IN_CHAT.resetToDefault();
         Settings.EXPORT_CHAT.resetToDefault();
         HookStatus.clear();
@@ -184,10 +236,7 @@ public class ChatPagerTest {
 
         assertTrue("the name didn't get the long press", screen.name.hasOnLongClickListeners());
         assertTrue(screen.name.performLongClick());
-        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
-        assertNotNull("no menu opened", dialog);
-        assertEquals(3, dialog.getListView().getAdapter().getCount());
-        dialog.dismiss();
+        assertEquals(3, menuOpened().size());
         String missing = HookStatus.missing(FamilyNames.CHAT_HISTORY).toString();
         assertFalse(missing, missing.contains("view id"));
     }
@@ -203,8 +252,7 @@ public class ChatPagerTest {
 
         assertTrue(screen.name.hasOnLongClickListeners());
         assertTrue(screen.name.performLongClick());
-        assertNotNull(ShadowAlertDialog.getLatestAlertDialog());
-        ShadowAlertDialog.getLatestAlertDialog().dismiss();
+        assertMenuOpened();
     }
 
     /** A long press Instagram already answers on the name is left to Instagram. */
@@ -219,7 +267,7 @@ public class ChatPagerTest {
         assertTrue(screen.name.performLongClick());
 
         assertTrue("Instagram's long press was replaced", instagrams[0]);
-        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        assertNoMenu();
     }
 
     /** With both switches off, the name is left alone. */
@@ -297,9 +345,7 @@ public class ChatPagerTest {
 
         assertTrue("the long press fell through to the tap", area.performLongClick());
 
-        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
-        assertNotNull("no menu opened", dialog);
-        dialog.dismiss();
+        assertMenuOpened();
         assertEquals(0, taps[0]);
     }
 
@@ -412,7 +458,7 @@ public class ChatPagerTest {
         assertFalse("the name would swallow the tap", screen.name.isLongClickable());
         assertTrue(area.performLongClick());
         assertTrue("Instagram's long press was replaced", instagrams[0]);
-        assertNull(ShadowAlertDialog.getLatestAlertDialog());
+        assertNoMenu();
     }
 
     /** The diagnostics report says when the header never showed up, instead of a silent long press. */
@@ -689,5 +735,334 @@ public class ChatPagerTest {
         int before = chat.scrolledToOldest;
         assertFalse(loader.tick());
         assertEquals(before, chat.scrolledToOldest);
+    }
+
+    /** A chat whose old-end row shows a page loading while one is on its way, the way Instagram's LoadMoreButton does. */
+    private static final class LoadingChat implements ChatPager.Source {
+        final FakeChat chat;
+
+        LoadingChat(FakeChat chat) {
+            this.chat = chat;
+        }
+
+        @Override public int count() {
+            return chat.count();
+        }
+
+        @Override public List<ChatHistory.Entry> entries() {
+            return chat.entries();
+        }
+
+        @Override public void toOldest() {
+            chat.toOldest();
+        }
+
+        @Override public void scrollTo(int position) {
+            chat.scrollTo(position);
+        }
+
+        @Override public void toNewest() {
+            chat.toNewest();
+        }
+
+        @Override public int end() {
+            return chat.shown < chat.total ? ChatPager.END_LOADING : ChatPager.END_EMPTY;
+        }
+    }
+
+    /**
+     * On a weak network a page can take longer than the stall limit. While Instagram shows it loading
+     * the jump waits, so it doesn't stop short and claim the first message (#453).
+     */
+    @Test public void aPageInstagramShowsLoadingIsWaitedForPastTheStallLimit() {
+        FakeChat chat = new FakeChat(60, 20, 20);
+        chat.looksPerPage = 30;
+        ChatPager.Loader loader = new ChatPager.Loader(new LoadingChat(chat), 0, 3);
+        run(loader);
+        assertEquals(60, chat.shown);
+        assertEquals("the oldest message is the last row", 59, chat.scrolledTo);
+        assertFalse(loader.stoppedShort());
+    }
+
+    /** A page that never comes is waited for about a minute, and the jump then says it stopped short. */
+    @Test public void aPageThatNeverComesEndsTheWaitAndSaysSo() {
+        FakeChat chat = new FakeChat(60, 20, 20);
+        chat.looksPerPage = Integer.MAX_VALUE;
+        ChatPager.Loader loader = new ChatPager.Loader(new LoadingChat(chat), 0, 3);
+        int ticks = run(loader);
+        assertEquals(20, chat.shown);
+        assertTrue("it waited about a minute, " + ticks, ticks >= ChatPager.LOADING_LOOKS && ticks <= ChatPager.LOADING_LOOKS + 5);
+        assertTrue(loader.stoppedShort());
+    }
+
+    /** A chat whose every page fails once and shows Retry, like Instagram's on a dropped connection. */
+    private static final class FailingChat implements ChatPager.Source {
+        final FakeChat chat;
+        /** Whether a tap on Retry brings the page; false for a connection that stays down. */
+        final boolean retryWorks;
+        boolean failed = true;
+        int retries;
+
+        FailingChat(FakeChat chat, boolean retryWorks) {
+            this.chat = chat;
+            this.retryWorks = retryWorks;
+        }
+
+        @Override public int count() {
+            return chat.count();
+        }
+
+        @Override public List<ChatHistory.Entry> entries() {
+            return chat.entries();
+        }
+
+        @Override public void toOldest() {
+            chat.scrolledToOldest++;
+            if (failed) return;
+            chat.shown = Math.min(chat.total, chat.shown + chat.page);
+            failed = true;
+        }
+
+        @Override public void scrollTo(int position) {
+            chat.scrollTo(position);
+        }
+
+        @Override public void toNewest() {
+            chat.toNewest();
+        }
+
+        @Override public int end() {
+            if (chat.shown >= chat.total) return ChatPager.END_EMPTY;
+            return failed ? ChatPager.END_RETRY : ChatPager.END_LOADING;
+        }
+
+        @Override public boolean pressEnd() {
+            if (end() != ChatPager.END_RETRY) return false;
+            retries++;
+            if (retryWorks) failed = false;
+            return true;
+        }
+    }
+
+    /** A page that failed shows Retry, and the jump taps it and goes on to the first message (#453). */
+    @Test public void aFailedPageIsRetriedAndTheJumpGoesOn() {
+        FakeChat chat = new FakeChat(80, 20, 20);
+        FailingChat failing = new FailingChat(chat, true);
+        ChatPager.Loader loader = new ChatPager.Loader(failing, 0, ChatPager.STALL_LOOKS);
+        run(loader);
+        assertEquals(80, chat.shown);
+        assertEquals("one tap per page", 3, failing.retries);
+        assertEquals(79, chat.scrolledTo);
+        assertFalse(loader.stoppedShort());
+    }
+
+    /** Retry is tapped a few times at most, spaced out, and a connection that stays down ends the jump honestly. */
+    @Test public void aRetryThatKeepsFailingIsTappedAFewTimesThenTheJumpSaysItStoppedShort() {
+        FakeChat chat = new FakeChat(80, 20, 20);
+        FailingChat failing = new FailingChat(chat, false);
+        ChatPager.Loader loader = new ChatPager.Loader(failing, 0, ChatPager.STALL_LOOKS);
+        run(loader);
+        assertEquals(20, chat.shown);
+        assertEquals(ChatPager.END_TAPS, failing.retries);
+        assertTrue(loader.stoppedShort());
+    }
+
+    /** A chat that reached its start shows the empty row, and the jump ends as before, without a stopped-short note. */
+    @Test public void theEmptyRowAtTheStartIsTheEndOfTheChat() {
+        FakeChat chat = new FakeChat(40, 20, 20);
+        ChatPager.Loader loader = new ChatPager.Loader(new LoadingChat(chat), 0, 3);
+        run(loader);
+        assertEquals(40, chat.shown);
+        assertFalse(loader.stoppedShort());
+    }
+
+    /** A list that lets its newest rows go as older ones come keeps its length, and still counts as loading. */
+    @Test public void aListThatKeepsItsLengthButGetsOlderIsStillLoading() {
+        final int total = 100;
+        final int window = 20;
+        final int[] newest = {0};
+        ChatPager.Source windowed = new ChatPager.Source() {
+            @Override public int count() {
+                return window;
+            }
+
+            @Override public List<ChatHistory.Entry> entries() {
+                List<ChatHistory.Entry> list = new ArrayList<>();
+                for (int row = window - 1; row >= 0; row--) {
+                    int age = newest[0] + row;
+                    list.add(new ChatHistory.Entry(row, "m" + age, "them", "t", "TEXT", 1_700_000_000_000L + (long) (total - 1 - age) * 86_400_000L, false));
+                }
+                return list;
+            }
+
+            @Override public void toOldest() {
+                newest[0] = Math.min(total - window, newest[0] + 5);
+            }
+
+            @Override public void scrollTo(int position) {
+            }
+
+            @Override public void toNewest() {
+            }
+        };
+        ChatPager.Loader loader = new ChatPager.Loader(windowed, 0, 3);
+        run(loader);
+        assertEquals("it read back to the first message", total - window, newest[0]);
+    }
+
+    /** A list with Instagram's old-end row in it, the row inside a plain frame the way the adapter hands it over. */
+    private static final class EndList {
+        final FrameLayout list = new FrameLayout(RuntimeEnvironment.getApplication());
+        final LoadMoreButton end = new LoadMoreButton(RuntimeEnvironment.getApplication());
+        final ChatPager.ListSource source = new ChatPager.ListSource(list);
+
+        EndList() {
+            FrameLayout row = new FrameLayout(list.getContext());
+            row.addView(end);
+            list.addView(new View(list.getContext()));
+            list.addView(row);
+        }
+    }
+
+    @Test public void theOldEndRowIsReadFromTheList() {
+        EndList list = new EndList();
+        list.end.setDisplayedChild(ChatPager.END_LOADING);
+        assertEquals(ChatPager.END_LOADING, list.source.end());
+        list.end.setDisplayedChild(ChatPager.END_RETRY);
+        assertEquals(ChatPager.END_RETRY, list.source.end());
+        list.end.setVisibility(View.GONE);
+        assertEquals("a row Instagram hides isn't on screen", ChatPager.END_NONE, list.source.end());
+    }
+
+    @Test public void retryAndLoadMoreAreTappedThroughInstagramsListeners() {
+        EndList list = new EndList();
+        list.end.setDisplayedChild(ChatPager.END_RETRY);
+        assertTrue(list.source.pressEnd());
+        assertEquals(1, list.end.retryTaps);
+        list.end.setDisplayedChild(ChatPager.END_MORE);
+        assertTrue(list.source.pressEnd());
+        assertEquals(1, list.end.loadMoreTaps);
+        list.end.setDisplayedChild(ChatPager.END_LOADING);
+        assertFalse("a page loading has nothing to tap", list.source.pressEnd());
+        assertEquals(1, list.end.retryTaps);
+    }
+
+    /** Any other animator in a row, like a sending spinner, isn't the old-end row. */
+    @Test public void anotherAnimatorIsNotTheOldEndRow() {
+        FrameLayout listView = new FrameLayout(RuntimeEnvironment.getApplication());
+        ViewAnimator other = new ViewAnimator(listView.getContext());
+        other.addView(new View(listView.getContext()));
+        other.addView(new View(listView.getContext()));
+        other.setDisplayedChild(1);
+        listView.addView(other);
+        ChatPager.ListSource source = new ChatPager.ListSource(listView);
+        assertEquals(ChatPager.END_NONE, source.end());
+        assertFalse(source.pressEnd());
+    }
+
+    /** The menu has a button of its own in the chat's header, first in the row of call buttons and laid out like them (#453). */
+    @Test public void theHeaderGetsAButtonBesideTheCallButtonsThatOpensTheMenu() {
+        screen = new Screen();
+        LinearLayout row = screen.buttonRow();
+        View call = row.getChildAt(0);
+        glyphs();
+        Settings.JUMP_IN_CHAT.save(true);
+        Settings.EXPORT_CHAT.save(true);
+
+        ChatPager.opened(screen.fragment);
+
+        assertEquals(2, row.getChildCount());
+        View ours = row.getChildAt(0);
+        assertEquals(ChatPager.BUTTON_TAG, ours.getTag());
+        assertTrue(ours instanceof ImageView);
+        assertEquals(call.getLayoutParams().width, ours.getLayoutParams().width);
+        assertEquals(call.getLayoutParams().height, ours.getLayoutParams().height);
+        assertEquals(((ViewGroup.MarginLayoutParams) call.getLayoutParams()).leftMargin, ((ViewGroup.MarginLayoutParams) ours.getLayoutParams()).leftMargin);
+        assertEquals(call.getPaddingTop(), ours.getPaddingTop());
+        assertNotNull(ours.getContentDescription());
+        assertNotNull(((ImageView) ours).getImageTintList());
+
+        assertTrue(ours.performClick());
+        Menu menu = menuOpened();
+        assertEquals(3, menu.size());
+        for (int i = 0; i < menu.size(); i++) assertNotNull("line " + i + " has no glyph", menu.getItem(i).getIcon());
+    }
+
+    /** A line picked in the popup does what the old list did: here an export, in a chat with no messages to find. */
+    @Test public void aLinePickedInThePopupRunsIt() {
+        screen = new Screen();
+        screen.buttonRow();
+        glyphs();
+        Settings.EXPORT_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        View ours = screen.actionBar.findViewWithTag(ChatPager.BUTTON_TAG);
+        assertEquals("Export chat", String.valueOf(ours.getContentDescription()));
+
+        assertTrue(ours.performClick());
+        PopupMenu popup = ShadowPopupMenu.getLatestPopupMenu();
+        assertEquals(1, popup.getMenu().size());
+        Shadows.shadowOf(popup).getOnMenuItemClickListener().onMenuItemClick(popup.getMenu().getItem(0));
+        ShadowLooper.idleMainLooper();
+
+        assertEquals("Couldn't find this chat's messages.", ShadowToast.getTextOfLatestToast());
+    }
+
+    /** Instagram empties the row while the chat is up, and the button comes back. */
+    @Test public void aButtonTakenOutOfTheRowComesBack() {
+        screen = new Screen();
+        LinearLayout row = screen.buttonRow();
+        glyphs();
+        Settings.JUMP_IN_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        ShadowLooper.idleMainLooper(60, TimeUnit.SECONDS);
+
+        row.removeAllViews();
+        ShadowLooper.idleMainLooper();
+
+        assertNotNull("the button didn't come back", row.findViewWithTag(ChatPager.BUTTON_TAG));
+        assertEquals(1, row.getChildCount());
+    }
+
+    /** Looked at again and again, the header keeps one button. */
+    @Test public void theHeaderKeepsOneButton() {
+        screen = new Screen();
+        LinearLayout row = screen.buttonRow();
+        glyphs();
+        Settings.JUMP_IN_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        ShadowLooper.idleMainLooper(60, TimeUnit.SECONDS);
+        ChatPager.opened(screen.fragment);
+        assertEquals(2, row.getChildCount());
+    }
+
+    /** A chat that leaves the screen takes its button with it, and nothing puts it back. */
+    @Test public void aClosedChatTakesItsButtonAway() {
+        screen = new Screen();
+        LinearLayout row = screen.buttonRow();
+        glyphs();
+        Settings.JUMP_IN_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        assertNotNull(row.findViewWithTag(ChatPager.BUTTON_TAG));
+
+        ChatPager.closed(screen.fragment);
+        ShadowLooper.idleMainLooper(20, TimeUnit.SECONDS);
+
+        assertNull(row.findViewWithTag(ChatPager.BUTTON_TAG));
+        assertEquals(1, row.getChildCount());
+    }
+
+    /** With both switches off, or without Instagram's glyph, the header's row is left as it was. */
+    @Test public void noButtonWithTheSwitchesOffOrWithoutAGlyph() {
+        screen = new Screen();
+        LinearLayout row = screen.buttonRow();
+        glyphs();
+        ChatPager.opened(screen.fragment);
+        assertEquals(1, row.getChildCount());
+        ChatPager.closed(screen.fragment);
+
+        ChatPager.iconsForTests = new HashMap<>();
+        Settings.JUMP_IN_CHAT.save(true);
+        ChatPager.opened(screen.fragment);
+        assertEquals(1, row.getChildCount());
     }
 }

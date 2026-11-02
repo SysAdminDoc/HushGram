@@ -46,8 +46,6 @@ Loading older messages.	Đang tải tin nhắn cũ hơn.
 Loading older messages. %1$d message so far.	Đang tải tin nhắn cũ hơn. Đã có %1$d tin nhắn.
 Loading older messages. %1$d messages so far.	Đang tải tin nhắn cũ hơn. Đã có %1$d tin nhắn.
 Lock these settings	Khóa các cài đặt này
-Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Mở một cuộc trò chuyện, nhấn giữ tên ở đầu màn hình và chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng.
-Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mở một cuộc trò chuyện, nhấn giữ tên ở đầu màn hình và chọn Chuyển đến tin nhắn đầu tiên hoặc Chuyển đến một ngày. Cuộc trò chuyện tự tải các tin nhắn cũ hơn, có hiển thị số lượng và nút Hủy.
 Mark a chat seen when you reply	Đánh dấu đã xem khi bạn trả lời
 No messages found to save.	Không có tin nhắn nào để lưu.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Chọn thời gian chờ từ 1 đến 72 giờ. Khi đã khóa, không có gì ở đây thay đổi được cho đến khi bạn yêu cầu mở khóa và hết thời gian chờ.
@@ -1486,3 +1484,6 @@ Header picture removed.	Đã gỡ ảnh đầu trang chủ.
 That isn't a picture.	Đó không phải là ảnh.
 That picture is over %1$d MB.	Ảnh đó lớn hơn %1$d MB.
 Couldn't save the picture.	Không lưu được ảnh.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Chuyển đến tin nhắn đầu tiên hoặc Chuyển đến một ngày. Cuộc trò chuyện tự tải các tin nhắn cũ hơn, có hiển thị số lượng và nút Hủy.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Mở một cuộc trò chuyện, nhấn nút đồng hồ cạnh các nút gọi ở đầu màn hình, hoặc nhấn giữ tên cuộc trò chuyện, rồi chọn Xuất cuộc trò chuyện. Toàn bộ cuộc trò chuyện được lưu thành tệp văn bản trong thư mục HushGram của Downloads, mỗi tin nhắn một dòng.
+Instagram stopped loading older messages.	Instagram đã ngừng tải tin nhắn cũ hơn.

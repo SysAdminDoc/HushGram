@@ -51,8 +51,6 @@ Loading older messages.	正在載入較舊的訊息。
 Loading older messages. %1$d message so far.	正在載入較舊的訊息。目前 %1$d 則。
 Loading older messages. %1$d messages so far.	正在載入較舊的訊息。目前 %1$d 則。
 Lock these settings	鎖定這些設定
-Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	開啟聊天，長按上方的名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。
-Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	開啟聊天，長按上方的名稱，選擇「跳到第一則訊息」或「跳到某個日期」。聊天會自動載入較舊的訊息，並顯示數量和取消按鈕。
 Mark a chat seen when you reply	回覆時將聊天標示為已讀
 No messages found to save.	沒有可儲存的訊息。
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	選擇 1 至 72 小時的等待時間。鎖定後，必須提出解鎖申請並等待時間結束，才能變更此處的設定。
@@ -1572,3 +1570,6 @@ Header picture removed.	已移除首頁頂端圖片。
 That isn't a picture.	這不是圖片。
 That picture is over %1$d MB.	這張圖片超過 %1$d MB。
 Couldn't save the picture.	無法儲存圖片。
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「跳到第一則訊息」或「跳到某個日期」。聊天會自動載入較舊的訊息，並顯示數量和取消按鈕。
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	開啟聊天，點一下上方通話按鈕旁的時鐘按鈕，或長按聊天名稱，選擇「匯出聊天」。整個聊天會存成文字檔，放在「下載」的 HushGram 資料夾，每則訊息一行。
+Instagram stopped loading older messages.	Instagram 已停止載入較舊的訊息。

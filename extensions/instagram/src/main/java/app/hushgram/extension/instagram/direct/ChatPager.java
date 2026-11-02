@@ -9,20 +9,33 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.ViewAnimator;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
+import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.download.TextGrab;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
@@ -35,12 +48,13 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
 /**
  * Jump to a chat's first message or to a date (#246).
  *
- * <p>A long press on the chat's name opens a short menu. Instagram loads a chat a page at a time as
- * the list is scrolled to its old end, so a jump scrolls there again and again until the chat has
- * nothing older (or, for a date, until the oldest message it holds is that old), with a count and a
- * Cancel button on screen, and then scrolls to the message. Messages and their rows are read by
- * {@link ChatHistory}. The patch tells this class which chat is on screen with {@link #opened} and
- * {@link #closed}, the same two moments the chat lock uses.
+ * <p>A button in the chat's header, beside the call buttons, or a long press on the chat's name opens
+ * a short menu (#453). Instagram loads a chat a page at a time as the list is scrolled to its old end,
+ * so a jump scrolls there again and again until the chat has nothing older (or, for a date, until the
+ * oldest message it holds is that old), with a count and a Cancel button on screen, and then scrolls
+ * to the message. Messages and their rows are read by {@link ChatHistory}. The patch tells this class
+ * which chat is on screen with {@link #opened} and {@link #closed}, the same two moments the chat lock
+ * uses.
  */
 public final class ChatPager {
     static final String PAGER = "chat pager";
@@ -51,17 +65,70 @@ public final class ChatPager {
     static final long TICK_MS = 450;
     /** Looks with nothing new in a row before the chat counts as fully loaded. A page can take seconds to come. */
     static final int STALL_LOOKS = 24;
+    /** The longest a page Instagram shows as loading is waited for, in looks: about a minute. */
+    static final int LOADING_LOOKS = (int) (60_000 / TICK_MS);
+    /** Taps on Instagram's Retry or Load more at the old end before the loader stops asking. */
+    static final int END_TAPS = 3;
+    /** Looks between two of those taps, so Instagram has time to show the page loading. */
+    static final int TAP_GAP = 4;
     /** Pixels the list steps off its old end and back to ask for an older page. Nothing draws between the two. */
     static final int ASK_STEP = 1;
     /** The area around a chat's name and subtitle in Instagram's chat header. */
     static final String NAME_AREA = "header_title_subtitle_container";
+    /** The row on the right of Instagram's chat header that holds the call and video buttons. */
+    static final String BUTTON_ROW = "header_right_buttons";
+    /** Marks the button this class puts in that row. */
+    static final String BUTTON_TAG = "hushgram_chat_jump";
+    /** Instagram's glyphs for the button and the menu, by name since the numbers change; the first one found is used. */
+    static final String[] BUTTON_ICONS = {"instagram_history_pano_outline_24", "instagram_history_outline_24",
+            "instagram_calendar_outline_24"};
+    static final String[] FIRST_ICONS = {"instagram_history_pano_outline_24", "instagram_history_outline_24"};
+    static final String[] DATE_ICONS = {"instagram_calendar_pano_outline_24", "instagram_calendar_outline_24"};
+    static final String[] EXPORT_ICONS = {"instagram_download_pano_outline_24", "instagram_download_outline_24"};
+    /** Instagram's row at a chat's old end: a page loading, Load more, Retry, or nothing more to load. */
+    static final String LOAD_MORE = "com.instagram.ui.widget.loadmore.LoadMoreButton";
+    /** What that row shows, by the child it displays. {@link #END_NONE} when none is on screen. */
+    static final int END_NONE = -1;
+    static final int END_EMPTY = 0;
+    static final int END_LOADING = 1;
+    static final int END_MORE = 2;
+    static final int END_RETRY = 3;
     private static final int ATTACH_TRIES = 24;
     private static final long ATTACH_MS = 600;
+    private static final int BUTTON_PAD_DP = 12;
 
     private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private static final View.OnLongClickListener PRESS = new View.OnLongClickListener() {
         @Override public boolean onLongClick(View v) {
             return menu(v);
+        }
+    };
+    private static final View.OnClickListener TAP = new View.OnClickListener() {
+        @Override public void onClick(View v) {
+            menu(v);
+        }
+    };
+    /**
+     * Puts the button back when Instagram empties the header's row while the chat is still up. Only a
+     * button taken out of the row counts: one that left the window with the whole header still has it.
+     */
+    private static final View.OnAttachStateChangeListener KEEP = new View.OnAttachStateChangeListener() {
+        @Override public void onViewAttachedToWindow(View v) {
+        }
+
+        @Override public void onViewDetachedFromWindow(final View v) {
+            MAIN.post(new Runnable() {
+                @Override public void run() {
+                    try {
+                        if (v.getParent() != null || !wanted()) return;
+                        Object fragment = screen.get();
+                        View root = fragment == null ? null : viewOf(fragment);
+                        if (root != null && placeButton(root) != null) log("button put back, the header's row was emptied");
+                    } catch (Throwable t) {
+                        HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+                    }
+                }
+            });
         }
     };
     /**
@@ -79,6 +146,7 @@ public final class ChatPager {
     };
     private static volatile WeakReference<Object> screen = new WeakReference<>(null);
     private static volatile WeakReference<View> attached = new WeakReference<>(null);
+    private static volatile WeakReference<View> button = new WeakReference<>(null);
     private static volatile HeaderWatch watch;
     private static volatile Run running;
 
@@ -101,17 +169,42 @@ public final class ChatPager {
 
         /** Scrolls the list back to its new end, where a chat is read from. */
         void toNewest();
+
+        /** What Instagram's row at the old end shows, one of the END_ values. */
+        default int end() {
+            return END_NONE;
+        }
+
+        /** Taps Instagram's Retry or Load more at the old end. True when there was one to tap. */
+        default boolean pressEnd() {
+            return false;
+        }
     }
 
-    /** The paging itself: one {@link #tick} per look, no views and no clock. */
+    /**
+     * The paging itself: one {@link #tick} per look, no views and no clock.
+     *
+     * <p>A look with nothing new counts toward the stall limit unless Instagram's row at the old end
+     * shows a page on its way, which is waited for up to {@link #LOADING_LOOKS}. When that row offers
+     * Retry, after a page that didn't come, or Load more, it's tapped, up to {@link #END_TAPS} times.
+     * Ended on a stall with that row still showing, the chat didn't reach its start, and
+     * {@link #stoppedShort} says so instead of the jump claiming it found the first message (#453).
+     */
     static final class Loader {
         private final Source source;
         private final long target;
         private final int stallLimit;
         private int lastCount = -1;
+        private long oldestSeen;
+        private int looks;
         private int stalls;
+        private int waits;
+        private int taps;
+        private int lastTap = -TAP_GAP;
+        private int lastEnd = END_NONE;
         private boolean done;
         private boolean reachedDate;
+        private boolean stoppedShort;
         private int loaded;
         private final boolean scroll;
 
@@ -131,6 +224,7 @@ public final class ChatPager {
         /** Looks once. True while more should be loaded, false when the jump is over. */
         boolean tick() {
             if (done) return false;
+            looks++;
             List<ChatHistory.Entry> entries = source.entries();
             int count = source.count();
             loaded = entries.size();
@@ -139,10 +233,32 @@ public final class ChatPager {
                 reachedDate = true;
                 return finish(entries);
             }
-            if (count == lastCount) stalls++;
-            else stalls = 0;
+            // A list that lets its newest rows go as older ones come keeps its length, so an older first message counts as a page too.
+            boolean older = oldest > 0 && (oldestSeen == 0 || oldest < oldestSeen);
+            if (older) oldestSeen = oldest;
+            if (count != lastCount || older) {
+                stalls = 0;
+                waits = 0;
+                taps = 0;
+                lastEnd = END_NONE;
+            } else {
+                lastEnd = source.end();
+                if (lastEnd == END_LOADING && waits < LOADING_LOOKS) {
+                    waits++;
+                } else if ((lastEnd == END_RETRY || lastEnd == END_MORE) && taps < END_TAPS && looks - lastTap >= TAP_GAP
+                        && source.pressEnd()) {
+                    taps++;
+                    lastTap = looks;
+                    stalls = 0;
+                } else {
+                    stalls++;
+                }
+            }
             lastCount = count;
-            if (stalls >= stallLimit) return finish(entries);
+            if (stalls >= stallLimit) {
+                stoppedShort = lastEnd == END_LOADING || lastEnd == END_RETRY || lastEnd == END_MORE;
+                return finish(entries);
+            }
             source.toOldest();
             return true;
         }
@@ -167,6 +283,11 @@ public final class ChatPager {
         /** Whether a date jump stopped because the chat reached back to that date. */
         boolean reachedDate() {
             return reachedDate;
+        }
+
+        /** Whether the loading ended with Instagram's row still offering a page it didn't send. */
+        boolean stoppedShort() {
+            return stoppedShort;
         }
     }
 
@@ -195,11 +316,19 @@ public final class ChatPager {
             if (shown != null && shown != fragment) return;
             screen = new WeakReference<>(null);
             stopWatching();
+            removeButton();
             Run run = running;
             if (run != null) run.stop();
         } catch (Throwable t) {
             HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
         }
+    }
+
+    private static void removeButton() {
+        View ours = button.get();
+        button = new WeakReference<>(null);
+        ViewParent parent = ours == null ? null : ours.getParent();
+        if (parent instanceof ViewGroup) ((ViewGroup) parent).removeView(ours);
     }
 
     static boolean wanted() {
@@ -232,6 +361,7 @@ public final class ChatPager {
         private final Object fragment;
         private int tries;
         private boolean found;
+        private View placed;
 
         HeaderWatch(Object fragment) {
             this.fragment = fragment;
@@ -247,6 +377,11 @@ public final class ChatPager {
                     HookStatus.recoveredViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
                     arm(target);
                 }
+                View shown = root == null ? null : placeButton(root);
+                if (shown != null && shown != placed) {
+                    log("button set in the header, try " + tries + (placed == null ? "" : ", header was rebuilt"));
+                    placed = shown;
+                }
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
                 return;
@@ -260,6 +395,7 @@ public final class ChatPager {
                 HookStatus.missingViewId(FamilyNames.CHAT_HISTORY, ChatLocks.TITLES[0]);
                 log("the chat's name was never found");
             }
+            if (placed == null) log("no button: the header's call buttons row was never found");
         }
 
         private void arm(View target) {
@@ -317,6 +453,80 @@ public final class ChatPager {
         return title instanceof TextView ? String.valueOf(((TextView) title).getText()) : "";
     }
 
+    /**
+     * Puts the menu's button first in the header's row of call buttons, the way those buttons are
+     * laid out, and gives back the one there. Null when the row or Instagram's glyph isn't there.
+     */
+    static ImageView placeButton(View root) {
+        View found = nearest(root, BUTTON_ROW);
+        if (!(found instanceof LinearLayout)) return null;
+        LinearLayout row = (LinearLayout) found;
+        View had = row.findViewWithTag(BUTTON_TAG);
+        if (had instanceof ImageView) {
+            button = new WeakReference<>(had);
+            return (ImageView) had;
+        }
+        Context context = row.getContext();
+        Drawable glyph = icon(context, BUTTON_ICONS);
+        if (glyph == null) return null;
+        ImageView sibling = null;
+        for (int i = 0; i < row.getChildCount() && sibling == null; i++) {
+            if (row.getChildAt(i) instanceof ImageView) sibling = (ImageView) row.getChildAt(i);
+        }
+        ImageView made = new ImageView(context);
+        made.setImageDrawable(glyph);
+        made.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        LinearLayout.LayoutParams params;
+        if (sibling != null && sibling.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+            params = new LinearLayout.LayoutParams((LinearLayout.LayoutParams) sibling.getLayoutParams());
+            made.setPadding(sibling.getPaddingLeft(), sibling.getPaddingTop(), sibling.getPaddingRight(), sibling.getPaddingBottom());
+        } else {
+            params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+            params.gravity = Gravity.CENTER_VERTICAL;
+            int pad = dp(context, BUTTON_PAD_DP);
+            made.setPadding(pad, pad, pad, pad);
+        }
+        // The call buttons' own color, however Instagram set it, else the theme's icon color.
+        ColorStateList tint = sibling == null ? null : sibling.getImageTintList();
+        if (tint != null) made.setImageTintList(tint);
+        else if (sibling != null && sibling.getColorFilter() != null) made.setColorFilter(sibling.getColorFilter());
+        else made.setImageTintList(ColorStateList.valueOf(FeedDownloadButton.iconColor(context)));
+        TypedValue ripple = new TypedValue();
+        if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple, true) && ripple.resourceId != 0) {
+            made.setBackgroundResource(ripple.resourceId);
+        }
+        made.setContentDescription(jumpWanted() ? L10n.t("Jump to the first message or a date") : L10n.t("Export chat"));
+        made.setTag(BUTTON_TAG);
+        made.setOnClickListener(TAP);
+        made.addOnAttachStateChangeListener(KEEP);
+        row.addView(made, 0, params);
+        button = new WeakReference<>(made);
+        return made;
+    }
+
+    /** Tests hand in their own glyphs by name, since the test app has none of Instagram's. */
+    static volatile Map<String, Drawable> iconsForTests;
+
+    /** The first of Instagram's glyphs [names] it has, ready to be tinted on its own, or null. */
+    static Drawable icon(Context context, String[] names) {
+        Map<String, Drawable> forTests = iconsForTests;
+        for (String name : names) {
+            Drawable found = null;
+            if (forTests != null) {
+                found = forTests.get(name);
+            } else {
+                int id = context.getResources().getIdentifier(name, "drawable", context.getPackageName());
+                if (id != 0) found = context.getDrawable(id);
+            }
+            if (found != null) return found.mutate();
+        }
+        return null;
+    }
+
+    private static int dp(Context context, int dp) {
+        return Math.round(dp * context.getResources().getDisplayMetrics().density);
+    }
+
     private static View nearest(View root, String name) {
         int id = MessagesLock.id(root.getContext(), name);
         if (id == 0) return null;
@@ -368,21 +578,55 @@ public final class ChatPager {
             }
             if (labels.isEmpty()) return false;
             final String name = nameIn(root);
-            new AlertDialog.Builder(activity)
-                    .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
-                        @Override public void onClick(DialogInterface dialog, int which) {
-                            int action = actions.get(which);
-                            if (action == ACTION_FIRST) start(activity, root, 0, null);
-                            else if (action == ACTION_DATE) pickDate(activity, root);
-                            else start(activity, root, 0, name);
-                        }
-                    }).show();
+            try {
+                popup(activity, pressed, root, name, labels, actions);
+            } catch (Throwable t) {
+                // A theme that can't show a popup still gets the plain list.
+                log("popup failed, showing a list: " + t);
+                new AlertDialog.Builder(activity)
+                        .setItems(labels.toArray(new String[0]), new DialogInterface.OnClickListener() {
+                            @Override public void onClick(DialogInterface dialog, int which) {
+                                act(activity, root, name, actions.get(which));
+                            }
+                        }).show();
+            }
             return true;
         } catch (Throwable t) {
             log("no menu: " + t);
             HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             return false;
         }
+    }
+
+    /** The menu as a popup under what was pressed, each line with Instagram's glyph for it (#453). */
+    private static void popup(final Activity activity, View pressed, final View root, final String name, List<String> labels,
+                              List<Integer> actions) {
+        PopupMenu popup = new PopupMenu(activity, pressed, BUTTON_TAG.equals(pressed.getTag()) ? Gravity.END : Gravity.NO_GRAVITY);
+        Menu items = popup.getMenu();
+        int color = FeedDownloadButton.iconColor(activity);
+        for (int i = 0; i < labels.size(); i++) {
+            int action = actions.get(i);
+            MenuItem item = items.add(Menu.NONE, action, i, labels.get(i));
+            Drawable glyph = icon(activity, action == ACTION_FIRST ? FIRST_ICONS : action == ACTION_DATE ? DATE_ICONS : EXPORT_ICONS);
+            if (glyph != null) {
+                glyph.setTintList(ColorStateList.valueOf(color));
+                item.setIcon(glyph);
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) popup.setForceShowIcon(true);
+        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override public boolean onMenuItemClick(MenuItem item) {
+                act(activity, root, name, item.getItemId());
+                return true;
+            }
+        });
+        popup.show();
+    }
+
+    private static void act(Activity activity, View root, String name, int action) {
+        if (action == ACTION_FIRST) start(activity, root, 0, null);
+        else if (action == ACTION_DATE) pickDate(activity, root);
+        else start(activity, root, 0, name);
     }
 
     private static void pickDate(final Activity activity, final View root) {
@@ -484,10 +728,16 @@ public final class ChatPager {
                     return;
                 }
                 stop();
+                // Instagram still offering a page it never sent means the chat's start wasn't reached.
+                if (loader.stoppedShort()) {
+                    log("stopped short, Instagram's row at the old end still shows " + source.end());
+                    Utils.showToastShort(L10n.t("Instagram stopped loading older messages."));
+                }
                 if (exportName != null) {
                     export(activity.getApplicationContext(), exportName, source.entries());
                     return;
                 }
+                if (loader.stoppedShort()) return;
                 Utils.showToastShort(target > 0 && !loader.reachedDate()
                         ? L10n.t("That's as far back as this chat goes.")
                         : L10n.t("Here it is."));
@@ -525,9 +775,17 @@ public final class ChatPager {
         });
     }
 
-    /** The chat's RecyclerView, driven by reflection: the extension has no androidx dependency. */
+    /**
+     * The chat's RecyclerView, driven by reflection: the extension has no androidx dependency. The last
+     * messages read are kept for the scroll that follows them, so a look reads every row once.
+     */
     static final class ListSource implements Source {
+        /** How deep under a row Instagram's old-end row is looked for. */
+        private static final int END_DEPTH = 3;
         private final View list;
+        private List<ChatHistory.Entry> lastEntries;
+        /** Which end the oldest message sits at once the rows have shown it: 0 not known, 1 the first row, 2 the last. */
+        private int oldSide;
 
         ListSource(View list) {
             this.list = list;
@@ -547,18 +805,79 @@ public final class ChatPager {
         }
 
         private static void collect(View view, List<View> found) {
-            if (isRecycler(view.getClass())) found.add(view);
+            if (is(view.getClass(), "androidx.recyclerview.widget.RecyclerView")) found.add(view);
             if (view instanceof ViewGroup) {
                 ViewGroup group = (ViewGroup) view;
                 for (int i = 0; i < group.getChildCount(); i++) collect(group.getChildAt(i), found);
             }
         }
 
-        private static boolean isRecycler(Class<?> type) {
+        /** Whether [type] is the class named [name] or extends it. */
+        static boolean is(Class<?> type, String name) {
             for (Class<?> c = type; c != null; c = c.getSuperclass()) {
-                if (c.getName().equals("androidx.recyclerview.widget.RecyclerView")) return true;
+                if (c.getName().equals(name)) return true;
             }
             return false;
+        }
+
+        /** Instagram's row at the old end when it's on screen, else null. */
+        ViewAnimator endRow() {
+            if (!(list instanceof ViewGroup)) return null;
+            ViewGroup rows = (ViewGroup) list;
+            for (int i = 0; i < rows.getChildCount(); i++) {
+                ViewAnimator found = endRowIn(rows.getChildAt(i), END_DEPTH);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        private static ViewAnimator endRowIn(View view, int depth) {
+            if (view.getVisibility() != View.VISIBLE) return null;
+            if (view instanceof ViewAnimator && is(view.getClass(), LOAD_MORE)) return (ViewAnimator) view;
+            if (depth <= 0 || !(view instanceof ViewGroup)) return null;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                ViewAnimator found = endRowIn(group.getChildAt(i), depth - 1);
+                if (found != null) return found;
+            }
+            return null;
+        }
+
+        @Override public int end() {
+            try {
+                ViewAnimator row = endRow();
+                return row == null ? END_NONE : row.getDisplayedChild();
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+                return END_NONE;
+            }
+        }
+
+        /** Taps what the old-end row shows, Retry or Load more, through Instagram's own click listener. */
+        @Override public boolean pressEnd() {
+            try {
+                ViewAnimator row = endRow();
+                View shown = row == null ? null : row.getCurrentView();
+                View tappable = shown == null ? null : listened(shown);
+                if (tappable == null) return false;
+                log("tapped Instagram's " + (row.getDisplayedChild() == END_RETRY ? "Retry" : "Load more") + " at the old end");
+                return tappable.performClick();
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+                return false;
+            }
+        }
+
+        /** [view] or the first view under it with a click listener. */
+        private static View listened(View view) {
+            if (view.hasOnClickListeners()) return view;
+            if (!(view instanceof ViewGroup)) return null;
+            ViewGroup group = (ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = listened(group.getChildAt(i));
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private Object adapter() {
@@ -589,6 +908,7 @@ public final class ChatPager {
             }
             log("read " + entries.size() + " messages, " + placed + " on known rows, from " + count + " rows of "
                     + list.getClass().getName() + " with adapter " + (adapter == null ? null : adapter.getClass().getName()));
+            lastEntries = entries;
             return entries;
         }
 
@@ -613,18 +933,25 @@ public final class ChatPager {
             }
         }
 
-        /** The row at the old end: the one the oldest message sits in, else the end the layout puts it at. */
+        /**
+         * The row at the old end: the end the oldest message sits toward, else the end the layout puts
+         * it at. Read from the messages the last look found, and remembered once they show it.
+         */
         private int oldestEnd(int count) throws Exception {
-            ChatHistory.Entry oldest = null;
-            ChatHistory.Entry newest = null;
-            for (ChatHistory.Entry entry : entries()) {
-                if (entry.position < 0 || entry.millis <= 0) continue;
-                if (oldest == null || entry.millis < oldest.millis) oldest = entry;
-                if (newest == null || entry.millis > newest.millis) newest = entry;
+            if (oldSide == 0) {
+                ChatHistory.Entry oldest = null;
+                ChatHistory.Entry newest = null;
+                List<ChatHistory.Entry> entries = lastEntries != null ? lastEntries : entries();
+                for (ChatHistory.Entry entry : entries) {
+                    if (entry.position < 0 || entry.millis <= 0) continue;
+                    if (oldest == null || entry.millis < oldest.millis) oldest = entry;
+                    if (newest == null || entry.millis > newest.millis) newest = entry;
+                }
+                if (oldest != null && newest != null && oldest.position != newest.position) {
+                    oldSide = oldest.position < newest.position ? 1 : 2;
+                }
             }
-            if (oldest != null && newest != null && oldest.position != newest.position) {
-                return oldest.position < newest.position ? 0 : count - 1;
-            }
+            if (oldSide != 0) return oldSide == 1 ? 0 : count - 1;
             Object manager = manager();
             if (manager != null) {
                 try {

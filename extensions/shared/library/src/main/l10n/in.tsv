@@ -46,8 +46,6 @@ Loading older messages.	Memuat pesan lama.
 Loading older messages. %1$d message so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
 Loading older messages. %1$d messages so far.	Memuat pesan lama. Sejauh ini %1$d pesan.
 Lock these settings	Kunci pengaturan ini
-Open a chat, long press its name at the top and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Buka obrolan, tekan lama namanya di bagian atas lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan.
-Open a chat, long press its name at the top and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Buka obrolan, tekan lama namanya di bagian atas lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
 Mark a chat seen when you reply	Tandai obrolan sudah dilihat saat kamu membalas
 No messages found to save.	Tidak ada pesan untuk disimpan.
 Pick a wait from 1 to 72 hours. Locked, nothing here changes until you ask to unlock and the wait is over.	Pilih waktu tunggu 1 sampai 72 jam. Saat terkunci, tidak ada yang berubah di sini sampai kamu meminta buka kunci dan waktu tunggunya selesai.
@@ -1569,3 +1567,6 @@ Header picture removed.	Gambar Beranda dihapus.
 That isn't a picture.	Itu bukan gambar.
 That picture is over %1$d MB.	Gambar itu lebih dari %1$d MB.
 Couldn't save the picture.	Gambar tidak bisa disimpan.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Jump to the first message or Jump to a date. The chat loads its older messages on its own, with a count and a Cancel button.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Lompat ke pesan pertama atau Lompat ke tanggal. Obrolan memuat pesan lamanya sendiri, dengan hitungan dan tombol Batal.
+Open a chat, tap the clock button next to the call buttons at the top, or long press the chat's name, and pick Export chat. The whole chat is saved as a text file in Downloads, HushGram folder, one line per message.	Buka obrolan, ketuk tombol jam di samping tombol panggilan di bagian atas, atau tekan lama nama obrolan, lalu pilih Ekspor obrolan. Seluruh obrolan disimpan sebagai berkas teks di Download, folder HushGram, satu baris per pesan.
+Instagram stopped loading older messages.	Instagram berhenti memuat pesan lama.

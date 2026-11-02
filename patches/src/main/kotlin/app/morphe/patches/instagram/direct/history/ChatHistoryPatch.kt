@@ -68,16 +68,16 @@ internal class ChatHistoryTargets(
 private fun refuse(why: String): Nothing = throw PatchException("$CHAT_HISTORY_PATCH: $why")
 
 /**
- * Long press a chat's name to jump to its first message or a date.
+ * A clock button in a chat's header, or a long press on the chat's name, jumps to its first message or a date.
  * Starts off. The messages are read from the objects the chat's list holds, so no request is made
  * that Instagram doesn't make itself.
  */
 @Suppress("unused")
 val chatHistoryPatch = bytecodePatch(
     name = "Chat history tools",
-    description = "Long press a chat's name to jump to its first message or to a date, or to save the chat as a " +
-        "text file. The chat loads its older messages on its own, with a count and a Cancel button. Both start off. " +
-        "Turn them on in HushGram settings > Messages.",
+    description = "Tap the clock button at the top of a chat, or long press its name, to jump to its first message " +
+        "or to a date, or to save the chat as a text file. The chat loads its older messages on its own, with a count " +
+        "and a Cancel button. Both start off. Turn them on in HushGram settings > Messages.",
 ) {
     category("Messages")
     dependsOn(settingsPatch, instagramExtensionPatch)
