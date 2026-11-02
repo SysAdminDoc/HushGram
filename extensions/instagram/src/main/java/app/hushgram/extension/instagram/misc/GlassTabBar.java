@@ -52,6 +52,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.WeakHashMap;
 
@@ -603,6 +604,29 @@ public final class GlassTabBar {
             if (later.getVisibility() == View.VISIBLE && later.getHeight() > 0) return false;
         }
         return true;
+    }
+
+    /**
+     * The story viewer under [root] that {@link #storyOnTop shows on top}, or null. Every viewer in the
+     * tree is looked at, not just the first one with the id, since Instagram can keep an old viewer there,
+     * hidden, ahead of the one that shows (#450).
+     */
+    @Nullable
+    static View storyShownOnTop(View root) {
+        int id = id(root.getContext(), STORY_ROOT);
+        if (id == 0) return null;
+        ArrayDeque<View> todo = new ArrayDeque<>();
+        todo.add(root);
+        while (!todo.isEmpty()) {
+            View view = todo.poll();
+            if (view.getVisibility() != View.VISIBLE) continue;
+            if (view.getId() == id && storyOnTop(view)) return view;
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0, n = group.getChildCount(); i < n; i++) todo.add(group.getChildAt(i));
+            }
+        }
+        return null;
     }
 
     /**
@@ -1684,14 +1708,17 @@ public final class GlassTabBar {
         boolean overAStory() {
             View root = bar.getRootView();
             View story = storyRoot.get();
-            if (story == null || story.getRootView() != root) {
-                long now = SystemClock.uptimeMillis();
-                if (story == null && now - storyLookedAt < SHEET_LOOK_MS) return false;
-                storyLookedAt = now;
-                story = find(root, STORY_ROOT);
-                storyRoot = new WeakReference<>(story);
-            }
-            return storyOnTop(story);
+            boolean here = story != null && story.getRootView() == root;
+            if (here && storyOnTop(story)) return true;
+            // A viewer that left the window is looked for again at once. One still here but not on top
+            // may be an old one Instagram kept, hidden, while a new one shows (#450), so that's looked
+            // past as often as a missing one is.
+            long now = SystemClock.uptimeMillis();
+            if ((story == null || here) && now - storyLookedAt < SHEET_LOOK_MS) return false;
+            storyLookedAt = now;
+            View shown = storyShownOnTop(root);
+            if (shown != null || !here) storyRoot = new WeakReference<>(shown);
+            return shown != null;
         }
 
         /**

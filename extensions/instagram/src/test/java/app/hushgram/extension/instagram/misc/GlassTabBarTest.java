@@ -601,6 +601,65 @@ public class GlassTabBarTest {
         }
     }
 
+    /**
+     * #450: the pill stayed over a story at random until Instagram restarted. A story viewer Instagram
+     * keeps in the tree, hidden, isn't the one to watch once a new viewer shows, wherever the new one sits.
+     */
+    @Test
+    @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
+    public void anOldHiddenStoryViewerDoesNotHideTheNewOne() {
+        GlassTabBar.resetForTests();
+        HookStatus.clear();
+        int storyId = 0x7f0b0123;
+        Map<String, Integer> ids = ReflectionHelpers.getStaticField(GlassTabBar.class, "IDS");
+        Integer previous;
+        synchronized (ids) { previous = ids.put(GlassTabBar.STORY_ROOT, storyId); }
+        try (GlassHost host = new GlassHost(Color.BLACK, true, GlassHeight.STANDARD, false, false)) {
+            int full = ViewGroup.LayoutParams.MATCH_PARENT;
+            host.controller.pause().resume();
+            host.frame();
+
+            FrameLayout content = new FrameLayout(host.activity);
+            host.root.addView(content, 0, new FrameLayout.LayoutParams(full, full));
+            FrameLayout first = new FrameLayout(host.activity);
+            first.setId(storyId);
+            content.addView(first, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over the first story", View.INVISIBLE, host.bar.getVisibility());
+
+            // Instagram closes the first viewer by hiding it and keeps it where it was.
+            first.setVisibility(View.GONE);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("the story closed", View.VISIBLE, host.bar.getVisibility());
+
+            // The next story opens in a viewer of its own, after the old one.
+            FrameLayout second = new FrameLayout(host.activity);
+            second.setId(storyId);
+            content.addView(second, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over the new story", View.INVISIBLE, host.bar.getVisibility());
+
+            content.removeView(second);
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals(View.VISIBLE, host.bar.getVisibility());
+
+            // With the hidden one first in the tree, a viewer shown in another container is still found.
+            FrameLayout elsewhere = new FrameLayout(host.activity);
+            host.root.addView(elsewhere, 1, new FrameLayout.LayoutParams(full, full));
+            FrameLayout third = new FrameLayout(host.activity);
+            third.setId(storyId);
+            elsewhere.addView(third, new FrameLayout.LayoutParams(full, full));
+            for (int i = 0; i < 4; i++) host.frame();
+            assertEquals("hidden over a story elsewhere", View.INVISIBLE, host.bar.getVisibility());
+            assertSame(third, GlassTabBar.storyShownOnTop(host.root));
+        } finally {
+            synchronized (ids) {
+                if (previous == null) ids.remove(GlassTabBar.STORY_ROOT);
+                else ids.put(GlassTabBar.STORY_ROOT, previous);
+            }
+        }
+    }
+
     /** A pill over Instagram's own place, not floating, leaves the navigation bar's height alone and never asks for insets. */
     @Test
     @Config(sdk = 29, qualifiers = "en-rUS-w411dp-h891dp-xhdpi")
