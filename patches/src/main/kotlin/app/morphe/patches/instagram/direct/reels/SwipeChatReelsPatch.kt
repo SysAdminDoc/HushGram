@@ -378,28 +378,30 @@ internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelC
 }
 
 /**
- * Has the adapter's add hand the extension what it's handed, through [LEAVE_OUT_SENT] with the viewer's
- * source, and add what comes back instead. A viewer opened from a chat pages the chat's own reels from
- * the server, newest messages included, past the collector [skipSentReels] hooks, so with "Only
- * received reels" on the extension leaves out the reels the viewer sent there. A config that isn't
- * there goes on to Instagram.
+ * Has the adapter's add, update and insert at a position hand the extension the reels they're handed,
+ * through [LEAVE_OUT_SENT] with the viewer's source, and take what comes back instead. A viewer opened
+ * from a chat pages the chat's own reels from the server, newest messages included, past the collector
+ * [skipSentReels] hooks, so with "Only received reels" on the extension leaves out the reels the viewer
+ * sent there. A page that answers a request goes in through the update, merged with the reels already
+ * there, so all three ways in are asked (#460). A config that isn't there goes on to Instagram.
  */
 internal fun BytecodePatchContext.leaveOutSentReels(found: Placeholders = findPlaceholders()) {
-    val add = found.add
-    add.addInstructionsWithLabels(
-        0,
-        """
-            move-object/from16 v0, p0
-            iget-object v0, v0, ${found.config}
-            if-eqz v0, :instagram
-            iget-object v0, v0, ${found.source}
-            move-object/from16 v1, p1
-            invoke-static { v1, v0 }, $LEAVE_OUT_SENT
-            move-result-object v1
-            move-object/from16 p1, v1
-        """,
-        ExternalLabel("instagram", add.getInstruction(0)),
-    )
+    for (way in listOf(found.add, found.update, found.insert)) {
+        way.addInstructionsWithLabels(
+            0,
+            """
+                move-object/from16 v0, p0
+                iget-object v0, v0, ${found.config}
+                if-eqz v0, :instagram
+                iget-object v0, v0, ${found.source}
+                move-object/from16 v1, p1
+                invoke-static { v1, v0 }, $LEAVE_OUT_SENT
+                move-result-object v1
+                move-object/from16 p1, v1
+            """,
+            ExternalLabel("instagram", way.getInstruction(0)),
+        )
+    }
 }
 
 /** The tap on media in a chat, and the parameter registers its tapped view and message come in. */
@@ -720,7 +722,14 @@ internal fun BytecodePatchContext.stopCachedReels(found: CachedReels = findCache
  * The adapter's add of reels and its placeholder at a position, the adapter's [VIEWER_CONFIG] field
  * the add reads, and the config's [VIEWER_SOURCE] field it reads.
  */
-internal class Placeholders(val add: MutableMethod, val shimmer: MutableMethod, val config: String, val source: String)
+internal class Placeholders(
+    val add: MutableMethod,
+    val shimmer: MutableMethod,
+    val config: String,
+    val source: String,
+    val update: MutableMethod,
+    val insert: MutableMethod,
+)
 
 /**
  * Finds the adapter's add of reels and its placeholder at a position before anything changes. The
@@ -728,8 +737,13 @@ internal class Placeholders(val add: MutableMethod, val shimmer: MutableMethod, 
  * nothing, with two locals for the hook and nothing jumping to its first instruction. It reads one
  * [VIEWER_CONFIG] field of its own class and one [VIEWER_SOURCE] field of the config. The placeholder
  * (LX/044l;->A0X on 385914557) is the one instance method of the same class handed a position that
- * calls the add, with a local and nothing jumping to its first instruction. Fails when any of it
- * isn't so.
+ * calls the add, with a local and nothing jumping to its first instruction. The adapter's two other
+ * ways in for reels go past the add: its update (LX/044l;->A0b there, ClipsViewerAdapter
+ * updateClipsItems), the one other instance method handed reels and a flag that calls the add, which
+ * swaps the whole list, and its insert at a position (LX/044l;->A0Y), the one instance method handed
+ * reels and an int that reads the field the update hands its reels to (LX/044l;->A0Z). The adapter's
+ * insert listener (LX/044l;->FjX) takes reels and an int too and never reads it. Each needs two locals
+ * and nothing jumping to its first instruction. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findPlaceholders(): Placeholders {
     val adds = classesLoadingString(ADD_REELS).flatMap { holder -> holder.methods.filter { loadsString(it, ADD_REELS) } }
@@ -767,10 +781,54 @@ internal fun BytecodePatchContext.findPlaceholders(): Placeholders {
     if (shimmer.localRegisterCount() < 1) refuse("$at has no local for the answer")
     if (0 in shimmer.jumpTargets()) refuse("a jump or exception handler enters $at at its first instruction")
 
+    fun wayIn(what: String, wanted: List<String>, extra: (Method) -> Boolean): Method {
+        val found = classDefBy(add.definingClass).methods.filter { method ->
+            !AccessFlags.STATIC.isSet(method.accessFlags) && method.returnType == "V" && method.name != add.name &&
+                method.parameterTypes.map(CharSequence::toString) == wanted && extra(method)
+        }
+        val way = found.singleOrNull()
+            ?: refuse("expected one $what of ${add.definingClass} handed ${wanted.joinToString("")}, found ${found.size}")
+        val there = "${way.definingClass}->${way.name}"
+        if (way.localRegisterCount() < 2) refuse("$there has fewer than two locals for the hook")
+        if (0 in way.jumpTargets()) refuse("a jump or exception handler enters $there at its first instruction")
+        return way
+    }
+    val update = wayIn("update calling ${add.name}", takes) { method ->
+        method.implementation?.instructions?.any { instruction ->
+            val call = (instruction as? ReferenceInstruction)?.reference as? MethodReference
+            call != null && call.definingClass == add.definingClass && call.name == add.name &&
+                call.parameterTypes.map(CharSequence::toString) == takes
+        } == true
+    }
+    // The update hands its reels (p1) to a call on one field of the adapter, the list the insert also
+    // reads. The adapter's insert listener takes reels and an int too but never touches that field.
+    val code = update.implementation!!.instructions.toList()
+    val reels = update.implementation!!.registerCount - 2
+    val fields = code.withIndex().mapNotNull { (index, instruction) ->
+        if (instruction.opcode != Opcode.IGET_OBJECT) return@mapNotNull null
+        val field = (instruction as ReferenceInstruction).reference as FieldReference
+        if (field.definingClass != add.definingClass) return@mapNotNull null
+        val into = (instruction as TwoRegisterInstruction).registerA
+        val call = code.drop(index + 1).firstOrNull { later ->
+            later is FiveRegisterInstruction && later.registerCount > 1 && later.registerC == into &&
+                (later as ReferenceInstruction).reference is MethodReference
+        } as FiveRegisterInstruction? ?: return@mapNotNull null
+        val handed = listOf(call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount - 1)
+        if (reels in handed) "$field" else null
+    }.distinct()
+    val items = fields.singleOrNull()
+        ?: refuse("${update.definingClass}->${update.name} hands its reels to ${fields.size} fields of its adapter, not one")
+    val insert = wayIn("insert at a position reading $items", listOf(LIST, "I")) { method ->
+        method.implementation?.instructions?.any { instruction ->
+            instruction.opcode == Opcode.IGET_OBJECT && "${(instruction as ReferenceInstruction).reference}" == items
+        } == true
+    }
+
     val methods = mutableClassDefBy(add.definingClass).methods
-    val mutableAdd = methods.single { it.name == add.name && it.parameterTypes.map(CharSequence::toString) == takes }
-    val mutableShimmer = methods.single { it.name == shimmer.name && it.parameterTypes.map(CharSequence::toString) == listOf(POSITION) }
-    return Placeholders(mutableAdd, mutableShimmer, config, source)
+    fun mutable(method: Method) = methods.single { m ->
+        m.name == method.name && m.parameterTypes.map(CharSequence::toString) == method.parameterTypes.map(CharSequence::toString)
+    }
+    return Placeholders(mutable(add), mutable(shimmer), config, source, mutable(update), mutable(insert))
 }
 
 /**

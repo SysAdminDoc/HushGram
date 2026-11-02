@@ -120,6 +120,8 @@ class OnlyReceivedReelsTest {
             MutableMethod(method("Lfixture/Adapter;", "shimmer", listOf("Ljava/lang/Integer;"), "V", 1, final, "return-void")),
             "Lfixture/Adapter;->config:Lfixture/Config;",
             "Lfixture/Config;->source:Lfixture/Source;",
+            MutableMethod(method("Lfixture/Adapter;", "update", listOf("Ljava/util/List;", "Z"), "V", 2, final, "return-void")),
+            MutableMethod(method("Lfixture/Adapter;", "insert", listOf("Ljava/util/List;", "I"), "V", 2, final, "return-void")),
         )
         checkAddTakesReels(add(reel), found)
         val expected = "Lfixture/Adapter;->add doesn't take $reel, the reel items a chat's messages hold"

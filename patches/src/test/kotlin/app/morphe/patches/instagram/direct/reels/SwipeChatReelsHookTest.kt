@@ -57,6 +57,7 @@ class SwipeChatReelsHookTest {
     private val controller = "Lfixture/FlashController;"
     private val item = "Lfixture/Item;"
     private val adapter = "Lfixture/Adapter;"
+    private val adapterItems = "Lfixture/Items;"
     private val tapped = "Landroid/view/View;"
     private val bounds = "Landroid/graphics/RectF;"
 
@@ -918,6 +919,11 @@ class SwipeChatReelsHookTest {
             adapterClasses(shimmers = 2) to "expected one method of $adapter handed a position that calls add, found 2",
             adapterClasses(shimmerLocals = 0) to "$shimmer has no local for the answer",
             adapterClasses(shimmerEntered = true) to "a jump or exception handler enters $shimmer at its first instruction",
+            adapterClasses(updateLocals = 1) to "$adapter->update has fewer than two locals for the hook",
+            adapterClasses(handed = emptyList()) to "$adapter->update hands its reels to 0 fields of its adapter, not one",
+            adapterClasses(handed = listOf("items", "items2")) to "$adapter->update hands its reels to 2 fields of its adapter, not one",
+            adapterClasses(insertions = 0) to "expected one insert at a position reading $adapter->items:$adapterItems of $adapter handed Ljava/util/List;I, found 0",
+            adapterClasses(insertions = 2) to "expected one insert at a position reading $adapter->items:$adapterItems of $adapter handed Ljava/util/List;I, found 2",
         )
         for ((classes, expected) in cases) {
             val context = PatchContexts.of(classes)
@@ -967,17 +973,24 @@ class SwipeChatReelsHookTest {
         assertEquals("${label}: placeholders hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == STOP_CACHED } })
     }
 
-    /** The adapter's add hands its reels and the viewer's source to the extension first and adds what comes back (#460). */
+    /**
+     * The adapter's add, its update and its insert at a position each hand their reels and the
+     * viewer's source to the extension first and take what comes back (#460). A page from the
+     * server merges in through the update, which never calls the hooked add for the new list.
+     */
     @Test
     fun theAddLeavesOutSentReelsFirst() {
         val context = PatchContexts.of(adapterClasses())
         val found = context.findPlaceholders()
         val before = found.add.implementation!!.instructions.count()
+        val ways = listOf(found.update, found.insert).associate { it.name to it.implementation!!.instructions.count() }
+        assertEquals("the update and the insert", setOf("update", "insert"), ways.keys)
         context.leaveOutSentReels(found)
         val methods = context.mutableClassDefBy(adapter).methods
         val add = methods.single { it.name == "add" }
         assertLeavesOutSent("stand-in", add, found, before)
-        for (name in listOf("shimmer", "update", "scroll")) {
+        for ((name, count) in ways) assertLeavesOutSent("stand-in $name", methods.single { it.name == name }, found, count)
+        for (name in listOf("shimmer", "scroll")) {
             assertTrue("$name was touched", methods.single { it.name == name }.code().none { it.referenceText() == LEAVE_OUT_SENT })
         }
 
@@ -1015,11 +1028,12 @@ class SwipeChatReelsHookTest {
         val loading = FixtureDex.classesLoading(bundle, ADD_REELS)
         val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
         val found = context.findPlaceholders()
-        val before = found.add.implementation!!.instructions.count { it.opcode != Opcode.NOP }
+        val ways = listOf(found.add, found.update, found.insert)
+        val before = ways.map { way -> way.implementation!!.instructions.count { it.opcode != Opcode.NOP } }
         context.leaveOutSentReels(found)
-        assertLeavesOutSent(label, found.add, found, before)
+        ways.forEachIndexed { index, way -> assertLeavesOutSent("$label ${way.name}", way, found, before[index]) }
         val hooked = loading.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
-        assertEquals("$label: adds hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == LEAVE_OUT_SENT } })
+        assertEquals("$label: ways in hooked", 3, hooked.count { method -> method.code().any { it.referenceText() == LEAVE_OUT_SENT } })
     }
 
     /**
@@ -1103,7 +1117,8 @@ class SwipeChatReelsHookTest {
      * An adapter shaped like Instagram 453's 045b: its add loads [ADD_REELS] and reads the viewer's
      * [VIEWER_CONFIG] (twice, as 045b does) and the config's [VIEWER_SOURCE], next to another class's
      * config and source. Its placeholder is handed a position and calls the add, next to an update
-     * that calls it too and a scroll handed a position that doesn't.
+     * that hands its reels to the adapter's list and calls the add too, an insert reading that list,
+     * an insert listener that doesn't, and a scroll handed a position that calls nothing.
      */
     private fun adapterClasses(
         adds: Int = 1,
@@ -1117,6 +1132,9 @@ class SwipeChatReelsHookTest {
         shimmers: Int = 1,
         shimmerLocals: Int = 1,
         shimmerEntered: Boolean = false,
+        updateLocals: Int = 2,
+        handed: List<String> = listOf("items"),
+        insertions: Int = 1,
     ): List<ClassDef> {
         val scratch = "v${locals - 1}"
         val name = if (adds == 0) "$ADD_REELS:addToDataSource" else ADD_REELS
@@ -1144,9 +1162,16 @@ class SwipeChatReelsHookTest {
         val shows = List(maxOf(shimmers, 1)) {
             method(adapter, if (it == 0) "shimmer" else "shimmer$it", listOf("Ljava/lang/Integer;"), "V", shimmerLocals, final, shimmerBody)
         }
-        val update = method(adapter, "update", listOf("Ljava/util/List;", "Z"), "V", 1, final, "const/4 v0, 0x0\n$addTo\nreturn-void")
+        // The update hands its reels to the adapter's list, then calls the add for the flag's empty one.
+        val handsOver = handed.joinToString("\n") { "iget-object v0, p0, $adapter->$it:$adapterItems\ninvoke-virtual {v0, p1}, $adapterItems->replace(Ljava/util/List;)V" }
+        val update = method(adapter, "update", listOf("Ljava/util/List;", "Z"), "V", updateLocals, final, "$handsOver\nconst/4 v0, 0x0\n$addTo\nreturn-void")
+        val inserts = List(insertions) {
+            method(adapter, if (it == 0) "insert" else "insert$it", listOf("Ljava/util/List;", "I"), "V", 2, final, "iget-object v0, p0, $adapter->items:$adapterItems\nreturn-void")
+        }
+        // Instagram's insert listener takes reels and an int too and reads other fields.
+        val inserted = method(adapter, "inserted", listOf("Ljava/util/List;", "I"), "V", 2, final, "iget-object v0, p0, $adapter->watcher:$adapterItems\nreturn-void")
         val scroll = method(adapter, "scroll", listOf("Ljava/lang/Integer;"), "V", 1, final, "const/4 v0, 0x0\nreturn-void")
-        return listOf(classDef(adapter, puts + shows + update + scroll))
+        return listOf(classDef(adapter, puts + shows + update + inserts + inserted + scroll))
     }
 
     /** The chat reels test gets its flag answered through the extension, and nothing else changes. */

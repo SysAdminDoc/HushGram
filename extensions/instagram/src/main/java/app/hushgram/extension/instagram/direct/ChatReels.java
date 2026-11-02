@@ -165,9 +165,11 @@ public final class ChatReels {
     /**
      * The reels to add to a viewer whose source is [source], its ClipsViewerSource, out of [items], a
      * page of them. A viewer opened from a chat pages the chat's reels from the server too, past the
-     * opener, so while "Only received reels" is on the reels the viewer sent there, as remembered by
-     * {@link #received(Object, Object)}, are left out of the page. [items] for any other viewer, with the
-     * switch off, while HushGram is paused, before the settings are ready and on any failure. Never throws.
+     * opener, and merges each page in through its update or an insert rather than its add, so while
+     * "Only received reels" is on the reels the viewer sent there, as remembered by
+     * {@link #received(Object, Object)}, are left out of the page whichever way it comes in. [items] for
+     * any other viewer, with the switch off, while HushGram is paused, before the settings are ready and
+     * on any failure. Never throws.
      */
     @Nullable
     public static List<?> leaveOutSent(@Nullable List<?> items, @Nullable Object source) {
@@ -192,7 +194,7 @@ public final class ChatReels {
                     continue;
                 }
                 if (kept == null) kept = new ArrayList<>(items.subList(0, i));
-                HookStatus.counted(FamilyNames.CHAT_REELS, "sent reel left out of the chain");
+                HookStatus.counted(FamilyNames.CHAT_REELS, "sent reel left out of a page");
             }
             return kept == null ? items : kept;
         } catch (Throwable failure) {
