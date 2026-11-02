@@ -224,14 +224,14 @@ public final class GlassTabBar {
     }
 
     /**
-     * The slot kept under a Reels viewer for a pill [pill] tall, its lift included ({@link #reelsMargin}). A
-     * pill the Reels auto-hide ({@link GlassReelsHide}) has slid all the way off, [slidOff], gives its own
-     * height to the reel, since the slot kept under it was a black band where the pill had been (#335). The
-     * navigation bar's room under it stays, so the seek bar is still clear of the gesture handle (#221). The
-     * pill's height comes back as it starts to return.
+     * Whether the Reels viewers run behind the pill: Run Reels behind the tab bar ([behind], #372), or a
+     * Reels auto-hide ([hide], {@link GlassReelsHide}) that slides the pill away. A slot kept under the
+     * reel while the pill was away was a black band (#335), and a reel given the slot back each time the
+     * pill slid off grew and shrank with it, the video jumping on every slide (#466, #467). Behind the
+     * pill the reel keeps one size and only its caption, buttons and seek bar keep clear of the slot.
      */
-    static int reelsSlot(int pill, boolean slidOff) {
-        return reelsMargin(slidOff ? 0 : pill);
+    static boolean reelsRunBehind(boolean behind, @Nullable GlassReelsHide hide) {
+        return behind || (hide != null && hide != GlassReelsHide.NEVER);
     }
 
     /**
@@ -1921,15 +1921,15 @@ public final class GlassTabBar {
          * {@link #REELS_LOOK_MS}, and at once when the margin they want changes, so a viewer is never left
          * a frame at a size Instagram's own layout just gave it. Where Instagram hides the bar outside the
          * Reels tab, as over a reel opened from a feed post, the viewers get Instagram's 0 back
-         * ({@link #reelsKeepTheSlot}, #347). Where an auto-hide has the pill all the way off, the reel runs
-         * down to the gesture handle while the pill is away ({@link #reelsSlot}, #335).
+         * ({@link #reelsKeepTheSlot}, #347). With a Reels auto-hide the reel runs behind the pill, so it
+         * neither leaves a band while the pill is away nor moves as it slides ({@link #reelsRunBehind}).
          */
         private void keepReelsAboveTheSlot(View holder, long now) {
             if (originalBarHeight <= 0) return;
             boolean keep = reelsKeepTheSlot(bar, id(holder.getContext(), REELS_TAB));
-            int slot = reelsSlot(barHeightPx(height, originalBarHeight, density) + lift,
-                    scrollHide != null && scrollHide.isOffScreen());
-            boolean behind = Settings.GLASS_TAB_BAR_REELS_BEHIND.get();
+            int slot = reelsMargin(barHeightPx(height, originalBarHeight, density) + lift);
+            boolean behind = reelsRunBehind(Settings.GLASS_TAB_BAR_REELS_BEHIND.get(),
+                    Settings.GLASS_TAB_BAR_REELS_HIDE.get());
             int wanted = reelsViewerMargin(keep, behind, slot);
             int bandLift = reelsBandLift(keep, behind, slot);
             if (wanted == reelsWanted && bandLift == reelsBandLift && now - reelsLookedAt < REELS_LOOK_MS) return;

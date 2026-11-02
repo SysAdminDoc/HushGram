@@ -2535,14 +2535,18 @@ public class GlassTabBarTest {
     }
 
     /**
-     * #335: with the Reels auto-hide holding the pill all the way off, the reel gets the pill's height
-     * instead of a black band. Only the navigation bar's room stays under it (#221).
+     * #466, #467: with a Reels auto-hide the reel runs behind the pill, so it keeps one size as the pill
+     * slides instead of growing into its slot, and leaves no black band while it's away (#335).
      */
     @Test
-    public void reelsGiveUpThePillsHeightWhileTheAutoHideHasItOff() {
-        assertEquals("pill showing", GlassTabBar.reelsMargin(150), GlassTabBar.reelsSlot(150, false));
-        assertEquals("pill slid all the way off", GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(150, true));
-        assertEquals(GlassTabBar.reelsMargin(0), GlassTabBar.reelsSlot(0, false));
+    public void aReelsAutoHideRunsTheReelBehindThePill() {
+        assertFalse(GlassTabBar.reelsRunBehind(false, GlassReelsHide.NEVER));
+        assertFalse(GlassTabBar.reelsRunBehind(false, null));
+        assertTrue(GlassTabBar.reelsRunBehind(true, GlassReelsHide.NEVER));
+        for (GlassReelsHide hide : GlassReelsHide.values()) {
+            if (hide != GlassReelsHide.NEVER) assertTrue(hide.name(), GlassTabBar.reelsRunBehind(false, hide));
+        }
+        assertEquals("never hidden by default", GlassReelsHide.NEVER, Settings.GLASS_TAB_BAR_REELS_HIDE.defaultValue);
     }
 
     /**

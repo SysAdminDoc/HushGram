@@ -36,6 +36,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** With `Glass tab bar` and `Hide the tab bar on Reels`, the reel stays put when the pill slides away or comes back. It used to grow into the pill's spot and jump back, so the video moved every time. Now the reel runs behind the pill the way `Run Reels behind the tab bar` does, with its caption, buttons and seek bar kept above the pill's spot. There's still no black band once the pill is gone. Reported in #466 and #467.
 * **Instagram:** `See who a story mentions` opens its list again after a profile even when the story next to it mentions other people. That other story counted as you moving on, so the list stayed closed. Reported in #403.
 * **Instagram:** `See-through top bar` now reaches behind the status bar. Home's posts scroll on under the clock and the glass covers that strip too, so the blur runs to the top of the screen. Reported in #462.
 * **Instagram:** `Turn off HDR brightness boosts` now also turns off the fake HDR Instagram's own AV1 video decoder can add to ordinary reels. Where Instagram plays a reel through that decoder, the reel could still come out brighter than the rest of the screen. The diagnostic report counts each time. Reported in #85.

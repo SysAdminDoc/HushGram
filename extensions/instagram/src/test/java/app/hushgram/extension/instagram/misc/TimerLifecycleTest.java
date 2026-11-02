@@ -415,14 +415,32 @@ public class TimerLifecycleTest {
     }
 
     /**
-     * #221, #280, #335: under a floating pill the Reels viewer stops at the top of the pill's slot and
-     * keeps that one size while the wait on Reels slides the pill away, with nothing of the reel raised.
-     * Grown and shrunk with the pill, the video rescaled and the caption dropped (#221). Run on behind
-     * the pill, the reel sat half the pill's height lower, with a wide black band over it (#280). Once
-     * the pill is all the way off the reel takes its slot, which was a black band (#335), and a tap
-     * brings the pill and the slot back.
+     * Under a floating pill without a Reels auto-hide the Reels viewer stops at the top of the pill's
+     * slot, with nothing of the reel raised (#221, #280).
      */
-    @Test public void aReelStopsAtThePillsSlotAndTakesItOnlyWhileThePillIsAllTheWayOff() {
+    @Test public void aReelStopsAtThePillsSlot() {
+        LinearLayout tabs = namedTabBar();
+        Reel reel = showReel();
+        Settings.GLASS_TAB_BAR.save(true);
+        assertTrue(Settings.GLASS_TAB_BAR_FLOAT.get());
+        GlassTabBar.apply(activity);
+        idle(500);
+        int pill = tabs.getLayoutParams().height;
+        assertTrue(pill > 0);
+        assertEquals("the reel stops at the pill's slot", pill, bottomMargin(reel.viewer));
+        layout();
+        assertEquals(1920 - pill, reel.media.getHeight());
+        assertRaised(reel, 0);
+        GlassTabBar.restoreAll();
+    }
+
+    /**
+     * #466, #467: with the wait on Reels the reel runs behind the pill and keeps that one size as the
+     * pill slides away and back. Given the pill's slot only while the pill was all the way off (#335), the
+     * video grew and jumped back with every slide. The caption, buttons and seek bar stay raised clear
+     * of the pill's spot, and once the pill is away there's no black band where it was (#335).
+     */
+    @Test public void aReelsAutoHideKeepsTheReelOneSizeBehindThePill() {
         LinearLayout tabs = namedTabBar();
         Reel reel = showReel();
         Settings.GLASS_TAB_BAR.save(true);
@@ -430,44 +448,46 @@ public class TimerLifecycleTest {
         Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
         GlassTabBar.apply(activity);
         idle(500);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
         int pill = tabs.getLayoutParams().height;
         assertTrue(pill > 0);
-        assertEquals("the reel stops at the pill's slot", pill, bottomMargin(reel.viewer));
+        assertEquals("the reel runs behind the pill", 0, bottomMargin(reel.viewer));
         layout();
-        int height = reel.media.getHeight();
-        assertEquals(1920 - pill, height);
-        assertRaised(reel, 0);
+        assertEquals(1920, reel.media.getHeight());
+        assertRaised(reel, pill);
         float[] spot = middleOf(tabs);
 
         idle(2500);
         assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
         idle(500);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
         layout();
-        assertEquals("the reel takes the slot", 0, bottomMargin(reel.viewer));
-        assertEquals("and runs to the bottom", 1920, reel.media.getHeight());
-        assertRaised(reel, 0);
+        assertEquals("the reel doesn't move", 0, bottomMargin(reel.viewer));
+        assertEquals(1920, reel.media.getHeight());
+        assertRaised(reel, pill);
 
         tapAt(spot);
         idle(500);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
         layout();
         assertEquals("the pill is back", 0f, tabs.getTranslationY(), 0f);
-        assertEquals(pill, bottomMargin(reel.viewer));
-        assertEquals(height, reel.media.getHeight());
-        assertRaised(reel, 0);
+        assertEquals(0, bottomMargin(reel.viewer));
+        assertEquals(1920, reel.media.getHeight());
+        assertRaised(reel, pill);
         GlassTabBar.restoreAll();
     }
 
     /**
-     * #221, #335: with the screens run behind the gesture handle, the reel stops above the pill and the
-     * navigation bar's height Instagram was answered 0 for. With the pill all the way off it gives up
-     * only the pill's height and still stops above the handle. Run to the bottom edge, the reel's seek
-     * bar sat in the handle's reach and took no touches.
+     * #221, #467: with the screens run behind the gesture handle, the reel stops above the pill and the
+     * navigation bar's height Instagram was answered 0 for. With the wait on Reels the reel runs behind
+     * the pill instead, and its caption and seek bar stay raised above the pill and the handle whether
+     * the pill shows or not. Run to the bottom edge, the reel's seek bar sat in the handle's reach and
+     * took no touches.
      */
     @Test public void aReelStopsAboveTheGestureHandleWhetherThePillShowsOrNot() {
         LinearLayout tabs = namedTabBar();
         Reel reel = showReel();
         Settings.GLASS_TAB_BAR.save(true);
-        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
         GlassTabBar.apply(activity);
         GlassTabBar.nowInFront(activity);
         assertEquals("the screens run behind the handle", 0, GlassTabBar.navBarHeight(63));
@@ -480,19 +500,42 @@ public class TimerLifecycleTest {
         assertEquals("the pill made room for the handle", 150 + 63, pill);
         assertEquals("the reel stops above the pill and the handle", pill, bottomMargin(reel.viewer));
         assertRaised(reel, 0);
+        GlassTabBar.restoreAll();
+    }
+
+    /** {@link #aReelStopsAboveTheGestureHandleWhetherThePillShowsOrNot}, with the wait on Reels (#467). */
+    @Test public void aReelsAutoHideKeepsTheSeekBarAboveTheGestureHandle() {
+        LinearLayout tabs = namedTabBar();
+        Reel reel = showReel();
+        Settings.GLASS_TAB_BAR.save(true);
+        Settings.GLASS_TAB_BAR_REELS_HIDE.save(GlassReelsHide.TWO_SECONDS);
+        GlassTabBar.apply(activity);
+        GlassTabBar.nowInFront(activity);
+        assertEquals("the screens run behind the handle", 0, GlassTabBar.navBarHeight(63));
+        idle(GlassTabBar.REELS_LOOK_MS * 2);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        layout();
+        idle(500);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        int pill = tabs.getLayoutParams().height;
+        assertEquals("the pill made room for the handle", 150 + 63, pill);
+        assertEquals("the reel runs behind the pill", 0, bottomMargin(reel.viewer));
+        assertRaised(reel, pill);
         float[] spot = middleOf(tabs);
 
         idle(2500);
         assertTrue("the pill slid away", tabs.getTranslationY() > 50f);
         idle(500);
-        assertEquals("the reel stops above the handle", 63, bottomMargin(reel.viewer));
-        assertRaised(reel, 0);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
+        assertEquals("the reel doesn't move", 0, bottomMargin(reel.viewer));
+        assertRaised(reel, pill);
 
         tapAt(spot);
         idle(500);
+        tabs.getViewTreeObserver().dispatchOnPreDraw();
         assertEquals("the pill is back", 0f, tabs.getTranslationY(), 0f);
-        assertEquals(pill, bottomMargin(reel.viewer));
-        assertRaised(reel, 0);
+        assertEquals(0, bottomMargin(reel.viewer));
+        assertRaised(reel, pill);
         GlassTabBar.restoreAll();
     }
 
