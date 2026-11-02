@@ -33,6 +33,7 @@ Every HushGram release, newest first.
 ### Bug Fixes
 
 * **Instagram:** With `Stop after the chat's reels` on, the reels a chat shares scroll again, one after another. A swipe up past the last one goes back to the chat, and pulling down at the top no longer reloads the viewer with suggested reels. Reported in #390.
+* **Instagram:** `Explore without personalization` did nothing outside the EU. It waited for the EU's menu button before asking for the grid that isn't personalized, and now it asks on every account. Instagram only promises that grid in the EU, so elsewhere it's up to them what comes back. Reported in #311.
 * **Instagram:** `Rounded corners on Reels` rounded the corners of the screen instead of the video when a reel had black bars above and below it, so the video itself stayed square. The corners now go on the video and move with it. Reported in #456.
 * **Instagram:** `Jump to the first message` could stop partway up a long chat and say "Here it is." On a slow connection it now waits while Instagram shows older messages loading and taps Instagram's Retry when a page fails. If Instagram still won't send more, it tells you so. A clock button next to the call buttons at the top of a chat opens the menu too, and the menu is now a small popup with icons. Reported in #453.
 * **Instagram:** The glass tab bar could stay over a story's reply box until Instagram restarted, when an older story viewer was still hidden in the background. The bar now looks past it. Reported in #450.

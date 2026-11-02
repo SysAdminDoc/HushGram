@@ -1146,8 +1146,8 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_show_all_recent_searches", FALSE);
 
     /**
-     * Where Instagram offers a grid that isn't personalized (the EU), Explore opens with it each
-     * time and the ten-minute switch back is skipped
+     * Explore asks for the grid that isn't personalized each time it opens, on any account (#311),
+     * and the ten-minute switch back is skipped. Instagram only promises that grid in the EU
      * ({@link app.hushgram.extension.instagram.explore.ExploreMenu}). Read each time Explore
      * resumes. Off to start.
      */

@@ -50,8 +50,8 @@ final class ExploreCategory {
             if (build.contains(PatchFamily.EXPLORE_MENU)) {
                 explore.addPreference(toggle(context, Settings.EXPLORE_WITHOUT_PERSONALIZATION,
                         L10n.t("Explore without personalization"),
-                        L10n.t("Where Instagram offers it (in the EU), Explore opens with the grid that isn't "
-                                + "personalized every time, and stays on it past ten minutes.")));
+                        L10n.t("Explore asks for the grid that isn't personalized every time it opens, and stays "
+                                + "on it past ten minutes. Instagram only promises that grid in the EU.")));
                 explore.addPreference(toggle(context, Settings.HIDE_EXPLORE_MENU,
                         L10n.t("Hide Explore's personalized menu"),
                         L10n.t("Hides the top bar button that switches Explore's personalization, where Instagram "

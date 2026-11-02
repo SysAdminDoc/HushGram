@@ -70,9 +70,9 @@ private val INT_CONSTS = setOf(Opcode.CONST, Opcode.CONST_HIGH16)
 @Suppress("unused")
 val exploreMenuPatch = bytecodePatch(
     name = "Explore without personalization",
-    description = "Where Instagram lets you turn off personalization in Explore (in the EU), opens Explore on " +
-        "the grid that isn't personalized every time and keeps it from switching back after ten minutes. A " +
-        "second switch hides the menu button for it. Both start off. Turn them on in HushGram settings > Explore.",
+    description = "Opens Explore on the grid that isn't personalized every time and keeps it from switching back " +
+        "after ten minutes. Instagram only promises that grid in the EU. A second switch hides the EU menu button " +
+        "for it. Both start off. Turn them on in HushGram settings > Explore.",
 ) {
     category("Privacy")
     dependsOn(settingsPatch, instagramExtensionPatch)
