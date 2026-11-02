@@ -162,7 +162,8 @@ internal fun BytecodePatchContext.findExploreTimer(): ExploreTimer {
  *     if-eqz vT  invoke-virtual { vT }, the timer  move-result  if-eqz
  *
  * and writes the personalized flag right after. The hook goes in front of the flag read, and also
- * reads the grid field the reload checks first, so it never reloads a fragment without a grid.
+ * reads the grid field the reload checks first, so it never reloads a fragment without a grid. The
+ * menu flag's number is kept for finding the menu button, which is made behind the same flag.
  */
 internal class ExploreResume(
     val fragment: String,
@@ -170,9 +171,6 @@ internal class ExploreResume(
     val controller: Int,
     val personalized: FieldReference,
     val timerField: FieldReference,
-    val flagSource: MethodReference,
-    val arguments: List<Int>,
-    val flagCheck: MethodReference,
     val flag: Long,
     val grid: FieldReference,
     val scratch: Int,
@@ -257,7 +255,7 @@ internal fun BytecodePatchContext.findExploreResume(timer: ExploreTimer): Explor
     val scratch = free.firstOrNull { it != pair && it != pair + 1 }
         ?: menuRefuse("$where has no third free register for the hook")
     return ExploreResume(
-        timer.fragment, hookAt, controller, personalized, timerField, flagSource, arguments, flagCheck, flag,
+        timer.fragment, hookAt, controller, personalized, timerField, flag,
         grid, scratch, pair,
     )
 }
@@ -395,11 +393,14 @@ internal fun BytecodePatchContext.keepExploreUnpersonalized(timer: ExploreTimer)
 
 /**
  * In front of the personalized flag read in onResume, on its own label since a branch lands there:
- * on the personalized grid, with the switch on, where the menu flag says Explore offers the menu
- * and the timer, its fragment and the fragment's grid are all there, it does what the menu's row
- * does. It clears the flag and calls the reload with the timer's state, the fragment and false. The
- * code after it then sees the grid that isn't personalized, and the timer (kept by
- * [keepExploreUnpersonalized]) leaves it be.
+ * on the personalized grid, with the switch on, where the timer, its fragment and the fragment's
+ * grid are all there, it does what the menu's row does. It clears the flag and calls the reload with
+ * the timer's state, the fragment and false. The code after it then sees the grid that isn't
+ * personalized, and the timer (kept by [keepExploreUnpersonalized]) leaves it be.
+ *
+ * It doesn't ask the menu flag first (#311). Instagram makes the timer and sets the flag on every
+ * account, and neither the reload nor the request it sends checks the region, so only the menu is
+ * EU-only.
  */
 internal fun BytecodePatchContext.unpersonalizeExploreResume(timer: ExploreTimer, resume: ExploreResume) {
     val method = mutableClassDefBy(resume.fragment).methods.single {
@@ -409,19 +410,12 @@ internal fun BytecodePatchContext.unpersonalizeExploreResume(timer: ExploreTimer
     val b = resume.pair
     val c = resume.pair + 1
     val control = resume.controller
-    val arguments = resume.arguments.joinToString { "v$it" }
     method.addInstructionsAtControlFlowLabel(
         resume.hookAt,
         """
             iget-boolean v$a, v$control, ${fieldText(resume.personalized)}
             if-eqz v$a, :keep
             invoke-static { }, $UNPERSONALIZE
-            move-result v$a
-            if-eqz v$a, :keep
-            invoke-static { $arguments }, ${methodText(resume.flagSource)}
-            move-result-object v$a
-            const-wide v$b, ${resume.flag}L
-            invoke-static { v$a, v$b, v$c }, ${methodText(resume.flagCheck)}
             move-result v$a
             if-eqz v$a, :keep
             iget-object v$b, v$control, ${fieldText(resume.timerField)}

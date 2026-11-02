@@ -20,12 +20,12 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * next time Explore comes back, a timer reloads the personalized grid on its own.
  *
  * <p>The patch asks {@link #unpersonalize} as Explore resumes on the personalized grid. On a yes it
- * makes the same check Instagram makes before it shows the menu, and where the menu is offered it
  * does what the row does: clears the flag and reloads the grid through the same call, so the
  * request is Instagram's own. {@link #reloaded} counts each of those reloads.
  * {@link #keepUnpersonalized} stops the ten-minute timer. {@link #button} and {@link #oldButton}
- * hide the menu button on the two top bar layouts. Outside the EU the check says no, Instagram
- * never shows that menu, and nothing changes.
+ * hide the menu button on the two top bar layouts. The timer, the flag and the reload are there on
+ * every account, so the reload doesn't wait for the EU-only menu check (#311); outside the EU
+ * there's just no menu button to hide.
  */
 public final class ExploreMenu {
     /** What's counted each time Explore is reloaded without personalization. */
@@ -42,10 +42,10 @@ public final class ExploreMenu {
 
     /**
      * Injected where Explore resumes, when the controller says the personalized grid is showing.
-     * Answers true while Explore without personalization is on, and the patch then goes on to
-     * Instagram's own check for the menu. False while the switch is off, HushGram is paused or the
-     * settings aren't ready, or when anything goes wrong, and the patch leaves Explore alone without
-     * asking Instagram anything. Never throws.
+     * Answers true while Explore without personalization is on, and the patch then reloads the grid
+     * once it finds the timer and the grid. False while the switch is off, HushGram is paused or the
+     * settings aren't ready, or when anything goes wrong, and the patch leaves Explore alone. Never
+     * throws.
      */
     public static boolean unpersonalize() {
         try {

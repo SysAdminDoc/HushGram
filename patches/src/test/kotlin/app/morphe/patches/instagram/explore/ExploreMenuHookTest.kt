@@ -142,8 +142,8 @@ class ExploreMenuHookTest {
     }
 
     /**
-     * In front of the personalized flag read: the flag, the switch, the menu flag, the timer, its
-     * fragment, the grid and the state are each checked, then the reload is counted, the flag
+     * In front of the personalized flag read: the flag, the switch, the timer, its fragment, the grid
+     * and the state are each checked, with no menu flag asked, then the reload is counted, the flag
      * cleared and the same static reload the menu's row makes is called with false. Every check
      * jumps to the original read, and a branch that landed there lands on the hook now.
      */
@@ -172,7 +172,8 @@ class ExploreMenuHookTest {
         val reload = code[counted + 3]
         assertEquals("$what: the reload", timer.reload.toString(), referenceText(reload))
         assertEquals("$what: with false", (clear as TwoRegisterInstruction).registerA, (reload as FiveRegisterInstruction).registerE)
-        assertEquals("$what: the flag source's arguments", resume.arguments, registers(code[start + 5] as FiveRegisterInstruction))
+        val asked = (start until counted).filter { code[it].opcode == Opcode.CONST_WIDE }
+        assertTrue("$what: doesn't ask the menu flag, which is EU-only (#311)", asked.isEmpty())
 
         val keep = counted + 4
         assertEquals("$what: the label's nop", Opcode.NOP, code[keep].opcode)
@@ -184,7 +185,7 @@ class ExploreMenuHookTest {
         val addresses = code.runningFold(0) { at, instruction -> at + instruction.codeUnits }
         fun target(at: Int) = addresses.indexOf(addresses[at] + (code[at] as OffsetInstruction).codeOffset)
         val checks = (start until counted).filter { code[it].opcode == Opcode.IF_EQZ }
-        assertEquals("$what: the checks", 7, checks.size)
+        assertEquals("$what: the checks", 6, checks.size)
         for (at in checks) assertEquals("$what: the check at $at leaves Explore alone", keep, target(at))
         if (branchedOnto) assertTrue("$what: the branch onto the read lands on the hook", start in method.jumpTargets())
     }
@@ -254,9 +255,6 @@ class ExploreMenuHookTest {
     }
 
     private fun referenceText(instruction: Instruction) = (instruction as? ReferenceInstruction)?.reference?.toString()
-
-    private fun registers(call: FiveRegisterInstruction) =
-        listOf(call.registerC, call.registerD, call.registerE, call.registerF, call.registerG).take(call.registerCount)
 
     private companion object {
         val MAKER_PARAMETERS = listOf("Landroid/view/View\$OnClickListener;", "I", "I", "I", "I")
