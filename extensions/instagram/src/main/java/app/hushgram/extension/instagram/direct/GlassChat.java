@@ -44,7 +44,8 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * <p>No part of Instagram's code changes. Once an activity is in front, this looks before each frame for
  * the chat's header by the ids Instagram's own header code looks its views up by, found by name so no
  * obfuscated name is written here: the header's back button, the row of buttons on its right and, to
- * be sure it's a chat, the chat's root. The header is the view that holds both. {@link GlassTopBar}
+ * be sure it's a chat, the chat's root. The buttons are looked for from that root outward, since 453 puts
+ * the header beside the root and not in it, and the header is the view that holds both. {@link GlassTopBar}
  * gives it the blurred, tinted background, recording the views its parent draws before it. A chat that
  * lists its messages beside the header and not under it has nothing under the header to blur, so the
  * header shows its tint over the chat's own colour. Each button gets a disc behind it, over whatever
@@ -63,6 +64,11 @@ public final class GlassChat {
     static final String BUTTONS = "header_right_buttons";
     static final String CHAT = "thread_view_root";
 
+    /**
+     * How many parents up from the chat's root the header's buttons are looked for. Instagram 453 puts the
+     * header beside the root, three up, under the screen they share.
+     */
+    static final int REACH = 4;
     /** How long the search for the header waits between tries while there's none, so a feed isn't searched every frame. */
     static final long SEARCH_EVERY_MS = 400L;
     /** The disc's diameter, in dp, at most: a button's touch area can be larger than the circle drawn on it. */
@@ -165,12 +171,25 @@ public final class GlassChat {
         if (chat == 0 || back == 0 || buttons == 0) return null;
         View root = activity.findViewById(chat);
         if (root == null || !root.isShown()) return null;
-        View left = root.findViewById(back);
-        View right = root.findViewById(buttons);
+        View left = nearest(root, back);
+        View right = nearest(root, buttons);
         if (left == null || right == null) return null;
         View at = left;
         for (int up = 0; up < 5 && at != null; up++) {
             if (at != right && contains(at, right)) return at;
+            ViewParent parent = at.getParent();
+            at = parent instanceof View ? (View) parent : null;
+        }
+        return null;
+    }
+
+    /** The view with [id] in [root] or in the nearest of its parents, at most {@link #REACH} up. */
+    @Nullable
+    private static View nearest(View root, int id) {
+        View at = root;
+        for (int up = 0; up <= REACH && at != null; up++) {
+            View found = at.findViewById(id);
+            if (found != null) return found;
             ViewParent parent = at.getParent();
             at = parent instanceof View ? (View) parent : null;
         }

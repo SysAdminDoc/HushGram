@@ -137,6 +137,40 @@ public class GlassChatTest {
         assertSame(header, GlassChat.find(activity));
     }
 
+    /** Instagram 453's chat: the header sits beside the chat's root, three parents up, not inside it. */
+    @Test
+    public void aHeaderBesideTheChatsRootIsFoundAndDressed() {
+        FrameLayout screen = new FrameLayout(activity);
+        LinearLayout beside = new LinearLayout(activity);
+        ImageView back453 = new ImageView(activity);
+        back453.setId(BACK_ID);
+        LinearLayout buttons453 = new LinearLayout(activity);
+        buttons453.setId(BUTTONS_ID);
+        ImageView call453 = new ImageView(activity);
+        buttons453.addView(call453, new LinearLayout.LayoutParams(100, 100));
+        beside.addView(back453, new LinearLayout.LayoutParams(100, 100));
+        beside.addView(buttons453, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, 100));
+        FrameLayout below = new FrameLayout(activity);
+        FrameLayout toggle = new FrameLayout(activity);
+        LinearLayout chat = new LinearLayout(activity);
+        chat.setId(ROOT_ID);
+        toggle.addView(chat, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        below.addView(toggle, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        screen.addView(beside, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, HEADER));
+        screen.addView(below, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        activity.setContentView(screen);
+        ShadowLooper.idleMainLooper();
+
+        assertSame(beside, GlassChat.find(activity));
+
+        Settings.GLASS_CHAT.save(true);
+        GlassChat.check(activity);
+        beside.getViewTreeObserver().dispatchOnPreDraw();
+        assertTrue(GlassTopBar.showing(beside));
+        assertTrue(hasDisc(back453));
+        assertTrue(hasDisc(call453));
+    }
+
     @Test
     public void offLeavesInstagramsHeaderAlone() {
         frame();
