@@ -444,7 +444,7 @@ public class ThreadSeenTest {
         chats.keyThrows = true;
         chats.messageThrows = true;
         chats.accountThrows = true;
-        assertTrue(hold(receipt("t1", "m1")));
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), SESSION, ON, () -> false, OFF, OFF, chats, clock));
         assertNothingReported();
     }
 
@@ -1019,6 +1019,110 @@ public class ThreadSeenTest {
         assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
     }
 
+    /** Holds a receipt with Mark a chat seen when you reply off and the header's check mark on (#458). */
+    private boolean holdForButton(Receipt receipt, Session session) {
+        return ThreadSeen.hold(receipt, session, ON, () -> false, OFF, ON, chats, clock);
+    }
+
+    @Test
+    public void theCheckMarkSendsTheOpenChatsHeldReceipt() {
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        assertTrue(chats.sent.isEmpty());
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+        assertTrue(ThreadSeen.markOpenChatRead("a1", "t1", 0, chats, clock));
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+        assertEquals("the chat's unread mark comes off", 1, chats.cleared.size());
+        assertEquals("Marked as read", toast());
+        assertFalse("nothing left to send once it went", ThreadSeen.hasHeld("a1", "t1", 0));
+        assertNothingReported();
+    }
+
+    @Test
+    public void theCheckMarkOnlyTouchesTheOpenChatAndAccount() {
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        assertFalse(ThreadSeen.hasHeld("a1", "t2", 0));
+        assertFalse(ThreadSeen.hasHeld("a2", "t1", 0));
+        assertFalse(ThreadSeen.markOpenChatRead("a1", "t2", 0, chats, clock));
+        assertEquals("Nothing to mark as read", toast());
+        assertFalse(ThreadSeen.markOpenChatRead("a2", "t1", 0, chats, clock));
+        assertTrue(chats.sent.isEmpty());
+        assertTrue("an unknown account still finds the chat", ThreadSeen.hasHeld(null, "t1", 0));
+        assertNothingReported();
+    }
+
+    @Test
+    public void withTheChatUnknownTheNewestReceiptHeldSinceItOpenedCounts() {
+        now[0] = 1_000L;
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        now[0] = 6_000L;
+        assertFalse("held before the chat came up", ThreadSeen.hasHeld(null, null, 5_000L));
+        assertTrue(holdForButton(receipt("t2", "m2"), SESSION));
+        assertTrue(holdForButton(receipt("t3", "m3"), OTHER));
+        now[0] = 7_000L;
+        assertTrue("held again, so it's the newest", holdForButton(receipt("t2", "m4"), SESSION));
+        assertTrue(ThreadSeen.hasHeld(null, null, 5_000L));
+        assertTrue(ThreadSeen.markOpenChatRead(null, "", 5_000L, chats, clock));
+        assertEquals(List.of("a1:t2/m4/s1"), chats.sent);
+        assertTrue("the others stay held", ThreadSeen.hasHeld("a2", "t3", 0));
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+    }
+
+    @Test
+    public void withBothSwitchesOffNothingIsKeptForTheCheckMark() {
+        assertTrue(ThreadSeen.hold(receipt("t1", "m1"), SESSION, ON, () -> false, OFF, OFF, chats, clock));
+        assertFalse(ThreadSeen.hasHeld("a1", "t1", 0));
+        assertFalse(ThreadSeen.markOpenChatRead("a1", "t1", 0, chats, clock));
+        assertTrue("the receipt is still held back", chats.sent.isEmpty());
+    }
+
+    @Test
+    public void aReceiptKeptOnlyForTheCheckMarkIsntSentByAReply() {
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertTrue(chats.sent.isEmpty());
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+    }
+
+    @Test
+    public void aReplyOrALongPressMarkAsReadTakesTheCheckMarkAway() {
+        assertTrue(holdForReply(receipt("t1", "m1"), SESSION));
+        ThreadSeen.replied(SESSION, new Composer("t1"), true, ON, chats, clock);
+        assertFalse(ThreadSeen.hasHeld("a1", "t1", 0));
+
+        assertTrue(holdForButton(receipt("t2", "m2"), SESSION));
+        assertTrue(ThreadSeen.markRead(MARK, MARK, SESSION, chat("m2", "s1"), new Key("t2"), ON, chats, clock));
+        assertFalse(ThreadSeen.hasHeld("a1", "t2", 0));
+        assertNothingReported();
+    }
+
+    @Test
+    public void aFailedSendKeepsTheCheckMarkForAnotherTap() {
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        chats.sendThrows = true;
+        assertFalse(ThreadSeen.markOpenChatRead("a1", "t1", 0, chats, clock));
+        assertEquals("Couldn't mark as read", toast());
+        assertTrue(chats.sent.isEmpty());
+        assertTrue(ThreadSeen.hasHeld("a1", "t1", 0));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.OPEN_CHAT + "'"));
+
+        chats.sendThrows = false;
+        HookStatus.clear();
+        assertTrue(ThreadSeen.markOpenChatRead("a1", "t1", 0, chats, clock));
+        assertEquals(List.of("a1:t1/m1/s1"), chats.sent);
+    }
+
+    /** A chat the check mark can't read still has its receipt held, and the check mark's step says why. */
+    @Test
+    public void aChatTheCheckMarkCantReadIsReportedAsTheCheckMarks() {
+        chats.keyThrows = true;
+        assertTrue(holdForButton(receipt("t1", "m1"), SESSION));
+        assertFalse(ThreadSeen.hasHeld("a1", "t1", 0));
+        String missing = HookStatus.missing(FamilyNames.THREAD_SEEN).toString();
+        assertTrue(missing, missing.contains("'" + ThreadSeen.OPEN_CHAT + "'"));
+        assertFalse(missing, missing.contains("'" + ThreadSeen.REPLY + "'"));
+    }
+
     private static Receipt receipt(String thread, String message, String sender) {
         return new Receipt(thread, message, sender);
     }
@@ -1032,7 +1136,7 @@ public class ThreadSeenTest {
         return String.valueOf(ShadowToast.getTextOfLatestToast());
     }
 
-    private static final class Session {
+    static final class Session {
         final String account;
 
         Session(String account) {
@@ -1091,7 +1195,7 @@ public class ThreadSeenTest {
         }
     }
 
-    private static final class Receipt {
+    static final class Receipt {
         final String thread;
         final String message;
         final String sender;
@@ -1149,7 +1253,7 @@ public class ThreadSeenTest {
      * Instagram's chats as these tests keep them: a session names its account, a receipt its chat
      * and message, a key its chat, a chat its last message, and a summary its chat and newest message.
      */
-    private static final class FakeChats implements ThreadSeen.Chats {
+    static final class FakeChats implements ThreadSeen.Chats {
         final List<String> sent = new ArrayList<>();
         final List<Object> cleared = new ArrayList<>();
         boolean sendThrows;

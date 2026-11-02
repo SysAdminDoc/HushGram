@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Read messages without the seen receipt` adds `Mark as read button in chats` under Messages. While a chat hasn't told the other person you've seen it, a check mark sits at the top next to the call buttons. Tap it and they see Seen, the same as Mark as read on a long press. It starts on. Asked for in #458.
 * **Instagram:** `HushGram settings` adds `Black settings page` under Settings entry. Cards and dialogs go black, HushGram's name and version sit at the top, and each category is one line with its icon. It starts off. Asked for in #455.
 * **Instagram:** `Home header text` is a new patch. Under Layout, type a few words or pick a picture and it shows at the top of Home where Instagram's logo was. Leave both empty to keep the logo. Asked for in #454.
 * **Instagram:** `Upload stories at full quality` adds `Upload quality applies to`, so posts and reels can go up at 1080p too, and `Video bitrate`, which asks for 12 to 50 Mbps. Instagram still re-encodes everything on its servers. Asked for in #37.

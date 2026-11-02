@@ -2674,3 +2674,8 @@ once-call Lapp/hushgram/extension/instagram/feed/FeedFollowButton;->showSubscrib
 # gets its menu; twice or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
 once-call Lapp/hushgram/extension/instagram/direct/ChatPager;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause
+# Read messages without the seen receipt hands MarkReadButton.opened and .closed to the same pair (#458),
+# right after the chat lock's call, so the check mark reads the chat the lock just read. Left out, a held
+# chat gets no check mark in its header; twice or elsewhere, it isn't the hook the patch wrote.
+once-call Lapp/hushgram/extension/instagram/direct/MarkReadButton;->opened(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onResume
+once-call Lapp/hushgram/extension/instagram/direct/MarkReadButton;->closed(Ljava/lang/Object;)V in instance ()V holding DirectThreadController.onPause

@@ -470,9 +470,21 @@ public final class ChatPager {
             button = new WeakReference<>(had);
             return (ImageView) had;
         }
-        Context context = row.getContext();
-        Drawable glyph = icon(context, BUTTON_ICONS);
+        Drawable glyph = icon(row.getContext(), BUTTON_ICONS);
         if (glyph == null) return null;
+        String description = jumpWanted() ? L10n.t("Jump to the first message or a date") : L10n.t("Export chat");
+        ImageView made = addHeaderButton(row, glyph, description, BUTTON_TAG, TAP, KEEP);
+        button = new WeakReference<>(made);
+        return made;
+    }
+
+    /**
+     * Makes a button showing [glyph] the way the header's call buttons in [row] look and puts it first
+     * in the row, tagged [tag] so it can be found again.
+     */
+    static ImageView addHeaderButton(LinearLayout row, Drawable glyph, String description, String tag,
+                                     View.OnClickListener tap, View.OnAttachStateChangeListener keep) {
+        Context context = row.getContext();
         ImageView sibling = null;
         for (int i = 0; i < row.getChildCount() && sibling == null; i++) {
             if (row.getChildAt(i) instanceof ImageView) sibling = (ImageView) row.getChildAt(i);
@@ -499,12 +511,11 @@ public final class ChatPager {
         if (context.getTheme().resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, ripple, true) && ripple.resourceId != 0) {
             made.setBackgroundResource(ripple.resourceId);
         }
-        made.setContentDescription(jumpWanted() ? L10n.t("Jump to the first message or a date") : L10n.t("Export chat"));
-        made.setTag(BUTTON_TAG);
-        made.setOnClickListener(TAP);
-        made.addOnAttachStateChangeListener(KEEP);
+        made.setContentDescription(description);
+        made.setTag(tag);
+        made.setOnClickListener(tap);
+        made.addOnAttachStateChangeListener(keep);
         row.addView(made, 0, params);
-        button = new WeakReference<>(made);
         return made;
     }
 
@@ -531,7 +542,7 @@ public final class ChatPager {
         return Math.round(dp * context.getResources().getDisplayMetrics().density);
     }
 
-    private static View nearest(View root, String name) {
+    static View nearest(View root, String name) {
         int id = MessagesLock.id(root.getContext(), name);
         if (id == 0) return null;
         for (View at = root; at != null; at = at.getParent() instanceof View ? (View) at.getParent() : null) {

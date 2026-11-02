@@ -51,6 +51,7 @@ public class ThreadSeenSettingsTest {
         Settings.READ_WITHOUT_SEEN_RECEIPT.resetToDefault();
         Settings.KEEP_CHATS_UNREAD.resetToDefault();
         Settings.MARK_SEEN_ON_REPLY.resetToDefault();
+        Settings.MARK_READ_IN_CHAT.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
@@ -89,11 +90,11 @@ public class ThreadSeenSettingsTest {
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
         assertEquals(Arrays.asList(Settings.HIDE_NOTES_ROW.key, Settings.HIDE_NOTES_MAP.key, Settings.HIDE_INSTANTS.key,
-                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key), Arrays.asList(keys));
+                Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key, Settings.MARK_READ_IN_CHAT.key), Arrays.asList(keys));
         assertFalse(row.isChecked());
         assertFalse(Settings.READ_WITHOUT_SEEN_RECEIPT.get());
         assertFalse("each receipt reads the switch, so no restart", Settings.READ_WITHOUT_SEEN_RECEIPT.rebootApp);
-        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY), PatchFamily.THREAD_SEEN.switches);
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT, Settings.KEEP_CHATS_UNREAD, Settings.MARK_SEEN_ON_REPLY, Settings.MARK_READ_IN_CHAT), PatchFamily.THREAD_SEEN.switches);
         assertTrue(ConfigurationBackup.eligible().containsKey(Settings.READ_WITHOUT_SEEN_RECEIPT.key));
 
         Settings.READ_WITHOUT_SEEN_RECEIPT.save(true);
@@ -121,7 +122,7 @@ public class ThreadSeenSettingsTest {
         assertEquals("one level below the main page, beside its switch", "Messages", messages.getTitle().toString());
         String[] keys = new String[messages.getPreferenceCount()];
         for (int i = 0; i < keys.length; i++) keys[i] = messages.getPreference(i).getKey();
-        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key, Settings.HIDE_TYPING.key),
+        assertEquals(Arrays.asList(Settings.READ_WITHOUT_SEEN_RECEIPT.key, Settings.KEEP_CHATS_UNREAD.key, Settings.MARK_SEEN_ON_REPLY.key, Settings.MARK_READ_IN_CHAT.key, Settings.HIDE_TYPING.key),
                 Arrays.asList(keys));
         assertTrue(Settings.KEEP_CHATS_UNREAD.defaultValue);
         assertTrue(Settings.KEEP_CHATS_UNREAD.get());
@@ -150,5 +151,23 @@ public class ThreadSeenSettingsTest {
         PauseForTests.pause(HushgramPause.Reason.SWITCH);
         assertFalse(Settings.MARK_SEEN_ON_REPLY.get());
         assertTrue(Settings.MARK_SEEN_ON_REPLY.savedValue());
+    }
+    /** #458: the header's check mark switch sits under the reply switch, starts on and follows the seen receipt switch. */
+    @Test public void markReadInChatStartsOnAndFollowsTheReceiptSwitch() throws Exception {
+        open(EnumSet.of(PatchFamily.THREAD_SEEN));
+        SwitchPreference row = (SwitchPreference) page.getPreferenceScreen().findPreference(Settings.MARK_READ_IN_CHAT.key);
+        assertNotNull(row);
+        assertEquals("Mark as read button in chats", row.getTitle().toString());
+        assertEquals("A check mark shows at the top of a chat while it hasn't told the other person you've seen it. "
+                + "Tap it and they see Seen.", row.getSummary().toString());
+        assertTrue(Settings.MARK_READ_IN_CHAT.defaultValue);
+        assertTrue(row.isChecked());
+        assertFalse("each chat that opens reads the switch, so no restart", Settings.MARK_READ_IN_CHAT.rebootApp);
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.MARK_READ_IN_CHAT.key));
+        assertTrue(Settings.MARK_READ_IN_CHAT.get());
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(Settings.MARK_READ_IN_CHAT.get());
+        assertTrue(Settings.MARK_READ_IN_CHAT.savedValue());
     }
 }

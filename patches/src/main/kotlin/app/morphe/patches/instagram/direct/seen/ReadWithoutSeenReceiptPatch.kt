@@ -27,8 +27,8 @@ internal const val THREAD_SEEN_PATCH = "Read messages without the seen receipt"
 val readWithoutSeenReceiptPatch = bytecodePatch(
     name = "Read messages without the seen receipt",
     description = "Opening a chat no longer tells people you've seen their messages. You still see when they've " +
-        "seen yours. Mark as read still tells them. Ghost mode turns it on too. Starts off. Turn it on in " +
-        "HushGram settings > Messages.",
+        "seen yours. Mark as read, or the check mark at the top of a chat, still tells them. Ghost mode turns it " +
+        "on too. Starts off. Turn it on in HushGram settings > Messages.",
 ) {
     category("Ghost mode")
     dependsOn(settingsPatch, instagramExtensionPatch, ghostModeEntryPatch)
@@ -54,12 +54,14 @@ internal fun BytecodePatchContext.readWithoutSeenReceipt() {
     val read = findReadHere(marks.chat)
     val reply = findReplySeen(seen)
     val cursor = findLocalCursor(marks.messageClass)
+    val button = findMarkReadButton()
     holdBackThreadSeen(seen)
     markReadByHand(marks)
     keepChatsUnread(unread)
     keepChatsRead(read)
     if (cursor != null) keepCursorLocal(cursor)
     if (reply != null) writeReplySeen(reply)
+    if (button != null) hookMarkReadButton(button)
 }
 
 /** [holdBackThreadSeen] on the handler this build resolves to, with nothing else hooked. */
