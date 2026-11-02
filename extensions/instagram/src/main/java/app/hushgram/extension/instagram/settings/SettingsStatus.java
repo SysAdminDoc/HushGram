@@ -414,6 +414,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean followingMix() {
+        return false;
+    }
+
     public static boolean storiesTray() {
         return false;
     }

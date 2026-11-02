@@ -1076,6 +1076,20 @@ once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->picked(Ljava/la
 # isn't the hook the patch wrote. TitleLogoHookTest checks all seven 450 builds.
 start-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I in instance (ZLjava/lang/String;)V holding secondLabel secondLabelChevron
 once-call Lapp/hushgram/extension/instagram/feed/FollowingFeed;->keepLogo(Ljava/lang/Object;)I in instance (ZLjava/lang/String;)V holding secondLabel secondLabelChevron
+# Its fifth switch, Mix in Following (#438), asks FollowingMix in Home's fetcher, the page method
+# holding "AsyncPrefetch-ConnectToPrefetch" (05bS.Gw0 on 453), for the cursor where the head load
+# and load more paths meet, then for the built request's paging source flag and paging source. The
+# reply handler holding "SHELL_RESPONSE_RECEIVED_FROM_NETWORK" (05tU.A0B) hands it the reply's
+# cursor and whether there's more as each is written, and the delivery holding "No new items
+# delivered" (04uI.A0D) the cursor it goes back to. Each is called once there and nowhere else. Left
+# out, For you never asks for Following or loses its own cursor to Following's; twice or elsewhere,
+# it isn't the hook the patch wrote. FollowingMixHookTest checks all eight 453 builds.
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->cursor(Ljava/lang/String;ILjava/lang/String;)Ljava/lang/String; in (LX/*;LX/*;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Z)Z pooled holding AsyncPrefetch-ConnectToPrefetch
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->sourceSet(I)I in (LX/*;LX/*;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Z)Z pooled holding AsyncPrefetch-ConnectToPrefetch
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->source(Ljava/lang/String;)Ljava/lang/String; in (LX/*;LX/*;Ljava/lang/String;Ljava/util/Map;Ljava/util/Map;Z)Z pooled holding AsyncPrefetch-ConnectToPrefetch
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->nextCursor(Ljava/lang/String;)Ljava/lang/String; in (LX/*;Z)V pooled holding SHELL_RESPONSE_RECEIVED_FROM_NETWORK
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->moreAvailable(I)I in (LX/*;Z)V pooled holding SHELL_RESPONSE_RECEIVED_FROM_NETWORK
+once-call Lapp/hushgram/extension/instagram/feed/FollowingMix;->rewound(Ljava/lang/String;)Ljava/lang/String; in (LX/*;LX/*;LX/*;IZ)V pooled holding No\snew\sitems\sdelivered
 # Stop swipe to create hands every move of Home's sliding container to SwipeToCreate.hold right
 # before the move's animate flag is read, in the container's setInternalPosition. It loads no string,
 # and setPosition has the same shape and reads the same flag, so the rule picks it as the one also

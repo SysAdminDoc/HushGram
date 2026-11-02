@@ -79,6 +79,12 @@ final class FeedCategory {
                                 + "Following for that account. A feed you pick at the top of Home stays picked. Restart "
                                 + "Instagram to see the change.")));
             }
+            if (PatchFamily.followingMixInBuild()) {
+                feed.addPreference(toggle(context, Settings.FOLLOWING_MIX, L10n.t("Mix in Following"),
+                        L10n.t("For you shows a page of posts from accounts you follow after each page of its own, "
+                                + "until you've seen them all. Pull down on Home to start both over. Restart Instagram "
+                                + "to see the change.")));
+            }
         }
         if (suggestions) {
             feed.addPreference(toggle(context, Settings.HIDE_SUGGESTED_ACCOUNTS, L10n.t("Hide suggested accounts"),

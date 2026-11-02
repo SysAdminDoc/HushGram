@@ -1044,6 +1044,14 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_following_fallback", FALSE, true);
 
     /**
+     * For you shows a page of posts from accounts you follow after each page of its own, until
+     * Following runs out (#438, {@link app.hushgram.extension.instagram.feed.FollowingMix}). Works
+     * without Start Home on Following. Off to start.
+     */
+    public static final BooleanSetting FOLLOWING_MIX =
+            new BooleanSetting("hushgram_following_mix", FALSE, true);
+
+    /**
      * The ids of the accounts {@link #FOLLOWING_FALLBACK} moved to Following, a line each. Not a
      * switch, and left out of a backup, since the ids are only good on this phone's accounts.
      */
