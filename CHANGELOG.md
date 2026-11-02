@@ -6,6 +6,7 @@ Every HushGram release, newest first.
 
 ### Features
 
+* **Instagram:** `Glass in chats` is a new patch. Under Messages, one switch gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It starts off. Asked for in #449.
 * **Instagram:** `Chat plus menu` is a new patch. Under Messages you can take Saved, AI images and Draw off the plus menu in a chat's message bar, each with its own switch, and move the gallery and microphone buttons into that menu. All four start off. Asked for in #448.
 * **Instagram:** `Pick the app icon` gets a `Custom app icon` row under Layout. Pick a picture from your phone, drag and zoom it into the frame, and it's added to your home screen as an icon that opens Instagram. Asked for in #442.
 * **Instagram:** HushGram's settings now come in Vietnamese. Asked for in #439.

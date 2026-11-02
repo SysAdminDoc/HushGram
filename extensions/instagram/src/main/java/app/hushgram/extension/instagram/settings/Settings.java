@@ -708,6 +708,12 @@ public class Settings extends BaseSettings {
     public static final BooleanSetting HIDE_PLUS_AI_IMAGES = new BooleanSetting("hushgram_hide_plus_ai_images", FALSE);
     public static final BooleanSetting HIDE_PLUS_DRAW = new BooleanSetting("hushgram_hide_plus_draw", FALSE);
 
+    /**
+     * A chat's header shows the glass of the See-through top bar, and its buttons sit on glass discs
+     * ({@link app.hushgram.extension.instagram.direct.GlassChat}, #449). Off to start.
+     */
+    public static final BooleanSetting GLASS_CHAT = new BooleanSetting("hushgram_glass_chat", FALSE);
+
     /** The message bar's gallery and microphone buttons move into the plus menu. Off to start. */
     public static final BooleanSetting MOVE_TO_PLUS_MENU = new BooleanSetting("hushgram_move_to_plus_menu", FALSE);
 

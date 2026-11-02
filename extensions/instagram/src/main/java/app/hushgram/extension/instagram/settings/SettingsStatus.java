@@ -556,6 +556,11 @@ public final class SettingsStatus {
         return false;
     }
 
+    /** Rewritten by the Glass in chats patch. */
+    public static boolean glassChat() {
+        return false;
+    }
+
     public static boolean askBeforeLike() {
         return false;
     }

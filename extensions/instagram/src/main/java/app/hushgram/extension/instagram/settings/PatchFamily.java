@@ -101,6 +101,7 @@ public enum PatchFamily {
     MESSAGE_BOX(FamilyNames.MESSAGE_BOX, "messageBox", null),
     PLUS_MENU(FamilyNames.PLUS_MENU, "plusMenu", null, Settings.HIDE_PLUS_SAVED, Settings.HIDE_PLUS_AI_IMAGES,
             Settings.HIDE_PLUS_DRAW, Settings.MOVE_TO_PLUS_MENU),
+    GLASS_CHAT(FamilyNames.GLASS_CHAT, "glassChat", null, Settings.GLASS_CHAT),
     ASK_BEFORE_LIKE(FamilyNames.ASK_BEFORE_LIKE, "askBeforeLike", null, Settings.ASK_BEFORE_LIKE),
     ASK_BEFORE_REFRESH(FamilyNames.ASK_BEFORE_REFRESH, "askBeforeRefresh", null, Settings.ASK_BEFORE_REFRESH),
     SAVE_TRAY(FamilyNames.SAVE_TRAY, "saveTray", null, Settings.SKIP_COLLECTIONS_TRAY),

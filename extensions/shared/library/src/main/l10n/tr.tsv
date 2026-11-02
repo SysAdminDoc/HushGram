@@ -1537,3 +1537,5 @@ Drag to move, pinch to zoom.	Taşımak için sürükle, yakınlaştırmak için 
 Add to home screen	Ana ekrana ekle
 Couldn't read that picture.	Bu resim okunamadı.
 This launcher can't add it.	Bu başlatıcı ekleyemiyor.
+Glass in chats	Sohbetlerde cam
+Gives a chat's top bar frosted glass and puts the back, call and video buttons on round glass circles. It shows the next time you open a chat. Needs Android 12 or newer for the blur.	Bir sohbetin üst çubuğuna buzlu cam efekti verir ve geri, arama ve video düğmelerini yuvarlak cam dairelere koyar. Sohbeti bir sonraki açışında görünür. Bulanıklık için Android 12 veya daha yenisi gerekir.

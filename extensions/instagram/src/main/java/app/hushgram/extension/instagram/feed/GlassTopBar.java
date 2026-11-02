@@ -83,19 +83,32 @@ public final class GlassTopBar {
         try {
             if (views == null || !on.getAsBoolean()) return;
             for (Object view : views) {
-                if (view instanceof View) attach((View) view);
+                if (view instanceof View) attach((View) view, GlassTopBar::switchedOn, FamilyNames.HOME_TOP_BAR);
             }
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.HOME_TOP_BAR, HOOK, failure);
         }
     }
 
-    private static void attach(View header) {
+    /**
+     * Gives a chat's header the same glass while [on] says so (#449). Never throws. Done once per
+     * header: the glass puts itself on and takes itself off by [on], whatever the header does.
+     */
+    public static void glazeChat(@Nullable View header, BooleanSupplier on) {
+        try {
+            if (header == null || !on.getAsBoolean()) return;
+            attach(header, on, FamilyNames.GLASS_CHAT);
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.GLASS_CHAT, HOOK, failure);
+        }
+    }
+
+    private static void attach(View header, BooleanSupplier on, String family) {
         if (!GLAZED.add(header)) return;
-        Glass glass = new Glass(header);
+        Glass glass = new Glass(header, on, family);
         header.addOnAttachStateChangeListener(glass);
         if (header.isAttachedToWindow()) glass.onViewAttachedToWindow(header);
-        HookStatus.counted(FamilyNames.HOME_TOP_BAR, COUNT_GLAZED);
+        HookStatus.counted(family, COUNT_GLAZED);
     }
 
     static boolean switchedOn() {
@@ -103,7 +116,7 @@ public final class GlassTopBar {
     }
 
     /** Whether [header] has the glass showing now. */
-    static boolean showing(View header) {
+    public static boolean showing(View header) {
         return header.getBackground() instanceof Frost;
     }
 
@@ -159,6 +172,9 @@ public final class GlassTopBar {
     private static final class Glass implements ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
         final View header;
         final Frost frost;
+        /** Whether the glass is wanted now, and the family the report counts it under. */
+        private final BooleanSupplier enabled;
+        private final String family;
         @Nullable private ViewTreeObserver observer;
         /** Instagram's latest background on the header, put back when the glass comes off. */
         @Nullable private Drawable original;
@@ -180,8 +196,10 @@ public final class GlassTopBar {
         private int lastWidth;
         private int lastHeight;
 
-        Glass(View header) {
+        Glass(View header, BooleanSupplier enabled, String family) {
             this.header = header;
+            this.enabled = enabled;
+            this.family = family;
             this.frost = new Frost(this, header.getResources().getDisplayMetrics().density);
         }
 
@@ -209,7 +227,7 @@ public final class GlassTopBar {
         @Override
         public boolean onPreDraw() {
             try {
-                if (!switchedOn()) {
+                if (!enabled.getAsBoolean()) {
                     takeOff();
                     return true;
                 }
@@ -224,7 +242,7 @@ public final class GlassTopBar {
                 } catch (Throwable ignored) {
                     // Already reporting the first failure.
                 }
-                HookStatus.threw(FamilyNames.HOME_TOP_BAR, HOOK, failure);
+                HookStatus.threw(family, HOOK, failure);
             }
             return true;
         }
@@ -372,7 +390,7 @@ public final class GlassTopBar {
             } catch (Throwable failure) {
                 // A recording cut short isn't shown: the bar draws its plain tint until one works.
                 recorded = false;
-                if (tries.failed(now)) HookStatus.threw(FamilyNames.HOME_TOP_BAR, HOOK, failure);
+                if (tries.failed(now)) HookStatus.threw(family, HOOK, failure);
             }
         }
 

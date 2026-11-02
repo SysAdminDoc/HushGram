@@ -52,6 +52,7 @@ import app.hushgram.extension.instagram.metaai.MuseCard;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.RefreshRate;
 import app.hushgram.extension.instagram.misc.GlassTabBar;
+import app.hushgram.extension.instagram.direct.GlassChat;
 import app.hushgram.extension.instagram.reels.BurnInGuard;
 import app.hushgram.extension.instagram.reels.FullScreenBars;
 import app.hushgram.extension.instagram.reels.ReelsTopBar;
@@ -150,6 +151,7 @@ public final class SettingsEntry {
             Logger.printException(() -> "Settings entry: could not watch activities", ex);
         }
         GlassTabBar.install(context);
+        GlassChat.install(context);
         FullScreenBars.install(context);
         RefreshRate.install(context);
         ReelsTopBar.install(context);
