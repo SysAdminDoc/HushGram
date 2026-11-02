@@ -97,6 +97,17 @@ public class ChildControlAvailabilityTest {
                 "Turn on Show a story's exact time to use this choice.", "TIME_LEFT");
     }
 
+    @Test public void mentionLookKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_MENTIONS_LOOK.save(app.hushgram.extension.instagram.stories.StoryMentionsLook.TOP_BAR);
+        try {
+            checkParent(Settings.SHOW_STORY_MENTIONS, Settings.STORY_MENTIONS_LOOK, PatchFamily.STORY_MENTIONS,
+                    "Turn on See who a story mentions to use this choice.", "TOP_BAR");
+        } finally {
+            Settings.SHOW_STORY_MENTIONS.resetToDefault();
+            Settings.STORY_MENTIONS_LOOK.resetToDefault();
+        }
+    }
+
     @Test public void playbackKeepsItsSavedChoiceAcrossParentChanges() {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         checkParent(Settings.DEFAULT_PLAYBACK_QUALITY, Settings.PLAYBACK_QUALITY, PatchFamily.PLAYBACK_QUALITY,

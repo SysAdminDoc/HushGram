@@ -154,8 +154,10 @@ public class StoryMentionsTest {
         StoryMentions.picturesForTests = null;
         StoryMentions.headerIdForTests = 0;
         StoryMentions.titleIdForTests = 0;
+        StoryMentions.topBarIdForTests = 0;
         StoryMentions.resetForTests();
         Settings.SHOW_STORY_MENTIONS.resetToDefault();
+        Settings.STORY_MENTIONS_LOOK.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -774,6 +776,128 @@ public class StoryMentionsTest {
         bind(ANA, BO);
         idle();
         assertSame("and the old list is forgotten", first, ShadowDialog.getLatestDialog());
+    }
+
+    /** The look starts under the name, as the pill was before there was a choice (#468). */
+    @Test
+    public void theLookStartsUnderTheNameAndIsntASwitch() {
+        Settings.STORY_MENTIONS_LOOK.resetToDefault();
+        assertEquals(StoryMentionsLook.UNDER_NAME, Settings.STORY_MENTIONS_LOOK.get());
+        assertFalse(PatchFamily.STORY_MENTIONS.switches.contains(Settings.STORY_MENTIONS_LOOK));
+        LinearLayout bar = topBar();
+        bind(ANA);
+        assertSame("under the name, the top bar's left alone", header, pill().getParent());
+        assertEquals(1, bar.getChildCount());
+    }
+
+    /** In the top bar the pill goes left of Instagram's buttons and reads "@1 mention" (#468). */
+    @Test
+    public void theTopBarLookPutsThePillBeforeTheMenu() {
+        LinearLayout bar = topBar();
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
+        bind(ANA, BO);
+        StoryMentions.Pill pill = pill();
+        assertNotNull(pill);
+        assertSame(bar, pill.getParent());
+        assertEquals("first, before the menu", 0, bar.indexOfChild(pill));
+        assertEquals("@2 mentions", pill.getText().toString());
+        assertEquals("a screen reader still hears it in words", "2 mentions, see who this story mentions",
+                pill.getContentDescription().toString());
+        assertEquals("nothing goes under the name", 1, header.getChildCount());
+
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR_SHORT);
+        bind(ANA);
+        assertSame("the same pill, now short", pill, pill());
+        assertEquals("@1", pill.getText().toString());
+    }
+
+    /** A change of look moves the pill on the next story, and only one pill is ever left. */
+    @Test
+    public void aNewLookMovesThePill() {
+        LinearLayout bar = topBar();
+        bind(ANA);
+        StoryMentions.Pill under = pill();
+        assertSame(header, under.getParent());
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
+        bind(ANA);
+        StoryMentions.Pill top = pill();
+        assertSame(bar, top.getParent());
+        assertNull("the old pill went", under.getParent());
+        assertEquals(1, header.getChildCount());
+
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.UNDER_NAME);
+        bind(ANA, BO);
+        assertSame(header, pill().getParent());
+        assertEquals("2 mentions", pill().getText().toString());
+        assertEquals("the top bar is back to Instagram's", 1, bar.getChildCount());
+    }
+
+    /** With no top bar to go in, the pill stays under the name and says what it does there. */
+    @Test
+    public void noTopBarKeepsThePillUnderTheName() {
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
+        bind(ANA);
+        assertSame(header, pill().getParent());
+        assertEquals("1 mention", pill().getText().toString());
+    }
+
+    /** From the top bar the list is a sheet along the bottom, with a Close as wide as it (#468). */
+    @Test
+    public void theTopBarPillsListIsASheetAlongTheBottom() {
+        topBar();
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR);
+        bind(ANA, BO);
+        assertTrue(pill().performClick());
+        AlertDialog dialog = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotNull(dialog);
+        assertTrue(dialog.isShowing());
+        android.view.WindowManager.LayoutParams window = dialog.getWindow().getAttributes();
+        assertEquals(android.view.Gravity.BOTTOM, window.gravity & android.view.Gravity.VERTICAL_GRAVITY_MASK);
+        assertEquals(ViewGroup.LayoutParams.MATCH_PARENT, window.width);
+        View content = dialog.getWindow().getDecorView();
+        assertNotNull("its title", find(content, view -> "Story mentions".equals(textOf(view))));
+        assertNotNull("what it lists", find(content, view -> "Accounts mentioned in this story".equals(textOf(view))));
+        assertNull("no dialog title", find(content, view -> "Mentioned in this story".equals(textOf(view))));
+        assertNotNull("Ana's row", find(content, view -> "Ana Lima, @ana".contentEquals(String.valueOf(view.getContentDescription()))));
+        View close = find(content, view -> view instanceof android.widget.Button && "Close".equals(textOf(view)));
+        assertNotNull(close);
+        assertEquals("as wide as the sheet", ViewGroup.LayoutParams.MATCH_PARENT, close.getLayoutParams().width);
+        assertTrue(close.performClick());
+        assertFalse("Close closes it", dialog.isShowing());
+    }
+
+    /** A row in the sheet opens the profile and the sheet comes back with the story, as the list does. */
+    @Test
+    public void theSheetComesBackWithTheStory() {
+        topBar();
+        Settings.STORY_MENTIONS_LOOK.save(StoryMentionsLook.TOP_BAR_SHORT);
+        bind(ANA, BO);
+        AlertDialog first = openedList();
+        tapAccount(first, "Ana Lima, @ana");
+        assertFalse(first.isShowing());
+        StoryMentions.Pill pill = pill();
+        pill.setVisibility(View.GONE);
+        idle();
+        pill.setVisibility(View.VISIBLE);
+        idle();
+        AlertDialog again = (AlertDialog) ShadowDialog.getLatestDialog();
+        assertNotSame(first, again);
+        assertTrue(again.isShowing());
+        View content = again.getWindow().getDecorView();
+        assertNotNull("still the sheet", find(content, view -> "Story mentions".equals(textOf(view))));
+    }
+
+    /** A top bar row of buttons beside the header, the way 453's header holds Follow and the menu. */
+    private LinearLayout topBar() {
+        LinearLayout bar = new LinearLayout(activity);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setId(View.generateViewId());
+        View menu = new View(activity);
+        menu.setLayoutParams(new LinearLayout.LayoutParams(Dim.dp(24), Dim.dp(24)));
+        bar.addView(menu);
+        root.addView(bar);
+        StoryMentions.topBarIdForTests = bar.getId();
+        return bar;
     }
 
     private static String textOf(View view) {

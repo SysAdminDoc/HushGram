@@ -10,6 +10,7 @@ import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragme
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.priorityAccountsRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyBarRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyMentionsLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingColorRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyRingRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.storyTimeModeRow;
@@ -150,6 +151,7 @@ final class StoriesCategory {
                             + "Tap that for the list, and tap someone to open their profile.")));
             stories.add(toggle(context, Settings.RED_STORY_MENTIONS, L10n.t("Red story mentions"),
                     L10n.t("Draws the mention pill's text in red instead of white, so it stands out on bright stories.")));
+            stories.add(storyMentionsLookRow(context));
         }
         if (build.contains(PatchFamily.STORY_FOLLOW)) {
             stories.add(toggle(context, Settings.HIDE_STORY_FOLLOW, L10n.t("Hide Follow on stories"),

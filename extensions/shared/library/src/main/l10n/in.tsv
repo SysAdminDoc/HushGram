@@ -1602,3 +1602,13 @@ Speed button on stories	Tombol kecepatan di cerita
 Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Menaruh tombol kecepatan di bagian atas cerita video, di samping tiga titik. Ketuk untuk 1,5x, ketuk lagi untuk 2x, dan sekali lagi untuk 1x. Cerita video berikutnya tetap memakai kecepatan itu sampai kamu mengubahnya atau memulai ulang Instagram. Iklan diputar dengan kecepatan normal.
 # context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
 Playback speed, %1$s	Kecepatan pemutaran, %1$s
+Where the mention pill goes	Letak label sebutan
+Under the name, 1 mention	Di bawah nama, 1 sebutan
+Top bar, @1 mention	Bilah atas, @1 sebutan
+Top bar, @1	Bilah atas, @1
+The pill sits under the story's name and reads like 1 mention. Its list opens over the story.	Label ada di bawah nama story dan tertulis seperti 1 sebutan. Daftarnya terbuka di atas story.
+The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.	Label ada di bilah atas di samping menu dan tertulis seperti @1 sebutan. Daftarnya terbuka dari bagian bawah layar.
+The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.	Label ada di bilah atas di samping menu dan hanya menunjukkan jumlahnya, seperti @1. Daftarnya terbuka dari bagian bawah layar.
+Turn on See who a story mentions to use this choice.	Aktifkan Lihat siapa yang disebut cerita untuk menggunakan pilihan ini.
+Story mentions	Sebutan story
+Accounts mentioned in this story	Akun yang disebut di cerita ini

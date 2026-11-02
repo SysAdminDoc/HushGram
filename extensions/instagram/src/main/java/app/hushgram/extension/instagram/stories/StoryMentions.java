@@ -16,6 +16,7 @@ import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
@@ -33,6 +34,7 @@ import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.ViewParent;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -66,7 +68,8 @@ import app.hushgram.extension.shared.ui.Dim;
  * binder's bindMedia step. The patch calls {@link #bind} right after that, with the page and the
  * story. Once Instagram has bound the page's header, a pill goes after the name and time in it
  * (right under the header when the name has no row of its own, as on Instagram 453, or when the
- * row would cut the name short, and under the name when there's no column to put it in) saying
+ * row would cut the name short, and under the name when there's no column to put it in), or with
+ * {@link StoryMentionsLook} saying so at the start of the top bar's buttons (#468), saying
  * how many accounts the story mentions, from the
  * story's own list of mentions, so a mention sticker
  * that's hidden, shrunk or dragged off screen still counts. A story with none gets no pill.
@@ -104,6 +107,16 @@ public final class StoryMentions {
     static int titleIdForTests;
     /** The name's id in this app, or -1 before the first lookup. */
     private static volatile int titleId = -1;
+
+    /**
+     * The id of the header's row of buttons at the right of the top bar (Follow, the menu, close),
+     * which the pill goes at the start of when the mention look puts it in the top bar (#468).
+     */
+    static final String TOP_BAR = "reel_header_extras_container";
+    /** Set by tests that have no Instagram resources: the top bar row's id. */
+    static int topBarIdForTests;
+    /** The top bar row's id in this app, or -1 before the first lookup. */
+    private static volatile int topBarId = -1;
 
     /** Set by tests: fetches a profile picture instead of the network. */
     @Nullable static PictureSource picturesForTests;
@@ -493,7 +506,24 @@ public final class StoryMentions {
                 return true;
             }
             Context context = header.getContext();
-            if (pill == null) {
+            StoryMentionsLook look = look();
+            LinearLayout topBar = topBar(header);
+            LinearLayout bar = look.inTopBar() ? topBar : null;
+            if (pill != null && (topBar != null && pill.getParent() == topBar) != (bar != null)) {
+                // The look changed since this pill was placed, so it goes where the look puts it now.
+                PILLS.remove(pill);
+                ((ViewGroup) pill.getParent()).removeView(pill);
+                pill = null;
+            }
+            if (pill == null && bar != null) {
+                pill = newPill(context, true);
+                LinearLayout.LayoutParams place = placement(true);
+                place.setMarginStart(0);
+                place.setMarginEnd(Dim.dp(8));
+                pill.setLayoutParams(place);
+                bar.addView(pill, 0);
+                anyPill = true;
+            } else if (pill == null) {
                 LinearLayout row = titleRow(header);
                 LinearLayout under = row == null ? below(header) : null;
                 LinearLayout into = row != null ? row : under != null ? under : header;
@@ -508,7 +538,7 @@ public final class StoryMentions {
             }
             String text = label(context, people.size());
             pill.people = people;
-            pill.setText(text);
+            pill.setText(bar != null ? topBarLabel(look, text, people.size()) : text);
             pill.setTextColor(textColor());
             pill.setContentDescription(L10n.f(context, "%1$s, see who this story mentions", text));
             pill.setVisibility(View.VISIBLE);
@@ -524,6 +554,36 @@ public final class StoryMentions {
     /** "1 mention" or "3 mentions", in the phone's language. */
     static String label(Context context, int count) {
         return L10n.quantity(context, count, "1 mention", "%1$d mentions");
+    }
+
+    /** What a pill in the top bar says: "@1 mention" from [label], or "@1" for the short look (#468). */
+    static String topBarLabel(StoryMentionsLook look, String label, int count) {
+        return look == StoryMentionsLook.TOP_BAR_SHORT ? "@" + count : "@" + label;
+    }
+
+    /** Where the pill goes and what it says, under the name when the settings can't be read. Never throws. */
+    static StoryMentionsLook look() {
+        try {
+            return Utils.settingsReady() ? Settings.STORY_MENTIONS_LOOK.get() : StoryMentionsLook.UNDER_NAME;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.STORY_MENTIONS, "mention pill look", failure);
+            return StoryMentionsLook.UNDER_NAME;
+        }
+    }
+
+    /**
+     * The row of buttons at the right of the top bar [header] sits in, which a top bar pill goes at
+     * the start of, left of Follow and the menu. Null when there's none, or it isn't a row.
+     */
+    @Nullable
+    static LinearLayout topBar(ViewGroup header) {
+        int id = topBarId(header.getContext());
+        ViewParent headerRow = header.getParent();
+        if (id == 0 || !(headerRow instanceof View)) return null;
+        View found = ((View) headerRow).findViewById(id);
+        if (!(found instanceof LinearLayout)) return null;
+        LinearLayout bar = (LinearLayout) found;
+        return bar.getOrientation() == LinearLayout.HORIZONTAL ? bar : null;
     }
 
     /**
@@ -544,9 +604,17 @@ public final class StoryMentions {
         return null;
     }
 
-    /** The pill already in [header]: in the name's row, under the whole header, or in the column itself. Null for none. */
+    /**
+     * The pill already in [header]: in the top bar, in the name's row, under the whole header, or in
+     * the column itself. Null for none.
+     */
     @Nullable
     static Pill pillIn(ViewGroup header) {
+        LinearLayout bar = topBar(header);
+        if (bar != null) {
+            Pill inBar = pillAmong(bar);
+            if (inBar != null) return inBar;
+        }
         LinearLayout row = titleRow(header);
         if (row != null) {
             Pill inRow = pillAmong(row);
@@ -672,6 +740,13 @@ public final class StoryMentions {
         return titleId;
     }
 
+    /** The top bar row's id, looked up once like the header's. */
+    private static int topBarId(Context context) {
+        if (topBarIdForTests != 0) return topBarIdForTests;
+        if (topBarId == -1) topBarId = context.getResources().getIdentifier(TOP_BAR, "id", context.getPackageName());
+        return topBarId;
+    }
+
     /** Where the pill sits: after the time in a row, or a little under what's above it in a column. */
     private static LinearLayout.LayoutParams placement(boolean row) {
         LinearLayout.LayoutParams place = new LinearLayout.LayoutParams(
@@ -728,7 +803,10 @@ public final class StoryMentions {
         return pill;
     }
 
-    /** The accounts in a list centered over the story. A tap on one opens their profile. */
+    /**
+     * The accounts in a list centered over the story, or with the pill in the top bar a sheet along
+     * the bottom of the screen with a Close as wide as it (#468). A tap on one opens their profile.
+     */
     @Nullable
     static AlertDialog list(Context context, List<Mention> people) {
         Activity activity = activity(context);
@@ -737,9 +815,12 @@ public final class StoryMentions {
             return null;
         }
         if (people.isEmpty()) return null;
-        AlertDialog.Builder builder = new AlertDialog.Builder(activity)
-                .setTitle(L10n.t(activity, "Mentioned in this story"))
-                .setNegativeButton(L10n.t(activity, "Close"), null);
+        boolean sheet = look().inTopBar();
+        AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+        if (!sheet) {
+            builder.setTitle(L10n.t(activity, "Mentioned in this story"))
+                    .setNegativeButton(L10n.t(activity, "Close"), null);
+        }
         Context themed = builder.getContext();
         AlertDialog dialog = builder.create();
         boolean[] leaving = {false};
@@ -758,13 +839,98 @@ public final class StoryMentions {
         dialog.setOnDismissListener(shown -> {
             if (!leaving[0]) backToList = null;
         });
-        ScrollView scroll = new ScrollView(themed);
-        scroll.addView(rows);
-        dialog.setView(scroll);
-        dialog.show();
-        ScreenColors.dialog(dialog);
+        if (sheet) {
+            dialog.setView(sheet(themed, rows, dialog), 0, 0, 0, 0);
+            dialog.show();
+            alongTheBottom(dialog);
+        } else {
+            ScrollView scroll = new ScrollView(themed);
+            scroll.addView(rows);
+            dialog.setView(scroll);
+            dialog.show();
+            ScreenColors.dialog(dialog);
+        }
         HookStatus.counted(FamilyNames.STORY_MENTIONS, LIST_SHOWN);
         return dialog;
+    }
+
+    /** How much of the screen's height a sheet's accounts take before they scroll. */
+    static final float SHEET_ROWS_SHARE = 0.6f;
+
+    /**
+     * The sheet's content: "Story mentions" over a line saying what it lists, the account [rows],
+     * and a Close as wide as the sheet, on the settings' card color with rounded top corners.
+     */
+    private static View sheet(Context themed, LinearLayout rows, AlertDialog dialog) {
+        ScreenColors colors = ScreenColors.DEFAULT;
+        LinearLayout sheet = new LinearLayout(themed);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        sheet.setPadding(0, Dim.dp(20), 0, Dim.dp(16));
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(colors.dialog);
+        float corner = Dim.dp(20);
+        surface.setCornerRadii(new float[] {corner, corner, corner, corner, 0, 0, 0, 0});
+        sheet.setBackground(surface);
+
+        TextView title = new TextView(themed);
+        title.setText(L10n.t(themed, "Story mentions"));
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setTextColor(colors.title);
+        title.setPadding(Dim.dp(20), 0, Dim.dp(20), 0);
+        title.setAccessibilityHeading(true);
+        sheet.addView(title);
+
+        TextView subtitle = new TextView(themed);
+        subtitle.setText(L10n.t(themed, "Accounts mentioned in this story"));
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        subtitle.setTextColor(colors.summary);
+        subtitle.setPadding(Dim.dp(20), Dim.dp(4), Dim.dp(20), Dim.dp(4));
+        sheet.addView(subtitle);
+
+        ScrollView scroll = new ScrollView(themed) {
+            @Override
+            protected void onMeasure(int widthSpec, int heightSpec) {
+                int most = (int) (getResources().getDisplayMetrics().heightPixels * SHEET_ROWS_SHARE);
+                int size = MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
+                        ? most : Math.min(most, MeasureSpec.getSize(heightSpec));
+                super.onMeasure(widthSpec, MeasureSpec.makeMeasureSpec(size, MeasureSpec.AT_MOST));
+            }
+        };
+        scroll.addView(rows);
+        sheet.addView(scroll);
+
+        Button close = new Button(themed);
+        close.setText(L10n.t(themed, "Close"));
+        close.setAllCaps(false);
+        close.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        close.setTypeface(Typeface.DEFAULT_BOLD);
+        close.setTextColor(colors.title);
+        close.setStateListAnimator(null);
+        close.setMinHeight(Dim.dp(48));
+        close.setMinimumHeight(Dim.dp(48));
+        GradientDrawable outline = new GradientDrawable();
+        outline.setColor(Color.TRANSPARENT);
+        outline.setCornerRadius(Dim.dp(24));
+        outline.setStroke(Dim.dp(1), colors.outline);
+        close.setBackground(new RippleDrawable(ColorStateList.valueOf(ScreenColors.half(colors.heading)), outline, null));
+        LinearLayout.LayoutParams wide = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        wide.setMargins(Dim.dp(16), Dim.dp(8), Dim.dp(16), 0);
+        close.setLayoutParams(wide);
+        close.setOnClickListener(view -> dialog.dismiss());
+        sheet.addView(close);
+        return sheet;
+    }
+
+    /** Lays [dialog]'s window along the bottom of the screen, as wide as it, with no backing of its own. */
+    private static void alongTheBottom(AlertDialog dialog) {
+        Window window = dialog.getWindow();
+        if (window == null) return;
+        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        window.setGravity(Gravity.BOTTOM);
+        window.setWindowAnimations(android.R.style.Animation_InputMethod);
     }
 
     /** A row with [person]'s picture, then their full name over their @username. */

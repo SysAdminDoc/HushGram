@@ -1602,3 +1602,13 @@ Speed button on stories	Hikayelerde hız düğmesi
 Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Bir video hikayesinin üstüne, üç noktanın yanına bir hız düğmesi koyar. 1,5x için dokun, 2x için tekrar dokun, 1x için bir kez daha dokun. Sonraki video hikayeleri, sen değiştirene veya Instagram'ı yeniden başlatana kadar bu hızı korur. Reklamlar normal hızda oynatılır.
 # context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
 Playback speed, %1$s	Oynatma hızı, %1$s
+Where the mention pill goes	Bahsetme etiketinin yeri
+Under the name, 1 mention	Adın altında, 1 bahsetme
+Top bar, @1 mention	Üst çubuk, @1 bahsetme
+Top bar, @1	Üst çubuk, @1
+The pill sits under the story's name and reads like 1 mention. Its list opens over the story.	Etiket hikâyenin adının altında durur ve 1 bahsetme gibi yazar. Listesi hikâyenin üzerinde açılır.
+The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.	Etiket üst çubukta menünün yanında durur ve @1 bahsetme gibi yazar. Listesi ekranın altından açılır.
+The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.	Etiket üst çubukta menünün yanında durur ve yalnızca sayıyı gösterir, @1 gibi. Listesi ekranın altından açılır.
+Turn on See who a story mentions to use this choice.	Bu seçimi kullanmak için Bir hikâyede kimlerden bahsedildiğini gör seçeneğini açın.
+Story mentions	Hikâye bahsetmeleri
+Accounts mentioned in this story	Bu hikâyede bahsedilen hesaplar

@@ -1602,3 +1602,13 @@ Speed button on stories	Botón de velocidad en historias
 Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Pone un botón de velocidad en la parte superior de una historia de vídeo, junto a los tres puntos. Tócalo para 1,5x, otra vez para 2x y una vez más para 1x. Las siguientes historias de vídeo mantienen la velocidad hasta que la cambies o reinicies Instagram. Los anuncios se reproducen a velocidad normal.
 # context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
 Playback speed, %1$s	Velocidad de reproducción, %1$s
+Where the mention pill goes	Dónde va la etiqueta de menciones
+Under the name, 1 mention	Bajo el nombre, 1 mención
+Top bar, @1 mention	Barra superior, @1 mención
+Top bar, @1	Barra superior, @1
+The pill sits under the story's name and reads like 1 mention. Its list opens over the story.	La etiqueta va bajo el nombre de la historia y dice algo como 1 mención. Su lista se abre sobre la historia.
+The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.	La etiqueta va en la barra superior junto al menú y dice algo como @1 mención. Su lista se abre desde la parte de abajo de la pantalla.
+The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.	La etiqueta va en la barra superior junto al menú y solo muestra el número, como @1. Su lista se abre desde la parte de abajo de la pantalla.
+Turn on See who a story mentions to use this choice.	Activa «Ver a quién menciona una historia» para usar esta opción.
+Story mentions	Menciones de la historia
+Accounts mentioned in this story	Cuentas mencionadas en esta historia

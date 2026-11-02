@@ -20,6 +20,7 @@ import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
+import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
@@ -216,6 +217,15 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting RED_STORY_MENTIONS =
             new BooleanSetting("hushgram_red_story_mentions", FALSE, parent(SHOW_STORY_MENTIONS));
+
+    /**
+     * Where {@link #SHOW_STORY_MENTIONS} puts the pill and what it says (#468): under the name, or
+     * in the top bar next to the menu with an @ in front, written out or as the count alone. It
+     * starts under the name, which is where the pill was before the choice, so no one's header
+     * changes until they pick. Read at each story's bind. It isn't a switch: the switch above it is.
+     */
+    public static final EnumSetting<StoryMentionsLook> STORY_MENTIONS_LOOK =
+            new EnumSetting<>("hushgram_story_mentions_look", StoryMentionsLook.UNDER_NAME, parent(SHOW_STORY_MENTIONS));
 
     /**
      * A story's header leaves out the Follow button Instagram shows for an account you don't follow

@@ -125,6 +125,7 @@ import app.hushgram.extension.instagram.stories.StoryRingColor;
 import app.hushgram.extension.instagram.stories.UploadBitrate;
 import app.hushgram.extension.instagram.stories.UploadScope;
 import app.hushgram.extension.instagram.stories.StoryRingSize;
+import app.hushgram.extension.instagram.stories.StoryMentionsLook;
 import app.hushgram.extension.instagram.stories.StoryTimeMode;
 import app.hushgram.extension.instagram.stories.TrayBadge;
 import app.hushgram.extension.instagram.profile.FollowerHistory;
@@ -682,6 +683,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.TAP_TO_PLAY && (Settings.TAP_TO_PLAY_SCOPE.key.equals(key)
                             || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_MENTIONS && Settings.STORY_MENTIONS_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
@@ -5543,6 +5545,50 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** Where the mention pill goes and what it says (#468). Its values are the setting's own names. */
+    static StoryMentionsLookRow storyMentionsLookRow(Context context) {
+        StoryMentionsLookRow row = new StoryMentionsLookRow(context);
+        row.setKey(Settings.STORY_MENTIONS_LOOK.key);
+        row.setTitle(L10n.t("Where the mention pill goes"));
+        row.setDialogTitle(L10n.t("Where the mention pill goes"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        StoryMentionsLook[] looks = StoryMentionsLook.values();
+        CharSequence[] entries = new CharSequence[looks.length];
+        CharSequence[] values = new CharSequence[looks.length];
+        for (int i = 0; i < looks.length; i++) {
+            entries[i] = storyMentionsLookLabel(looks[i]);
+            values[i] = looks[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(Settings.STORY_MENTIONS_LOOK.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [look]. */
+    static String storyMentionsLookLabel(StoryMentionsLook look) {
+        switch (look) {
+            case TOP_BAR:
+                return L10n.t("Top bar, @1 mention");
+            case TOP_BAR_SHORT:
+                return L10n.t("Top bar, @1");
+            default:
+                return L10n.t("Under the name, 1 mention");
+        }
+    }
+
+    /** Where the pill shows with [look] and how its list opens, for the row's summary. */
+    static String storyMentionsLookSummary(StoryMentionsLook look) {
+        switch (look) {
+            case TOP_BAR:
+                return L10n.t("The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.");
+            case TOP_BAR_SHORT:
+                return L10n.t("The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.");
+            default:
+                return L10n.t("The pill sits under the story's name and reads like 1 mention. Its list opens over the story.");
+        }
+    }
+
     /** Where the follow chip goes and how big it is (#157). Its values are the setting's own names. */
     static FollowLabelPlaceRow followLabelPlaceRow(Context context) {
         FollowLabelPlaceRow row = new FollowLabelPlaceRow(context);
@@ -5725,6 +5771,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ScrollBreakRow) preference).showSummary();
         } else if (preference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) preference).showSummary();
+        } else if (preference instanceof StoryMentionsLookRow) {
+            ((StoryMentionsLookRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) preference).showSummary();
         } else if (preference instanceof HiddenBarsRow) {
@@ -5770,6 +5818,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((ReelTapChoiceRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryTimeModeRow) {
             ((StoryTimeModeRow) listPreference).showSummary();
+        } else if (listPreference instanceof StoryMentionsLookRow) {
+            ((StoryMentionsLookRow) listPreference).showSummary();
         } else if (listPreference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) listPreference).showSummary();
         } else if (listPreference instanceof HiddenBarsRow) {
@@ -8268,6 +8318,43 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(Settings.FULL_SCREEN_HIDES.isAvailable()
                     ? hiddenBarsSummary(bars)
                     : L10n.t("Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class StoryMentionsLookRow extends ListPreference {
+        StoryMentionsLookRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            StoryMentionsLook look = StoryMentionsLook.UNDER_NAME;
+            for (StoryMentionsLook candidate : StoryMentionsLook.values()) {
+                if (candidate.name().equals(getValue())) look = candidate;
+            }
+            setSummary(Settings.STORY_MENTIONS_LOOK.isAvailable()
+                    ? storyMentionsLookSummary(look)
+                    : L10n.t("Turn on See who a story mentions to use this choice."));
         }
 
         @Override

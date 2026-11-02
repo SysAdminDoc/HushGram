@@ -1519,3 +1519,13 @@ Speed button on stories	Nút tốc độ trên tin
 Puts a speed button at the top of a video story, beside the three dots. Tap it for 1.5x, again for 2x and once more for 1x. Later video stories keep the speed until you change it or restart Instagram. Ads play at normal speed.	Đặt nút tốc độ ở đầu tin video, cạnh ba chấm. Nhấn để chuyển sang 1,5x, nhấn lần nữa để 2x và thêm lần nữa để về 1x. Các tin video tiếp theo giữ tốc độ đó cho đến khi bạn đổi hoặc khởi động lại Instagram. Quảng cáo phát ở tốc độ bình thường.
 # context: TalkBack label of that button; %1$s is the speed shown on it, such as 1.5x
 Playback speed, %1$s	Tốc độ phát, %1$s
+Where the mention pill goes	Vị trí nhãn lượt nhắc
+Under the name, 1 mention	Dưới tên, 1 lượt nhắc
+Top bar, @1 mention	Thanh trên cùng, @1 lượt nhắc
+Top bar, @1	Thanh trên cùng, @1
+The pill sits under the story's name and reads like 1 mention. Its list opens over the story.	Nhãn nằm dưới tên của tin và ghi kiểu 1 lượt nhắc. Danh sách mở ra trên tin.
+The pill sits in the top bar next to the menu and reads like @1 mention. Its list opens from the bottom of the screen.	Nhãn nằm trên thanh trên cùng cạnh menu và ghi kiểu @1 lượt nhắc. Danh sách mở ra từ cuối màn hình.
+The pill sits in the top bar next to the menu and shows only the count, like @1. Its list opens from the bottom of the screen.	Nhãn nằm trên thanh trên cùng cạnh menu và chỉ hiện con số, kiểu @1. Danh sách mở ra từ cuối màn hình.
+Turn on See who a story mentions to use this choice.	Hãy bật Xem tin nhắc đến ai để dùng lựa chọn này.
+Story mentions	Lượt nhắc trong tin
+Accounts mentioned in this story	Các tài khoản được nhắc trong tin này
