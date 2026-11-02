@@ -32,8 +32,10 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import app.hushgram.extension.instagram.download.FeedDownloadButton;
 import app.hushgram.extension.instagram.download.TextGrab;
@@ -73,6 +75,8 @@ public final class ChatPager {
     static final int TAP_GAP = 4;
     /** Pixels the list steps off its old end and back to ask for an older page. Nothing draws between the two. */
     static final int ASK_STEP = 1;
+    /** Layout passes a found row is waited for before it's left where the list put it. */
+    private static final int TOP_TRIES = 5;
     /** The area around a chat's name and subtitle in Instagram's chat header. */
     static final String NAME_AREA = "header_title_subtitle_container";
     /** The row on the right of Instagram's chat header that holds the call and video buttons. */
@@ -164,7 +168,7 @@ public final class ChatPager {
         /** Asks Instagram for older messages if the list is at its old end, then scrolls it there. */
         void toOldest();
 
-        /** Scrolls the list to a row. */
+        /** Scrolls the list to a found row and puts it at the top, where reading down starts. */
         void scrollTo(int position);
 
         /** Scrolls the list back to its new end, where a chat is read from. */
@@ -927,7 +931,7 @@ public final class ChatPager {
                 list.scrollBy(0, ASK_STEP);
                 list.scrollBy(0, -ASK_STEP);
                 int count = count();
-                if (count > 0) scrollTo(oldestEnd(count));
+                if (count > 0) jump(oldestEnd(count));
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             }
@@ -968,19 +972,88 @@ public final class ChatPager {
             try {
                 int count = count();
                 if (count <= 0) return;
-                scrollTo(oldestEnd(count) == 0 ? count - 1 : 0);
+                jump(oldestEnd(count) == 0 ? count - 1 : 0);
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
             }
         }
 
         @Override public void scrollTo(int position) {
+            scrollTo(position, messageRows(lastEntries));
+        }
+
+        /**
+         * A row brought in from off screen lands at the nearer edge, the bottom one on a chat's reversed
+         * list, so a found message sat under everything older than it and the jump looked like it stopped
+         * short of its date (#246). Once the list has laid the row out it goes to the top, with its date
+         * stamp above it. [messages] are the rows that hold a message.
+         */
+        void scrollTo(final int position, final Set<Integer> messages) {
+            if (!jump(position)) return;
+            MAIN.post(new Runnable() {
+                private int tries = TOP_TRIES;
+
+                @Override public void run() {
+                    if (!toTop(position, messages) && --tries > 0) MAIN.post(this);
+                }
+            });
+        }
+
+        private static Set<Integer> messageRows(List<ChatHistory.Entry> entries) {
+            Set<Integer> rows = new HashSet<>();
+            if (entries == null) return rows;
+            for (ChatHistory.Entry entry : entries) {
+                if (entry.position >= 0) rows.add(entry.position);
+            }
+            return rows;
+        }
+
+        /**
+         * Scrolls [position]'s row, with the rows right above it that hold no message (a date stamp, the
+         * chat's start), to the top of the list. False while the list hasn't laid the row out yet.
+         */
+        private boolean toTop(int position, Set<Integer> messages) {
             try {
                 Object manager = manager();
-                if (manager == null) return;
-                manager.getClass().getMethod("scrollToPosition", int.class).invoke(manager, position);
+                if (manager == null) return true;
+                Method find = manager.getClass().getMethod("findViewByPosition", int.class);
+                View row = (View) find.invoke(manager, position);
+                if (row == null) return false;
+                // Which way the rows above run depends on the layout, so it's read off the screen.
+                int step = 0;
+                for (int side : new int[] {1, -1}) {
+                    View next = (View) find.invoke(manager, position + side);
+                    if (next != null && next.getTop() < row.getTop()) {
+                        step = side;
+                        break;
+                    }
+                }
+                View top = row;
+                if (step != 0) {
+                    for (int at = position + step; !messages.contains(at); at += step) {
+                        View above = (View) find.invoke(manager, at);
+                        if (above == null || above.getTop() >= top.getTop()) break;
+                        top = above;
+                    }
+                }
+                int by = top.getTop() - list.getPaddingTop();
+                if (by != 0) list.scrollBy(0, by);
             } catch (Throwable t) {
                 HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+            }
+            return true;
+        }
+
+        /** Scrolls the list so a row is on screen, at whichever edge the list chooses. False when it couldn't. */
+        private boolean jump(int position) {
+            try {
+                Object manager = manager();
+                if (manager == null) return false;
+                manager.getClass().getMethod("scrollToPosition", int.class).invoke(manager, position);
+                return true;
+            } catch (Throwable t) {
+                HookStatus.threw(FamilyNames.CHAT_HISTORY, PAGER, t);
+                return false;
             }
         }
     }

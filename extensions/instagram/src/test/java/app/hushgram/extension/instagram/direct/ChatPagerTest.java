@@ -43,9 +43,12 @@ import org.robolectric.shadows.ShadowPopupMenu;
 import org.robolectric.shadows.ShadowToast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import app.hushgram.extension.instagram.settings.FamilyNames;
@@ -725,6 +728,105 @@ public class ChatPagerTest {
         source.toOldest();
         assertEquals(1, list.asked);
         assertEquals(40, list.rows);
+        assertEquals(0, list.off);
+    }
+
+    /**
+     * A chat list laid out like Instagram 453's, newest row at the bottom and the old end at the top, with
+     * rows of their own heights. A row brought in from off screen lands at the nearer edge, the way
+     * LinearLayoutManager places it. {@link #off} is how far the top of the screen sits below the old end.
+     */
+    public static final class RowList extends View {
+        static final int SCREEN = 1000;
+        final int[] heights;
+        final View[] rows;
+        int off;
+
+        /** [heights] from the newest row, position 0, up to the chat's start. */
+        RowList(int... heights) {
+            super(RuntimeEnvironment.getApplication());
+            this.heights = heights;
+            rows = new View[heights.length];
+            for (int i = 0; i < rows.length; i++) rows[i] = new View(getContext());
+        }
+
+        /** How far [position]'s top sits below the old end. */
+        int above(int position) {
+            int sum = 0;
+            for (int i = heights.length - 1; i > position; i--) sum += heights[i];
+            return sum;
+        }
+
+        int topOf(int position) {
+            return above(position) - off;
+        }
+
+        private void moveTo(int to) {
+            off = Math.max(0, Math.min(Math.max(0, above(-1) - SCREEN), to));
+        }
+
+        @Override public void scrollBy(int x, int y) {
+            moveTo(off + y);
+        }
+
+        public Manager getLayoutManager() {
+            return new Manager();
+        }
+
+        public final class Manager {
+            public boolean isLayoutReversed() {
+                return true;
+            }
+
+            public void scrollToPosition(int position) {
+                int top = topOf(position);
+                if (top < 0) moveTo(above(position));
+                else if (top + heights[position] > SCREEN) moveTo(above(position) + heights[position] - SCREEN);
+            }
+
+            public View findViewByPosition(int position) {
+                if (position < 0 || position >= heights.length) return null;
+                int top = topOf(position);
+                if (top + heights[position] <= 0 || top >= SCREEN) return null;
+                rows[position].layout(0, top, 1080, top + heights[position]);
+                return rows[position];
+            }
+        }
+    }
+
+    /**
+     * The chat from the S22 check, newest first: five messages, an OCT 22 stamp, two OCT 14 messages, an
+     * OCT 14 stamp, the OCT 10 message, its stamp and the chat's start.
+     */
+    private static RowList dated() {
+        return new RowList(500, 400, 300, 110, 110, 90, 240, 860, 90, 120, 90, 400);
+    }
+
+    private static Set<Integer> messageRows() {
+        return new HashSet<>(Arrays.asList(0, 1, 2, 3, 4, 6, 7, 9));
+    }
+
+    /** A jump to a date put the found message at the bottom edge under older ones, as if it stopped short (#246). */
+    @Test public void aFoundMessageGoesToTheTopWithItsDateStampAboveIt() {
+        RowList list = dated();
+        new ChatPager.ListSource(list).scrollTo(4, messageRows());
+        ShadowLooper.idleMainLooper();
+        assertEquals("the OCT 22 stamp at the top", 0, list.topOf(5));
+        assertEquals("the message right under it", 90, list.topOf(4));
+    }
+
+    @Test public void aFoundMessageRightUnderAnotherGoesToTheTopAlone() {
+        RowList list = dated();
+        new ChatPager.ListSource(list).scrollTo(3, messageRows());
+        ShadowLooper.idleMainLooper();
+        assertEquals(0, list.topOf(3));
+    }
+
+    /** The first message, already on screen under the chat's start, stays where it is. */
+    @Test public void theFirstMessageLeavesTheChatsStartOnScreen() {
+        RowList list = dated();
+        new ChatPager.ListSource(list).scrollTo(9, messageRows());
+        ShadowLooper.idleMainLooper();
         assertEquals(0, list.off);
     }
 
