@@ -15,7 +15,9 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  *
  * <p>When two fingers start a pinch on a story, the story viewer pauses it for the zoom and plays
  * it again when the fingers lift. The patch asks {@link #keepPlaying()} first thing in the
- * viewer's pause for a pinch, and the pause is skipped when it says yes.
+ * viewer's pause for a pinch. When it says yes, that pause is skipped and the viewer's resume runs
+ * instead: the first finger down has already paused the story ("tapped"), and that pause would
+ * otherwise hold until the fingers lift.
  *
  * <p>A story the user holds still pauses through the same pause method, with {@link #HOLD} as its
  * reason, and plays again through the viewer's resume when the finger lifts. The patch reports
@@ -62,8 +64,9 @@ public final class StoryZoomPlay {
     }
 
     /**
-     * True skips the pause a pinch asks for. False while the switch is off, HushGram is paused, the
-     * settings aren't ready, the story is held still, or when anything goes wrong. Never throws.
+     * True skips the pause a pinch asks for and plays the story again. False while the switch is
+     * off, HushGram is paused, the settings aren't ready, the story is held still, or when anything
+     * goes wrong. Never throws.
      */
     public static boolean keepPlaying() {
         try {
