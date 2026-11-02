@@ -83,7 +83,10 @@ final class LayoutCategory {
                                 + "resolution. Some phones keep their own limit for apps, and battery saver can "
                                 + "still lower it.")), RefreshRate::switchChanged));
             }
-            if (build.contains(PatchFamily.APP_ICON)) layout.addPreference(appIconRow(context));
+            if (build.contains(PatchFamily.APP_ICON)) {
+                layout.addPreference(appIconRow(context));
+                layout.addPreference(page.customIconRow(context));
+            }
             if (build.contains(PatchFamily.SETTINGS_ROWS)) layout.addPreference(page.settingsRowsRow(context));
         }
     }

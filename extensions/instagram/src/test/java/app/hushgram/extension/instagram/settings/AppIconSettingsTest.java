@@ -82,9 +82,12 @@ public class AppIconSettingsTest {
         assertEquals("App icon", row.getTitle().toString());
         PreferenceGroup layout = (PreferenceGroup) row.getParent();
         assertEquals("Layout", layout.getTitle().toString());
-        assertEquals("after the launch screen, last", Settings.APP_ICON.key,
+        assertEquals("the custom icon row follows it", HushgramPreferenceFragment.CUSTOM_ICON_KEY,
                 layout.getPreference(layout.getPreferenceCount() - 1).getKey());
-        assertEquals(Settings.LAUNCH_SCREEN.key, layout.getPreference(layout.getPreferenceCount() - 2).getKey());
+        assertEquals("Custom app icon", layout.getPreference(layout.getPreferenceCount() - 1).getTitle().toString());
+        assertEquals("after the launch screen", Settings.APP_ICON.key,
+                layout.getPreference(layout.getPreferenceCount() - 2).getKey());
+        assertEquals(Settings.LAUNCH_SCREEN.key, layout.getPreference(layout.getPreferenceCount() - 3).getKey());
 
         List<String> entries = new ArrayList<>();
         for (CharSequence entry : row.getEntries()) entries.add(entry.toString());
@@ -164,6 +167,7 @@ public class AppIconSettingsTest {
     @Test public void withoutThePatchThereIsNoRowAndNothingToBackUp() throws Exception {
         open(EnumSet.noneOf(PatchFamily.class));
         assertNull(page.getPreferenceScreen().findPreference(Settings.APP_ICON.key));
+        assertNull(page.getPreferenceScreen().findPreference(HushgramPreferenceFragment.CUSTOM_ICON_KEY));
         assertFalse(ConfigurationBackup.eligible().containsKey(Settings.APP_ICON.key));
     }
 }

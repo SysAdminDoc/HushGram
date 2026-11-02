@@ -107,6 +107,7 @@ import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
+import app.hushgram.extension.instagram.misc.CustomIcon;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.SettingsRows;
@@ -244,6 +245,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_STORY_EMOJI = 0x484f;
     private static final int PICK_SAVE_FOLDER = 0x4850;
     private static final int PICK_EMOJI = 0x4851;
+    private static final int PICK_ICON_PICTURE = 0x4852;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -1761,6 +1763,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (result == Activity.RESULT_OK) keepPickedFont(request, data == null ? null : data.getData(), revision);
             return;
         }
+        if (request == PICK_ICON_PICTURE) {
+            documentRequest = 0;
+            documentCode = 0;
+            showConfiguration();
+            if (result == Activity.RESULT_OK) CustomIcon.edit(getActivity(), data == null ? null : data.getData());
+            return;
+        }
         if (request == PICK_SAVE_FOLDER) {
             documentRequest = 0;
             documentCode = 0;
@@ -1859,6 +1868,41 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     static final String GALLERY_FOLDERS = "hushgram_gallery_folders";
+
+    /** The Custom app icon row (#442): Android's picture picker, then the framing dialog. */
+    Row customIconRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(CUSTOM_ICON_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Custom app icon"));
+        row.setSummary(L10n.t("Pick a picture, frame it and add it to your home screen as a shortcut to Instagram."));
+        row.setOnPreferenceClickListener(p -> {
+            pickIconPicture();
+            return true;
+        });
+        return row;
+    }
+
+    static final String CUSTOM_ICON_KEY = "hushgram_custom_icon";
+
+    private void pickIconPicture() {
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_ICON_PICTURE;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+        }
+    }
 
     private void pickSaveFolder() {
         if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
