@@ -1558,3 +1558,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	尚未加入帳號
 %1$d account	%1$d 個帳號
 %1$d accounts	%1$d 個帳號
+Home header text	首頁頂端文字
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	在首頁頂端顯示你自己的文字，取代 Instagram 標誌。最多 %1$d 個字元。留空即可保留標誌。
+Instagram's logo stays at the top of Home.	首頁頂端保留 Instagram 標誌。
+The top of Home says %1$s.	首頁頂端顯示「%1$s」。
+Home header picture	首頁頂端圖片
+Remove the header picture	移除頂端圖片
+The top of Home goes back to your header text, or to Instagram's logo.	首頁頂端會恢復為你的文字，或 Instagram 標誌。
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	選擇一張圖片，顯示在首頁頂端，取代 Instagram 標誌或你的文字。
+The top of Home shows %1$s. Tap to pick another.	首頁頂端顯示 %1$s。點擊即可選擇其他圖片。
+Header picture set.	已設定首頁頂端圖片。
+Header picture removed.	已移除首頁頂端圖片。
+That isn't a picture.	這不是圖片。
+That picture is over %1$d MB.	這張圖片超過 %1$d MB。
+Couldn't save the picture.	無法儲存圖片。

@@ -1554,3 +1554,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	아직 계정이 없습니다
 %1$d account	계정 %1$d개
 %1$d accounts	계정 %1$d개
+Home header text	홈 상단 문구
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Instagram 로고 대신 홈 상단에 표시할 나만의 문구입니다. 최대 %1$d자까지 입력할 수 있습니다. 비워 두면 로고가 유지됩니다.
+Instagram's logo stays at the top of Home.	홈 상단에 Instagram 로고가 유지됩니다.
+The top of Home says %1$s.	홈 상단에 %1$s 문구가 표시됩니다.
+Home header picture	홈 상단 이미지
+Remove the header picture	상단 이미지 삭제
+The top of Home goes back to your header text, or to Instagram's logo.	홈 상단이 내 문구 또는 Instagram 로고로 돌아갑니다.
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	Instagram 로고나 내 문구 대신 홈 상단에 표시할 이미지를 선택하세요.
+The top of Home shows %1$s. Tap to pick another.	홈 상단에 %1$s 이미지가 표시됩니다. 다른 이미지를 선택하려면 탭하세요.
+Header picture set.	홈 상단 이미지를 설정했습니다.
+Header picture removed.	홈 상단 이미지를 삭제했습니다.
+That isn't a picture.	이미지가 아닙니다.
+That picture is over %1$d MB.	이미지가 %1$dMB를 넘습니다.
+Couldn't save the picture.	이미지를 저장하지 못했습니다.

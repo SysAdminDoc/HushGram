@@ -9,6 +9,7 @@ package app.hushgram.extension.instagram.settings;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.accentHueRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.appIconRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.headerTextRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.info;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.mark;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
@@ -33,7 +34,7 @@ final class LayoutCategory {
     static void add(HushgramPreferenceFragment page, PreferenceScreen screen, Context context, Set<PatchFamily> build) {
         if (build.contains(PatchFamily.BOTTOM_SPACE) || build.contains(PatchFamily.EMOJI_STYLE)
                 || build.contains(PatchFamily.ACCENT_COLOR) || build.contains(PatchFamily.LAUNCH_SCREEN)
-                || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)
+                || build.contains(PatchFamily.HEADER_TEXT) || build.contains(PatchFamily.FONT) || build.contains(PatchFamily.APP_ICON)
                 || build.contains(PatchFamily.SETTINGS_ROWS) || build.contains(PatchFamily.REFRESH_RATE)) {
             PreferenceCategory layout = category(screen, L10n.t("Layout"), SettingsIcons.LAYOUT,
                     L10n.t("Change how Instagram looks, from its colors to its emoji."));
@@ -76,6 +77,11 @@ final class LayoutCategory {
                 layout.addPreference(toggle(context, Settings.LAUNCH_SCREEN, L10n.t("HushGram launch screen"),
                         L10n.t("Shows HushGram's logo instead of Instagram's on the screen you see while Instagram "
                                 + "starts, on Android 13 and newer. It shows from the next start.")));
+            }
+            if (build.contains(PatchFamily.HEADER_TEXT)) {
+                layout.addPreference(headerTextRow(context));
+                layout.addPreference(page.headerPictureRow(context));
+                layout.addPreference(page.removeHeaderPictureRow(context));
             }
             if (build.contains(PatchFamily.REFRESH_RATE)) {
                 layout.addPreference(onFlip(toggle(context, Settings.HIGHEST_REFRESH_RATE, L10n.t("Use the highest refresh rate"),

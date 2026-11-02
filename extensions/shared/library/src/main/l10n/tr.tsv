@@ -1555,3 +1555,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	Henüz hesap yok
 %1$d account	%1$d hesap
 %1$d accounts	%1$d hesap
+Home header text	Ana Sayfa üst yazısı
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Ana Sayfa'nın üstünde Instagram logosu yerine kendi sözlerin. En fazla %1$d karakter. Logoyu tutmak için boş bırak.
+Instagram's logo stays at the top of Home.	Ana Sayfa'nın üstünde Instagram logosu kalır.
+The top of Home says %1$s.	Ana Sayfa'nın üstünde %1$s yazıyor.
+Home header picture	Ana Sayfa üst resmi
+Remove the header picture	Üst resmi kaldır
+The top of Home goes back to your header text, or to Instagram's logo.	Ana Sayfa'nın üstü yazına ya da Instagram logosuna döner.
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	Ana Sayfa'nın üstünde Instagram logosu ya da yazın yerine gösterilecek bir resim seç.
+The top of Home shows %1$s. Tap to pick another.	Ana Sayfa'nın üstünde %1$s görünüyor. Başka birini seçmek için dokun.
+Header picture set.	Üst resim ayarlandı.
+Header picture removed.	Üst resim kaldırıldı.
+That isn't a picture.	Bu bir resim değil.
+That picture is over %1$d MB.	Bu resim %1$d MB'tan büyük.
+Couldn't save the picture.	Resim kaydedilemedi.

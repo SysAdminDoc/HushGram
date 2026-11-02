@@ -1555,3 +1555,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	Ancora nessun account
 %1$d account	%1$d account
 %1$d accounts	%1$d account
+Home header text	Testo in alto nella Home
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Parole tue in alto nella Home, al posto del logo di Instagram. Fino a %1$d caratteri. Lascia vuoto per tenere il logo.
+Instagram's logo stays at the top of Home.	Il logo di Instagram resta in alto nella Home.
+The top of Home says %1$s.	In alto nella Home c'è scritto %1$s.
+Home header picture	Immagine in alto nella Home
+Remove the header picture	Rimuovi l'immagine in alto
+The top of Home goes back to your header text, or to Instagram's logo.	In alto nella Home torna il tuo testo, o il logo di Instagram.
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	Scegli un'immagine da mostrare in alto nella Home, al posto del logo di Instagram o del tuo testo.
+The top of Home shows %1$s. Tap to pick another.	In alto nella Home c'è %1$s. Tocca per sceglierne un'altra.
+Header picture set.	Immagine della Home impostata.
+Header picture removed.	Immagine della Home rimossa.
+That isn't a picture.	Questa non è un'immagine.
+That picture is over %1$d MB.	L'immagine supera %1$d MB.
+Couldn't save the picture.	Impossibile salvare l'immagine.

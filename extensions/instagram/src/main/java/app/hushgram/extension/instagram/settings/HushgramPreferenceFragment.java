@@ -67,6 +67,7 @@ import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
+import java.io.File;
 import java.text.NumberFormat;
 import java.lang.ref.WeakReference;
 import java.text.Normalizer;
@@ -108,6 +109,8 @@ import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
 import app.hushgram.extension.instagram.misc.CustomIcon;
+import app.hushgram.extension.instagram.misc.HeaderPicture;
+import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.MediaCache;
 import app.hushgram.extension.instagram.misc.NotificationGroups;
 import app.hushgram.extension.instagram.misc.SettingsRows;
@@ -247,6 +250,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     private static final int PICK_SAVE_FOLDER = 0x4850;
     private static final int PICK_EMOJI = 0x4851;
     private static final int PICK_ICON_PICTURE = 0x4852;
+    private static final int PICK_HEADER_PICTURE = 0x4853;
     /** Framework fragment callbacks run on the main thread. Never reuse a code across pages. */
     private static int documentSequence = PICK_FONT;
     private int documentRequest;
@@ -322,6 +326,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     /** Choose a folder (#333) and Use Movies and Pictures, under Save folder. */
     @Nullable Row saveTree;
     @Nullable Row galleryFolders;
+    @Nullable Row headerPicture;
+    @Nullable Row removeHeaderPicture;
     @Nullable PreferenceCategory recovery;
     @Nullable private Row interruptedSaves;
     @Nullable private Row lastCarouselSave;
@@ -1773,6 +1779,13 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             if (result == Activity.RESULT_OK) CustomIcon.edit(getActivity(), data == null ? null : data.getData());
             return;
         }
+        if (request == PICK_HEADER_PICTURE) {
+            documentRequest = 0;
+            documentCode = 0;
+            // Canceled: nothing to do and nothing to say.
+            if (result == Activity.RESULT_OK) keepHeaderPicture(data == null ? null : data.getData());
+            return;
+        }
         if (request == PICK_SAVE_FOLDER) {
             documentRequest = 0;
             documentCode = 0;
@@ -1888,6 +1901,158 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
     }
 
     static final String CUSTOM_ICON_KEY = "hushgram_custom_icon";
+    static final String HEADER_PICTURE_KEY = "hushgram_header_picture_row";
+    static final String REMOVE_HEADER_PICTURE_KEY = "hushgram_remove_header_picture";
+
+    /** The Home header picture row (#454): Android's picture picker, then a shrunk copy in Instagram's files. */
+    Row headerPictureRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(HEADER_PICTURE_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Home header picture"));
+        row.setOnPreferenceClickListener(p -> {
+            pickHeaderPicture();
+            return true;
+        });
+        headerPicture = row;
+        return row;
+    }
+
+    /** Remove the header picture: forgets the picture, there only while one is picked. */
+    Row removeHeaderPictureRow(Context context) {
+        Row row = new Row(context);
+        row.setKey(REMOVE_HEADER_PICTURE_KEY);
+        row.setPersistent(false);
+        row.actsAtOnce = true;
+        row.setTitle(L10n.t("Remove the header picture"));
+        row.setSummary(L10n.t("The top of Home goes back to your header text, or to Instagram's logo."));
+        row.setOnPreferenceClickListener(p -> {
+            if (!allowMutation()) return true;
+            removeHeaderPicture(p.getContext().getApplicationContext());
+            return true;
+        });
+        removeHeaderPicture = row;
+        showHeaderPicture();
+        return row;
+    }
+
+    /** What the two picture rows say and allow now, for a picked picture or none. */
+    void showHeaderPicture() {
+        Row choose = headerPicture;
+        if (choose != null) {
+            String name = Settings.HEADER_PICTURE.savedValue();
+            choose.setSummary(name.isEmpty()
+                    ? L10n.t("Pick a picture to show at the top of Home, in place of Instagram's logo or your text.")
+                    : L10n.f("The top of Home shows %1$s. Tap to pick another.", L10n.isolate(name)));
+        }
+        if (removeHeaderPicture != null) removeHeaderPicture.setEnabled(!Settings.HEADER_PICTURE.savedValue().isEmpty());
+    }
+
+    private void pickHeaderPicture() {
+        if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
+        if (!allowMutation()) return;
+        if (documentSequence == Integer.MAX_VALUE) {
+            Utils.showToastLong(L10n.t("Couldn't start that. Try again."));
+            return;
+        }
+        documentRequest = PICK_HEADER_PICTURE;
+        documentCode = ++documentSequence;
+        Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+        try {
+            startActivityForResult(picker, documentCode);
+        } catch (ActivityNotFoundException | SecurityException failure) {
+            documentRequest = 0;
+            documentCode = 0;
+            Utils.showToastLong(L10n.t("This phone has no file picker. Your settings haven't changed."));
+        }
+    }
+
+    /**
+     * Copies the picked picture into Instagram's files off the main thread. The name is saved before
+     * the copy moves in and put back if it can't, so the row and the copy never disagree.
+     */
+    private void keepHeaderPicture(@Nullable Uri uri) {
+        Activity activity = getActivity();
+        if (uri == null || activity == null) return;
+        Context context = activity.getApplicationContext();
+        Utils.runOnBackgroundThread(() -> {
+            String said;
+            try {
+                String name = pictureName(context, uri);
+                String before = Settings.HEADER_PICTURE.savedValue();
+                HeaderPicture.copy(context.getContentResolver().openInputStream(uri), HeaderPicture.file(context),
+                        new HeaderPicture.Choice() {
+                            @Override
+                            public boolean save() {
+                                return Settings.HEADER_PICTURE.save(name);
+                            }
+
+                            @Override
+                            public void undo() {
+                                Settings.HEADER_PICTURE.save(before);
+                            }
+                        });
+                said = L10n.t("Header picture set.");
+            } catch (HeaderPicture.Refused refused) {
+                Logger.printInfo(() -> "Header picture refused: " + refused.reason);
+                said = headerPictureRefusal(refused.reason);
+            } catch (Exception failure) {
+                // The class only: a provider's message can carry the document's name or address.
+                Logger.printInfo(() -> "Header picture unreadable: " + failure.getClass().getSimpleName());
+                said = headerPictureRefusal(HeaderPicture.Refusal.UNREADABLE);
+            }
+            String result = said;
+            Utils.runOnMainThread(() -> {
+                showHeaderPicture();
+                Utils.showToastShort(result);
+            });
+        });
+    }
+
+    /** Stops naming the picture, then takes its copy away, off the main thread. */
+    private void removeHeaderPicture(Context context) {
+        Utils.runOnBackgroundThread(() -> {
+            boolean saved = Settings.HEADER_PICTURE.save("");
+            if (saved) {
+                HeaderPicture.forget();
+                File copy = HeaderPicture.file(context);
+                if (copy.exists() && !copy.delete()) Logger.printInfo(() -> "The header picture copy couldn't be removed");
+            }
+            Utils.runOnMainThread(() -> {
+                showHeaderPicture();
+                Utils.showToastShort(saved ? L10n.t("Header picture removed.") : L10n.t("Couldn't start that. Try again."));
+            });
+        });
+    }
+
+    /** One short sentence per refusal, each fitting a toast. */
+    static String headerPictureRefusal(HeaderPicture.Refusal reason) {
+        switch (reason) {
+            case NOT_A_PICTURE:
+                return L10n.t("That isn't a picture.");
+            case TOO_LARGE:
+                return L10n.f("That picture is over %1$d MB.", HeaderPicture.MAX_MEGABYTES);
+            case NOT_SAVED:
+                return L10n.t("Couldn't save the picture.");
+            default:
+                return L10n.t("Couldn't read that picture.");
+        }
+    }
+
+    /** The picked file's name as its app gives it, or "picture" when it gives none. */
+    static String pictureName(Context context, Uri uri) {
+        try (android.database.Cursor cursor = context.getContentResolver().query(uri,
+                new String[]{android.provider.OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                String name = cursor.getString(0);
+                if (name != null && !name.trim().isEmpty()) return name.trim();
+            }
+        } catch (RuntimeException failure) {
+            // The plain name below.
+        }
+        return "picture";
+    }
 
     private void pickIconPicture() {
         if (documentRequest != 0 || changingConfiguration || ExportStatus.CONFIGURATION.active() || Fonts.importActive()) return;
@@ -5676,6 +5841,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         return row;
     }
 
+    /**
+     * Home header text (#454): words of your own at the top of Home in place of Instagram's logo.
+     * What's typed is saved cleaned (one line, at most {@link HeaderText#MAX_LENGTH} characters), and
+     * blank keeps the logo.
+     */
+    static HeaderTextRow headerTextRow(Context context) {
+        HeaderTextRow row = new HeaderTextRow(context);
+        row.setKey(Settings.HEADER_TEXT.key);
+        row.setTitle(L10n.t("Home header text"));
+        row.setDialogTitle(L10n.t("Home header text"));
+        row.setDialogMessage(L10n.f("Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d "
+                + "characters. Leave it blank to keep the logo.", HeaderText.MAX_LENGTH));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setSingleLine(true);
+        field.setHint("HushGram");
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(HeaderText.MAX_LENGTH * 2)});
+        row.setText(Settings.HEADER_TEXT.savedValue());
+        return row;
+    }
+
+    /** What the Home header text row says: the words at the top of Home, or that the logo stays. */
+    static String headerTextSummary(String text) {
+        String words = HeaderText.clean(text);
+        return words.isEmpty()
+                ? L10n.t("Instagram's logo stays at the top of Home.")
+                : L10n.f("The top of Home says %1$s.", L10n.isolate(words));
+    }
+
     /** What the Sharing domain row says: where links to instagram.com go out. */
     static String sharingDomainSummary(String text) {
         String domain = SharingDomain.normalize(text);
@@ -6333,6 +6528,36 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             super.showDialog(state);
             if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
             fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The Home header text row. Its summary follows its text, whoever sets it: the person or an import. */
+    static final class HeaderTextRow extends ValidatedEditRow {
+        HeaderTextRow(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(headerTextSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Any text cleans to something the header can show, blank included, so nothing is refused. */
+        @Override String validatedValue(String typed) {
+            return HeaderText.clean(typed);
+        }
+
+        @Override String validationError() {
+            return "";
         }
     }
 

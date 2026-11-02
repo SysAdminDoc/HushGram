@@ -60,6 +60,7 @@ import app.hushgram.extension.instagram.reels.ScrollBreak;
 import app.hushgram.extension.instagram.reels.TabStart;
 import app.hushgram.extension.instagram.misc.ProfileSaved;
 import app.hushgram.extension.instagram.misc.LaunchScreen;
+import app.hushgram.extension.instagram.misc.HeaderText;
 import app.hushgram.extension.instagram.misc.AppIcon;
 import app.hushgram.extension.instagram.profile.ProfileTitle;
 import app.hushgram.extension.instagram.stories.StoryProgressBar;
@@ -680,6 +681,8 @@ public final class SettingsEntry {
         }
         // Instagram's own call, with the listener above or Instagram's.
         title.setOnLongClickListener(listener);
+        // Home header text (#454) puts its words or picture on the same logo. Never throws.
+        HeaderText.dress(title);
     }
 
     /**

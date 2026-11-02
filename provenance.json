@@ -137,6 +137,17 @@
     },
     {
       "paths": [
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/HeaderText.java",
+        "extensions/instagram/src/main/java/app/hushgram/extension/instagram/misc/HeaderPicture.java"
+      ],
+      "origin": "ported",
+      "upstream": "https://github.com/SysAdminDoc/Hushfacebook",
+      "commit": "6e19ccf029de5dcbc4588979488b02dd00b4b18f",
+      "license": "GPL-3.0-only",
+      "changes": "Hushfacebook's header text and header picture, packages moved from app.morphe.extension.facebook to app.hushgram.extension.instagram. The text cleaning, the text and picture drawables and the picked picture's shrunk PNG copy came over as they were, with HushGram's settings and file name. Facebook's title view is found by its own hook, while HushGram's keeper is handed Home's logo by the settings patch's logo long press hooks, reads the settings before every draw so a change shows with no restart, and puts Instagram's logo back when both are blank. The picture copy counts its changes so the keepers see a new picture under the same name. Changed files carry a 'Modified for HushGram' line."
+    },
+    {
+      "paths": [
         "scripts/advisory-exceptions.txt",
         "scripts/build-release-receipt.ps1",
         "scripts/common.ps1",

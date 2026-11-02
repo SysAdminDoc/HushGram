@@ -90,6 +90,7 @@ public final class FamilyNames {
     public static final String EMOJI_STYLE = "Emoji style";
     public static final String ACCENT_COLOR = "Accent color";
     public static final String LAUNCH_SCREEN = "HushGram launch screen";
+    public static final String HEADER_TEXT = "Home header text";
     public static final String APP_ICON = "Pick the app icon";
     public static final String SETTINGS_ROWS = "Hide rows in Instagram's settings";
     public static final String FONT = "Font";

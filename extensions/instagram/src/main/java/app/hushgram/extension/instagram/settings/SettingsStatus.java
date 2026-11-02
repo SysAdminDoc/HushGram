@@ -242,6 +242,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean headerText() {
+        return false;
+    }
+
     public static boolean appIcon() {
         return false;
     }

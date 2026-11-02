@@ -76,7 +76,7 @@ val hideSettingsRowsPatch = bytecodePatch(
         "row shows to start.",
     default = true,
 ) {
-    category("Interface")
+    category("Settings")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 

@@ -529,6 +529,7 @@
           "Emoji style",
           "Accent color",
           "HushGram launch screen",
+          "Home header text",
           "Font",
           "Pick the app icon",
           "Use the highest refresh rate",
@@ -551,6 +552,15 @@
             "op": "any",
             "patches": [
               "Accent color"
+            ]
+          }
+        },
+        {
+          "title": "Home header text",
+          "when": {
+            "op": "any",
+            "patches": [
+              "Home header text"
             ]
           }
         },

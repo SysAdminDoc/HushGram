@@ -1472,3 +1472,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	Chưa có tài khoản nào
 %1$d account	%1$d tài khoản
 %1$d accounts	%1$d tài khoản
+Home header text	Chữ ở đầu trang chủ
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Chữ của riêng bạn ở đầu trang chủ, thay cho logo Instagram. Tối đa %1$d ký tự. Để trống để giữ logo.
+Instagram's logo stays at the top of Home.	Logo Instagram vẫn ở đầu trang chủ.
+The top of Home says %1$s.	Đầu trang chủ ghi %1$s.
+Home header picture	Ảnh ở đầu trang chủ
+Remove the header picture	Gỡ ảnh ở đầu trang
+The top of Home goes back to your header text, or to Instagram's logo.	Đầu trang chủ trở lại chữ của bạn, hoặc logo Instagram.
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	Chọn một ảnh để hiện ở đầu trang chủ, thay cho logo Instagram hoặc chữ của bạn.
+The top of Home shows %1$s. Tap to pick another.	Đầu trang chủ đang hiện %1$s. Nhấn để chọn ảnh khác.
+Header picture set.	Đã đặt ảnh đầu trang chủ.
+Header picture removed.	Đã gỡ ảnh đầu trang chủ.
+That isn't a picture.	Đó không phải là ảnh.
+That picture is over %1$d MB.	Ảnh đó lớn hơn %1$d MB.
+Couldn't save the picture.	Không lưu được ảnh.

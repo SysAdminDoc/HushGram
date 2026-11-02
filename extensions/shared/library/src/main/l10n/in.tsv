@@ -1555,3 +1555,17 @@ Usernames, one on each line. The first line goes first. A leading @ and capital 
 No accounts yet	Belum ada akun
 %1$d account	%1$d akun
 %1$d accounts	%1$d akun
+Home header text	Teks di atas Beranda
+Words of your own at the top of Home, in place of Instagram's logo. Up to %1$d characters. Leave it blank to keep the logo.	Kata-katamu sendiri di bagian atas Beranda, sebagai pengganti logo Instagram. Hingga %1$d karakter. Biarkan kosong untuk tetap memakai logo.
+Instagram's logo stays at the top of Home.	Logo Instagram tetap di bagian atas Beranda.
+The top of Home says %1$s.	Bagian atas Beranda bertuliskan %1$s.
+Home header picture	Gambar di atas Beranda
+Remove the header picture	Hapus gambar di atas
+The top of Home goes back to your header text, or to Instagram's logo.	Bagian atas Beranda kembali ke teksmu, atau ke logo Instagram.
+Pick a picture to show at the top of Home, in place of Instagram's logo or your text.	Pilih gambar untuk ditampilkan di bagian atas Beranda, sebagai pengganti logo Instagram atau teksmu.
+The top of Home shows %1$s. Tap to pick another.	Bagian atas Beranda menampilkan %1$s. Ketuk untuk memilih yang lain.
+Header picture set.	Gambar Beranda dipasang.
+Header picture removed.	Gambar Beranda dihapus.
+That isn't a picture.	Itu bukan gambar.
+That picture is over %1$d MB.	Gambar itu lebih dari %1$d MB.
+Couldn't save the picture.	Gambar tidak bisa disimpan.

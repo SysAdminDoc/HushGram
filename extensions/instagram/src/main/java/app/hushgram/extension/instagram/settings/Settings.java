@@ -1568,6 +1568,25 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_launch_screen", FALSE, true);
 
     /**
+     * Words of your own at the top of Home in place of Instagram's logo, with the Home header text
+     * patch in the build ({@link app.hushgram.extension.instagram.misc.HeaderText}, #454). Blank
+     * keeps the logo, and so does a paused Instagram. The header reads it before each draw, so a
+     * change shows without a restart. Not a switch.
+     */
+    public static final StringSetting HEADER_TEXT = new StringSetting("hushgram_header_text", "");
+
+    /**
+     * The name of a picture of your own for the top of Home, which takes the place of
+     * {@link #HEADER_TEXT}'s words and Instagram's logo ({@link
+     * app.hushgram.extension.instagram.misc.HeaderPicture}, #454). Empty keeps the words or the logo,
+     * and so does a paused Instagram. Only the settings screen writes it, after the shrunk copy has
+     * been written to Instagram's files. It isn't a switch, and a settings file leaves it out: the
+     * picture can't travel in one, and the name alone would point at nothing on another phone.
+     */
+    public static final StringSetting HEADER_PICTURE =
+            new StringSetting("hushgram_header_picture", "", false, false);
+
+    /**
      * The font Instagram's text draws in: Instagram's own, the phone's, or a font file picked in
      * settings ({@link app.hushgram.extension.instagram.misc.Fonts}). Instagram keeps its fonts once
      * loaded, so a change shows after a restart. Starts on Instagram's own.

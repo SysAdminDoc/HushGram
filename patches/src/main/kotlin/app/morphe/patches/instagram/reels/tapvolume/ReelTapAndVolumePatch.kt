@@ -79,7 +79,7 @@ val reelTapAndVolumePatch = bytecodePatch(
         "Can also keep a reel muted when you press volume up. Both start at Instagram's behavior. " +
         "Choose them in HushGram settings > Playback.",
 ) {
-    category("Reels")
+    category("Playback")
     dependsOn(settingsPatch, instagramExtensionPatch)
     compatibleWith(*AppCompatibilities.instagram())
 
