@@ -765,10 +765,14 @@ start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/
 once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->open(Ljava/lang/Object;Landroid/view/View;)Z in instance (Landroid/graphics/RectF;Landroid/view/View;*)V holding sparse_media_viewer_reply_thread_subtype Must\spass\seither\smediaId\sor\smediaCode
 # Only received reels (#460) also asks ChatReels.received first in the method that registers one of a chat's
 # messages for the chain (02YM.A01 on 453's 385914557, handed the message wrapper 01RZ), which reads the
-# Boolean function fields and hands the message's media on. A message the viewer sent returns before
-# anything of it is registered; twice or elsewhere, some other message goes missing from the chain.
-start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media;
-once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media;
+# Boolean function fields, hands the message's media on and calls a Function3 with it. A message the viewer
+# sent returns before anything of it is registered; twice or elsewhere, some other message goes missing
+# from the chain. The adapter's add (044l.A0a) also hands what it's given to ChatReels.leaveOutSent, right
+# after the placeholder guard, so the chat's own server pages lose the sent reels too; left out, they come
+# back as the viewer pages on.
+start-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->received(Ljava/lang/Object;Ljava/lang/Object;)Z in instance (LX/*;)V holding Lkotlin/jvm/functions/Function0;->invoke()Ljava/lang/Object; LX/*;->*()Lcom/instagram/feed/media/Media; Lkotlin/jvm/functions/Function3;->invoke(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object; LX/*;->*()Ljava/util/ArrayList;
+once-call Lapp/hushgram/extension/instagram/direct/ChatReels;->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;Z)V holding ClipsViewerAdapter.addClipsItems
 # Stop after the chat's reels answers every read of the viewer config's refresh permission (A3G on
 # 453's 385914557, #390) through ChatReels.refresh: twice in the Reels tab adapter's fragment for a
 # position (0Idq.A00), once in the pager setup holding its trace name (01WS.A0j), the refresh

@@ -967,6 +967,91 @@ class SwipeChatReelsHookTest {
         assertEquals("${label}: placeholders hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == STOP_CACHED } })
     }
 
+    /** The adapter's add hands its reels and the viewer's source to the extension first and adds what comes back (#460). */
+    @Test
+    fun theAddLeavesOutSentReelsFirst() {
+        val context = PatchContexts.of(adapterClasses())
+        val found = context.findPlaceholders()
+        val before = found.add.implementation!!.instructions.count()
+        context.leaveOutSentReels(found)
+        val methods = context.mutableClassDefBy(adapter).methods
+        val add = methods.single { it.name == "add" }
+        assertLeavesOutSent("stand-in", add, found, before)
+        for (name in listOf("shimmer", "update", "scroll")) {
+            assertTrue("$name was touched", methods.single { it.name == name }.code().none { it.referenceText() == LEAVE_OUT_SENT })
+        }
+
+        // The placeholder's ask goes in front, and with no config it lands on the page's.
+        context.skipPlaceholders(found)
+        val code = add.code()
+        assertEquals("both added", before + 16, code.size)
+        assertEquals("the placeholder's ask first", PLACEHOLDER, code[5].referenceText())
+        assertEquals("then the page's", LEAVE_OUT_SENT, code[13].referenceText())
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("no config goes on to the page's ask", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+    }
+
+    /** In each declared build the adapter's add hands its reels to the extension first. */
+    @Test
+    fun eachDeclaredBuildLeavesOutSentReels() {
+        val versions = AppCompatibilities.instagram().single().targets.mapNotNull { it.version }.toSet()
+        val checked = mutableSetOf<String>()
+        for (version in versions) {
+            for (bundle in Fixtures.files { it.extension == "apks" && it.name.contains("-$version-") }) {
+                leavesOutSent(bundle, bundle.name)
+                checked += version
+            }
+        }
+        assertEquals("a declared build has no fixture", versions, checked)
+    }
+
+    @Test
+    fun eachOtherBuildLeavesOutSentReelsToo() {
+        for (base in Fixtures.otherBuilds()) leavesOutSent(base, base.parentFile.name)
+    }
+
+    private fun leavesOutSent(bundle: File, label: String) {
+        val loading = FixtureDex.classesLoading(bundle, ADD_REELS)
+        val context = PatchContexts.of(FixtureDex.withStringPools(bundle, loading))
+        val found = context.findPlaceholders()
+        val before = found.add.implementation!!.instructions.count { it.opcode != Opcode.NOP }
+        context.leaveOutSentReels(found)
+        assertLeavesOutSent(label, found.add, found, before)
+        val hooked = loading.map { it.type }.flatMap { type -> context.mutableClassDefBy(type).methods }
+        assertEquals("$label: adds hooked", 1, hooked.count { method -> method.code().any { it.referenceText() == LEAVE_OUT_SENT } })
+    }
+
+    /**
+     * First thing in the add: the adapter's config read, then its source, which the hook is handed
+     * with the reels, and the answer in place of the reels. A config that isn't there lands on
+     * Instagram's own first instruction with the reels untouched.
+     */
+    private fun assertLeavesOutSent(what: String, add: Method, found: Placeholders, before: Int) {
+        val code = add.code()
+        val reels = add.implementation!!.registerCount - 2
+        assertEquals("$what: hooks", 1, code.count { it.referenceText() == LEAVE_OUT_SENT })
+        assertEquals("$what: added", before + 8, code.count { it.opcode != Opcode.NOP })
+        assertEquals("$what: the adapter's copy", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
+        assertEquals("$what: the adapter", reels - 1, (code[0] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the config", found.config, code[1].referenceText())
+        assertEquals("$what: the config test", Opcode.IF_EQZ, code[2].opcode)
+        val address = IntArray(code.size + 1)
+        code.forEachIndexed { index, instruction -> address[index + 1] = address[index] + instruction.codeUnits }
+        assertEquals("$what: no config goes to Instagram", 8, address.indexOf(address[2] + (code[2] as OffsetInstruction).codeOffset))
+        assertEquals("$what: the source", found.source, code[3].referenceText())
+        assertEquals("$what: the reels' copy", Opcode.MOVE_OBJECT_FROM16, code[4].opcode)
+        assertEquals("$what: the reels", reels, (code[4] as TwoRegisterInstruction).registerB)
+        assertEquals("$what: the hook", LEAVE_OUT_SENT, code[5].referenceText())
+        val hook = code[5] as FiveRegisterInstruction
+        val handed = listOf((code[4] as TwoRegisterInstruction).registerA, (code[3] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: handed the reels and the source", handed, listOf(hook.registerC, hook.registerD))
+        assertEquals("$what: its answer", Opcode.MOVE_RESULT_OBJECT, code[6].opcode)
+        assertEquals("$what: the answer's copy", Opcode.MOVE_OBJECT_FROM16, code[7].opcode)
+        assertEquals("$what: in place of the reels", reels, (code[7] as TwoRegisterInstruction).registerA)
+        assertEquals("$what: from the answer", (code[6] as OneRegisterInstruction).registerA, (code[7] as TwoRegisterInstruction).registerB)
+    }
+
     /**
      * First thing in the add: the adapter's config read, then its source, which the hook is handed
      * with the flag, and the answer back in the flag. A config that isn't there lands on Instagram's

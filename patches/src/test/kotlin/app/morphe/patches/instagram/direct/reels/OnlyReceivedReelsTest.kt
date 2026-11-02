@@ -21,8 +21,10 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.FiveRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.Instruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.android.tools.smali.dexlib2.immutable.ImmutableClassDef
@@ -47,6 +49,7 @@ class OnlyReceivedReelsTest {
     private val wrapper = "Lfixture/Wrapper;"
     private val base = "Lfixture/BaseMessage;"
     private val message = "Lfixture/Message;"
+    private val reel = "Lfixture/Reel;"
     private val final = AccessFlags.PUBLIC.value or AccessFlags.FINAL.value
 
     private val fields = MessageFields(
@@ -64,7 +67,7 @@ class OnlyReceivedReelsTest {
         val declared = ExtensionDex.classDef(CHAT_REELS).methods
             .filter { AccessFlags.PUBLIC.isSet(it.accessFlags) && AccessFlags.STATIC.isSet(it.accessFlags) }
             .map { "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" }
-        assertTrue("$RECEIVED is not in the extension: $declared", RECEIVED.substringAfter("->") in declared)
+        for (hook in listOf(RECEIVED, LEAVE_OUT_SENT)) assertTrue("$hook is not in the extension: $declared", hook.substringAfter("->") in declared)
     }
 
     /** The collector asks first with the wrapper's message and returns on a no; a yes lands on Instagram's first instruction. */
@@ -72,6 +75,8 @@ class OnlyReceivedReelsTest {
     fun theCollectorAsksFirstAndTheBridgesAreWritten() {
         val context = context()
         val found = context.findReelCollector(context.findChatReels(), fields)
+        assertEquals("$wrapper->reel()$reel", "${found.reel}")
+        assertEquals("$reel->media:$MEDIA", "${found.media}")
         val before = found.collect.implementation!!.instructions.count()
         context.skipSentReels(found)
         assertHooked("stand-in", found.collect, before)
@@ -80,6 +85,7 @@ class OnlyReceivedReelsTest {
         assertTrue(bridges.getValue("sentByViewer").visualCode().any { it.opcode == Opcode.IGET_BOOLEAN })
         assertTrue(bridges.getValue("itemId").visualCode().any { it.opcode == Opcode.IGET_OBJECT })
         assertEquals(1, bridges.getValue("itemId").visualCode().count { it.opcode == Opcode.CHECK_CAST })
+        assertBridges("stand-in", context.mutableClassDefBy(CHAT_REELS).methods, found)
     }
 
     @Test
@@ -88,15 +94,37 @@ class OnlyReceivedReelsTest {
         val cases = listOf(
             context(collectors = 0) to "expected one method registering a chat's messages for the chain, found 0",
             context(collectors = 2) to "expected one method registering a chat's messages for the chain, found 2",
-            context(locals = 0) to "$where has no local for the hook",
+            context(locals = 1) to "$where has fewer than two locals for the hook",
             context(entered = true) to "a jump or exception handler enters $where at its first instruction",
             context(held = 0) to "$wrapper holds 0 $base messages, not one",
             context(held = 2) to "$wrapper holds 2 $base messages, not one",
+            context(reels = 0) to "$where asks $wrapper for 0 reel items holding a $MEDIA, not one",
+            context(reels = 2) to "$where asks $wrapper for 2 reel items holding a $MEDIA, not one",
+            context(media = 0) to "$where asks $wrapper for 0 reel items holding a $MEDIA, not one",
+            context(media = 2) to "$where asks $wrapper for 0 reel items holding a $MEDIA, not one",
+            context(mediaId = false) to "$MEDIA has no getId() for the extension to key a sent reel by",
         )
         for ((context, expected) in cases) {
             val failure = assertThrows(expected, PatchException::class.java) { context.findReelCollector(context.findChatReels(), fields) }
             assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
         }
+    }
+
+    /** The adapter's add has to take the reel items the wrappers answer, or nothing changes. */
+    @Test
+    fun theAddHasToTakeTheReelItems() {
+        val context = context()
+        val found = context.findReelCollector(context.findChatReels(), fields)
+        fun add(casts: String) = Placeholders(
+            MutableMethod(method("Lfixture/Adapter;", "add", listOf("Ljava/util/List;", "Z"), "V", 1, final, "const/4 v0, 0x0\ncheck-cast v0, $casts\nreturn-void")),
+            MutableMethod(method("Lfixture/Adapter;", "shimmer", listOf("Ljava/lang/Integer;"), "V", 1, final, "return-void")),
+            "Lfixture/Adapter;->config:Lfixture/Config;",
+            "Lfixture/Config;->source:Lfixture/Source;",
+        )
+        checkAddTakesReels(add(reel), found)
+        val expected = "Lfixture/Adapter;->add doesn't take $reel, the reel items a chat's messages hold"
+        val failure = assertThrows(PatchException::class.java) { checkAddTakesReels(add("Lfixture/Other;"), found) }
+        assertTrue("$expected: ${failure.message}", failure.message!!.contains(expected))
     }
 
     private fun assertHooked(what: String, method: Method, before: Int) {
@@ -106,22 +134,52 @@ class OnlyReceivedReelsTest {
         assertEquals("$what: the wrapper copied", Opcode.MOVE_OBJECT_FROM16, code[0].opcode)
         assertEquals("$what: the message read", Opcode.IGET_OBJECT, code[1].opcode)
         assertEquals("$what: the hook", RECEIVED, code[2].text())
+        val wrapperCopy = (code[0] as TwoRegisterInstruction).registerA
+        val messageRead = (code[1] as TwoRegisterInstruction)
+        assertEquals("$what: the message read from the wrapper", wrapperCopy, messageRead.registerB)
+        val asks = code[2] as FiveRegisterInstruction
+        assertEquals("$what: handed the message and the wrapper", listOf(messageRead.registerA, wrapperCopy), listOf(asks.registerC, asks.registerD))
         assertEquals("$what: its answer", Opcode.MOVE_RESULT, code[3].opcode)
         assertEquals("$what: the test", Opcode.IF_NEZ, code[4].opcode)
         assertEquals("$what: the drop", Opcode.RETURN_VOID, code[5].opcode)
+    }
+
+    /** The reel bridge asks the wrapper for its reel item; the media id bridge reads the item's Media and a null one answers null. */
+    private fun assertBridges(what: String, methods: Iterable<Method>, found: ReelCollector) {
+        val bridges = methods.associateBy { it.name }
+        val reelCode = bridges.getValue("reel").visualCode()
+        assertEquals("$what: the reel bridge's cast", found.reel.definingClass, reelCode[0].text())
+        assertEquals("$what: the reel bridge's ask", "${found.reel}", reelCode[1].text())
+        assertEquals("$what: the reel bridge's answer", Opcode.RETURN_OBJECT, reelCode[3].opcode)
+        val idCode = bridges.getValue("mediaId").visualCode()
+        assertEquals("$what: the media id bridge's cast", found.media.definingClass, idCode[0].text())
+        assertEquals("$what: the media read", "${found.media}", idCode[1].text())
+        assertEquals("$what: no media", listOf(Opcode.IF_NEZ, Opcode.CONST_4, Opcode.RETURN_OBJECT), idCode.subList(2, 5).map { it.opcode })
+        assertEquals("$what: the id", "$MEDIA->getId()Ljava/lang/String;", idCode[5].text())
+        assertEquals("$what: the id's answer", Opcode.RETURN_OBJECT, idCode[7].opcode)
     }
 
     private fun Instruction.text(): String? = (this as? ReferenceInstruction)?.reference?.toString()
 
     /**
      * Shaped like 453's 02YM: its constructor, handed the session, asks the chat reels test and keeps the
-     * answer in a flag, and its one method handed the message wrapper reads that flag. The wrapper holds
-     * the message, a subclass of the message class the parser fills.
+     * answer in a flag, and its one method handed the message wrapper reads that flag, then asks the
+     * wrapper for its reel item, which holds a Media. The wrapper holds the message, a subclass of the
+     * message class the parser fills.
      */
-    private fun context(collectors: Int = 1, locals: Int = 2, entered: Boolean = false, held: Int = 1) =
-        PatchContexts.of(classes(collectors, locals, entered, held) + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)))
+    private fun context(
+        collectors: Int = 1,
+        locals: Int = 2,
+        entered: Boolean = false,
+        held: Int = 1,
+        reels: Int = 1,
+        media: Int = 1,
+        mediaId: Boolean = true,
+    ) = PatchContexts.of(
+        classes(collectors, locals, entered, held, reels, media, mediaId) + ImmutableClassDef.of(ExtensionDex.classDef(CHAT_REELS)),
+    )
 
-    private fun classes(collectors: Int, locals: Int, entered: Boolean, held: Int): List<ClassDef> {
+    private fun classes(collectors: Int, locals: Int, entered: Boolean, held: Int, reels: Int, media: Int, mediaId: Boolean): List<ClassDef> {
         val test = method(
             gates, "chain", listOf(session), "Z", 3, final,
             """
@@ -144,14 +202,24 @@ class OnlyReceivedReelsTest {
                 owner, "<init>", listOf(session, gates), "V", 1, AccessFlags.PUBLIC.value or AccessFlags.CONSTRUCTOR.value,
                 "invoke-virtual {p2, p1}, $gates->chain($session)Z\nmove-result v0\niput-boolean v0, p0, $owner->on:Z\nreturn-void",
             )
+            val asks = List(reels) { "invoke-virtual {p1}, $wrapper->${if (it == 0) "reel" else "reel$it"}()$reel\nmove-result-object v0" }
             val body = if (entered) ":top\niget-boolean v0, p0, $owner->on:Z\nif-eqz v0, :top\nreturn-void"
-            else "iget-boolean v0, p0, $owner->on:Z\nif-eqz v0, :out\nconst/4 v1, 0x0\n:out\nreturn-void"
+            else "iget-boolean v0, p0, $owner->on:Z\nif-eqz v0, :out\n${asks.joinToString("\n")}\n:out\nreturn-void"
             val collect = method(owner, "collect", listOf(wrapper), "V", locals, final, body)
             classDef(owner, listOf(ctor, collect), fields = listOf(ImmutableField(owner, "on", "Z", AccessFlags.PRIVATE.value, null, null, null)))
         }
         val wrapperFields = List(held) { ImmutableField(wrapper, "m$it", message, AccessFlags.PUBLIC.value, null, null, null) }
+        val getters = List(maxOf(reels, 1)) {
+            method(wrapper, if (it == 0) "reel" else "reel$it", emptyList(), reel, 1, final, "const/4 v0, 0x0\nreturn-object v0")
+        }
+        // A string beside the Media, which the finder passes over.
+        val reelFields = List(media) { ImmutableField(reel, "media$it".replace("media0", "media"), MEDIA, final, null, null, null) } +
+            ImmutableField(reel, "id", "Ljava/lang/String;", final, null, null, null)
+        val ids = if (mediaId) listOf(method(MEDIA, "getId", emptyList(), "Ljava/lang/String;", 1, final, "const/4 v0, 0x0\nreturn-object v0")) else emptyList()
         return listOf(classDef(gates, listOf(test)), classDef(opener, listOf(open))) + collecting +
-            classDef(wrapper, emptyList(), fields = wrapperFields) +
+            classDef(wrapper, getters, fields = wrapperFields) +
+            classDef(reel, emptyList(), fields = reelFields) +
+            classDef(MEDIA, ids) +
             ImmutableClassDef(message, final, base, emptyList(), null, null, emptyList(), emptyList()) +
             classDef(base, emptyList())
     }
@@ -218,6 +286,9 @@ class OnlyReceivedReelsTest {
         classes += more
         more = FixtureDex.classes(bundle, more.values.mapNotNull { it.superclass }.toSet() - classes.keys)
         classes += more
+        // The reel items the wrappers answer, and the Media they hold.
+        val answers = classes.filterKeys { it in wrappers }.values.flatMap { c -> c.methods.map { it.returnType } }
+        classes += FixtureDex.classes(bundle, answers.filter { it.startsWith("L") }.toSet() + MEDIA - classes.keys)
 
         // The message class, as the chat history test reads it.
         val parserBase = (FixtureDex.classesLoading(bundle, "message_item_dict")).distinctBy { it.type }
@@ -256,5 +327,14 @@ class OnlyReceivedReelsTest {
         val hooked = classes.keys.flatMap { type -> context.mutableClassDefBy(type).methods }
             .count { m -> m.visualCode().any { it.text() == RECEIVED } }
         assertEquals("$name: methods hooked", 1, hooked)
+        assertBridges(name, context.mutableClassDefBy(CHAT_REELS).methods, found)
+
+        // The adapter's add takes the reel items the wrappers answer.
+        val adds = PatchContexts.of(FixtureDex.withStringPools(bundle, FixtureDex.classesLoading(bundle, ADD_REELS)))
+        try {
+            checkAddTakesReels(adds.findPlaceholders(), found)
+        } catch (failure: PatchException) {
+            throw AssertionError("$name: ${failure.message}", failure)
+        }
     }
 }

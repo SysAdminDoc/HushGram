@@ -48,7 +48,12 @@ private const val PATCH = "Swipe through a chat's reels"
 internal const val CHAT_REELS = "$EXTENSION_PACKAGE/direct/ChatReels;"
 internal const val CHAIN = "$CHAT_REELS->chain(I)Z"
 internal const val STOP = "$CHAT_REELS->stop()Z"
-internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;)Z"
+internal const val RECEIVED = "$CHAT_REELS->received(Ljava/lang/Object;Ljava/lang/Object;)Z"
+internal const val LEAVE_OUT_SENT = "$CHAT_REELS->leaveOutSent(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List;"
+
+/** What a reel item holds and the id the extension keys a sent reel by. Redex keeps both names. */
+internal const val MEDIA = "Lcom/instagram/feed/media/Media;"
+private const val MEDIA_ID = "$MEDIA->getId()Ljava/lang/String;"
 
 private const val USER_SESSION = "Lcom/instagram/common/session/UserSession;"
 
@@ -164,8 +169,10 @@ val swipeChatReelsPatch = bytecodePatch(
         val refreshes = findRefreshReads()
         val viewers = findChatViewers()
         val collector = findReelCollector(read)
+        checkAddTakesReels(placeholders, collector)
         chainChatReels(read)
         skipSentReels(collector)
+        leaveOutSentReels(placeholders)
         stopAfterChatReels(end)
         stopMoreReels(more)
         stopCachedReels(cached)
@@ -211,10 +218,17 @@ private fun BytecodePatchContext.openersOf(read: FlagLoad) = methodsCalling(read
 
 /**
  * The method that registers one of a chat's messages for the chain (LX/02YM;->A01 on 453's 385914557,
- * handed the message wrapper LX/01RZ), the wrapper's field holding the message, and the message
- * fields the extension's bridges read.
+ * handed the message wrapper LX/01RZ), the wrapper's field holding the message, the message fields
+ * the extension's bridges read, the wrapper's method answering the message's reel item (LX/01RZ;->A0O,
+ * LX/03n2 there) and the item's [MEDIA] field.
  */
-internal class ReelCollector(val collect: MutableMethod, val message: FieldReference, val fields: MessageFields)
+internal class ReelCollector(
+    val collect: MutableMethod,
+    val message: FieldReference,
+    val fields: MessageFields,
+    val reel: MethodReference,
+    val media: FieldReference,
+)
 
 /** The names of the fields of [owner] that [method] touches with [opcode]. */
 private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<String> =
@@ -229,8 +243,9 @@ private fun fieldsTouched(method: Method, opcode: Opcode, owner: String): Set<St
  * holding it has a constructor, handed the session first, that asks the chat reels test [read] and keeps
  * the answer in a flag; the method is the one instance method of that class taking one object and
  * returning nothing that reads such a flag. The object holds one field typed as a subclass of the
- * direct message class [fields] reads (the message itself), with two locals' worth of room for the hook
- * and nothing jumping to the method's first instruction. Fails when any of it isn't so.
+ * direct message class [fields] reads (the message itself), with two locals for the hook and nothing
+ * jumping to the method's first instruction. The method asks the object, with nothing, for one reel
+ * item: an object holding one [MEDIA], which has its `getId()`. Fails when any of it isn't so.
  */
 internal fun BytecodePatchContext.findReelCollector(
     read: FlagLoad = findChatReels(),
@@ -248,7 +263,7 @@ internal fun BytecodePatchContext.findReelCollector(
     }
     val collector = collectors.singleOrNull() ?: refuse("expected one method registering a chat's messages for the chain, found ${collectors.size}")
     val where = "${collector.definingClass}->${collector.name}"
-    if (collector.localRegisterCount() < 1) refuse("$where has no local for the hook")
+    if (collector.localRegisterCount() < 2) refuse("$where has fewer than two locals for the hook")
     if (0 in collector.jumpTargets()) refuse("a jump or exception handler enters $where at its first instruction")
 
     val wrapper = collector.parameterTypes.single().toString()
@@ -258,26 +273,56 @@ internal fun BytecodePatchContext.findReelCollector(
     }
     val message = held.singleOrNull() ?: refuse("$wrapper holds ${held.size} ${fields.owner} messages, not one")
 
+    val reels = collector.implementation?.instructions?.toList().orEmpty().mapNotNull { instruction ->
+        if (instruction.opcode != Opcode.INVOKE_VIRTUAL) return@mapNotNull null
+        val call = (instruction as ReferenceInstruction).reference as MethodReference
+        if (call.definingClass != wrapper || call.parameterTypes.isNotEmpty() || !call.returnType.startsWith("L")) return@mapNotNull null
+        mediaOf(call.returnType)?.let { call to it }
+    }.distinctBy { "${it.first}" }
+    val (reel, media) = reels.singleOrNull() ?: refuse("$where asks $wrapper for ${reels.size} reel items holding a $MEDIA, not one")
+    val ids = classDefByOrNull(MEDIA)?.methods?.count { method ->
+        method.name == "getId" && method.parameterTypes.isEmpty() && method.returnType == "Ljava/lang/String;"
+    } ?: 0
+    if (ids != 1) refuse("$MEDIA has no getId() for the extension to key a sent reel by")
+
     val takes = collector.parameterTypes.map(CharSequence::toString)
     val mutable = mutableClassDefBy(collector.definingClass).methods.single { method ->
         method.name == collector.name && method.parameterTypes.map(CharSequence::toString) == takes
     }
-    return ReelCollector(mutable, message, fields)
+    return ReelCollector(mutable, message, fields, reel, media)
+}
+
+/** The one instance [MEDIA] field of [type], or null when it has none or more than one. */
+private fun BytecodePatchContext.mediaOf(type: String): FieldReference? =
+    classDefByOrNull(type)?.fields?.filter { !AccessFlags.STATIC.isSet(it.accessFlags) && it.type == MEDIA }?.singleOrNull()
+
+/**
+ * Checks, before anything changes, that the adapter's add [placeholders] found takes the reel items
+ * the [collector]'s wrapper answers: its code casts what it's handed to that class.
+ */
+internal fun checkAddTakesReels(placeholders: Placeholders, collector: ReelCollector) {
+    val item = collector.media.definingClass
+    val add = placeholders.add
+    val casts = add.implementation?.instructions?.any { instruction ->
+        instruction.opcode == Opcode.CHECK_CAST && "${(instruction as ReferenceInstruction).reference}" == item
+    } == true
+    if (!casts) refuse("${add.definingClass}->${add.name} doesn't take $item, the reel items a chat's messages hold")
 }
 
 /**
- * Has the collector ask the extension through [RECEIVED] first, handing it the message, and return on a
- * no, so a message the extension turns away never joins the chain. Also writes the bodies of the
- * extension's two message bridges, `sentByViewer` and `itemId`, from the fields the chat history reads.
+ * Has the collector ask the extension through [RECEIVED] first, handing it the message and its wrapper,
+ * and return on a no, so a message the extension turns away never joins the chain. Also writes the
+ * bodies of the extension's message bridges, `sentByViewer` and `itemId` from the fields the chat
+ * history reads, `reel` from the wrapper's reel item and `mediaId` from an item's [MEDIA].
  */
 internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelCollector()) {
     val collect = found.collect
     collect.addInstructionsWithLabels(
         0,
         """
-            move-object/from16 v0, p1
-            iget-object v0, v0, ${found.message.definingClass}->${found.message.name}:${found.message.type}
-            invoke-static { v0 }, $RECEIVED
+            move-object/from16 v1, p1
+            iget-object v0, v1, ${found.message.definingClass}->${found.message.name}:${found.message.type}
+            invoke-static { v0, v1 }, $RECEIVED
             move-result v0
             if-nez v0, :instagram
             return-void
@@ -305,6 +350,55 @@ internal fun BytecodePatchContext.skipSentReels(found: ReelCollector = findReelC
             iget-object p0, p0, ${fields.id.definingClass}->${fields.id.name}:${fields.id.type}
             return-object p0
         """.trimIndent(),
+    )
+    bridge("reel", "Ljava/lang/Object;").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.reel.definingClass}
+            invoke-virtual { p0 }, ${found.reel}
+            move-result-object p0
+            return-object p0
+        """.trimIndent(),
+    )
+    // A null media goes back as a fresh null, so the return never merges a Media with a String.
+    bridge("mediaId", "Ljava/lang/String;").addInstructionsWithLabels(
+        0,
+        """
+            check-cast p0, ${found.media.definingClass}
+            iget-object p0, p0, ${found.media}
+            if-nez p0, :read
+            const/4 p0, 0x0
+            return-object p0
+            :read
+            invoke-virtual { p0 }, $MEDIA_ID
+            move-result-object p0
+            return-object p0
+        """.trimIndent(),
+    )
+}
+
+/**
+ * Has the adapter's add hand the extension what it's handed, through [LEAVE_OUT_SENT] with the viewer's
+ * source, and add what comes back instead. A viewer opened from a chat pages the chat's own reels from
+ * the server, newest messages included, past the collector [skipSentReels] hooks, so with "Only
+ * received reels" on the extension leaves out the reels the viewer sent there. A config that isn't
+ * there goes on to Instagram.
+ */
+internal fun BytecodePatchContext.leaveOutSentReels(found: Placeholders = findPlaceholders()) {
+    val add = found.add
+    add.addInstructionsWithLabels(
+        0,
+        """
+            move-object/from16 v0, p0
+            iget-object v0, v0, ${found.config}
+            if-eqz v0, :instagram
+            iget-object v0, v0, ${found.source}
+            move-object/from16 v1, p1
+            invoke-static { v1, v0 }, $LEAVE_OUT_SENT
+            move-result-object v1
+            move-object/from16 p1, v1
+        """,
+        ExternalLabel("instagram", add.getInstruction(0)),
     )
 }
 
