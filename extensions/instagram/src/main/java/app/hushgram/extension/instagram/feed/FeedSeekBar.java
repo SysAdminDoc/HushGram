@@ -40,9 +40,10 @@ import app.hushgram.extension.shared.diagnostics.HookStatus;
  * the video and its cover, just over the cover, and follows it. Every {@link #TICK_MS} the bar asks the
  * player for its video's cover again: when the feed hands the player another video the bar moves there,
  * and while the player has none or the cover's frame is off screen the bar hides. The cover itself is
- * hidden while the video plays, so only its frame counts. A paused video keeps its bar. Letting go of
- * a drag moves the video to that point the way Instagram's own feed scrubber does, and a video that
- * was paused stays paused there.
+ * hidden while the video plays, so only its frame counts. A paused video keeps its bar. A drag goes
+ * the way Instagram's own feed scrubber goes: the video pauses while a finger is on the bar, and
+ * letting go moves it to that point and plays it on from there (#472). Seeking alone, as the bar
+ * once did, could leave the video stuck on the frame it was moved to.
  *
  * <p>With the switch off, HushGram paused or the settings not read, the bar hides and a drag does
  * nothing. A bar hidden for {@link #GONE_MS} goes away and stops ticking until the player plays
@@ -69,11 +70,15 @@ public final class FeedSeekBar {
     interface Player {
         @Nullable View view(Object player);
         boolean seekTo(Object player, int positionMs);
+        boolean pause(Object player);
+        boolean play(Object player);
     }
 
     static final Player PATCHED = new Player() {
         @Override public View view(Object player) { return FeedSeekReader.view(player); }
         @Override public boolean seekTo(Object player, int positionMs) { return FeedSeekReader.seekTo(player, positionMs, true); }
+        @Override public boolean pause(Object player) { return FeedSeekReader.pause(player, null) != null; }
+        @Override public boolean play(Object player) { return FeedSeekReader.play(player, null, null, null) != null; }
     };
 
     private static Player feed = PATCHED;
@@ -155,6 +160,8 @@ public final class FeedSeekBar {
         int duration;
         long hiddenSince = -1;
         boolean dragging;
+        /** Whether the drag under way paused the video, which letting go then plays on. */
+        boolean held;
         boolean removed;
 
         Overlay(Object player) {
@@ -317,9 +324,11 @@ public final class FeedSeekBar {
             return false;
         }
 
+        /** A bar taken away mid-drag leaves its video to the feed, which plays the video it shows. */
         void remove() {
             removed = true;
             dragging = false;
+            held = false;
             removeButton();
             SeekBar seek = bar;
             bar = null;
@@ -332,27 +341,45 @@ public final class FeedSeekBar {
             }
         }
 
+        /** A finger on the bar pauses the video, as Instagram's own scrubber does with its "seek" reason. */
         @Override
         public void onStartTrackingTouch(SeekBar seek) {
             dragging = !removed && wanted();
+            held = false;
+            Object owner = player.get();
+            if (!dragging || owner == null) return;
+            try {
+                held = feed.pause(owner);
+            } catch (Throwable failure) {
+                HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
+            }
         }
 
         @Override
         public void onProgressChanged(SeekBar seek, int progress, boolean fromUser) {
         }
 
+        /**
+         * Letting go moves the video to the bar's point and plays it on from there. A drag the bar's
+         * hiding ended seeks nothing, but a video it paused still plays on.
+         */
         @Override
         public void onStopTrackingTouch(SeekBar seek) {
-            if (!dragging) return;
+            boolean seeks = dragging;
+            boolean plays = held;
             dragging = false;
+            held = false;
             Object owner = player.get();
-            if (owner == null || !wanted()) return;
+            if (owner == null || !(seeks || plays)) return;
             try {
-                int to = seek.getProgress();
-                if (feed.seekTo(owner, to)) {
-                    position = to;
-                    HookStatus.counted(FamilyNames.FEED_SEEK_BAR, COUNT_SEEKS);
+                if (seeks && wanted()) {
+                    int to = seek.getProgress();
+                    if (feed.seekTo(owner, to)) {
+                        position = to;
+                        HookStatus.counted(FamilyNames.FEED_SEEK_BAR, COUNT_SEEKS);
+                    }
                 }
+                if (plays) feed.play(owner);
             } catch (Throwable failure) {
                 HookStatus.threw(FamilyNames.FEED_SEEK_BAR, HOOK, failure);
             }

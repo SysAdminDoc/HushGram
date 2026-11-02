@@ -35,6 +35,7 @@ import org.robolectric.annotation.Config;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -72,6 +73,7 @@ public class FeedSeekBarTest {
         final List<String> calls = new ArrayList<>();
         int reads;
         boolean viewThrows;
+        boolean pauses = true;
 
         @Override public View view(Object of) {
             reads++;
@@ -82,6 +84,16 @@ public class FeedSeekBarTest {
 
         @Override public boolean seekTo(Object of, int positionMs) {
             calls.add("seek " + positionMs);
+            return true;
+        }
+
+        @Override public boolean pause(Object of) {
+            calls.add("pause");
+            return pauses;
+        }
+
+        @Override public boolean play(Object of) {
+            calls.add("play");
             return true;
         }
 
@@ -231,23 +243,38 @@ public class FeedSeekBarTest {
         assertTrue(stand.calls.isEmpty());
     }
 
+    /** #472: like Instagram's own scrubber, the video pauses under the finger and plays on from where it lands. */
     @Test
-    public void lettingGoOfADragSeeksTheVideo() {
+    public void aDragPausesTheVideoThenSeeksItAndPlaysItOn() {
         Settings.FEED_SEEK_BAR.save(true);
         FeedSeekBar.progress(player, 3000, 15000);
         SeekBar bar = bar();
         Listener drag = new Listener(bar);
 
         drag.start();
+        assertEquals(Collections.singletonList("pause"), stand.calls);
         bar.setProgress(12000);
         FeedSeekBar.progress(player, 4000, 15000);
         tick();
         assertEquals("a drag isn't overwritten by the video", 12000, bar.getProgress());
         drag.stop();
 
-        assertEquals(Collections.singletonList("seek 12000"), stand.calls);
+        assertEquals(Arrays.asList("pause", "seek 12000", "play"), stand.calls);
         tick();
         assertEquals(12000, bar.getProgress());
+    }
+
+    /** A player whose pause stub wasn't filled is seeked but never played, so a video nobody paused is left alone. */
+    @Test
+    public void aDragThatPausedNothingPlaysNothing() {
+        Settings.FEED_SEEK_BAR.save(true);
+        stand.pauses = false;
+        FeedSeekBar.progress(player, 3000, 15000);
+        Listener drag = new Listener(bar());
+        drag.start();
+        bar().setProgress(9000);
+        drag.stop();
+        assertEquals(Arrays.asList("pause", "seek 9000"), stand.calls);
     }
 
     @Test
@@ -440,7 +467,7 @@ public class FeedSeekBarTest {
     }
 
     @Test
-    public void theBarHidingMidDragSeeksNothing() {
+    public void theBarHidingMidDragSeeksNothingButPlaysTheVideoOn() {
         Settings.FEED_SEEK_BAR.save(true);
         FeedSeekBar.progress(player, 3000, 15000);
         SeekBar bar = bar();
@@ -451,7 +478,7 @@ public class FeedSeekBarTest {
         first.setVisibility(View.VISIBLE);
         tick();
         drag.stop();
-        assertTrue(stand.calls.isEmpty());
+        assertEquals(Arrays.asList("pause", "play"), stand.calls);
     }
 
     /** The bar's own drag callbacks, as a finger on it gives them. */

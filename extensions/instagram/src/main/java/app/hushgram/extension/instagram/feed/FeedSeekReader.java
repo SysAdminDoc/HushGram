@@ -10,8 +10,8 @@ import androidx.annotation.Nullable;
 
 /**
  * What the Seek bar on feed videos patch fills in: the cover of the video the feed's video player
- * has, which sits in the video's frame, and the seek its controller makes for Instagram's own feed
- * scrubber.
+ * has, which sits in the video's frame, and the pause, seek and play Instagram's own feed scrubber
+ * makes. A stub works in its own parameters, which is why the pause and the play take spare ones.
  *
  * <p>Apart from {@link FeedSeekBar} for the reason {@link FeedPlayerReader} is: a stub the phone's
  * verifier refused would take the class the player's progress callback calls down with it. Only
@@ -33,5 +33,25 @@ final class FeedSeekReader {
      */
     static boolean seekTo(Object player, int positionMs, boolean userSeek) {
         return false;
+    }
+
+    /**
+     * Filled in by the patch: pauses the player the way Instagram's feed scrubber does when a finger
+     * lands on it, with its reason loaded into [spare]. Answers an Object: the player once paused,
+     * null while unfilled.
+     */
+    @Nullable
+    static Object pause(Object player, @Nullable Object spare) {
+        return null;
+    }
+
+    /**
+     * Filled in by the patch: plays the player on the way Instagram's feed scrubber does when a drag
+     * lets go, with its reason and flags loaded into the spares. Answers an Object: the player once
+     * played, null while unfilled.
+     */
+    @Nullable
+    static Object play(Object player, @Nullable Object spare1, @Nullable Object spare2, @Nullable Object spare3) {
+        return null;
     }
 }

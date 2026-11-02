@@ -40,7 +40,12 @@ internal const val COVER_REPORT = "IgFeedVideoPlayer: Persistent Visible Cover I
 
 internal const val SEEK_LISTENER = "Landroid/widget/SeekBar\$OnSeekBarChangeListener;"
 private const val OBJECT = "Ljava/lang/Object;"
+private const val STRING = "Ljava/lang/String;"
 private const val VIEW = "Landroid/view/View;"
+
+/** The reasons Instagram's feed scrubber pauses and plays its player with when a drag starts and lets go. */
+internal const val SEEK_PAUSE_REASON = "seek"
+internal const val SEEK_PLAY_REASON = "start"
 
 /**
  * Puts a seek bar along the bottom of the video playing in a feed (#389). See FeedSeekBar in the
@@ -54,7 +59,11 @@ private const val VIEW = "Landroid/view/View;"
  * and asks the player's controller (A00, 03Nk) whether it's playing. The patch hands every callback to
  * the extension first thing, and fills the extension's stubs with those reads and the controller's
  * seek: the (int, boolean) call Instagram's own feed scrubber, a SeekBar listener, makes on that
- * controller when a drag lets go (A0T). Nothing else of Instagram's changes.
+ * controller when a drag lets go (A0T). The scrubber also pauses the player when a finger lands
+ * (A0F, an instance (String) method, with [SEEK_PAUSE_REASON]) and plays it on right after the seek
+ * (A03, a static (player, String, boolean, boolean, boolean) method, with [SEEK_PLAY_REASON], true,
+ * false and false), and the extension's pause and play stubs make those same calls (#472): seeking
+ * alone could leave the video stuck. Nothing else of Instagram's changes.
  *
  * The main tabs' pager takes a sideways drag on the bar whatever the bar asks its parents, so the
  * patch brings [stopTabSwipingPatch]'s hooks, and a finger on the bar holds the tabs through them
@@ -80,7 +89,10 @@ val feedSeekBarPatch = bytecodePatch(
 
 private fun refuse(detail: String): Nothing = throw PatchException("$PATCH: $detail")
 
-/** The player and its progress callback, the reads the view stub makes and the seek the seek stub makes. */
+/**
+ * The player and its progress callback, the reads the view stub makes, the seek the seek stub makes
+ * and the player's pause and play the scrubber makes around it.
+ */
 internal class FeedSeekSites(
     val player: String,
     val progress: String,
@@ -89,6 +101,8 @@ internal class FeedSeekSites(
     val view: MethodReference,
     val controller: FieldReference,
     val seek: MethodReference,
+    val pause: MethodReference,
+    val play: MethodReference,
 )
 
 /**
@@ -103,18 +117,19 @@ internal class FeedSeekSites(
  *   controller;
  * - the one (int, boolean) method on the controller's type that any SeekBar listener's
  *   onStopTrackingTouch calls, the seek Instagram's feed scrubber makes;
+ * - in the listeners making that seek, the one instance (String) method of the player's their
+ *   onStartTrackingTouch calls, the pause, and the one static (player, String, boolean, boolean,
+ *   boolean) method of the player's their onStopTrackingTouch calls, the play;
  * - all of it public, so the extension's stubs may reach it, and the stubs themselves.
  */
 internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     val callbacks = mutableListOf<Method>()
-    val releases = mutableListOf<Method>()
+    val listeners = mutableListOf<ClassDef>()
     classDefForEach { classDef ->
         classDef.methods.filterTo(callbacks) {
             !AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == "(IIZ)V" && it.holds(COVER_REPORT)
         }
-        if (SEEK_LISTENER in classDef.interfaces) {
-            classDef.methods.filterTo(releases) { it.name == "onStopTrackingTouch" && it.shape() == "(Landroid/widget/SeekBar;)V" }
-        }
+        if (SEEK_LISTENER in classDef.interfaces) listeners += classDef
     }
     val callback = callbacks.singleOrNull()
         ?: refuse("expected one instance (int, int, boolean) method holding $COVER_REPORT, found ${callbacks.size}")
@@ -141,12 +156,31 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
     val controllers = reads.filter { it.definingClass == player.type && it.type in asked }
     val controller = controllers.singleOrNull()
         ?: refuse("expected ${player.type}->${callback.name} to read one controller field of the player's, found ${controllers.size}")
-    val seeks = releases.flatMap { release ->
-        release.code().filter { it.opcode in VIRTUAL_CALLS }.mapNotNull { it.method() }
-            .filter { it.definingClass == controller.type && it.parameterTypes.map(Any::toString) == listOf("I", "Z") && it.returnType == "V" }
-    }.distinctBy(Any::toString)
+    fun ClassDef.drag(name: String): List<Instruction> =
+        methods.singleOrNull { it.name == name && it.shape() == "(Landroid/widget/SeekBar;)V" }?.code().orEmpty()
+    fun List<Instruction>.seeksOn(): List<MethodReference> = filter { it.opcode in VIRTUAL_CALLS }.mapNotNull { it.method() }
+        .filter { it.definingClass == controller.type && it.parameterTypes.map(Any::toString) == listOf("I", "Z") && it.returnType == "V" }
+    val seeks = listeners.flatMap { it.drag("onStopTrackingTouch").seeksOn() }.distinctBy(Any::toString)
     val seek = seeks.singleOrNull()
         ?: refuse("expected one (int, boolean) call on ${controller.type} where a SeekBar drag lets go, found ${seeks.size}")
+    val scrubbers = listeners.filter { listener -> listener.drag("onStopTrackingTouch").seeksOn().any { it.toString() == seek.toString() } }
+    val pauses = scrubbers.flatMap { it.drag("onStartTrackingTouch") }.filter { it.opcode in VIRTUAL_CALLS }.mapNotNull { it.method() }
+        .filter { it.definingClass == player.type && it.parameterTypes.map(Any::toString) == listOf(STRING) && it.returnType == "V" }
+        .distinctBy(Any::toString)
+    val pause = pauses.singleOrNull()
+        ?: refuse("expected Instagram's feed scrubber to pause ${player.type} with one (String) call when a drag starts, found ${pauses.size}")
+    val playShape = listOf(player.type, STRING, "Z", "Z", "Z")
+    val plays = scrubbers.flatMap { it.drag("onStopTrackingTouch") }.filter { it.opcode in STATIC_CALLS }.mapNotNull { it.method() }
+        .filter { it.definingClass == player.type && it.parameterTypes.map(Any::toString) == playShape && it.returnType == "V" }
+        .distinctBy(Any::toString)
+    val play = plays.singleOrNull()
+        ?: refuse("expected Instagram's feed scrubber to play ${player.type} with one static call when a drag lets go, found ${plays.size}")
+    player.methods.singleOrNull { it.name == pause.name && it.shape() == "($STRING)V" && AccessFlags.PUBLIC.isSet(it.accessFlags) }
+        ?: refuse("${player.type}->${pause.name} isn't public")
+    player.methods.singleOrNull {
+        it.name == play.name && it.parameterTypes.map(Any::toString) == playShape && AccessFlags.PUBLIC.isSet(it.accessFlags) &&
+            AccessFlags.STATIC.isSet(it.accessFlags)
+    } ?: refuse("${player.type}->${play.name} isn't public")
 
     listOf(item, controller).forEach { player.requirePublicField(it) }
     (classDefByOrNull(holder.definingClass) ?: refuse("this build has no ${holder.definingClass}")).apply {
@@ -165,16 +199,19 @@ internal fun BytecodePatchContext.findFeedSeek(): FeedSeekSites {
         reader.methods.singleOrNull { it.name == name && AccessFlags.STATIC.isSet(it.accessFlags) && it.shape() == shape }
             ?: refuse("$FEED_SEEK_READER has no static $name$shape")
     }
-    return FeedSeekSites(player.type, callback.name, item, holder, view, controller, seek)
+    return FeedSeekSites(player.type, callback.name, item, holder, view, controller, seek, pause, play)
 }
 
 private val INTERFACE_CALLS = setOf(Opcode.INVOKE_INTERFACE, Opcode.INVOKE_INTERFACE_RANGE)
 private val VIRTUAL_CALLS = setOf(Opcode.INVOKE_VIRTUAL, Opcode.INVOKE_VIRTUAL_RANGE)
+private val STATIC_CALLS = setOf(Opcode.INVOKE_STATIC, Opcode.INVOKE_STATIC_RANGE)
 
 /** The extension's stubs, by name and shape. */
 private val STUBS = listOf(
     "view" to "($OBJECT)$VIEW",
     "seekTo" to "(${OBJECT}IZ)Z",
+    "pause" to "($OBJECT$OBJECT)$OBJECT",
+    "play" to "($OBJECT$OBJECT$OBJECT$OBJECT)$OBJECT",
 )
 
 /** Fills the stubs and hands the progress callback to the extension first thing. */
@@ -211,6 +248,26 @@ internal fun BytecodePatchContext.hookFeedSeek(found: FeedSeekSites) {
             :none
             const/4 p0, 0x0
             return p0
+        """,
+    )
+    stub("pause").addInstructions(
+        0,
+        """
+            check-cast p0, ${found.player}
+            const-string p1, "$SEEK_PAUSE_REASON"
+            invoke-virtual { p0, p1 }, ${found.pause}
+            return-object p0
+        """,
+    )
+    stub("play").addInstructions(
+        0,
+        """
+            check-cast p0, ${found.player}
+            const-string p1, "$SEEK_PLAY_REASON"
+            const/4 p2, 0x1
+            const/4 p3, 0x0
+            invoke-static { p0, p1, p2, p3, p3 }, ${found.play}
+            return-object p0
         """,
     )
 

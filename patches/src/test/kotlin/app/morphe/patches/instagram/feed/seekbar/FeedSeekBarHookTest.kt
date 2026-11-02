@@ -46,8 +46,9 @@ class FeedSeekBarHookTest {
     /**
      * On 453.0.0.57.79's arm64 build 385914557 the patch finds the feed's player (05cP) and its
      * progress callback (G3c), the holder's view (0Fai's CWW) and the controller's seek (03Nk's A0T,
-     * the one a SeekBar listener's onStopTrackingTouch makes), fills both stubs and hands the callback
-     * to the extension first thing. Each build has its own names; 385914510's player is 05nU.
+     * the one a SeekBar listener's onStopTrackingTouch makes), and the player's pause and play that
+     * listener makes around the seek (A0F and A03, #472), fills every stub and hands the callback to
+     * the extension first thing. Each build has its own names; 385914510's player is 05nU.
      */
     @Test
     fun eachDeclaredBuildFindsTheSeekAndHooksThePlayer() {
@@ -58,9 +59,15 @@ class FeedSeekBarHookTest {
                 val sites = builds(bundle, bundle.name)
                 if (version == "453.0.0.57.79") {
                     assertEquals(
-                        "${bundle.name}: the player, its progress callback, the holder's view and the seek",
-                        listOf("LX/05cP;", "G3c", "LX/0Fai;->CWW()Landroid/view/View;", "LX/03Nk;->A0T(IZ)V"),
-                        listOf(sites.player, sites.progress, sites.view.toString(), sites.seek.toString()),
+                        "${bundle.name}: the player, its progress callback, the holder's view, the seek, the pause and the play",
+                        listOf(
+                            "LX/05cP;", "G3c", "LX/0Fai;->CWW()Landroid/view/View;", "LX/03Nk;->A0T(IZ)V",
+                            "LX/05cP;->A0F(Ljava/lang/String;)V", "LX/05cP;->A03(LX/05cP;Ljava/lang/String;ZZZ)V",
+                        ),
+                        listOf(
+                            sites.player, sites.progress, sites.view.toString(), sites.seek.toString(),
+                            sites.pause.toString(), sites.play.toString(),
+                        ),
                     )
                 }
                 checked += version
@@ -121,9 +128,14 @@ class FeedSeekBarHookTest {
 
         val reader = context.mutableClassDefBy(FEED_SEEK_READER)
         fun stub(name: String) = reader.methods.single { it.name == name }.code()
-        for (name in listOf("view", "seekTo")) assertEquals("$label: $name is filled", Opcode.CHECK_CAST, stub(name).first().opcode)
+        for (name in listOf("view", "seekTo", "pause", "play")) assertEquals("$label: $name is filled", Opcode.CHECK_CAST, stub(name).first().opcode)
         assertEquals("$label: the view stub asks the holder", listOf(sites.view.toString()), stub("view").mapNotNull { it.method()?.toString() })
         assertEquals("$label: the seek stub seeks the controller", listOf(sites.seek.toString()), stub("seekTo").mapNotNull { it.method()?.toString() })
+        assertEquals("$label: the pause stub pauses the player", listOf(sites.pause.toString()), stub("pause").mapNotNull { it.method()?.toString() })
+        assertEquals("$label: the play stub plays the player", listOf(sites.play.toString()), stub("play").mapNotNull { it.method()?.toString() })
+        fun reasons(name: String) = stub(name).mapNotNull { ((it as? ReferenceInstruction)?.reference as? StringReference)?.string }
+        assertEquals("$label: the pause gives the scrubber's reason", listOf(SEEK_PAUSE_REASON), reasons("pause"))
+        assertEquals("$label: the play gives the scrubber's reason", listOf(SEEK_PLAY_REASON), reasons("play"))
         return sites
     }
 
