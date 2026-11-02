@@ -1452,6 +1452,10 @@ once-call Lapp/hushgram/extension/instagram/stories/StorySeenRings;->seen(Ljava/
 # or elsewhere, it isn't the hook the patch wrote.
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;)Ljava/util/List; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/ArrayList; holding const:0x811378000167cf
 once-call Lapp/hushgram/extension/instagram/stories/StoryTrayOrder;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (ZZ)Ljava/util/List; holding main\sfeed\stray\sreels\sis\sempty
+# Stories priority hands the same two lists to StoryPriority.order after that sort, once each (#451),
+# so the accounts a user listed go first while they have an unwatched story. Same two methods.
+once-call Lapp/hushgram/extension/instagram/stories/StoryPriority;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (Ljava/util/List;)Ljava/util/List; calling static LX/*;->*(Lcom/instagram/common/session/UserSession;Ljava/util/List;)Ljava/util/ArrayList; holding const:0x811378000167cf
+once-call Lapp/hushgram/extension/instagram/stories/StoryPriority;->order(Ljava/util/List;Ljava/lang/Object;)Ljava/util/List; in instance (ZZ)Ljava/util/List; holding main\sfeed\stray\sreels\sis\sempty
 #
 # Turn off double tap to like asks the extension first thing in the feed's double-tap like, the one
 # method every kind of post's gesture delegate hands a double tap to, and returns there before the

@@ -84,6 +84,10 @@ public final class SettingsStatus {
         return false;
     }
 
+    public static boolean storyPriority() {
+        return false;
+    }
+
     public static boolean storySound() {
         return false;
     }

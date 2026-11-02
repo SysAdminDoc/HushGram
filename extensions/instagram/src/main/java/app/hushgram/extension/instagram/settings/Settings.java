@@ -266,6 +266,21 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_keep_stories_playing_on_zoom", FALSE);
 
     /**
+     * Accounts on {@link #STORY_PRIORITY_ACCOUNTS} that have a story not watched yet go first in the
+     * stories row at the top of Home, in the list's order
+     * ({@link app.hushgram.extension.instagram.stories.StoryPriority}). Off to start (#451).
+     */
+    public static final BooleanSetting STORY_PRIORITY =
+            new BooleanSetting("hushgram_story_priority", FALSE);
+
+    /**
+     * The usernames {@link #STORY_PRIORITY} puts first, one per line, the first line first. A value
+     * control, not a switch. Empty to start.
+     */
+    public static final StringSetting STORY_PRIORITY_ACCOUNTS =
+            new StringSetting("hushgram_story_priority_accounts", "", parent(STORY_PRIORITY));
+
+    /**
      * Stories open with their sound on, through Instagram's own audio state, when the phone's ringer
      * is on and its volume is up ({@link app.hushgram.extension.instagram.stories.StorySound}). Off
      * to start.

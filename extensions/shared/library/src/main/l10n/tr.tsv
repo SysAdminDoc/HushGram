@@ -1545,3 +1545,11 @@ Leaves out reels in the Reels tab that fewer people have watched than the number
 Minimum views	En az izlenme
 Reels with fewer views than this are left out. Type a whole number.	Bundan az izlenen reeller çıkarılır. Tam sayı yaz.
 Fewer than %1$s views	%1$s izlenmeden az
+# context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
+Stories priority	Hikaye önceliği
+Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Listendeki hesapları, henüz izlemediğin bir hikayeleri olduğu sürece Ana Sayfa'nın üstündeki hikaye satırında listenin sırasıyla en öne koyar. İzledikten sonra Instagram'ın kendi yerleşimi yeniden geçerli olur. Kendi hikayen ilk sırada kalır.
+Priority accounts	Öncelikli hesaplar
+Usernames, one on each line. The first line goes first. A leading @ and capital letters don't matter.	Kullanıcı adları, her satıra bir tane. İlk satır en öne gelir. Baştaki @ ve büyük harfler önemli değildir.
+No accounts yet	Henüz hesap yok
+%1$d account	%1$d hesap
+%1$d accounts	%1$d hesap

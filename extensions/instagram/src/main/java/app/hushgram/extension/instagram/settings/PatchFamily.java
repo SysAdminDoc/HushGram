@@ -61,6 +61,7 @@ public enum PatchFamily {
     STORY_LOOP(FamilyNames.STORY_LOOP, "storyLoop", null, Settings.LOOP_STORIES),
     SMOOTH_STORY_OPEN(FamilyNames.SMOOTH_STORY_OPEN, "smoothStoryOpen", null, Settings.SMOOTH_STORY_OPEN),
     STORY_ZOOM_PLAY(FamilyNames.STORY_ZOOM_PLAY, "storyZoomPlay", null, Settings.KEEP_STORIES_PLAYING_ON_ZOOM),
+    STORY_PRIORITY(FamilyNames.STORY_PRIORITY, "storyPriority", null, Settings.STORY_PRIORITY),
     STORY_SOUND(FamilyNames.STORY_SOUND, "storySound", null, Settings.START_STORIES_WITH_SOUND),
     STORY_SWIPE_REPLY(FamilyNames.STORY_SWIPE_REPLY, "storySwipeReply", null, Settings.STOP_STORY_SWIPE_REPLY),
     STORY_FONTS(FamilyNames.STORY_FONTS, "storyFonts", null, Settings.STORY_FONTS, Settings.STORY_EMOJI),

@@ -1462,3 +1462,11 @@ Leaves out reels in the Reels tab that fewer people have watched than the number
 Minimum views	Số lượt xem tối thiểu
 Reels with fewer views than this are left out. Type a whole number.	Reel có ít lượt xem hơn số này sẽ bị bỏ qua. Nhập một số nguyên.
 Fewer than %1$s views	Dưới %1$s lượt xem
+# context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
+Stories priority	Ưu tiên tin
+Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Đưa các tài khoản trong danh sách của bạn lên đầu hàng tin ở đầu Trang chủ khi họ có tin bạn chưa xem, theo thứ tự trong danh sách. Xem xong thì vị trí mặc định của Instagram được áp dụng lại. Tin của chính bạn vẫn ở đầu.
+Priority accounts	Tài khoản ưu tiên
+Usernames, one on each line. The first line goes first. A leading @ and capital letters don't matter.	Tên người dùng, mỗi dòng một tên. Dòng đầu tiên đứng đầu. Dấu @ ở đầu và chữ hoa không quan trọng.
+No accounts yet	Chưa có tài khoản nào
+%1$d account	%1$d tài khoản
+%1$d accounts	%1$d tài khoản

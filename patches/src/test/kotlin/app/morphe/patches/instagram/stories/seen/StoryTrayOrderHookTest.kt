@@ -191,7 +191,7 @@ class StoryTrayOrderHookTest {
      * The classes the finders read on [bundle]: those the ring finder reads, the reel store (the
      * class holding the list method the tray finder looks for) and the extension's classes.
      */
-    private fun trayClasses(bundle: File): List<ClassDef> {
+    internal fun trayClasses(bundle: File): List<ClassDef> {
         val stores = FixtureDex.classesHolding(bundle, LOCAL_SEEN_STORE)
         val state = stores.flatMap { it.methods }.single {
             it.name == "<init>" && it.parameterTypes.size == 2 && it.parameterTypes[0].toString() == USER_SESSION
@@ -233,7 +233,7 @@ class StoryTrayOrderHookTest {
 
 
     /** Calls in Instagram's own classes (the extension's are left out). */
-    private fun app.morphe.patcher.patch.BytecodePatchContext.calls(reference: String): Int {
+    internal fun app.morphe.patcher.patch.BytecodePatchContext.calls(reference: String): Int {
         var count = 0
         classDefForEach { classDef ->
             if (!classDef.type.startsWith("Lapp/hushgram/")) classDef.methods.forEach { method -> count += method.code().count { it.referenceText() == reference } }
@@ -246,9 +246,9 @@ class StoryTrayOrderHookTest {
 
     private fun Method.key() = "$definingClass->$name(${parameterTypes.joinToString("")})$returnType"
 
-    private fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
+    internal fun Method.code(): List<Instruction> = implementation?.instructions?.toList().orEmpty()
 
-    private fun Instruction.referenceText(): String? = when (val reference = (this as? ReferenceInstruction)?.reference) {
+    internal fun Instruction.referenceText(): String? = when (val reference = (this as? ReferenceInstruction)?.reference) {
         is StringReference -> reference.string
         else -> reference?.toString()
     }

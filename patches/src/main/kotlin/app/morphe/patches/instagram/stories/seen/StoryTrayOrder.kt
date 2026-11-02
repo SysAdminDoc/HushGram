@@ -48,6 +48,8 @@ internal class TraySite(
     val at: Int,
     val result: Int,
     val self: Int,
+    /** The monitor-exit before the return. Another patch's hook calls can sit between it and the return. */
+    val exit: Int = at - 1,
 )
 
 /**
@@ -67,6 +69,9 @@ internal class StoryTrayTargets(
     val sessionField: String,
     internal val isSeen: MutableMethod,
     val identity: TrayIdentity,
+    /** The extension class holding the hook and the [isSeen] stub, and the hook this patch calls. */
+    val extension: String = STORY_TRAY_ORDER,
+    val hook: String = TRAY_ORDER,
 )
 
 /** The actual store Reel's kind and public owner/ID readers, independent of the response parser model. */
@@ -139,7 +144,11 @@ internal fun BytecodePatchContext.userIdGetter(refuse: (String) -> Nothing): Met
  * empty, with one return after the monitor-exit. Ordering only the first left the top row as the
  * server ranked it, watched rings mixed in with new ones (#241), so both are hooked.
  */
-internal fun BytecodePatchContext.findStoryTray(reelClass: String): StoryTrayTargets {
+internal fun BytecodePatchContext.findStoryTray(
+    reelClass: String,
+    extension: String = STORY_TRAY_ORDER,
+    hook: String = TRAY_ORDER,
+): StoryTrayTargets {
     val found = classesCallingInto(reelClass).flatMap { classDef ->
         classDef.methods.mapNotNull { method -> trayLister(classDef.type, classDef.methods, reelClass, method)?.let { classDef to it } }
     }
@@ -149,7 +158,7 @@ internal fun BytecodePatchContext.findStoryTray(reelClass: String): StoryTrayTar
     val top = main.singleOrNull()
         ?: refuseTray("expected one method of ${tray.store} handing Home's top story row its reels, found ${main.size}")
     return StoryTrayTargets(tray.store, listOf(top, tray.site), tray.reelClass, tray.seenCheck, tray.sessionField,
-        trayStub(), trayIdentity(tray.reelClass))
+        trayStub(extension, hook), trayIdentity(tray.reelClass), extension, hook)
 }
 
 /** What [trayLister] finds in a method, before the extension's stub is looked up. */
@@ -201,31 +210,43 @@ private fun mainTraySite(method: Method): TraySite? {
     return returnSite(method, code)
 }
 
-/** [method]'s one return of a list, right after the monitor-exit that lets go of the store, or null. */
+/**
+ * [method]'s one return of a list, right after the monitor-exit that lets go of the store, or null.
+ * Calls of the extension's story hooks (an invoke-static and its move-result-object, as the tray
+ * patches put them) may sit between the two, so the patches find the site in either order.
+ */
 private fun returnSite(method: Method, code: List<Instruction>): TraySite? {
     val at = code.indices.filter { code[it].opcode == Opcode.RETURN_OBJECT }.singleOrNull() ?: return null
-    if (at == 0 || code[at - 1].opcode != Opcode.MONITOR_EXIT) return null
+    var exit = at - 1
+    while (exit >= 2 && code[exit].opcode == Opcode.MOVE_RESULT_OBJECT && code[exit - 1].isStoryHook()) exit -= 2
+    if (exit < 0 || code[exit].opcode != Opcode.MONITOR_EXIT) return null
     val result = (code[at] as OneRegisterInstruction).registerA
     val self = method.implementation!!.registerCount - 1 - method.parameterTypes.sumOf { if (it.toString() == "J" || it.toString() == "D") 2 else 1 }
     // The monitor-exit lets go of the store itself, so its register still holds the store at the return.
-    if ((code[at - 1] as OneRegisterInstruction).registerA != self) return null
+    if ((code[exit] as OneRegisterInstruction).registerA != self) return null
     if (result > 15 || self > 15 || result == self) return null
-    return TraySite(method.name, method.parameterTypes.map(Any::toString), at, result, self)
+    return TraySite(method.name, method.parameterTypes.map(Any::toString), at, result, self, exit)
+}
+
+/** Whether this is a static call into one of the extension's stories classes. */
+private fun Instruction.isStoryHook(): Boolean {
+    val call = trayCall() ?: return false
+    return opcode == Opcode.INVOKE_STATIC && call.definingClass.startsWith("$EXTENSION_PACKAGE/stories/")
 }
 
 private fun Instruction.trayCall(): MethodReference? = (this as? ReferenceInstruction)?.reference as? MethodReference
 
-private fun BytecodePatchContext.trayStub(): MutableMethod {
-    val order = classDefByOrNull(STORY_TRAY_ORDER)?.let { mutableClassDefBy(STORY_TRAY_ORDER) }
-        ?: refuseTray("$STORY_TRAY_ORDER isn't in the extension")
+private fun BytecodePatchContext.trayStub(extension: String, hook: String): MutableMethod {
+    val order = classDefByOrNull(extension)?.let { mutableClassDefBy(extension) }
+        ?: refuseTray("$extension isn't in the extension")
     order.methods.singleOrNull {
-        "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == TRAY_ORDER.substringAfter("->") &&
+        "${it.name}(${it.parameterTypes.joinToString("")})${it.returnType}" == hook.substringAfter("->") &&
             AccessFlags.STATIC.isSet(it.accessFlags) && AccessFlags.PUBLIC.isSet(it.accessFlags)
-    } ?: refuseTray("$STORY_TRAY_ORDER has no public static hook ${TRAY_ORDER.substringAfter("->")}")
+    } ?: refuseTray("$extension has no public static hook ${hook.substringAfter("->")}")
     return order.methods.singleOrNull {
         it.name == "seen" && it.returnType == "I" && AccessFlags.STATIC.isSet(it.accessFlags) &&
             it.parameterTypes.map(Any::toString) == listOf(OBJECT_TYPE, OBJECT_TYPE)
-    } ?: refuseTray("$STORY_TRAY_ORDER has no static I seen(${OBJECT_TYPE}${OBJECT_TYPE})")
+    } ?: refuseTray("$extension has no static I seen(${OBJECT_TYPE}${OBJECT_TYPE})")
 }
 
 /**
@@ -243,22 +264,24 @@ internal fun BytecodePatchContext.orderStoryTray(found: StoryTrayTargets) {
     // Every site is checked before any changes, so a moved one leaves the store as it was.
     for ((site, lister) in listers) {
         val code = lister.implementation!!.instructions.toList()
-        if (code.getOrNull(site.at)?.opcode != Opcode.RETURN_OBJECT || code.getOrNull(site.at - 1)?.opcode != Opcode.MONITOR_EXIT) {
+        if (code.getOrNull(site.at)?.opcode != Opcode.RETURN_OBJECT || code.getOrNull(site.exit)?.opcode != Opcode.MONITOR_EXIT) {
             throw PatchException("$PATCH: ${found.store}->${site.lister} changed before its list was hooked")
         }
     }
     for ((site, lister) in listers) {
+        // The sort goes right after the monitor-exit and any other hook right before the return, so
+        // the sort runs first whichever patch is applied first.
         lister.addInstructionsAtControlFlowLabel(
-            site.at,
+            if (found.hook == TRAY_ORDER) site.exit + 1 else site.at,
             """
-                invoke-static { v${site.result}, v${site.self} }, $TRAY_ORDER
+                invoke-static { v${site.result}, v${site.self} }, ${found.hook}
                 move-result-object v${site.result}
             """,
         )
     }
     // Three locals keep the owner/viewer IDs apart. Every path returns before the original stub.
     val state = found.isSeen.cloneMutable(additionalRegisters = (5 - found.isSeen.implementation!!.registerCount).coerceAtLeast(0))
-    mutableClassDefBy(STORY_TRAY_ORDER).methods.apply { remove(found.isSeen); add(state) }
+    mutableClassDefBy(found.extension).methods.apply { remove(found.isSeen); add(state) }
     state.addInstructionsWithLabels(
         0,
         """

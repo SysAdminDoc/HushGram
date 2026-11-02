@@ -115,6 +115,7 @@ import app.hushgram.extension.instagram.misc.SpoofLocation;
 import app.hushgram.extension.instagram.share.ShareSheetActions;
 import app.hushgram.extension.instagram.share.SharingDomain;
 import app.hushgram.extension.instagram.stories.StoryBarThickness;
+import app.hushgram.extension.instagram.stories.StoryPriority;
 import app.hushgram.extension.instagram.stories.StoryEmoji;
 import app.hushgram.extension.instagram.stories.StoryFonts;
 import app.hushgram.extension.instagram.stories.StoryRingColor;
@@ -704,6 +705,7 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                     belongs |= family == PatchFamily.CAPTION_WORD_REELS && (Settings.REELS_BLOCKED_WORDS.key.equals(key)
                             || Settings.HIDE_CAPTION_WORD_HOME.key.equals(key));
                     belongs |= family == PatchFamily.LOW_VIEW_REELS && Settings.MIN_REEL_VIEWS.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_PRIORITY && Settings.STORY_PRIORITY_ACCOUNTS.key.equals(key);
                     belongs |= family == PatchFamily.MESSAGES_LOCK
                             && (Settings.LOCK_AGAIN.key.equals(key) || LOCKED_CHATS_ROW.equals(key)
                             || HIDDEN_CHATS_ROW.equals(key) || PINNED_CHATS_ROW.equals(key) || Settings.UNLOCK_WITH.key.equals(key)
@@ -6139,6 +6141,69 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
 
         /** Its edit dialog takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+            fitAboveKeyboard(getDialog());
+        }
+    }
+
+    /** The usernames Stories priority puts first, one to a line (#451). */
+    static AccountsRow priorityAccountsRow(Context context) {
+        AccountsRow row = new AccountsRow(context);
+        row.setKey(Settings.STORY_PRIORITY_ACCOUNTS.key);
+        row.setTitle(L10n.t("Priority accounts"));
+        row.setDialogTitle(L10n.t("Priority accounts"));
+        row.setDialogMessage(L10n.t("Usernames, one on each line. The first line goes first. A leading @ and capital "
+                + "letters don't matter."));
+        row.setPositiveButtonText(L10n.t("Save"));
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        EditText field = row.getEditText();
+        field.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setMaxLines(8);
+        field.setFilters(new InputFilter[]{new InputFilter.LengthFilter(ConfigurationBackup.MAX_WORDS_TEXT)});
+        row.setText(Settings.STORY_PRIORITY_ACCOUNTS.savedValue());
+        return row;
+    }
+
+    /** What the priority accounts row says under its title: how many accounts it holds, or that it has none. */
+    static String priorityAccountsSummary(String stored) {
+        int count = StoryPriority.accounts(stored).size();
+        return count == 0 ? L10n.t("No accounts yet")
+                : L10n.quantity(count, "%1$d account", "%1$d accounts", count);
+    }
+
+    /**
+     * The priority accounts' row, a list typed in a multi-line dialog. Its summary follows its text,
+     * whoever sets it: the person, the shared page syncing it from the setting, or an import.
+     */
+    static final class AccountsRow extends EditTextPreference {
+        AccountsRow(Context context) {
+            super(context);
+        }
+
+        @Override protected View onCreateDialogView() { return editDialogBody(this); }
+
+        @Override protected void onBindDialogView(View view) {
+            getEditText().setText(getText());
+        }
+
+        @Override
+        public void setText(String text) {
+            super.setText(text);
+            setSummary(priorityAccountsSummary(text));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its edit dialog takes the screen's colours and shrinks to fit above the keyboard, as the other rows' dialogs do. */
         @Override
         protected void showDialog(Bundle state) {
             super.showDialog(state);

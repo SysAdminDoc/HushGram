@@ -1545,3 +1545,11 @@ Leaves out reels in the Reels tab that fewer people have watched than the number
 Minimum views	Tayangan minimum
 Reels with fewer views than this are left out. Type a whole number.	Reel dengan tayangan lebih sedikit dari ini disembunyikan. Ketik bilangan bulat.
 Fewer than %1$s views	Kurang dari %1$s tayangan
+# context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
+Stories priority	Prioritas cerita
+Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Menaruh akun di daftarmu paling depan di baris cerita di bagian atas Beranda selama mereka punya cerita yang belum kamu tonton, sesuai urutan daftar. Setelah kamu menontonnya, penempatan bawaan Instagram berlaku lagi. Ceritamu sendiri tetap di depan.
+Priority accounts	Akun prioritas
+Usernames, one on each line. The first line goes first. A leading @ and capital letters don't matter.	Nama pengguna, satu per baris. Baris pertama paling depan. @ di awal dan huruf besar tidak berpengaruh.
+No accounts yet	Belum ada akun
+%1$d account	%1$d akun
+%1$d accounts	%1$d akun

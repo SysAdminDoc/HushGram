@@ -1545,3 +1545,11 @@ Leaves out reels in the Reels tab that fewer people have watched than the number
 Minimum views	Visualizzazioni minime
 Reels with fewer views than this are left out. Type a whole number.	I reel con meno visualizzazioni di questo valore vengono esclusi. Scrivi un numero intero.
 Fewer than %1$s views	Meno di %1$s visualizzazioni
+# context: Stories switch Stories priority, its summary, the Priority accounts row, its dialog message and the row's summaries (none, one account, several accounts) (#451)
+Stories priority	Priorità delle storie
+Puts the accounts on your list first in the stories row at the top of Home while they have a story you haven't watched, in the order of the list. Once you've watched it, Instagram's own placement applies again. Your own story stays first.	Mette per prime le storie degli account della tua lista nella riga delle storie in cima alla Home finché ne hanno una che non hai guardato, nell'ordine della lista. Una volta guardata, torna la posizione scelta da Instagram. La tua storia resta la prima.
+Priority accounts	Account prioritari
+Usernames, one on each line. The first line goes first. A leading @ and capital letters don't matter.	Nomi utente, uno per riga. La prima riga va per prima. Una @ iniziale e le maiuscole non contano.
+No accounts yet	Ancora nessun account
+%1$d account	%1$d account
+%1$d accounts	%1$d account
