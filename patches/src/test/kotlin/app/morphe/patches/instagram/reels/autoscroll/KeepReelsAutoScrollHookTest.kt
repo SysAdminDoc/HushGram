@@ -46,8 +46,11 @@ import java.io.File
 private const val PLAYBACK_STATE = "VideoPlaybackUseCase_getUiState"
 private const val PIP_ON_CREATE = "ClipsPiPFragment_onCreate"
 
-/** The markers of what decides whether Reels offers auto scroll and of the scroller's three steps. */
-private val scrollerMarkers = setOf(OPT_IN_AUTOSCROLL, SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL)
+/**
+ * The markers of what decides whether Reels offers auto scroll, of the scroller's three steps, of
+ * its check while a reel plays and of its constructor, which keeps when it moves on.
+ */
+private val scrollerMarkers = setOf(OPT_IN_AUTOSCROLL, SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL, SCROLLER_ON_PROGRESS, SCROLLER_LEAD_TIME)
 
 class KeepReelsAutoScrollHookTest {
     private val plugin = "Lfixture/AutoscrollPlugin;"
@@ -91,7 +94,9 @@ class KeepReelsAutoScrollHookTest {
         "overwrittenOnABranch" to listOf("move/from16 v1, p8", "if-nez v0, :keep", "const/4 v1, 0x1", ":keep"),
         "parameterOverwritten" to listOf("const/16 p8, 0x1", "move/from16 v1, p8"),
     )
-    private val hooks = setOf(AUTO_SCROLL_ANSWER, AUTO_SCROLL_SAVED, AUTO_SCROLL_CHOSEN, AUTO_SCROLL_STORED, AUTO_SCROLL_INSTALL, timerHook)
+    private val hooks = setOf(
+        AUTO_SCROLL_ANSWER, AUTO_SCROLL_SAVED, AUTO_SCROLL_CHOSEN, AUTO_SCROLL_STORED, AUTO_SCROLL_INSTALL, timerHook, AUTO_SCROLL_LEAD, AUTO_SCROLL_LEAD_TIME,
+    )
 
     /** How the stand-in handler keeps its choice in memory: as it is, not at all, twice, or a constant in its place. */
     private val choiceToKeep = mapOf(
@@ -150,7 +155,11 @@ class KeepReelsAutoScrollHookTest {
         assertEquals("whether auto scroll is offered stays Instagram's own answer everywhere else", 0,
             context.method(experiments, "autoScrollOffered").code().count { it.referenceText() in hooks })
         assertEquals("the scroller's own checks and its move aren't changed", 0,
-            context.mutableClassDefBy(scroller).methods.sumOf { method -> method.code().count { it.referenceText() in hooks } })
+            context.mutableClassDefBy(scroller).methods.filter { it.name != "<init>" }.sumOf { method -> method.code().count { it.referenceText() in hooks } })
+        val constructor = context.method(scroller, "<init>")
+        assertLeadAnswered("the stand-in", constructor, classes().single { it.type == scroller }.methods.single { it.name == "<init>" })
+        val time = constructor.code().indexOfFirst { it.referenceText() == AUTO_SCROLL_LEAD_TIME }
+        assertTrue("the clamp's branches to the time's write land on its hook", time in constructor.jumpTargets())
 
         val status = context.method(SETTINGS_STATUS, "reelAutoScroll").code()
         assertEquals("SettingsStatus.reelAutoScroll() isn't switched on", 1, (status.first() as NarrowLiteralInstruction).narrowLiteral)
@@ -231,6 +240,13 @@ class KeepReelsAutoScrollHookTest {
     @Test
     fun aBuildThePatchCantReadFailsBeforeAnythingChanges() {
         val oneMarked = "expected one method marked"
+        val marks = scrollerMarkers - OPT_IN_AUTOSCROLL
+        val should = "$scroller->shouldScroll($scroller)Z"
+        val move = "$scroller->scrollToNext($scroller" + "Z)V"
+        val progress = "$scroller->onProgressUpdate(Lfixture/Player;II)V"
+        val constructor = "$scroller-><init>()V"
+        val lead = "$scroller->lead:Z"
+        val leadTime = "$scroller->leadTime:I"
         val callers = "expected $preference->setEnabled($prefs" + "Z)V to be called by"
         val notTheChoice = "saves something other than its choice, parameter 6 (v28), to $preference->setEnabled($prefs" + "Z)V"
         val cases = listOf(
@@ -276,13 +292,26 @@ class KeepReelsAutoScrollHookTest {
             classes(gates = 0) to "$oneMarked $OPT_IN_AUTOSCROLL, found 0",
             classes(gates = 2) to "$oneMarked $OPT_IN_AUTOSCROLL, found 2",
             classes(gateTakes = listOf(session)) to "marked $OPT_IN_AUTOSCROLL, isn't a static ($session, boolean) method answering a boolean",
-            classes(scrollerMarks = setOf(SCROLLER_ON_LOOP, SCROLLER_SCROLL)) to "$oneMarked $SCROLLER_SHOULD_SCROLL, found 0",
-            classes(scrollerMarks = setOf(SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL)) to "$oneMarked $SCROLLER_SCROLL, found 0",
-            classes(scrollerMarks = setOf(SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL)) to "$oneMarked $SCROLLER_ON_LOOP, found 0",
+            classes(scrollerMarks = marks - SCROLLER_SHOULD_SCROLL) to "$oneMarked $SCROLLER_SHOULD_SCROLL, found 0",
+            classes(scrollerMarks = marks - SCROLLER_SCROLL) to "$oneMarked $SCROLLER_SCROLL, found 0",
+            classes(scrollerMarks = marks - SCROLLER_ON_LOOP) to "$oneMarked $SCROLLER_ON_LOOP, found 0",
             classes(moveElsewhere = true) to "marked $SCROLLER_SCROLL, isn't a static ($scroller, boolean) method returning nothing",
-            classes(loopCalls = "noCheck") to "doesn't call both $scroller->shouldScroll($scroller)Z and $scroller->scrollToNext($scroller" + "Z)V",
-            classes(loopCalls = "noMove") to "doesn't call both $scroller->shouldScroll($scroller)Z and $scroller->scrollToNext($scroller" + "Z)V",
-            classes(scrollerAsks = "none") to "$scroller->shouldScroll($scroller)Z doesn't ask $plugin->check($session)Z whether auto scroll is on",
+            classes(loopCalls = "noCheck") to "doesn't call both $should and $move",
+            classes(loopCalls = "noMove") to "doesn't call both $should and $move",
+            classes(scrollerAsks = "none") to "$should doesn't ask $plugin->check($session)Z whether auto scroll is on",
+            classes(scrollerMarks = marks - SCROLLER_ON_PROGRESS) to "$oneMarked $SCROLLER_ON_PROGRESS, found 0",
+            classes(scrollerMarks = marks - SCROLLER_LEAD_TIME) to "$oneMarked $SCROLLER_LEAD_TIME, found 0",
+            classes(progressStatic = true) to "marked $SCROLLER_ON_PROGRESS, isn't an instance method of $scroller returning nothing",
+            classes(progressCalls = "noMove") to "$progress doesn't call both $should and $move",
+            classes(leadMarkedInConstructor = false) to "$progress, marked $SCROLLER_LEAD_TIME, isn't a constructor of $scroller",
+            classes(leadMarks = 2) to "$constructor loads $SCROLLER_LEAD_TIME 2 times, expected once",
+            classes(switchRightBeforeMark = false) to "$constructor doesn't keep a boolean of its own right before it loads $SCROLLER_LEAD_TIME",
+            classes(timeWrites = 0) to "$constructor keeps 0 ints of its own after it loads $SCROLLER_LEAD_TIME, expected one",
+            classes(timeWrites = 2) to "$constructor keeps 2 ints of its own after it loads $SCROLLER_LEAD_TIME, expected one",
+            classes(progressReadsTime = false) to "$progress doesn't read both $lead and $leadTime",
+            classes(loopReadsSwitch = false) to "$scroller->onVideoLoop(Lfixture/Player;II)V doesn't read $lead",
+            classes(leadWrittenElsewhere = true) to "$lead is written by $constructor, $scroller->reset()V, expected once, by $constructor",
+            classes(timeReadAfterWrite = true) to "instruction 13 of $constructor reads v2 after instruction 12 keeps it",
             classes(builders = 0) to "expected one method building $scroller, found 0",
             classes(builders = 2) to "expected one method building $scroller, found 2",
             classes(builderStatic = false) to "isn't the Reels viewer's static method tracing \"$SCROLLER_TRACE\"",
@@ -451,9 +480,14 @@ class KeepReelsAutoScrollHookTest {
         val built = context.mutableClassDefBy(builder.definingClass).methods.single { it.text() == builder.text() }
         assertInstallAnswered(label, built, gate.text(), scrollerClass.type)
         // Whether to move on from a reel, the move and what a reel's end runs stay Instagram's own,
-        // and so does the answer the menus read.
+        // and so does the answer the menus read. Only the constructor's two writes are answered.
         val after = (context.mutableClassDefBy(scrollerClass.type).methods + context.mutableClassDefBy(gate.definingClass).methods).associateBy { it.text() }
+        val constructor = scrollerClass.methods.single { SCROLLER_LEAD_TIME in it.markers() }
+        assertEquals("${label}: the scroller's constructor", sites.install.lead.constructor.toString(),
+            "${constructor.definingClass}->${constructor.name}(${constructor.parameterTypes.joinToString("")})")
+        assertLeadAnswered(label, after.getValue(constructor.text()), constructor)
         for (stock in scrollerClass.methods + gate) {
+            if (stock.text() == constructor.text()) continue
             assertEquals("${label}: ${stock.text()} is changed", stock.code().map { Triple(it.opcode, it.referenceText(), it.arguments()) },
                 after.getValue(stock.text()).code().map { Triple(it.opcode, it.referenceText(), it.arguments()) })
         }
@@ -492,6 +526,46 @@ class KeepReelsAutoScrollHookTest {
         }
         assertEquals("$what: install calls", 1, code.count { it.referenceText() == AUTO_SCROLL_INSTALL })
         assertEquals("$what: other hooks", 0, code.count { it.referenceText() in hooks - AUTO_SCROLL_INSTALL })
+    }
+
+    /**
+     * Right before the scroller's constructor keeps whether it may move on early, lead is handed
+     * that answer, and right before it keeps the time, leadTime is handed the time, each result going
+     * back in the register about to be written. The switch's write comes right before the marker.
+     * Taking the four hook instructions out leaves [stock], and every branch [stock] had to either
+     * write now lands on its hook.
+     */
+    private fun assertLeadAnswered(what: String, constructor: MutableMethod, stock: Method) {
+        val code = constructor.code()
+        val targets = constructor.jumpTargets()
+        val (switch, time) = listOf(AUTO_SCROLL_LEAD to Opcode.IPUT_BOOLEAN, AUTO_SCROLL_LEAD_TIME to Opcode.IPUT).map { (hook, write) ->
+            val at = code.indices.single { code[it].referenceText() == hook }
+            assertEquals("$what: $hook comes right before a write", write, code[at + 2].opcode)
+            val register = (code[at + 2] as TwoRegisterInstruction).registerA
+            assertEquals("$what: $hook is handed what's written", listOf(register), code[at].arguments())
+            assertEquals("$what: $hook's result", Opcode.MOVE_RESULT, code[at + 1].opcode)
+            assertEquals("$what: $hook's result goes back where it came from", register, (code[at + 1] as OneRegisterInstruction).registerA)
+            assertTrue("$what: a jump lands past $hook", (at + 1..at + 2).none { it in targets })
+            at
+        }
+        assertTrue("$what: the switch is kept right before the marker", code[switch + 3].string()?.endsWith("_$SCROLLER_LEAD_TIME") == true)
+        assertTrue("$what: the time is kept after the switch", time > switch)
+        assertEquals("$what: hooks in the constructor", 2, code.count { it.referenceText() in hooks })
+        assertEquals("$what: registers", stock.implementation!!.registerCount, constructor.implementation!!.registerCount)
+
+        val originalCode = stock.code()
+        val kept = code.indices.filter { it !in setOf(switch, switch + 1, time, time + 1) && code[it].opcode != Opcode.NOP }
+        val stockKept = originalCode.indices.filter { originalCode[it].opcode != Opcode.NOP }
+        assertEquals("$what: the rest of the constructor is changed", stockKept.map { originalCode[it].let { i -> Triple(i.opcode, i.referenceText(), i.arguments()) } },
+            kept.map { code[it].let { i -> Triple(i.opcode, i.referenceText(), i.arguments()) } })
+        val original = MutableMethod(stock)
+        for ((position, from) in stockKept.withIndex()) {
+            val target = (original.implementation!!.instructions[from] as? BuilderOffsetInstruction)?.target?.location?.index ?: continue
+            if (originalCode[target].opcode == Opcode.NOP) continue
+            val landed = kept[stockKept.indexOf(target)]
+            val expected = if (landed == switch + 2 || landed == time + 2) landed - 2 else landed
+            assertEquals("$what: the branch at ${kept[position]}", expected, constructor.targetOf(kept[position]))
+        }
     }
 
     /**
@@ -626,10 +700,20 @@ class KeepReelsAutoScrollHookTest {
         durationOverwritesReceiver: Boolean = false,
         gates: Int = 1,
         gateTakes: List<String> = listOf(session, "Z"),
-        scrollerMarks: Set<String> = setOf(SCROLLER_ON_LOOP, SCROLLER_SHOULD_SCROLL, SCROLLER_SCROLL),
+        scrollerMarks: Set<String> = scrollerMarkers - OPT_IN_AUTOSCROLL,
         scrollerAsks: String = "helper",
         moveElsewhere: Boolean = false,
         loopCalls: String = "both",
+        loopReadsSwitch: Boolean = true,
+        progressStatic: Boolean = false,
+        progressCalls: String = "both",
+        progressReadsTime: Boolean = true,
+        leadMarkedInConstructor: Boolean = true,
+        leadMarks: Int = 1,
+        switchRightBeforeMark: Boolean = true,
+        timeWrites: Int = 1,
+        timeReadAfterWrite: Boolean = false,
+        leadWrittenElsewhere: Boolean = false,
         builders: Int = 1,
         builderStatic: Boolean = true,
         builderTraces: Boolean = true,
@@ -870,6 +954,8 @@ class KeepReelsAutoScrollHookTest {
         // which reads the first and builds the second only when it says yes, as 450's does.
         fun marker(name: String) = if (name in scrollerMarks) "const-string v0, \"android_purge_26_q3_$name\"" else ""
         val askPlugin = "invoke-virtual { v0, v1 }, $plugin->check($session)Z"
+        val lead = "$scroller->lead:Z"
+        val leadTime = "$scroller->leadTime:I"
         val move = method(scroller, "scrollToNext", listOf(scroller, "Z"), "V", 1, static = true, body = """
             ${marker(SCROLLER_SCROLL)}
             const/4 v0, 0x0
@@ -893,16 +979,58 @@ class KeepReelsAutoScrollHookTest {
             """),
             method(scroller, "onVideoLoop", listOf("Lfixture/Player;", "I", "I"), "V", 2, body = """
                 ${marker(SCROLLER_ON_LOOP)}
+                ${if (loopReadsSwitch) "iget-boolean v0, p0, $lead" else ""}
                 const/4 v1, 0x0
                 ${if (loopCalls == "noCheck") "" else "invoke-static { p0 }, $scroller->shouldScroll($scroller)Z"}
                 ${if (loopCalls == "noMove") "" else "invoke-static { p0, v1 }, $scroller->scrollToNext($scroller" + "Z)V"}
                 return-void
             """),
-        )
+            // 453's moves on from a playing reel once it's within the time of its end, if the switch allows.
+            method(scroller, "onProgressUpdate", listOf("Lfixture/Player;", "I", "I"), "V", 2, static = progressStatic, body = """
+                ${marker(SCROLLER_ON_PROGRESS)}
+                ${if (leadMarkedInConstructor) "" else marker(SCROLLER_LEAD_TIME)}
+                iget-boolean v0, p0, $lead
+                ${if (progressReadsTime) "iget v1, p0, $leadTime" else ""}
+                const/4 v1, 0x0
+                invoke-static { p0 }, $scroller->shouldScroll($scroller)Z
+                ${if (progressCalls == "noMove") "" else "invoke-static { p0, v1 }, $scroller->scrollToNext($scroller" + "Z)V"}
+                return-void
+            """),
+            // 453's reads the server's switch, then the time it holds between 10 and 400 ms, so two
+            // branches land on the time's write.
+            method(scroller, "<init>", emptyList(), "V", 3, body = """
+                invoke-direct { p0 }, Ljava/lang/Object;-><init>()V
+                invoke-static {}, Lfixture/Config;->lead()Z
+                move-result v0
+                iput-boolean v0, p0, $lead
+                ${if (switchRightBeforeMark) "" else "const/4 v1, 0x0"}
+                ${if (leadMarkedInConstructor) (0 until leadMarks).joinToString("\n") { marker(SCROLLER_LEAD_TIME) } else ""}
+                invoke-static {}, Lfixture/Config;->buffer()J
+                move-result-wide v0
+                long-to-int v2, v0
+                const/16 v1, 0xa
+                const/16 v0, 0x190
+                if-ge v2, v1, :high
+                const/16 v2, 0xa
+                :keep
+                ${(0 until timeWrites).joinToString("\n") { "iput v2, p0, $leadTime" }}
+                ${if (timeReadAfterWrite) "invoke-static { v2 }, Lfixture/Other;->use(I)V" else ""}
+                return-void
+                :high
+                if-le v2, v0, :keep
+                const/16 v2, 0x190
+                goto :keep
+            """),
+        ) + if (leadWrittenElsewhere) listOf(method(scroller, "reset", emptyList(), "V", 1, body = """
+                const/4 v0, 0x0
+                iput-boolean v0, p0, $lead
+                return-void
+            """)) else emptyList()
+        val scrollerFields = listOf("lead" to "Z", "leadTime" to "I")
         val scrollerClasses = if (moveElsewhere) {
-            listOf(classDef(scroller, scrollerMethods), classDef("Lfixture/OtherScroller;", listOf(move.movedTo("Lfixture/OtherScroller;"))))
+            listOf(classDef(scroller, scrollerMethods, scrollerFields), classDef("Lfixture/OtherScroller;", listOf(move.movedTo("Lfixture/OtherScroller;"))))
         } else {
-            listOf(classDef(scroller, scrollerMethods + move))
+            listOf(classDef(scroller, scrollerMethods + move, scrollerFields))
         }
         val readOffered = (0 until offeredReads).joinToString("\n") { "invoke-static { v0, v3 }, $offered\nmove-result v0" }
         val branch = if (offeredBranch == "otherRegister") "if-eqz v3" else "$offeredBranch v0"

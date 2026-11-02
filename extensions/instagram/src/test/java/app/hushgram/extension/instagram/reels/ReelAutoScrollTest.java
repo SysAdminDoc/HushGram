@@ -521,4 +521,57 @@ public class ReelAutoScrollTest {
         assertFalse("a paused scroller's check moves nothing on",
                 ReelAutoScroll.answer(0, () -> false, () -> true, () -> true, new CountingMemory(true)));
     }
+
+    /**
+     * The scroller is built to move on just before a reel ends, with the longest time Instagram
+     * gives it, so the reel doesn't start over during the move (#473). Instagram's yes and a longer
+     * time stand, and the switches don't matter: it changes when the scroller moves, never whether.
+     */
+    @Test
+    public void theScrollerMovesOnBeforeTheReelStartsOver() {
+        Settings.KEEP_REEL_AUTO_SCROLL.save(false);
+        assertFalse(Settings.REEL_AUTO_ADVANCE.get());
+        assertTrue("Instagram's no turns into moving on early", ReelAutoScroll.lead(0));
+        assertTrue(ReelAutoScroll.lead(1));
+        assertTrue("any non-zero is yes", ReelAutoScroll.lead(0x7f));
+        assertEquals("Instagram's shortest time grows to its longest", 400, ReelAutoScroll.leadTime(10));
+        assertEquals(400, ReelAutoScroll.leadTime(400));
+        assertEquals("a longer time stands", 900, ReelAutoScroll.leadTime(900));
+
+        Settings.KEEP_REEL_AUTO_SCROLL.save(true);
+        Settings.REEL_AUTO_ADVANCE.save(true);
+        assertTrue(ReelAutoScroll.lead(0));
+        assertEquals(400, ReelAutoScroll.leadTime(10));
+        assertFalse("nothing is remembered for it", Settings.REEL_AUTO_SCROLL_ON.savedValue());
+    }
+
+    /** Paused, before the settings are read, or when the check throws, the scroller is built as Instagram had it. */
+    @Test
+    public void theLeadStandsDownWhilePausedUnreadOrBroken() {
+        BaseSettings.PAUSED.save(true);
+        PauseForTests.pause(HushgramPause.Reason.SWITCH);
+        assertFalse(ReelAutoScroll.lead(0));
+        assertTrue(ReelAutoScroll.lead(1));
+        assertEquals(10, ReelAutoScroll.leadTime(10));
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        assertTrue(ReelAutoScroll.lead(0));
+
+        SettingsContextRule.withoutContext(() -> {
+            assertFalse(ReelAutoScroll.lead(0));
+            assertTrue(ReelAutoScroll.lead(1));
+            assertEquals(10, ReelAutoScroll.leadTime(10));
+        });
+
+        assertFalse(ReelAutoScroll.lead(0, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+        assertEquals(250, ReelAutoScroll.leadTime(250, () -> {
+            throw new IllegalStateException("settings went away");
+        }));
+        String missing = HookStatus.missing(FamilyNames.REEL_AUTO_SCROLL).toString();
+        assertTrue(missing, missing.contains("'auto scroll lead'"));
+        assertTrue(missing, missing.contains("'auto scroll lead time'"));
+        assertTrue(missing, missing.contains(IllegalStateException.class.getName()));
+    }
 }

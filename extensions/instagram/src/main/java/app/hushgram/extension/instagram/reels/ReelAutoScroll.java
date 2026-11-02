@@ -58,6 +58,14 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * and the reel's kind, and the move is its own. The remembered choice isn't touched: it follows
  * Instagram's switches alone, so turning this off leaves auto scroll the way it was last set.
  *
+ * <p>When the scroller moves on is Instagram's too, but a server setting can hold it back. Built
+ * with that setting off, the scroller waits for the reel to start over, so the reel's first second
+ * plays again while the next one slides in (#473). With it on, it moves on as the player reports a
+ * reel within a short time of its end. The patch passes both values, read once as the scroller is
+ * built, through {@link #lead} and {@link #leadTime}, which turn it on with Instagram's longest
+ * time. A reel whose progress isn't reported in that time still moves on when it starts over, as
+ * before. The scroller still moves only while auto scroll is on and its own checks allow it.
+ *
  * <p>Paused, before the settings are read, or when anything goes wrong, Instagram's answer stands
  * and nothing is remembered. {@link #answer} runs every time the scroller checks, so it reads a
  * saved value and writes only when the choice changes. No hook throws.
@@ -157,6 +165,57 @@ public final class ReelAutoScroll {
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll install", failure);
             return offered;
+        }
+    }
+
+    /**
+     * How long before a reel's end the scroller may move on from it, in milliseconds, while
+     * HushGram leads: the top of the range Instagram itself keeps that time in.
+     */
+    static final int LEAD_MS = 400;
+
+    /**
+     * Injected in the auto scroller's constructor where it keeps whether it moves on a little before
+     * a reel ends, a server setting, with Instagram's answer as an int (non-zero is yes). Answers yes
+     * unless HushGram is paused or the settings aren't read yet, then what Instagram did. Without it
+     * the scroller moves on only once the reel has started over, so its first second plays again
+     * during the move (#473). The scroller asks this once, as it's built.
+     */
+    public static boolean lead(int instagram) {
+        return lead(instagram, ReelAutoScroll::learning);
+    }
+
+    static boolean lead(int instagram, BooleanSupplier leading) {
+        boolean early = instagram != 0;
+        try {
+            HookStatus.invoked(FamilyNames.REEL_AUTO_SCROLL);
+            if (early || !leading.getAsBoolean()) return early;
+            Logger.printInfo(() -> "Reel auto scroll: moving on just before a reel ends, not after it starts over");
+            return true;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll lead", failure);
+            return early;
+        }
+    }
+
+    /**
+     * Injected in the same constructor where it keeps how long before a reel's end it may move on,
+     * in milliseconds, which Instagram has already held between 10 and 400. Answers at least
+     * {@link #LEAD_MS} unless HushGram is paused or the settings aren't read yet: the scroller looks
+     * only as often as the player reports its progress, which steps over a window of a few
+     * milliseconds. Otherwise answers what Instagram did.
+     */
+    public static int leadTime(int instagram) {
+        return leadTime(instagram, ReelAutoScroll::learning);
+    }
+
+    static int leadTime(int instagram, BooleanSupplier leading) {
+        try {
+            HookStatus.invoked(FamilyNames.REEL_AUTO_SCROLL);
+            return leading.getAsBoolean() ? Math.max(instagram, LEAD_MS) : instagram;
+        } catch (Throwable failure) {
+            HookStatus.threw(FamilyNames.REEL_AUTO_SCROLL, "auto scroll lead time", failure);
+            return instagram;
         }
     }
 
