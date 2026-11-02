@@ -32,6 +32,7 @@ Every HushGram release, newest first.
 
 ### Bug Fixes
 
+* **Instagram:** `Logo and titles at the start` now moves the Messages title and the Reels tabs too. Messages keeps the gap its new message button has on the right, and the Reels tabs sit right after Create, or off the edge when Create is hidden. Reported in #407.
 * **Instagram:** With `Stop after the chat's reels` on, the reels a chat shares scroll again, one after another. A swipe up past the last one goes back to the chat, and pulling down at the top no longer reloads the viewer with suggested reels. Reported in #390.
 * **Instagram:** `Explore without personalization` did nothing outside the EU. It waited for the EU's menu button before asking for the grid that isn't personalized, and now it asks on every account. Instagram only promises that grid in the EU, so elsewhere it's up to them what comes back. Reported in #311.
 * **Instagram:** `Rounded corners on Reels` rounded the corners of the screen instead of the video when a reel had black bars above and below it, so the video itself stayed square. The corners now go on the video and move with it. Reported in #456.

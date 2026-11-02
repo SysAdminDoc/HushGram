@@ -251,8 +251,11 @@ public final class HomeLogo {
         return new int[] {startEdge, endEdge};
     }
 
-    /** The room the logo keeps from the header's edge with nothing at the start and no end button to copy, in dp. */
-    static final int EDGE_DP = 16;
+    /**
+     * The room the logo keeps from the header's edge with nothing at the start and no end button to
+     * copy, in dp. The Messages and Reels titles keep it too ({@link app.hushgram.extension.instagram.profile.ProfileTitle}).
+     */
+    public static final int EDGE_DP = 16;
 
     /**
      * The minimum width [start] takes with the logo at the start: 0 with a button in it, so the logo
@@ -280,7 +283,7 @@ public final class HomeLogo {
      * centers a smaller child with no padding, as Instagram's heart does (#407), the room past
      * that child.
      */
-    static int contentEndInset(View button) {
+    public static int contentEndInset(View button) {
         int inset = button.getPaddingEnd();
         if (!(button instanceof ViewGroup) || !button.isLaidOut()) return inset;
         ViewGroup group = (ViewGroup) button;

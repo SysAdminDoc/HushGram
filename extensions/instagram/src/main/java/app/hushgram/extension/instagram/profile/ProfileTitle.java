@@ -7,21 +7,27 @@ package app.hushgram.extension.instagram.profile;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.graphics.Matrix;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import app.hushgram.extension.instagram.reels.HomeLogo;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.instagram.settings.SettingsStatus;
@@ -54,6 +60,13 @@ import app.hushgram.extension.shared.settings.HushgramPause;
  * button, or the area's start without one. It wins over both centering switches, and its moves are
  * worked out and put back the same way.
  *
+ * <p>Two bars of their own get it too (#407): the Messages inbox's ({@link #INBOX_BAR_ID}), your
+ * username between nothing and the new message button, and the Reels tab's ({@link #REELS_BAR_ID}),
+ * the Reels and Friends tabs between Create and Tune. Their title's slot clips what it holds, so the
+ * slot itself moves: up to the last thing shown before it, as Create, or with nothing there as far
+ * from the bar's start edge as the end button's icon is drawn from its end edge, so the title never
+ * sits against the screen's edge.
+ *
  * <p>No layout listener runs for nothing: with both switches off, HushGram paused or the settings not
  * read, an activity gets only a window focus listener, which hears a switch turned on once the
  * settings close. Off, a name is put back where Instagram had it, if nothing else moved it since.
@@ -72,6 +85,14 @@ public final class ProfileTitle {
     static final String TITLE_ID = "action_bar_title";
     /** Home's header, which has Center the logo on Home's header. */
     static final String HOME_BAR_ID = "main_feed_action_bar";
+    /** The Messages inbox's top bar on 453: the title's slot, then the new message button. */
+    static final String INBOX_BAR_ID = "direct_inbox_action_bar";
+    /** Your username in it, inside the slot that centers it. */
+    static final String INBOX_TITLE_ID = "igds_action_bar_title";
+    /** The Reels tab's top bar on 453: Create, the tabs' slot, then Tune. */
+    static final String REELS_BAR_ID = "clips_viewer_action_bar";
+    /** The slot holding the Reels and Friends tabs. */
+    static final String REELS_TITLE_ID = "clips_viewer_action_bar_title_container";
 
     /** The most views looked at for bars in one layout. */
     static final int MAX_VIEWS = 3000;
@@ -87,6 +108,8 @@ public final class ProfileTitle {
     private static final Map<View, float[]> MOVED = new WeakHashMap<>();
     /** Title groups on shared bars moved here, the same way. */
     private static final Map<View, float[]> MOVED_TITLES = new WeakHashMap<>();
+    /** The inbox's and the Reels tab's title slots moved to the start here, the same way. */
+    private static final Map<View, float[]> MOVED_SLOTS = new WeakHashMap<>();
     /** Name containers that clipped to their padding until a name was moved into it. */
     private static final Map<ViewGroup, Boolean> UNCLIPPED = new WeakHashMap<>();
     private static final Focus FOCUS = new Focus();
@@ -196,17 +219,19 @@ public final class ProfileTitle {
         try {
             boolean names = wanted();
             boolean titles = titlesWanted();
+            boolean start = atStart();
             if (!names) {
                 putBack(MOVED);
                 clipAgain();
             }
             if (!titles) putBack(MOVED_TITLES);
+            if (!start) putBack(MOVED_SLOTS);
             if (!names && !titles) {
                 watchLayouts(false);
                 return;
             }
             watchLayouts(true);
-            centerAll(decor, names, titles, atStart());
+            centerAll(decor, names, titles, start);
         } catch (Throwable failure) {
             HookStatus.threw(FamilyNames.REELS_TAB, "profile name", failure);
         }
@@ -224,6 +249,10 @@ public final class ProfileTitle {
         int areaId = id(root.getContext(), TITLE_AREA_ID);
         int titleId = id(root.getContext(), TITLE_ID);
         int homeId = id(root.getContext(), HOME_BAR_ID);
+        if (titles && start) {
+            startOwnBar(root, INBOX_BAR_ID, INBOX_TITLE_ID);
+            startOwnBar(root, REELS_BAR_ID, REELS_TITLE_ID);
+        }
         // Most layouts are in windows with neither bar, which this answers quickly.
         boolean profiles = names && barId != 0 && containerId != 0 && root.findViewById(barId) != null;
         boolean screens = titles && sharedId != 0 && areaId != 0 && titleId != 0 && root.findViewById(areaId) != null;
@@ -275,6 +304,136 @@ public final class ProfileTitle {
         if (shift(group, titleOffset(bar, area, group, start), MOVED_TITLES)) {
             HookStatus.counted(FamilyNames.REELS_TAB, start ? COUNT_TITLE_AT_START : COUNT_TITLE_CENTERED);
         }
+    }
+
+    /**
+     * Moves the slot holding the title [titleName] of the bar [barName] shown in [root] to the bar's
+     * start ({@link #ownBarOffset}). A bar showing no title gets its slot back. A hidden bar keeps
+     * its slot where it is, and is looked at again once it shows.
+     */
+    private static void startOwnBar(View root, String barName, String titleName) {
+        int barId = id(root.getContext(), barName);
+        int titleId = id(root.getContext(), titleName);
+        if (barId == 0 || titleId == 0) return;
+        View found = root.findViewById(barId);
+        if (found == null) return;
+        // A tab kept in the background holds a bar of its own, which can come first.
+        if (!shownWithin(found, root)) found = shownWithId(root, barId);
+        if (!(found instanceof ViewGroup)) return;
+        ViewGroup bar = (ViewGroup) found;
+        View title = bar.findViewById(titleId);
+        View slot = title == null || title == bar ? null : childHolding(bar, title);
+        if (slot == null) return;
+        if (title.getWidth() <= 0 || !shownWithin(title, bar)) {
+            restore(slot, MOVED_SLOTS);
+            return;
+        }
+        if (shift(slot, ownBarOffset(bar, slot, title), MOVED_SLOTS)) {
+            HookStatus.counted(FamilyNames.REELS_TAB, COUNT_TITLE_AT_START);
+        }
+    }
+
+    /** The first view in [root] with [id] whose every parent is shown, or null. */
+    @Nullable
+    private static View shownWithId(View root, int id) {
+        ArrayDeque<View> pending = new ArrayDeque<>();
+        pending.add(root);
+        int seen = 0;
+        while (!pending.isEmpty() && seen++ < MAX_VIEWS) {
+            View view = pending.poll();
+            if (view.getVisibility() != View.VISIBLE) continue;
+            if (view.getId() == id) return view;
+            if (view instanceof ViewGroup) {
+                ViewGroup group = (ViewGroup) view;
+                for (int i = 0; i < group.getChildCount(); i++) pending.add(group.getChildAt(i));
+            }
+        }
+        return null;
+    }
+
+    /**
+     * How far [slot], the child of [bar] holding [title] (or the title itself), moves so what it shows
+     * begins at the bar's start: right after what the bar shows before it, or with nothing there as
+     * far in from the start edge as the button nearest the end edge draws its icon from that edge,
+     * or {@link HomeLogo#EDGE_DP} with no button either. On the right in a right to left bar. Only
+     * toward the start, so zero when it already begins there. From layout positions, so it's the
+     * same however often asked.
+     */
+    static int ownBarOffset(ViewGroup bar, View slot, View title) {
+        int width = bar.getWidth();
+        if (width <= 0 || slot.getWidth() <= 0) return 0;
+        int[] shows;
+        if (title != slot) {
+            int at = leftIn(title, slot);
+            if (at == Integer.MIN_VALUE) return 0;
+            shows = new int[] {at, at + title.getWidth()};
+        } else {
+            shows = slot instanceof ViewGroup ? span((ViewGroup) slot) : new int[] {0, slot.getWidth()};
+        }
+        if (shows == null) return 0;
+        boolean rtl = rightToLeft(bar);
+        // Distances from here on run in from the bar's start edge: its left, or its right in a right to left bar.
+        int near = rtl ? width - slot.getLeft() - shows[1] : slot.getLeft() + shows[0];
+        int before = -1;
+        int room = -1;
+        for (int i = 0; i < bar.getChildCount(); i++) {
+            View child = bar.getChildAt(i);
+            if (child == slot || child.getVisibility() != View.VISIBLE || child.getWidth() <= 0) continue;
+            boolean ahead = rtl ? child.getLeft() >= slot.getRight() : child.getRight() <= slot.getLeft();
+            boolean after = rtl ? child.getRight() <= slot.getLeft() : child.getLeft() >= slot.getRight();
+            if (!ahead && !after) continue;
+            for (View piece : pieces(child)) {
+                int left = child.getLeft() + (piece == child ? 0 : piece.getLeft());
+                int right = left + piece.getWidth();
+                if (ahead) {
+                    before = Math.max(before, rtl ? width - left : right);
+                } else {
+                    int drawn = (rtl ? left : width - right) + drawnEndInset(piece, rtl);
+                    if (room < 0 || drawn < room) room = drawn;
+                }
+            }
+        }
+        int target = before >= 0 ? before : room >= 0 ? room
+                : Math.round(HomeLogo.EDGE_DP * bar.getResources().getDisplayMetrics().density);
+        if (near <= target) return 0;
+        return rtl ? near - target : target - near;
+    }
+
+    /**
+     * What [child] of a bar shows: its shown children when it's a group, as a row of buttons is, so
+     * a row whose buttons are all gone shows nothing, or else the child itself.
+     */
+    private static List<View> pieces(View child) {
+        List<View> pieces = new ArrayList<>();
+        if (!(child instanceof ViewGroup)) {
+            pieces.add(child);
+            return pieces;
+        }
+        ViewGroup row = (ViewGroup) child;
+        for (int i = 0; i < row.getChildCount(); i++) {
+            View piece = row.getChildAt(i);
+            if (piece.getVisibility() == View.VISIBLE && piece.getWidth() > 0) pieces.add(piece);
+        }
+        return pieces;
+    }
+
+    /**
+     * How far in from its end edge [view] draws its icon: an image's drawn picture, as the new message
+     * button's, or else {@link HomeLogo#contentEndInset}. The end edge is the left with [rtl].
+     */
+    static int drawnEndInset(View view, boolean rtl) {
+        if (view instanceof ImageView && view.isLaidOut()) {
+            ImageView image = (ImageView) view;
+            Drawable picture = image.getDrawable();
+            if (picture != null && picture.getBounds().width() > 0) {
+                float[] values = new float[9];
+                image.getImageMatrix().getValues(values);
+                float left = image.getPaddingLeft() + values[Matrix.MTRANS_X];
+                float right = left + picture.getBounds().width() * values[Matrix.MSCALE_X];
+                return Math.max(0, Math.round(rtl ? left : image.getWidth() - right));
+            }
+        }
+        return HomeLogo.contentEndInset(view);
     }
 
     /**
@@ -527,6 +686,7 @@ public final class ProfileTitle {
         leave();
         MOVED.clear();
         MOVED_TITLES.clear();
+        MOVED_SLOTS.clear();
         UNCLIPPED.clear();
     }
 }
