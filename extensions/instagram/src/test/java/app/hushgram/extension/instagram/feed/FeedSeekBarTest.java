@@ -149,6 +149,7 @@ public class FeedSeekBarTest {
         PauseForTests.resume();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
+        Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
         HookStatus.clear();
     }
 
@@ -158,6 +159,7 @@ public class FeedSeekBarTest {
         TabSwipe.forgetForTests();
         Settings.FEED_SEEK_BAR.resetToDefault();
         Settings.FEED_SEEK_BUTTON.resetToDefault();
+        Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -212,6 +214,26 @@ public class FeedSeekBarTest {
         Settings.FEED_SEEK_BUTTON.save(false);
         tick();
         assertNull("the button goes with its switch", button.getParent());
+    }
+
+    /** #471: Seek bar look's choice reaches the bar as it follows the video. */
+    @Test
+    public void theBarTakesSeekBarLook() {
+        Settings.FEED_SEEK_BAR.save(true);
+        FeedSeekBar.progress(player, 3000, 15000);
+        GlassSeekBar bar = (GlassSeekBar) bar();
+        assertEquals("solid to start, as the bar always was", OverlayLook.SOLID, bar.look());
+
+        Settings.FEED_SEEK_BAR_LOOK.save(OverlayLook.SEE_THROUGH);
+        FeedSeekBar.progress(player, 4000, 15000);
+        tick();
+        assertEquals(OverlayLook.SEE_THROUGH, bar.look());
+        assertSame("the same bar, restyled", bar, FeedSeekBar.barForTests());
+
+        Settings.FEED_SEEK_BAR_LOOK.save(OverlayLook.SOLID);
+        FeedSeekBar.progress(player, 5000, 15000);
+        tick();
+        assertEquals(OverlayLook.SOLID, bar.look());
     }
 
     @Test

@@ -108,6 +108,7 @@ import app.hushgram.extension.instagram.feed.AmbientSpeed;
 import app.hushgram.extension.instagram.feed.AmbientSpread;
 import app.hushgram.extension.instagram.feed.CornerSize;
 import app.hushgram.extension.instagram.feed.LikeAnimation;
+import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.misc.CustomIcon;
 import app.hushgram.extension.instagram.misc.HeaderPicture;
 import app.hushgram.extension.instagram.misc.HeaderText;
@@ -684,6 +685,9 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
                             || Settings.TAP_TO_PLAY_AUTO_SCROLL_WAITS.key.equals(key));
                     belongs |= family == PatchFamily.STORY_TIME && Settings.STORY_TIME_MODE.key.equals(key);
                     belongs |= family == PatchFamily.STORY_MENTIONS && Settings.STORY_MENTIONS_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.CAROUSEL_ARROWS && Settings.CAROUSEL_PILL_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.FEED_SEEK_BAR && Settings.FEED_SEEK_BAR_LOOK.key.equals(key);
+                    belongs |= family == PatchFamily.STORY_SEEK_BAR && Settings.STORY_SEEK_BAR_LOOK.key.equals(key);
                     belongs |= family == PatchFamily.REEL_POST_TIME && (Settings.REEL_POST_TIME_SECONDS.key.equals(key)
                             || Settings.REEL_POST_TIME_AGO.key.equals(key));
                     belongs |= family == PatchFamily.FRIENDSHIP_STATUS && Settings.FOLLOW_LABEL_PLACE.key.equals(key);
@@ -5545,6 +5549,72 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
         }
     }
 
+    /** How Page dots on a pill's pill looks (#471). */
+    static OverlayLookRow carouselPillLookRow(Context context) {
+        return overlayLookRow(context, Settings.CAROUSEL_PILL_LOOK, L10n.t("Pill look"), new String[] {
+                L10n.t("A light pill with dark dots, as it's always been."),
+                L10n.t("A see-through dark pill with white dots, so more of the photo shows."),
+                L10n.t("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead."),
+        }, L10n.t("Turn on Page dots on a pill to use this choice."));
+    }
+
+    /** How the seek bar on feed videos looks (#471). */
+    static OverlayLookRow feedSeekBarLookRow(Context context) {
+        return overlayLookRow(context, Settings.FEED_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
+                L10n.t("Turn on Seek bar on feed videos or its button to use this choice."));
+    }
+
+    /** How the seek bar on stories looks (#471). */
+    static OverlayLookRow storySeekBarLookRow(Context context) {
+        return overlayLookRow(context, Settings.STORY_SEEK_BAR_LOOK, L10n.t("Seek bar look"), seekBarLookSummaries(),
+                L10n.t("Turn on Seek bar on stories to use this choice."));
+    }
+
+    /** What a seek bar looks like with each {@link OverlayLook}, in their order. */
+    private static String[] seekBarLookSummaries() {
+        return new String[] {
+                L10n.t("A white bar and handle, as they've always been."),
+                L10n.t("A fainter bar and handle, so more of the video shows through."),
+                L10n.t("A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead."),
+        };
+    }
+
+    /**
+     * A choice of [setting]'s look, titled [title], with [summaries] saying what each look is in their order
+     * and [needs] shown while its switch is off. Its values are the looks' own names.
+     */
+    static OverlayLookRow overlayLookRow(Context context, EnumSetting<OverlayLook> setting, String title,
+            String[] summaries, String needs) {
+        OverlayLookRow row = new OverlayLookRow(context, setting, summaries, needs);
+        row.setKey(setting.key);
+        row.setTitle(title);
+        row.setDialogTitle(title);
+        row.setNegativeButtonText(L10n.t("Cancel"));
+        OverlayLook[] looks = OverlayLook.values();
+        CharSequence[] entries = new CharSequence[looks.length];
+        CharSequence[] values = new CharSequence[looks.length];
+        for (int i = 0; i < looks.length; i++) {
+            entries[i] = overlayLookLabel(looks[i]);
+            values[i] = looks[i].name();
+        }
+        row.setEntries(entries);
+        row.setEntryValues(values);
+        row.setValue(setting.savedValue().name());
+        return row;
+    }
+
+    /** What the list calls [look]. */
+    static String overlayLookLabel(OverlayLook look) {
+        switch (look) {
+            case SEE_THROUGH:
+                return L10n.t("See-through");
+            case FROSTED:
+                return L10n.t("Frosted glass");
+            default:
+                return L10n.t("Solid");
+        }
+    }
+
     /** Where the mention pill goes and what it says (#468). Its values are the setting's own names. */
     static StoryMentionsLookRow storyMentionsLookRow(Context context) {
         StoryMentionsLookRow row = new StoryMentionsLookRow(context);
@@ -5773,6 +5843,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) preference).showSummary();
         } else if (preference instanceof StoryMentionsLookRow) {
             ((StoryMentionsLookRow) preference).showSummary();
+        } else if (preference instanceof OverlayLookRow) {
+            ((OverlayLookRow) preference).showSummary();
         } else if (preference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) preference).showSummary();
         } else if (preference instanceof HiddenBarsRow) {
@@ -5820,6 +5892,8 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             ((StoryTimeModeRow) listPreference).showSummary();
         } else if (listPreference instanceof StoryMentionsLookRow) {
             ((StoryMentionsLookRow) listPreference).showSummary();
+        } else if (listPreference instanceof OverlayLookRow) {
+            ((OverlayLookRow) listPreference).showSummary();
         } else if (listPreference instanceof FollowLabelPlaceRow) {
             ((FollowLabelPlaceRow) listPreference).showSummary();
         } else if (listPreference instanceof HiddenBarsRow) {
@@ -8318,6 +8392,49 @@ public final class HushgramPreferenceFragment extends AbstractPreferenceFragment
             setSummary(Settings.FULL_SCREEN_HIDES.isAvailable()
                     ? hiddenBarsSummary(bars)
                     : L10n.t("Turn on Full screen Reels, Full screen Home or Full screen Messages to use this choice."));
+        }
+
+        @Override
+        protected void onBindView(View view) {
+            super.onBindView(view);
+            showAllText(view);
+            ScreenColors.row(view, this);
+            view.setAccessibilityDelegate(new RowSemantics(this, Button.class));
+        }
+
+        /** Its list takes the screen's colours, as the other rows' dialogs do. */
+        @Override
+        protected void showDialog(Bundle state) {
+            super.showDialog(state);
+            if (getDialog() instanceof AlertDialog) ScreenColors.dialog((AlertDialog) getDialog());
+        }
+    }
+
+    static final class OverlayLookRow extends ListPreference {
+        private final EnumSetting<OverlayLook> setting;
+        private final String[] summaries;
+        private final String needs;
+
+        OverlayLookRow(Context context, EnumSetting<OverlayLook> setting, String[] summaries, String needs) {
+            super(context);
+            this.setting = setting;
+            this.summaries = summaries;
+            this.needs = needs;
+        }
+
+        @Override
+        public void setValue(String value) {
+            super.setValue(value);
+            showSummary();
+        }
+
+        void showSummary() {
+            if (setting == null) return;
+            OverlayLook look = OverlayLook.SOLID;
+            for (OverlayLook candidate : OverlayLook.values()) {
+                if (candidate.name().equals(getValue())) look = candidate;
+            }
+            setSummary(setting.isAvailable() ? summaries[look.ordinal()] : needs);
         }
 
         @Override

@@ -16,6 +16,7 @@ import app.hushgram.extension.instagram.download.FileNameTemplate;
 import app.hushgram.extension.instagram.download.HoldFingers;
 import app.hushgram.extension.instagram.download.HoldTime;
 import app.hushgram.extension.instagram.download.SaveFolder;
+import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.media.PlaybackQuality;
 import app.hushgram.extension.instagram.media.TapToPlayScope;
 import app.hushgram.extension.instagram.profile.ProfileTabs;
@@ -396,6 +397,15 @@ public class Settings extends BaseSettings {
             new BooleanSetting("hushgram_feed_seek_button", FALSE);
 
     /**
+     * How the seek bar on feed videos looks (#471, {@link app.hushgram.extension.instagram.feed.GlassSeekBar}):
+     * solid white, as it always was, see-through, or white on frosted glass that blurs the video under it.
+     * Starts solid. Read as the bar updates. Either switch above it gives it a bar to dress, since
+     * {@link #FEED_SEEK_BUTTON} shows the bar with {@link #FEED_SEEK_BAR} off.
+     */
+    public static final EnumSetting<OverlayLook> FEED_SEEK_BAR_LOOK =
+            new EnumSetting<>("hushgram_feed_seek_bar_look", OverlayLook.SOLID, parentsAny(FEED_SEEK_BAR, FEED_SEEK_BUTTON));
+
+    /**
      * A long press on a feed photo shows it zoomed in around the finger until the finger lifts, in
      * place of Instagram's own long press there ({@link app.hushgram.extension.instagram.feed.LongPressZoom}).
      * Off to start.
@@ -463,6 +473,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting CAROUSEL_DOTS_PILL =
             new BooleanSetting("hushgram_carousel_dots_pill", FALSE);
+
+    /**
+     * How {@link #CAROUSEL_DOTS_PILL}'s pill looks (#471): solid, as it always was, see-through, or frosted
+     * glass that blurs the page under it. Starts solid, so no one's pill changes until they pick. Read as
+     * each frame is about to draw. It isn't a switch: the switch above it is.
+     */
+    public static final EnumSetting<OverlayLook> CAROUSEL_PILL_LOOK =
+            new EnumSetting<>("hushgram_carousel_pill_look", OverlayLook.SOLID, parent(CAROUSEL_DOTS_PILL));
 
     /**
      * A soft glow in a post's or a reel's own colors around it ({@link app.hushgram.extension.instagram.feed.AmbientLight},
@@ -1070,6 +1088,14 @@ public class Settings extends BaseSettings {
      */
     public static final BooleanSetting STORY_SEEK_BAR =
             new BooleanSetting("hushgram_story_seek_bar", FALSE);
+
+    /**
+     * How {@link #STORY_SEEK_BAR}'s bar looks (#471, {@link app.hushgram.extension.instagram.feed.GlassSeekBar}):
+     * solid white, as it always was, see-through, or white on frosted glass that blurs the story under it.
+     * Starts solid. Read as the bar updates. It isn't a switch: the switch above it is.
+     */
+    public static final EnumSetting<OverlayLook> STORY_SEEK_BAR_LOOK =
+            new EnumSetting<>("hushgram_story_seek_bar_look", OverlayLook.SOLID, parent(STORY_SEEK_BAR));
 
     /**
      * A speed button in a video story's header that plays it at 1x, 1.5x or 2x, kept for the next

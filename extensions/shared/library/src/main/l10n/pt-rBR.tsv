@@ -1612,3 +1612,22 @@ The pill sits in the top bar next to the menu and shows only the count, like @1.
 Turn on See who a story mentions to use this choice.	Ative Ver quem um story menciona para usar esta opção.
 Story mentions	Menções do story
 Accounts mentioned in this story	Contas mencionadas neste story
+# context: Feed settings: picks how the carousel page-dots pill looks (#471)
+Pill look	Visual da pílula
+# context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
+Seek bar look	Visual da barra de busca
+# context: a look for the page-dots pill and the seek bars: opaque, as before
+Solid	Sólido
+# context: a look for the page-dots pill and the seek bars: partly transparent
+See-through	Transparente
+# context: a look for the page-dots pill and the seek bars: blurs what's under it
+Frosted glass	Vidro fosco
+A light pill with dark dots, as it's always been.	Uma pílula clara com pontos escuros, como sempre foi.
+A see-through dark pill with white dots, so more of the photo shows.	Uma pílula escura transparente com pontos brancos, para mostrar mais da foto.
+A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Uma pílula de vidro fosco que desfoca a foto embaixo. Antes do Android 12 ela fica transparente.
+Turn on Page dots on a pill to use this choice.	Ative Pontos de página em uma pílula para usar esta opção.
+Turn on Seek bar on feed videos or its button to use this choice.	Ative Barra de busca nos vídeos do feed ou o botão dela para usar esta opção.
+Turn on Seek bar on stories to use this choice.	Ative Barra de busca nos stories para usar esta opção.
+A white bar and handle, as they've always been.	Barra e marcador brancos, como sempre foram.
+A fainter bar and handle, so more of the video shows through.	Barra e marcador mais suaves, para mostrar mais do vídeo.
+A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	Uma barra branca sobre uma faixa de vidro fosco que desfoca o vídeo embaixo. Antes do Android 12 a faixa fica transparente.

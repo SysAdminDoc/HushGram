@@ -108,6 +108,39 @@ public class ChildControlAvailabilityTest {
         }
     }
 
+    @Test public void pillLookKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.CAROUSEL_PILL_LOOK.save(app.hushgram.extension.instagram.feed.OverlayLook.FROSTED);
+        try {
+            checkParent(Settings.CAROUSEL_DOTS_PILL, Settings.CAROUSEL_PILL_LOOK, PatchFamily.CAROUSEL_ARROWS,
+                    "Turn on Page dots on a pill to use this choice.", "FROSTED");
+        } finally {
+            Settings.CAROUSEL_DOTS_PILL.resetToDefault();
+            Settings.CAROUSEL_PILL_LOOK.resetToDefault();
+        }
+    }
+
+    @Test public void feedSeekBarLookKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.FEED_SEEK_BAR_LOOK.save(app.hushgram.extension.instagram.feed.OverlayLook.SEE_THROUGH);
+        try {
+            checkParent(Settings.FEED_SEEK_BAR, Settings.FEED_SEEK_BAR_LOOK, PatchFamily.FEED_SEEK_BAR,
+                    "Turn on Seek bar on feed videos or its button to use this choice.", "SEE_THROUGH");
+        } finally {
+            Settings.FEED_SEEK_BAR.resetToDefault();
+            Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
+        }
+    }
+
+    @Test public void storySeekBarLookKeepsItsSavedChoiceAcrossParentChanges() {
+        Settings.STORY_SEEK_BAR_LOOK.save(app.hushgram.extension.instagram.feed.OverlayLook.FROSTED);
+        try {
+            checkParent(Settings.STORY_SEEK_BAR, Settings.STORY_SEEK_BAR_LOOK, PatchFamily.STORY_SEEK_BAR,
+                    "Turn on Seek bar on stories to use this choice.", "FROSTED");
+        } finally {
+            Settings.STORY_SEEK_BAR.resetToDefault();
+            Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
+        }
+    }
+
     @Test public void playbackKeepsItsSavedChoiceAcrossParentChanges() {
         Settings.PLAYBACK_QUALITY.save(PlaybackQuality.HIGHEST);
         checkParent(Settings.DEFAULT_PLAYBACK_QUALITY, Settings.PLAYBACK_QUALITY, PatchFamily.PLAYBACK_QUALITY,

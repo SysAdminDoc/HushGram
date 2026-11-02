@@ -1612,3 +1612,22 @@ The pill sits in the top bar next to the menu and shows only the count, like @1.
 Turn on See who a story mentions to use this choice.	Attiva Guarda chi menziona una storia per usare questa scelta.
 Story mentions	Menzioni della storia
 Accounts mentioned in this story	Account menzionati in questa storia
+# context: Feed settings: picks how the carousel page-dots pill looks (#471)
+Pill look	Aspetto della pillola
+# context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
+Seek bar look	Aspetto della barra di scorrimento
+# context: a look for the page-dots pill and the seek bars: opaque, as before
+Solid	Pieno
+# context: a look for the page-dots pill and the seek bars: partly transparent
+See-through	Trasparente
+# context: a look for the page-dots pill and the seek bars: blurs what's under it
+Frosted glass	Vetro smerigliato
+A light pill with dark dots, as it's always been.	Una pillola chiara con puntini scuri, come sempre.
+A see-through dark pill with white dots, so more of the photo shows.	Una pillola scura trasparente con puntini bianchi, così si vede più foto.
+A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Una pillola di vetro smerigliato che sfoca la foto sotto. Prima di Android 12 è invece trasparente.
+Turn on Page dots on a pill to use this choice.	Attiva Puntini di pagina su una pillola per usare questa scelta.
+Turn on Seek bar on feed videos or its button to use this choice.	Attiva Barra di scorrimento nei video del feed o il suo pulsante per usare questa scelta.
+Turn on Seek bar on stories to use this choice.	Attiva Barra di scorrimento nelle storie per usare questa scelta.
+A white bar and handle, as they've always been.	Barra e cursore bianchi, come sempre.
+A fainter bar and handle, so more of the video shows through.	Barra e cursore più tenui, così si vede più video.
+A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	Una barra bianca su una striscia di vetro smerigliato che sfoca il video sotto. Prima di Android 12 la striscia è invece trasparente.

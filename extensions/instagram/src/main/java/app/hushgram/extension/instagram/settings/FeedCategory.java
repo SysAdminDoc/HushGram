@@ -8,8 +8,10 @@ package app.hushgram.extension.instagram.settings;
 
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ambientSpeedRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.ambientSpreadRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.carouselPillLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.category;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.cornerSizeRow;
+import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.feedSeekBarLookRow;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.onFlip;
 import static app.hushgram.extension.instagram.settings.HushgramPreferenceFragment.toggle;
 
@@ -204,6 +206,7 @@ final class FeedCategory {
             feed.addPreference(toggle(context, Settings.FEED_SEEK_BUTTON, L10n.t("Seek bar button on feed videos"),
                     L10n.t("Adds a small button at the bottom left of a feed video that shows or hides its seek bar. "
                             + "It works with Seek bar on feed videos on or off.")));
+            feed.addPreference(feedSeekBarLookRow(context));
         }
         if (longPressZoom) {
             feed.addPreference(toggle(context, Settings.LONG_PRESS_TO_ZOOM, L10n.t("Long press a photo to zoom"),
@@ -237,6 +240,7 @@ final class FeedCategory {
             feed.addPreference(onFlip(toggle(context, Settings.CAROUSEL_DOTS_PILL, L10n.t("Page dots on a pill"),
                     L10n.t("Moves a carousel post's page dots onto a round pill at the bottom of its photo or video, "
                             + "with the page you're on in blue.")), CarouselArrows::switchChanged));
+            feed.addPreference(carouselPillLookRow(context));
         }
         if (ambientLight) {
             feed.addPreference(onFlip(toggle(context, Settings.AMBIENT_LIGHT, L10n.t("Ambient light"),

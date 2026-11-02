@@ -33,6 +33,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import app.hushgram.extension.instagram.feed.GlassSeekBar;
+import app.hushgram.extension.instagram.feed.OverlayLook;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.SettingsContextRule;
 import app.hushgram.extension.shared.diagnostics.HookStatus;
@@ -97,6 +99,7 @@ public class StorySeekBarTest {
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         Settings.STORY_SEEK_BAR.resetToDefault();
+        Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         HookStatus.clear();
     }
 
@@ -104,6 +107,7 @@ public class StorySeekBarTest {
     public void restore() {
         StorySeekBar.resetForTests();
         Settings.STORY_SEEK_BAR.resetToDefault();
+        Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -152,6 +156,20 @@ public class StorySeekBarTest {
         assertEquals(Gravity.BOTTOM, params.gravity);
         assertEquals("just above the 120 pixel Send message box", 120, params.bottomMargin);
         assertTrue(player.calls.isEmpty());
+    }
+
+    /** #471: Seek bar look's choice for stories reaches the bar as it follows the video. */
+    @Test
+    public void theBarTakesSeekBarLook() {
+        Settings.STORY_SEEK_BAR.save(true);
+        StorySeekBar.resumed(viewer);
+        GlassSeekBar bar = (GlassSeekBar) bar();
+        assertEquals("solid to start, as the bar always was", OverlayLook.SOLID, bar.look());
+
+        Settings.STORY_SEEK_BAR_LOOK.save(OverlayLook.SEE_THROUGH);
+        tick();
+        assertEquals(OverlayLook.SEE_THROUGH, bar.look());
+        assertSame("the same bar, restyled", bar, StorySeekBar.barForTests());
     }
 
     @Test

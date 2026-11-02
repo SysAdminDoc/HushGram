@@ -4,8 +4,6 @@
  */
 package app.hushgram.extension.instagram.stories;
 
-import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +15,7 @@ import androidx.annotation.VisibleForTesting;
 
 import java.lang.ref.WeakReference;
 
+import app.hushgram.extension.instagram.feed.GlassSeekBar;
 import app.hushgram.extension.instagram.settings.FamilyNames;
 import app.hushgram.extension.instagram.settings.Settings;
 import app.hushgram.extension.shared.Logger;
@@ -146,7 +145,7 @@ public final class StorySeekBar {
     /** One viewer's bar and its ticking. */
     private static final class Overlay implements SeekBar.OnSeekBarChangeListener, Runnable {
         final WeakReference<Object> viewer;
-        @Nullable SeekBar bar;
+        @Nullable GlassSeekBar bar;
         @Nullable WeakReference<View> composer;
         boolean dragging;
         boolean removed;
@@ -189,8 +188,9 @@ public final class StorySeekBar {
                 hide(owner);
                 return;
             }
-            SeekBar seek = bar != null ? bar : make(owner);
+            GlassSeekBar seek = bar != null ? bar : make(owner);
             if (seek == null) return;
+            seek.look(Settings.STORY_SEEK_BAR_LOOK.get());
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
                 int position = player.position(owner);
@@ -215,15 +215,12 @@ public final class StorySeekBar {
          * own container draws later.
          */
         @Nullable
-        private SeekBar make(Object owner) {
+        private GlassSeekBar make(Object owner) {
             View view = player.view(owner);
             if (view == null || !(view.getParent() instanceof FrameLayout)) return null;
             FrameLayout container = (FrameLayout) view.getParent();
             HookStatus.invoked(FamilyNames.STORY_SEEK_BAR);
-            SeekBar seek = new SeekBar(view.getContext());
-            seek.setProgressTintList(ColorStateList.valueOf(Color.WHITE));
-            seek.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
-            seek.setProgressBackgroundTintList(ColorStateList.valueOf(0x80FFFFFF));
+            GlassSeekBar seek = new GlassSeekBar(view.getContext(), FamilyNames.STORY_SEEK_BAR, HOOK);
             seek.setOnSeekBarChangeListener(this);
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, dp(view, HEIGHT_DP), Gravity.BOTTOM);

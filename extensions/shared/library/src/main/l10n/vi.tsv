@@ -1529,3 +1529,22 @@ The pill sits in the top bar next to the menu and shows only the count, like @1.
 Turn on See who a story mentions to use this choice.	Hãy bật Xem tin nhắc đến ai để dùng lựa chọn này.
 Story mentions	Lượt nhắc trong tin
 Accounts mentioned in this story	Các tài khoản được nhắc trong tin này
+# context: Feed settings: picks how the carousel page-dots pill looks (#471)
+Pill look	Kiểu viên thuốc
+# context: Feed and Stories settings: picks how the seek bar over a video looks (#471)
+Seek bar look	Kiểu thanh tua
+# context: a look for the page-dots pill and the seek bars: opaque, as before
+Solid	Đặc
+# context: a look for the page-dots pill and the seek bars: partly transparent
+See-through	Trong suốt
+# context: a look for the page-dots pill and the seek bars: blurs what's under it
+Frosted glass	Kính mờ
+A light pill with dark dots, as it's always been.	Viên thuốc sáng màu với chấm tối, như trước giờ.
+A see-through dark pill with white dots, so more of the photo shows.	Viên thuốc tối trong suốt với chấm trắng, để thấy rõ ảnh hơn.
+A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.	Viên thuốc kính mờ làm nhòe ảnh bên dưới. Trước Android 12, viên thuốc chỉ trong suốt.
+Turn on Page dots on a pill to use this choice.	Hãy bật Chấm trang trên viên thuốc để dùng lựa chọn này.
+Turn on Seek bar on feed videos or its button to use this choice.	Hãy bật Thanh tua trên video bảng feed hoặc nút của nó để dùng lựa chọn này.
+Turn on Seek bar on stories to use this choice.	Hãy bật Thanh tua trên tin để dùng lựa chọn này.
+A white bar and handle, as they've always been.	Thanh và nút kéo màu trắng, như trước giờ.
+A fainter bar and handle, so more of the video shows through.	Thanh và nút kéo nhạt hơn, để thấy rõ video hơn.
+A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.	Thanh trắng trên một dải kính mờ làm nhòe video bên dưới. Trước Android 12, dải này chỉ trong suốt.

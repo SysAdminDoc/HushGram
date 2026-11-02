@@ -5,7 +5,6 @@
 package app.hushgram.extension.instagram.feed;
 
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -154,7 +153,7 @@ public final class FeedSeekBar {
     /** One player's bar and its ticking. */
     private static final class Overlay implements SeekBar.OnSeekBarChangeListener, View.OnTouchListener, Runnable {
         final WeakReference<Object> player;
-        @Nullable SeekBar bar;
+        @Nullable GlassSeekBar bar;
         @Nullable Toggle button;
         int position;
         int duration;
@@ -203,7 +202,8 @@ public final class FeedSeekBar {
                 hide();
                 return;
             }
-            SeekBar seek = bar != null && bar.getParent() == frame ? bar : attach(frame, view);
+            GlassSeekBar seek = bar != null && bar.getParent() == frame ? bar : attach(frame, view);
+            seek.look(Settings.FEED_SEEK_BAR_LOOK.get());
             hiddenSince = -1;
             if (!dragging) {
                 if (seek.getMax() != duration) seek.setMax(duration);
@@ -281,14 +281,11 @@ public final class FeedSeekBar {
          * The bar, moved to [frame] just after [view]: over the video and taking touches before it,
          * under the rest of what Instagram draws there.
          */
-        private SeekBar attach(FrameLayout frame, View view) {
-            SeekBar seek = bar;
+        private GlassSeekBar attach(FrameLayout frame, View view) {
+            GlassSeekBar seek = bar;
             if (seek == null) {
                 HookStatus.invoked(FamilyNames.FEED_SEEK_BAR);
-                seek = new SeekBar(view.getContext());
-                seek.setProgressTintList(ColorStateList.valueOf(Color.WHITE));
-                seek.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
-                seek.setProgressBackgroundTintList(ColorStateList.valueOf(0x80FFFFFF));
+                seek = new GlassSeekBar(view.getContext(), FamilyNames.FEED_SEEK_BAR, HOOK);
                 seek.setOnSeekBarChangeListener(this);
                 seek.setOnTouchListener(this);
                 bar = seek;

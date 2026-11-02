@@ -1,0 +1,187 @@
+/*
+ * Copyright 2026 HushGram contributors
+ * https://github.com/SysAdminDoc/HushGram
+ */
+package app.hushgram.extension.instagram.settings;
+
+import static org.junit.Assert.*;
+import android.app.Activity;
+import android.preference.Preference;
+import android.preference.PreferenceGroup;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
+import org.robolectric.android.controller.ActivityController;
+import org.robolectric.annotation.Config;
+import org.robolectric.shadows.ShadowLooper;
+import app.hushgram.extension.shared.SettingsContextRule;
+import app.hushgram.extension.shared.Utils;
+import app.hushgram.extension.shared.settings.BaseSettings;
+import app.hushgram.extension.shared.settings.EnumSetting;
+import app.hushgram.extension.shared.settings.PauseForTests;
+import app.hushgram.extension.instagram.feed.OverlayLook;
+
+/**
+ * Pill look and the two Seek bar looks (#471): each sits right under the switch it styles, starts solid,
+ * offers see-through and frosted glass, asks for its switch while that's off and travels with an
+ * exported configuration.
+ */
+@RunWith(RobolectricTestRunner.class)
+@Config(sdk = {28, 37})
+@SuppressWarnings("deprecation")
+public class OverlayLookSettingsTest {
+    @Rule public final SettingsContextRule settings = new SettingsContextRule();
+    private ActivityController<Activity> controller;
+    private HushgramPreferenceFragment page;
+
+    @Before public void prepare() {
+        RuntimeEnvironment.getApplication().getApplicationInfo().targetSdkVersion = 37;
+        reset();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        BaseSettings.SAFE_MODE.save(false);
+        Settings.SIGN_IN_NOTICE_HIDDEN.save(true);
+    }
+
+    @After public void close() throws Exception {
+        if (controller != null) controller.close();
+        Utils.awaitBackgroundTasksForTests();
+        PatchFamily.inBuildForTests = null;
+        reset();
+        BaseSettings.PAUSED.save(false);
+        PauseForTests.resume();
+        Settings.SIGN_IN_NOTICE_HIDDEN.resetToDefault();
+    }
+
+    private static void reset() {
+        Settings.CAROUSEL_DOTS_PILL.resetToDefault();
+        Settings.CAROUSEL_PILL_LOOK.resetToDefault();
+        Settings.FEED_SEEK_BAR.resetToDefault();
+        Settings.FEED_SEEK_BUTTON.resetToDefault();
+        Settings.FEED_SEEK_BAR_LOOK.resetToDefault();
+        Settings.STORY_SEEK_BAR.resetToDefault();
+        Settings.STORY_SEEK_BAR_LOOK.resetToDefault();
+    }
+
+    private void open(EnumSet<PatchFamily> build) throws Exception {
+        PatchFamily.inBuildForTests = build;
+        controller = Robolectric.buildActivity(Activity.class).setup();
+        page = new HushgramPreferenceFragment();
+        controller.get().getFragmentManager().beginTransaction().add(android.R.id.content, page).commitNow();
+        Utils.awaitBackgroundTasksForTests();
+    }
+
+    /** The look row for [setting], checked to sit right under [above] in [section]. */
+    private HushgramPreferenceFragment.OverlayLookRow rowUnder(EnumSetting<OverlayLook> setting, String above, String section) {
+        Preference found = page.getPreferenceScreen().findPreference(setting.key);
+        assertTrue("no look to pick with the patch in the build", found instanceof HushgramPreferenceFragment.OverlayLookRow);
+        HushgramPreferenceFragment.OverlayLookRow row = (HushgramPreferenceFragment.OverlayLookRow) found;
+        PreferenceGroup group = (PreferenceGroup) row.getParent();
+        assertEquals(section, String.valueOf(group.getTitle()));
+        int aboveAt = -1;
+        for (int i = 0; i < group.getPreferenceCount(); i++) {
+            if (above.equals(group.getPreference(i).getKey())) aboveAt = i;
+        }
+        assertTrue("its switch is in the same section", aboveAt >= 0);
+        assertEquals("right under its switch", row, group.getPreference(aboveAt + 1));
+        List<String> entries = new ArrayList<>();
+        for (CharSequence entry : row.getEntries()) entries.add(String.valueOf(entry));
+        assertEquals(Arrays.asList("Solid", "See-through", "Frosted glass"), entries);
+        List<String> values = new ArrayList<>();
+        for (CharSequence value : row.getEntryValues()) values.add(String.valueOf(value));
+        assertEquals(Arrays.asList("SOLID", "SEE_THROUGH", "FROSTED"), values);
+        assertEquals("SOLID", row.getValue());
+        return row;
+    }
+
+    @Test public void missingPatchesHaveNoLooks() throws Exception {
+        open(EnumSet.noneOf(PatchFamily.class));
+        for (EnumSetting<OverlayLook> each : Arrays.asList(Settings.CAROUSEL_PILL_LOOK, Settings.FEED_SEEK_BAR_LOOK,
+                Settings.STORY_SEEK_BAR_LOOK)) {
+            assertNull(each.key, page.getPreferenceScreen().findPreference(each.key));
+            assertFalse(each.key, ConfigurationBackup.eligible().containsKey(each.key));
+        }
+    }
+
+    @Test public void pillLookSitsUnderThePillSwitchAndSaysWhatEachLookIs() throws Exception {
+        Settings.CAROUSEL_DOTS_PILL.save(true);
+        open(EnumSet.of(PatchFamily.CAROUSEL_ARROWS));
+        HushgramPreferenceFragment.OverlayLookRow row = rowUnder(Settings.CAROUSEL_PILL_LOOK, Settings.CAROUSEL_DOTS_PILL.key, "Feed");
+        assertEquals("Pill look", String.valueOf(row.getTitle()));
+        assertEquals("A light pill with dark dots, as it's always been.", String.valueOf(row.getSummary()));
+
+        row.setValue("SEE_THROUGH");
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverlayLook.SEE_THROUGH, Settings.CAROUSEL_PILL_LOOK.savedValue());
+        assertEquals("A see-through dark pill with white dots, so more of the photo shows.", String.valueOf(row.getSummary()));
+
+        row.setValue("FROSTED");
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverlayLook.FROSTED, Settings.CAROUSEL_PILL_LOOK.savedValue());
+        assertEquals("A frosted glass pill that blurs the photo under it. Before Android 12 it's see-through instead.",
+                String.valueOf(row.getSummary()));
+
+        Settings.CAROUSEL_DOTS_PILL.save(false);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertEquals("Turn on Page dots on a pill to use this choice.", String.valueOf(row.getSummary()));
+        assertEquals(OverlayLook.FROSTED, Settings.CAROUSEL_PILL_LOOK.savedValue());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.CAROUSEL_PILL_LOOK.key));
+    }
+
+    /** The feed's look styles the bar whichever of its two switches shows it, so either one is enough. */
+    @Test public void feedSeekBarLookSitsUnderTheButtonSwitchAndTakesEitherSwitch() throws Exception {
+        Settings.FEED_SEEK_BUTTON.save(true);
+        open(EnumSet.of(PatchFamily.FEED_SEEK_BAR));
+        HushgramPreferenceFragment.OverlayLookRow row = rowUnder(Settings.FEED_SEEK_BAR_LOOK, Settings.FEED_SEEK_BUTTON.key, "Feed");
+        assertEquals("Seek bar look", String.valueOf(row.getTitle()));
+        assertEquals("A white bar and handle, as they've always been.", String.valueOf(row.getSummary()));
+
+        row.setValue("FROSTED");
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverlayLook.FROSTED, Settings.FEED_SEEK_BAR_LOOK.savedValue());
+        assertEquals("A white bar on a strip of frosted glass that blurs the video under it. Before Android 12 the strip is see-through instead.",
+                String.valueOf(row.getSummary()));
+
+        Settings.FEED_SEEK_BUTTON.save(false);
+        Settings.FEED_SEEK_BAR.save(true);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertTrue(Settings.FEED_SEEK_BAR_LOOK.isAvailable());
+
+        Settings.FEED_SEEK_BAR.save(false);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertFalse(Settings.FEED_SEEK_BAR_LOOK.isAvailable());
+        assertEquals("Turn on Seek bar on feed videos or its button to use this choice.", String.valueOf(row.getSummary()));
+        assertEquals(OverlayLook.FROSTED, Settings.FEED_SEEK_BAR_LOOK.savedValue());
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.FEED_SEEK_BAR_LOOK.key));
+    }
+
+    @Test public void storySeekBarLookSitsUnderTheStorySwitch() throws Exception {
+        Settings.STORY_SEEK_BAR.save(true);
+        open(EnumSet.of(PatchFamily.STORY_SEEK_BAR));
+        HushgramPreferenceFragment.OverlayLookRow row = rowUnder(Settings.STORY_SEEK_BAR_LOOK, Settings.STORY_SEEK_BAR.key, "Stories");
+        assertEquals("Seek bar look", String.valueOf(row.getTitle()));
+
+        row.setValue("SEE_THROUGH");
+        ShadowLooper.idleMainLooper();
+        assertEquals(OverlayLook.SEE_THROUGH, Settings.STORY_SEEK_BAR_LOOK.savedValue());
+        assertEquals("A fainter bar and handle, so more of the video shows through.", String.valueOf(row.getSummary()));
+
+        Settings.STORY_SEEK_BAR.save(false);
+        ShadowLooper.idleMainLooper();
+        row.showSummary();
+        assertEquals("Turn on Seek bar on stories to use this choice.", String.valueOf(row.getSummary()));
+        assertTrue(ConfigurationBackup.eligible().containsKey(Settings.STORY_SEEK_BAR_LOOK.key));
+    }
+}

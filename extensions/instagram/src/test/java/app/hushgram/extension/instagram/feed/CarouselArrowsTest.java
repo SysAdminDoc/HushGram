@@ -160,6 +160,7 @@ public class CarouselArrowsTest {
         PauseForTests.resume();
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
+        Settings.CAROUSEL_PILL_LOOK.resetToDefault();
         HookStatus.clear();
     }
 
@@ -180,6 +181,7 @@ public class CarouselArrowsTest {
         CarouselArrows.resetForTests();
         Settings.CAROUSEL_ARROWS.resetToDefault();
         Settings.CAROUSEL_DOTS_PILL.resetToDefault();
+        Settings.CAROUSEL_PILL_LOOK.resetToDefault();
         BaseSettings.PAUSED.save(false);
         PauseForTests.resume();
         HookStatus.clear();
@@ -596,6 +598,42 @@ public class CarouselArrowsTest {
         assertFalse(frame());
         assertEquals(1, pill().at);
         assertFalse(frame());
+    }
+
+    /** #471: Pill look's choice reaches the pill on the next frame, and a frosted pill still shows the page. */
+    @Test
+    public void thePillTakesPillLook() {
+        pillOn();
+        settle();
+        assertEquals("solid to start, as the pill always was", OverlayLook.SOLID, pill().look);
+
+        Settings.CAROUSEL_PILL_LOOK.save(OverlayLook.SEE_THROUGH);
+        assertFalse(frame());
+        assertEquals(OverlayLook.SEE_THROUGH, pill().look);
+
+        Settings.CAROUSEL_PILL_LOOK.save(OverlayLook.FROSTED);
+        assertFalse("the glass holds no frame back", frame());
+        assertEquals(OverlayLook.FROSTED, pill().look);
+        pager.at = 1;
+        assertFalse(frame());
+        assertTrue(shows(pill()));
+        assertEquals(1, pill().at);
+
+        Settings.CAROUSEL_PILL_LOOK.save(OverlayLook.SOLID);
+        assertFalse(frame());
+        assertEquals(OverlayLook.SOLID, pill().look);
+    }
+
+    @Test
+    public void eachPillLookHasItsShadeAndDots() {
+        assertEquals(CarouselArrows.Pill.BACK, CarouselArrows.Pill.back(OverlayLook.SOLID, false));
+        assertEquals(CarouselArrows.Pill.SEE_THROUGH_BACK, CarouselArrows.Pill.back(OverlayLook.SEE_THROUGH, false));
+        assertEquals(CarouselArrows.Pill.FROST_TINT, CarouselArrows.Pill.back(OverlayLook.FROSTED, true));
+        assertEquals("a frosted pill with no blur to draw is see-through",
+                CarouselArrows.Pill.SEE_THROUGH_BACK, CarouselArrows.Pill.back(OverlayLook.FROSTED, false));
+        assertEquals(CarouselArrows.Pill.DARK, CarouselArrows.Pill.otherDot(OverlayLook.SOLID));
+        assertEquals(CarouselArrows.Pill.LIGHT_DOT, CarouselArrows.Pill.otherDot(OverlayLook.SEE_THROUGH));
+        assertEquals(CarouselArrows.Pill.LIGHT_DOT, CarouselArrows.Pill.otherDot(OverlayLook.FROSTED));
     }
 
     @Test
